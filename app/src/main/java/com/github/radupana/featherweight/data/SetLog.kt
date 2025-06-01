@@ -21,8 +21,8 @@ data class SetLog(
     val reps: Int,
     val weight: Float,
     val rpe: Float? = null,
-    val tag: String? = null, // e.g. "warmup", "drop", "failure"
+    val tag: String? = null,
     val notes: String? = null,
     val isCompleted: Boolean = false,
-    val completedAt: String? = null, // ISO8601 datetime as String, nullable
+    val completedAt: String? = null,
 )

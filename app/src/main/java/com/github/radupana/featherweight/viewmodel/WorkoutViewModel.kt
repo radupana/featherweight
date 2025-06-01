@@ -9,8 +9,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
-// A simple repository class for decoupling, can be moved to its own file later
 class FeatherweightRepository(
     application: Application,
 ) {
@@ -27,42 +27,54 @@ class FeatherweightRepository(
     private val exerciseLogDao = db.exerciseLogDao()
     private val setLogDao = db.setLogDao()
 
-    suspend fun insertWorkoutWithExercisesAndSets(
-        exercises: List<Pair<String, List<Triple<Int, Float, Float?>>>>, // List of (exerciseName, [ (reps, weight, rpe) ])
-    ) {
-        val workoutId =
-            workoutDao.insertWorkout(
-                Workout(date = LocalDateTime.now()),
-            )
-        exercises.forEachIndexed { idx, (exerciseName, setsList) ->
-            val exerciseLogId =
-                exerciseLogDao.insertExerciseLog(
-                    ExerciseLog(
-                        workoutId = workoutId,
-                        exerciseName = exerciseName,
-                        exerciseOrder = idx,
-                        supersetGroup = null,
-                    ),
+    suspend fun getAllWorkouts(): List<Workout> = workoutDao.getAllWorkouts()
+
+    suspend fun insertWorkoutWithExercisesAndSets(exercises: List<Pair<String, List<Triple<Int, Float, Float?>>>>) {
+        val workout = Workout(date = LocalDateTime.now(), notes = null)
+        val workoutId = workoutDao.insertWorkout(workout)
+
+        exercises.forEachIndexed { exerciseIndex, (exerciseName, sets) ->
+            val exerciseLog =
+                ExerciseLog(
+                    workoutId = workoutId,
+                    exerciseName = exerciseName,
+                    exerciseOrder = exerciseIndex,
+                    supersetGroup = null,
+                    notes = null,
                 )
-            setsList.forEachIndexed { setIdx, (reps, weight, rpe) ->
-                setLogDao.insertSetLog(
+            val exerciseLogId = exerciseLogDao.insertExerciseLog(exerciseLog)
+
+            sets.forEachIndexed { setIndex, (reps, weight, rpe) ->
+                val setLog =
                     SetLog(
                         exerciseLogId = exerciseLogId,
-                        setOrder = setIdx,
+                        setOrder = setIndex,
                         reps = reps,
                         weight = weight,
                         rpe = rpe,
-                    ),
-                )
+                        tag = null,
+                        notes = null,
+                    )
+                setLogDao.insertSetLog(setLog)
             }
         }
     }
 
-    suspend fun getAllWorkouts(): List<Workout> = workoutDao.getAllWorkouts()
-
     suspend fun getExercisesForWorkout(workoutId: Long): List<ExerciseLog> = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
 
     suspend fun getSetsForExercise(exerciseLogId: Long): List<SetLog> = setLogDao.getSetLogsForExercise(exerciseLogId)
+
+    suspend fun markSetCompleted(
+        setId: Long,
+        completed: Boolean,
+        completedAt: String?,
+    ) {
+        setLogDao.markSetCompleted(setId, completed, completedAt)
+    }
+
+    suspend fun insertExerciseLog(exerciseLog: ExerciseLog) {
+        exerciseLogDao.insertExerciseLog(exerciseLog)
+    }
 }
 
 class WorkoutViewModel(
@@ -73,7 +85,6 @@ class WorkoutViewModel(
     private val _workouts = MutableStateFlow<List<Workout>>(emptyList())
     val workouts: StateFlow<List<Workout>> = _workouts
 
-    // For detail display
     private val _selectedWorkoutExercises = MutableStateFlow<List<ExerciseLog>>(emptyList())
     val selectedWorkoutExercises: StateFlow<List<ExerciseLog>> = _selectedWorkoutExercises
 
@@ -84,20 +95,13 @@ class WorkoutViewModel(
         loadWorkouts()
     }
 
-    fun loadWorkouts() {
+    private fun loadWorkouts() {
         viewModelScope.launch {
             _workouts.value = repository.getAllWorkouts()
         }
     }
 
-    fun addWorkout(exercises: List<Pair<String, List<Triple<Int, Float, Float?>>>>) {
-        viewModelScope.launch {
-            repository.insertWorkoutWithExercisesAndSets(exercises)
-            loadWorkouts()
-        }
-    }
-
-    fun loadExercisesForWorkout(workoutId: Long) {
+    private fun loadExercisesForWorkout(workoutId: Long) {
         viewModelScope.launch {
             _selectedWorkoutExercises.value = repository.getExercisesForWorkout(workoutId)
         }
@@ -106,6 +110,37 @@ class WorkoutViewModel(
     fun loadSetsForExercise(exerciseLogId: Long) {
         viewModelScope.launch {
             _selectedExerciseSets.value = repository.getSetsForExercise(exerciseLogId)
+        }
+    }
+
+    fun markSetCompleted(
+        setId: Long,
+        completed: Boolean,
+    ) {
+        val timestamp = if (completed) LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) else null
+        viewModelScope.launch {
+            repository.markSetCompleted(setId, completed, timestamp)
+            val currentSets = _selectedExerciseSets.value
+            val exerciseId = currentSets.firstOrNull { it.id == setId }?.exerciseLogId
+            if (exerciseId != null) {
+                _selectedExerciseSets.value = repository.getSetsForExercise(exerciseId)
+            }
+        }
+    }
+
+    fun addExerciseToCurrentWorkout(exerciseName: String) {
+        val currentWorkoutId = workouts.value.firstOrNull()?.id ?: return
+        viewModelScope.launch {
+            val exerciseLog =
+                ExerciseLog(
+                    workoutId = currentWorkoutId,
+                    exerciseName = exerciseName,
+                    exerciseOrder = selectedWorkoutExercises.value.size,
+                    supersetGroup = null,
+                    notes = null,
+                )
+            repository.insertExerciseLog(exerciseLog)
+            loadExercisesForWorkout(currentWorkoutId)
         }
     }
 }
