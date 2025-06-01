@@ -43,6 +43,8 @@ class FeatherweightRepository(
 
     suspend fun insertSetLog(setLog: SetLog): Long = setLogDao.insertSetLog(setLog)
 
+    suspend fun updateSetLog(setLog: SetLog) = setLogDao.updateSetLog(setLog)
+
     suspend fun deleteSetLog(setId: Long) = setLogDao.deleteSetLog(setId)
 }
 
@@ -76,8 +78,19 @@ class WorkoutViewModel(
     private fun loadExercisesForWorkout(workoutId: Long) {
         viewModelScope.launch {
             _selectedWorkoutExercises.value = repository.getExercisesForWorkout(workoutId)
-            // When you load exercises, clear sets (until an exercise is selected)
-            _selectedExerciseSets.value = emptyList()
+            // When you load exercises, load sets for all exercises
+            loadAllSetsForCurrentExercises()
+        }
+    }
+
+    private fun loadAllSetsForCurrentExercises() {
+        viewModelScope.launch {
+            val allSets = mutableListOf<SetLog>()
+            _selectedWorkoutExercises.value.forEach { exercise ->
+                val sets = repository.getSetsForExercise(exercise.id)
+                allSets.addAll(sets)
+            }
+            _selectedExerciseSets.value = allSets
         }
     }
 
@@ -97,29 +110,35 @@ class WorkoutViewModel(
         }
     }
 
-    fun addSetToExercise(exerciseLogId: Long) {
+    fun addSetToExercise(
+        exerciseLogId: Long,
+        weight: Float = 0f,
+        reps: Int = 0,
+        rpe: Float? = null
+    ) {
         viewModelScope.launch {
             val setOrder = repository.getSetsForExercise(exerciseLogId).size
             val setLog =
                 SetLog(
                     exerciseLogId = exerciseLogId,
                     setOrder = setOrder,
-                    reps = 0,
-                    weight = 0.0f,
-                    rpe = null,
+                    reps = reps,
+                    weight = weight,
+                    rpe = rpe,
                     tag = null,
                     notes = null,
                     isCompleted = false,
                     completedAt = null,
                 )
             repository.insertSetLog(setLog)
-            loadSetsForExercise(exerciseLogId)
+            loadAllSetsForCurrentExercises()
         }
     }
 
     fun loadSetsForExercise(exerciseLogId: Long) {
         viewModelScope.launch {
-            _selectedExerciseSets.value = repository.getSetsForExercise(exerciseLogId)
+            // Load all sets to maintain consistency
+            loadAllSetsForCurrentExercises()
         }
     }
 
@@ -130,22 +149,35 @@ class WorkoutViewModel(
         val timestamp = if (completed) LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) else null
         viewModelScope.launch {
             repository.markSetCompleted(setId, completed, timestamp)
+            loadAllSetsForCurrentExercises()
+        }
+    }
+
+    fun updateSet(
+        setId: Long,
+        reps: Int,
+        weight: Float,
+        rpe: Float?
+    ) {
+        viewModelScope.launch {
             val currentSets = _selectedExerciseSets.value
-            val exerciseId = currentSets.firstOrNull { it.id == setId }?.exerciseLogId
-            if (exerciseId != null) {
-                _selectedExerciseSets.value = repository.getSetsForExercise(exerciseId)
+            val currentSet = currentSets.firstOrNull { it.id == setId }
+            if (currentSet != null) {
+                val updatedSet = currentSet.copy(
+                    reps = reps,
+                    weight = weight,
+                    rpe = rpe
+                )
+                repository.updateSetLog(updatedSet)
+                loadAllSetsForCurrentExercises()
             }
         }
     }
 
     fun deleteSet(setId: Long) {
         viewModelScope.launch {
-            val currentSets = _selectedExerciseSets.value
-            val set = currentSets.firstOrNull { it.id == setId }
-            if (set != null) {
-                repository.deleteSetLog(setId)
-                _selectedExerciseSets.value = repository.getSetsForExercise(set.exerciseLogId)
-            }
+            repository.deleteSetLog(setId)
+            loadAllSetsForCurrentExercises()
         }
     }
 }
