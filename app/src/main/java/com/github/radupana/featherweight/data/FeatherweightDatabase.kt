@@ -6,7 +6,7 @@ import androidx.room.TypeConverters
 
 @Database(
     entities = [Workout::class, ExerciseLog::class, SetLog::class],
-    version = 2, // Increment if this is not your first version!
+    version = 3,
 )
 @TypeConverters(DateConverters::class)
 abstract class FeatherweightDatabase : RoomDatabase() {
