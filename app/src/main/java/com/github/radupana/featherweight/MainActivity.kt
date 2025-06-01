@@ -4,10 +4,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.core.view.WindowCompat
-import com.github.radupana.featherweight.ui.HomeScreen
-import com.github.radupana.featherweight.ui.WorkoutScreen
+import com.github.radupana.featherweight.ui.screens.HomeScreen
+import com.github.radupana.featherweight.ui.screens.WorkoutScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
 
 enum class Screen {
@@ -34,6 +37,7 @@ class MainActivity : ComponentActivity() {
                             onFreestyle = { currentScreen = Screen.WORKOUT },
                             onTemplate = { showTemplateDialog = true },
                         )
+
                     Screen.WORKOUT ->
                         WorkoutScreen(
                             onBack = { currentScreen = Screen.HOME },
