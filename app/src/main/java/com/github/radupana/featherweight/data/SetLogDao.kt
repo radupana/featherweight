@@ -19,4 +19,7 @@ interface SetLogDao {
 
     @Update
     suspend fun updateSetLog(setLog: SetLog)
+
+    @Query("DELETE FROM SetLog WHERE id = :setId")
+    suspend fun deleteSetLog(setId: Long)
 }

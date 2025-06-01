@@ -20,45 +20,14 @@ class FeatherweightRepository(
                 application,
                 FeatherweightDatabase::class.java,
                 "featherweight-db",
-            ).fallbackToDestructiveMigration()
+            ).fallbackToDestructiveMigration(false)
             .build()
 
     private val workoutDao = db.workoutDao()
     private val exerciseLogDao = db.exerciseLogDao()
     private val setLogDao = db.setLogDao()
 
-    suspend fun getAllWorkouts(): List<Workout> = workoutDao.getAllWorkouts()
-
-    suspend fun insertWorkoutWithExercisesAndSets(exercises: List<Pair<String, List<Triple<Int, Float, Float?>>>>) {
-        val workout = Workout(date = LocalDateTime.now(), notes = null)
-        val workoutId = workoutDao.insertWorkout(workout)
-
-        exercises.forEachIndexed { exerciseIndex, (exerciseName, sets) ->
-            val exerciseLog =
-                ExerciseLog(
-                    workoutId = workoutId,
-                    exerciseName = exerciseName,
-                    exerciseOrder = exerciseIndex,
-                    supersetGroup = null,
-                    notes = null,
-                )
-            val exerciseLogId = exerciseLogDao.insertExerciseLog(exerciseLog)
-
-            sets.forEachIndexed { setIndex, (reps, weight, rpe) ->
-                val setLog =
-                    SetLog(
-                        exerciseLogId = exerciseLogId,
-                        setOrder = setIndex,
-                        reps = reps,
-                        weight = weight,
-                        rpe = rpe,
-                        tag = null,
-                        notes = null,
-                    )
-                setLogDao.insertSetLog(setLog)
-            }
-        }
-    }
+    suspend fun insertWorkout(workout: Workout): Long = workoutDao.insertWorkout(workout)
 
     suspend fun getExercisesForWorkout(workoutId: Long): List<ExerciseLog> = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
 
@@ -68,13 +37,13 @@ class FeatherweightRepository(
         setId: Long,
         completed: Boolean,
         completedAt: String?,
-    ) {
-        setLogDao.markSetCompleted(setId, completed, completedAt)
-    }
+    ) = setLogDao.markSetCompleted(setId, completed, completedAt)
 
-    suspend fun insertExerciseLog(exerciseLog: ExerciseLog) {
-        exerciseLogDao.insertExerciseLog(exerciseLog)
-    }
+    suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long = exerciseLogDao.insertExerciseLog(exerciseLog)
+
+    suspend fun insertSetLog(setLog: SetLog): Long = setLogDao.insertSetLog(setLog)
+
+    suspend fun deleteSetLog(setId: Long) = setLogDao.deleteSetLog(setId)
 }
 
 class WorkoutViewModel(
@@ -82,8 +51,8 @@ class WorkoutViewModel(
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
 
-    private val _workouts = MutableStateFlow<List<Workout>>(emptyList())
-    val workouts: StateFlow<List<Workout>> = _workouts
+    private val _currentWorkoutId = MutableStateFlow<Long?>(null)
+    val currentWorkoutId: StateFlow<Long?> = _currentWorkoutId
 
     private val _selectedWorkoutExercises = MutableStateFlow<List<ExerciseLog>>(emptyList())
     val selectedWorkoutExercises: StateFlow<List<ExerciseLog>> = _selectedWorkoutExercises
@@ -92,18 +61,59 @@ class WorkoutViewModel(
     val selectedExerciseSets: StateFlow<List<SetLog>> = _selectedExerciseSets
 
     init {
-        loadWorkouts()
+        startNewWorkout()
     }
 
-    private fun loadWorkouts() {
+    private fun startNewWorkout() {
         viewModelScope.launch {
-            _workouts.value = repository.getAllWorkouts()
+            val workout = Workout(date = LocalDateTime.now(), notes = null)
+            val workoutId = repository.insertWorkout(workout)
+            _currentWorkoutId.value = workoutId
+            loadExercisesForWorkout(workoutId)
         }
     }
 
     private fun loadExercisesForWorkout(workoutId: Long) {
         viewModelScope.launch {
             _selectedWorkoutExercises.value = repository.getExercisesForWorkout(workoutId)
+            // When you load exercises, clear sets (until an exercise is selected)
+            _selectedExerciseSets.value = emptyList()
+        }
+    }
+
+    fun addExerciseToCurrentWorkout(exerciseName: String) {
+        val currentId = _currentWorkoutId.value ?: return
+        viewModelScope.launch {
+            val exerciseLog =
+                ExerciseLog(
+                    workoutId = currentId,
+                    exerciseName = exerciseName,
+                    exerciseOrder = selectedWorkoutExercises.value.size,
+                    supersetGroup = null,
+                    notes = null,
+                )
+            repository.insertExerciseLog(exerciseLog)
+            loadExercisesForWorkout(currentId)
+        }
+    }
+
+    fun addSetToExercise(exerciseLogId: Long) {
+        viewModelScope.launch {
+            val setOrder = repository.getSetsForExercise(exerciseLogId).size
+            val setLog =
+                SetLog(
+                    exerciseLogId = exerciseLogId,
+                    setOrder = setOrder,
+                    reps = 0,
+                    weight = 0.0f,
+                    rpe = null,
+                    tag = null,
+                    notes = null,
+                    isCompleted = false,
+                    completedAt = null,
+                )
+            repository.insertSetLog(setLog)
+            loadSetsForExercise(exerciseLogId)
         }
     }
 
@@ -128,19 +138,14 @@ class WorkoutViewModel(
         }
     }
 
-    fun addExerciseToCurrentWorkout(exerciseName: String) {
-        val currentWorkoutId = workouts.value.firstOrNull()?.id ?: return
+    fun deleteSet(setId: Long) {
         viewModelScope.launch {
-            val exerciseLog =
-                ExerciseLog(
-                    workoutId = currentWorkoutId,
-                    exerciseName = exerciseName,
-                    exerciseOrder = selectedWorkoutExercises.value.size,
-                    supersetGroup = null,
-                    notes = null,
-                )
-            repository.insertExerciseLog(exerciseLog)
-            loadExercisesForWorkout(currentWorkoutId)
+            val currentSets = _selectedExerciseSets.value
+            val set = currentSets.firstOrNull { it.id == setId }
+            if (set != null) {
+                repository.deleteSetLog(setId)
+                _selectedExerciseSets.value = repository.getSetsForExercise(set.exerciseLogId)
+            }
         }
     }
 }
