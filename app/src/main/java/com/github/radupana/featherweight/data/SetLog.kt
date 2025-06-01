@@ -10,9 +10,9 @@ import androidx.room.PrimaryKey
             entity = ExerciseLog::class,
             parentColumns = ["id"],
             childColumns = ["exerciseLogId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ]
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
 )
 data class SetLog(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -22,5 +22,5 @@ data class SetLog(
     val weight: Float,
     val rpe: Float? = null,
     val tag: String? = null, // e.g. "warmup", "drop", "failure"
-    val notes: String? = null
+    val notes: String? = null,
 )

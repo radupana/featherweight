@@ -8,5 +8,5 @@ import java.time.LocalDateTime
 data class Workout(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDateTime,
-    val notes: String? = null
+    val notes: String? = null,
 )

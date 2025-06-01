@@ -10,9 +10,9 @@ import androidx.room.PrimaryKey
             entity = Workout::class,
             parentColumns = ["id"],
             childColumns = ["workoutId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ]
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
 )
 data class ExerciseLog(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -20,5 +20,5 @@ data class ExerciseLog(
     val exerciseName: String,
     val exerciseOrder: Int,
     val supersetGroup: Int? = null,
-    val notes: String? = null
+    val notes: String? = null,
 )
