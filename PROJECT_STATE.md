@@ -35,40 +35,44 @@ _Last updated: 2025-06-01_
 
 ## Key Features Implemented
 
-- Modularized Compose navigation (root MainActivity manages screen state)
-- Welcome/Home screen with:
+- Modularized Compose navigation (MainActivity manages screen state)
+- Welcome/Home screen:
   - Centered Featherweight logo/app name
-  - Friendly welcome message
+  - Welcome message
   - “Start Freestyle Workout” and “Start From Template” buttons
-  - Dummy “choose template” dialog (scaffold for future templates)
-- “Freestyle Workout” screen stub (navigated only after user action)
-- Room database with fallbackToDestructiveMigration for dev velocity
-- All Compose UI is now separated into their own files in a ui package
+  - Dummy “choose template” dialog (placeholder for templates)
+- “Freestyle Workout” screen (user navigates only after choosing action)
+- Add exercises and sets to a workout, with per-set completion checkbox
+- **Swipe-to-delete sets** with UI feedback
+- Linear progress indicator based on completed sets
+- Room database with `fallbackToDestructiveMigration` for fast iteration
+- All Compose UI modularized in `ui` package
 
 ---
 
 ## In Progress / North Star Vision
 
-- Tick/check off sets as “done” (per-set completion in UI)
-- Start rest timer after set completion, visually show rest state/timer
+- Per-set completion (checkboxes + green highlight for done sets)
+- Start rest timer after set completion, visually show timer
 - Templates:
-  - Template data model
-  - “Start from template” flow (pre-fills workout structure)
+  - Template data model & structure
+  - “Start from template” flow (prefills workout)
 - Progress indicators (e.g. % complete, motivational cues)
-- Sleek/animated UI theme, Material3 look and feel
+- Sleek/animated Material3 theme and improved UX
 - Insights: trends, PR tracking, bodyweight and nutrition integration
 
 ---
 
 ## Next Steps
 
-- [x] Add isCompleted and completedAt to SetLog
+- [x] Add `isCompleted` and `completedAt` to SetLog
 - [x] Modularize UI (HomeScreen, WorkoutScreen, TemplateDialog)
-- [x] Add a proper onboarding/welcome flow (user chooses to start a workout)
-- [ ] Update WorkoutScreen: add UI for logging sets, marking as “done,” visual progress
-- [ ] Add rest timer logic and display (starts on set completion)
+- [x] Add onboarding/welcome flow (start workout via user action)
+- [x] Add swipe-to-delete for sets in WorkoutScreen
+- [ ] Allow adding/removing sets and editing set data
+- [ ] Add rest timer logic and display (starts after set completion)
 - [ ] Implement template data model and template-driven workout UI
-- [ ] Add basic theme polish (animations, icons, cleaner color palette)
+- [ ] Add basic theme polish (animations, icons, color palette)
 - [ ] Document known issues and TODOs (UI polish, navigation, error handling, etc.)
 
 ---
