@@ -1,231 +1,174 @@
-# Featherweight Development Context
+# Featherweight Project Knowledge Base
+*Last Updated: 2025-06-03*
 
-_Last updated: 2025-06-01_
+## 🎯 Project Vision
+**Super App for Weightlifting** - Combining best features from Hevy, Boostcamp, Juggernaut.ai, KeyLifts
+- Goal: Iteratively build amazing weightlifting tracking app
+- Platform: Android (Kotlin + Compose)
+- Approach: Start with core features, expand systematically
 
-## Current Status
-- **Current phase**: Phase 1 - Foundation Polish (UI fixes and basic UX improvements)
-- **Recently completed**:
-  - Fixed janky swipe-to-delete (replaced with proper Material3 delete buttons + confirmation)
-  - Enhanced WorkoutScreen with proper set editing, Material3 UI patterns
-  - Added set completion tracking with green visual feedback
-  - Implemented "Copy Last Set" functionality
-- **Next priorities**: Smart data entry improvements (previous set suggestions, auto-fill weight, RPE buttons)
-
-## Vision & Competitive Position
-**North Star**: "Duolingo for Weightlifting" - Social fitness app with intelligent AI coaching that democratizes smart programming.
-
-**Key Market Gaps We're Targeting**:
-1. **True AI-Powered Social Fitness**: No app combines Hevy's social features (4M users) with JuggernautAI's intelligence ($35/month)
-2. **Perfect UI/UX with Advanced Features**: Advanced apps have complex UIs, simple apps lack features
-3. **Intelligent Autoregulation for Everyone**: JuggernautAI is expensive/complex, others don't have real AI
-
-## 6-Phase Roadmap
-
-### **Phase 1: Foundation Polish** (Weeks 1-2) - *IN PROGRESS*
-- ✅ Set editing with proper data entry
-- ✅ Modern Material3 UI
-- ✅ Progress tracking
-- 🎯 **Next**: Smart data entry, rest timer, exercise search/autocomplete
-
-### **Phase 2: Social Foundation** (Weeks 3-4)
-- Friend system (add via username/QR)
-- Workout feed ("Sarah just PR'd her deadlift! 🔥")
-- High-five button (like Duolingo hearts)
-- Basic social motivation (streaks, PR celebrations)
-
-### **Phase 3: Intelligent Assistance** (Weeks 5-8)
-- Exercise library with videos
-- Smart progressive overload suggestions
-- RPE-based autoregulation
-- Weak point analysis
-
-### **Phase 4: Templates & Programs** (Weeks 9-12)
-- Program library (5/3/1, Starting Strength, etc.)
-- Auto-progression (no manual calculation)
-- Community programs
-
-### **Phase 5: Advanced AI Coaching** (Weeks 13-20)
-- Individual response pattern learning
-- Real-time workout adaptations
-- Health integration (sleep, HRV)
-
-### **Phase 6: Super-App Features** (Weeks 21+)
-- Nutrition integration
-- Body composition tracking
-- Advanced analytics
-- Ecosystem integration
-
-## Architecture & Technical Decisions
-
-### **Tech Stack**:
-- **UI**: Jetpack Compose + Material3 design system
-- **Database**: Room + SQLite with fallbackToDestructiveMigration
-- **Architecture**: MVVM with Repository pattern
+## 🏗️ Current Technical Stack
 - **Language**: Kotlin
-- **Min SDK**: 26, Target SDK: 35
-- **Navigation**: Simple state management in MainActivity
+- **UI**: Jetpack Compose + Material3
+- **Architecture**: MVVM pattern
+- **Database**: Room (SQLite) with fallback destructive migration
+- **Navigation**: Compose Navigation (currently basic)
+- **Dependency Injection**: None yet (consider Hilt later)
 
-### **Key Dependencies**:
+## 📊 Current Data Model (Room Database v3)
 ```kotlin
-// Core
-implementation("androidx.compose.material3:material3")
-implementation("androidx.room:room-runtime:2.7.1")
-implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0")
+// Core entities with relationships
+Workout (id, date, notes)
+  ↓ 1:many
+ExerciseLog (id, workoutId, exerciseName, exerciseOrder, supersetGroup?, notes?)
+  ↓ 1:many  
+SetLog (id, exerciseLogId, setOrder, reps, weight, rpe?, tag?, notes?, isCompleted, completedAt?)
 
-// Planned additions
-implementation("androidx.health.connect:connect-client:1.0.0") // Health data
-implementation("com.google.mlkit:vision:16.0.0") // Computer vision
-implementation("com.squareup.retrofit2:retrofit:2.9.0") // API calls
+// Key features in data model:
+- Foreign key cascades (delete workout = delete all exercises/sets)
+- Set completion tracking with timestamps
+- RPE (Rate of Perceived Exertion) support
+- Flexible notes/tags system
+- Superset grouping capability
 ```
 
-## Data Model (Current - v3)
+## 📱 Current UI State & Features
+### Implemented Screens:
+1. **HomeScreen** - Welcome screen with action buttons
+   - "Start Freestyle Workout" (primary CTA)
+   - "Start From Template" (placeholder dialog)
+   - Clean Material3 design
 
-### **Core Entities**:
-```kotlin
-// Workout session
-data class Workout(
-    val id: Long,
-    val date: LocalDateTime,
-    val notes: String?
-)
+2. **WorkoutScreen** - Active workout tracking
+   - Add exercises to current workout
+   - Add/edit/delete sets per exercise
+   - Set completion checkboxes with visual feedback
+   - Progress indicator (completed sets / total sets)
+   - Swipe-to-delete functionality
+   - Edit set dialog (reps, weight, RPE)
+   - Copy last set functionality
+   - Expandable exercise cards
 
-// Exercise within a workout
-data class ExerciseLog(
-    val id: Long,
-    val workoutId: Long,
-    val exerciseName: String,
-    val exerciseOrder: Int,
-    val supersetGroup: Int?,
-    val notes: String?
-)
+### Technical Implementation Details:
+- **WorkoutViewModel**: Manages workout state with StateFlow
+- **Repository Pattern**: Clean data access layer
+- **Compose Best Practices**: Proper state management, recomposition
+- **Material3 Theming**: Custom color scheme, typography
+- **Error Handling**: Basic validation, user-friendly dialogs
 
-// Individual set
-data class SetLog(
-    val id: Long,
-    val exerciseLogId: Long,
-    val setOrder: Int,
-    val reps: Int,
-    val weight: Float,
-    val rpe: Float?,
-    val tag: String?, // "warmup", "drop", etc.
-    val notes: String?,
-    val isCompleted: Boolean,
-    val completedAt: String? // ISO8601
-)
+## 🗺️ Agreed Navigation Architecture
+**DECISION MADE**: Bottom Navigation (5 tabs) - Train-centric approach
+```
+🏠 Home     - Dashboard, quick actions, recent stats
+🏋️ Train    - Start workouts (CENTER/PRIMARY ACTION)  
+📊 History  - Past workouts, calendar view
+📈 Analytics - Progress charts, PRs, trends
+👤 Profile  - Settings, achievements, social
 ```
 
-## Working Features (Tested & Functional)
-- ✅ **Workout creation**: Auto-creates new workout on app start
-- ✅ **Exercise management**: Add exercises to workout with proper ordering
-- ✅ **Set tracking**: Add sets, mark complete with visual feedback
-- ✅ **Set editing**: Tap-to-edit reps, weight, RPE with proper validation
-- ✅ **Set deletion**: Material3 delete button + confirmation dialog
-- ✅ **Progress tracking**: Visual progress bar based on completed sets
-- ✅ **Copy last set**: Quick duplication of previous set data
-- ✅ **Material3 UI**: Modern, clean interface with proper color scheme
-- ✅ **Database persistence**: All data saved to Room database
+**Key Principle**: Train tab is the hero - everything else supports workout experience
 
-## Known Issues & Limitations
-- **Sets created with 0/0 values**: Need smart defaults from previous sessions
-- **No rest timer**: Should auto-start after set completion
-- **Manual exercise entry**: Need autocomplete/search
-- **No exercise library**: Users must type exercise names
-- **Single workout only**: No workout history or multiple workouts
-- **No social features**: Completely single-user at this point
-- **No templates**: Only freestyle workouts supported
+## 🎯 Next Immediate Priorities
+1. **Navigation Refactor**: Implement 5-tab bottom navigation
+2. **Home Screen Enhancement**: Transform into proper dashboard
+3. **History Screen**: Basic workout history list
+4. **Analytics Foundation**: Simple progress tracking
+5. **Profile Basics**: Settings and user info
 
-## Immediate Next Steps (Week 1)
+## 🚀 Feature Roadmap (Prioritized)
+### Phase 1 - Core Experience ⭐ 
+- [x] Basic workout tracking (DONE)
+- [x] Set completion (DONE)
+- [ ] 5-tab navigation structure
+- [ ] Dashboard home screen
+- [ ] Workout history view
+- [ ] Basic user profile
 
-### **Priority 1: Smart Data Entry**
+### Phase 2 - Enhanced Tracking
+- [ ] Workout templates system
+- [ ] Exercise library with instructions
+- [ ] Rest timer between sets
+- [ ] Workout duration tracking
+- [ ] Basic progress charts
+
+### Phase 3 - Smart Features
+- [ ] Auto-populate previous weights
+- [ ] RPE-based recommendations
+- [ ] Bodyweight/measurements tracking
+- [ ] PR (Personal Record) detection
+- [ ] Workout streak tracking
+
+### Phase 4 - Advanced Features
+- [ ] Social features (achievements, sharing)
+- [ ] AI assistance/auto-regulation
+- [ ] Program/periodization support
+- [ ] Advanced analytics & trends
+- [ ] Export/import functionality
+
+## 🎨 Design Philosophy & Patterns
+- **Material3 Design Language**: Modern, accessible, consistent
+- **Fitness-focused Color Palette**: Blue primary, green for success/completion
+- **Information Hierarchy**: Bold headers, clear CTAs, scannable content
+- **Thumb-friendly**: Bottom navigation, large touch targets
+- **Progressive Disclosure**: Expandable cards, clean initial states
+- **Instant Feedback**: Loading states, success animations, error handling
+
+## 💾 Key Code Patterns & Conventions
 ```kotlin
-// Add to SetLogDao
-suspend fun getLastSetForExercise(exerciseName: String): SetLog?
+// ViewModel pattern for state management
+class WorkoutViewModel : AndroidViewModel {
+    private val _state = MutableStateFlow(...)
+    val state: StateFlow<...> = _state
+}
 
-// Add to ViewModel
-fun suggestSetValues(exerciseLogId: Long): SetSuggestion
+// Repository pattern for data access
+class FeatherweightRepository {
+    suspend fun insertWorkout(workout: Workout): Long
+}
+
+// Compose UI patterns
+@Composable
+fun ExerciseCard(
+    exercise: ExerciseLog,
+    expanded: Boolean,
+    onExpand: () -> Unit,
+    // ... other callbacks
+) { ... }
 ```
-- Show "Last time: 3x8 @ 185lbs" when adding sets
-- Auto-fill weight from previous session as starting point
-- Quick RPE selection (1-10 buttons instead of text input)
 
-### **Priority 2: Rest Timer**
-- Auto-start timer after set completion
-- Customizable rest periods by exercise type
-- Visual countdown with notifications
+## 🔧 Known Technical Debt
+- Navigation: Currently basic screen switching in MainActivity
+- Database: Uses destructive migration (fine for development)
+- Testing: No unit/integration tests yet
+- Error Handling: Basic, needs improvement for edge cases
+- Performance: No optimization done yet (fine for current scope)
 
-### **Priority 3: Exercise UX**
-- Exercise search/autocomplete with common exercises
-- Exercise library with basic muscle group categorization
+## 📝 Recent Decisions & Context
+- **2025-06-03**: Decided on bottom navigation over drawer/FAB-only
+- **Current Focus**: Get foundation solid before adding advanced features
+- **Development Approach**: Iterative, validate core features first
+- **User Experience**: Prioritize speed and simplicity for core workout flow
 
-## Code Patterns & Conventions
+## 🔄 Context Bootstrapping Instructions
+When starting new conversation:
+1. Reference this knowledge base file
+2. Current codebase is in Android Studio project (Kotlin + Compose)
+3. We're in "foundation building" phase - focusing on navigation & core screens
+4. Next immediate task: Implement 5-tab bottom navigation structure
+5. Always consider: "Does this make starting/tracking a workout faster?"
 
-### **File Organization**:
+## 📂 Project Structure Overview
 ```
 app/src/main/java/com/github/radupana/featherweight/
-├── data/           # Room entities, DAOs, database
-├── ui/             # Compose screens and components  
-├── viewmodel/      # ViewModels and repository
-└── MainActivity.kt # Simple navigation state management
+├── data/              # Room entities, DAOs, database
+├── viewmodel/         # ViewModels and Repository
+├── ui/               # Compose screens and components
+│   ├── theme/        # Material3 theming
+│   ├── HomeScreen.kt
+│   ├── WorkoutScreen.kt
+│   └── ChooseTemplateDialog.kt
+└── MainActivity.kt   # Navigation controller
 ```
 
-### **UI Patterns**:
-- **Cards for major components**: Exercise cards, progress cards
-- **Material3 elevation**: 4-8dp for cards, 0dp for surfaces
-- **Color scheme**: Primary blue (#4A90E2), secondary cyan (#50E3C2)
-- **Typography**: Proper hierarchy with font weights
-- **Touch targets**: Minimum 32dp for interactive elements
-
-### **Data Flow**:
-1. UI triggers ViewModel function
-2. ViewModel calls Repository method
-3. Repository executes database operation
-4. StateFlow updates trigger UI recomposition
-
-## Competitive Intelligence Summary
-
-### **Key Competitors**:
-- **Boostcamp**: 500K users, program library strength, Reddit favorite
-- **Hevy**: 4M users, excellent social features, 4.9/5 rating
-- **JuggernautAI**: Premium AI coaching ($35/month), true autoregulation
-- **KeyLifts**: 5/3/1 specialization, percentage calculations
-- **Strong**: Simple tracking, popular but basic
-
-### **Our Competitive Advantages**:
-1. **Social Intelligence**: Friends' data improves your programming
-2. **Progressive Disclosure UX**: Simple for beginners, powerful for experts
-3. **Ethical AI**: Transparent, user-controlled, privacy-first
-4. **Modern Design**: Material3 with fitness-specific patterns
-
-## Monetization Strategy
-- **Free**: Basic tracking + limited social
-- **Premium ($4.99/month)**: All programs + advanced analytics + unlimited social
-- **Pro ($9.99/month)**: AI coaching + nutrition + body composition
-- **Coach ($19.99/month)**: Everything + priority support + beta features
-
-## Context Usage Instructions
-
-### **For New AI Assistants**:
-1. Read this entire document first
-2. Review current codebase state in repository
-3. Check "Immediate Next Steps" for current priorities
-4. Follow established code patterns and UI conventions
-5. Update this file after major changes or decisions
-
-### **When to Update This File**:
-- After completing features listed in "Next Steps"
-- When making architectural decisions
-- Before starting new phases
-- When encountering significant bugs or design changes
-- At the end of each coding session
-
-### **Emergency Context Rebuild**:
-If you're a new AI assistant and lost context:
-1. The app is a weightlifting tracker built in Kotlin + Compose
-2. We're in Phase 1 of a 6-phase plan to build "Duolingo for Weightlifting"
-3. Priority is smart data entry improvements (see "Immediate Next Steps")
-4. Follow Material3 design patterns established in current UI
-5. All new features should integrate with existing Room database schema
-
 ---
-
-**Remember**: This is not just a tracking app - we're building the ultimate strength training super-app that combines the best of social motivation, intelligent coaching, and beautiful UX. Every feature should move us closer to that vision.
+*This file should be referenced at the start of each new conversation to maintain project continuity and prevent context loss.*
