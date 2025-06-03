@@ -169,6 +169,3 @@ app/src/main/java/com/github/radupana/featherweight/
 │   └── ChooseTemplateDialog.kt
 └── MainActivity.kt   # Navigation controller
 ```
-
----
-*This file should be referenced at the start of each new conversation to maintain project continuity and prevent context loss.*
