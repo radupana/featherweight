@@ -1,4 +1,4 @@
-package com.github.radupana.featherweight.ui
+package com.github.radupana.featherweight.ui.dialogs
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
