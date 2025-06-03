@@ -22,7 +22,7 @@ data class WorkoutState(
     val startTime: LocalDateTime? = null,
     val workoutName: String? = null,
     val isReadOnly: Boolean = false,
-    val isInEditMode: Boolean = false, // New: temporary edit mode for completed workouts
+    val isInEditMode: Boolean = false,
     val originalWorkoutData: Triple<List<ExerciseLog>, List<SetLog>, String?>? = null, // Backup for rollback
 )
 
@@ -193,7 +193,6 @@ class WorkoutViewModel(
         }
     }
 
-    // NEW: Enter edit mode for completed workout
     fun enterEditMode() {
         val currentState = _workoutState.value
         if (currentState.isCompleted && !currentState.isInEditMode) {
@@ -214,7 +213,6 @@ class WorkoutViewModel(
         }
     }
 
-    // NEW: Save edit mode changes and exit
     fun saveEditModeChanges() {
         val currentState = _workoutState.value
         if (currentState.isInEditMode) {
@@ -230,7 +228,6 @@ class WorkoutViewModel(
         }
     }
 
-    // NEW: Discard edit mode changes and rollback
     fun discardEditModeChanges() {
         val currentState = _workoutState.value
         if (currentState.isInEditMode && currentState.originalWorkoutData != null) {
@@ -434,7 +431,6 @@ class WorkoutViewModel(
         }
     }
 
-    // NEW: Complete all sets in an exercise
     fun completeAllSetsInExercise(exerciseLogId: Long) {
         viewModelScope.launch {
             val exerciseSets = _selectedExerciseSets.value.filter { it.exerciseLogId == exerciseLogId }

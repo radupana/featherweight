@@ -7,7 +7,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun ExerciseCard(
@@ -31,31 +29,24 @@ fun ExerciseCard(
     onCopyLastSet: (Long) -> Unit,
     onDeleteSet: (Long) -> Unit,
     onSmartAdd: (Long, String) -> Unit,
-    onCompleteAllSets: (Long) -> Unit, // NEW: Complete all sets callback
+    onCompleteAllSets: (Long) -> Unit,
     onUpdateSet: ((Long, Int, Float, Float?) -> Unit)? = null,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
-    // Check if smart suggestions are available for this exercise
-    var hasSmartSuggestions by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+    var showValidationMessage by remember { mutableStateOf(false) }
 
-    // Check for smart suggestions when card expands
-    LaunchedEffect(expanded, exercise.exerciseName) {
-        if (expanded) {
-            scope.launch {
-                val suggestions = viewModel.getSmartSuggestions(exercise.exerciseName)
-                hasSmartSuggestions = suggestions != null
-            }
-        } else {
-            hasSmartSuggestions = false
-        }
-    }
-
-    // Calculate completable sets (sets with valid reps and weight)
+    // Calculate completable sets
     val completableSets = sets.filter { viewModel.canMarkSetComplete(it) }
     val incompleteValidSets = completableSets.filter { !it.isCompleted }
     val canCompleteAll = incompleteValidSets.isNotEmpty()
+
+    // Reset validation message when sets change
+    LaunchedEffect(sets) {
+        if (sets.all { viewModel.canMarkSetComplete(it) || it.isCompleted }) {
+            showValidationMessage = false
+        }
+    }
 
     Card(
         modifier =
@@ -71,7 +62,7 @@ fun ExerciseCard(
         Column(
             modifier = Modifier.padding(16.dp),
         ) {
-            // Exercise header
+            // Exercise header (existing)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -120,15 +111,48 @@ fun ExerciseCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    // Sets header with complete all button
+                    // THIS IS WHERE THE COMPLETE ALL BUTTON GOES - in the header row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        SetTableHeader(modifier = Modifier.weight(1f))
+                        // Sets table header
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                "Set",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(0.12f),
+                            )
+                            Text(
+                                "Reps",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(0.18f),
+                                textAlign = TextAlign.Center,
+                            )
+                            Text(
+                                "Weight",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(0.22f),
+                                textAlign = TextAlign.Center,
+                            )
+                            Text(
+                                "RPE",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(0.15f),
+                                textAlign = TextAlign.Center,
+                            )
+                            Spacer(modifier = Modifier.weight(0.33f)) // For checkbox + actions
+                        }
 
-                        // Complete All button
+                        // Complete All button - THIS IS THE MISSING BUTTON!
                         if (canCompleteAll && viewModel.canEditWorkout()) {
                             TextButton(
                                 onClick = { onCompleteAllSets(exercise.id) },
@@ -155,7 +179,12 @@ fun ExerciseCard(
                         SetRow(
                             set = set,
                             onToggleCompleted = { completed ->
-                                viewModel.markSetCompleted(set.id, completed)
+                                if (completed && !viewModel.canMarkSetComplete(set)) {
+                                    // User tried to complete an invalid set
+                                    showValidationMessage = true
+                                } else {
+                                    viewModel.markSetCompleted(set.id, completed)
+                                }
                             },
                             onEdit = { onEditSet(set) },
                             onDelete = { onDeleteSet(set.id) },
@@ -167,36 +196,77 @@ fun ExerciseCard(
                         Spacer(modifier = Modifier.height(4.dp))
                     }
 
-                    // Validation message for invalid sets
-                    val invalidSets = sets.filter { !viewModel.canMarkSetComplete(it) && !it.isCompleted }
-                    if (invalidSets.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Card(
-                            colors =
-                                CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
-                                ),
-                        ) {
-                            Text(
-                                "⚠️ Sets need both reps and weight to be marked complete",
-                                modifier = Modifier.padding(8.dp),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                            )
+                    // Validation message - only show after user tries to complete invalid sets
+                    if (showValidationMessage) {
+                        val invalidSets = sets.filter { set -> !viewModel.canMarkSetComplete(set) && !set.isCompleted }
+                        if (invalidSets.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Card(
+                                colors =
+                                    CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                                    ),
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        "⚠️ Sets need both reps and weight to be marked complete",
+                                        modifier = Modifier.weight(1f),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                    )
+                                    TextButton(
+                                        onClick = { showValidationMessage = false },
+                                        contentPadding = PaddingValues(4.dp),
+                                    ) {
+                                        Text(
+                                            "✕",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onErrorContainer,
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Action buttons
-                ExerciseActionButtons(
-                    hasExistingSets = sets.isNotEmpty(),
-                    hasSmartSuggestions = hasSmartSuggestions,
-                    onSmartAdd = { onSmartAdd(exercise.id, exercise.exerciseName) },
-                    onCopyLast = { onCopyLastSet(exercise.id) },
-                    onAddSet = onAddSet,
-                )
+                // Action buttons (existing Add Set, Copy Last, etc.)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onAddSet,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(
+                            Icons.Filled.Add,
+                            contentDescription = "Add Set",
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add Set")
+                    }
+
+                    if (sets.isNotEmpty()) {
+                        OutlinedButton(
+                            onClick = { onCopyLastSet(exercise.id) },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Icon(
+                                Icons.Filled.ContentCopy,
+                                contentDescription = "Copy Last",
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Copy Last")
+                        }
+                    }
+                }
             } else {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -205,106 +275,6 @@ fun ExerciseCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun SetTableHeader(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            "Set",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(0.12f),
-        )
-        Text(
-            "Reps",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(0.18f),
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            "Weight",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(0.22f),
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            "RPE",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(0.15f),
-            textAlign = TextAlign.Center,
-        )
-        Spacer(modifier = Modifier.weight(0.15f)) // For checkbox
-        Spacer(modifier = Modifier.weight(0.18f)) // For actions
-    }
-}
-
-@Composable
-private fun ExerciseActionButtons(
-    hasExistingSets: Boolean,
-    hasSmartSuggestions: Boolean,
-    onSmartAdd: () -> Unit,
-    onCopyLast: () -> Unit,
-    onAddSet: () -> Unit,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        // Smart Add button (only if suggestions available)
-        if (hasSmartSuggestions) {
-            Button(
-                onClick = onSmartAdd,
-                modifier = Modifier.weight(1f),
-            ) {
-                Icon(
-                    Icons.Filled.Lightbulb,
-                    contentDescription = "Smart Add - Uses data from previous workouts",
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Smart Add")
-            }
-        } else {
-            // Regular add button when no smart suggestions
-            Button(
-                onClick = onAddSet,
-                modifier = Modifier.weight(1f),
-            ) {
-                Icon(
-                    Icons.Filled.Add,
-                    contentDescription = "Add Set",
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Add Set")
-            }
-        }
-
-        // Copy Last Set button (if sets exist in current workout)
-        if (hasExistingSets) {
-            OutlinedButton(
-                onClick = onCopyLast,
-                modifier = Modifier.weight(1f),
-            ) {
-                Icon(
-                    Icons.Filled.ContentCopy,
-                    contentDescription = "Copy Last - Duplicates your previous set",
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Copy Last")
-            }
-        } else if (!hasSmartSuggestions) {
-            // Empty space to maintain layout when no smart suggestions and no existing sets
-            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }

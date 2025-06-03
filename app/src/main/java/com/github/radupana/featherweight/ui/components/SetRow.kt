@@ -28,6 +28,7 @@ fun SetRow(
     onDelete: () -> Unit,
     onUpdateSet: ((Int, Float, Float?) -> Unit)? = null,
     modifier: Modifier = Modifier,
+    canMarkComplete: Boolean = true,
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
@@ -324,16 +325,26 @@ fun SetRow(
                 }
             }
 
-            // Completion checkbox
-            Checkbox(
-                checked = set.isCompleted,
-                onCheckedChange = onToggleCompleted,
+            Box(
                 modifier = Modifier.weight(0.15f),
-                colors =
-                    CheckboxDefaults.colors(
-                        checkedColor = MaterialTheme.colorScheme.tertiary,
-                    ),
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                Checkbox(
+                    checked = set.isCompleted,
+                    onCheckedChange = { newChecked ->
+                        // Only allow checking if the set can be marked complete, or if unchecking
+                        if (!newChecked || canMarkComplete) {
+                            onToggleCompleted(newChecked)
+                        }
+                        // If trying to check but can't mark complete, do nothing (validation handled in ViewModel)
+                    },
+                    colors =
+                        CheckboxDefaults.colors(
+                            checkedColor = MaterialTheme.colorScheme.tertiary,
+                        ),
+                    enabled = canMarkComplete || set.isCompleted, // Enable if can mark complete OR already completed (for unchecking)
+                )
+            }
 
             // Delete button only
             Box(
