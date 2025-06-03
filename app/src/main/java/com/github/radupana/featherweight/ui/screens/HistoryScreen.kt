@@ -13,105 +13,97 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.radupana.featherweight.viewmodel.HistoryViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+// Local data class for HistoryScreen to avoid import issues
 data class WorkoutSummary(
     val id: Long,
     val date: LocalDateTime,
-    val name: String,
+    val name: String?,
     val exerciseCount: Int,
     val setCount: Int,
-    val duration: String,
-    val totalWeight: Float
+    val totalWeight: Float,
+    val duration: Long?, // minutes
+    val isCompleted: Boolean,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HistoryScreen() {
-    // TODO: Connect to actual data from ViewModel
-    val sampleWorkouts = remember {
-        listOf(
-            WorkoutSummary(
-                id = 1,
-                date = LocalDateTime.now().minusDays(1),
-                name = "Upper Body Push",
-                exerciseCount = 4,
-                setCount = 16,
-                duration = "52 min",
-                totalWeight = 2540f
-            ),
-            WorkoutSummary(
-                id = 2,
-                date = LocalDateTime.now().minusDays(3),
-                name = "Lower Body",
-                exerciseCount = 5,
-                setCount = 18,
-                duration = "65 min",
-                totalWeight = 3200f
-            ),
-            WorkoutSummary(
-                id = 3,
-                date = LocalDateTime.now().minusDays(5),
-                name = "Upper Body Pull",
-                exerciseCount = 4,
-                setCount = 14,
-                duration = "48 min",
-                totalWeight = 2100f
-            )
-        )
+fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
+    val workoutHistory by historyViewModel.workoutHistory.collectAsState()
+    val isLoading by historyViewModel.isLoading.collectAsState()
+
+    // Load history on first composition
+    LaunchedEffect(Unit) {
+        historyViewModel.loadWorkoutHistory()
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp),
     ) {
         // Header
         Text(
             text = "Workout History",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 16.dp),
         )
 
-        if (sampleWorkouts.isEmpty()) {
-            // Empty state
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+        when {
+            isLoading -> {
+                // Loading state
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        Icons.Filled.FitnessCenter,
-                        contentDescription = "No workouts",
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "No workouts yet",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Start your first workout to see it here",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
+                    CircularProgressIndicator()
                 }
             }
-        } else {
-            // Workout list
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(sampleWorkouts) { workout ->
-                    WorkoutHistoryCard(workout = workout)
+            workoutHistory.isEmpty() -> {
+                // Empty state
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Icon(
+                            Icons.Filled.FitnessCenter,
+                            contentDescription = "No workouts",
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "No workouts yet",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Start your first workout to see it here",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+            }
+            else -> {
+                // Workout list
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(workoutHistory) { workout ->
+                        WorkoutHistoryCard(workout = workout)
+                    }
                 }
             }
         }
@@ -123,40 +115,63 @@ fun WorkoutHistoryCard(workout: WorkoutSummary) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(4.dp),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (workout.isCompleted) {
+                        MaterialTheme.colorScheme.surface
+                    } else {
+                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                    },
+            ),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp),
         ) {
             // Header with date and workout name
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.Top,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = workout.name,
+                        text =
+                            workout.name ?: workout.date.format(
+                                DateTimeFormatter.ofPattern("MMM d 'at' h:mm a"),
+                            ),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        text = workout.date.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
+                        text = workout.date.format(DateTimeFormatter.ofPattern("EEEE, MMM dd, yyyy")),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
+                // Status indicator
                 Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(8.dp)
+                    color =
+                        if (workout.isCompleted) {
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+                        } else {
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                        },
+                    shape = RoundedCornerShape(12.dp),
                 ) {
                     Text(
-                        text = workout.duration,
+                        text = if (workout.isCompleted) "Completed" else "In Progress",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Medium
+                        color =
+                            if (workout.isCompleted) {
+                                MaterialTheme.colorScheme.tertiary
+                            } else {
+                                MaterialTheme.colorScheme.secondary
+                            },
+                        fontWeight = FontWeight.Medium,
                     )
                 }
             }
@@ -166,22 +181,32 @@ fun WorkoutHistoryCard(workout: WorkoutSummary) {
             // Stats row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 WorkoutStatItem(
                     label = "Exercises",
                     value = workout.exerciseCount.toString(),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
                 WorkoutStatItem(
                     label = "Sets",
                     value = workout.setCount.toString(),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
                 WorkoutStatItem(
-                    label = "Total Weight",
-                    value = "${workout.totalWeight.toInt()} lbs",
-                    modifier = Modifier.weight(1f)
+                    label = "Total Volume",
+                    value = "${String.format("%.1f", workout.totalWeight / 1000)}k lbs",
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            // Duration (if available)
+            workout.duration?.let { duration ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Duration: $duration minutes",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -192,22 +217,22 @@ fun WorkoutHistoryCard(workout: WorkoutSummary) {
 fun WorkoutStatItem(
     label: String,
     value: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = value,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

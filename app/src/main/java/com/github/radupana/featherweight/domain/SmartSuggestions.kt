@@ -7,5 +7,5 @@ data class SmartSuggestions(
     val suggestedReps: Int,
     val suggestedRpe: Float?,
     val lastWorkoutDate: LocalDateTime?,
-    val confidence: String
+    val confidence: String,
 )

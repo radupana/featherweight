@@ -6,6 +6,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,21 +32,40 @@ fun WorkoutScreen(
 ) {
     val exercises by viewModel.selectedWorkoutExercises.collectAsState()
     val sets by viewModel.selectedExerciseSets.collectAsState()
+    val workoutState by viewModel.workoutState.collectAsState()
 
     // Dialog state
     var showAddExerciseDialog by remember { mutableStateOf(false) }
     var showEditSetDialog by remember { mutableStateOf(false) }
+    var showCompleteWorkoutDialog by remember { mutableStateOf(false) }
+    var showWorkoutMenuDialog by remember { mutableStateOf(false) }
+    var showEditWorkoutNameDialog by remember { mutableStateOf(false) }
+
     var editingSet by remember { mutableStateOf<SetLog?>(null) }
     var editingExerciseName by remember { mutableStateOf<String?>(null) }
     var expandedExerciseId by remember { mutableStateOf<Long?>(null) }
+
+    // Calculate progress stats
+    val totalSets = exercises.sumOf { ex -> sets.count { it.exerciseLogId == ex.id } }
+    val completedSets =
+        exercises.sumOf { ex ->
+            sets.count { it.exerciseLogId == ex.id && it.isCompleted }
+        }
+
+    // If no active workout, start one
+    LaunchedEffect(workoutState.isActive) {
+        if (!workoutState.isActive && !workoutState.isCompleted) {
+            viewModel.startNewWorkout()
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        "Freestyle Workout",
-                        fontWeight = FontWeight.SemiBold
+                        viewModel.getWorkoutDisplayName(),
+                        fontWeight = FontWeight.SemiBold,
                     )
                 },
                 navigationIcon = {
@@ -51,37 +73,62 @@ fun WorkoutScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                actions = {
+                    // Workout menu
+                    IconButton(onClick = { showWorkoutMenuDialog = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Workout Options")
+                    }
+                },
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddExerciseDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                elevation = FloatingActionButtonDefaults.elevation(8.dp)
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Exercise")
+            if (workoutState.isActive) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalAlignment = Alignment.End,
+                ) {
+                    // Complete workout button
+                    FloatingActionButton(
+                        onClick = { showCompleteWorkoutDialog = true },
+                        containerColor = MaterialTheme.colorScheme.tertiary,
+                        contentColor = MaterialTheme.colorScheme.onTertiary,
+                        modifier = Modifier.size(48.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.CheckCircle,
+                            contentDescription = "Complete Workout",
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+
+                    // Add exercise button
+                    FloatingActionButton(
+                        onClick = { showAddExerciseDialog = true },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        elevation = FloatingActionButtonDefaults.elevation(8.dp),
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = "Add Exercise")
+                    }
+                }
             }
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
+            modifier =
+                Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize(),
         ) {
             // Progress section
-            val totalSets = exercises.sumOf { ex -> sets.count { it.exerciseLogId == ex.id } }
-            val completedSets = exercises.sumOf { ex ->
-                sets.count { it.exerciseLogId == ex.id && it.isCompleted }
-            }
-
             ProgressCard(
                 completedSets = completedSets,
                 totalSets = totalSets,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(16.dp),
             )
 
             // Exercises list or empty state
@@ -93,11 +140,12 @@ fun WorkoutScreen(
                     sets = sets,
                     expandedExerciseId = expandedExerciseId,
                     onExerciseExpand = { exerciseId ->
-                        expandedExerciseId = if (expandedExerciseId == exerciseId) {
-                            null
-                        } else {
-                            exerciseId.also { viewModel.loadSetsForExercise(it) }
-                        }
+                        expandedExerciseId =
+                            if (expandedExerciseId == exerciseId) {
+                                null
+                            } else {
+                                exerciseId.also { viewModel.loadSetsForExercise(it) }
+                            }
                     },
                     onEditSet = { set, exerciseName ->
                         editingSet = set
@@ -110,13 +158,144 @@ fun WorkoutScreen(
                         showEditSetDialog = true
                     },
                     viewModel = viewModel,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
     }
 
-    // Dialogs
+    // Workout Menu Dialog
+    if (showWorkoutMenuDialog) {
+        AlertDialog(
+            onDismissRequest = { showWorkoutMenuDialog = false },
+            title = { Text("Workout Options") },
+            text = {
+                Column {
+                    TextButton(
+                        onClick = {
+                            showWorkoutMenuDialog = false
+                            showEditWorkoutNameDialog = true
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Filled.Edit, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Edit Workout Name")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showWorkoutMenuDialog = false }) {
+                    Text("Close")
+                }
+            },
+        )
+    }
+
+    // Edit Workout Name Dialog
+    if (showEditWorkoutNameDialog) {
+        var workoutName by remember { mutableStateOf(workoutState.workoutName ?: "") }
+
+        AlertDialog(
+            onDismissRequest = { showEditWorkoutNameDialog = false },
+            title = { Text("Edit Workout Name") },
+            text = {
+                OutlinedTextField(
+                    value = workoutName,
+                    onValueChange = { workoutName = it },
+                    label = { Text("Workout name (optional)") },
+                    placeholder = { Text("e.g., Upper Body Push") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.updateWorkoutName(workoutName.takeIf { it.isNotBlank() })
+                        showEditWorkoutNameDialog = false
+                    },
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showEditWorkoutNameDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
+    // Complete Workout Dialog
+    if (showCompleteWorkoutDialog) {
+        val completionPercentage =
+            if (totalSets > 0) {
+                (completedSets * 100) / totalSets
+            } else {
+                100
+            }
+
+        AlertDialog(
+            onDismissRequest = { showCompleteWorkoutDialog = false },
+            title = { Text("Complete Workout?") },
+            text = {
+                Column {
+                    if (completionPercentage < 100) {
+                        Text(
+                            "You've completed $completionPercentage% of your sets ($completedSets/$totalSets).",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Are you sure you want to finish this workout?",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    } else {
+                        Text(
+                            "Great job! You've completed all $totalSets sets.",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Ready to finish this workout?",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.completeWorkout()
+                        showCompleteWorkoutDialog = false
+                        onBack() // Navigate back to home
+                    },
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiary,
+                        ),
+                ) {
+                    Text("Complete Workout")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showCompleteWorkoutDialog = false }) {
+                    Text("Continue Training")
+                }
+            },
+        )
+    }
+
+    // Add Exercise Dialog
     if (showAddExerciseDialog) {
         AddExerciseDialog(
             onDismiss = { showAddExerciseDialog = false },
@@ -127,6 +306,7 @@ fun WorkoutScreen(
         )
     }
 
+    // Edit Set Dialog
     if (showEditSetDialog && editingExerciseName != null) {
         SmartEditSetDialog(
             set = editingSet,
@@ -147,35 +327,34 @@ fun WorkoutScreen(
                 editingSet = null
                 editingExerciseName = null
             },
-            viewModel = viewModel
+            viewModel = viewModel,
         )
     }
 }
 
 @Composable
-private fun EmptyWorkoutState(
-    modifier: Modifier = Modifier
-) {
+private fun EmptyWorkoutState(modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(32.dp),
-        contentAlignment = Alignment.Center
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(32.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
                 "No exercises yet",
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 "Tap the + button to add your first exercise",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
         }
     }
@@ -190,12 +369,12 @@ private fun ExercisesList(
     onEditSet: (SetLog, String) -> Unit,
     onSmartAdd: (String) -> Unit,
     viewModel: WorkoutViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = modifier
+        modifier = modifier,
     ) {
         items(exercises) { exercise ->
             ExerciseCard(
@@ -206,8 +385,10 @@ private fun ExercisesList(
                 onAddSet = { viewModel.addSetToExercise(exercise.id) },
                 onEditSet = { set -> onEditSet(set, exercise.exerciseName) },
                 onCopyLastSet = { exerciseId ->
-                    val lastSet = sets.filter { it.exerciseLogId == exerciseId }
-                        .maxByOrNull { it.setOrder }
+                    val lastSet =
+                        sets
+                            .filter { it.exerciseLogId == exerciseId }
+                            .maxByOrNull { it.setOrder }
                     if (lastSet != null) {
                         viewModel.addSetToExercise(exerciseId, lastSet.weight, lastSet.reps, lastSet.rpe)
                     } else {
@@ -217,10 +398,9 @@ private fun ExercisesList(
                 onDeleteSet = { setId -> viewModel.deleteSet(setId) },
                 onSmartAdd = { _, exerciseName -> onSmartAdd(exerciseName) },
                 onUpdateSet = { setId, reps, weight, rpe ->
-                    // Add inline update callback
                     viewModel.updateSet(setId, reps, weight, rpe)
                 },
-                viewModel = viewModel
+                viewModel = viewModel,
             )
         }
     }

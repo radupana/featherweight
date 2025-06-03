@@ -38,7 +38,7 @@ fun SmartEditSetDialog(
     exerciseName: String,
     onDismiss: () -> Unit,
     onSave: (reps: Int, weight: Float, rpe: Float?) -> Unit,
-    viewModel: WorkoutViewModel
+    viewModel: WorkoutViewModel,
 ) {
     var reps by remember { mutableStateOf(set?.reps?.toString() ?: "") }
     var weight by remember { mutableStateOf(set?.weight?.toString() ?: "") }
@@ -81,12 +81,12 @@ fun SmartEditSetDialog(
             Text(
                 if (set != null) "Edit Set ${set.setOrder + 1}" else "Add New Set",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
             )
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 // Smart suggestions card (only for new sets)
                 if (showSuggestions && smartSuggestions != null) {
@@ -98,7 +98,7 @@ fun SmartEditSetDialog(
                             weight = suggestions.suggestedWeight.toString()
                             suggestions.suggestedRpe?.let { rpe = it.toString() }
                         },
-                        onDismiss = { showSuggestions = false }
+                        onDismiss = { showSuggestions = false },
                     )
                 }
 
@@ -107,51 +107,60 @@ fun SmartEditSetDialog(
                     value = reps,
                     onValueChange = { reps = it },
                     label = { Text("Reps") },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { weightFocusRequester.requestFocus() }
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(repsFocusRequester),
-                    singleLine = true
+                    keyboardOptions =
+                        KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next,
+                        ),
+                    keyboardActions =
+                        KeyboardActions(
+                            onNext = { weightFocusRequester.requestFocus() },
+                        ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .focusRequester(repsFocusRequester),
+                    singleLine = true,
                 )
 
                 OutlinedTextField(
                     value = weight,
                     onValueChange = { weight = it },
                     label = { Text("Weight (kg)") },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal,
-                        imeAction = ImeAction.Next
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { rpeFocusRequester.requestFocus() }
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(weightFocusRequester),
-                    singleLine = true
+                    keyboardOptions =
+                        KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Next,
+                        ),
+                    keyboardActions =
+                        KeyboardActions(
+                            onNext = { rpeFocusRequester.requestFocus() },
+                        ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .focusRequester(weightFocusRequester),
+                    singleLine = true,
                 )
 
                 OutlinedTextField(
                     value = rpe,
                     onValueChange = { rpe = it },
                     label = { Text("RPE (1-10, optional)") },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = { focusManager.clearFocus() }
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(rpeFocusRequester),
-                    singleLine = true
+                    keyboardOptions =
+                        KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Done,
+                        ),
+                    keyboardActions =
+                        KeyboardActions(
+                            onDone = { focusManager.clearFocus() },
+                        ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .focusRequester(rpeFocusRequester),
+                    singleLine = true,
                 )
             }
         },
@@ -162,7 +171,7 @@ fun SmartEditSetDialog(
                     val weightFloat = weight.toFloatOrNull() ?: 0f
                     val rpeFloat = rpe.toFloatOrNull()
                     onSave(repsInt, weightFloat, rpeFloat)
-                }
+                },
             ) {
                 Text("Save")
             }
@@ -171,7 +180,7 @@ fun SmartEditSetDialog(
             OutlinedButton(onClick = onDismiss) {
                 Text("Cancel")
             }
-        }
+        },
     )
 
     LaunchedEffect(Unit) {

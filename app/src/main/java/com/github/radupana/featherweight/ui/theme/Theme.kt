@@ -25,119 +25,122 @@ private val OnSurface = Color(0xFF1A1A1A) // Almost black
 private val OnSurfaceVariant = Color(0xFF666666) // Medium gray
 private val OnBackground = Color(0xFF1A1A1A) // Almost black
 
-private val LightColors = lightColorScheme(
-    primary = Primary,
-    onPrimary = Color.White,
-    primaryContainer = Primary.copy(alpha = 0.1f),
-    onPrimaryContainer = PrimaryVariant,
-
-    secondary = Secondary,
-    onSecondary = Color.White,
-    secondaryContainer = Secondary.copy(alpha = 0.1f),
-    onSecondaryContainer = SecondaryVariant,
-
-    tertiary = Success,
-    onTertiary = Color.White,
-    tertiaryContainer = Success.copy(alpha = 0.1f),
-    onTertiaryContainer = Success,
-
-    error = Error,
-    onError = Color.White,
-    errorContainer = Error.copy(alpha = 0.1f),
-    onErrorContainer = Error,
-
-    background = Background,
-    onBackground = OnBackground,
-
-    surface = Surface,
-    onSurface = OnSurface,
-    surfaceVariant = SurfaceVariant,
-    onSurfaceVariant = OnSurfaceVariant,
-
-    inverseSurface = OnSurface,
-    inverseOnSurface = Surface,
-
-    outline = OnSurfaceVariant.copy(alpha = 0.3f),
-    outlineVariant = OnSurfaceVariant.copy(alpha = 0.1f),
-
-    scrim = Color.Black.copy(alpha = 0.5f)
-)
+private val LightColors =
+    lightColorScheme(
+        primary = Primary,
+        onPrimary = Color.White,
+        primaryContainer = Primary.copy(alpha = 0.1f),
+        onPrimaryContainer = PrimaryVariant,
+        secondary = Secondary,
+        onSecondary = Color.White,
+        secondaryContainer = Secondary.copy(alpha = 0.1f),
+        onSecondaryContainer = SecondaryVariant,
+        tertiary = Success,
+        onTertiary = Color.White,
+        tertiaryContainer = Success.copy(alpha = 0.1f),
+        onTertiaryContainer = Success,
+        error = Error,
+        onError = Color.White,
+        errorContainer = Error.copy(alpha = 0.1f),
+        onErrorContainer = Error,
+        background = Background,
+        onBackground = OnBackground,
+        surface = Surface,
+        onSurface = OnSurface,
+        surfaceVariant = SurfaceVariant,
+        onSurfaceVariant = OnSurfaceVariant,
+        inverseSurface = OnSurface,
+        inverseOnSurface = Surface,
+        outline = OnSurfaceVariant.copy(alpha = 0.3f),
+        outlineVariant = OnSurfaceVariant.copy(alpha = 0.1f),
+        scrim = Color.Black.copy(alpha = 0.5f),
+    )
 
 // Enhanced typography with better hierarchy
-private val Typography = Typography(
-    displayLarge = Typography().displayLarge.copy(
-        fontWeight = FontWeight.Bold,
-        color = OnSurface
-    ),
-    displayMedium = Typography().displayMedium.copy(
-        fontWeight = FontWeight.Bold,
-        color = OnSurface
-    ),
-    displaySmall = Typography().displaySmall.copy(
-        fontWeight = FontWeight.Bold,
-        color = OnSurface
-    ),
-
-    headlineLarge = Typography().headlineLarge.copy(
-        fontWeight = FontWeight.Bold,
-        color = OnSurface
-    ),
-    headlineMedium = Typography().headlineMedium.copy(
-        fontWeight = FontWeight.SemiBold,
-        color = OnSurface
-    ),
-    headlineSmall = Typography().headlineSmall.copy(
-        fontWeight = FontWeight.SemiBold,
-        color = OnSurface
-    ),
-
-    titleLarge = Typography().titleLarge.copy(
-        fontWeight = FontWeight.SemiBold,
-        color = OnSurface
-    ),
-    titleMedium = Typography().titleMedium.copy(
-        fontWeight = FontWeight.Medium,
-        color = OnSurface
-    ),
-    titleSmall = Typography().titleSmall.copy(
-        fontWeight = FontWeight.Medium,
-        color = OnSurface
-    ),
-
-    bodyLarge = Typography().bodyLarge.copy(
-        fontWeight = FontWeight.Normal,
-        color = OnSurface
-    ),
-    bodyMedium = Typography().bodyMedium.copy(
-        fontWeight = FontWeight.Normal,
-        color = OnSurface
-    ),
-    bodySmall = Typography().bodySmall.copy(
-        fontWeight = FontWeight.Normal,
-        color = OnSurfaceVariant
-    ),
-
-    labelLarge = Typography().labelLarge.copy(
-        fontWeight = FontWeight.Medium,
-        color = OnSurface
-    ),
-    labelMedium = Typography().labelMedium.copy(
-        fontWeight = FontWeight.Medium,
-        color = OnSurfaceVariant
-    ),
-    labelSmall = Typography().labelSmall.copy(
-        fontWeight = FontWeight.Medium,
-        color = OnSurfaceVariant
+private val Typography =
+    Typography(
+        displayLarge =
+            Typography().displayLarge.copy(
+                fontWeight = FontWeight.Bold,
+                color = OnSurface,
+            ),
+        displayMedium =
+            Typography().displayMedium.copy(
+                fontWeight = FontWeight.Bold,
+                color = OnSurface,
+            ),
+        displaySmall =
+            Typography().displaySmall.copy(
+                fontWeight = FontWeight.Bold,
+                color = OnSurface,
+            ),
+        headlineLarge =
+            Typography().headlineLarge.copy(
+                fontWeight = FontWeight.Bold,
+                color = OnSurface,
+            ),
+        headlineMedium =
+            Typography().headlineMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                color = OnSurface,
+            ),
+        headlineSmall =
+            Typography().headlineSmall.copy(
+                fontWeight = FontWeight.SemiBold,
+                color = OnSurface,
+            ),
+        titleLarge =
+            Typography().titleLarge.copy(
+                fontWeight = FontWeight.SemiBold,
+                color = OnSurface,
+            ),
+        titleMedium =
+            Typography().titleMedium.copy(
+                fontWeight = FontWeight.Medium,
+                color = OnSurface,
+            ),
+        titleSmall =
+            Typography().titleSmall.copy(
+                fontWeight = FontWeight.Medium,
+                color = OnSurface,
+            ),
+        bodyLarge =
+            Typography().bodyLarge.copy(
+                fontWeight = FontWeight.Normal,
+                color = OnSurface,
+            ),
+        bodyMedium =
+            Typography().bodyMedium.copy(
+                fontWeight = FontWeight.Normal,
+                color = OnSurface,
+            ),
+        bodySmall =
+            Typography().bodySmall.copy(
+                fontWeight = FontWeight.Normal,
+                color = OnSurfaceVariant,
+            ),
+        labelLarge =
+            Typography().labelLarge.copy(
+                fontWeight = FontWeight.Medium,
+                color = OnSurface,
+            ),
+        labelMedium =
+            Typography().labelMedium.copy(
+                fontWeight = FontWeight.Medium,
+                color = OnSurfaceVariant,
+            ),
+        labelSmall =
+            Typography().labelSmall.copy(
+                fontWeight = FontWeight.Medium,
+                color = OnSurfaceVariant,
+            ),
     )
-)
 
 @Composable
-fun FeatherweightTheme(
-    content: @Composable () -> Unit
-) {
+fun FeatherweightTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = LightColors,
         typography = Typography,
-        content = content
+        content = content,
     )
 }

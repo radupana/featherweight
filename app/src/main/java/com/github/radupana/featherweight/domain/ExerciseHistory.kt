@@ -6,5 +6,5 @@ import java.time.LocalDateTime
 data class ExerciseHistory(
     val exerciseName: String,
     val lastWorkoutDate: LocalDateTime,
-    val sets: List<SetLog>
+    val sets: List<SetLog>,
 )

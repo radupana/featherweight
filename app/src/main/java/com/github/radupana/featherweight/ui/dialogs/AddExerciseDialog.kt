@@ -37,7 +37,7 @@ fun AddExerciseDialog(
             Text(
                 "Add Exercise",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
             )
         },
         text = {
@@ -45,18 +45,20 @@ fun AddExerciseDialog(
                 value = exerciseName,
                 onValueChange = { exerciseName = it },
                 label = { Text("Exercise name") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        if (exerciseName.text.isNotBlank()) {
-                            onAdd(exerciseName.text)
-                        }
-                    }
-                ),
-                singleLine = true
+                keyboardActions =
+                    KeyboardActions(
+                        onDone = {
+                            if (exerciseName.text.isNotBlank()) {
+                                onAdd(exerciseName.text)
+                            }
+                        },
+                    ),
+                singleLine = true,
             )
         },
         confirmButton = {
@@ -71,7 +73,7 @@ fun AddExerciseDialog(
             OutlinedButton(onClick = onDismiss) {
                 Text("Cancel")
             }
-        }
+        },
     )
 
     LaunchedEffect(Unit) {

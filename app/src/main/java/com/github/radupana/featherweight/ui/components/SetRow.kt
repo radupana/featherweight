@@ -27,7 +27,7 @@ fun SetRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onUpdateSet: ((Int, Float, Float?) -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
@@ -85,37 +85,39 @@ fun SetRow(
         println("💾 SAVED RPE: isEditingRpe=$isEditingRpe")
     }
 
-    val bgColor = if (set.isCompleted) {
-        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f)
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
+    val bgColor =
+        if (set.isCompleted) {
+            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f)
+        } else {
+            MaterialTheme.colorScheme.surface
+        }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = bgColor,
         shape = RoundedCornerShape(8.dp),
-        tonalElevation = if (set.isCompleted) 2.dp else 0.dp
+        tonalElevation = if (set.isCompleted) 2.dp else 0.dp,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             // Set number
             Text(
                 "${set.setOrder + 1}",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.weight(0.12f)
+                modifier = Modifier.weight(0.12f),
             )
 
             // Reps - Simplified inline editing
             Box(
                 modifier = Modifier.weight(0.18f),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 if (isEditingReps && onUpdateSet != null) {
                     println("📝 EDITING REPS: Showing OutlinedTextField, value='$repsText'")
@@ -127,51 +129,59 @@ fun SetRow(
                                 repsText = newValue
                             }
                         },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                println("⌨️ KEYBOARD DONE pressed for reps")
-                                saveReps()
-                                focusManager.clearFocus()
-                            }
-                        ),
-                        textStyle = LocalTextStyle.current.copy(
-                            textAlign = TextAlign.Center
-                        ),
-                        modifier = Modifier
-                            .width(60.dp)
-                            .height(40.dp)
-                            .onFocusChanged { focusState ->
-                                println("🎯 REPS Focus changed: ${focusState.isFocused}, hasGainedFocus: $hasGainedFocusReps")
-                                if (focusState.isFocused) {
-                                    hasGainedFocusReps = true
-                                } else if (!focusState.isFocused && hasGainedFocusReps && isEditingReps) {
-                                    println("🔄 Auto-saving reps on focus lost")
+                        keyboardOptions =
+                            KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Done,
+                            ),
+                        keyboardActions =
+                            KeyboardActions(
+                                onDone = {
+                                    println("⌨️ KEYBOARD DONE pressed for reps")
                                     saveReps()
-                                }
-                            },
+                                    focusManager.clearFocus()
+                                },
+                            ),
+                        textStyle =
+                            LocalTextStyle.current.copy(
+                                textAlign = TextAlign.Center,
+                            ),
+                        modifier =
+                            Modifier
+                                .width(60.dp)
+                                .height(40.dp)
+                                .onFocusChanged { focusState ->
+                                    println("🎯 REPS Focus changed: ${focusState.isFocused}, hasGainedFocus: $hasGainedFocusReps")
+                                    if (focusState.isFocused) {
+                                        hasGainedFocusReps = true
+                                    } else if (!focusState.isFocused && hasGainedFocusReps && isEditingReps) {
+                                        println("🔄 Auto-saving reps on focus lost")
+                                        saveReps()
+                                    }
+                                },
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                        )
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            ),
                     )
                 } else {
                     Text(
                         if (set.reps > 0) "${set.reps}" else "—",
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
-                        modifier = if (onUpdateSet != null) {
-                            Modifier.clickable {
-                                println("🔥 CLICK REPS: set.id=${set.id}, current reps=${set.reps}")
-                                repsText = if (set.reps > 0) set.reps.toString() else ""
-                                isEditingReps = true
-                                println("🔥 AFTER CLICK: isEditingReps=$isEditingReps, repsText='$repsText'")
-                            }
-                        } else Modifier
+                        modifier =
+                            if (onUpdateSet != null) {
+                                Modifier.clickable {
+                                    println("🔥 CLICK REPS: set.id=${set.id}, current reps=${set.reps}")
+                                    repsText = if (set.reps > 0) set.reps.toString() else ""
+                                    isEditingReps = true
+                                    println("🔥 AFTER CLICK: isEditingReps=$isEditingReps, repsText='$repsText'")
+                                }
+                            } else {
+                                Modifier
+                            },
                     )
                 }
             }
@@ -179,7 +189,7 @@ fun SetRow(
             // Weight - Simplified inline editing
             Box(
                 modifier = Modifier.weight(0.22f),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 if (isEditingWeight && onUpdateSet != null) {
                     OutlinedTextField(
@@ -190,49 +200,57 @@ fun SetRow(
                                 weightText = newValue
                             }
                         },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                println("⌨️ KEYBOARD DONE pressed for weight")
-                                saveWeight()
-                                focusManager.clearFocus()
-                            }
-                        ),
-                        textStyle = LocalTextStyle.current.copy(
-                            textAlign = TextAlign.Center
-                        ),
-                        modifier = Modifier
-                            .width(80.dp)
-                            .height(40.dp)
-                            .onFocusChanged { focusState ->
-                                println("🎯 WEIGHT Focus changed: ${focusState.isFocused}, hasGainedFocus: $hasGainedFocusWeight")
-                                if (focusState.isFocused) {
-                                    hasGainedFocusWeight = true
-                                } else if (!focusState.isFocused && hasGainedFocusWeight && isEditingWeight) {
-                                    println("🔄 Auto-saving weight on focus lost")
+                        keyboardOptions =
+                            KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal,
+                                imeAction = ImeAction.Done,
+                            ),
+                        keyboardActions =
+                            KeyboardActions(
+                                onDone = {
+                                    println("⌨️ KEYBOARD DONE pressed for weight")
                                     saveWeight()
-                                }
-                            },
+                                    focusManager.clearFocus()
+                                },
+                            ),
+                        textStyle =
+                            LocalTextStyle.current.copy(
+                                textAlign = TextAlign.Center,
+                            ),
+                        modifier =
+                            Modifier
+                                .width(80.dp)
+                                .height(40.dp)
+                                .onFocusChanged { focusState ->
+                                    println("🎯 WEIGHT Focus changed: ${focusState.isFocused}, hasGainedFocus: $hasGainedFocusWeight")
+                                    if (focusState.isFocused) {
+                                        hasGainedFocusWeight = true
+                                    } else if (!focusState.isFocused && hasGainedFocusWeight && isEditingWeight) {
+                                        println("🔄 Auto-saving weight on focus lost")
+                                        saveWeight()
+                                    }
+                                },
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                        )
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            ),
                     )
                 } else {
                     Text(
                         if (set.weight > 0) "${set.weight}kg" else "—",
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
-                        modifier = if (onUpdateSet != null) {
-                            Modifier.clickable {
-                                weightText = if (set.weight > 0) set.weight.toString() else ""
-                                isEditingWeight = true
-                            }
-                        } else Modifier
+                        modifier =
+                            if (onUpdateSet != null) {
+                                Modifier.clickable {
+                                    weightText = if (set.weight > 0) set.weight.toString() else ""
+                                    isEditingWeight = true
+                                }
+                            } else {
+                                Modifier
+                            },
                     )
                 }
             }
@@ -240,7 +258,7 @@ fun SetRow(
             // RPE - Simplified inline editing
             Box(
                 modifier = Modifier.weight(0.15f),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 if (isEditingRpe && onUpdateSet != null) {
                     OutlinedTextField(
@@ -251,49 +269,57 @@ fun SetRow(
                                 rpeText = newValue
                             }
                         },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                println("⌨️ KEYBOARD DONE pressed for RPE")
-                                saveRpe()
-                                focusManager.clearFocus()
-                            }
-                        ),
-                        textStyle = LocalTextStyle.current.copy(
-                            textAlign = TextAlign.Center
-                        ),
-                        modifier = Modifier
-                            .width(60.dp)
-                            .height(40.dp)
-                            .onFocusChanged { focusState ->
-                                println("🎯 RPE Focus changed: ${focusState.isFocused}, hasGainedFocus: $hasGainedFocusRpe")
-                                if (focusState.isFocused) {
-                                    hasGainedFocusRpe = true
-                                } else if (!focusState.isFocused && hasGainedFocusRpe && isEditingRpe) {
-                                    println("🔄 Auto-saving RPE on focus lost")
+                        keyboardOptions =
+                            KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal,
+                                imeAction = ImeAction.Done,
+                            ),
+                        keyboardActions =
+                            KeyboardActions(
+                                onDone = {
+                                    println("⌨️ KEYBOARD DONE pressed for RPE")
                                     saveRpe()
-                                }
-                            },
+                                    focusManager.clearFocus()
+                                },
+                            ),
+                        textStyle =
+                            LocalTextStyle.current.copy(
+                                textAlign = TextAlign.Center,
+                            ),
+                        modifier =
+                            Modifier
+                                .width(60.dp)
+                                .height(40.dp)
+                                .onFocusChanged { focusState ->
+                                    println("🎯 RPE Focus changed: ${focusState.isFocused}, hasGainedFocus: $hasGainedFocusRpe")
+                                    if (focusState.isFocused) {
+                                        hasGainedFocusRpe = true
+                                    } else if (!focusState.isFocused && hasGainedFocusRpe && isEditingRpe) {
+                                        println("🔄 Auto-saving RPE on focus lost")
+                                        saveRpe()
+                                    }
+                                },
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                        )
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            ),
                     )
                 } else {
                     Text(
                         set.rpe?.let { "$it" } ?: "—",
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
-                        modifier = if (onUpdateSet != null) {
-                            Modifier.clickable {
-                                rpeText = set.rpe?.toString() ?: ""
-                                isEditingRpe = true
-                            }
-                        } else Modifier
+                        modifier =
+                            if (onUpdateSet != null) {
+                                Modifier.clickable {
+                                    rpeText = set.rpe?.toString() ?: ""
+                                    isEditingRpe = true
+                                }
+                            } else {
+                                Modifier
+                            },
                     )
                 }
             }
@@ -303,25 +329,26 @@ fun SetRow(
                 checked = set.isCompleted,
                 onCheckedChange = onToggleCompleted,
                 modifier = Modifier.weight(0.15f),
-                colors = CheckboxDefaults.colors(
-                    checkedColor = MaterialTheme.colorScheme.tertiary
-                )
+                colors =
+                    CheckboxDefaults.colors(
+                        checkedColor = MaterialTheme.colorScheme.tertiary,
+                    ),
             )
 
             // Delete button only
             Box(
                 modifier = Modifier.weight(0.18f),
-                contentAlignment = Alignment.CenterEnd
+                contentAlignment = Alignment.CenterEnd,
             ) {
                 IconButton(
                     onClick = { showDeleteConfirmation = true },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
                         Icons.Filled.Delete,
                         contentDescription = "Delete Set",
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.error
+                        tint = MaterialTheme.colorScheme.error,
                     )
                 }
             }
@@ -340,20 +367,21 @@ fun SetRow(
                         onDelete()
                         showDeleteConfirmation = false
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                        ),
                 ) {
                     Text("Delete")
                 }
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = { showDeleteConfirmation = false }
+                    onClick = { showDeleteConfirmation = false },
                 ) {
                     Text("Cancel")
                 }
-            }
+            },
         )
     }
 

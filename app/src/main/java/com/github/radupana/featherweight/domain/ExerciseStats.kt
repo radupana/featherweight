@@ -6,5 +6,5 @@ data class ExerciseStats(
     val avgReps: Int,
     val avgRpe: Float?,
     val maxWeight: Float,
-    val totalSets: Int
+    val totalSets: Int,
 )
