@@ -10,162 +10,217 @@
 ## 🏗️ Current Technical Stack
 - **Language**: Kotlin
 - **UI**: Jetpack Compose + Material3
-- **Architecture**: MVVM pattern
+- **Architecture**: MVVM pattern with Repository
 - **Database**: Room (SQLite) with fallback destructive migration
-- **Navigation**: Compose Navigation (currently basic)
+- **Navigation**: Bottom Navigation (3 tabs implemented)
 - **Dependency Injection**: None yet (consider Hilt later)
 
-## 📊 Current Data Model (Room Database v3)
+## 📊 Current Data Model (Room Database v4)
 ```kotlin
 // Core entities with relationships
 Workout (id, date, notes)
-  ↓ 1:many
+↓ 1:many
 ExerciseLog (id, workoutId, exerciseName, exerciseOrder, supersetGroup?, notes?)
-  ↓ 1:many  
+↓ 1:many
 SetLog (id, exerciseLogId, setOrder, reps, weight, rpe?, tag?, notes?, isCompleted, completedAt?)
 
 // Key features in data model:
 - Foreign key cascades (delete workout = delete all exercises/sets)
 - Set completion tracking with timestamps
 - RPE (Rate of Perceived Exertion) support
-- Flexible notes/tags system
+        - Flexible notes/tags system
 - Superset grouping capability
+- Workout completion state ([COMPLETED] marker in notes)
 ```
 
 ## 📱 Current UI State & Features
-### Implemented Screens:
-1. **HomeScreen** - Welcome screen with action buttons
-   - "Start Freestyle Workout" (primary CTA)
-   - "Start From Template" (placeholder dialog)
-   - Clean Material3 design
+### Implemented Navigation:
+**Bottom Navigation (3 tabs)**:
+- 🏠 **Home** - Dashboard with quick stats, in-progress workouts, recent activity
+- 🏋️ **Workout** - Active workout tracking (center/primary tab)
+- 📊 **History** - Past workouts with completion status
 
-2. **WorkoutScreen** - Active workout tracking
-   - Add exercises to current workout
-   - Add/edit/delete sets per exercise
-   - Set completion checkboxes with visual feedback
-   - Progress indicator (completed sets / total sets)
-   - Swipe-to-delete functionality
-   - Edit set dialog (reps, weight, RPE)
-   - Copy last set functionality
-   - Expandable exercise cards
+### Implemented Screens:
+1. **HomeScreen** - Enhanced dashboard
+   - Quick stats (streak, volume, duration)
+   - Primary action buttons (Start Freestyle/Browse Templates)
+   - In-progress workout resumption
+   - Recent workout preview
+   - Weekly progress tracking
+   - Daily motivational tips
+
+2. **WorkoutScreen** - Full workout tracking system
+   - Active/completed workout states with read-only mode
+   - Edit mode for completed workouts (temporary editing)
+   - Add/edit/delete exercises and sets
+   - Inline set editing (click to edit reps, weight, RPE)
+   - Set completion validation (requires reps + weight)
+   - "Complete All Sets" button per exercise
+   - Progress tracking with visual indicators
+   - Smart suggestions based on exercise history
+   - Workout completion flow
+   - Workout naming functionality
+
+3. **HistoryScreen** - Workout history management
+   - List of all workouts (completed + in-progress)
+   - Visual distinction between completed/in-progress
+   - Workout stats (exercises, sets, volume)
+   - Seed data for testing
 
 ### Technical Implementation Details:
-- **WorkoutViewModel**: Manages workout state with StateFlow
-- **Repository Pattern**: Clean data access layer
-- **Compose Best Practices**: Proper state management, recomposition
-- **Material3 Theming**: Custom color scheme, typography
-- **Error Handling**: Basic validation, user-friendly dialogs
+- **Repository Pattern**: Clean data access with FeatherweightRepository
+- **Smart State Management**: Complex workout state with edit mode support
+- **Modular UI Components**: Reusable cards, dialogs, and input components
+- **Material3 Theming**: Comprehensive design system
+- **Data Validation**: Set completion requires both reps and weight
+- **Edit Mode System**: Temporary editing of completed workouts with save/discard
 
-## 🗺️ Agreed Navigation Architecture
-**DECISION MADE**: Bottom Navigation (5 tabs) - Train-centric approach
-```
-🏠 Home     - Dashboard, quick actions, recent stats
-🏋️ Train    - Start workouts (CENTER/PRIMARY ACTION)  
-📊 History  - Past workouts, calendar view
-📈 Analytics - Progress charts, PRs, trends
-👤 Profile  - Settings, achievements, social
-```
+## 🔧 Current Features Breakdown
 
-**Key Principle**: Train tab is the hero - everything else supports workout experience
+### Core Workout Flow:
+- [x] Start new freestyle workout
+- [x] Resume in-progress workouts
+- [x] Add exercises to workout
+- [x] Add/edit/delete sets with validation
+- [x] Inline set editing (click reps/weight/RPE to edit)
+- [x] Set completion with validation
+- [x] Complete all sets in exercise
+- [x] Complete entire workout
+- [x] Workout naming and notes
+
+### Smart Features:
+- [x] Smart suggestions based on exercise history
+- [x] Auto-populate from previous workout data
+- [x] Exercise history tracking
+- [x] Copy last set functionality
+- [x] Set validation (reps + weight required)
+
+### Data Management:
+- [x] Workout state persistence
+- [x] In-progress workout detection
+- [x] Completed workout read-only mode
+- [x] Edit mode for completed workouts
+- [x] Seed data for testing/development
+
+### UI/UX Polish:
+- [x] Progress indicators
+- [x] Visual feedback for completed sets
+- [x] Empty states
+- [x] Confirmation dialogs
+- [x] Loading states
+- [x] Error handling
+
+## 🐛 Known Bugs & Issues
+
+### High Priority - Set Completion Validation:
+1. **Missing Error Tooltip**: When user tries to complete invalid sets (no reps/weight), no visual feedback shows
+2. **Complete All Behavior**: "Complete All" only completes valid sets, should show validation message for invalid ones
+3. **Validation Message Logic**: The warning card doesn't always appear when expected
+
+### Medium Priority:
+4. **Edit Mode Polish**: Could improve UX for save/discard workflow
+5. **Navigation State**: Back press handling during edit mode needs refinement
+6. **Progress Calculation**: Some edge cases in progress percentage calculation
+
+### Low Priority:
+7. **Performance**: No optimization done yet (fine for current scope)
+8. **Testing**: No unit/integration tests yet
+9. **Error Handling**: Could be more comprehensive for edge cases
 
 ## 🎯 Next Immediate Priorities
-1. **Navigation Refactor**: Implement 5-tab bottom navigation
-2. **Home Screen Enhancement**: Transform into proper dashboard
-3. **History Screen**: Basic workout history list
-4. **Analytics Foundation**: Simple progress tracking
-5. **Profile Basics**: Settings and user info
 
-## 🚀 Feature Roadmap (Prioritized)
-### Phase 1 - Core Experience ⭐ 
-- [x] Basic workout tracking (DONE)
-- [x] Set completion (DONE)
-- [ ] 5-tab navigation structure
-- [ ] Dashboard home screen
-- [ ] Workout history view
-- [ ] Basic user profile
+### Phase 1 - Bug Fixes (Current Focus):
+- [ ] Fix set completion validation feedback
+- [ ] Improve "Complete All" validation messaging
+- [ ] Polish validation warning display logic
+- [ ] Test edge cases in set completion flow
 
-### Phase 2 - Enhanced Tracking
-- [ ] Workout templates system
-- [ ] Exercise library with instructions
+### Phase 2 - Core Enhancement:
+- [ ] Add Analytics/Progress tab
+- [ ] Add Profile/Settings tab
 - [ ] Rest timer between sets
 - [ ] Workout duration tracking
-- [ ] Basic progress charts
+- [ ] Exercise library with instructions
 
-### Phase 3 - Smart Features
-- [ ] Auto-populate previous weights
+### Phase 3 - Smart Features:
+- [ ] Workout templates system
+- [ ] Auto-populate weights from last workout
 - [ ] RPE-based recommendations
 - [ ] Bodyweight/measurements tracking
 - [ ] PR (Personal Record) detection
-- [ ] Workout streak tracking
-
-### Phase 4 - Advanced Features
-- [ ] Social features (achievements, sharing)
-- [ ] AI assistance/auto-regulation
-- [ ] Program/periodization support
-- [ ] Advanced analytics & trends
-- [ ] Export/import functionality
 
 ## 🎨 Design Philosophy & Patterns
 - **Material3 Design Language**: Modern, accessible, consistent
 - **Fitness-focused Color Palette**: Blue primary, green for success/completion
-- **Information Hierarchy**: Bold headers, clear CTAs, scannable content
+- **Train-Centric Navigation**: Workout tab is the hero feature
+- **Progressive Disclosure**: Expandable cards, inline editing
+- **Smart Defaults**: Auto-suggestions, copy last set
+- **Instant Feedback**: Real-time validation, completion states
 - **Thumb-friendly**: Bottom navigation, large touch targets
-- **Progressive Disclosure**: Expandable cards, clean initial states
-- **Instant Feedback**: Loading states, success animations, error handling
 
-## 💾 Key Code Patterns & Conventions
+## 💾 Key Code Patterns & Architecture
+
+### Repository Pattern:
 ```kotlin
-// ViewModel pattern for state management
-class WorkoutViewModel : AndroidViewModel {
-    private val _state = MutableStateFlow(...)
-    val state: StateFlow<...> = _state
-}
-
-// Repository pattern for data access
 class FeatherweightRepository {
-    suspend fun insertWorkout(workout: Workout): Long
+   suspend fun getSmartSuggestions(exerciseName: String, currentWorkoutId: Long): SmartSuggestions?
+   suspend fun getWorkoutHistory(): List<WorkoutSummary>
+   suspend fun getOngoingWorkout(): Workout?
 }
-
-// Compose UI patterns
-@Composable
-fun ExerciseCard(
-    exercise: ExerciseLog,
-    expanded: Boolean,
-    onExpand: () -> Unit,
-    // ... other callbacks
-) { ... }
 ```
 
-## 🔧 Known Technical Debt
-- Navigation: Currently basic screen switching in MainActivity
-- Database: Uses destructive migration (fine for development)
-- Testing: No unit/integration tests yet
-- Error Handling: Basic, needs improvement for edge cases
-- Performance: No optimization done yet (fine for current scope)
+### Workout State Management:
+```kotlin
+data class WorkoutState(
+   val isActive: Boolean,
+   val isCompleted: Boolean,
+   val isInEditMode: Boolean,
+   val originalWorkoutData: Triple<List<ExerciseLog>, List<SetLog>, String?>?
+)
+```
 
-## 📝 Recent Decisions & Context
-- **2025-06-03**: Decided on bottom navigation over drawer/FAB-only
-- **Current Focus**: Get foundation solid before adding advanced features
-- **Development Approach**: Iterative, validate core features first
-- **User Experience**: Prioritize speed and simplicity for core workout flow
+### Validation Logic:
+```kotlin
+fun canMarkSetComplete(set: SetLog): Boolean = set.reps > 0 && set.weight > 0
+```
+
+### Component Architecture:
+- Modular screen components (HomeScreen, WorkoutScreen, HistoryScreen)
+- Reusable UI components (ExerciseCard, SetRow, ProgressCard)
+- Smart dialogs with suggestions (SmartEditSetDialog)
+- Validation and feedback systems
+
+## 📂 Project Structure
+```
+app/src/main/java/com/github/radupana/featherweight/
+├── data/                  # Room entities, DAOs, database
+├── domain/               # Business logic, data classes
+├── repository/           # Data access layer
+├── viewmodel/           # ViewModels (WorkoutViewModel, HistoryViewModel)
+├── ui/
+│   ├── screens/         # Main screens (Home, Workout, History)
+│   ├── components/      # Reusable components (cards, rows)
+│   ├── dialogs/         # Modal dialogs
+│   └── theme/          # Material3 theming
+└── MainActivity.kt      # Bottom navigation controller
+```
 
 ## 🔄 Context Bootstrapping Instructions
 When starting new conversation:
 1. Reference this knowledge base file
-2. Current codebase is in Android Studio project (Kotlin + Compose)
-3. We're in "foundation building" phase - focusing on navigation & core screens
-4. Next immediate task: Implement 5-tab bottom navigation structure
-5. Always consider: "Does this make starting/tracking a workout faster?"
+2. Current focus: **Fixing set completion validation bugs**
+3. We have 3-tab bottom navigation working (Home/Workout/History)
+4. Core workout tracking is solid, working on polish and bug fixes
+5. Next major milestone: Complete validation fixes, then add Analytics tab
 
-## 📂 Project Structure Overview
-```
-app/src/main/java/com/github/radupana/featherweight/
-├── data/              # Room entities, DAOs, database
-├── viewmodel/         # ViewModels and Repository
-├── ui/               # Compose screens and components
-│   ├── theme/        # Material3 theming
-│   ├── HomeScreen.kt
-│   ├── WorkoutScreen.kt
-│   └── ChooseTemplateDialog.kt
-└── MainActivity.kt   # Navigation controller
-```
+## 📝 Recent Development Notes
+- **2025-06-03**: Implemented comprehensive workout system with edit modes
+- **Current State**: Solid foundation with navigation, all core features working
+- **Development Approach**: Fix bugs first, then expand feature set
+- **User Experience**: Prioritizing workout flow polish over new features
+
+## 🧪 Testing & Validation
+- **Seed Data**: Auto-generated sample workouts for testing
+- **Edge Cases**: Need to test set completion validation thoroughly
+- **User Flows**: Start workout → Add exercises → Complete sets → Finish workout
+- **State Management**: Workout resumption, edit mode, navigation states
