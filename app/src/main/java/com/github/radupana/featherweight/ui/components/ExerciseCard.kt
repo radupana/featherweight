@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.*
@@ -30,7 +31,8 @@ fun ExerciseCard(
     onCopyLastSet: (Long) -> Unit,
     onDeleteSet: (Long) -> Unit,
     onSmartAdd: (Long, String) -> Unit,
-    onUpdateSet: ((Long, Int, Float, Float?) -> Unit)? = null, // Add callback for inline updates
+    onCompleteAllSets: (Long) -> Unit, // NEW: Complete all sets callback
+    onUpdateSet: ((Long, Int, Float, Float?) -> Unit)? = null,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
@@ -44,12 +46,16 @@ fun ExerciseCard(
             scope.launch {
                 val suggestions = viewModel.getSmartSuggestions(exercise.exerciseName)
                 hasSmartSuggestions = suggestions != null
-                println("🔍 Smart suggestions for ${exercise.exerciseName}: $suggestions") // Debug log
             }
         } else {
-            hasSmartSuggestions = false // Reset when collapsed
+            hasSmartSuggestions = false
         }
     }
+
+    // Calculate completable sets (sets with valid reps and weight)
+    val completableSets = sets.filter { viewModel.canMarkSetComplete(it) }
+    val incompleteValidSets = completableSets.filter { !it.isCompleted }
+    val canCompleteAll = incompleteValidSets.isNotEmpty()
 
     Card(
         modifier =
@@ -114,8 +120,34 @@ fun ExerciseCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    // Sets header
-                    SetTableHeader()
+                    // Sets header with complete all button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        SetTableHeader(modifier = Modifier.weight(1f))
+
+                        // Complete All button
+                        if (canCompleteAll && viewModel.canEditWorkout()) {
+                            TextButton(
+                                onClick = { onCompleteAllSets(exercise.id) },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            ) {
+                                Icon(
+                                    Icons.Filled.CheckCircle,
+                                    contentDescription = "Complete All",
+                                    modifier = Modifier.size(14.dp),
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "Complete All",
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // Sets list
@@ -130,8 +162,28 @@ fun ExerciseCard(
                             onUpdateSet = { reps, weight, rpe ->
                                 viewModel.updateSet(set.id, reps, weight, rpe)
                             },
+                            canMarkComplete = viewModel.canMarkSetComplete(set),
                         )
                         Spacer(modifier = Modifier.height(4.dp))
+                    }
+
+                    // Validation message for invalid sets
+                    val invalidSets = sets.filter { !viewModel.canMarkSetComplete(it) && !it.isCompleted }
+                    if (invalidSets.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Card(
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                                ),
+                        ) {
+                            Text(
+                                "⚠️ Sets need both reps and weight to be marked complete",
+                                modifier = Modifier.padding(8.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                            )
+                        }
                     }
                 }
 
@@ -158,9 +210,9 @@ fun ExerciseCard(
 }
 
 @Composable
-private fun SetTableHeader() {
+private fun SetTableHeader(modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
