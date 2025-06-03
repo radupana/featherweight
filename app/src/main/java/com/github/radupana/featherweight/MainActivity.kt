@@ -26,11 +26,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.ui.dialogs.ChooseTemplateDialog
 import com.github.radupana.featherweight.ui.screens.HistoryScreen
 import com.github.radupana.featherweight.ui.screens.HomeScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
+import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
 enum class BottomNavTab(
     val route: String,
@@ -61,6 +63,9 @@ class MainActivity : ComponentActivity() {
 fun MainScreen() {
     var selectedTab by remember { mutableStateOf(BottomNavTab.HOME) }
     var showTemplateDialog by remember { mutableStateOf(false) }
+
+    // Shared WorkoutViewModel across screens
+    val workoutViewModel: WorkoutViewModel = viewModel()
 
     Scaffold(
         bottomBar = {
@@ -103,11 +108,13 @@ fun MainScreen() {
                     HomeScreen(
                         onStartFreestyle = { selectedTab = BottomNavTab.WORKOUT },
                         onStartTemplate = { showTemplateDialog = true },
+                        workoutViewModel = workoutViewModel,
                     )
 
                 BottomNavTab.WORKOUT ->
                     WorkoutScreen(
                         onBack = { selectedTab = BottomNavTab.HOME },
+                        viewModel = workoutViewModel,
                     )
 
                 BottomNavTab.HISTORY -> HistoryScreen()

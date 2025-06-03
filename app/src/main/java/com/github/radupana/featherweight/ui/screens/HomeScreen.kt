@@ -4,20 +4,37 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.radupana.featherweight.viewmodel.InProgressWorkout
+import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import kotlinx.coroutines.launch
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onStartFreestyle: () -> Unit,
     onStartTemplate: () -> Unit,
+    workoutViewModel: WorkoutViewModel = viewModel(),
 ) {
+    val inProgressWorkouts by workoutViewModel.inProgressWorkouts.collectAsState()
+    val scope = rememberCoroutineScope()
+    var showWorkoutDialog by remember { mutableStateOf(false) }
+    var pendingWorkout by remember { mutableStateOf<InProgressWorkout?>(null) }
+
+    // Load in-progress workouts when screen appears
+    LaunchedEffect(Unit) {
+        workoutViewModel.loadInProgressWorkouts()
+    }
+
     Column(
         modifier =
             Modifier
@@ -98,7 +115,18 @@ fun HomeScreen(
                 )
 
                 Button(
-                    onClick = onStartFreestyle,
+                    onClick = {
+                        scope.launch {
+                            if (workoutViewModel.hasInProgressWorkouts()) {
+                                val recentWorkout = workoutViewModel.getMostRecentInProgressWorkout()
+                                pendingWorkout = recentWorkout
+                                showWorkoutDialog = true
+                            } else {
+                                workoutViewModel.startNewWorkout(forceNew = true)
+                                onStartFreestyle()
+                            }
+                        }
+                    },
                     modifier =
                         Modifier
                             .fillMaxWidth()
@@ -140,6 +168,53 @@ fun HomeScreen(
             }
         }
 
+        // In-Progress Workouts Section
+        if (inProgressWorkouts.isNotEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+                    ),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Schedule,
+                            contentDescription = "In Progress",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.secondary,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "In Progress",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+
+                    inProgressWorkouts.forEach { workout ->
+                        InProgressWorkoutCard(
+                            workout = workout,
+                            onContinue = {
+                                workoutViewModel.resumeWorkout(workout.id)
+                                onStartFreestyle()
+                            },
+                        )
+                        if (workout != inProgressWorkouts.last()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
+                }
+            }
+        }
+
         // Recent Activity Preview
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -177,7 +252,7 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
             colors =
                 CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
                 ),
         ) {
             Column(
@@ -187,7 +262,7 @@ fun HomeScreen(
                     text = "This Week",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
 
@@ -199,13 +274,13 @@ fun HomeScreen(
                     Text(
                         text = "Workout Goal",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                     Text(
                         text = "3/4 workouts",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
 
@@ -217,8 +292,8 @@ fun HomeScreen(
                         Modifier
                             .fillMaxWidth()
                             .height(8.dp),
-                    color = MaterialTheme.colorScheme.secondary,
-                    trackColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.3f),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f),
                 )
             }
         }
@@ -228,7 +303,7 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
             colors =
                 CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 ),
         ) {
             Column(
@@ -239,15 +314,118 @@ fun HomeScreen(
                     text = "💪 Today's Tip",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Track your RPE to optimize training intensity and prevent overtraining",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
                     textAlign = TextAlign.Center,
                 )
+            }
+        }
+    }
+
+    // Continue or Start New Workout Dialog
+    if (showWorkoutDialog && pendingWorkout != null) {
+        AlertDialog(
+            onDismissRequest = { showWorkoutDialog = false },
+            title = { Text("Continue Workout?") },
+            text = {
+                Column {
+                    Text(
+                        "You have an in-progress workout:",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        pendingWorkout!!.name
+                            ?: "Started ${pendingWorkout!!.startDate.format(DateTimeFormatter.ofPattern("MMM d 'at' h:mm a"))}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        "${pendingWorkout!!.exerciseCount} exercises • ${pendingWorkout!!.completedSets}/${pendingWorkout!!.setCount} sets completed",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Would you like to continue this workout or start a new one?",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        workoutViewModel.resumeWorkout(pendingWorkout!!.id)
+                        onStartFreestyle()
+                        showWorkoutDialog = false
+                    },
+                ) {
+                    Text("Continue")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = {
+                        workoutViewModel.startNewWorkout(forceNew = true)
+                        onStartFreestyle()
+                        showWorkoutDialog = false
+                    },
+                ) {
+                    Text("Start New")
+                }
+            },
+        )
+    }
+}
+
+@Composable
+fun InProgressWorkoutCard(
+    workout: InProgressWorkout,
+    onContinue: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text =
+                            workout.name ?: workout.startDate.format(
+                                DateTimeFormatter.ofPattern("MMM d 'at' h:mm a"),
+                            ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        text = "${workout.exerciseCount} exercises • ${workout.completedSets}/${workout.setCount} sets",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                TextButton(
+                    onClick = onContinue,
+                ) {
+                    Text("Continue")
+                }
             }
         }
     }

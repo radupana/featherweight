@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -112,18 +113,29 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
 
 @Composable
 fun WorkoutHistoryCard(workout: WorkoutSummary) {
+    // Improved color scheme: light yellow for in-progress, green for completed
+    val (containerColor, statusColor, statusTextColor) =
+        if (workout.isCompleted) {
+            Triple(
+                MaterialTheme.colorScheme.surface,
+                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
+                MaterialTheme.colorScheme.tertiary,
+            )
+        } else {
+            Triple(
+                Color(0xFFFFFBE6), // Very light yellow background for in-progress
+                Color(0xFFFFF3C4).copy(alpha = 0.8f), // Light yellow for status
+                Color(0xFF8B5A2B), // Warm brown for text
+            )
+        }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(4.dp),
         shape = RoundedCornerShape(12.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor =
-                    if (workout.isCompleted) {
-                        MaterialTheme.colorScheme.surface
-                    } else {
-                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-                    },
+                containerColor = containerColor,
             ),
     ) {
         Column(
@@ -143,34 +155,35 @@ fun WorkoutHistoryCard(workout: WorkoutSummary) {
                             ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
+                        color =
+                            if (workout.isCompleted) {
+                                MaterialTheme.colorScheme.onSurface
+                            } else {
+                                Color(0xFF5D4037) // Darker brown for in-progress
+                            },
                     )
                     Text(
                         text = workout.date.format(DateTimeFormatter.ofPattern("EEEE, MMM dd, yyyy")),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color =
+                            if (workout.isCompleted) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                Color(0xFF8D6E63) // Medium brown for in-progress
+                            },
                     )
                 }
 
-                // Status indicator
+                // Status indicator with improved colors
                 Surface(
-                    color =
-                        if (workout.isCompleted) {
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
-                        } else {
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                        },
+                    color = statusColor,
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Text(
                         text = if (workout.isCompleted) "Completed" else "In Progress",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
-                        color =
-                            if (workout.isCompleted) {
-                                MaterialTheme.colorScheme.tertiary
-                            } else {
-                                MaterialTheme.colorScheme.secondary
-                            },
+                        color = statusTextColor,
                         fontWeight = FontWeight.Medium,
                     )
                 }
@@ -186,16 +199,19 @@ fun WorkoutHistoryCard(workout: WorkoutSummary) {
                 WorkoutStatItem(
                     label = "Exercises",
                     value = workout.exerciseCount.toString(),
+                    isCompleted = workout.isCompleted,
                     modifier = Modifier.weight(1f),
                 )
                 WorkoutStatItem(
                     label = "Sets",
                     value = workout.setCount.toString(),
+                    isCompleted = workout.isCompleted,
                     modifier = Modifier.weight(1f),
                 )
                 WorkoutStatItem(
                     label = "Total Volume",
                     value = "${String.format("%.1f", workout.totalWeight / 1000)}k lbs",
+                    isCompleted = workout.isCompleted,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -206,7 +222,12 @@ fun WorkoutHistoryCard(workout: WorkoutSummary) {
                 Text(
                     text = "Duration: $duration minutes",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color =
+                        if (workout.isCompleted) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            Color(0xFF8D6E63)
+                        },
                 )
             }
         }
@@ -217,6 +238,7 @@ fun WorkoutHistoryCard(workout: WorkoutSummary) {
 fun WorkoutStatItem(
     label: String,
     value: String,
+    isCompleted: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -227,12 +249,22 @@ fun WorkoutStatItem(
             text = value,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
+            color =
+                if (isCompleted) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    Color(0xFF6D4C41) // Warm brown for in-progress values
+                },
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color =
+                if (isCompleted) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    Color(0xFF8D6E63) // Medium brown for in-progress labels
+                },
         )
     }
 }

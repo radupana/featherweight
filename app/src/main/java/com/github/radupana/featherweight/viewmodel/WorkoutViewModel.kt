@@ -21,6 +21,16 @@ data class WorkoutState(
     val workoutId: Long? = null,
     val startTime: LocalDateTime? = null,
     val workoutName: String? = null,
+    val isReadOnly: Boolean = false, // New field to indicate if workout can be edited
+)
+
+data class InProgressWorkout(
+    val id: Long,
+    val name: String?,
+    val startDate: LocalDateTime,
+    val exerciseCount: Int,
+    val setCount: Int,
+    val completedSets: Int,
 )
 
 class WorkoutViewModel(
@@ -45,8 +55,13 @@ class WorkoutViewModel(
     private val _exerciseHistory = MutableStateFlow<Map<String, ExerciseHistory>>(emptyMap())
     val exerciseHistory: StateFlow<Map<String, ExerciseHistory>> = _exerciseHistory
 
+    // In-progress workouts for home screen
+    private val _inProgressWorkouts = MutableStateFlow<List<InProgressWorkout>>(emptyList())
+    val inProgressWorkouts: StateFlow<List<InProgressWorkout>> = _inProgressWorkouts
+
     init {
         checkForOngoingWorkout()
+        loadInProgressWorkouts()
     }
 
     // Check if there's an ongoing workout when the app starts
@@ -55,37 +70,123 @@ class WorkoutViewModel(
             val ongoingWorkout = repository.getOngoingWorkout()
             if (ongoingWorkout != null) {
                 // Resume existing workout
-                _currentWorkoutId.value = ongoingWorkout.id
-                _workoutState.value =
-                    WorkoutState(
-                        isActive = true,
-                        isCompleted = false,
-                        workoutId = ongoingWorkout.id,
-                        startTime = ongoingWorkout.date,
-                        workoutName = ongoingWorkout.notes,
-                    )
-                loadExercisesForWorkout(ongoingWorkout.id)
+                resumeWorkout(ongoingWorkout.id)
             }
         }
     }
 
-    // Start a new workout
-    fun startNewWorkout() {
+    // Load all in-progress workouts for home screen
+    fun loadInProgressWorkouts() {
         viewModelScope.launch {
-            val workout = Workout(date = LocalDateTime.now(), notes = null)
-            val workoutId = repository.insertWorkout(workout)
+            val workoutHistory = repository.getWorkoutHistory()
+            val inProgress =
+                workoutHistory
+                    .filter { !it.isCompleted }
+                    .map { summary ->
+                        InProgressWorkout(
+                            id = summary.id,
+                            name = summary.name,
+                            startDate = summary.date,
+                            exerciseCount = summary.exerciseCount,
+                            setCount = summary.setCount,
+                            completedSets = 0, // TODO: Calculate from sets
+                        )
+                    }
+            _inProgressWorkouts.value = inProgress
+        }
+    }
 
-            _currentWorkoutId.value = workoutId
-            _workoutState.value =
-                WorkoutState(
-                    isActive = true,
-                    isCompleted = false,
-                    workoutId = workoutId,
-                    startTime = LocalDateTime.now(),
-                    workoutName = null,
-                )
+    // Check if there are any in-progress workouts
+    suspend fun hasInProgressWorkouts(): Boolean {
+        val ongoingWorkout = repository.getOngoingWorkout()
+        return ongoingWorkout != null
+    }
 
-            loadExercisesForWorkout(workoutId)
+    // Get the most recent in-progress workout
+    suspend fun getMostRecentInProgressWorkout(): InProgressWorkout? {
+        val ongoingWorkout = repository.getOngoingWorkout() ?: return null
+        val exercises = repository.getExercisesForWorkout(ongoingWorkout.id)
+        val allSets = mutableListOf<SetLog>()
+        exercises.forEach { exercise ->
+            allSets.addAll(repository.getSetsForExercise(exercise.id))
+        }
+
+        return InProgressWorkout(
+            id = ongoingWorkout.id,
+            name =
+                ongoingWorkout.notes?.let { notes ->
+                    if (notes.contains("[COMPLETED]")) null else notes
+                },
+            startDate = ongoingWorkout.date,
+            exerciseCount = exercises.size,
+            setCount = allSets.size,
+            completedSets = allSets.count { it.isCompleted },
+        )
+    }
+
+    // Resume an existing workout
+    fun resumeWorkout(workoutId: Long) {
+        viewModelScope.launch {
+            val workout = repository.getWorkoutById(workoutId)
+            if (workout != null) {
+                val isCompleted = workout.notes?.contains("[COMPLETED]") == true
+
+                _currentWorkoutId.value = workoutId
+                _workoutState.value =
+                    WorkoutState(
+                        isActive = !isCompleted,
+                        isCompleted = isCompleted,
+                        workoutId = workoutId,
+                        startTime = workout.date,
+                        workoutName =
+                            workout.notes?.let { notes ->
+                                if (notes.contains("[COMPLETED]")) {
+                                    notes
+                                        .replace(" [COMPLETED]", "")
+                                        .replace("[COMPLETED]", "")
+                                        .trim()
+                                        .takeIf { it.isNotBlank() }
+                                } else {
+                                    notes.takeIf { it.isNotBlank() }
+                                }
+                            },
+                        isReadOnly = isCompleted,
+                    )
+
+                loadExercisesForWorkout(workoutId)
+                loadInProgressWorkouts()
+            }
+        }
+    }
+
+    // Start a completely new workout (force new)
+    fun startNewWorkout(forceNew: Boolean = false) {
+        viewModelScope.launch {
+            // If forcing new or no ongoing workout exists, create new
+            if (forceNew || repository.getOngoingWorkout() == null) {
+                val workout = Workout(date = LocalDateTime.now(), notes = null)
+                val workoutId = repository.insertWorkout(workout)
+
+                _currentWorkoutId.value = workoutId
+                _workoutState.value =
+                    WorkoutState(
+                        isActive = true,
+                        isCompleted = false,
+                        workoutId = workoutId,
+                        startTime = LocalDateTime.now(),
+                        workoutName = null,
+                        isReadOnly = false,
+                    )
+
+                loadExercisesForWorkout(workoutId)
+                loadInProgressWorkouts()
+            } else {
+                // Resume existing workout
+                val ongoingWorkout = repository.getOngoingWorkout()
+                if (ongoingWorkout != null) {
+                    resumeWorkout(ongoingWorkout.id)
+                }
+            }
         }
     }
 
@@ -98,7 +199,9 @@ class WorkoutViewModel(
                 _workoutState.value.copy(
                     isActive = false,
                     isCompleted = true,
+                    isReadOnly = true,
                 )
+            loadInProgressWorkouts()
         }
     }
 
@@ -108,6 +211,7 @@ class WorkoutViewModel(
         viewModelScope.launch {
             repository.updateWorkoutName(currentId, name)
             _workoutState.value = _workoutState.value.copy(workoutName = name)
+            loadInProgressWorkouts()
         }
     }
 
@@ -118,6 +222,9 @@ class WorkoutViewModel(
             DateTimeFormatter.ofPattern("MMM d 'at' h:mm a"),
         ) ?: "Current Workout"
     }
+
+    // Check if current workout can be edited
+    fun canEditWorkout(): Boolean = !_workoutState.value.isReadOnly
 
     private fun loadExercisesForWorkout(workoutId: Long) {
         viewModelScope.launch {
@@ -137,8 +244,10 @@ class WorkoutViewModel(
         }
     }
 
-    // Exercise management
+    // Exercise management - only allowed if workout can be edited
     fun addExerciseToCurrentWorkout(exerciseName: String) {
+        if (!canEditWorkout()) return
+
         val currentId = _currentWorkoutId.value ?: return
         viewModelScope.launch {
             val exerciseLog =
@@ -152,6 +261,7 @@ class WorkoutViewModel(
             repository.insertExerciseLog(exerciseLog)
             loadExercisesForWorkout(currentId)
             loadExerciseHistory(exerciseName)
+            loadInProgressWorkouts()
         }
     }
 
@@ -167,13 +277,15 @@ class WorkoutViewModel(
         }
     }
 
-    // Set management
+    // Set management - only allowed if workout can be edited
     fun addSetToExercise(
         exerciseLogId: Long,
         weight: Float = 0f,
         reps: Int = 0,
         rpe: Float? = null,
     ) {
+        if (!canEditWorkout()) return
+
         viewModelScope.launch {
             val setOrder = repository.getSetsForExercise(exerciseLogId).size
             val setLog =
@@ -190,6 +302,7 @@ class WorkoutViewModel(
                 )
             repository.insertSetLog(setLog)
             loadAllSetsForCurrentExercises()
+            loadInProgressWorkouts()
         }
     }
 
@@ -199,6 +312,8 @@ class WorkoutViewModel(
         weight: Float,
         rpe: Float?,
     ) {
+        if (!canEditWorkout()) return
+
         viewModelScope.launch {
             val currentSets = _selectedExerciseSets.value
             val currentSet = currentSets.firstOrNull { it.id == setId }
@@ -206,14 +321,18 @@ class WorkoutViewModel(
                 val updatedSet = currentSet.copy(reps = reps, weight = weight, rpe = rpe)
                 repository.updateSetLog(updatedSet)
                 loadAllSetsForCurrentExercises()
+                loadInProgressWorkouts()
             }
         }
     }
 
     fun deleteSet(setId: Long) {
+        if (!canEditWorkout()) return
+
         viewModelScope.launch {
             repository.deleteSetLog(setId)
             loadAllSetsForCurrentExercises()
+            loadInProgressWorkouts()
         }
     }
 
@@ -221,6 +340,7 @@ class WorkoutViewModel(
         setId: Long,
         completed: Boolean,
     ) {
+        // Allow marking sets as complete even in read-only mode for review purposes
         val timestamp =
             if (completed) {
                 LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
@@ -231,6 +351,7 @@ class WorkoutViewModel(
         viewModelScope.launch {
             repository.markSetCompleted(setId, completed, timestamp)
             loadAllSetsForCurrentExercises()
+            loadInProgressWorkouts()
         }
     }
 

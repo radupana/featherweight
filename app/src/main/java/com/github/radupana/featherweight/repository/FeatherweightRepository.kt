@@ -438,4 +438,6 @@ class FeatherweightRepository(
 
         return null
     }
+
+    suspend fun getWorkoutById(workoutId: Long): Workout? = workoutDao.getWorkoutById(workoutId)
 }
