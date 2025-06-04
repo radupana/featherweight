@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -32,6 +31,7 @@ import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 @Composable
 fun WorkoutScreen(
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
     viewModel: WorkoutViewModel = viewModel(),
 ) {
     val exercises by viewModel.selectedWorkoutExercises.collectAsState()
@@ -81,7 +81,18 @@ fun WorkoutScreen(
         }
     }
 
+    LaunchedEffect(canEdit, isEditMode, hasContent, workoutState) {
+        println("WorkoutScreen Debug:")
+        println("  canEdit: $canEdit")
+        println("  isEditMode: $isEditMode")
+        println("  hasContent: $hasContent")
+        println("  workoutState.isActive: ${workoutState.isActive}")
+        println("  workoutState.isCompleted: ${workoutState.isCompleted}")
+        println("  exercises.size: ${exercises.size}")
+    }
+
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = {
@@ -154,13 +165,30 @@ fun WorkoutScreen(
             )
         },
         floatingActionButton = {
+            // Debug: Always show FAB regardless of conditions for testing
+            FloatingActionButton(
+                onClick = {
+                    println("FAB clicked - canEdit: $canEdit, isEditMode: $isEditMode, hasContent: $hasContent")
+                    showAddExerciseDialog = true
+                },
+                containerColor = MaterialTheme.colorScheme.primary,
+                elevation = FloatingActionButtonDefaults.elevation(8.dp),
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "Add Exercise")
+            }
+
+            // Original logic (comment this out for now to test)
+            /*
             if (canEdit) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.End,
-                ) {
-                    // Complete workout button (only for active workouts with content, not edit mode)
-                    if (workoutState.isActive && !isEditMode && hasContent) {
+                // Always show the Add Exercise button when can edit
+                // Complete Workout button only shows when there's content
+                if (workoutState.isActive && !isEditMode && hasContent) {
+                    // Show both buttons when workout has content and is active
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment = Alignment.End,
+                    ) {
+                        // Complete workout button
                         FloatingActionButton(
                             onClick = { showCompleteWorkoutDialog = true },
                             containerColor = MaterialTheme.colorScheme.tertiary,
@@ -173,9 +201,18 @@ fun WorkoutScreen(
                                 modifier = Modifier.size(24.dp),
                             )
                         }
-                    }
 
-                    // Add exercise button
+                        // Add exercise button
+                        FloatingActionButton(
+                            onClick = { showAddExerciseDialog = true },
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            elevation = FloatingActionButtonDefaults.elevation(8.dp),
+                        ) {
+                            Icon(Icons.Filled.Add, contentDescription = "Add Exercise")
+                        }
+                    }
+                } else {
+                    // Show only Add Exercise button when no content or not active or in edit mode
                     FloatingActionButton(
                         onClick = { showAddExerciseDialog = true },
                         containerColor =
@@ -190,6 +227,7 @@ fun WorkoutScreen(
                     }
                 }
             }
+             */
         },
     ) { innerPadding ->
         Column(

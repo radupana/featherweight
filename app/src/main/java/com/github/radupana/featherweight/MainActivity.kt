@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -134,17 +135,18 @@ fun MainAppWithNavigation(
     }
 }
 
-// Extension function to add modifier to screens that don't have it
 @Composable
 fun HomeScreen(
     onStartFreestyle: () -> Unit,
     onStartTemplate: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    HomeScreen(
-        onStartFreestyle = onStartFreestyle,
-        onStartTemplate = onStartTemplate,
-    )
+    Box(modifier = modifier) {
+        HomeScreen(
+            onStartFreestyle = onStartFreestyle,
+            onStartTemplate = onStartTemplate,
+        )
+    }
 }
 
 @Composable
@@ -152,12 +154,16 @@ fun WorkoutScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    WorkoutScreen(
-        onBack = onBack,
-    )
+    Box(modifier = modifier) {
+        WorkoutScreen(
+            onBack = onBack,
+        )
+    }
 }
 
 @Composable
 fun HistoryScreen(modifier: Modifier = Modifier) {
-    HistoryScreen()
+    Box(modifier = modifier) {
+        HistoryScreen()
+    }
 }
