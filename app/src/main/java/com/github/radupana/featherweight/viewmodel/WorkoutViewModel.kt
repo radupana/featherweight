@@ -459,4 +459,30 @@ class WorkoutViewModel(
             loadAllSetsForCurrentExercises()
         }
     }
+
+    fun deleteExercise(exerciseLogId: Long) {
+        if (!canEditWorkout()) return
+
+        viewModelScope.launch {
+            repository.deleteExerciseLog(exerciseLogId)
+            val currentId = _currentWorkoutId.value ?: return@launch
+            loadExercisesForWorkout(currentId)
+            loadInProgressWorkouts()
+        }
+    }
+
+    // Delete the current workout entirely
+    fun deleteCurrentWorkout() {
+        val currentId = _currentWorkoutId.value ?: return
+        viewModelScope.launch {
+            repository.deleteWorkout(currentId)
+
+            // Reset state after deletion
+            _currentWorkoutId.value = null
+            _workoutState.value = WorkoutState()
+            _selectedWorkoutExercises.value = emptyList()
+            _selectedExerciseSets.value = emptyList()
+            loadInProgressWorkouts()
+        }
+    }
 }

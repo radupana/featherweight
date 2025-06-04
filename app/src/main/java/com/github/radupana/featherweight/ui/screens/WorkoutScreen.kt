@@ -8,6 +8,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
@@ -45,6 +46,7 @@ fun WorkoutScreen(
     var showEditWorkoutNameDialog by remember { mutableStateOf(false) }
     var showEditModeDialog by remember { mutableStateOf(false) }
     var showSaveEditDialog by remember { mutableStateOf(false) }
+    var showDeleteWorkoutDialog by remember { mutableStateOf(false) }
 
     var editingSet by remember { mutableStateOf<SetLog?>(null) }
     var editingExerciseName by remember { mutableStateOf<String?>(null) }
@@ -56,6 +58,9 @@ fun WorkoutScreen(
         exercises.sumOf { ex ->
             sets.count { it.exerciseLogId == ex.id && it.isCompleted }
         }
+
+    // Check if workout has any exercises or sets - prevent completing empty workouts
+    val hasContent = exercises.isNotEmpty()
 
     // If no active workout, start one
     LaunchedEffect(workoutState.isActive) {
@@ -154,8 +159,8 @@ fun WorkoutScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     horizontalAlignment = Alignment.End,
                 ) {
-                    // Complete workout button (only for active workouts, not edit mode)
-                    if (workoutState.isActive && !isEditMode) {
+                    // Complete workout button (only for active workouts with content, not edit mode)
+                    if (workoutState.isActive && !isEditMode && hasContent) {
                         FloatingActionButton(
                             onClick = { showCompleteWorkoutDialog = true },
                             containerColor = MaterialTheme.colorScheme.tertiary,
@@ -243,6 +248,11 @@ fun WorkoutScreen(
                             showEditSetDialog = true
                         }
                     },
+                    onDeleteExercise = { exerciseId ->
+                        if (canEdit) {
+                            viewModel.deleteExercise(exerciseId)
+                        }
+                    },
                     viewModel = viewModel,
                     modifier = Modifier.weight(1f),
                 )
@@ -320,11 +330,50 @@ fun WorkoutScreen(
     if (showWorkoutMenuDialog && !isEditMode) {
         WorkoutMenuDialog(
             canEdit = canEdit,
+            hasContent = hasContent,
             onEditName = {
                 showWorkoutMenuDialog = false
                 showEditWorkoutNameDialog = true
             },
+            onDeleteWorkout = {
+                showWorkoutMenuDialog = false
+                showDeleteWorkoutDialog = true
+            },
             onClose = { showWorkoutMenuDialog = false },
+        )
+    }
+
+    // Delete Workout Dialog
+    if (showDeleteWorkoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteWorkoutDialog = false },
+            title = { Text("Delete Workout") },
+            text = {
+                Text(
+                    "Are you sure you want to delete this entire workout? This will remove all exercises and sets. This action cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteCurrentWorkout()
+                        showDeleteWorkoutDialog = false
+                        onBack()
+                    },
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                        ),
+                ) {
+                    Text("Delete Workout")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showDeleteWorkoutDialog = false }) {
+                    Text("Cancel")
+                }
+            },
         )
     }
 
@@ -340,8 +389,8 @@ fun WorkoutScreen(
         )
     }
 
-    // Complete Workout Dialog
-    if (showCompleteWorkoutDialog && canEdit) {
+    // Complete Workout Dialog - FIXED: Only show if workout has content
+    if (showCompleteWorkoutDialog && canEdit && hasContent) {
         CompleteWorkoutDialog(
             completedSets = completedSets,
             totalSets = totalSets,
@@ -474,7 +523,9 @@ private fun EditModeBanner() {
 @Composable
 private fun WorkoutMenuDialog(
     canEdit: Boolean,
+    hasContent: Boolean,
     onEditName: () -> Unit,
+    onDeleteWorkout: () -> Unit,
     onClose: () -> Unit,
 ) {
     AlertDialog(
@@ -495,6 +546,28 @@ private fun WorkoutMenuDialog(
                             Icon(Icons.Filled.Edit, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Edit Workout Name")
+                        }
+                    }
+
+                    TextButton(
+                        onClick = onDeleteWorkout,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Delete Workout",
+                                color = MaterialTheme.colorScheme.error,
+                            )
                         }
                     }
                 } else {
@@ -655,6 +728,7 @@ private fun ExercisesList(
     onExerciseExpand: (Long) -> Unit,
     onEditSet: (SetLog, String) -> Unit,
     onSmartAdd: (String) -> Unit,
+    onDeleteExercise: (Long) -> Unit,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
@@ -693,6 +767,9 @@ private fun ExercisesList(
                 },
                 onSmartAdd = { _, exerciseName ->
                     if (canEdit) onSmartAdd(exerciseName)
+                },
+                onDeleteExercise = { exerciseId ->
+                    if (canEdit) onDeleteExercise(exerciseId)
                 },
                 onUpdateSet = { setId, reps, weight, rpe ->
                     if (canEdit) viewModel.updateSet(setId, reps, weight, rpe)

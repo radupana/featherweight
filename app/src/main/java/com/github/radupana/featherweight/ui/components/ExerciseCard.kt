@@ -7,6 +7,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,16 +32,27 @@ fun ExerciseCard(
     onDeleteSet: (Long) -> Unit,
     onSmartAdd: (Long, String) -> Unit,
     onCompleteAllSets: (Long) -> Unit,
+    onDeleteExercise: (Long) -> Unit,
     onUpdateSet: ((Long, Int, Float, Float?) -> Unit)? = null,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
     var showValidationMessage by remember { mutableStateOf(false) }
+    var showDeleteExerciseDialog by remember { mutableStateOf(false) }
+    var showExerciseMenuDialog by remember { mutableStateOf(false) }
 
-    // Calculate completable sets
-    val completableSets = sets.filter { viewModel.canMarkSetComplete(it) }
-    val incompleteValidSets = completableSets.filter { !it.isCompleted }
-    val canCompleteAll = incompleteValidSets.isNotEmpty()
+    // Calculate completable sets - FIXED LOGIC
+    val validSets = sets.filter { viewModel.canMarkSetComplete(it) }
+    val incompleteValidSets = validSets.filter { !it.isCompleted }
+
+    // Complete All should only be available when:
+    // 1. All sets have valid data (reps + weight)
+    // 2. At least one set is not completed
+    // 3. There are sets to complete
+    val canCompleteAll =
+        sets.isNotEmpty() &&
+            sets.all { viewModel.canMarkSetComplete(it) } &&
+            incompleteValidSets.isNotEmpty()
 
     // Reset validation message when sets change
     LaunchedEffect(sets) {
@@ -62,7 +75,7 @@ fun ExerciseCard(
         Column(
             modifier = Modifier.padding(16.dp),
         ) {
-            // Exercise header (existing)
+            // Exercise header with menu
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -75,28 +88,47 @@ fun ExerciseCard(
                     modifier = Modifier.weight(1f),
                 )
 
-                if (sets.isNotEmpty()) {
-                    val completedSets = sets.count { it.isCompleted }
-                    Surface(
-                        color =
-                            if (completedSets == sets.size) {
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
-                            } else {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            },
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text(
-                            "$completedSets/${sets.size}",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (sets.isNotEmpty()) {
+                        val completedSets = sets.count { it.isCompleted }
+                        Surface(
                             color =
                                 if (completedSets == sets.size) {
-                                    MaterialTheme.colorScheme.tertiary
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
                                 } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                    MaterialTheme.colorScheme.surfaceVariant
                                 },
-                        )
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text(
+                                "$completedSets/${sets.size}",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color =
+                                    if (completedSets == sets.size) {
+                                        MaterialTheme.colorScheme.tertiary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                            )
+                        }
+                    }
+
+                    // Exercise menu button (only when can edit)
+                    if (viewModel.canEditWorkout()) {
+                        IconButton(
+                            onClick = { showExerciseMenuDialog = true },
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.MoreVert,
+                                contentDescription = "Exercise Options",
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -111,7 +143,7 @@ fun ExerciseCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    // THIS IS WHERE THE COMPLETE ALL BUTTON GOES - in the header row
+                    // Sets table header with Complete All button
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -152,7 +184,7 @@ fun ExerciseCard(
                             Spacer(modifier = Modifier.weight(0.33f)) // For checkbox + actions
                         }
 
-                        // Complete All button - THIS IS THE MISSING BUTTON!
+                        // Complete All button - FIXED LOGIC
                         if (canCompleteAll && viewModel.canEditWorkout()) {
                             TextButton(
                                 onClick = { onCompleteAllSets(exercise.id) },
@@ -196,7 +228,7 @@ fun ExerciseCard(
                         Spacer(modifier = Modifier.height(4.dp))
                     }
 
-                    // Validation message - only show after user tries to complete invalid sets
+                    // Validation message for sets that can't be completed
                     if (showValidationMessage) {
                         val invalidSets = sets.filter { set -> !viewModel.canMarkSetComplete(set) && !set.isCompleted }
                         if (invalidSets.isNotEmpty()) {
@@ -235,7 +267,7 @@ fun ExerciseCard(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Action buttons (existing Add Set, Copy Last, etc.)
+                // Action buttons (Add Set, Copy Last)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -276,5 +308,79 @@ fun ExerciseCard(
                 )
             }
         }
+    }
+
+    // Exercise menu dialog
+    if (showExerciseMenuDialog) {
+        AlertDialog(
+            onDismissRequest = { showExerciseMenuDialog = false },
+            title = { Text("Exercise Options") },
+            text = {
+                Column {
+                    TextButton(
+                        onClick = {
+                            showExerciseMenuDialog = false
+                            showDeleteExerciseDialog = true
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Delete Exercise",
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showExerciseMenuDialog = false }) {
+                    Text("Close")
+                }
+            },
+        )
+    }
+
+    // Delete exercise confirmation dialog
+    if (showDeleteExerciseDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteExerciseDialog = false },
+            title = { Text("Delete Exercise") },
+            text = {
+                Text(
+                    "Are you sure you want to delete \"${exercise.exerciseName}\" and all its sets? This action cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteExercise(exercise.id)
+                        showDeleteExerciseDialog = false
+                    },
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                        ),
+                ) {
+                    Text("Delete Exercise")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showDeleteExerciseDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+        )
     }
 }
