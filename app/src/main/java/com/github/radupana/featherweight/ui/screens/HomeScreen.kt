@@ -42,15 +42,6 @@ fun HomeScreen(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Header
-        Text(
-            text = "Featherweight",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(vertical = 8.dp),
-        )
-
         // Quick Stats Card
         Card(
             modifier = Modifier.fillMaxWidth(),
