@@ -206,25 +206,27 @@ fun ExerciseCard(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Sets list
+                    // Sets list with stable keys
                     sets.forEach { set ->
-                        SetRow(
-                            set = set,
-                            onToggleCompleted = { completed ->
-                                if (completed && !viewModel.canMarkSetComplete(set)) {
-                                    // User tried to complete an invalid set
-                                    showValidationMessage = true
-                                } else {
-                                    viewModel.markSetCompleted(set.id, completed)
-                                }
-                            },
-                            onEdit = { onEditSet(set) },
-                            onDelete = { onDeleteSet(set.id) },
-                            onUpdateSet = { reps, weight, rpe ->
-                                viewModel.updateSet(set.id, reps, weight, rpe)
-                            },
-                            canMarkComplete = viewModel.canMarkSetComplete(set),
-                        )
+                        key(set.id) {
+                            SetRow(
+                                set = set,
+                                onToggleCompleted = { completed ->
+                                    if (completed && !(set.reps > 0 && set.weight > 0)) {
+                                        // User tried to complete an invalid set
+                                        showValidationMessage = true
+                                    } else {
+                                        viewModel.markSetCompleted(set.id, completed)
+                                    }
+                                },
+                                onEdit = { onEditSet(set) },
+                                onDelete = { onDeleteSet(set.id) },
+                                onUpdateSet = { reps, weight, rpe ->
+                                    viewModel.updateSet(set.id, reps, weight, rpe)
+                                },
+                                canMarkComplete = set.reps > 0 && set.weight > 0,
+                            )
+                        }
                         Spacer(modifier = Modifier.height(4.dp))
                     }
 

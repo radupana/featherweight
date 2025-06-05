@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -22,6 +23,25 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.SetLog
+
+// Global editing state to survive recompositions
+object SetEditingState {
+    private val editingStates = mutableStateMapOf<Long, String>()
+    
+    fun isEditing(setId: Long, field: String): Boolean {
+        return editingStates[setId] == field
+    }
+    
+    fun setEditing(setId: Long, field: String) {
+        Log.d("SetEditingState", "Setting editing for set $setId field $field")
+        editingStates[setId] = field
+    }
+    
+    fun clearEditing(setId: Long) {
+        Log.d("SetEditingState", "Clearing editing for set $setId")
+        editingStates.remove(setId)
+    }
+}
 
 @Composable
 fun SetRow(
@@ -36,16 +56,15 @@ fun SetRow(
     Log.d("SetRow", "Set ${set.id}: Composing SetRow - onUpdateSet is ${if (onUpdateSet != null) "NOT NULL" else "NULL"}, canMarkComplete = $canMarkComplete")
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
-    // Simplified state management - use set ID as key to prevent resets
-    var isEditingReps by remember(set.id) { 
-        mutableStateOf(false)
-    }
-    var isEditingWeight by remember(set.id) { 
-        mutableStateOf(false)
-    }
-    var isEditingRpe by remember(set.id) { 
-        mutableStateOf(false)
-    }
+    // Use global editing state to survive recompositions
+    val isEditingReps = SetEditingState.isEditing(set.id, "reps")
+    val isEditingWeight = SetEditingState.isEditing(set.id, "weight")
+    val isEditingRpe = SetEditingState.isEditing(set.id, "rpe")
+    
+    // Track if we just started editing to ignore immediate focus loss
+    var justStartedEditingReps by remember(set.id) { mutableStateOf(false) }
+    var justStartedEditingWeight by remember(set.id) { mutableStateOf(false) }
+    var justStartedEditingRpe by remember(set.id) { mutableStateOf(false) }
 
     // Debug state changes
     LaunchedEffect(isEditingReps) {
@@ -58,15 +77,32 @@ fun SetRow(
         Log.d("SetRow", "Set ${set.id}: isEditingRpe changed to $isEditingRpe")
     }
 
-    // Text state that updates with set values
-    var repsText by remember(set.id, set.reps) {
+    // Text state that survives recomposition
+    var repsText by rememberSaveable(set.id) {
         mutableStateOf(if (set.reps > 0) set.reps.toString() else "")
     }
-    var weightText by remember(set.id, set.weight) {
+    var weightText by rememberSaveable(set.id) {
         mutableStateOf(if (set.weight > 0) set.weight.toString() else "")
     }
-    var rpeText by remember(set.id, set.rpe) {
+    var rpeText by rememberSaveable(set.id) {
         mutableStateOf(set.rpe?.toString() ?: "")
+    }
+
+    // Update text when set values change but we're not editing
+    LaunchedEffect(set.reps) {
+        if (!isEditingReps) {
+            repsText = if (set.reps > 0) set.reps.toString() else ""
+        }
+    }
+    LaunchedEffect(set.weight) {
+        if (!isEditingWeight) {
+            weightText = if (set.weight > 0) set.weight.toString() else ""
+        }
+    }
+    LaunchedEffect(set.rpe) {
+        if (!isEditingRpe) {
+            rpeText = set.rpe?.toString() ?: ""
+        }
     }
 
     // Focus requesters
@@ -81,7 +117,7 @@ fun SetRow(
         val weight = set.weight
         val rpe = set.rpe
         onUpdateSet?.invoke(reps, weight, rpe)
-        isEditingReps = false
+        SetEditingState.clearEditing(set.id)
     }
 
     fun saveWeight() {
@@ -89,7 +125,7 @@ fun SetRow(
         val weight = weightText.toFloatOrNull() ?: 0f
         val rpe = set.rpe
         onUpdateSet?.invoke(reps, weight, rpe)
-        isEditingWeight = false
+        SetEditingState.clearEditing(set.id)
     }
 
     fun saveRpe() {
@@ -97,7 +133,7 @@ fun SetRow(
         val weight = set.weight
         val rpe = rpeText.toFloatOrNull()
         onUpdateSet?.invoke(reps, weight, rpe)
-        isEditingRpe = false
+        SetEditingState.clearEditing(set.id)
     }
 
     // Request focus when entering edit mode
@@ -182,9 +218,17 @@ fun SetRow(
                                 .height(48.dp)
                                 .focusRequester(repsFocusRequester)
                                 .onFocusChanged { focusState ->
-                                    // Save when losing focus while in edit mode
-                                    if (!focusState.isFocused && isEditingReps) {
+                                    Log.d("SetRow", "Set ${set.id}: Reps focus changed - isFocused: ${focusState.isFocused}, isEditingReps: $isEditingReps, justStarted: $justStartedEditingReps")
+                                    
+                                    if (focusState.isFocused) {
+                                        // Reset the flag when we gain focus
+                                        justStartedEditingReps = false
+                                    } else if (isEditingReps && !justStartedEditingReps) {
+                                        // Only save if we're editing and didn't just start
+                                        Log.d("SetRow", "Set ${set.id}: Reps lost focus - calling saveReps()")
                                         saveReps()
+                                    } else if (justStartedEditingReps) {
+                                        Log.d("SetRow", "Set ${set.id}: Ignoring initial focus loss for reps")
                                     }
                                 },
                         singleLine = true,
@@ -204,8 +248,9 @@ fun SetRow(
                                     Log.d("SetRow", "Set ${set.id}: Reps clicked - onUpdateSet is ${if (onUpdateSet != null) "NOT NULL" else "NULL"}")
                                     if (onUpdateSet != null) {
                                         repsText = if (set.reps > 0) set.reps.toString() else ""
-                                        Log.d("SetRow", "Set ${set.id}: Setting isEditingReps = true, repsText = '$repsText'")
-                                        isEditingReps = true
+                                        Log.d("SetRow", "Set ${set.id}: Setting editing to reps, repsText = '$repsText'")
+                                        justStartedEditingReps = true
+                                        SetEditingState.setEditing(set.id, "reps")
                                     } else {
                                         Log.e("SetRow", "Set ${set.id}: onUpdateSet is NULL - cannot edit reps")
                                     }
@@ -288,8 +333,8 @@ fun SetRow(
                                     Log.d("SetRow", "Set ${set.id}: Weight clicked - onUpdateSet is ${if (onUpdateSet != null) "NOT NULL" else "NULL"}")
                                     if (onUpdateSet != null) {
                                         weightText = if (set.weight > 0) set.weight.toString() else ""
-                                        Log.d("SetRow", "Set ${set.id}: Setting isEditingWeight = true, weightText = '$weightText'")
-                                        isEditingWeight = true
+                                        Log.d("SetRow", "Set ${set.id}: Setting editing to weight, weightText = '$weightText'")
+                                        SetEditingState.setEditing(set.id, "weight")
                                     } else {
                                         Log.e("SetRow", "Set ${set.id}: onUpdateSet is NULL - cannot edit weight")
                                     }
@@ -379,8 +424,8 @@ fun SetRow(
                                     Log.d("SetRow", "Set ${set.id}: RPE clicked - onUpdateSet is ${if (onUpdateSet != null) "NOT NULL" else "NULL"}")
                                     if (onUpdateSet != null) {
                                         rpeText = set.rpe?.toString() ?: ""
-                                        Log.d("SetRow", "Set ${set.id}: Setting isEditingRpe = true, rpeText = '$rpeText'")
-                                        isEditingRpe = true
+                                        Log.d("SetRow", "Set ${set.id}: Setting editing to rpe, rpeText = '$rpeText'")
+                                        SetEditingState.setEditing(set.id, "rpe")
                                     } else {
                                         Log.e("SetRow", "Set ${set.id}: onUpdateSet is NULL - cannot edit RPE")
                                     }
