@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.ui.components
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +12,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -48,34 +51,62 @@ fun SetRow(
         mutableStateOf(set.rpe?.toString() ?: "")
     }
 
+    // Focus requesters
+    val repsFocusRequester = remember { FocusRequester() }
+    val weightFocusRequester = remember { FocusRequester() }
+    val rpeFocusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
     // Save functions
     fun saveReps() {
+        Log.d("SetRow", "Set ${set.id}: saveReps() called - repsText: '$repsText'")
         val reps = repsText.toIntOrNull() ?: 0
         val weight = set.weight
         val rpe = set.rpe
         onUpdateSet?.invoke(reps, weight, rpe)
         isEditingReps = false
-        focusManager.clearFocus()
+        Log.d("SetRow", "Set ${set.id}: saveReps() completed - isEditingReps now false")
     }
 
     fun saveWeight() {
+        Log.d("SetRow", "Set ${set.id}: saveWeight() called - weightText: '$weightText'")
         val reps = set.reps
         val weight = weightText.toFloatOrNull() ?: 0f
         val rpe = set.rpe
         onUpdateSet?.invoke(reps, weight, rpe)
         isEditingWeight = false
-        focusManager.clearFocus()
+        Log.d("SetRow", "Set ${set.id}: saveWeight() completed - isEditingWeight now false")
     }
 
     fun saveRpe() {
+        Log.d("SetRow", "Set ${set.id}: saveRpe() called - rpeText: '$rpeText'")
         val reps = set.reps
         val weight = set.weight
         val rpe = rpeText.toFloatOrNull()
         onUpdateSet?.invoke(reps, weight, rpe)
         isEditingRpe = false
-        focusManager.clearFocus()
+        Log.d("SetRow", "Set ${set.id}: saveRpe() completed - isEditingRpe now false")
+    }
+
+    // Track if we should ignore the next focus change (to prevent immediate save after click)
+    var ignoreNextRepsFocusChange by remember { mutableStateOf(false) }
+    var ignoreNextWeightFocusChange by remember { mutableStateOf(false) }
+    var ignoreNextRpeFocusChange by remember { mutableStateOf(false) }
+
+    // Request focus immediately after composition using SideEffect
+    SideEffect {
+        if (isEditingReps) {
+            Log.d("SetRow", "Set ${set.id}: SideEffect - requesting reps focus")
+            repsFocusRequester.requestFocus()
+        }
+        if (isEditingWeight) {
+            Log.d("SetRow", "Set ${set.id}: SideEffect - requesting weight focus")
+            weightFocusRequester.requestFocus()
+        }
+        if (isEditingRpe) {
+            Log.d("SetRow", "Set ${set.id}: SideEffect - requesting RPE focus")
+            rpeFocusRequester.requestFocus()
+        }
     }
 
     val bgColor =
@@ -107,7 +138,7 @@ fun SetRow(
                 modifier = Modifier.weight(0.12f),
             )
 
-            // Reps - FIXED: Better sizing and focus handling
+            // Reps - FIXED: Better focus handling
             Box(
                 modifier = Modifier.weight(0.18f),
                 contentAlignment = Alignment.Center,
@@ -139,8 +170,22 @@ fun SetRow(
                             Modifier
                                 .width(70.dp)
                                 .height(48.dp)
+                                .focusRequester(repsFocusRequester)
                                 .onFocusChanged { focusState ->
+                                    Log.d(
+                                        "SetRow",
+                                        "Set ${set.id}: Reps focus changed - isFocused: ${focusState.isFocused}, isEditing: $isEditingReps, ignoreNext: $ignoreNextRepsFocusChange",
+                                    )
+
+                                    if (ignoreNextRepsFocusChange) {
+                                        Log.d("SetRow", "Set ${set.id}: Ignoring reps focus change")
+                                        ignoreNextRepsFocusChange = false
+                                        return@onFocusChanged
+                                    }
+
+                                    // Save when losing focus while in edit mode
                                     if (!focusState.isFocused && isEditingReps) {
+                                        Log.d("SetRow", "Set ${set.id}: Reps lost focus - saving")
                                         saveReps()
                                     }
                                 },
@@ -158,15 +203,19 @@ fun SetRow(
                                 .width(70.dp)
                                 .height(40.dp)
                                 .clickable {
+                                    Log.d(
+                                        "SetRow",
+                                        "Set ${set.id}: Reps surface clicked - onUpdateSet is ${if (onUpdateSet != null) "not null" else "null"}",
+                                    )
                                     if (onUpdateSet != null) {
                                         repsText = if (set.reps > 0) set.reps.toString() else ""
+                                        Log.d("SetRow", "Set ${set.id}: Setting isEditingReps to true, repsText: '$repsText'")
+                                        ignoreNextRepsFocusChange = true
                                         isEditingReps = true
                                     }
                                 },
                         color =
-                            if (onUpdateSet !=
-                                null
-                            ) {
+                            if (onUpdateSet != null) {
                                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                             } else {
                                 MaterialTheme.colorScheme.surface
@@ -187,7 +236,7 @@ fun SetRow(
                 }
             }
 
-            // Weight - FIXED: Better sizing and focus handling
+            // Weight - FIXED: Better focus handling
             Box(
                 modifier = Modifier.weight(0.22f),
                 contentAlignment = Alignment.Center,
@@ -219,8 +268,22 @@ fun SetRow(
                             Modifier
                                 .width(90.dp)
                                 .height(48.dp)
+                                .focusRequester(weightFocusRequester)
                                 .onFocusChanged { focusState ->
+                                    Log.d(
+                                        "SetRow",
+                                        "Set ${set.id}: Weight focus changed - isFocused: ${focusState.isFocused}, isEditing: $isEditingWeight, ignoreNext: $ignoreNextWeightFocusChange",
+                                    )
+
+                                    if (ignoreNextWeightFocusChange) {
+                                        Log.d("SetRow", "Set ${set.id}: Ignoring weight focus change")
+                                        ignoreNextWeightFocusChange = false
+                                        return@onFocusChanged
+                                    }
+
+                                    // Save when losing focus while in edit mode
                                     if (!focusState.isFocused && isEditingWeight) {
+                                        Log.d("SetRow", "Set ${set.id}: Weight lost focus - saving")
                                         saveWeight()
                                     }
                                 },
@@ -238,15 +301,19 @@ fun SetRow(
                                 .width(90.dp)
                                 .height(40.dp)
                                 .clickable {
+                                    Log.d(
+                                        "SetRow",
+                                        "Set ${set.id}: Weight surface clicked - onUpdateSet is ${if (onUpdateSet != null) "not null" else "null"}",
+                                    )
                                     if (onUpdateSet != null) {
                                         weightText = if (set.weight > 0) set.weight.toString() else ""
+                                        Log.d("SetRow", "Set ${set.id}: Setting isEditingWeight to true, weightText: '$weightText'")
+                                        ignoreNextWeightFocusChange = true
                                         isEditingWeight = true
                                     }
                                 },
                         color =
-                            if (onUpdateSet !=
-                                null
-                            ) {
+                            if (onUpdateSet != null) {
                                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                             } else {
                                 MaterialTheme.colorScheme.surface
@@ -267,7 +334,7 @@ fun SetRow(
                 }
             }
 
-            // RPE - FIXED: Better sizing and focus handling
+            // RPE - FIXED: Better focus handling
             Box(
                 modifier = Modifier.weight(0.15f),
                 contentAlignment = Alignment.Center,
@@ -302,8 +369,22 @@ fun SetRow(
                             Modifier
                                 .width(70.dp)
                                 .height(48.dp)
+                                .focusRequester(rpeFocusRequester)
                                 .onFocusChanged { focusState ->
+                                    Log.d(
+                                        "SetRow",
+                                        "Set ${set.id}: RPE focus changed - isFocused: ${focusState.isFocused}, isEditing: $isEditingRpe, ignoreNext: $ignoreNextRpeFocusChange",
+                                    )
+
+                                    if (ignoreNextRpeFocusChange) {
+                                        Log.d("SetRow", "Set ${set.id}: Ignoring RPE focus change")
+                                        ignoreNextRpeFocusChange = false
+                                        return@onFocusChanged
+                                    }
+
+                                    // Save when losing focus while in edit mode
                                     if (!focusState.isFocused && isEditingRpe) {
+                                        Log.d("SetRow", "Set ${set.id}: RPE lost focus - saving")
                                         saveRpe()
                                     }
                                 },
@@ -321,15 +402,19 @@ fun SetRow(
                                 .width(70.dp)
                                 .height(40.dp)
                                 .clickable {
+                                    Log.d(
+                                        "SetRow",
+                                        "Set ${set.id}: RPE surface clicked - onUpdateSet is ${if (onUpdateSet != null) "not null" else "null"}",
+                                    )
                                     if (onUpdateSet != null) {
                                         rpeText = set.rpe?.toString() ?: ""
+                                        Log.d("SetRow", "Set ${set.id}: Setting isEditingRpe to true, rpeText: '$rpeText'")
+                                        ignoreNextRpeFocusChange = true
                                         isEditingRpe = true
                                     }
                                 },
                         color =
-                            if (onUpdateSet !=
-                                null
-                            ) {
+                            if (onUpdateSet != null) {
                                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                             } else {
                                 MaterialTheme.colorScheme.surface
