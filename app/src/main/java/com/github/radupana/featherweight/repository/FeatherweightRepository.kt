@@ -1,11 +1,11 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
-import androidx.room.Room
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
+import com.github.radupana.featherweight.data.exercise.*
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.ExerciseStats
 import com.github.radupana.featherweight.domain.SmartSuggestions
@@ -27,199 +27,124 @@ data class WorkoutSummary(
 class FeatherweightRepository(
     application: Application,
 ) {
-    private val db =
-        Room
-            .databaseBuilder(
-                application,
-                FeatherweightDatabase::class.java,
-                "featherweight-db",
-            ).fallbackToDestructiveMigration(true)
-            .addCallback(
-                object : androidx.room.RoomDatabase.Callback() {
-                    override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                        super.onCreate(db)
-                        // Add seed data when database is created
-                    }
-                },
-            ).build()
+    private val db = FeatherweightDatabase.getDatabase(application)
 
     private val workoutDao = db.workoutDao()
     private val exerciseLogDao = db.exerciseLogDao()
     private val setLogDao = db.setLogDao()
+    private val exerciseDao = db.exerciseDao()
+
+    private val exerciseSeeder = ExerciseSeeder(exerciseDao)
 
     // Initialize with seed data for testing
     suspend fun seedDatabaseIfEmpty() {
         withContext(Dispatchers.IO) {
             val workoutCount = workoutDao.getAllWorkouts().size
             if (workoutCount == 0) {
+                // Seed exercises first
+                exerciseSeeder.seedMainLifts()
+                // Then seed workout test data
                 seedTestData()
             }
         }
     }
 
-    private suspend fun seedTestData() {
-        // Create sample workouts from past dates
-        val workout1 =
-            Workout(
-                date = LocalDateTime.now().minusDays(3),
-                notes = "Upper Body Push",
+    // ===== EXERCISE METHODS =====
+
+    suspend fun getAllExercises(): List<ExerciseWithDetails> =
+        withContext(Dispatchers.IO) {
+            exerciseDao.getAllExercisesWithDetails()
+        }
+
+    suspend fun getExerciseById(id: Long): ExerciseWithDetails? =
+        withContext(Dispatchers.IO) {
+            exerciseDao.getExerciseWithDetails(id)
+        }
+
+    suspend fun searchExercises(query: String): List<Exercise> =
+        withContext(Dispatchers.IO) {
+            exerciseDao.searchExercises(query)
+        }
+
+    suspend fun getExercisesByCategory(category: ExerciseCategory): List<Exercise> =
+        withContext(Dispatchers.IO) {
+            exerciseDao.getExercisesByCategory(category)
+        }
+
+    suspend fun getExercisesByMuscleGroup(muscleGroup: MuscleGroup): List<ExerciseWithDetails> =
+        withContext(Dispatchers.IO) {
+            exerciseDao.getExercisesByMuscleGroup(muscleGroup)
+        }
+
+    suspend fun getExercisesByEquipment(equipment: List<Equipment>): List<ExerciseWithDetails> =
+        withContext(Dispatchers.IO) {
+            exerciseDao.getExercisesByEquipment(equipment)
+        }
+
+    suspend fun getFilteredExercises(
+        category: ExerciseCategory? = null,
+        muscleGroup: MuscleGroup? = null,
+        equipment: Equipment? = null,
+        availableEquipment: List<Equipment> = emptyList(),
+        maxDifficulty: ExerciseDifficulty? = null,
+        includeCustom: Boolean = true,
+        searchQuery: String = "",
+    ): List<ExerciseWithDetails> =
+        withContext(Dispatchers.IO) {
+            exerciseDao.getFilteredExercises(
+                category,
+                muscleGroup,
+                equipment,
+                availableEquipment,
+                maxDifficulty,
+                includeCustom,
+                searchQuery,
             )
-        val workout1Id = workoutDao.insertWorkout(workout1)
+        }
 
-        // Add exercises to workout 1
-        val benchPress =
-            ExerciseLog(
-                workoutId = workout1Id,
-                exerciseName = "Bench Press",
-                exerciseOrder = 0,
-            )
-        val benchPressId = exerciseLogDao.insertExerciseLog(benchPress)
+    suspend fun createCustomExercise(
+        name: String,
+        category: ExerciseCategory,
+        primaryMuscles: Set<MuscleGroup>,
+        secondaryMuscles: Set<MuscleGroup> = emptySet(),
+        requiredEquipment: Set<Equipment> = emptySet(),
+        movementPatterns: Set<MovementPattern> = emptySet(),
+        userId: String,
+    ): Long =
+        withContext(Dispatchers.IO) {
+            val exercise =
+                Exercise(
+                    name = name,
+                    category = category,
+                    type = ExerciseType.STRENGTH,
+                    difficulty = ExerciseDifficulty.BEGINNER,
+                    isCustom = true,
+                    createdBy = userId,
+                    isPublic = false,
+                )
 
-        val overheadPress =
-            ExerciseLog(
-                workoutId = workout1Id,
-                exerciseName = "Overhead Press",
-                exerciseOrder = 1,
-            )
-        val overheadPressId = exerciseLogDao.insertExerciseLog(overheadPress)
+            val muscleGroups =
+                primaryMuscles.map {
+                    ExerciseMuscleGroup(0, it, isPrimary = true)
+                } +
+                    secondaryMuscles.map {
+                        ExerciseMuscleGroup(0, it, isPrimary = false)
+                    }
 
-        // Add sets for bench press
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = benchPressId,
-                setOrder = 0,
-                reps = 8,
-                weight = 80f,
-                rpe = 7f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(3).toString(),
-            ),
-        )
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = benchPressId,
-                setOrder = 1,
-                reps = 8,
-                weight = 82.5f,
-                rpe = 8f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(3).toString(),
-            ),
-        )
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = benchPressId,
-                setOrder = 2,
-                reps = 6,
-                weight = 85f,
-                rpe = 9f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(3).toString(),
-            ),
-        )
+            val equipment =
+                requiredEquipment.map {
+                    ExerciseEquipment(0, it, isRequired = true, isAlternative = false)
+                }
 
-        // Add sets for overhead press
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = overheadPressId,
-                setOrder = 0,
-                reps = 10,
-                weight = 50f,
-                rpe = 6f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(3).toString(),
-            ),
-        )
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = overheadPressId,
-                setOrder = 1,
-                reps = 8,
-                weight = 52.5f,
-                rpe = 7f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(3).toString(),
-            ),
-        )
+            val patterns =
+                movementPatterns.map {
+                    ExerciseMovementPattern(0, it, isPrimary = true)
+                }
 
-        // Mark workout 1 as completed
-        completeWorkout(workout1Id)
+            exerciseDao.insertExerciseWithDetails(exercise, muscleGroups, equipment, patterns)
+        }
 
-        // Create workout 2
-        val workout2 =
-            Workout(
-                date = LocalDateTime.now().minusDays(1),
-                notes = "Lower Body",
-            )
-        val workout2Id = workoutDao.insertWorkout(workout2)
-
-        val squat =
-            ExerciseLog(
-                workoutId = workout2Id,
-                exerciseName = "Squat",
-                exerciseOrder = 0,
-            )
-        val squatId = exerciseLogDao.insertExerciseLog(squat)
-
-        val deadlift =
-            ExerciseLog(
-                workoutId = workout2Id,
-                exerciseName = "Deadlift",
-                exerciseOrder = 1,
-            )
-        val deadliftId = exerciseLogDao.insertExerciseLog(deadlift)
-
-        // Add sets for squat
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = squatId,
-                setOrder = 0,
-                reps = 5,
-                weight = 100f,
-                rpe = 7f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(1).toString(),
-            ),
-        )
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = squatId,
-                setOrder = 1,
-                reps = 5,
-                weight = 105f,
-                rpe = 8f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(1).toString(),
-            ),
-        )
-
-        // Add sets for deadlift
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = deadliftId,
-                setOrder = 0,
-                reps = 3,
-                weight = 120f,
-                rpe = 8f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(1).toString(),
-            ),
-        )
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = deadliftId,
-                setOrder = 1,
-                reps = 3,
-                weight = 125f,
-                rpe = 9f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(1).toString(),
-            ),
-        )
-
-        // Mark workout 2 as completed
-        completeWorkout(workout2Id)
-    }
+    // ===== EXISTING WORKOUT METHODS (Updated to work with new Exercise system) =====
 
     // Basic CRUD operations
     suspend fun insertWorkout(workout: Workout): Long = workoutDao.insertWorkout(workout)
@@ -241,6 +166,30 @@ class FeatherweightRepository(
     suspend fun updateSetLog(setLog: SetLog) = setLogDao.updateSetLog(setLog)
 
     suspend fun deleteSetLog(setId: Long) = setLogDao.deleteSetLog(setId)
+
+    // Enhanced exercise log creation that links to Exercise entity
+    suspend fun insertExerciseLogWithExerciseReference(
+        workoutId: Long,
+        exercise: ExerciseWithDetails,
+        exerciseOrder: Int,
+        notes: String? = null,
+    ): Long {
+        val exerciseLog =
+            ExerciseLog(
+                workoutId = workoutId,
+                exerciseName = exercise.exercise.name,
+                exerciseId = exercise.exercise.id,
+                exerciseOrder = exerciseOrder,
+                notes = notes,
+            )
+        return insertExerciseLog(exerciseLog)
+    }
+
+    // Get exercise details for an ExerciseLog
+    suspend fun getExerciseDetailsForLog(exerciseLog: ExerciseLog): ExerciseWithDetails? =
+        exerciseLog.exerciseId?.let { exerciseId ->
+            getExerciseById(exerciseId)
+        }
 
     // Workout state management
     suspend fun getOngoingWorkout(): Workout? {
@@ -327,7 +276,7 @@ class FeatherweightRepository(
             }.sortedByDescending { it.date }
     }
 
-    // Smart suggestions functionality
+    // Smart suggestions functionality (enhanced with exercise data)
     suspend fun getExerciseHistory(
         exerciseName: String,
         currentWorkoutId: Long,
@@ -446,4 +395,180 @@ class FeatherweightRepository(
 
     // Delete an entire workout (will cascade delete all exercises and sets)
     suspend fun deleteWorkout(workoutId: Long) = workoutDao.deleteWorkout(workoutId)
+
+    // ===== EXISTING SEED DATA (Updated to use new exercise system) =====
+    private suspend fun seedTestData() {
+        // Create sample workouts from past dates
+        val workout1 =
+            Workout(
+                date = LocalDateTime.now().minusDays(3),
+                notes = "Upper Body Push",
+            )
+        val workout1Id = workoutDao.insertWorkout(workout1)
+
+        // Get exercises from database instead of hardcoding
+        val benchPressExercise = searchExercises("Bench Press").firstOrNull()
+        val overheadPressExercise = searchExercises("Overhead Press").firstOrNull()
+
+        // Add exercises to workout 1
+        val benchPress =
+            ExerciseLog(
+                workoutId = workout1Id,
+                exerciseName = "Bench Press",
+                exerciseId = benchPressExercise?.id,
+                exerciseOrder = 0,
+            )
+        val benchPressId = exerciseLogDao.insertExerciseLog(benchPress)
+
+        val overheadPress =
+            ExerciseLog(
+                workoutId = workout1Id,
+                exerciseName = "Overhead Press",
+                exerciseId = overheadPressExercise?.id,
+                exerciseOrder = 1,
+            )
+        val overheadPressId = exerciseLogDao.insertExerciseLog(overheadPress)
+
+        // Add sets for bench press
+        setLogDao.insertSetLog(
+            SetLog(
+                exerciseLogId = benchPressId,
+                setOrder = 0,
+                reps = 8,
+                weight = 80f,
+                rpe = 7f,
+                isCompleted = true,
+                completedAt = LocalDateTime.now().minusDays(3).toString(),
+            ),
+        )
+        setLogDao.insertSetLog(
+            SetLog(
+                exerciseLogId = benchPressId,
+                setOrder = 1,
+                reps = 8,
+                weight = 82.5f,
+                rpe = 8f,
+                isCompleted = true,
+                completedAt = LocalDateTime.now().minusDays(3).toString(),
+            ),
+        )
+        setLogDao.insertSetLog(
+            SetLog(
+                exerciseLogId = benchPressId,
+                setOrder = 2,
+                reps = 6,
+                weight = 85f,
+                rpe = 9f,
+                isCompleted = true,
+                completedAt = LocalDateTime.now().minusDays(3).toString(),
+            ),
+        )
+
+        // Add sets for overhead press
+        setLogDao.insertSetLog(
+            SetLog(
+                exerciseLogId = overheadPressId,
+                setOrder = 0,
+                reps = 10,
+                weight = 50f,
+                rpe = 6f,
+                isCompleted = true,
+                completedAt = LocalDateTime.now().minusDays(3).toString(),
+            ),
+        )
+        setLogDao.insertSetLog(
+            SetLog(
+                exerciseLogId = overheadPressId,
+                setOrder = 1,
+                reps = 8,
+                weight = 52.5f,
+                rpe = 7f,
+                isCompleted = true,
+                completedAt = LocalDateTime.now().minusDays(3).toString(),
+            ),
+        )
+
+        // Mark workout 1 as completed
+        completeWorkout(workout1Id)
+
+        // Create workout 2
+        val workout2 =
+            Workout(
+                date = LocalDateTime.now().minusDays(1),
+                notes = "Lower Body",
+            )
+        val workout2Id = workoutDao.insertWorkout(workout2)
+
+        val squatExercise = searchExercises("Back Squat").firstOrNull()
+        val deadliftExercise = searchExercises("Conventional Deadlift").firstOrNull()
+
+        val squat =
+            ExerciseLog(
+                workoutId = workout2Id,
+                exerciseName = "Back Squat",
+                exerciseId = squatExercise?.id,
+                exerciseOrder = 0,
+            )
+        val squatId = exerciseLogDao.insertExerciseLog(squat)
+
+        val deadlift =
+            ExerciseLog(
+                workoutId = workout2Id,
+                exerciseName = "Conventional Deadlift",
+                exerciseId = deadliftExercise?.id,
+                exerciseOrder = 1,
+            )
+        val deadliftId = exerciseLogDao.insertExerciseLog(deadlift)
+
+        // Add sets for squat
+        setLogDao.insertSetLog(
+            SetLog(
+                exerciseLogId = squatId,
+                setOrder = 0,
+                reps = 5,
+                weight = 100f,
+                rpe = 7f,
+                isCompleted = true,
+                completedAt = LocalDateTime.now().minusDays(1).toString(),
+            ),
+        )
+        setLogDao.insertSetLog(
+            SetLog(
+                exerciseLogId = squatId,
+                setOrder = 1,
+                reps = 5,
+                weight = 105f,
+                rpe = 8f,
+                isCompleted = true,
+                completedAt = LocalDateTime.now().minusDays(1).toString(),
+            ),
+        )
+
+        // Add sets for deadlift
+        setLogDao.insertSetLog(
+            SetLog(
+                exerciseLogId = deadliftId,
+                setOrder = 0,
+                reps = 3,
+                weight = 120f,
+                rpe = 8f,
+                isCompleted = true,
+                completedAt = LocalDateTime.now().minusDays(1).toString(),
+            ),
+        )
+        setLogDao.insertSetLog(
+            SetLog(
+                exerciseLogId = deadliftId,
+                setOrder = 1,
+                reps = 3,
+                weight = 125f,
+                rpe = 9f,
+                isCompleted = true,
+                completedAt = LocalDateTime.now().minusDays(1).toString(),
+            ),
+        )
+
+        // Mark workout 2 as completed
+        completeWorkout(workout2Id)
+    }
 }
