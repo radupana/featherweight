@@ -19,3 +19,6 @@ Some features are:
 
 We are starting with Android and I am using Android Studio with Kotlin Compose for the codebase,
 which is already available in your context.
+
+We are using .md files such as EXERCISES.md to keep track of vision and ongoing work across
+different sub-domains.
