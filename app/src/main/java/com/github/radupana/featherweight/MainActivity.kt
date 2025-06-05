@@ -18,13 +18,15 @@ import androidx.core.view.WindowCompat
 import com.github.radupana.featherweight.ui.screens.HistoryScreen
 import com.github.radupana.featherweight.ui.screens.HomeScreen
 import com.github.radupana.featherweight.ui.screens.SplashScreen
+import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
 
 enum class Screen {
     SPLASH,
     HOME,
-    WORKOUT,
+    WORKOUT_HUB,
+    ACTIVE_WORKOUT,
     HISTORY,
 }
 
@@ -89,13 +91,13 @@ fun MainAppWithNavigation(
     val navigationItems =
         listOf(
             NavigationItem(Screen.HOME, "Home", Icons.Filled.Home),
-            NavigationItem(Screen.WORKOUT, "Workout", Icons.Filled.FitnessCenter),
+            NavigationItem(Screen.WORKOUT_HUB, "Workout", Icons.Filled.FitnessCenter),
             NavigationItem(Screen.HISTORY, "History", Icons.Filled.History),
         )
 
     Scaffold(
         bottomBar = {
-            if (currentScreen != Screen.SPLASH) {
+            if (currentScreen != Screen.SPLASH && currentScreen != Screen.ACTIVE_WORKOUT) {
                 NavigationBar {
                     navigationItems.forEach { item ->
                         NavigationBarItem(
@@ -112,14 +114,21 @@ fun MainAppWithNavigation(
         when (currentScreen) {
             Screen.HOME ->
                 HomeScreen(
-                    onStartFreestyle = { onScreenChange(Screen.WORKOUT) },
+                    onStartFreestyle = { onScreenChange(Screen.ACTIVE_WORKOUT) },
                     onStartTemplate = onStartTemplate,
                     modifier = Modifier.padding(innerPadding),
                 )
 
-            Screen.WORKOUT ->
+            Screen.WORKOUT_HUB ->
+                WorkoutHubScreen(
+                    onStartActiveWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
+                    onStartTemplate = onStartTemplate,
+                    modifier = Modifier.padding(innerPadding),
+                )
+
+            Screen.ACTIVE_WORKOUT ->
                 WorkoutScreen(
-                    onBack = { onScreenChange(Screen.HOME) },
+                    onBack = { onScreenChange(Screen.WORKOUT_HUB) },
                     modifier = Modifier.padding(innerPadding),
                 )
 
@@ -144,6 +153,20 @@ fun HomeScreen(
     Box(modifier = modifier) {
         HomeScreen(
             onStartFreestyle = onStartFreestyle,
+            onStartTemplate = onStartTemplate,
+        )
+    }
+}
+
+@Composable
+fun WorkoutHubScreen(
+    onStartActiveWorkout: () -> Unit,
+    onStartTemplate: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        WorkoutHubScreen(
+            onStartActiveWorkout = onStartActiveWorkout,
             onStartTemplate = onStartTemplate,
         )
     }
