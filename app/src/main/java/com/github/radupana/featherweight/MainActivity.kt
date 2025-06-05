@@ -15,18 +15,22 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
 import com.github.radupana.featherweight.ui.screens.HistoryScreen
 import com.github.radupana.featherweight.ui.screens.HomeScreen
 import com.github.radupana.featherweight.ui.screens.SplashScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
+import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
 enum class Screen {
     SPLASH,
     HOME,
     WORKOUT_HUB,
     ACTIVE_WORKOUT,
+    EXERCISE_SELECTOR,
     HISTORY,
 }
 
@@ -97,7 +101,10 @@ fun MainAppWithNavigation(
 
     Scaffold(
         bottomBar = {
-            if (currentScreen != Screen.SPLASH && currentScreen != Screen.ACTIVE_WORKOUT) {
+            if (currentScreen != Screen.SPLASH &&
+                currentScreen != Screen.ACTIVE_WORKOUT &&
+                currentScreen != Screen.EXERCISE_SELECTOR
+            ) {
                 NavigationBar {
                     navigationItems.forEach { item ->
                         NavigationBarItem(
@@ -126,11 +133,31 @@ fun MainAppWithNavigation(
                     modifier = Modifier.padding(innerPadding),
                 )
 
-            Screen.ACTIVE_WORKOUT ->
+            Screen.ACTIVE_WORKOUT -> {
+                val workoutViewModel: WorkoutViewModel = viewModel()
                 WorkoutScreen(
                     onBack = { onScreenChange(Screen.WORKOUT_HUB) },
+                    onSelectExercise = { onScreenChange(Screen.EXERCISE_SELECTOR) },
+                    workoutViewModel = workoutViewModel,
                     modifier = Modifier.padding(innerPadding),
                 )
+            }
+
+            Screen.EXERCISE_SELECTOR -> {
+                val workoutViewModel: WorkoutViewModel = viewModel()
+                ExerciseSelectorScreen(
+                    onExerciseSelected = { exercise ->
+                        workoutViewModel.addExerciseToCurrentWorkout(exercise)
+                        onScreenChange(Screen.ACTIVE_WORKOUT)
+                    },
+                    onCreateCustomExercise = { name ->
+                        workoutViewModel.addExerciseToCurrentWorkout(name)
+                        onScreenChange(Screen.ACTIVE_WORKOUT)
+                    },
+                    onBack = { onScreenChange(Screen.ACTIVE_WORKOUT) },
+                    modifier = Modifier.padding(innerPadding),
+                )
+            }
 
             Screen.HISTORY ->
                 HistoryScreen(
@@ -175,11 +202,15 @@ fun WorkoutHubScreen(
 @Composable
 fun WorkoutScreen(
     onBack: () -> Unit,
+    onSelectExercise: () -> Unit,
+    workoutViewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier) {
         WorkoutScreen(
             onBack = onBack,
+            onSelectExercise = onSelectExercise,
+            viewModel = workoutViewModel,
         )
     }
 }

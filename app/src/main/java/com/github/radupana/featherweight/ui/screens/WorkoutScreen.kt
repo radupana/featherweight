@@ -24,7 +24,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.ExerciseCard
 import com.github.radupana.featherweight.ui.components.ProgressCard
-import com.github.radupana.featherweight.ui.dialogs.AddExerciseDialog
 import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
@@ -32,6 +31,7 @@ import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 @Composable
 fun WorkoutScreen(
     onBack: () -> Unit,
+    onSelectExercise: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutViewModel = viewModel(),
 ) {
@@ -40,7 +40,6 @@ fun WorkoutScreen(
     val workoutState by viewModel.workoutState.collectAsState()
 
     // Dialog state
-    var showAddExerciseDialog by remember { mutableStateOf(false) }
     var showEditSetDialog by remember { mutableStateOf(false) }
     var showCompleteWorkoutDialog by remember { mutableStateOf(false) }
     var showWorkoutMenuDialog by remember { mutableStateOf(false) }
@@ -80,16 +79,6 @@ fun WorkoutScreen(
         } else {
             onBack()
         }
-    }
-
-    LaunchedEffect(canEdit, isEditMode, hasContent, workoutState) {
-        println("WorkoutScreen Debug:")
-        println("  canEdit: $canEdit")
-        println("  isEditMode: $isEditMode")
-        println("  hasContent: $hasContent")
-        println("  workoutState.isActive: ${workoutState.isActive}")
-        println("  workoutState.isCompleted: ${workoutState.isCompleted}")
-        println("  exercises.size: ${exercises.size}")
     }
 
     Scaffold(
@@ -191,9 +180,9 @@ fun WorkoutScreen(
                             )
                         }
 
-                        // Add exercise button
+                        // Add exercise button - UPDATED to navigate to selector
                         FloatingActionButton(
-                            onClick = { showAddExerciseDialog = true },
+                            onClick = onSelectExercise,
                             containerColor = MaterialTheme.colorScheme.primary,
                             elevation = FloatingActionButtonDefaults.elevation(8.dp),
                         ) {
@@ -203,7 +192,7 @@ fun WorkoutScreen(
                 } else {
                     // Show only Add Exercise button when no exercises or not in completable state
                     FloatingActionButton(
-                        onClick = { showAddExerciseDialog = true },
+                        onClick = onSelectExercise,
                         containerColor =
                             if (isEditMode) {
                                 MaterialTheme.colorScheme.secondary
@@ -244,6 +233,7 @@ fun WorkoutScreen(
             if (exercises.isEmpty()) {
                 EmptyWorkoutState(
                     canEdit = canEdit,
+                    onAddExercise = onSelectExercise,
                     modifier = Modifier.weight(1f),
                 )
             } else {
@@ -426,17 +416,6 @@ fun WorkoutScreen(
                 onBack()
             },
             onDismiss = { showCompleteWorkoutDialog = false },
-        )
-    }
-
-    // Add Exercise Dialog
-    if (showAddExerciseDialog && canEdit) {
-        AddExerciseDialog(
-            onDismiss = { showAddExerciseDialog = false },
-            onAdd = { name ->
-                viewModel.addExerciseToCurrentWorkout(name)
-                showAddExerciseDialog = false
-            },
         )
     }
 
@@ -713,6 +692,7 @@ private fun CompleteWorkoutDialog(
 @Composable
 private fun EmptyWorkoutState(
     canEdit: Boolean,
+    onAddExercise: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -733,7 +713,7 @@ private fun EmptyWorkoutState(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 if (canEdit) {
-                    "Tap the + button to add your first exercise"
+                    "Start by adding your first exercise"
                 } else {
                     "This completed workout contains no exercises"
                 },
@@ -741,6 +721,22 @@ private fun EmptyWorkoutState(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
+
+            if (canEdit) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = onAddExercise,
+                    modifier = Modifier.fillMaxWidth(0.6f),
+                ) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Add Exercise")
+                }
+            }
         }
     }
 }
