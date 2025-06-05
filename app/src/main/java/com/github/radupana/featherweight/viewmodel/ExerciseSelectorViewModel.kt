@@ -110,10 +110,17 @@ class ExerciseSelectorViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                // Ensure database is seeded first
+                repository.seedDatabaseIfEmpty()
+
+                // Then load exercises
                 val exercises = repository.getAllExercises()
                 _allExercises.value = exercises
+
+                println("Loaded ${exercises.size} exercises from database")
             } catch (e: Exception) {
                 println("Error loading exercises: ${e.message}")
+                e.printStackTrace()
             } finally {
                 _isLoading.value = false
             }
