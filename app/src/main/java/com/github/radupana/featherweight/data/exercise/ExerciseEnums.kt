@@ -102,6 +102,10 @@ enum class Equipment(
     DIP_STATION("Dip Station"),
     PARALLEL_BARS("Parallel Bars"),
 
+    LEG_PRESS_MACHINE("Leg Press Machine"),
+    PREACHER_BENCH("Preacher Bench"),
+    AB_WHEEL("Ab Wheel"),
+
     // Accessories
     RESISTANCE_BAND("Resistance Band"),
     SUSPENSION_TRAINER("Suspension Trainer"),

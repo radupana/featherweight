@@ -14,4 +14,7 @@ interface ExerciseLogDao {
 
     @Query("DELETE FROM ExerciseLog WHERE id = :exerciseLogId")
     suspend fun deleteExerciseLog(exerciseLogId: Long)
+
+    @Query("SELECT COUNT(*) FROM ExerciseLog WHERE exerciseName = :exerciseName")
+    suspend fun getExerciseUsageCount(exerciseName: String): Int
 }

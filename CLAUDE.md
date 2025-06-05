@@ -114,3 +114,6 @@ Based on the current state, focus areas include:
 4. Adding social features
 5. Integrating AI-powered suggestions
 6. Performance optimizations for large datasets
+
+Hints: 
+1. Avoid comments unless absolutely required to explain a strange situation

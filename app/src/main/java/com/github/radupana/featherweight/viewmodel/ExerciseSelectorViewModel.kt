@@ -94,17 +94,24 @@ class ExerciseSelectorViewModel(
                         exercise.optionalEquipment.contains(it) ||
                         exercise.alternativeEquipment.contains(it)
                 } ?: true
-            }.sortedWith(
-                compareBy<ExerciseWithDetails> {
-                    // Sort by relevance: exact name match first, then contains, then by name
-                    when {
-                        query.isNotEmpty() && it.exercise.name.equals(query, ignoreCase = true) -> 0
-                        query.isNotEmpty() && it.exercise.name.startsWith(query, ignoreCase = true) -> 1
-                        query.isNotEmpty() && it.exercise.name.contains(query, ignoreCase = true) -> 2
-                        else -> 3
-                    }
-                }.thenBy { it.exercise.name },
-            )
+            }.let { filteredList ->
+                if (query.isNotEmpty()) {
+                    // When searching, sort by search relevance first
+                    filteredList.sortedWith(
+                        compareBy<ExerciseWithDetails> {
+                            when {
+                                it.exercise.name.equals(query, ignoreCase = true) -> 0
+                                it.exercise.name.startsWith(query, ignoreCase = true) -> 1
+                                it.exercise.name.contains(query, ignoreCase = true) -> 2
+                                else -> 3
+                            }
+                        }.thenBy { it.exercise.name }
+                    )
+                } else {
+                    // When not searching, maintain the usage-based order from loadExercises()
+                    filteredList
+                }
+            }
 
     fun loadExercises() {
         viewModelScope.launch {
@@ -113,11 +120,12 @@ class ExerciseSelectorViewModel(
                 // Ensure database is seeded first
                 repository.seedDatabaseIfEmpty()
 
-                // Then load exercises
-                val exercises = repository.getAllExercises()
+                // Then load exercises with usage statistics for smart sorting
+                val exercisesWithStats = repository.getAllExercisesWithUsageStats()
+                val exercises = exercisesWithStats.map { it.first }
                 _allExercises.value = exercises
 
-                println("Loaded ${exercises.size} exercises from database")
+                println("Loaded ${exercises.size} exercises from database (sorted by usage)")
             } catch (e: Exception) {
                 println("Error loading exercises: ${e.message}")
                 e.printStackTrace()

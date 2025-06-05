@@ -139,6 +139,7 @@ fun ExerciseSelectorScreen(
                             OutlinedButton(
                                 onClick = {
                                     if (searchQuery.isNotEmpty()) {
+                                        viewModel.createCustomExercise(searchQuery)
                                         onCreateCustomExercise(searchQuery)
                                     } else {
                                         showCreateDialog = true
@@ -180,6 +181,7 @@ fun ExerciseSelectorScreen(
             initialName = searchQuery,
             onDismiss = { showCreateDialog = false },
             onCreate = { name ->
+                viewModel.createCustomExercise(name)
                 onCreateCustomExercise(name)
                 showCreateDialog = false
             },
