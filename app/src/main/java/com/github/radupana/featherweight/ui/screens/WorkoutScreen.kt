@@ -154,58 +154,6 @@ fun WorkoutScreen(
                     ),
             )
         },
-        floatingActionButton = {
-            // FIXED: Show appropriate FABs based on workout state
-            val hasExercises = exercises.isNotEmpty()
-            val canCompleteWorkout = hasExercises && workoutState.isActive && !isEditMode
-
-            if (canEdit) {
-                if (canCompleteWorkout) {
-                    // Show both Complete Workout and Add Exercise buttons when workout can be completed
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        horizontalAlignment = Alignment.End,
-                    ) {
-                        // Complete workout button
-                        FloatingActionButton(
-                            onClick = { showCompleteWorkoutDialog = true },
-                            containerColor = MaterialTheme.colorScheme.tertiary,
-                            contentColor = MaterialTheme.colorScheme.onTertiary,
-                            modifier = Modifier.size(48.dp),
-                        ) {
-                            Icon(
-                                Icons.Filled.CheckCircle,
-                                contentDescription = "Complete Workout",
-                                modifier = Modifier.size(24.dp),
-                            )
-                        }
-
-                        // Add exercise button - UPDATED to navigate to selector
-                        FloatingActionButton(
-                            onClick = onSelectExercise,
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            elevation = FloatingActionButtonDefaults.elevation(8.dp),
-                        ) {
-                            Icon(Icons.Filled.Add, contentDescription = "Add Exercise")
-                        }
-                    }
-                } else {
-                    // Show only Add Exercise button when no exercises or not in completable state
-                    FloatingActionButton(
-                        onClick = onSelectExercise,
-                        containerColor =
-                            if (isEditMode) {
-                                MaterialTheme.colorScheme.secondary
-                            } else {
-                                MaterialTheme.colorScheme.primary
-                            },
-                        elevation = FloatingActionButtonDefaults.elevation(8.dp),
-                    ) {
-                        Icon(Icons.Filled.Add, contentDescription = "Add Exercise")
-                    }
-                }
-            }
-        },
     ) { innerPadding ->
         Column(
             modifier =
@@ -271,6 +219,17 @@ fun WorkoutScreen(
                     },
                     viewModel = viewModel,
                     modifier = Modifier.weight(1f),
+                )
+            }
+
+            // Action buttons at bottom
+            if (canEdit && exercises.isNotEmpty()) {
+                WorkoutActionButtons(
+                    hasExercises = exercises.isNotEmpty(),
+                    canCompleteWorkout = workoutState.isActive && !isEditMode,
+                    onAddExercise = onSelectExercise,
+                    onCompleteWorkout = { showCompleteWorkoutDialog = true },
+                    modifier = Modifier.padding(16.dp),
                 )
             }
         }
@@ -801,6 +760,54 @@ private fun ExercisesList(
                 },
                 viewModel = viewModel,
             )
+        }
+    }
+}
+
+@Composable
+private fun WorkoutActionButtons(
+    hasExercises: Boolean,
+    canCompleteWorkout: Boolean,
+    onAddExercise: () -> Unit,
+    onCompleteWorkout: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        // Add Exercise button
+        OutlinedButton(
+            onClick = onAddExercise,
+            modifier = Modifier.weight(1f),
+        ) {
+            Icon(
+                Icons.Filled.Add,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Add Exercise")
+        }
+
+        // Complete Workout button
+        if (canCompleteWorkout) {
+            Button(
+                onClick = onCompleteWorkout,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    contentColor = MaterialTheme.colorScheme.onTertiary,
+                ),
+            ) {
+                Icon(
+                    Icons.Filled.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Complete Workout")
+            }
         }
     }
 }

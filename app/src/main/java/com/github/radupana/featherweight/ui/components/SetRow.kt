@@ -33,12 +33,30 @@ fun SetRow(
     modifier: Modifier = Modifier,
     canMarkComplete: Boolean = true,
 ) {
+    Log.d("SetRow", "Set ${set.id}: Composing SetRow - onUpdateSet is ${if (onUpdateSet != null) "NOT NULL" else "NULL"}, canMarkComplete = $canMarkComplete")
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     // Simplified state management - use set ID as key to prevent resets
-    var isEditingReps by remember(set.id) { mutableStateOf(false) }
-    var isEditingWeight by remember(set.id) { mutableStateOf(false) }
-    var isEditingRpe by remember(set.id) { mutableStateOf(false) }
+    var isEditingReps by remember(set.id) { 
+        mutableStateOf(false)
+    }
+    var isEditingWeight by remember(set.id) { 
+        mutableStateOf(false)
+    }
+    var isEditingRpe by remember(set.id) { 
+        mutableStateOf(false)
+    }
+
+    // Debug state changes
+    LaunchedEffect(isEditingReps) {
+        Log.d("SetRow", "Set ${set.id}: isEditingReps changed to $isEditingReps")
+    }
+    LaunchedEffect(isEditingWeight) {
+        Log.d("SetRow", "Set ${set.id}: isEditingWeight changed to $isEditingWeight")
+    }
+    LaunchedEffect(isEditingRpe) {
+        Log.d("SetRow", "Set ${set.id}: isEditingRpe changed to $isEditingRpe")
+    }
 
     // Text state that updates with set values
     var repsText by remember(set.id, set.reps) {
@@ -59,52 +77,44 @@ fun SetRow(
 
     // Save functions
     fun saveReps() {
-        Log.d("SetRow", "Set ${set.id}: saveReps() called - repsText: '$repsText'")
         val reps = repsText.toIntOrNull() ?: 0
         val weight = set.weight
         val rpe = set.rpe
         onUpdateSet?.invoke(reps, weight, rpe)
         isEditingReps = false
-        Log.d("SetRow", "Set ${set.id}: saveReps() completed - isEditingReps now false")
     }
 
     fun saveWeight() {
-        Log.d("SetRow", "Set ${set.id}: saveWeight() called - weightText: '$weightText'")
         val reps = set.reps
         val weight = weightText.toFloatOrNull() ?: 0f
         val rpe = set.rpe
         onUpdateSet?.invoke(reps, weight, rpe)
         isEditingWeight = false
-        Log.d("SetRow", "Set ${set.id}: saveWeight() completed - isEditingWeight now false")
     }
 
     fun saveRpe() {
-        Log.d("SetRow", "Set ${set.id}: saveRpe() called - rpeText: '$rpeText'")
         val reps = set.reps
         val weight = set.weight
         val rpe = rpeText.toFloatOrNull()
         onUpdateSet?.invoke(reps, weight, rpe)
         isEditingRpe = false
-        Log.d("SetRow", "Set ${set.id}: saveRpe() completed - isEditingRpe now false")
     }
 
-    // Track if we should ignore the next focus change (to prevent immediate save after click)
-    var ignoreNextRepsFocusChange by remember { mutableStateOf(false) }
-    var ignoreNextWeightFocusChange by remember { mutableStateOf(false) }
-    var ignoreNextRpeFocusChange by remember { mutableStateOf(false) }
-
-    // Request focus immediately after composition using SideEffect
-    SideEffect {
+    // Request focus when entering edit mode
+    LaunchedEffect(isEditingReps) {
         if (isEditingReps) {
-            Log.d("SetRow", "Set ${set.id}: SideEffect - requesting reps focus")
             repsFocusRequester.requestFocus()
         }
+    }
+
+    LaunchedEffect(isEditingWeight) {
         if (isEditingWeight) {
-            Log.d("SetRow", "Set ${set.id}: SideEffect - requesting weight focus")
             weightFocusRequester.requestFocus()
         }
+    }
+
+    LaunchedEffect(isEditingRpe) {
         if (isEditingRpe) {
-            Log.d("SetRow", "Set ${set.id}: SideEffect - requesting RPE focus")
             rpeFocusRequester.requestFocus()
         }
     }
@@ -172,20 +182,8 @@ fun SetRow(
                                 .height(48.dp)
                                 .focusRequester(repsFocusRequester)
                                 .onFocusChanged { focusState ->
-                                    Log.d(
-                                        "SetRow",
-                                        "Set ${set.id}: Reps focus changed - isFocused: ${focusState.isFocused}, isEditing: $isEditingReps, ignoreNext: $ignoreNextRepsFocusChange",
-                                    )
-
-                                    if (ignoreNextRepsFocusChange) {
-                                        Log.d("SetRow", "Set ${set.id}: Ignoring reps focus change")
-                                        ignoreNextRepsFocusChange = false
-                                        return@onFocusChanged
-                                    }
-
                                     // Save when losing focus while in edit mode
                                     if (!focusState.isFocused && isEditingReps) {
-                                        Log.d("SetRow", "Set ${set.id}: Reps lost focus - saving")
                                         saveReps()
                                     }
                                 },
@@ -203,15 +201,13 @@ fun SetRow(
                                 .width(70.dp)
                                 .height(40.dp)
                                 .clickable {
-                                    Log.d(
-                                        "SetRow",
-                                        "Set ${set.id}: Reps surface clicked - onUpdateSet is ${if (onUpdateSet != null) "not null" else "null"}",
-                                    )
+                                    Log.d("SetRow", "Set ${set.id}: Reps clicked - onUpdateSet is ${if (onUpdateSet != null) "NOT NULL" else "NULL"}")
                                     if (onUpdateSet != null) {
                                         repsText = if (set.reps > 0) set.reps.toString() else ""
-                                        Log.d("SetRow", "Set ${set.id}: Setting isEditingReps to true, repsText: '$repsText'")
-                                        ignoreNextRepsFocusChange = true
+                                        Log.d("SetRow", "Set ${set.id}: Setting isEditingReps = true, repsText = '$repsText'")
                                         isEditingReps = true
+                                    } else {
+                                        Log.e("SetRow", "Set ${set.id}: onUpdateSet is NULL - cannot edit reps")
                                     }
                                 },
                         color =
@@ -270,20 +266,8 @@ fun SetRow(
                                 .height(48.dp)
                                 .focusRequester(weightFocusRequester)
                                 .onFocusChanged { focusState ->
-                                    Log.d(
-                                        "SetRow",
-                                        "Set ${set.id}: Weight focus changed - isFocused: ${focusState.isFocused}, isEditing: $isEditingWeight, ignoreNext: $ignoreNextWeightFocusChange",
-                                    )
-
-                                    if (ignoreNextWeightFocusChange) {
-                                        Log.d("SetRow", "Set ${set.id}: Ignoring weight focus change")
-                                        ignoreNextWeightFocusChange = false
-                                        return@onFocusChanged
-                                    }
-
                                     // Save when losing focus while in edit mode
                                     if (!focusState.isFocused && isEditingWeight) {
-                                        Log.d("SetRow", "Set ${set.id}: Weight lost focus - saving")
                                         saveWeight()
                                     }
                                 },
@@ -301,15 +285,13 @@ fun SetRow(
                                 .width(90.dp)
                                 .height(40.dp)
                                 .clickable {
-                                    Log.d(
-                                        "SetRow",
-                                        "Set ${set.id}: Weight surface clicked - onUpdateSet is ${if (onUpdateSet != null) "not null" else "null"}",
-                                    )
+                                    Log.d("SetRow", "Set ${set.id}: Weight clicked - onUpdateSet is ${if (onUpdateSet != null) "NOT NULL" else "NULL"}")
                                     if (onUpdateSet != null) {
                                         weightText = if (set.weight > 0) set.weight.toString() else ""
-                                        Log.d("SetRow", "Set ${set.id}: Setting isEditingWeight to true, weightText: '$weightText'")
-                                        ignoreNextWeightFocusChange = true
+                                        Log.d("SetRow", "Set ${set.id}: Setting isEditingWeight = true, weightText = '$weightText'")
                                         isEditingWeight = true
+                                    } else {
+                                        Log.e("SetRow", "Set ${set.id}: onUpdateSet is NULL - cannot edit weight")
                                     }
                                 },
                         color =
@@ -343,12 +325,16 @@ fun SetRow(
                     OutlinedTextField(
                         value = rpeText,
                         onValueChange = { newValue ->
-                            // Only allow numbers 1-10 with one decimal
-                            if (newValue.isEmpty() ||
-                                newValue.matches(Regex("^(10(\\.0)?|[1-9](\\.\\d)?|\\d*\\.?\\d*)$")) &&
-                                newValue.length <= 4
-                            ) {
+                            // Only allow numbers 0-10 with up to one decimal place
+                            if (newValue.isEmpty()) {
                                 rpeText = newValue
+                            } else {
+                                val floatValue = newValue.toFloatOrNull()
+                                if (floatValue != null && floatValue >= 0 && floatValue <= 10 && 
+                                    newValue.matches(Regex("^(10(\\.0)?|[0-9](\\.\\d)?|0)$")) &&
+                                    newValue.length <= 4) {
+                                    rpeText = newValue
+                                }
                             }
                         },
                         keyboardOptions =
@@ -371,20 +357,8 @@ fun SetRow(
                                 .height(48.dp)
                                 .focusRequester(rpeFocusRequester)
                                 .onFocusChanged { focusState ->
-                                    Log.d(
-                                        "SetRow",
-                                        "Set ${set.id}: RPE focus changed - isFocused: ${focusState.isFocused}, isEditing: $isEditingRpe, ignoreNext: $ignoreNextRpeFocusChange",
-                                    )
-
-                                    if (ignoreNextRpeFocusChange) {
-                                        Log.d("SetRow", "Set ${set.id}: Ignoring RPE focus change")
-                                        ignoreNextRpeFocusChange = false
-                                        return@onFocusChanged
-                                    }
-
                                     // Save when losing focus while in edit mode
                                     if (!focusState.isFocused && isEditingRpe) {
-                                        Log.d("SetRow", "Set ${set.id}: RPE lost focus - saving")
                                         saveRpe()
                                     }
                                 },
@@ -402,15 +376,13 @@ fun SetRow(
                                 .width(70.dp)
                                 .height(40.dp)
                                 .clickable {
-                                    Log.d(
-                                        "SetRow",
-                                        "Set ${set.id}: RPE surface clicked - onUpdateSet is ${if (onUpdateSet != null) "not null" else "null"}",
-                                    )
+                                    Log.d("SetRow", "Set ${set.id}: RPE clicked - onUpdateSet is ${if (onUpdateSet != null) "NOT NULL" else "NULL"}")
                                     if (onUpdateSet != null) {
                                         rpeText = set.rpe?.toString() ?: ""
-                                        Log.d("SetRow", "Set ${set.id}: Setting isEditingRpe to true, rpeText: '$rpeText'")
-                                        ignoreNextRpeFocusChange = true
+                                        Log.d("SetRow", "Set ${set.id}: Setting isEditingRpe = true, rpeText = '$rpeText'")
                                         isEditingRpe = true
+                                    } else {
+                                        Log.e("SetRow", "Set ${set.id}: onUpdateSet is NULL - cannot edit RPE")
                                     }
                                 },
                         color =
