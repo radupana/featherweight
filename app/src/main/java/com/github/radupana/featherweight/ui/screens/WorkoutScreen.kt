@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -165,25 +166,13 @@ fun WorkoutScreen(
             )
         },
         floatingActionButton = {
-            // Debug: Always show FAB regardless of conditions for testing
-            FloatingActionButton(
-                onClick = {
-                    println("FAB clicked - canEdit: $canEdit, isEditMode: $isEditMode, hasContent: $hasContent")
-                    showAddExerciseDialog = true
-                },
-                containerColor = MaterialTheme.colorScheme.primary,
-                elevation = FloatingActionButtonDefaults.elevation(8.dp),
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Exercise")
-            }
+            // FIXED: Show appropriate FABs based on workout state
+            val hasExercises = exercises.isNotEmpty()
+            val canCompleteWorkout = hasExercises && workoutState.isActive && !isEditMode
 
-            // Original logic (comment this out for now to test)
-            /*
             if (canEdit) {
-                // Always show the Add Exercise button when can edit
-                // Complete Workout button only shows when there's content
-                if (workoutState.isActive && !isEditMode && hasContent) {
-                    // Show both buttons when workout has content and is active
+                if (canCompleteWorkout) {
+                    // Show both Complete Workout and Add Exercise buttons when workout can be completed
                     Column(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         horizontalAlignment = Alignment.End,
@@ -212,7 +201,7 @@ fun WorkoutScreen(
                         }
                     }
                 } else {
-                    // Show only Add Exercise button when no content or not active or in edit mode
+                    // Show only Add Exercise button when no exercises or not in completable state
                     FloatingActionButton(
                         onClick = { showAddExerciseDialog = true },
                         containerColor =
@@ -227,7 +216,6 @@ fun WorkoutScreen(
                     }
                 }
             }
-             */
         },
     ) { innerPadding ->
         Column(
