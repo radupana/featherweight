@@ -92,6 +92,18 @@ fun MainAppWithNavigation(
     onScreenChange: (Screen) -> Unit,
     onStartTemplate: () -> Unit,
 ) {
+    // Track previous screen for proper back navigation
+    var previousScreen by remember { mutableStateOf<Screen?>(null) }
+    
+    // Update previous screen when screen changes
+    LaunchedEffect(currentScreen) {
+        if (currentScreen == Screen.ACTIVE_WORKOUT) {
+            // Don't update previousScreen when navigating to workout
+            // Keep the previous value
+        } else {
+            previousScreen = currentScreen
+        }
+    }
     val navigationItems =
         listOf(
             NavigationItem(Screen.HOME, "Workout", Icons.Filled.FitnessCenter),
@@ -135,7 +147,11 @@ fun MainAppWithNavigation(
             Screen.ACTIVE_WORKOUT -> {
                 val workoutViewModel: WorkoutViewModel = viewModel()
                 WorkoutScreen(
-                    onBack = { onScreenChange(Screen.WORKOUT_HUB) },
+                    onBack = { 
+                        // Navigate back to the screen the user came from
+                        val backScreen = previousScreen ?: Screen.HOME
+                        onScreenChange(backScreen)
+                    },
                     onSelectExercise = { onScreenChange(Screen.EXERCISE_SELECTOR) },
                     workoutViewModel = workoutViewModel,
                     modifier = Modifier.padding(innerPadding),
@@ -158,10 +174,16 @@ fun MainAppWithNavigation(
                 )
             }
 
-            Screen.HISTORY ->
+            Screen.HISTORY -> {
+                val workoutViewModel: WorkoutViewModel = viewModel()
                 HistoryScreen(
+                    onViewWorkout = { workoutId ->
+                        workoutViewModel.resumeWorkout(workoutId)
+                        onScreenChange(Screen.ACTIVE_WORKOUT)
+                    },
                     modifier = Modifier.padding(innerPadding),
                 )
+            }
 
             Screen.SPLASH -> {
                 // Should not reach here
@@ -215,8 +237,11 @@ fun WorkoutScreen(
 }
 
 @Composable
-fun HistoryScreen(modifier: Modifier = Modifier) {
+fun HistoryScreen(
+    onViewWorkout: (Long) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     Box(modifier = modifier) {
-        HistoryScreen()
+        HistoryScreen(onViewWorkout = onViewWorkout)
     }
 }

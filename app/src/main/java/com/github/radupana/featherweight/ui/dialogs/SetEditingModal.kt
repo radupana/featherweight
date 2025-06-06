@@ -229,8 +229,14 @@ fun SetEditingModal(
                                     OutlinedButton(
                                         onClick = onCompleteAllSets,
                                         modifier = Modifier.height(32.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp)
+                                        contentPadding = PaddingValues(horizontal = 6.dp)
                                     ) {
+                                        Icon(
+                                            Icons.Filled.CheckCircle,
+                                            contentDescription = "Complete All",
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(2.dp))
                                         Text(
                                             "All",
                                             style = MaterialTheme.typography.labelSmall
@@ -405,7 +411,7 @@ private fun ExpandedSetRow(
 
 
     val bgColor = if (set.isCompleted) {
-        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
     } else {
         MaterialTheme.colorScheme.surface
     }

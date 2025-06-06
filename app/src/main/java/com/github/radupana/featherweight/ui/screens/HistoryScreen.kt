@@ -35,7 +35,10 @@ data class WorkoutSummary(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
+fun HistoryScreen(
+    onViewWorkout: (Long) -> Unit = {},
+    historyViewModel: HistoryViewModel = viewModel()
+) {
     val workoutHistory by historyViewModel.workoutHistory.collectAsState()
     val isLoading by historyViewModel.isLoading.collectAsState()
 
@@ -100,6 +103,7 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
                     items(workoutHistory) { workout ->
                         WorkoutHistoryCard(
                             workout = workout,
+                            onViewWorkout = onViewWorkout,
                             onDeleteWorkout = { workoutId ->
                                 historyViewModel.deleteWorkout(workoutId)
                             }
@@ -115,6 +119,7 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
 @Composable
 fun WorkoutHistoryCard(
     workout: WorkoutSummary,
+    onViewWorkout: (Long) -> Unit = {},
     onDeleteWorkout: (Long) -> Unit = {}
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -138,7 +143,7 @@ fun WorkoutHistoryCard(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
-                onClick = { },
+                onClick = { onViewWorkout(workout.id) },
                 onLongClick = { showDeleteDialog = true }
             ),
         elevation = CardDefaults.cardElevation(4.dp),

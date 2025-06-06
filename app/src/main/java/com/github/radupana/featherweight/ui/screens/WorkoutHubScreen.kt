@@ -1,5 +1,7 @@
 package com.github.radupana.featherweight.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -234,6 +236,9 @@ fun WorkoutHubScreen(
                                 workoutViewModel.resumeWorkout(workout.id)
                                 onStartActiveWorkout()
                             },
+                            onDelete = { workoutId ->
+                                historyViewModel.deleteWorkout(workoutId)
+                            }
                         )
                     }
 
@@ -323,12 +328,15 @@ fun WorkoutHubScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RecentWorkoutCard(
     workout: com.github.radupana.featherweight.ui.screens.WorkoutSummary,
     onView: () -> Unit,
+    onDelete: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val (containerColor, statusColor, statusTextColor) =
         if (workout.isCompleted) {
             Triple(
@@ -345,11 +353,15 @@ fun RecentWorkoutCard(
         }
 
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = onView,
+                onLongClick = { showDeleteDialog = true }
+            ),
         elevation = CardDefaults.cardElevation(4.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
-        onClick = onView,
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -426,6 +438,38 @@ fun RecentWorkoutCard(
                 )
             }
         }
+    }
+    
+    // Delete confirmation dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Workout") },
+            text = {
+                Text(
+                    "Are you sure you want to delete this workout? This action cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDelete(workout.id)
+                        showDeleteDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
