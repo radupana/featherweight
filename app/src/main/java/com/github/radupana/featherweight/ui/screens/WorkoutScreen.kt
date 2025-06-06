@@ -793,11 +793,9 @@ private fun WorkoutActionButtons(
             Button(
                 onClick = onCompleteWorkout,
                 modifier = Modifier.weight(1f),
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiary,
-                        contentColor = MaterialTheme.colorScheme.onTertiary,
-                    ),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             ) {
                 Icon(
                     Icons.Filled.CheckCircle,
@@ -805,7 +803,7 @@ private fun WorkoutActionButtons(
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Complete Workout")
+                Text("Complete")
             }
         }
     }

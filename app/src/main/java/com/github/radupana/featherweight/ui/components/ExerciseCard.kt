@@ -1,6 +1,8 @@
 package com.github.radupana.featherweight.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,6 +21,7 @@ import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ExerciseCard(
     exercise: ExerciseLog,
@@ -29,7 +32,6 @@ fun ExerciseCard(
     modifier: Modifier = Modifier,
 ) {
     var showDeleteExerciseDialog by remember { mutableStateOf(false) }
-    var showExerciseMenuDialog by remember { mutableStateOf(false) }
 
     // Calculate summary metrics
     val completedSets = sets.count { it.isCompleted }
@@ -40,11 +42,18 @@ fun ExerciseCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { 
-                if (viewModel.canEditWorkout()) {
-                    onEditSets()
+            .combinedClickable(
+                onClick = { 
+                    if (viewModel.canEditWorkout()) {
+                        onEditSets()
+                    }
+                },
+                onLongClick = {
+                    if (viewModel.canEditWorkout()) {
+                        showDeleteExerciseDialog = true
+                    }
                 }
-            },
+            ),
         elevation = CardDefaults.cardElevation(6.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
@@ -93,18 +102,13 @@ fun ExerciseCard(
                         }
                     }
 
-                    // Exercise menu button (only when can edit)
+                    // Long tap hint when editable
                     if (viewModel.canEditWorkout()) {
-                        IconButton(
-                            onClick = { showExerciseMenuDialog = true },
-                            modifier = Modifier.size(32.dp),
-                        ) {
-                            Icon(
-                                Icons.Filled.MoreVert,
-                                contentDescription = "Exercise Options",
-                                modifier = Modifier.size(16.dp),
-                            )
-                        }
+                        Text(
+                            "Long tap to delete",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
                     }
                 }
             }
@@ -259,47 +263,6 @@ fun ExerciseCard(
                 )
             }
         }
-    }
-
-    // Exercise menu dialog
-    if (showExerciseMenuDialog) {
-        AlertDialog(
-            onDismissRequest = { showExerciseMenuDialog = false },
-            title = { Text("Exercise Options") },
-            text = {
-                Column {
-                    TextButton(
-                        onClick = {
-                            showExerciseMenuDialog = false
-                            showDeleteExerciseDialog = true
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Start,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Icon(
-                                Icons.Filled.Delete,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "Delete Exercise",
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showExerciseMenuDialog = false }) {
-                    Text("Close")
-                }
-            },
-        )
     }
 
     // Delete exercise confirmation dialog

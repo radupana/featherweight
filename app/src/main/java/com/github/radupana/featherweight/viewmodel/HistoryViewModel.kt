@@ -60,4 +60,16 @@ class HistoryViewModel(
     fun refreshHistory() {
         loadWorkoutHistory()
     }
+    
+    fun deleteWorkout(workoutId: Long) {
+        viewModelScope.launch {
+            try {
+                repository.deleteWorkout(workoutId)
+                // Refresh the history to reflect the deletion
+                loadWorkoutHistory()
+            } catch (e: Exception) {
+                println("Error deleting workout: ${e.message}")
+            }
+        }
+    }
 }

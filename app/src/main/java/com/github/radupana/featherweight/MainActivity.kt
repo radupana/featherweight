@@ -94,8 +94,7 @@ fun MainAppWithNavigation(
 ) {
     val navigationItems =
         listOf(
-            NavigationItem(Screen.HOME, "Home", Icons.Filled.Home),
-            NavigationItem(Screen.WORKOUT_HUB, "Workout", Icons.Filled.FitnessCenter),
+            NavigationItem(Screen.HOME, "Workout", Icons.Filled.FitnessCenter),
             NavigationItem(Screen.HISTORY, "History", Icons.Filled.History),
         )
 

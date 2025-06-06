@@ -4,7 +4,11 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -19,6 +23,7 @@ import androidx.compose.material3.*
 import androidx.compose.material3.Divider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -56,6 +61,17 @@ fun SetEditingModal(
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    
+    // Scroll to bottom when sets are added
+    LaunchedEffect(sets.size) {
+        if (sets.isNotEmpty()) {
+            scope.launch {
+                listState.animateScrollToItem(sets.size - 1)
+            }
+        }
+    }
     
     // Handle back button and outside tap to dismiss
     BackHandler {
@@ -235,23 +251,62 @@ fun SetEditingModal(
                             // Sets list
                             LazyColumn(
                                 modifier = Modifier.weight(1f),
+                                state = listState,
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                                 contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = 16.dp)
                             ) {
                                 items(sets) { set ->
                                     key(set.id) {
-                                        ExpandedSetRow(
-                                            set = set,
-                                            onUpdateSet = { reps, weight, rpe ->
-                                                onUpdateSet(set.id, reps, weight, rpe)
-                                            },
-                                            onToggleCompleted = { completed ->
-                                                onToggleCompleted(set.id, completed)
-                                            },
-                                            onDelete = { onDeleteSet(set.id) },
-                                            canMarkComplete = viewModel.canMarkSetComplete(set),
-                                            keyboardController = keyboardController
+                                        val dismissState = rememberSwipeToDismissBoxState(
+                                            confirmValueChange = { dismissDirection ->
+                                                if (dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                                                    onDeleteSet(set.id)
+                                                    true
+                                                } else {
+                                                    false
+                                                }
+                                            }
                                         )
+                                        
+                                        SwipeToDismissBox(
+                                            state = dismissState,
+                                            backgroundContent = {
+                                                Surface(
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    color = MaterialTheme.colorScheme.error,
+                                                    shape = RoundedCornerShape(8.dp)
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxSize(),
+                                                        horizontalArrangement = Arrangement.End,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.Delete,
+                                                            contentDescription = "Delete",
+                                                            tint = MaterialTheme.colorScheme.onError,
+                                                            modifier = Modifier.padding(16.dp)
+                                                        )
+                                                    }
+                                                }
+                                            },
+                                            enableDismissFromStartToEnd = false,
+                                            enableDismissFromEndToStart = true
+                                        ) {
+                                            ExpandedSetRow(
+                                                set = set,
+                                                onUpdateSet = { reps, weight, rpe ->
+                                                    onUpdateSet(set.id, reps, weight, rpe)
+                                                },
+                                                onToggleCompleted = { completed ->
+                                                    onToggleCompleted(set.id, completed)
+                                                },
+                                                onDelete = { },  // No longer needed as we use swipe
+                                                canMarkComplete = viewModel.canMarkSetComplete(set),
+                                                keyboardController = keyboardController,
+                                                showDeleteButton = false  // Hide the delete button
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -316,7 +371,8 @@ private fun ExpandedSetRow(
     onDelete: () -> Unit,
     canMarkComplete: Boolean,
     keyboardController: SoftwareKeyboardController?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showDeleteButton: Boolean = true
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     
@@ -519,17 +575,22 @@ private fun ExpandedSetRow(
                     modifier = Modifier.padding(horizontal = 4.dp)
                 )
                 
-                // Delete button
-                IconButton(
-                    onClick = { showDeleteConfirmation = true },
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        Icons.Filled.Delete,
-                        contentDescription = "Delete Set",
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-                        modifier = Modifier.size(18.dp)
-                    )
+                // Delete button (only show if not using swipe-to-delete)
+                if (showDeleteButton) {
+                    IconButton(
+                        onClick = { showDeleteConfirmation = true },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = "Delete Set",
+                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                } else {
+                    // Add spacer to maintain layout when delete button is hidden
+                    Spacer(modifier = Modifier.width(40.dp))
                 }
             }
 

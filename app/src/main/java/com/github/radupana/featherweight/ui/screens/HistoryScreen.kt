@@ -1,5 +1,7 @@
 package com.github.radupana.featherweight.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -96,7 +98,12 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(workoutHistory) { workout ->
-                        WorkoutHistoryCard(workout = workout)
+                        WorkoutHistoryCard(
+                            workout = workout,
+                            onDeleteWorkout = { workoutId ->
+                                historyViewModel.deleteWorkout(workoutId)
+                            }
+                        )
                     }
                 }
             }
@@ -104,8 +111,13 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun WorkoutHistoryCard(workout: WorkoutSummary) {
+fun WorkoutHistoryCard(
+    workout: WorkoutSummary,
+    onDeleteWorkout: (Long) -> Unit = {}
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
     // Improved color scheme: light yellow for in-progress, green for completed
     val (containerColor, statusColor, statusTextColor) =
         if (workout.isCompleted) {
@@ -123,7 +135,12 @@ fun WorkoutHistoryCard(workout: WorkoutSummary) {
         }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = { },
+                onLongClick = { showDeleteDialog = true }
+            ),
         elevation = CardDefaults.cardElevation(4.dp),
         shape = RoundedCornerShape(12.dp),
         colors =
@@ -223,7 +240,49 @@ fun WorkoutHistoryCard(workout: WorkoutSummary) {
                         },
                 )
             }
+            
+            // Long tap hint
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Long tap to delete",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                textAlign = TextAlign.End,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
+    }
+    
+    // Delete confirmation dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Workout") },
+            text = {
+                Text(
+                    "Are you sure you want to delete this workout? This action cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteWorkout(workout.id)
+                        showDeleteDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
