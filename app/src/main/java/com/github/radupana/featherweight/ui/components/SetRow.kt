@@ -10,18 +10,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.SetLog
@@ -29,23 +27,30 @@ import com.github.radupana.featherweight.data.SetLog
 // Global editing state to survive recompositions
 object SetEditingState {
     private val editingStates = mutableStateMapOf<Long, String>()
-    
-    fun isEditing(setId: Long, field: String): Boolean {
-        return editingStates[setId] == field
-    }
-    
-    fun setEditing(setId: Long, field: String) {
+
+    fun isEditing(
+        setId: Long,
+        field: String,
+    ): Boolean = editingStates[setId] == field
+
+    fun setEditing(
+        setId: Long,
+        field: String,
+    ) {
         Log.d("SetEditingState", "Setting editing for set $setId field $field")
         editingStates[setId] = field
     }
-    
+
     fun clearEditing(setId: Long) {
         Log.d("SetEditingState", "Clearing editing for set $setId")
         editingStates.remove(setId)
     }
-    
+
     // Atomic switch between fields
-    fun switchToField(setId: Long, newField: String) {
+    fun switchToField(
+        setId: Long,
+        newField: String,
+    ) {
         Log.d("SetEditingState", "Switching set $setId to field $newField")
         editingStates[setId] = newField
     }
@@ -61,7 +66,10 @@ fun SetRow(
     modifier: Modifier = Modifier,
     canMarkComplete: Boolean = true,
 ) {
-    Log.d("SetRow", "Set ${set.id}: Composing SetRow - onUpdateSet is ${if (onUpdateSet != null) "NOT NULL" else "NULL"}, canMarkComplete = $canMarkComplete")
+    Log.d(
+        "SetRow",
+        "Set ${set.id}: Composing SetRow - onUpdateSet is ${if (onUpdateSet != null) "NOT NULL" else "NULL"}, canMarkComplete = $canMarkComplete",
+    )
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     // Use global editing state to survive recompositions
@@ -138,7 +146,7 @@ fun SetRow(
             }
         }
     }
-    
+
     // Switch to a new field, saving the current one first
     fun switchToField(newField: String) {
         if (isEditingAny) {
@@ -222,7 +230,7 @@ fun SetRow(
                             ),
                         keyboardActions =
                             KeyboardActions(
-                                onDone = { 
+                                onDone = {
                                     saveCurrentField()
                                     SetEditingState.clearEditing(set.id)
                                 },
@@ -298,12 +306,16 @@ fun SetRow(
                                 weightTextFieldValue = newValue
                             } else {
                                 val parts = text.split(".")
-                                val isValid = when (parts.size) {
-                                    1 -> parts[0].all { it.isDigit() } && parts[0].length <= 4
-                                    2 -> parts[0].all { it.isDigit() } && parts[0].length <= 4 && 
-                                         parts[1].all { it.isDigit() } && parts[1].length <= 2
-                                    else -> false
-                                }
+                                val isValid =
+                                    when (parts.size) {
+                                        1 -> parts[0].all { it.isDigit() } && parts[0].length <= 4
+                                        2 ->
+                                            parts[0].all { it.isDigit() } &&
+                                                parts[0].length <= 4 &&
+                                                parts[1].all { it.isDigit() } &&
+                                                parts[1].length <= 2
+                                        else -> false
+                                    }
                                 if (isValid) {
                                     weightTextFieldValue = newValue
                                 }
@@ -316,7 +328,7 @@ fun SetRow(
                             ),
                         keyboardActions =
                             KeyboardActions(
-                                onDone = { 
+                                onDone = {
                                     saveCurrentField()
                                     SetEditingState.clearEditing(set.id)
                                 },
@@ -392,9 +404,12 @@ fun SetRow(
                                 rpeTextFieldValue = newValue
                             } else {
                                 val floatValue = text.toFloatOrNull()
-                                if (floatValue != null && floatValue >= 0 && floatValue <= 10 && 
+                                if (floatValue != null &&
+                                    floatValue >= 0 &&
+                                    floatValue <= 10 &&
                                     text.matches(Regex("^(10(\\.0)?|[0-9](\\.\\d)?|0)$")) &&
-                                    text.length <= 4) {
+                                    text.length <= 4
+                                ) {
                                     rpeTextFieldValue = newValue
                                 }
                             }
@@ -406,7 +421,7 @@ fun SetRow(
                             ),
                         keyboardActions =
                             KeyboardActions(
-                                onDone = { 
+                                onDone = {
                                     saveCurrentField()
                                     SetEditingState.clearEditing(set.id)
                                 },
