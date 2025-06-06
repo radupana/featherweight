@@ -23,6 +23,7 @@ import androidx.compose.material3.*
 import androidx.compose.material3.Divider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -64,11 +65,11 @@ fun SetEditingModal(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     
-    // Scroll to bottom when sets are added
+    // Scroll to newly added set
     LaunchedEffect(sets.size) {
         if (sets.isNotEmpty()) {
             scope.launch {
-                listState.animateScrollToItem(sets.size - 1)
+                listState.animateScrollToItem(sets.size) // Scroll to action buttons after last set
             }
         }
     }
@@ -159,31 +160,8 @@ fun SetEditingModal(
                     Column(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        if (sets.isEmpty()) {
-                            // Empty state
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        "No sets yet",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        "Add your first set below",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        } else {
+                        // Always show the LazyColumn structure
+                        if (sets.isNotEmpty()) {
                             // Header row
                             Row(
                                 modifier = Modifier
@@ -246,20 +224,57 @@ fun SetEditingModal(
                                     Spacer(modifier = Modifier.width(64.dp))
                                 }
                             }
+                        }
                             
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant,
-                                thickness = 0.5.dp
-                            )
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                            thickness = 0.5.dp
+                        )
                             
                             Column(modifier = Modifier.weight(1f)) {
                                 // Sets list
                                 LazyColumn(
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxWidth(),
                                     state = listState,
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                     contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = 8.dp)
                                 ) {
+                                    // Always show action buttons first when there are no sets
+                                    if (sets.isEmpty()) {
+                                        item {
+                                            Card(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(top = 16.dp),
+                                                colors = CardDefaults.cardColors(
+                                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                )
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(16.dp),
+                                                    horizontalArrangement = Arrangement.Center
+                                                ) {
+                                                    OutlinedButton(
+                                                        onClick = onAddSet,
+                                                        modifier = Modifier.fillMaxWidth(0.6f)
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.Add,
+                                                            contentDescription = "Add Set",
+                                                            modifier = Modifier.size(18.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Text("Add Set")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
                                 items(sets) { set ->
                                     key(set.id) {
                                         val dismissState = rememberSwipeToDismissBoxState(
@@ -314,48 +329,54 @@ fun SetEditingModal(
                                         }
                                     }
                                 }
-                                }
                                 
-                                // Action buttons right after sets - moves above keyboard when needed
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .imePadding(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                    )
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        OutlinedButton(
-                                            onClick = onAddSet,
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Icon(
-                                                Icons.Filled.Add,
-                                                contentDescription = "Add Set",
-                                                modifier = Modifier.size(18.dp)
+                                // Action buttons after sets (only when there are sets)
+                                if (sets.isNotEmpty()) {
+                                    item {
+                                        val lastSet = sets.maxByOrNull { it.setOrder }
+                                        val canCopyLast = lastSet != null && lastSet.reps > 0 && lastSet.weight > 0f
+                                        
+                                        Card(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .imePadding(),
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                             )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text("Add Set")
-                                        }
-        
-                                        if (sets.isNotEmpty()) {
-                                            OutlinedButton(
-                                                onClick = onCopyLastSet,
-                                                modifier = Modifier.weight(1f)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(16.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                                             ) {
-                                                Icon(
-                                                    Icons.Filled.ContentCopy,
-                                                    contentDescription = "Copy Last",
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text("Copy Last")
+                                                OutlinedButton(
+                                                    onClick = onAddSet,
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Icon(
+                                                        Icons.Filled.Add,
+                                                        contentDescription = "Add Set",
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text("Add Set")
+                                                }
+                
+                                                if (canCopyLast) {
+                                                    OutlinedButton(
+                                                        onClick = onCopyLastSet,
+                                                        modifier = Modifier.weight(1f)
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.ContentCopy,
+                                                            contentDescription = "Copy Last",
+                                                            modifier = Modifier.size(18.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Text("Copy Last")
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -411,7 +432,7 @@ private fun ExpandedSetRow(
 
 
     val bgColor = if (set.isCompleted) {
-        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+        Color(0xFF4CAF50).copy(alpha = 0.15f)  // Light green background
     } else {
         MaterialTheme.colorScheme.surface
     }

@@ -40,7 +40,7 @@ fun SetRow(
 
     val bgColor =
         if (set.isCompleted) {
-            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f)
+            androidx.compose.ui.graphics.Color(0xFF4CAF50).copy(alpha = 0.15f)  // Light green background
         } else {
             MaterialTheme.colorScheme.surface
         }
@@ -196,7 +196,7 @@ fun SetRow(
                     },
                     colors =
                         CheckboxDefaults.colors(
-                            checkedColor = MaterialTheme.colorScheme.tertiary,
+                            checkedColor = androidx.compose.ui.graphics.Color(0xFF4CAF50),  // Green checkbox
                         ),
                     enabled = canMarkComplete || set.isCompleted, // Enable if can mark complete OR already completed (for unchecking)
                 )
