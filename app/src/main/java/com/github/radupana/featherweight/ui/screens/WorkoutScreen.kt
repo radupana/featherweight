@@ -53,7 +53,6 @@ fun WorkoutScreen(
 
     var editingSet by remember { mutableStateOf<SetLog?>(null) }
     var editingExerciseName by remember { mutableStateOf<String?>(null) }
-    var expandedExerciseId by remember { mutableStateOf<Long?>(null) }
 
     // Set editing modal state
     var showSetEditingModal by remember { mutableStateOf(false) }
@@ -196,30 +195,7 @@ fun WorkoutScreen(
                     ExercisesList(
                         exercises = exercises,
                         sets = sets,
-                        expandedExerciseId = expandedExerciseId,
                         canEdit = canEdit,
-                        onExerciseExpand = { exerciseId ->
-                            expandedExerciseId =
-                                if (expandedExerciseId == exerciseId) {
-                                    null
-                                } else {
-                                    exerciseId.also { viewModel.loadSetsForExercise(it) }
-                                }
-                        },
-                        onEditSet = { set, exerciseName ->
-                            if (canEdit) {
-                                editingSet = set
-                                editingExerciseName = exerciseName
-                                showEditSetDialog = true
-                            }
-                        },
-                        onSmartAdd = { exerciseName ->
-                            if (canEdit) {
-                                editingSet = null
-                                editingExerciseName = exerciseName
-                                showEditSetDialog = true
-                            }
-                        },
                         onDeleteExercise = { exerciseId ->
                             if (canEdit) {
                                 viewModel.deleteExercise(exerciseId)
@@ -758,11 +734,7 @@ private fun EmptyWorkoutState(
 private fun ExercisesList(
     exercises: List<com.github.radupana.featherweight.data.ExerciseLog>,
     sets: List<SetLog>,
-    expandedExerciseId: Long?,
     canEdit: Boolean,
-    onExerciseExpand: (Long) -> Unit,
-    onEditSet: (SetLog, String) -> Unit,
-    onSmartAdd: (String) -> Unit,
     onDeleteExercise: (Long) -> Unit,
     onOpenSetEditingModal: (Long) -> Unit,
     viewModel: WorkoutViewModel,
@@ -777,41 +749,14 @@ private fun ExercisesList(
             ExerciseCard(
                 exercise = exercise,
                 sets = sets.filter { it.exerciseLogId == exercise.id },
-                expanded = expandedExerciseId == exercise.id,
-                onExpand = { onExerciseExpand(exercise.id) },
                 onAddSet = {
                     if (canEdit) viewModel.addSetToExercise(exercise.id)
                 },
-                onEditSet = { set ->
-                    if (canEdit) onEditSet(set, exercise.exerciseName)
-                },
-                onCopyLastSet = { exerciseId ->
-                    if (canEdit) {
-                        val lastSet =
-                            sets
-                                .filter { it.exerciseLogId == exerciseId }
-                                .maxByOrNull { it.setOrder }
-                        if (lastSet != null) {
-                            viewModel.addSetToExercise(exerciseId, lastSet.weight, lastSet.reps, lastSet.rpe)
-                        } else {
-                            viewModel.addSetToExercise(exerciseId)
-                        }
-                    }
-                },
-                onDeleteSet = { setId ->
-                    if (canEdit) viewModel.deleteSet(setId)
-                },
-                onSmartAdd = { _, exerciseName ->
-                    if (canEdit) onSmartAdd(exerciseName)
+                onEditSets = {
+                    onOpenSetEditingModal(exercise.id)
                 },
                 onDeleteExercise = { exerciseId ->
                     if (canEdit) onDeleteExercise(exerciseId)
-                },
-                onCompleteAllSets = { exerciseId ->
-                    viewModel.completeAllSetsInExercise(exerciseId)
-                },
-                onOpenSetEditingModal = {
-                    onOpenSetEditingModal(exercise.id)
                 },
                 viewModel = viewModel,
             )

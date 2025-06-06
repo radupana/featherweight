@@ -1,13 +1,11 @@
 package com.github.radupana.featherweight.ui.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,53 +22,27 @@ import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 fun ExerciseCard(
     exercise: ExerciseLog,
     sets: List<SetLog>,
-    expanded: Boolean,
-    onExpand: () -> Unit,
     onAddSet: () -> Unit,
-    onEditSet: (SetLog) -> Unit,
-    onCopyLastSet: (Long) -> Unit,
-    onDeleteSet: (Long) -> Unit,
-    onSmartAdd: (Long, String) -> Unit,
-    onCompleteAllSets: (Long) -> Unit,
+    onEditSets: () -> Unit,
     onDeleteExercise: (Long) -> Unit,
-    onOpenSetEditingModal: () -> Unit = {},
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
-    var showValidationMessage by remember { mutableStateOf(false) }
     var showDeleteExerciseDialog by remember { mutableStateOf(false) }
     var showExerciseMenuDialog by remember { mutableStateOf(false) }
 
-    // Calculate completable sets - FIXED LOGIC
-    val validSets = sets.filter { viewModel.canMarkSetComplete(it) }
-    val incompleteValidSets = validSets.filter { !it.isCompleted }
-
-    // Complete All should only be available when:
-    // 1. All sets have valid data (reps + weight)
-    // 2. At least one set is not completed
-    // 3. There are sets to complete
-    val canCompleteAll =
-        sets.isNotEmpty() &&
-            sets.all { viewModel.canMarkSetComplete(it) } &&
-            incompleteValidSets.isNotEmpty()
-
-    // Reset validation message when sets change
-    LaunchedEffect(sets) {
-        if (sets.all { viewModel.canMarkSetComplete(it) || it.isCompleted }) {
-            showValidationMessage = false
-        }
-    }
+    // Calculate summary metrics
+    val completedSets = sets.count { it.isCompleted }
+    val totalVolume = sets.filter { it.isCompleted }.sumOf { (it.reps * it.weight).toDouble() }.toFloat()
+    val bestSet = sets.filter { it.isCompleted }.maxByOrNull { it.reps * it.weight }
+    val avgRpe = sets.filter { it.isCompleted && it.rpe != null }.map { it.rpe!! }.average().takeIf { !it.isNaN() }?.toFloat()
 
     Card(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .clickable { onExpand() },
+        modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(6.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -92,27 +64,25 @@ fun ExerciseCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    // Progress indicator
                     if (sets.isNotEmpty()) {
-                        val completedSets = sets.count { it.isCompleted }
                         Surface(
-                            color =
-                                if (completedSets == sets.size) {
-                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                },
+                            color = if (completedSets == sets.size) {
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            },
                             shape = RoundedCornerShape(12.dp),
                         ) {
                             Text(
                                 "$completedSets/${sets.size}",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
-                                color =
-                                    if (completedSets == sets.size) {
-                                        MaterialTheme.colorScheme.tertiary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
+                                color = if (completedSets == sets.size) {
+                                    MaterialTheme.colorScheme.tertiary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                             )
                         }
                     }
@@ -133,155 +103,126 @@ fun ExerciseCard(
                 }
             }
 
-            if (expanded) {
-                Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-                if (sets.isEmpty()) {
-                    Text(
-                        "No sets yet. Add your first set below.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    // Sets table header with Complete All button
-                    Column(
+            if (sets.isEmpty()) {
+                // Empty state
+                Text(
+                    "No sets yet",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                // Progress bar
+                Column {
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Sets table header row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            // Sets table header
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Text(
-                                    "Set",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(0.12f),
-                                )
-                                Text(
-                                    "Reps",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(0.18f),
-                                    textAlign = TextAlign.Center,
-                                )
-                                Text(
-                                    "Weight",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(0.22f),
-                                    textAlign = TextAlign.Center,
-                                )
-                                Text(
-                                    "RPE",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(0.15f),
-                                    textAlign = TextAlign.Center,
-                                )
-                                Spacer(modifier = Modifier.weight(0.33f)) // For checkbox + actions
-                            }
-                        }
-
-                        // Complete All button - Moved to separate row for better visibility
-                        if (canCompleteAll && viewModel.canEditWorkout()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                                horizontalArrangement = Arrangement.End,
-                            ) {
-                                TextButton(
-                                    onClick = { onCompleteAllSets(exercise.id) },
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                ) {
-                                    Icon(
-                                        Icons.Filled.CheckCircle,
-                                        contentDescription = "Complete All",
-                                        modifier = Modifier.size(16.dp),
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        "Complete All Sets",
-                                        style = MaterialTheme.typography.labelMedium,
-                                    )
-                                }
-                            }
-                        }
+                        Text(
+                            "Progress",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "${(completedSets.toFloat() / sets.size * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Sets list with stable keys
-                    sets.forEach { set ->
-                        key(set.id) {
-                            SetRow(
-                                set = set,
-                                onToggleCompleted = { completed ->
-                                    if (completed && !(set.reps > 0 && set.weight > 0)) {
-                                        // User tried to complete an invalid set
-                                        showValidationMessage = true
-                                    } else {
-                                        viewModel.markSetCompleted(set.id, completed)
-                                    }
-                                },
-                                onEdit = { onEditSet(set) },
-                                onDelete = { onDeleteSet(set.id) },
-                                onOpenModal = onOpenSetEditingModal,
-                                canMarkComplete = set.reps > 0 && set.weight > 0,
-                                isReadOnly = !viewModel.canEditWorkout(),
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-
-                    // Validation message for sets that can't be completed
-                    if (showValidationMessage) {
-                        val invalidSets = sets.filter { set -> !viewModel.canMarkSetComplete(set) && !set.isCompleted }
-                        if (invalidSets.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Card(
-                                colors =
-                                    CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
-                                    ),
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        "⚠️ Sets need both reps and weight to be marked complete",
-                                        modifier = Modifier.weight(1f),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onErrorContainer,
-                                    )
-                                    TextButton(
-                                        onClick = { showValidationMessage = false },
-                                        contentPadding = PaddingValues(4.dp),
-                                    ) {
-                                        Text(
-                                            "✕",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onErrorContainer,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    LinearProgressIndicator(
+                        progress = { completedSets.toFloat() / sets.size },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.tertiary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Action buttons (Add Set, Copy Last)
+                // Summary metrics
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    // Volume
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            "📊",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            if (totalVolume > 0) "${totalVolume.toInt()}kg" else "—",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "Volume",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // Best Set
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            "💪",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            if (bestSet != null) "${bestSet.reps}×${bestSet.weight}kg" else "—",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "Best Set",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // RPE Average
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            "⚡",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            if (avgRpe != null) String.format("%.1f", avgRpe) else "—",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "Avg RPE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Action buttons
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (viewModel.canEditWorkout()) {
                     OutlinedButton(
                         onClick = onAddSet,
                         modifier = Modifier.weight(1f),
@@ -291,32 +232,34 @@ fun ExerciseCard(
                             contentDescription = "Add Set",
                             modifier = Modifier.size(16.dp),
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text("Add Set")
                     }
 
-                    if (sets.isNotEmpty()) {
-                        OutlinedButton(
-                            onClick = { onCopyLastSet(exercise.id) },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Icon(
-                                Icons.Filled.ContentCopy,
-                                contentDescription = "Copy Last",
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Copy Last")
-                        }
+                    Button(
+                        onClick = onEditSets,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Filled.Edit,
+                            contentDescription = "Edit Sets",
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Edit Sets")
                     }
+                } else {
+                    Text(
+                        "${sets.size} sets completed",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
                 }
-            } else {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    if (sets.isEmpty()) "Tap to add sets" else "${sets.size} sets",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }
@@ -379,10 +322,9 @@ fun ExerciseCard(
                         onDeleteExercise(exercise.id)
                         showDeleteExerciseDialog = false
                     },
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                        ),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
                 ) {
                     Text("Delete Exercise")
                 }
