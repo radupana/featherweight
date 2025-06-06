@@ -48,13 +48,6 @@ fun HistoryScreen(historyViewModel: HistoryViewModel = viewModel()) {
                 .fillMaxSize()
                 .padding(16.dp),
     ) {
-        // Header
-        Text(
-            text = "Workout History",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp),
-        )
 
         when {
             isLoading -> {
@@ -210,7 +203,7 @@ fun WorkoutHistoryCard(workout: WorkoutSummary) {
                 )
                 WorkoutStatItem(
                     label = "Total Volume",
-                    value = "${String.format("%.1f", workout.totalWeight / 1000)}k lbs",
+                    value = "${String.format("%.1f", workout.totalWeight / 1000)}k kg",
                     isCompleted = workout.isCompleted,
                     modifier = Modifier.weight(1f),
                 )

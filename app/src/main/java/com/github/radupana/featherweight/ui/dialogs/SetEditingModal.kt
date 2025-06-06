@@ -376,6 +376,7 @@ private fun ExpandedSetRow(
                         onValueChange = { newValue ->
                             if (newValue.text.isEmpty() || (newValue.text.all { it.isDigit() } && newValue.text.length <= 2)) {
                                 repsValue = newValue
+                                saveValues()
                             }
                         },
                         keyboardOptions = KeyboardOptions(
@@ -393,8 +394,6 @@ private fun ExpandedSetRow(
                                     // Select all text when gaining focus
                                     val text = repsValue.text
                                     repsValue = repsValue.copy(selection = TextRange(0, text.length))
-                                } else {
-                                    saveValues()
                                 }
                             },
                         singleLine = true,
@@ -419,6 +418,7 @@ private fun ExpandedSetRow(
                             val text = newValue.text
                             if (text.isEmpty()) {
                                 weightValue = newValue
+                                saveValues()
                             } else {
                                 val parts = text.split(".")
                                 val isValid = when (parts.size) {
@@ -431,6 +431,7 @@ private fun ExpandedSetRow(
                                 }
                                 if (isValid) {
                                     weightValue = newValue
+                                    saveValues()
                                 }
                             }
                         },
@@ -449,8 +450,6 @@ private fun ExpandedSetRow(
                                     // Select all text when gaining focus
                                     val text = weightValue.text
                                     weightValue = weightValue.copy(selection = TextRange(0, text.length))
-                                } else {
-                                    saveValues()
                                 }
                             },
                         singleLine = true,
@@ -475,6 +474,7 @@ private fun ExpandedSetRow(
                             val text = newValue.text
                             if (text.isEmpty()) {
                                 rpeValue = newValue
+                                saveValues()
                             } else {
                                 val floatValue = text.toFloatOrNull()
                                 if (floatValue != null &&
@@ -483,6 +483,7 @@ private fun ExpandedSetRow(
                                     text.matches(Regex("^(10(\\.0)?|[0-9](\\.[0-9])?)$")) &&
                                     text.length <= 4) {
                                     rpeValue = newValue
+                                    saveValues()
                                 }
                             }
                         },
@@ -493,7 +494,6 @@ private fun ExpandedSetRow(
                         keyboardActions = KeyboardActions(
                             onDone = { 
                                 keyboardController?.hide()
-                                saveValues()
                             }
                         ),
                         modifier = Modifier
@@ -504,8 +504,6 @@ private fun ExpandedSetRow(
                                     // Select all text when gaining focus
                                     val text = rpeValue.text
                                     rpeValue = rpeValue.copy(selection = TextRange(0, text.length))
-                                } else {
-                                    saveValues()
                                 }
                             },
                         singleLine = true,

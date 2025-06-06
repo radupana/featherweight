@@ -52,12 +52,6 @@ fun WorkoutHubScreen(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Header
-        Text(
-            text = "Workouts",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-        )
 
         // Primary Actions Card
         Card(
@@ -175,12 +169,6 @@ fun WorkoutHubScreen(
             }
         }
 
-        // Recent Workouts Section
-        Text(
-            text = "Recent Workouts",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
 
         when {
             isLoading -> {
@@ -432,7 +420,7 @@ fun RecentWorkoutCard(
                 )
                 QuickStat(
                     label = "Volume",
-                    value = "${String.format("%.1f", workout.totalWeight / 1000)}k lbs",
+                    value = "${String.format("%.1f", workout.totalWeight / 1000)}k kg",
                     isCompleted = workout.isCompleted,
                     modifier = Modifier.weight(1f),
                 )

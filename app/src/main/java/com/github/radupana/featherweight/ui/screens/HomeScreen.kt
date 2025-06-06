@@ -41,12 +41,6 @@ fun HomeScreen(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Welcome header
-        Text(
-            text = "Ready to train?",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-        )
 
         // Primary Actions
         Card(
