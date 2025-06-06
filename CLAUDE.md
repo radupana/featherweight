@@ -70,7 +70,11 @@ which is already available in your context.
 - **Keyboard handling**: Proper IME padding and scroll behavior
 - **Text input optimization**: Auto-select text on focus, proper field sizing
 - **Bulk actions**: "Complete All Sets" functionality with validation
-- **Navigation flow**: Seamless transitions between screens with state preservation
+- **Navigation flow**: Back navigation tracks previous screen (HOME/HISTORY)
+- **Modal editing**: Full-screen SetEditingModal for cramped UI issues
+- **Deletion UX**: Swipe-to-delete for sets, long-tap for exercises/workouts
+- **Summary cards**: Exercise cards show progress metrics instead of individual sets
+- **Real-time saving**: Set data persists on every keystroke for instant completion
 
 ## Code Conventions
 
@@ -114,11 +118,12 @@ which is already available in your context.
 - `Exercise.kt`: Core exercise entity with junction table relationships
 
 ### UI Components  
-- `SetRow.kt`: Inline editing component with text selection and keyboard navigation
-- `ExerciseCard.kt`: Expandable exercise display with bulk actions
-- `WorkoutScreen.kt`: Main workout interface with edit mode system
+- `SetRow.kt`: Inline editing component with text selection and keyboard navigation (⚠️ red background issue)
+- `SetEditingModal.kt`: Full-screen modal for set editing with swipe-to-delete (⚠️ red background + missing button issues)
+- `ExerciseCard.kt`: Summary display with progress metrics, fully clickable with long-tap delete
+- `WorkoutScreen.kt`: Main workout interface with edit mode system and improved navigation
 - `ExerciseSelectorScreen.kt`: Search and filter interface for exercise selection
-- `HistoryScreen.kt`: Workout history with expandable details
+- `HistoryScreen.kt`: Workout history with expandable details and long-tap delete
 
 ### ViewModels
 - `WorkoutViewModel.kt`: Workout state management, set operations, edit mode logic
@@ -182,11 +187,29 @@ which is already available in your context.
 - `CLAUDE.md`: This file - complete codebase overview and development guidelines
 - Recent git commits show UI improvements and exercise database expansion
 
-## Next Development Priorities
+## Current Issues & Immediate Priorities
 
-**High Priority:**
+**CRITICAL - Fix Tomorrow:**
+1. **Red Set Backgrounds**: Completed sets still show red background despite fixes in both SetEditingModal.kt and SetRow.kt (changed tertiary theme to Color(0xFF4CAF50) but still appears red)
+2. **Missing Add Set Button**: Button doesn't appear for new exercises with no sets, despite restructuring LazyColumn to always render
+
+**URGENT - Today's Session Results:**
+- ✅ Fixed navigation to return to correct screen (HOME/HISTORY) instead of always WORKOUT_HUB
+- ✅ Added long-tap delete for workouts in HistoryScreen and WorkoutHubScreen  
+- ✅ Implemented swipe-to-delete for sets in SetEditingModal
+- ✅ Fixed Copy Last button logic (only appears when last set has reps AND weight > 0)
+- ✅ Moved Add Set/Copy Last buttons to appear right below last set in LazyColumn
+- ✅ Added auto-scroll to newly added sets
+- ✅ Removed redundant section headers ("Ready to train?", "Workouts", "Workout History")
+- ✅ Fixed volume display from lbs to kg across all screens
+- ✅ Made exercise cards and in-progress workout cards fully clickable
+- ✅ Changed "Complete Workout" button to "Complete" for better fit
+- ⚠️ **Still broken**: Red backgrounds on completed sets (need to find root cause)
+- ⚠️ **Still broken**: Add Set button missing for new exercises
+
+**High Priority After Bug Fixes:**
 1. **Database Migrations**: Implement proper schema versioning (remove fallbackToDestructiveMigration)
-2. **Performance**: Large dataset optimizations, pagination for exercise list
+2. **Performance**: Large dataset optimizations, pagination for exercise list  
 3. **Workout Templates**: Pre-built programs and custom template creation
 4. **Analytics Enhancement**: Progress visualization, trend analysis, volume tracking
 
@@ -223,3 +246,45 @@ which is already available in your context.
 - Test builds before committing
 - Update CLAUDE.md when making architectural changes
 - Use descriptive commit messages explaining the "why"
+
+## Known Issues & Investigation Notes
+
+### Red Background Problem
+**Files Checked & Modified:**
+- `SetEditingModal.kt:413-417` - Changed to `Color(0xFF4CAF50).copy(alpha = 0.15f)`
+- `SetRow.kt:41-46` - Changed to `Color(0xFF4CAF50).copy(alpha = 0.15f)`  
+- Both files had `MaterialTheme.colorScheme.tertiary` which was red
+
+**Still Red - Potential Causes:**
+- Another component overriding the background color
+- Theme-level color definition forcing red
+- Cached build/compile issue
+- Different component being used than expected
+- State not properly triggering recomposition
+
+**Investigation Steps for Tomorrow:**
+1. Search entire codebase for any remaining `tertiary` color usage on completed sets
+2. Check if there's a Theme.kt override forcing tertiary to be red
+3. Verify which exact component is rendering (SetRow vs ExpandedSetRow)
+4. Add debug logging to track color values at runtime
+5. Clean build with `./gradlew clean assembleDebug`
+
+### Missing Add Set Button Problem  
+**Root Cause Found:** Two separate empty states - main UI shows text, LazyColumn is conditionally hidden
+
+**Files Modified:**
+- `SetEditingModal.kt` - Restructured conditional logic to always show LazyColumn
+- Added button for `sets.isEmpty()` case inside LazyColumn items
+
+**Still Missing - Potential Causes:**
+- LazyColumn still not rendering when empty
+- Button positioned outside visible area  
+- Conditional logic error in restructuring
+- Build cache not reflecting changes
+
+**Investigation Steps for Tomorrow:**
+1. Add debug logging to verify LazyColumn render and item count
+2. Check if empty sets list triggers different code path
+3. Verify LazyColumn contentPadding and item visibility
+4. Test with manual empty list to isolate issue
+5. Simplify button logic to always show regardless of conditions
