@@ -587,16 +587,17 @@ class WorkoutViewModel(
             val currentSet = currentSets.firstOrNull { it.id == setId }
             if (currentSet != null) {
                 val updatedSet = currentSet.copy(reps = reps, weight = weight, rpe = rpe)
-                
+
                 // Update the set in the local state immediately to prevent UI flicker
-                val updatedSets = currentSets.map { set ->
-                    if (set.id == setId) updatedSet else set
-                }
+                val updatedSets =
+                    currentSets.map { set ->
+                        if (set.id == setId) updatedSet else set
+                    }
                 _selectedExerciseSets.value = updatedSets
-                
+
                 // Then persist to database
                 repository.updateSetLog(updatedSet)
-                
+
                 // Only reload in-progress workouts to update the card
                 loadInProgressWorkouts()
             }
@@ -610,7 +611,7 @@ class WorkoutViewModel(
             // Update local state immediately
             val updatedSets = _selectedExerciseSets.value.filter { it.id != setId }
             _selectedExerciseSets.value = updatedSets
-            
+
             // Then delete from database
             repository.deleteSetLog(setId)
             loadInProgressWorkouts()
@@ -638,18 +639,19 @@ class WorkoutViewModel(
 
         viewModelScope.launch {
             // Update local state immediately
-            val updatedSets = _selectedExerciseSets.value.map { set ->
-                if (set.id == setId) {
-                    set.copy(
-                        isCompleted = completed,
-                        completedAt = timestamp
-                    )
-                } else {
-                    set
+            val updatedSets =
+                _selectedExerciseSets.value.map { set ->
+                    if (set.id == setId) {
+                        set.copy(
+                            isCompleted = completed,
+                            completedAt = timestamp,
+                        )
+                    } else {
+                        set
+                    }
                 }
-            }
             _selectedExerciseSets.value = updatedSets
-            
+
             // Then persist to database
             repository.markSetCompleted(setId, completed, timestamp)
             loadInProgressWorkouts()

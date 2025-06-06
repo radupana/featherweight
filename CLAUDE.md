@@ -3,6 +3,8 @@ Please step back and consider whether anything I say is truly a good idea or whe
 
 Provide honest, balanced feedback without excessive praise or flattery.
 
+Make sure to run ktlint before every build.
+
 ## Project background
 We are building a weightlifting Super App, that combines the best that other best-in-class apps have
 to offer. Think of things like Boostcamp, Juggernaut.ai, KeyLifts, Hevy.
@@ -39,64 +41,94 @@ which is already available in your context.
 ## Current Implementation Status
 
 ### Data Layer
-- Core entities: Exercise, Workout, ExerciseLog, SetLog
-- Junction tables for many-to-many relationships
-- Type converters for complex data types (List, LocalDateTime)
-- Comprehensive DAOs with complex queries for analytics
-- Type safety through extensive use of enums
+- **Core entities**: Exercise, Workout, ExerciseLog, SetLog with proper relationships
+- **Junction tables**: ExerciseMuscleGroup, ExerciseEquipment, ExerciseMovementPattern for many-to-many relationships
+- **Type converters**: LocalDateTime, List<String>, List<Int> for complex data storage
+- **Comprehensive DAOs**: Complex queries for analytics, filtering, and aggregations
+- **Type safety**: Extensive use of enums (MuscleGroup, Equipment, MovementPattern, ExerciseDifficulty, ExerciseType, ExerciseCategory)
+- **Exercise database**: 104 high-quality exercises across all categories (from basic bodyweight to advanced barbell movements)
 
 ### Features Implemented
-- Splash screen with branding
-- Home screen with workout templates and history
-- Exercise selector with search/filter (500+ exercises)
-- Workout tracking with real-time updates
-- Smart set editing for completed workouts
-- History view with expandable workout details
-- Basic analytics (volume, estimated 1RM)
-- In-progress workout detection and resume
-- Custom exercise creation
+- **Splash screen**: Clean branding with app logo
+- **Home screen**: Recent workout history, quick start options, template selection
+- **Exercise selector**: Search, filter by category/equipment, 104 exercises with detailed metadata
+- **Workout tracking**: Real-time set completion, RPE tracking, weight/reps input with validation
+- **Smart set editing**: Inline editing with text selection, keyboard navigation between fields
+- **History view**: Expandable workout details, edit mode for completed workouts
+- **Basic analytics**: Volume calculations, estimated 1RM, set completion tracking
+- **In-progress workout detection**: Auto-resume interrupted workouts
+- **Custom exercise creation**: User-defined exercises with full metadata support
+- **Edit mode system**: Temporary editing of completed workouts with save/discard options
 
-### UI/UX Patterns
-- Material Design 3 with custom blue theme (#2196F3)
-- State hoisting with ViewModels
-- Smart defaults from previous performance
-- Empty states with helpful prompts
-- Lazy loading for performance
-- Responsive layouts with Compose
+### UI/UX Patterns & Recent Improvements
+- **Material Design 3**: Custom blue theme (#2196F3) with proper color semantics
+- **State hoisting**: ViewModels as single source of truth
+- **Smart defaults**: Pre-populated weights from previous sets
+- **Empty states**: Helpful prompts and guided actions
+- **Lazy loading**: Efficient recomposition and data loading
+- **Responsive layouts**: Adaptive to screen sizes and orientations
+- **Keyboard handling**: Proper IME padding and scroll behavior
+- **Text input optimization**: Auto-select text on focus, proper field sizing
+- **Bulk actions**: "Complete All Sets" functionality with validation
+- **Navigation flow**: Seamless transitions between screens with state preservation
 
 ## Code Conventions
 
 - **Naming**: PascalCase for classes/composables, camelCase for functions/variables
 - **Compose**: 
-  - State hoisting pattern
-  - Remember for local state
-  - LaunchedEffect for side effects
-  - Modifier as last parameter
+  - State hoisting pattern with ViewModels
+  - Remember for local state, LaunchedEffect for side effects
+  - Modifier as last parameter, key() for stable list items
+  - imePadding() for keyboard handling
 - **Database**: 
-  - Type-safe queries
-  - Proper foreign keys with CASCADE
-  - Wrapped in coroutines
+  - Type-safe queries with suspend functions
+  - Proper foreign keys with CASCADE deletes
+  - Junction tables for many-to-many relationships
+  - Enum storage with converters for type safety
 - **ViewModels**: 
-  - StateFlow for UI state
+  - StateFlow for UI state management
   - Suspend functions for data operations
   - Data classes for screen states
-- **Error Handling**: Try-catch blocks around database operations
-- **Null Safety**: Explicit handling with safe calls
+  - Clear separation of concerns
+- **Error Handling**: Try-catch blocks around database operations with logging
+- **Null Safety**: Explicit handling with safe calls and proper default values
+- **Text Input**: TextFieldValue with TextRange for proper selection control
 
 ## Key Development Guidelines
 
 1. **Database Migrations**: Always increment version and add migration when changing schema
-2. **Exercise Seeding**: ExerciseSeeder.kt contains initial exercise data
-3. **Testing**: Focus on repository and ViewModel testing
-4. **Performance**: Use lazy loading and efficient recomposition
-5. **State Management**: Single source of truth in ViewModels
+2. **Exercise Management**: ExerciseSeeder.kt contains 104 curated exercises with full metadata
+3. **Testing**: Focus on repository and ViewModel testing, build verification before commits
+4. **Performance**: Use lazy loading, efficient recomposition, and proper key management
+5. **State Management**: Single source of truth in ViewModels with proper StateFlow usage
+6. **UI Consistency**: Follow Material Design 3 guidelines, consistent spacing and typography
+7. **Keyboard UX**: Proper IME handling with adjustResize and imePadding()
 
-## Important Files
-- `FeatherweightDatabase.kt`: Database configuration and migrations
-- `FeatherweightRepository.kt`: Central data access layer  
-- `ExerciseEnums.kt`: All exercise-related enums
-- `Theme.kt`: Material Design 3 theming and colors
-- `ExerciseSeeder.kt`: Initial exercise data
+## Important Files & Architecture
+
+### Core Data Files
+- `FeatherweightDatabase.kt`: Room database configuration, currently v1 with destructive migration
+- `FeatherweightRepository.kt`: Central data access layer with complex queries
+- `ExerciseEnums.kt`: Comprehensive enums (MuscleGroup, Equipment, MovementPattern, etc.)
+- `ExerciseSeeder.kt`: 104 exercises across all categories with metadata
+- `Exercise.kt`: Core exercise entity with junction table relationships
+
+### UI Components  
+- `SetRow.kt`: Inline editing component with text selection and keyboard navigation
+- `ExerciseCard.kt`: Expandable exercise display with bulk actions
+- `WorkoutScreen.kt`: Main workout interface with edit mode system
+- `ExerciseSelectorScreen.kt`: Search and filter interface for exercise selection
+- `HistoryScreen.kt`: Workout history with expandable details
+
+### ViewModels
+- `WorkoutViewModel.kt`: Workout state management, set operations, edit mode logic
+- `ExerciseSelectorViewModel.kt`: Exercise search, filtering, and selection
+- `HistoryViewModel.kt`: Workout history and analytics
+
+### Theme & Styling
+- `Theme.kt`: Material Design 3 implementation with custom blue theme
+- Consistent use of MaterialTheme.colorScheme and typography
+- Proper elevation and surface treatments
 
 ## Common Commands
 - Lint: `./gradlew lint`
@@ -107,19 +139,87 @@ which is already available in your context.
 - Clean build: `./gradlew clean build`
 - Install on device: `./gradlew installDebug`
 
-## Documentation Structure
+## Exercise System Details
+
+### Exercise Database Structure
+- **104 Total Exercises**: Comprehensive coverage from beginner to expert level
+- **Categories**: Chest, Back, Shoulders, Arms, Legs, Core, Cardio, Full Body
+- **Equipment Types**: Bodyweight, Barbell, Dumbbell, Cable Machine, Machines, Accessories
+- **Difficulty Levels**: Beginner → Novice → Intermediate → Advanced → Expert
+- **Metadata**: Primary/secondary muscles, movement patterns, equipment requirements
+- **Validation Logic**: Sets require reps > 0 AND weight > 0 to be marked complete
+
+### Key Exercise Examples by Category
+- **Compound Movements**: Back Squat, Deadlift, Bench Press, Pull-ups, Overhead Press
+- **Bodyweight Basics**: Push-ups, Planks, Burpees, Mountain Climbers
+- **Machine Variations**: Leg Press, Lat Pulldown, Cable Rows, Chest Press
+- **Isolation Work**: Bicep Curls, Lateral Raises, Calf Raises, Face Pulls
+
+## UI/UX Implementation Details
+
+### Workout Flow
+1. **Start Workout**: Empty workout or resume in-progress
+2. **Add Exercises**: Search/filter from 104 options + custom creation
+3. **Track Sets**: Inline editing with auto-select text, proper keyboard navigation
+4. **Complete Sets**: Individual or bulk "Complete All Sets" with validation
+5. **Save Workout**: Auto-save with optional naming and completion
+
+### Edit Mode System
+- **Read-only Protection**: Completed workouts are locked by default
+- **Temporary Editing**: Edit mode allows modifications with save/discard options
+- **Visual Indicators**: Clear "EDITING" badges and color changes
+- **State Management**: Proper handling of concurrent edits and validation
+
+### Text Input Optimizations
+- **Auto-selection**: Clicking any field selects all existing text
+- **Field Sizing**: Proper width for digits (Reps: 80dp, Weight: 100dp, RPE: 80dp)
+- **Keyboard Handling**: IME padding, adjustResize, smooth scrolling during input
+- **Validation**: Real-time input filtering (reps ≤ 999, weight ≤ 9999.99, RPE ≤ 10.0)
+
+## Documentation & Resources
+
 - `EXERCISES.md`: Comprehensive exercise system specification with competitive analysis
-- Feature-specific .md files track vision and implementation plans for each subdomain
+- `CLAUDE.md`: This file - complete codebase overview and development guidelines
+- Recent git commits show UI improvements and exercise database expansion
 
 ## Next Development Priorities
 
-Based on the current state, focus areas include:
-1. Implementing proper database migrations (remove fallbackToDestructiveMigration)
-2. Adding more analytics and progress visualization
-3. Implementing workout templates and programs
-4. Adding social features
-5. Integrating AI-powered suggestions
-6. Performance optimizations for large datasets
+**High Priority:**
+1. **Database Migrations**: Implement proper schema versioning (remove fallbackToDestructiveMigration)
+2. **Performance**: Large dataset optimizations, pagination for exercise list
+3. **Workout Templates**: Pre-built programs and custom template creation
+4. **Analytics Enhancement**: Progress visualization, trend analysis, volume tracking
 
-Hints: 
-1. Avoid comments unless absolutely required to explain a strange situation
+**Medium Priority:**
+1. **Social Features**: Workout sharing, leaderboards, community challenges
+2. **AI Integration**: Smart weight suggestions, auto-regulation based on RPE
+3. **Exercise Media**: Video demonstrations, form tips, muscle activation guides
+4. **Export/Import**: Backup functionality, data portability
+
+**Long-term:**
+1. **Cross-platform**: iOS implementation with shared business logic
+2. **Wearable Integration**: Apple Watch, Wear OS support
+3. **Advanced Analytics**: ML-powered insights, plateau detection
+4. **Nutrition Integration**: Meal tracking, macro calculations
+
+## Development Best Practices
+
+### Before Making Changes
+1. Read existing code to understand patterns and conventions
+2. Check CLAUDE.md (this file) for architectural decisions
+3. Run `./gradlew lint` to ensure code quality
+4. Test on device with `./gradlew installDebug`
+
+### Code Quality Standards
+- No comments unless explaining complex business logic
+- Follow Material Design 3 guidelines consistently  
+- Use proper state hoisting and ViewModel patterns
+- Implement proper keyboard handling for all text inputs
+- Validate all user inputs with clear error messaging
+- Test edge cases (empty states, long text, network issues)
+
+### Git Workflow
+- Keep commits focused and atomic
+- Test builds before committing
+- Update CLAUDE.md when making architectural changes
+- Use descriptive commit messages explaining the "why"

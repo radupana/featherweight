@@ -34,6 +34,7 @@ fun ExerciseCard(
     onCompleteAllSets: (Long) -> Unit,
     onDeleteExercise: (Long) -> Unit,
     onUpdateSet: ((Long, Int, Float, Float?) -> Unit)? = null,
+    onEnterFocusedEditMode: ((Long) -> Unit)? = null,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
@@ -144,62 +145,72 @@ fun ExerciseCard(
                     )
                 } else {
                     // Sets table header with Complete All button
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Sets table header
+                        // Sets table header row
                         Row(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                "Set",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.weight(0.12f),
-                            )
-                            Text(
-                                "Reps",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.weight(0.18f),
-                                textAlign = TextAlign.Center,
-                            )
-                            Text(
-                                "Weight",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.weight(0.22f),
-                                textAlign = TextAlign.Center,
-                            )
-                            Text(
-                                "RPE",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.weight(0.15f),
-                                textAlign = TextAlign.Center,
-                            )
-                            Spacer(modifier = Modifier.weight(0.33f)) // For checkbox + actions
+                            // Sets table header
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    "Set",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(0.12f),
+                                )
+                                Text(
+                                    "Reps",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(0.18f),
+                                    textAlign = TextAlign.Center,
+                                )
+                                Text(
+                                    "Weight",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(0.22f),
+                                    textAlign = TextAlign.Center,
+                                )
+                                Text(
+                                    "RPE",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(0.15f),
+                                    textAlign = TextAlign.Center,
+                                )
+                                Spacer(modifier = Modifier.weight(0.33f)) // For checkbox + actions
+                            }
                         }
 
-                        // Complete All button - FIXED LOGIC
+                        // Complete All button - Moved to separate row for better visibility
                         if (canCompleteAll && viewModel.canEditWorkout()) {
-                            TextButton(
-                                onClick = { onCompleteAllSets(exercise.id) },
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                                horizontalArrangement = Arrangement.End,
                             ) {
-                                Icon(
-                                    Icons.Filled.CheckCircle,
-                                    contentDescription = "Complete All",
-                                    modifier = Modifier.size(14.dp),
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    "Complete All",
-                                    style = MaterialTheme.typography.labelSmall,
-                                )
+                                TextButton(
+                                    onClick = { onCompleteAllSets(exercise.id) },
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Filled.CheckCircle,
+                                        contentDescription = "Complete All",
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        "Complete All Sets",
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
+                                }
                             }
                         }
                     }
@@ -223,6 +234,9 @@ fun ExerciseCard(
                                 onDelete = { onDeleteSet(set.id) },
                                 onUpdateSet = { reps, weight, rpe ->
                                     viewModel.updateSet(set.id, reps, weight, rpe)
+                                },
+                                onEnterFocusedEditMode = {
+                                    onEnterFocusedEditMode?.invoke(exercise.id)
                                 },
                                 canMarkComplete = set.reps > 0 && set.weight > 0,
                             )

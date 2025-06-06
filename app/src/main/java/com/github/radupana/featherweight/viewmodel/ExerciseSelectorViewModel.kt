@@ -105,7 +105,7 @@ class ExerciseSelectorViewModel(
                                 it.exercise.name.contains(query, ignoreCase = true) -> 2
                                 else -> 3
                             }
-                        }.thenBy { it.exercise.name }
+                        }.thenBy { it.exercise.name },
                     )
                 } else {
                     // When not searching, maintain the usage-based order from loadExercises()

@@ -41,13 +41,13 @@ class FeatherweightRepository(
         withContext(Dispatchers.IO) {
             val exerciseCount = exerciseDao.getAllExercisesWithDetails().size
             val workoutCount = workoutDao.getAllWorkouts().size
-            
+
             // Always seed exercises if there are none
             if (exerciseCount == 0) {
                 exerciseSeeder.seedMainLifts()
                 println("Seeded ${exerciseDao.getAllExercisesWithDetails().size} exercises")
             }
-            
+
             // Seed test workouts only if no workouts exist
             if (workoutCount == 0) {
                 seedTestData()
@@ -65,14 +65,14 @@ class FeatherweightRepository(
     suspend fun getAllExercisesWithUsageStats(): List<Pair<ExerciseWithDetails, Int>> =
         withContext(Dispatchers.IO) {
             val exercises = exerciseDao.getAllExercisesWithDetails()
-            
+
             // Get usage count for each exercise (count of exercise logs)
             exercises.map { exercise ->
                 val usageCount = exerciseLogDao.getExerciseUsageCount(exercise.exercise.name)
                 Pair(exercise, usageCount)
             }.sortedWith(
                 compareByDescending<Pair<ExerciseWithDetails, Int>> { it.second }
-                    .thenBy { it.first.exercise.name }
+                    .thenBy { it.first.exercise.name },
             )
         }
 

@@ -63,6 +63,7 @@ fun SetRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onUpdateSet: ((Int, Float, Float?) -> Unit)? = null,
+    onEnterFocusedEditMode: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     canMarkComplete: Boolean = true,
 ) {
@@ -89,37 +90,37 @@ fun SetRow(
         Log.d("SetRow", "Set ${set.id}: isEditingRpe changed to $isEditingRpe")
     }
 
-    // Text state with cursor position control
+    // Text state with text selection control
     var repsTextFieldValue by remember(set.id) {
         val text = if (set.reps > 0) set.reps.toString() else ""
-        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
+        mutableStateOf(TextFieldValue(text, TextRange(0, text.length)))
     }
     var weightTextFieldValue by remember(set.id) {
         val text = if (set.weight > 0) set.weight.toString() else ""
-        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
+        mutableStateOf(TextFieldValue(text, TextRange(0, text.length)))
     }
     var rpeTextFieldValue by remember(set.id) {
         val text = set.rpe?.toString() ?: ""
-        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
+        mutableStateOf(TextFieldValue(text, TextRange(0, text.length)))
     }
 
     // Update text when set values change but we're not editing
     LaunchedEffect(set.reps) {
         if (!isEditingReps) {
             val text = if (set.reps > 0) set.reps.toString() else ""
-            repsTextFieldValue = TextFieldValue(text, TextRange(text.length))
+            repsTextFieldValue = TextFieldValue(text, TextRange(0, text.length))
         }
     }
     LaunchedEffect(set.weight) {
         if (!isEditingWeight) {
             val text = if (set.weight > 0) set.weight.toString() else ""
-            weightTextFieldValue = TextFieldValue(text, TextRange(text.length))
+            weightTextFieldValue = TextFieldValue(text, TextRange(0, text.length))
         }
     }
     LaunchedEffect(set.rpe) {
         if (!isEditingRpe) {
             val text = set.rpe?.toString() ?: ""
-            rpeTextFieldValue = TextFieldValue(text, TextRange(text.length))
+            rpeTextFieldValue = TextFieldValue(text, TextRange(0, text.length))
         }
     }
 
@@ -155,11 +156,11 @@ fun SetRow(
         SetEditingState.switchToField(set.id, newField)
     }
 
-    // Request focus and set cursor position when entering edit mode
+    // Request focus and select all text when entering edit mode
     LaunchedEffect(isEditingReps) {
         if (isEditingReps) {
             val text = if (set.reps > 0) set.reps.toString() else ""
-            repsTextFieldValue = TextFieldValue(text, TextRange(text.length))
+            repsTextFieldValue = TextFieldValue(text, TextRange(0, text.length))
             repsFocusRequester.requestFocus()
         }
     }
@@ -167,7 +168,7 @@ fun SetRow(
     LaunchedEffect(isEditingWeight) {
         if (isEditingWeight) {
             val text = if (set.weight > 0) set.weight.toString() else ""
-            weightTextFieldValue = TextFieldValue(text, TextRange(text.length))
+            weightTextFieldValue = TextFieldValue(text, TextRange(0, text.length))
             weightFocusRequester.requestFocus()
         }
     }
@@ -175,7 +176,7 @@ fun SetRow(
     LaunchedEffect(isEditingRpe) {
         if (isEditingRpe) {
             val text = set.rpe?.toString() ?: ""
-            rpeTextFieldValue = TextFieldValue(text, TextRange(text.length))
+            rpeTextFieldValue = TextFieldValue(text, TextRange(0, text.length))
             rpeFocusRequester.requestFocus()
         }
     }
@@ -218,8 +219,8 @@ fun SetRow(
                     OutlinedTextField(
                         value = repsTextFieldValue,
                         onValueChange = { newValue: TextFieldValue ->
-                            // Only allow numbers up to 3 digits
-                            if (newValue.text.isEmpty() || (newValue.text.all { it.isDigit() } && newValue.text.length <= 3)) {
+                            // Only allow numbers up to 2 digits (max 99 reps)
+                            if (newValue.text.isEmpty() || (newValue.text.all { it.isDigit() } && newValue.text.length <= 2)) {
                                 repsTextFieldValue = newValue
                             }
                         },
@@ -242,8 +243,8 @@ fun SetRow(
                             ),
                         modifier =
                             Modifier
-                                .width(70.dp)
-                                .height(48.dp)
+                                .width(80.dp)
+                                .height(56.dp)
                                 .focusRequester(repsFocusRequester),
                         singleLine = true,
                         colors =
@@ -256,10 +257,15 @@ fun SetRow(
                     Surface(
                         modifier =
                             Modifier
-                                .width(70.dp)
+                                .width(80.dp)
                                 .height(40.dp)
                                 .clickable {
                                     if (onUpdateSet != null) {
+                                        // Enter focused editing mode when starting to edit
+                                        if (!isEditingAny) {
+                                            onEnterFocusedEditMode?.invoke()
+                                        }
+
                                         if (isEditingAny && !isEditingReps) {
                                             // Switching from another field
                                             switchToField("reps")
@@ -340,8 +346,8 @@ fun SetRow(
                             ),
                         modifier =
                             Modifier
-                                .width(90.dp)
-                                .height(48.dp)
+                                .width(100.dp)
+                                .height(56.dp)
                                 .focusRequester(weightFocusRequester),
                         singleLine = true,
                         colors =
@@ -354,10 +360,15 @@ fun SetRow(
                     Surface(
                         modifier =
                             Modifier
-                                .width(90.dp)
+                                .width(100.dp)
                                 .height(40.dp)
                                 .clickable {
                                     if (onUpdateSet != null) {
+                                        // Enter focused editing mode when starting to edit
+                                        if (!isEditingAny) {
+                                            onEnterFocusedEditMode?.invoke()
+                                        }
+
                                         if (isEditingAny && !isEditingWeight) {
                                             // Switching from another field
                                             switchToField("weight")
@@ -433,8 +444,8 @@ fun SetRow(
                             ),
                         modifier =
                             Modifier
-                                .width(70.dp)
-                                .height(48.dp)
+                                .width(80.dp)
+                                .height(56.dp)
                                 .focusRequester(rpeFocusRequester),
                         singleLine = true,
                         colors =
@@ -447,10 +458,15 @@ fun SetRow(
                     Surface(
                         modifier =
                             Modifier
-                                .width(70.dp)
+                                .width(80.dp)
                                 .height(40.dp)
                                 .clickable {
                                     if (onUpdateSet != null) {
+                                        // Enter focused editing mode when starting to edit
+                                        if (!isEditingAny) {
+                                            onEnterFocusedEditMode?.invoke()
+                                        }
+
                                         if (isEditingAny && !isEditingRpe) {
                                             // Switching from another field
                                             switchToField("rpe")
