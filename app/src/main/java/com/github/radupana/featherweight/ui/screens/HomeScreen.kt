@@ -1,7 +1,9 @@
 package com.github.radupana.featherweight.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
@@ -216,7 +218,9 @@ fun InProgressWorkoutCard(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onContinue() },
         elevation = CardDefaults.cardElevation(2.dp),
         colors =
             CardDefaults.cardColors(
@@ -247,10 +251,20 @@ fun InProgressWorkoutCard(
                     )
                 }
 
-                TextButton(
-                    onClick = onContinue,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Continue")
+                    Text(
+                        "Tap to continue",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }

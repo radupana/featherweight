@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.*
+import androidx.compose.material3.Divider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,6 +29,7 @@ import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
@@ -185,11 +187,56 @@ fun SetEditingModal(
                                 }
                             }
                         } else {
-                            // Sets list with generous spacing and keyboard padding
+                            // Header row
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Set",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.width(24.dp),
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    "Reps",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    "Weight (kg)",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1.5f),
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    "RPE",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                    textAlign = TextAlign.Center
+                                )
+                                // Spacer for checkbox and delete button
+                                Spacer(modifier = Modifier.width(80.dp))
+                            }
+                            
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                                thickness = 0.5.dp
+                            )
+                            
+                            // Sets list
                             LazyColumn(
-                                modifier = Modifier.weight(1f).imePadding(),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                                contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = 200.dp)
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = 16.dp)
                             ) {
                                 items(sets) { set ->
                                     key(set.id) {
@@ -210,9 +257,11 @@ fun SetEditingModal(
                             }
                         }
 
-                        // Action buttons at bottom - always visible
+                        // Action buttons at bottom - moves above keyboard when needed
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .imePadding(),
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                             )
@@ -305,73 +354,31 @@ private fun ExpandedSetRow(
         MaterialTheme.colorScheme.surface
     }
 
-    Card(
+    Surface(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = bgColor),
-        elevation = CardDefaults.cardElevation(if (set.isCompleted) 4.dp else 2.dp)
+        color = bgColor,
+        shape = RoundedCornerShape(8.dp),
+        tonalElevation = if (set.isCompleted) 2.dp else 0.dp
     ) {
         Column(
-            modifier = Modifier.padding(20.dp)
+            modifier = Modifier.padding(12.dp)
         ) {
-            // Set header
+            // Compact single row layout
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Set number
                 Text(
-                    "Set ${set.setOrder + 1}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    "${set.setOrder + 1}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.width(24.dp),
+                    textAlign = TextAlign.Center
                 )
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Checkbox(
-                        checked = set.isCompleted,
-                        onCheckedChange = { newChecked ->
-                            if (!newChecked || canMarkComplete) {
-                                onToggleCompleted(newChecked)
-                            }
-                        },
-                        enabled = canMarkComplete || set.isCompleted,
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = MaterialTheme.colorScheme.tertiary
-                        )
-                    )
-                    
-                    IconButton(
-                        onClick = { showDeleteConfirmation = true },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            Icons.Filled.Delete,
-                            contentDescription = "Delete Set",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Input fields with generous spacing
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Reps
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Reps",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
+                // Reps field
+                OutlinedTextField(
                         value = repsValue,
                         onValueChange = { newValue ->
                             if (newValue.text.isEmpty() || (newValue.text.all { it.isDigit() } && newValue.text.length <= 2)) {
@@ -387,32 +394,24 @@ private fun ExpandedSetRow(
                             onNext = { weightFocusRequester.requestFocus() }
                         ),
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .weight(1f)
+                            .height(48.dp)
                             .focusRequester(repsFocusRequester)
                             .onFocusChanged { focusState ->
                                 if (focusState.isFocused) {
-                                    // Select all text when gaining focus
                                     val text = repsValue.text
                                     repsValue = repsValue.copy(selection = TextRange(0, text.length))
                                 }
                             },
                         singleLine = true,
-                        textStyle = LocalTextStyle.current.copy(
-                            textAlign = TextAlign.Center,
-                            fontSize = MaterialTheme.typography.titleMedium.fontSize
-                        )
+                        textStyle = MaterialTheme.typography.bodySmall.copy(
+                            textAlign = TextAlign.Center
+                        ),
+                        placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) }
                     )
-                }
 
-                // Weight
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Weight (kg)",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
+                // Weight field  
+                OutlinedTextField(
                         value = weightValue,
                         onValueChange = { newValue ->
                             val text = newValue.text
@@ -443,32 +442,24 @@ private fun ExpandedSetRow(
                             onNext = { rpeFocusRequester.requestFocus() }
                         ),
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .weight(1.5f)
+                            .height(48.dp)
                             .focusRequester(weightFocusRequester)
                             .onFocusChanged { focusState ->
                                 if (focusState.isFocused) {
-                                    // Select all text when gaining focus
                                     val text = weightValue.text
                                     weightValue = weightValue.copy(selection = TextRange(0, text.length))
                                 }
                             },
                         singleLine = true,
-                        textStyle = LocalTextStyle.current.copy(
-                            textAlign = TextAlign.Center,
-                            fontSize = MaterialTheme.typography.titleMedium.fontSize
-                        )
+                        textStyle = MaterialTheme.typography.bodySmall.copy(
+                            textAlign = TextAlign.Center
+                        ),
+                        placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) }
                     )
-                }
 
-                // RPE
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "RPE (0-10)",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
+                // RPE field
+                OutlinedTextField(
                         value = rpeValue,
                         onValueChange = { newValue ->
                             val text = newValue.text
@@ -497,31 +488,58 @@ private fun ExpandedSetRow(
                             }
                         ),
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .weight(1f)
+                            .height(48.dp)
                             .focusRequester(rpeFocusRequester)
                             .onFocusChanged { focusState ->
                                 if (focusState.isFocused) {
-                                    // Select all text when gaining focus
                                     val text = rpeValue.text
                                     rpeValue = rpeValue.copy(selection = TextRange(0, text.length))
                                 }
                             },
                         singleLine = true,
-                        textStyle = LocalTextStyle.current.copy(
-                            textAlign = TextAlign.Center,
-                            fontSize = MaterialTheme.typography.titleMedium.fontSize
-                        )
+                        textStyle = MaterialTheme.typography.bodySmall.copy(
+                            textAlign = TextAlign.Center
+                        ),
+                        placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) }
+                    )
+                
+                // Checkbox
+                Checkbox(
+                    checked = set.isCompleted,
+                    onCheckedChange = { newChecked ->
+                        if (!newChecked || canMarkComplete) {
+                            onToggleCompleted(newChecked)
+                        }
+                    },
+                    enabled = canMarkComplete || set.isCompleted,
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = MaterialTheme.colorScheme.tertiary
+                    ),
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+                
+                // Delete button
+                IconButton(
+                    onClick = { showDeleteConfirmation = true },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = "Delete Set",
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
 
-            // Validation message
-            if (!canMarkComplete && (set.reps == 0 || set.weight == 0f)) {
-                Spacer(modifier = Modifier.height(12.dp))
+            // Only show validation message if user tried to complete without data
+            if (!canMarkComplete && (set.reps == 0 || set.weight == 0f) && showDeleteConfirmation) {
                 Text(
-                    "💡 Add both reps and weight to mark this set as complete",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "Add reps & weight to complete",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
         }
