@@ -167,7 +167,13 @@ fun SetRow(
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         Text(
-                            set.rpe?.let { "$it" } ?: "—",
+                            set.rpe?.let { rpe -> 
+                                if (rpe == rpe.toInt().toFloat()) {
+                                    rpe.toInt().toString()
+                                } else {
+                                    rpe.toString()
+                                }
+                            } ?: "—",
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                         )

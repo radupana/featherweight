@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,7 +23,6 @@ import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 fun ExerciseCard(
     exercise: ExerciseLog,
     sets: List<SetLog>,
-    onAddSet: () -> Unit,
     onEditSets: () -> Unit,
     onDeleteExercise: (Long) -> Unit,
     viewModel: WorkoutViewModel,
@@ -38,7 +38,13 @@ fun ExerciseCard(
     val avgRpe = sets.filter { it.isCompleted && it.rpe != null }.map { it.rpe!! }.average().takeIf { !it.isNaN() }?.toFloat()
 
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { 
+                if (viewModel.canEditWorkout()) {
+                    onEditSets()
+                }
+            },
         elevation = CardDefaults.cardElevation(6.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
@@ -202,7 +208,13 @@ fun ExerciseCard(
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(
-                            if (avgRpe != null) String.format("%.1f", avgRpe) else "—",
+                            if (avgRpe != null) {
+                                if (avgRpe == avgRpe.toInt().toFloat()) {
+                                    avgRpe.toInt().toString()
+                                } else {
+                                    String.format("%.1f", avgRpe)
+                                }
+                            } else "—",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -217,49 +229,34 @@ fun ExerciseCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Action buttons
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (viewModel.canEditWorkout()) {
-                    OutlinedButton(
-                        onClick = onAddSet,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(
-                            Icons.Filled.Add,
-                            contentDescription = "Add Set",
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Add Set")
-                    }
-
-                    Button(
-                        onClick = onEditSets,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Icon(
-                            Icons.Filled.Edit,
-                            contentDescription = "Edit Sets",
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Edit Sets")
-                    }
-                } else {
+            // Tap hint for interaction
+            if (viewModel.canEditWorkout()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        "${sets.size} sets completed",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
+                        "Tap to edit sets",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                     )
                 }
+            } else {
+                Text(
+                    "${sets.size} sets completed",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }

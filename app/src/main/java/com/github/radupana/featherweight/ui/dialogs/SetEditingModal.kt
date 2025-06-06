@@ -185,11 +185,11 @@ fun SetEditingModal(
                                 }
                             }
                         } else {
-                            // Sets list with generous spacing
+                            // Sets list with generous spacing and keyboard padding
                             LazyColumn(
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.weight(1f).imePadding(),
                                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                                contentPadding = PaddingValues(vertical = 8.dp)
+                                contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = 200.dp)
                             ) {
                                 items(sets) { set ->
                                     key(set.id) {
@@ -298,25 +298,6 @@ private fun ExpandedSetRow(
         onUpdateSet(reps, weight, rpe)
     }
 
-    // Update text fields when set values change externally
-    LaunchedEffect(set.reps) {
-        if (repsValue.text != set.reps.toString() && set.reps > 0) {
-            val text = set.reps.toString()
-            repsValue = TextFieldValue(text, TextRange(0, text.length))
-        }
-    }
-    LaunchedEffect(set.weight) {
-        if (weightValue.text != set.weight.toString() && set.weight > 0) {
-            val text = set.weight.toString()
-            weightValue = TextFieldValue(text, TextRange(0, text.length))
-        }
-    }
-    LaunchedEffect(set.rpe) {
-        val rpeText = set.rpe?.toString() ?: ""
-        if (rpeValue.text != rpeText) {
-            rpeValue = TextFieldValue(rpeText, TextRange(0, rpeText.length))
-        }
-    }
 
     val bgColor = if (set.isCompleted) {
         MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
@@ -395,7 +376,6 @@ private fun ExpandedSetRow(
                         onValueChange = { newValue ->
                             if (newValue.text.isEmpty() || (newValue.text.all { it.isDigit() } && newValue.text.length <= 2)) {
                                 repsValue = newValue
-                                saveValues()
                             }
                         },
                         keyboardOptions = KeyboardOptions(
@@ -409,7 +389,11 @@ private fun ExpandedSetRow(
                             .fillMaxWidth()
                             .focusRequester(repsFocusRequester)
                             .onFocusChanged { focusState ->
-                                if (!focusState.isFocused) {
+                                if (focusState.isFocused) {
+                                    // Select all text when gaining focus
+                                    val text = repsValue.text
+                                    repsValue = repsValue.copy(selection = TextRange(0, text.length))
+                                } else {
                                     saveValues()
                                 }
                             },
@@ -435,7 +419,6 @@ private fun ExpandedSetRow(
                             val text = newValue.text
                             if (text.isEmpty()) {
                                 weightValue = newValue
-                                saveValues()
                             } else {
                                 val parts = text.split(".")
                                 val isValid = when (parts.size) {
@@ -448,7 +431,6 @@ private fun ExpandedSetRow(
                                 }
                                 if (isValid) {
                                     weightValue = newValue
-                                    saveValues()
                                 }
                             }
                         },
@@ -463,7 +445,11 @@ private fun ExpandedSetRow(
                             .fillMaxWidth()
                             .focusRequester(weightFocusRequester)
                             .onFocusChanged { focusState ->
-                                if (!focusState.isFocused) {
+                                if (focusState.isFocused) {
+                                    // Select all text when gaining focus
+                                    val text = weightValue.text
+                                    weightValue = weightValue.copy(selection = TextRange(0, text.length))
+                                } else {
                                     saveValues()
                                 }
                             },
@@ -489,7 +475,6 @@ private fun ExpandedSetRow(
                             val text = newValue.text
                             if (text.isEmpty()) {
                                 rpeValue = newValue
-                                saveValues()
                             } else {
                                 val floatValue = text.toFloatOrNull()
                                 if (floatValue != null &&
@@ -498,7 +483,6 @@ private fun ExpandedSetRow(
                                     text.matches(Regex("^(10(\\.0)?|[0-9](\\.[0-9])?)$")) &&
                                     text.length <= 4) {
                                     rpeValue = newValue
-                                    saveValues()
                                 }
                             }
                         },
@@ -516,7 +500,11 @@ private fun ExpandedSetRow(
                             .fillMaxWidth()
                             .focusRequester(rpeFocusRequester)
                             .onFocusChanged { focusState ->
-                                if (!focusState.isFocused) {
+                                if (focusState.isFocused) {
+                                    // Select all text when gaining focus
+                                    val text = rpeValue.text
+                                    rpeValue = rpeValue.copy(selection = TextRange(0, text.length))
+                                } else {
                                     saveValues()
                                 }
                             },

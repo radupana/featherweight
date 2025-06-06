@@ -749,9 +749,6 @@ private fun ExercisesList(
             ExerciseCard(
                 exercise = exercise,
                 sets = sets.filter { it.exerciseLogId == exercise.id },
-                onAddSet = {
-                    if (canEdit) viewModel.addSetToExercise(exercise.id)
-                },
                 onEditSets = {
                     onOpenSetEditingModal(exercise.id)
                 },
