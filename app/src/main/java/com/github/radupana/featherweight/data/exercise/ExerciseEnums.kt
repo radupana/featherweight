@@ -44,6 +44,7 @@ enum class MuscleGroup(
                 ExerciseCategory.ARMS -> listOf(BICEPS, TRICEPS, FOREARMS)
                 ExerciseCategory.LEGS -> listOf(QUADS, HAMSTRINGS, GLUTES, CALVES)
                 ExerciseCategory.CORE -> listOf(ABS, OBLIQUES)
+                ExerciseCategory.CARDIO -> listOf(FULL_BODY)
                 ExerciseCategory.FULL_BODY -> values().toList()
             }
     }
@@ -58,6 +59,7 @@ enum class ExerciseCategory(
     ARMS("Arms"),
     LEGS("Legs"),
     CORE("Core"),
+    CARDIO("Cardio"),
     FULL_BODY("Full Body"),
     ;
 
@@ -70,6 +72,7 @@ enum class ExerciseCategory(
                 muscles.any { it in listOf(MuscleGroup.BICEPS, MuscleGroup.TRICEPS, MuscleGroup.FOREARMS) } -> ARMS
                 muscles.any { it in listOf(MuscleGroup.QUADS, MuscleGroup.HAMSTRINGS, MuscleGroup.GLUTES, MuscleGroup.CALVES) } -> LEGS
                 muscles.any { it in listOf(MuscleGroup.ABS, MuscleGroup.OBLIQUES) } -> CORE
+                muscles.contains(MuscleGroup.FULL_BODY) -> CARDIO
                 else -> FULL_BODY
             }
     }
@@ -86,6 +89,7 @@ enum class Equipment(
 
     // Machines
     CABLE_MACHINE("Cable Machine"),
+    MACHINE("Machine"),
     SMITH_MACHINE("Smith Machine"),
     LEG_PRESS("Leg Press"),
     LAT_PULLDOWN("Lat Pulldown"),
@@ -157,6 +161,7 @@ enum class MovementPattern(
     // Cardio/Conditioning
     GAIT("Walking/Running"),
     CONDITIONING("Conditioning"),
+    JUMP("Jump/Plyometric"),
     ;
 
     companion object {

@@ -416,6 +416,569 @@ class ExerciseSeeder(
             movementPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
         )
 
+        // Chest exercises
+        createExercise(
+            name = "Push-ups",
+            category = ExerciseCategory.CHEST,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.CHEST),
+            secondaryMuscles = setOf(MuscleGroup.TRICEPS, MuscleGroup.FRONT_DELTS),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
+        )
+
+        createExercise(
+            name = "Dumbbell Bench Press",
+            category = ExerciseCategory.CHEST,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.CHEST),
+            secondaryMuscles = setOf(MuscleGroup.TRICEPS, MuscleGroup.FRONT_DELTS),
+            requiredEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
+        )
+
+        createExercise(
+            name = "Incline Dumbbell Press",
+            category = ExerciseCategory.CHEST,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.CHEST, MuscleGroup.FRONT_DELTS),
+            secondaryMuscles = setOf(MuscleGroup.TRICEPS),
+            requiredEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.PUSH),
+        )
+
+        createExercise(
+            name = "Decline Bench Press",
+            category = ExerciseCategory.CHEST,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.CHEST),
+            secondaryMuscles = setOf(MuscleGroup.TRICEPS, MuscleGroup.FRONT_DELTS),
+            requiredEquipment = setOf(Equipment.BARBELL),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
+        )
+
+        createExercise(
+            name = "Chest Press Machine",
+            category = ExerciseCategory.CHEST,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.CHEST),
+            secondaryMuscles = setOf(MuscleGroup.TRICEPS, MuscleGroup.FRONT_DELTS),
+            requiredEquipment = setOf(Equipment.MACHINE),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
+        )
+
+        // Back exercises
+        createExercise(
+            name = "Dumbbell Row",
+            category = ExerciseCategory.BACK,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.UPPER_BACK, MuscleGroup.LATS),
+            secondaryMuscles = setOf(MuscleGroup.BICEPS, MuscleGroup.REAR_DELTS),
+            requiredEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
+        )
+
+        createExercise(
+            name = "Cable Row Wide Grip",
+            category = ExerciseCategory.BACK,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.UPPER_BACK, MuscleGroup.LATS),
+            secondaryMuscles = setOf(MuscleGroup.BICEPS, MuscleGroup.REAR_DELTS),
+            requiredEquipment = setOf(Equipment.CABLE_MACHINE),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
+        )
+
+        createExercise(
+            name = "Machine Row",
+            category = ExerciseCategory.BACK,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.UPPER_BACK, MuscleGroup.LATS),
+            secondaryMuscles = setOf(MuscleGroup.BICEPS, MuscleGroup.REAR_DELTS),
+            requiredEquipment = setOf(Equipment.MACHINE),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
+        )
+
+        createExercise(
+            name = "Chest Supported Row",
+            category = ExerciseCategory.BACK,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.UPPER_BACK, MuscleGroup.LATS),
+            secondaryMuscles = setOf(MuscleGroup.BICEPS, MuscleGroup.REAR_DELTS),
+            requiredEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
+        )
+
+        createExercise(
+            name = "Wide Grip Lat Pulldown",
+            category = ExerciseCategory.BACK,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.LATS),
+            secondaryMuscles = setOf(MuscleGroup.BICEPS, MuscleGroup.UPPER_BACK),
+            requiredEquipment = setOf(Equipment.CABLE_MACHINE),
+            movementPatterns = setOf(MovementPattern.VERTICAL_PULL),
+        )
+
+        createExercise(
+            name = "Close Grip Lat Pulldown",
+            category = ExerciseCategory.BACK,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.LATS),
+            secondaryMuscles = setOf(MuscleGroup.BICEPS, MuscleGroup.UPPER_BACK),
+            requiredEquipment = setOf(Equipment.CABLE_MACHINE),
+            movementPatterns = setOf(MovementPattern.VERTICAL_PULL),
+        )
+
+        // Shoulder exercises
+        createExercise(
+            name = "Machine Shoulder Press",
+            category = ExerciseCategory.SHOULDERS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.FRONT_DELTS, MuscleGroup.SIDE_DELTS),
+            secondaryMuscles = setOf(MuscleGroup.TRICEPS),
+            requiredEquipment = setOf(Equipment.MACHINE),
+            movementPatterns = setOf(MovementPattern.VERTICAL_PUSH),
+        )
+
+        createExercise(
+            name = "Cable Lateral Raise",
+            category = ExerciseCategory.SHOULDERS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.SIDE_DELTS),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.CABLE_MACHINE),
+            movementPatterns = setOf(MovementPattern.PUSH),
+        )
+
+        createExercise(
+            name = "Rear Delt Fly",
+            category = ExerciseCategory.SHOULDERS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.REAR_DELTS),
+            secondaryMuscles = setOf(MuscleGroup.UPPER_BACK),
+            requiredEquipment = setOf(Equipment.DUMBBELL),
+            alternativeEquipment = setOf(Equipment.CABLE_MACHINE),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
+        )
+
+        createExercise(
+            name = "Cable Rear Delt Fly",
+            category = ExerciseCategory.SHOULDERS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.REAR_DELTS),
+            secondaryMuscles = setOf(MuscleGroup.UPPER_BACK),
+            requiredEquipment = setOf(Equipment.CABLE_MACHINE),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
+        )
+
+        // Leg exercises
+        createExercise(
+            name = "Goblet Squat",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.QUADS, MuscleGroup.GLUTES),
+            secondaryMuscles = setOf(MuscleGroup.HAMSTRINGS, MuscleGroup.ABS),
+            requiredEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.SQUAT),
+        )
+
+        createExercise(
+            name = "Dumbbell Lunges",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.QUADS, MuscleGroup.GLUTES),
+            secondaryMuscles = setOf(MuscleGroup.HAMSTRINGS, MuscleGroup.ABS),
+            requiredEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.LUNGE),
+        )
+
+        createExercise(
+            name = "Stiff Leg Deadlift",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.HAMSTRINGS, MuscleGroup.GLUTES),
+            secondaryMuscles = setOf(MuscleGroup.LOWER_BACK),
+            requiredEquipment = setOf(Equipment.DUMBBELL),
+            alternativeEquipment = setOf(Equipment.BARBELL),
+            movementPatterns = setOf(MovementPattern.HINGE),
+        )
+
+        createExercise(
+            name = "Single Leg Romanian Deadlift",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.HAMSTRINGS, MuscleGroup.GLUTES),
+            secondaryMuscles = setOf(MuscleGroup.ABS, MuscleGroup.LOWER_BACK),
+            requiredEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.HINGE),
+        )
+
+        createExercise(
+            name = "Hack Squat",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.QUADS, MuscleGroup.GLUTES),
+            secondaryMuscles = setOf(MuscleGroup.HAMSTRINGS),
+            requiredEquipment = setOf(Equipment.MACHINE),
+            movementPatterns = setOf(MovementPattern.SQUAT),
+        )
+
+        createExercise(
+            name = "Lying Leg Curls",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.HAMSTRINGS),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.LEG_CURL),
+            movementPatterns = setOf(MovementPattern.PULL),
+        )
+
+        createExercise(
+            name = "Seated Leg Curls",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.HAMSTRINGS),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.LEG_CURL),
+            movementPatterns = setOf(MovementPattern.PULL),
+        )
+
+        createExercise(
+            name = "Seated Calf Raise",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.CALVES),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.CALF_RAISE),
+            movementPatterns = setOf(MovementPattern.PUSH),
+        )
+
+        createExercise(
+            name = "Standing Calf Raise",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.CALVES),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.CALF_RAISE),
+            movementPatterns = setOf(MovementPattern.PUSH),
+        )
+
+        // Arms - more bicep and tricep variations
+        createExercise(
+            name = "EZ Bar Curls",
+            category = ExerciseCategory.ARMS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.BICEPS),
+            secondaryMuscles = setOf(MuscleGroup.FOREARMS),
+            requiredEquipment = setOf(Equipment.BARBELL),
+            movementPatterns = setOf(MovementPattern.PULL),
+        )
+
+        createExercise(
+            name = "Concentration Curls",
+            category = ExerciseCategory.ARMS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.BICEPS),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.PULL),
+        )
+
+        createExercise(
+            name = "Cable Hammer Curls",
+            category = ExerciseCategory.ARMS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.BICEPS, MuscleGroup.FOREARMS),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.CABLE_MACHINE),
+            movementPatterns = setOf(MovementPattern.PULL),
+        )
+
+        createExercise(
+            name = "Diamond Push-ups",
+            category = ExerciseCategory.ARMS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.TRICEPS),
+            secondaryMuscles = setOf(MuscleGroup.CHEST, MuscleGroup.FRONT_DELTS),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
+        )
+
+        createExercise(
+            name = "Cable Overhead Extension",
+            category = ExerciseCategory.ARMS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.TRICEPS),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.CABLE_MACHINE),
+            movementPatterns = setOf(MovementPattern.PUSH),
+        )
+
+        createExercise(
+            name = "French Press",
+            category = ExerciseCategory.ARMS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.TRICEPS),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.DUMBBELL),
+            alternativeEquipment = setOf(Equipment.BARBELL),
+            movementPatterns = setOf(MovementPattern.PUSH),
+        )
+
+        // Core and cardio exercises
+        createExercise(
+            name = "Mountain Climbers",
+            category = ExerciseCategory.CARDIO,
+            type = ExerciseType.CARDIO,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.ABS),
+            secondaryMuscles = setOf(MuscleGroup.FULL_BODY),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.PLANK),
+        )
+
+        createExercise(
+            name = "Burpees",
+            category = ExerciseCategory.CARDIO,
+            type = ExerciseType.CARDIO,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.FULL_BODY),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.SQUAT, MovementPattern.HORIZONTAL_PUSH),
+        )
+
+        createExercise(
+            name = "Jumping Jacks",
+            category = ExerciseCategory.CARDIO,
+            type = ExerciseType.CARDIO,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.FULL_BODY),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.JUMP),
+        )
+
+        createExercise(
+            name = "Dead Bug",
+            category = ExerciseCategory.CORE,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.ABS),
+            secondaryMuscles = setOf(MuscleGroup.LOWER_BACK),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.PLANK),
+        )
+
+        createExercise(
+            name = "Bird Dog",
+            category = ExerciseCategory.CORE,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.LOWER_BACK, MuscleGroup.ABS),
+            secondaryMuscles = setOf(MuscleGroup.GLUTES),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.PLANK),
+        )
+
+        createExercise(
+            name = "Side Plank",
+            category = ExerciseCategory.CORE,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.OBLIQUES),
+            secondaryMuscles = setOf(MuscleGroup.ABS, MuscleGroup.LOWER_BACK),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.PLANK),
+        )
+
+        createExercise(
+            name = "Bicycle Crunches",
+            category = ExerciseCategory.CORE,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.ABS, MuscleGroup.OBLIQUES),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.ROTATE),
+        )
+
+        createExercise(
+            name = "Reverse Crunches",
+            category = ExerciseCategory.CORE,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.ABS),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.PULL),
+        )
+
+        // Additional popular exercises
+        createExercise(
+            name = "Incline Push-ups",
+            category = ExerciseCategory.CHEST,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.CHEST),
+            secondaryMuscles = setOf(MuscleGroup.TRICEPS, MuscleGroup.FRONT_DELTS),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
+        )
+
+        createExercise(
+            name = "Decline Push-ups",
+            category = ExerciseCategory.CHEST,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.CHEST),
+            secondaryMuscles = setOf(MuscleGroup.TRICEPS, MuscleGroup.FRONT_DELTS),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
+        )
+
+        createExercise(
+            name = "Pike Push-ups",
+            category = ExerciseCategory.SHOULDERS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.FRONT_DELTS, MuscleGroup.SIDE_DELTS),
+            secondaryMuscles = setOf(MuscleGroup.TRICEPS),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.VERTICAL_PUSH),
+        )
+
+        createExercise(
+            name = "Assisted Pull-ups",
+            category = ExerciseCategory.BACK,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.LATS, MuscleGroup.UPPER_BACK),
+            secondaryMuscles = setOf(MuscleGroup.BICEPS, MuscleGroup.REAR_DELTS),
+            requiredEquipment = setOf(Equipment.PULL_UP_BAR),
+            alternativeEquipment = setOf(Equipment.RESISTANCE_BAND),
+            movementPatterns = setOf(MovementPattern.VERTICAL_PULL),
+        )
+
+        createExercise(
+            name = "Negative Pull-ups",
+            category = ExerciseCategory.BACK,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.LATS, MuscleGroup.UPPER_BACK),
+            secondaryMuscles = setOf(MuscleGroup.BICEPS, MuscleGroup.REAR_DELTS),
+            requiredEquipment = setOf(Equipment.PULL_UP_BAR),
+            movementPatterns = setOf(MovementPattern.VERTICAL_PULL),
+        )
+
+        createExercise(
+            name = "Step-ups",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.QUADS, MuscleGroup.GLUTES),
+            secondaryMuscles = setOf(MuscleGroup.HAMSTRINGS, MuscleGroup.CALVES),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            optionalEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.LUNGE),
+        )
+
+        createExercise(
+            name = "Jump Squats",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.POWER,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.QUADS, MuscleGroup.GLUTES),
+            secondaryMuscles = setOf(MuscleGroup.HAMSTRINGS, MuscleGroup.CALVES),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.SQUAT, MovementPattern.JUMP),
+        )
+
+        createExercise(
+            name = "Glute Bridges",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.GLUTES),
+            secondaryMuscles = setOf(MuscleGroup.HAMSTRINGS),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            optionalEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.HINGE),
+        )
+
+        createExercise(
+            name = "Single Leg Glute Bridge",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.GLUTES),
+            secondaryMuscles = setOf(MuscleGroup.HAMSTRINGS, MuscleGroup.ABS),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.HINGE),
+        )
+
+        createExercise(
+            name = "Wall Sit",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.QUADS, MuscleGroup.GLUTES),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            movementPatterns = setOf(MovementPattern.SQUAT),
+        )
+
+        createExercise(
+            name = "Wrist Curls",
+            category = ExerciseCategory.ARMS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.FOREARMS),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.PULL),
+        )
+
+        createExercise(
+            name = "Reverse Wrist Curls",
+            category = ExerciseCategory.ARMS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.FOREARMS),
+            secondaryMuscles = setOf(),
+            requiredEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.PULL),
+        )
+
         createExercise(
             name = "Lateral Raises",
             category = ExerciseCategory.SHOULDERS,
