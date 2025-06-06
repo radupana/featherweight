@@ -139,18 +139,21 @@ fun SetRow(
     // Request focus when entering edit mode
     LaunchedEffect(isEditingReps) {
         if (isEditingReps) {
+            kotlinx.coroutines.delay(50) // Small delay to ensure state settles
             repsFocusRequester.requestFocus()
         }
     }
 
     LaunchedEffect(isEditingWeight) {
         if (isEditingWeight) {
+            kotlinx.coroutines.delay(50) // Small delay to ensure state settles
             weightFocusRequester.requestFocus()
         }
     }
 
     LaunchedEffect(isEditingRpe) {
         if (isEditingRpe) {
+            kotlinx.coroutines.delay(50) // Small delay to ensure state settles
             rpeFocusRequester.requestFocus()
         }
     }
@@ -311,9 +314,17 @@ fun SetRow(
                                 .height(48.dp)
                                 .focusRequester(weightFocusRequester)
                                 .onFocusChanged { focusState ->
-                                    // Save when losing focus while in edit mode
-                                    if (!focusState.isFocused && isEditingWeight) {
+                                    Log.d("SetRow", "Set ${set.id}: Weight focus changed - isFocused: ${focusState.isFocused}, isEditingWeight: $isEditingWeight, justStarted: $justStartedEditingWeight")
+                                    
+                                    if (focusState.isFocused) {
+                                        // Reset the flag when we gain focus
+                                        justStartedEditingWeight = false
+                                    } else if (isEditingWeight && !justStartedEditingWeight) {
+                                        // Only save if we're editing and didn't just start
+                                        Log.d("SetRow", "Set ${set.id}: Weight lost focus - calling saveWeight()")
                                         saveWeight()
+                                    } else if (justStartedEditingWeight) {
+                                        Log.d("SetRow", "Set ${set.id}: Ignoring initial focus loss for weight")
                                     }
                                 },
                         singleLine = true,
@@ -334,6 +345,7 @@ fun SetRow(
                                     if (onUpdateSet != null) {
                                         weightText = if (set.weight > 0) set.weight.toString() else ""
                                         Log.d("SetRow", "Set ${set.id}: Setting editing to weight, weightText = '$weightText'")
+                                        justStartedEditingWeight = true
                                         SetEditingState.setEditing(set.id, "weight")
                                     } else {
                                         Log.e("SetRow", "Set ${set.id}: onUpdateSet is NULL - cannot edit weight")
@@ -402,9 +414,17 @@ fun SetRow(
                                 .height(48.dp)
                                 .focusRequester(rpeFocusRequester)
                                 .onFocusChanged { focusState ->
-                                    // Save when losing focus while in edit mode
-                                    if (!focusState.isFocused && isEditingRpe) {
+                                    Log.d("SetRow", "Set ${set.id}: RPE focus changed - isFocused: ${focusState.isFocused}, isEditingRpe: $isEditingRpe, justStarted: $justStartedEditingRpe")
+                                    
+                                    if (focusState.isFocused) {
+                                        // Reset the flag when we gain focus
+                                        justStartedEditingRpe = false
+                                    } else if (isEditingRpe && !justStartedEditingRpe) {
+                                        // Only save if we're editing and didn't just start
+                                        Log.d("SetRow", "Set ${set.id}: RPE lost focus - calling saveRpe()")
                                         saveRpe()
+                                    } else if (justStartedEditingRpe) {
+                                        Log.d("SetRow", "Set ${set.id}: Ignoring initial focus loss for RPE")
                                     }
                                 },
                         singleLine = true,
@@ -425,6 +445,7 @@ fun SetRow(
                                     if (onUpdateSet != null) {
                                         rpeText = set.rpe?.toString() ?: ""
                                         Log.d("SetRow", "Set ${set.id}: Setting editing to rpe, rpeText = '$rpeText'")
+                                        justStartedEditingRpe = true
                                         SetEditingState.setEditing(set.id, "rpe")
                                     } else {
                                         Log.e("SetRow", "Set ${set.id}: onUpdateSet is NULL - cannot edit RPE")
