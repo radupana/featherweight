@@ -12,6 +12,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -41,6 +43,12 @@ object SetEditingState {
         Log.d("SetEditingState", "Clearing editing for set $setId")
         editingStates.remove(setId)
     }
+    
+    // Atomic switch between fields
+    fun switchToField(setId: Long, newField: String) {
+        Log.d("SetEditingState", "Switching set $setId to field $newField")
+        editingStates[setId] = newField
+    }
 }
 
 @Composable
@@ -60,11 +68,7 @@ fun SetRow(
     val isEditingReps = SetEditingState.isEditing(set.id, "reps")
     val isEditingWeight = SetEditingState.isEditing(set.id, "weight")
     val isEditingRpe = SetEditingState.isEditing(set.id, "rpe")
-    
-    // Track if we just started editing to ignore immediate focus loss
-    var justStartedEditingReps by remember(set.id) { mutableStateOf(false) }
-    var justStartedEditingWeight by remember(set.id) { mutableStateOf(false) }
-    var justStartedEditingRpe by remember(set.id) { mutableStateOf(false) }
+    val isEditingAny = isEditingReps || isEditingWeight || isEditingRpe
 
     // Debug state changes
     LaunchedEffect(isEditingReps) {
@@ -77,31 +81,37 @@ fun SetRow(
         Log.d("SetRow", "Set ${set.id}: isEditingRpe changed to $isEditingRpe")
     }
 
-    // Text state that survives recomposition
-    var repsText by rememberSaveable(set.id) {
-        mutableStateOf(if (set.reps > 0) set.reps.toString() else "")
+    // Text state with cursor position control
+    var repsTextFieldValue by remember(set.id) {
+        val text = if (set.reps > 0) set.reps.toString() else ""
+        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
-    var weightText by rememberSaveable(set.id) {
-        mutableStateOf(if (set.weight > 0) set.weight.toString() else "")
+    var weightTextFieldValue by remember(set.id) {
+        val text = if (set.weight > 0) set.weight.toString() else ""
+        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
-    var rpeText by rememberSaveable(set.id) {
-        mutableStateOf(set.rpe?.toString() ?: "")
+    var rpeTextFieldValue by remember(set.id) {
+        val text = set.rpe?.toString() ?: ""
+        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
 
     // Update text when set values change but we're not editing
     LaunchedEffect(set.reps) {
         if (!isEditingReps) {
-            repsText = if (set.reps > 0) set.reps.toString() else ""
+            val text = if (set.reps > 0) set.reps.toString() else ""
+            repsTextFieldValue = TextFieldValue(text, TextRange(text.length))
         }
     }
     LaunchedEffect(set.weight) {
         if (!isEditingWeight) {
-            weightText = if (set.weight > 0) set.weight.toString() else ""
+            val text = if (set.weight > 0) set.weight.toString() else ""
+            weightTextFieldValue = TextFieldValue(text, TextRange(text.length))
         }
     }
     LaunchedEffect(set.rpe) {
         if (!isEditingRpe) {
-            rpeText = set.rpe?.toString() ?: ""
+            val text = set.rpe?.toString() ?: ""
+            rpeTextFieldValue = TextFieldValue(text, TextRange(text.length))
         }
     }
 
@@ -112,48 +122,52 @@ fun SetRow(
     val focusManager = LocalFocusManager.current
 
     // Save functions
-    fun saveReps() {
-        val reps = repsText.toIntOrNull() ?: 0
-        val weight = set.weight
-        val rpe = set.rpe
-        onUpdateSet?.invoke(reps, weight, rpe)
-        SetEditingState.clearEditing(set.id)
+    fun saveCurrentField() {
+        when {
+            isEditingReps -> {
+                val reps = repsTextFieldValue.text.toIntOrNull() ?: 0
+                onUpdateSet?.invoke(reps, set.weight, set.rpe)
+            }
+            isEditingWeight -> {
+                val weight = weightTextFieldValue.text.toFloatOrNull() ?: 0f
+                onUpdateSet?.invoke(set.reps, weight, set.rpe)
+            }
+            isEditingRpe -> {
+                val rpe = rpeTextFieldValue.text.toFloatOrNull()
+                onUpdateSet?.invoke(set.reps, set.weight, rpe)
+            }
+        }
+    }
+    
+    // Switch to a new field, saving the current one first
+    fun switchToField(newField: String) {
+        if (isEditingAny) {
+            saveCurrentField()
+        }
+        SetEditingState.switchToField(set.id, newField)
     }
 
-    fun saveWeight() {
-        val reps = set.reps
-        val weight = weightText.toFloatOrNull() ?: 0f
-        val rpe = set.rpe
-        onUpdateSet?.invoke(reps, weight, rpe)
-        SetEditingState.clearEditing(set.id)
-    }
-
-    fun saveRpe() {
-        val reps = set.reps
-        val weight = set.weight
-        val rpe = rpeText.toFloatOrNull()
-        onUpdateSet?.invoke(reps, weight, rpe)
-        SetEditingState.clearEditing(set.id)
-    }
-
-    // Request focus when entering edit mode
+    // Request focus and set cursor position when entering edit mode
     LaunchedEffect(isEditingReps) {
         if (isEditingReps) {
-            kotlinx.coroutines.delay(50) // Small delay to ensure state settles
+            val text = if (set.reps > 0) set.reps.toString() else ""
+            repsTextFieldValue = TextFieldValue(text, TextRange(text.length))
             repsFocusRequester.requestFocus()
         }
     }
 
     LaunchedEffect(isEditingWeight) {
         if (isEditingWeight) {
-            kotlinx.coroutines.delay(50) // Small delay to ensure state settles
+            val text = if (set.weight > 0) set.weight.toString() else ""
+            weightTextFieldValue = TextFieldValue(text, TextRange(text.length))
             weightFocusRequester.requestFocus()
         }
     }
 
     LaunchedEffect(isEditingRpe) {
         if (isEditingRpe) {
-            kotlinx.coroutines.delay(50) // Small delay to ensure state settles
+            val text = set.rpe?.toString() ?: ""
+            rpeTextFieldValue = TextFieldValue(text, TextRange(text.length))
             rpeFocusRequester.requestFocus()
         }
     }
@@ -194,11 +208,11 @@ fun SetRow(
             ) {
                 if (isEditingReps && onUpdateSet != null) {
                     OutlinedTextField(
-                        value = repsText,
-                        onValueChange = { newValue ->
-                            // Only allow numbers
-                            if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.length <= 3)) {
-                                repsText = newValue
+                        value = repsTextFieldValue,
+                        onValueChange = { newValue: TextFieldValue ->
+                            // Only allow numbers up to 3 digits
+                            if (newValue.text.isEmpty() || (newValue.text.all { it.isDigit() } && newValue.text.length <= 3)) {
+                                repsTextFieldValue = newValue
                             }
                         },
                         keyboardOptions =
@@ -208,7 +222,10 @@ fun SetRow(
                             ),
                         keyboardActions =
                             KeyboardActions(
-                                onDone = { saveReps() },
+                                onDone = { 
+                                    saveCurrentField()
+                                    SetEditingState.clearEditing(set.id)
+                                },
                             ),
                         textStyle =
                             LocalTextStyle.current.copy(
@@ -219,21 +236,7 @@ fun SetRow(
                             Modifier
                                 .width(70.dp)
                                 .height(48.dp)
-                                .focusRequester(repsFocusRequester)
-                                .onFocusChanged { focusState ->
-                                    Log.d("SetRow", "Set ${set.id}: Reps focus changed - isFocused: ${focusState.isFocused}, isEditingReps: $isEditingReps, justStarted: $justStartedEditingReps")
-                                    
-                                    if (focusState.isFocused) {
-                                        // Reset the flag when we gain focus
-                                        justStartedEditingReps = false
-                                    } else if (isEditingReps && !justStartedEditingReps) {
-                                        // Only save if we're editing and didn't just start
-                                        Log.d("SetRow", "Set ${set.id}: Reps lost focus - calling saveReps()")
-                                        saveReps()
-                                    } else if (justStartedEditingReps) {
-                                        Log.d("SetRow", "Set ${set.id}: Ignoring initial focus loss for reps")
-                                    }
-                                },
+                                .focusRequester(repsFocusRequester),
                         singleLine = true,
                         colors =
                             OutlinedTextFieldDefaults.colors(
@@ -248,14 +251,14 @@ fun SetRow(
                                 .width(70.dp)
                                 .height(40.dp)
                                 .clickable {
-                                    Log.d("SetRow", "Set ${set.id}: Reps clicked - onUpdateSet is ${if (onUpdateSet != null) "NOT NULL" else "NULL"}")
                                     if (onUpdateSet != null) {
-                                        repsText = if (set.reps > 0) set.reps.toString() else ""
-                                        Log.d("SetRow", "Set ${set.id}: Setting editing to reps, repsText = '$repsText'")
-                                        justStartedEditingReps = true
-                                        SetEditingState.setEditing(set.id, "reps")
-                                    } else {
-                                        Log.e("SetRow", "Set ${set.id}: onUpdateSet is NULL - cannot edit reps")
+                                        if (isEditingAny && !isEditingReps) {
+                                            // Switching from another field
+                                            switchToField("reps")
+                                        } else {
+                                            // Starting fresh
+                                            SetEditingState.setEditing(set.id, "reps")
+                                        }
                                     }
                                 },
                         color =
@@ -287,11 +290,23 @@ fun SetRow(
             ) {
                 if (isEditingWeight && onUpdateSet != null) {
                     OutlinedTextField(
-                        value = weightText,
-                        onValueChange = { newValue ->
-                            // Only allow numbers and one decimal point
-                            if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$")) && newValue.length <= 6) {
-                                weightText = newValue
+                        value = weightTextFieldValue,
+                        onValueChange = { newValue: TextFieldValue ->
+                            // Only allow numbers with up to 4 integer digits and one decimal point
+                            val text = newValue.text
+                            if (text.isEmpty()) {
+                                weightTextFieldValue = newValue
+                            } else {
+                                val parts = text.split(".")
+                                val isValid = when (parts.size) {
+                                    1 -> parts[0].all { it.isDigit() } && parts[0].length <= 4
+                                    2 -> parts[0].all { it.isDigit() } && parts[0].length <= 4 && 
+                                         parts[1].all { it.isDigit() } && parts[1].length <= 2
+                                    else -> false
+                                }
+                                if (isValid) {
+                                    weightTextFieldValue = newValue
+                                }
                             }
                         },
                         keyboardOptions =
@@ -301,7 +316,10 @@ fun SetRow(
                             ),
                         keyboardActions =
                             KeyboardActions(
-                                onDone = { saveWeight() },
+                                onDone = { 
+                                    saveCurrentField()
+                                    SetEditingState.clearEditing(set.id)
+                                },
                             ),
                         textStyle =
                             LocalTextStyle.current.copy(
@@ -312,21 +330,7 @@ fun SetRow(
                             Modifier
                                 .width(90.dp)
                                 .height(48.dp)
-                                .focusRequester(weightFocusRequester)
-                                .onFocusChanged { focusState ->
-                                    Log.d("SetRow", "Set ${set.id}: Weight focus changed - isFocused: ${focusState.isFocused}, isEditingWeight: $isEditingWeight, justStarted: $justStartedEditingWeight")
-                                    
-                                    if (focusState.isFocused) {
-                                        // Reset the flag when we gain focus
-                                        justStartedEditingWeight = false
-                                    } else if (isEditingWeight && !justStartedEditingWeight) {
-                                        // Only save if we're editing and didn't just start
-                                        Log.d("SetRow", "Set ${set.id}: Weight lost focus - calling saveWeight()")
-                                        saveWeight()
-                                    } else if (justStartedEditingWeight) {
-                                        Log.d("SetRow", "Set ${set.id}: Ignoring initial focus loss for weight")
-                                    }
-                                },
+                                .focusRequester(weightFocusRequester),
                         singleLine = true,
                         colors =
                             OutlinedTextFieldDefaults.colors(
@@ -341,14 +345,14 @@ fun SetRow(
                                 .width(90.dp)
                                 .height(40.dp)
                                 .clickable {
-                                    Log.d("SetRow", "Set ${set.id}: Weight clicked - onUpdateSet is ${if (onUpdateSet != null) "NOT NULL" else "NULL"}")
                                     if (onUpdateSet != null) {
-                                        weightText = if (set.weight > 0) set.weight.toString() else ""
-                                        Log.d("SetRow", "Set ${set.id}: Setting editing to weight, weightText = '$weightText'")
-                                        justStartedEditingWeight = true
-                                        SetEditingState.setEditing(set.id, "weight")
-                                    } else {
-                                        Log.e("SetRow", "Set ${set.id}: onUpdateSet is NULL - cannot edit weight")
+                                        if (isEditingAny && !isEditingWeight) {
+                                            // Switching from another field
+                                            switchToField("weight")
+                                        } else {
+                                            // Starting fresh
+                                            SetEditingState.setEditing(set.id, "weight")
+                                        }
                                     }
                                 },
                         color =
@@ -380,17 +384,18 @@ fun SetRow(
             ) {
                 if (isEditingRpe && onUpdateSet != null) {
                     OutlinedTextField(
-                        value = rpeText,
-                        onValueChange = { newValue ->
+                        value = rpeTextFieldValue,
+                        onValueChange = { newValue: TextFieldValue ->
                             // Only allow numbers 0-10 with up to one decimal place
-                            if (newValue.isEmpty()) {
-                                rpeText = newValue
+                            val text = newValue.text
+                            if (text.isEmpty()) {
+                                rpeTextFieldValue = newValue
                             } else {
-                                val floatValue = newValue.toFloatOrNull()
+                                val floatValue = text.toFloatOrNull()
                                 if (floatValue != null && floatValue >= 0 && floatValue <= 10 && 
-                                    newValue.matches(Regex("^(10(\\.0)?|[0-9](\\.\\d)?|0)$")) &&
-                                    newValue.length <= 4) {
-                                    rpeText = newValue
+                                    text.matches(Regex("^(10(\\.0)?|[0-9](\\.\\d)?|0)$")) &&
+                                    text.length <= 4) {
+                                    rpeTextFieldValue = newValue
                                 }
                             }
                         },
@@ -401,7 +406,10 @@ fun SetRow(
                             ),
                         keyboardActions =
                             KeyboardActions(
-                                onDone = { saveRpe() },
+                                onDone = { 
+                                    saveCurrentField()
+                                    SetEditingState.clearEditing(set.id)
+                                },
                             ),
                         textStyle =
                             LocalTextStyle.current.copy(
@@ -412,21 +420,7 @@ fun SetRow(
                             Modifier
                                 .width(70.dp)
                                 .height(48.dp)
-                                .focusRequester(rpeFocusRequester)
-                                .onFocusChanged { focusState ->
-                                    Log.d("SetRow", "Set ${set.id}: RPE focus changed - isFocused: ${focusState.isFocused}, isEditingRpe: $isEditingRpe, justStarted: $justStartedEditingRpe")
-                                    
-                                    if (focusState.isFocused) {
-                                        // Reset the flag when we gain focus
-                                        justStartedEditingRpe = false
-                                    } else if (isEditingRpe && !justStartedEditingRpe) {
-                                        // Only save if we're editing and didn't just start
-                                        Log.d("SetRow", "Set ${set.id}: RPE lost focus - calling saveRpe()")
-                                        saveRpe()
-                                    } else if (justStartedEditingRpe) {
-                                        Log.d("SetRow", "Set ${set.id}: Ignoring initial focus loss for RPE")
-                                    }
-                                },
+                                .focusRequester(rpeFocusRequester),
                         singleLine = true,
                         colors =
                             OutlinedTextFieldDefaults.colors(
@@ -441,14 +435,14 @@ fun SetRow(
                                 .width(70.dp)
                                 .height(40.dp)
                                 .clickable {
-                                    Log.d("SetRow", "Set ${set.id}: RPE clicked - onUpdateSet is ${if (onUpdateSet != null) "NOT NULL" else "NULL"}")
                                     if (onUpdateSet != null) {
-                                        rpeText = set.rpe?.toString() ?: ""
-                                        Log.d("SetRow", "Set ${set.id}: Setting editing to rpe, rpeText = '$rpeText'")
-                                        justStartedEditingRpe = true
-                                        SetEditingState.setEditing(set.id, "rpe")
-                                    } else {
-                                        Log.e("SetRow", "Set ${set.id}: onUpdateSet is NULL - cannot edit RPE")
+                                        if (isEditingAny && !isEditingRpe) {
+                                            // Switching from another field
+                                            switchToField("rpe")
+                                        } else {
+                                            // Starting fresh
+                                            SetEditingState.setEditing(set.id, "rpe")
+                                        }
                                     }
                                 },
                         color =
