@@ -146,26 +146,7 @@ fun SetEditingModal(
                             }
                         }
                         
-                        // Complete All button
-                        val canCompleteAll = sets.isNotEmpty() && 
-                            sets.all { viewModel.canMarkSetComplete(it) } &&
-                            sets.any { !it.isCompleted }
-                        
-                        if (canCompleteAll) {
-                            TextButton(
-                                onClick = onCompleteAllSets
-                            ) {
-                                Icon(
-                                    Icons.Filled.CheckCircle,
-                                    contentDescription = "Complete All",
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("All")
-                            }
-                        } else {
-                            Spacer(modifier = Modifier.width(48.dp))
-                        }
+                        Spacer(modifier = Modifier.width(48.dp))
                     }
                 }
 
@@ -239,8 +220,25 @@ fun SetEditingModal(
                                     modifier = Modifier.weight(1f),
                                     textAlign = TextAlign.Center
                                 )
-                                // Spacer for checkbox and delete button
-                                Spacer(modifier = Modifier.width(80.dp))
+                                // Complete All button positioned here
+                                val canCompleteAll = sets.isNotEmpty() && 
+                                    sets.all { viewModel.canMarkSetComplete(it) } &&
+                                    sets.any { !it.isCompleted }
+                                
+                                if (canCompleteAll) {
+                                    OutlinedButton(
+                                        onClick = onCompleteAllSets,
+                                        modifier = Modifier.height(32.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp)
+                                    ) {
+                                        Text(
+                                            "All",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.width(64.dp))
+                                }
                             }
                             
                             HorizontalDivider(
@@ -248,13 +246,14 @@ fun SetEditingModal(
                                 thickness = 0.5.dp
                             )
                             
-                            // Sets list
-                            LazyColumn(
-                                modifier = Modifier.weight(1f),
-                                state = listState,
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = 16.dp)
-                            ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                // Sets list
+                                LazyColumn(
+                                    modifier = Modifier.weight(1f),
+                                    state = listState,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = 8.dp)
+                                ) {
                                 items(sets) { set ->
                                     key(set.id) {
                                         val dismissState = rememberSwipeToDismissBoxState(
@@ -309,49 +308,50 @@ fun SetEditingModal(
                                         }
                                     }
                                 }
-                            }
-                        }
-
-                        // Action buttons at bottom - moves above keyboard when needed
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .imePadding(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                OutlinedButton(
-                                    onClick = onAddSet,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(
-                                        Icons.Filled.Add,
-                                        contentDescription = "Add Set",
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Add Set")
                                 }
-
-                                if (sets.isNotEmpty()) {
-                                    OutlinedButton(
-                                        onClick = onCopyLastSet,
-                                        modifier = Modifier.weight(1f)
+                                
+                                // Action buttons right after sets - moves above keyboard when needed
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .imePadding(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        Icon(
-                                            Icons.Filled.ContentCopy,
-                                            contentDescription = "Copy Last",
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Copy Last")
+                                        OutlinedButton(
+                                            onClick = onAddSet,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.Add,
+                                                contentDescription = "Add Set",
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("Add Set")
+                                        }
+        
+                                        if (sets.isNotEmpty()) {
+                                            OutlinedButton(
+                                                onClick = onCopyLastSet,
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Icon(
+                                                    Icons.Filled.ContentCopy,
+                                                    contentDescription = "Copy Last",
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text("Copy Last")
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -560,37 +560,23 @@ private fun ExpandedSetRow(
                         placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) }
                     )
                 
-                // Checkbox
-                Checkbox(
-                    checked = set.isCompleted,
-                    onCheckedChange = { newChecked ->
-                        if (!newChecked || canMarkComplete) {
-                            onToggleCompleted(newChecked)
-                        }
-                    },
-                    enabled = canMarkComplete || set.isCompleted,
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = MaterialTheme.colorScheme.tertiary
-                    ),
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
-                
-                // Delete button (only show if not using swipe-to-delete)
-                if (showDeleteButton) {
-                    IconButton(
-                        onClick = { showDeleteConfirmation = true },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            Icons.Filled.Delete,
-                            contentDescription = "Delete Set",
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-                            modifier = Modifier.size(18.dp)
+                // Checkbox in same space as Complete All button
+                Box(
+                    modifier = Modifier.width(64.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Checkbox(
+                        checked = set.isCompleted,
+                        onCheckedChange = { newChecked ->
+                            if (!newChecked || canMarkComplete) {
+                                onToggleCompleted(newChecked)
+                            }
+                        },
+                        enabled = canMarkComplete || set.isCompleted,
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = MaterialTheme.colorScheme.tertiary
                         )
-                    }
-                } else {
-                    // Add spacer to maintain layout when delete button is hidden
-                    Spacer(modifier = Modifier.width(40.dp))
+                    )
                 }
             }
 
