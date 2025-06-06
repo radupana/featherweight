@@ -33,8 +33,7 @@ fun ExerciseCard(
     onSmartAdd: (Long, String) -> Unit,
     onCompleteAllSets: (Long) -> Unit,
     onDeleteExercise: (Long) -> Unit,
-    onUpdateSet: ((Long, Int, Float, Float?) -> Unit)? = null,
-    onEnterFocusedEditMode: ((Long) -> Unit)? = null,
+    onOpenSetEditingModal: () -> Unit = {},
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
@@ -232,13 +231,9 @@ fun ExerciseCard(
                                 },
                                 onEdit = { onEditSet(set) },
                                 onDelete = { onDeleteSet(set.id) },
-                                onUpdateSet = { reps, weight, rpe ->
-                                    viewModel.updateSet(set.id, reps, weight, rpe)
-                                },
-                                onEnterFocusedEditMode = {
-                                    onEnterFocusedEditMode?.invoke(exercise.id)
-                                },
+                                onOpenModal = onOpenSetEditingModal,
                                 canMarkComplete = set.reps > 0 && set.weight > 0,
+                                isReadOnly = !viewModel.canEditWorkout(),
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))

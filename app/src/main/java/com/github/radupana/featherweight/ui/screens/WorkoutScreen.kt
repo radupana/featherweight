@@ -27,6 +27,7 @@ import com.github.radupana.featherweight.ui.components.ExerciseCard
 import com.github.radupana.featherweight.ui.components.ProgressCard
 import com.github.radupana.featherweight.ui.components.SetRow
 import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
+import com.github.radupana.featherweight.ui.dialogs.SetEditingModal
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,9 +55,9 @@ fun WorkoutScreen(
     var editingExerciseName by remember { mutableStateOf<String?>(null) }
     var expandedExerciseId by remember { mutableStateOf<Long?>(null) }
 
-    // Focused editing mode state
-    var focusedEditingExerciseId by remember { mutableStateOf<Long?>(null) }
-    var isInFocusedEditingMode by remember { mutableStateOf(false) }
+    // Set editing modal state
+    var showSetEditingModal by remember { mutableStateOf(false) }
+    var setEditingExercise by remember { mutableStateOf<com.github.radupana.featherweight.data.ExerciseLog?>(null) }
 
     // Calculate progress stats
     val totalSets = exercises.sumOf { ex -> sets.count { it.exerciseLogId == ex.id } }
@@ -165,32 +166,8 @@ fun WorkoutScreen(
             modifier =
                 Modifier
                     .padding(innerPadding)
-                    .fillMaxSize()
-                    .imePadding(),
+                    .fillMaxSize(),
         ) {
-            if (isInFocusedEditingMode && focusedEditingExerciseId != null) {
-                // Focused editing mode - show only the exercise being edited
-                FocusedEditingView(
-                    exercise = exercises.find { it.id == focusedEditingExerciseId },
-                    sets = sets.filter { it.exerciseLogId == focusedEditingExerciseId },
-                    canEdit = canEdit,
-                    onExitFocusedMode = {
-                        isInFocusedEditingMode = false
-                        focusedEditingExerciseId = null
-                    },
-                    onUpdateSet = { setId, reps, weight, rpe ->
-                        if (canEdit) viewModel.updateSet(setId, reps, weight, rpe)
-                    },
-                    onToggleCompleted = { setId, completed ->
-                        viewModel.markSetCompleted(setId, completed)
-                    },
-                    onDeleteSet = { setId ->
-                        if (canEdit) viewModel.deleteSet(setId)
-                    },
-                    viewModel = viewModel,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
                 // Normal workout view
                 // Status banners
                 if (workoutState.isCompleted && !isEditMode) {
@@ -248,11 +225,13 @@ fun WorkoutScreen(
                                 viewModel.deleteExercise(exerciseId)
                             }
                         },
-                        onEnterFocusedEditMode = { exerciseId ->
-                            focusedEditingExerciseId = exerciseId
-                            isInFocusedEditingMode = true
-                            expandedExerciseId = exerciseId
-                            viewModel.loadSetsForExercise(exerciseId)
+                        onOpenSetEditingModal = { exerciseId ->
+                            val exercise = exercises.find { it.id == exerciseId }
+                            if (exercise != null) {
+                                setEditingExercise = exercise
+                                showSetEditingModal = true
+                                viewModel.loadSetsForExercise(exerciseId)
+                            }
                         },
                         viewModel = viewModel,
                         modifier = Modifier.weight(1f),
@@ -269,7 +248,6 @@ fun WorkoutScreen(
                         modifier = Modifier.padding(16.dp),
                     )
                 }
-            }
         }
     }
 
@@ -438,6 +416,44 @@ fun WorkoutScreen(
                 editingExerciseName = null
             },
             viewModel = viewModel,
+        )
+    }
+    
+    // Set Editing Modal
+    if (showSetEditingModal && setEditingExercise != null && canEdit) {
+        SetEditingModal(
+            exercise = setEditingExercise!!,
+            sets = sets.filter { it.exerciseLogId == setEditingExercise!!.id },
+            onDismiss = {
+                showSetEditingModal = false
+                setEditingExercise = null
+            },
+            onUpdateSet = { setId, reps, weight, rpe ->
+                viewModel.updateSet(setId, reps, weight, rpe)
+            },
+            onAddSet = {
+                viewModel.addSetToExercise(setEditingExercise!!.id)
+            },
+            onCopyLastSet = {
+                val lastSet = sets
+                    .filter { it.exerciseLogId == setEditingExercise!!.id }
+                    .maxByOrNull { it.setOrder }
+                if (lastSet != null) {
+                    viewModel.addSetToExercise(setEditingExercise!!.id, lastSet.weight, lastSet.reps, lastSet.rpe)
+                } else {
+                    viewModel.addSetToExercise(setEditingExercise!!.id)
+                }
+            },
+            onDeleteSet = { setId ->
+                viewModel.deleteSet(setId)
+            },
+            onToggleCompleted = { setId, completed ->
+                viewModel.markSetCompleted(setId, completed)
+            },
+            onCompleteAllSets = {
+                viewModel.completeAllSetsInExercise(setEditingExercise!!.id)
+            },
+            viewModel = viewModel
         )
     }
 }
@@ -748,7 +764,7 @@ private fun ExercisesList(
     onEditSet: (SetLog, String) -> Unit,
     onSmartAdd: (String) -> Unit,
     onDeleteExercise: (Long) -> Unit,
-    onEnterFocusedEditMode: (Long) -> Unit,
+    onOpenSetEditingModal: (Long) -> Unit,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
@@ -791,14 +807,11 @@ private fun ExercisesList(
                 onDeleteExercise = { exerciseId ->
                     if (canEdit) onDeleteExercise(exerciseId)
                 },
-                onUpdateSet = { setId, reps, weight, rpe ->
-                    if (canEdit) viewModel.updateSet(setId, reps, weight, rpe)
-                },
                 onCompleteAllSets = { exerciseId ->
                     viewModel.completeAllSetsInExercise(exerciseId)
                 },
-                onEnterFocusedEditMode = { exerciseId ->
-                    onEnterFocusedEditMode(exerciseId)
+                onOpenSetEditingModal = {
+                    onOpenSetEditingModal(exercise.id)
                 },
                 viewModel = viewModel,
             )
@@ -806,169 +819,6 @@ private fun ExercisesList(
     }
 }
 
-@Composable
-private fun FocusedEditingView(
-    exercise: com.github.radupana.featherweight.data.ExerciseLog?,
-    sets: List<SetLog>,
-    canEdit: Boolean,
-    onExitFocusedMode: () -> Unit,
-    onUpdateSet: (Long, Int, Float, Float?) -> Unit,
-    onToggleCompleted: (Long, Boolean) -> Unit,
-    onDeleteSet: (Long) -> Unit,
-    viewModel: WorkoutViewModel,
-    modifier: Modifier = Modifier,
-) {
-    if (exercise == null) {
-        onExitFocusedMode()
-        return
-    }
-
-    Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .padding(16.dp),
-    ) {
-        // Header with back button and exercise name
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onExitFocusedMode) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Exit Focused Mode",
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            Text(
-                exercise.exerciseName,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center,
-            )
-
-            // Spacer to balance the back button
-            Spacer(modifier = Modifier.width(48.dp))
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Sets table header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                "Set",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(0.12f),
-            )
-            Text(
-                "Reps",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(0.18f),
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                "Weight",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(0.22f),
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                "RPE",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(0.15f),
-                textAlign = TextAlign.Center,
-            )
-            Spacer(modifier = Modifier.weight(0.33f)) // For checkbox + actions
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Sets list with extra spacing
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.weight(1f),
-        ) {
-            items(sets) { set ->
-                key(set.id) {
-                    SetRow(
-                        set = set,
-                        onToggleCompleted = { completed ->
-                            if (completed && !(set.reps > 0 && set.weight > 0)) {
-                                // Handle validation if needed
-                            } else {
-                                onToggleCompleted(set.id, completed)
-                            }
-                        },
-                        onEdit = { /* Handle edit if needed */ },
-                        onDelete = { onDeleteSet(set.id) },
-                        onUpdateSet = { reps, weight, rpe ->
-                            onUpdateSet(set.id, reps, weight, rpe)
-                        },
-                        canMarkComplete = set.reps > 0 && set.weight > 0,
-                    )
-                }
-            }
-        }
-
-        // Add set button at bottom with plenty of space
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            OutlinedButton(
-                onClick = {
-                    if (canEdit) viewModel.addSetToExercise(exercise.id)
-                },
-                modifier = Modifier.weight(1f),
-            ) {
-                Icon(
-                    Icons.Filled.Add,
-                    contentDescription = "Add Set",
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Add Set")
-            }
-
-            if (sets.isNotEmpty()) {
-                OutlinedButton(
-                    onClick = {
-                        if (canEdit) {
-                            val lastSet = sets.maxByOrNull { it.setOrder }
-                            if (lastSet != null) {
-                                viewModel.addSetToExercise(exercise.id, lastSet.weight, lastSet.reps, lastSet.rpe)
-                            } else {
-                                viewModel.addSetToExercise(exercise.id)
-                            }
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(
-                        Icons.Filled.ContentCopy,
-                        contentDescription = "Copy Last",
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Copy Last")
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun WorkoutActionButtons(
