@@ -234,12 +234,30 @@ which is already available in your context.
 5. **Smart Caching**: Cache-then-update strategy for instant UI responses with background data refresh
 6. **Tooltips**: Calculation explanations for all Quick Stats metrics
 
+**URGENT - Next Session Priority Issues:**
+1. **Custom Exercise Enhancement**: Allow users to provide full exercise metadata (muscle groups, equipment, etc.) when creating custom exercises, with optional fields
+2. **Duplicate Exercise Prevention**: Prevent adding custom exercises with duplicate names
+3. **Analytics Quick Stats Text Overflow**: 
+   - Latest PR card should show both "Latest PR" label AND exercise name clearly
+   - Training Frequency card shows "4.0 days/" with text cut off, need full "days/week" display
+4. **Volume Filter Chip**: Still shows "V" instead of "Volume" on Strength Progression section - text doesn't fit in chip
+5. **Volume Bar Alignment**: Volume trend bars are misaligned with date labels, causing tap detection issues (need to tap next to bar instead of on it)
+
+**NEXT MAJOR MILESTONE - Workout Templates:**
+After fixing above issues, implement pre-defined workout templates with popular strength programs:
+- **Wendler's 531 variations** (Original, BBB, FSL, etc.)
+- **StrongLifts 5x5**
+- **nSuns 531**
+- **Starting Strength**
+- **GZCLP**
+- Templates should include: exercises, sets, reps, weight progression, RPE guidance
+- Custom template creation for advanced users
+
 **Current High Priority:**
 1. **Database Migrations**: Implement proper schema versioning (remove fallbackToDestructiveMigration)
 2. **Performance**: Large dataset optimizations, pagination for exercise list  
-3. **Workout Templates**: Pre-built programs and custom template creation
-4. **Achievement System**: Gamification with streaks, badges, and celebrations
-5. **Analytics Polish**: Add export functionality, time range filters, and exercise comparison features
+3. **Achievement System**: Gamification with streaks, badges, and celebrations
+4. **Analytics Polish**: Add export functionality, time range filters, and exercise comparison features
 
 **Medium Priority:**
 1. **Social Features**: Workout sharing, leaderboards, community challenges
@@ -311,3 +329,38 @@ which is already available in your context.
 - `AnalyticsViewModel.kt` - Added cache system, Big 4 filtering, and average training days calculation
 - `SimpleChart.kt` - Added tap detection and visual feedback for volume bars
 - `FeatherweightRepository.kt` - Added getAverageTrainingDaysPerWeek() method
+
+## Known Issues for Next Session
+
+### Analytics UI Fixes Needed
+1. **Quick Stats Text Overflow**:
+   - Recent PR card: Exercise name is showing but "Recent PR" label is missing - user can't tell this is their latest PR
+   - Training Frequency: "4.0 days/" text is cut off, missing "week" part
+   - Need to adjust card sizing or text layout to show full information
+
+2. **Filter Chip Text**: "V" still appears instead of "Volume" in Strength Progression section filter chips
+   - Investigate if chip width constraint is causing truncation
+   - May need to adjust chip sizing or use abbreviated but clear text
+
+3. **Volume Chart Alignment**: 
+   - Volume bars in Volume Trends are misaligned with their corresponding date labels
+   - Tap detection is offset - users must tap next to bars instead of on them
+   - Issue likely in `SimpleChart.kt` bar positioning calculations vs tap detection zones
+
+### Custom Exercise System Enhancement
+- Current system only allows name input for custom exercises
+- Need comprehensive form with optional fields for:
+  - Primary/secondary muscle groups
+  - Required equipment 
+  - Movement patterns
+  - Difficulty level
+  - Exercise type (strength, cardio, etc.)
+- Add duplicate name validation to prevent multiple exercises with same name
+
+### Workout Templates - Next Major Feature
+Ready to implement popular strength training programs as selectable templates:
+- Template data structure design
+- Exercise selection and progression logic  
+- Weight calculation based on user maxes
+- RPE guidance integration
+- Popular programs: 531, StrongLifts, nSuns, Starting Strength, GZCLP
