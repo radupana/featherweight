@@ -407,24 +407,57 @@ private fun ExpandedSetRow(
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     
-    // Text field states
+    // Text field states - start with no selection to avoid auto-select on copy
     var repsValue by remember(set.id) {
         val text = if (set.reps > 0) set.reps.toString() else ""
-        mutableStateOf(TextFieldValue(text, TextRange(0, text.length)))
+        mutableStateOf(TextFieldValue(text, TextRange.Zero))
     }
     var weightValue by remember(set.id) {
         val text = if (set.weight > 0) set.weight.toString() else ""
-        mutableStateOf(TextFieldValue(text, TextRange(0, text.length)))
+        mutableStateOf(TextFieldValue(text, TextRange.Zero))
     }
     var rpeValue by remember(set.id) {
         val text = set.rpe?.toString() ?: ""
-        mutableStateOf(TextFieldValue(text, TextRange(0, text.length)))
+        mutableStateOf(TextFieldValue(text, TextRange.Zero))
     }
 
-    // Focus requesters
+    // Focus requesters and state tracking
     val repsFocusRequester = remember { FocusRequester() }
     val weightFocusRequester = remember { FocusRequester() }
     val rpeFocusRequester = remember { FocusRequester() }
+    
+    // Simple approach: track when fields have focus for replacement
+    var weightFieldHasFocus by remember { mutableStateOf(false) }
+    var repsFieldHasFocus by remember { mutableStateOf(false) }
+    var rpeFieldHasFocus by remember { mutableStateOf(false) }
+    
+    // Update fields only when not focused (to avoid interfering with user input)
+    LaunchedEffect(set.reps) {
+        if (!repsFieldHasFocus) {
+            val repsText = if (set.reps > 0) set.reps.toString() else ""
+            if (repsValue.text != repsText) {
+                repsValue = TextFieldValue(repsText, TextRange.Zero)
+            }
+        }
+    }
+    
+    LaunchedEffect(set.weight) {
+        if (!weightFieldHasFocus) {
+            val weightText = if (set.weight > 0) set.weight.toString() else ""
+            if (weightValue.text != weightText) {
+                weightValue = TextFieldValue(weightText, TextRange.Zero)
+            }
+        }
+    }
+    
+    LaunchedEffect(set.rpe) {
+        if (!rpeFieldHasFocus) {
+            val rpeText = set.rpe?.toString() ?: ""
+            if (rpeValue.text != rpeText) {
+                rpeValue = TextFieldValue(rpeText, TextRange.Zero)
+            }
+        }
+    }
 
     // Save function
     fun saveValues() {
@@ -469,7 +502,8 @@ private fun ExpandedSetRow(
                 OutlinedTextField(
                         value = repsValue,
                         onValueChange = { newValue ->
-                            if (newValue.text.isEmpty() || (newValue.text.all { it.isDigit() } && newValue.text.length <= 2)) {
+                            val text = newValue.text
+                            if (text.isEmpty() || (text.all { it.isDigit() } && text.length <= 2)) {
                                 repsValue = newValue
                                 saveValues()
                             }
@@ -486,7 +520,9 @@ private fun ExpandedSetRow(
                             .height(48.dp)
                             .focusRequester(repsFocusRequester)
                             .onFocusChanged { focusState ->
-                                if (focusState.isFocused) {
+                                repsFieldHasFocus = focusState.isFocused
+                                if (focusState.isFocused && repsValue.text.isNotEmpty()) {
+                                    // Select all text for easy replacement
                                     val text = repsValue.text
                                     repsValue = repsValue.copy(selection = TextRange(0, text.length))
                                 }
@@ -534,7 +570,9 @@ private fun ExpandedSetRow(
                             .height(48.dp)
                             .focusRequester(weightFocusRequester)
                             .onFocusChanged { focusState ->
-                                if (focusState.isFocused) {
+                                weightFieldHasFocus = focusState.isFocused
+                                if (focusState.isFocused && weightValue.text.isNotEmpty()) {
+                                    // Select all text for easy replacement
                                     val text = weightValue.text
                                     weightValue = weightValue.copy(selection = TextRange(0, text.length))
                                 }
@@ -580,7 +618,9 @@ private fun ExpandedSetRow(
                             .height(48.dp)
                             .focusRequester(rpeFocusRequester)
                             .onFocusChanged { focusState ->
-                                if (focusState.isFocused) {
+                                rpeFieldHasFocus = focusState.isFocused
+                                if (focusState.isFocused && rpeValue.text.isNotEmpty()) {
+                                    // Select all text for easy replacement
                                     val text = rpeValue.text
                                     rpeValue = rpeValue.copy(selection = TextRange(0, text.length))
                                 }

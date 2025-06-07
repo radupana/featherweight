@@ -48,10 +48,18 @@ class FeatherweightRepository(
                 println("Seeded ${exerciseDao.getAllExercisesWithDetails().size} exercises")
             }
 
-            // Seed test workouts only if no workouts exist
-            if (workoutCount == 0) {
-                seedTestData()
-            }
+            // Clear existing workouts and seed realistic 531 data
+            clearAllWorkouts()
+            seedRealistic531Data()
+            println("Seeded realistic 531 workout data for past year")
+        }
+    }
+
+    private suspend fun clearAllWorkouts() {
+        // Delete all workouts (will cascade delete exercises and sets)
+        val allWorkouts = workoutDao.getAllWorkouts()
+        allWorkouts.forEach { workout ->
+            workoutDao.deleteWorkout(workout.id)
         }
     }
 
@@ -416,7 +424,567 @@ class FeatherweightRepository(
     // Delete an entire workout (will cascade delete all exercises and sets)
     suspend fun deleteWorkout(workoutId: Long) = workoutDao.deleteWorkout(workoutId)
 
-    // ===== EXISTING SEED DATA (Updated to use new exercise system) =====
+    // ===== ANALYTICS METHODS =====
+
+    // Volume analytics
+    suspend fun getWeeklyVolumeTotal(startDate: LocalDateTime): Float =
+        withContext(Dispatchers.IO) {
+            val endDate = startDate.plusDays(7)
+            val workouts = workoutDao.getAllWorkouts().filter { 
+                it.date >= startDate && it.date < endDate
+            }
+            
+            var totalVolume = 0f
+            workouts.forEach { workout ->
+                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                exercises.forEach { exercise ->
+                    val sets = setLogDao.getSetLogsForExercise(exercise.id)
+                    sets.filter { it.isCompleted }.forEach { set ->
+                        totalVolume += set.weight * set.reps
+                    }
+                }
+            }
+            totalVolume
+        }
+
+    suspend fun getMonthlyVolumeTotal(startDate: LocalDateTime): Float =
+        withContext(Dispatchers.IO) {
+            val endDate = startDate.plusMonths(1)
+            val workouts = workoutDao.getAllWorkouts().filter { 
+                it.date >= startDate && it.date < endDate
+            }
+            
+            var totalVolume = 0f
+            workouts.forEach { workout ->
+                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                exercises.forEach { exercise ->
+                    val sets = setLogDao.getSetLogsForExercise(exercise.id)
+                    sets.filter { it.isCompleted }.forEach { set ->
+                        totalVolume += set.weight * set.reps
+                    }
+                }
+            }
+            totalVolume
+        }
+
+    // Strength progression analytics
+    suspend fun getPersonalRecords(exerciseName: String): List<Pair<Float, LocalDateTime>> =
+        withContext(Dispatchers.IO) {
+            val allWorkouts = workoutDao.getAllWorkouts()
+            val records = mutableListOf<Pair<Float, LocalDateTime>>()
+            var currentMaxWeight = 0f
+
+            // Sort workouts by date to track progression over time
+            allWorkouts.sortedBy { it.date }.forEach { workout ->
+                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                val matchingExercise = exercises.find { it.exerciseName == exerciseName }
+                
+                if (matchingExercise != null) {
+                    val sets = setLogDao.getSetLogsForExercise(matchingExercise.id)
+                    val maxWeightInWorkout = sets.filter { it.isCompleted && it.reps > 0 }
+                        .maxOfOrNull { it.weight } ?: 0f
+                    
+                    if (maxWeightInWorkout > currentMaxWeight) {
+                        currentMaxWeight = maxWeightInWorkout
+                        records.add(Pair(maxWeightInWorkout, workout.date))
+                    }
+                }
+            }
+            records
+        }
+
+    suspend fun getEstimated1RM(exerciseName: String): Float? =
+        withContext(Dispatchers.IO) {
+            val allWorkouts = workoutDao.getAllWorkouts()
+            var bestEstimate = 0f
+
+            allWorkouts.forEach { workout ->
+                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                val matchingExercise = exercises.find { it.exerciseName == exerciseName }
+                
+                if (matchingExercise != null) {
+                    val sets = setLogDao.getSetLogsForExercise(matchingExercise.id)
+                    sets.filter { it.isCompleted && it.reps > 0 && it.weight > 0 }.forEach { set ->
+                        // Brzycki formula: 1RM = weight / (1.0278 - 0.0278 * reps)
+                        val estimated1RM = set.weight / (1.0278f - 0.0278f * set.reps)
+                        if (estimated1RM > bestEstimate) {
+                            bestEstimate = estimated1RM
+                        }
+                    }
+                }
+            }
+            if (bestEstimate > 0) bestEstimate else null
+        }
+
+    // Performance insights
+    suspend fun getTrainingFrequency(startDate: LocalDateTime, endDate: LocalDateTime): Int =
+        withContext(Dispatchers.IO) {
+            workoutDao.getAllWorkouts().count { workout ->
+                workout.date >= startDate && workout.date < endDate &&
+                workout.notes?.contains("[COMPLETED]") == true
+            }
+        }
+
+    suspend fun getAverageRPE(exerciseName: String? = null, daysSince: Int = 30): Float? =
+        withContext(Dispatchers.IO) {
+            val cutoffDate = LocalDateTime.now().minusDays(daysSince.toLong())
+            val allWorkouts = workoutDao.getAllWorkouts().filter { it.date >= cutoffDate }
+            val allRPEs = mutableListOf<Float>()
+
+            allWorkouts.forEach { workout ->
+                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                val targetExercises = if (exerciseName != null) {
+                    exercises.filter { it.exerciseName == exerciseName }
+                } else {
+                    exercises
+                }
+                
+                targetExercises.forEach { exercise ->
+                    val sets = setLogDao.getSetLogsForExercise(exercise.id)
+                    sets.filter { it.isCompleted && it.rpe != null }.forEach { set ->
+                        set.rpe?.let { allRPEs.add(it) }
+                    }
+                }
+            }
+            
+            if (allRPEs.isNotEmpty()) allRPEs.average().toFloat() else null
+        }
+
+    suspend fun getTrainingStreak(): Int =
+        withContext(Dispatchers.IO) {
+            val allWorkouts = workoutDao.getAllWorkouts()
+                .filter { it.notes?.contains("[COMPLETED]") == true }
+                .sortedByDescending { it.date }
+            
+            if (allWorkouts.isEmpty()) return@withContext 0
+            
+            var streak = 0
+            var currentDate = LocalDateTime.now().toLocalDate()
+            var workoutIndex = 0
+            
+            while (workoutIndex < allWorkouts.size) {
+                val workoutDate = allWorkouts[workoutIndex].date.toLocalDate()
+                
+                // Check if there's a workout on current date or the day before
+                if (workoutDate == currentDate || workoutDate == currentDate.minusDays(1)) {
+                    if (workoutDate == currentDate.minusDays(1)) {
+                        currentDate = currentDate.minusDays(1)
+                    }
+                    streak++
+                    workoutIndex++
+                    
+                    // Skip any additional workouts on the same day
+                    while (workoutIndex < allWorkouts.size && 
+                           allWorkouts[workoutIndex].date.toLocalDate() == workoutDate) {
+                        workoutIndex++
+                    }
+                    
+                    currentDate = currentDate.minusDays(1)
+                } else {
+                    break
+                }
+            }
+            streak
+        }
+
+    // Quick stats for dashboard
+    suspend fun getRecentPR(): Pair<String, Float>? =
+        withContext(Dispatchers.IO) {
+            val exerciseNames = listOf("Bench Press", "Back Squat", "Conventional Deadlift", "Overhead Press")
+            var mostRecentPR: Triple<String, Float, LocalDateTime>? = null
+            
+            exerciseNames.forEach { exerciseName ->
+                val records = getPersonalRecords(exerciseName)
+                if (records.isNotEmpty()) {
+                    val latestRecord = records.last()
+                    if (mostRecentPR == null || latestRecord.second > mostRecentPR!!.third) {
+                        mostRecentPR = Triple(exerciseName, latestRecord.first, latestRecord.second)
+                    }
+                }
+            }
+            
+            mostRecentPR?.let { Pair(it.first, it.second) }
+        }
+
+    suspend fun getProgressPercentage(daysSince: Int = 30): Float? =
+        withContext(Dispatchers.IO) {
+            val cutoffDate = LocalDateTime.now().minusDays(daysSince.toLong())
+            val exerciseNames = listOf("Bench Press", "Back Squat", "Conventional Deadlift", "Overhead Press")
+            val improvements = mutableListOf<Float>()
+            
+            exerciseNames.forEach { exerciseName ->
+                val records = getPersonalRecords(exerciseName)
+                if (records.size >= 2) {
+                    val recentRecords = records.filter { it.second >= cutoffDate }
+                    if (recentRecords.isNotEmpty()) {
+                        val oldMax = records.lastOrNull { it.second < cutoffDate }?.first
+                        val newMax = recentRecords.maxOf { it.first }
+                        
+                        if (oldMax != null && oldMax > 0) {
+                            val improvement = ((newMax - oldMax) / oldMax) * 100
+                            improvements.add(improvement)
+                        }
+                    }
+                }
+            }
+            
+            if (improvements.isNotEmpty()) improvements.average().toFloat() else null
+        }
+
+    // Historical volume data for charts
+    suspend fun getWeeklyVolumeHistory(weeksBack: Int = 12): List<Pair<String, Float>> =
+        withContext(Dispatchers.IO) {
+            val now = LocalDateTime.now()
+            val weeklyVolumes = mutableListOf<Pair<String, Float>>()
+            
+            repeat(weeksBack) { weekIndex ->
+                val weekStart = now.minusDays((weekIndex + 1) * 7L)
+                val volume = getWeeklyVolumeTotal(weekStart)
+                val weekLabel = if (weekIndex == 0) "This Week" 
+                              else if (weekIndex == 1) "Last Week"
+                              else "${weekIndex + 1}w ago"
+                weeklyVolumes.add(weekLabel to volume)
+            }
+            
+            weeklyVolumes.reversed() // Chronological order
+        }
+
+    // ===== REALISTIC 531 SEED DATA =====
+    private suspend fun seedRealistic531Data() {
+        // 531 program structure: 4 days per week
+        // Day 1: Squat + accessories
+        // Day 2: Bench + accessories  
+        // Day 3: Deadlift + accessories
+        // Day 4: Overhead Press + accessories
+        
+        val startDate = LocalDateTime.now().minusDays(365) // Past year
+        val endDate = LocalDateTime.now()
+        
+        // Intermediate lifter starting maxes (kg)
+        val initialMaxes = mapOf(
+            "Back Squat" to 140f,
+            "Bench Press" to 110f,
+            "Conventional Deadlift" to 170f,
+            "Overhead Press" to 75f
+        )
+        
+        // Progressive overload: 2.5kg squat/bench, 5kg deadlift per cycle (3 weeks)
+        val progressionRates = mapOf(
+            "Back Squat" to 2.5f,
+            "Bench Press" to 2.5f,
+            "Conventional Deadlift" to 5f,
+            "Overhead Press" to 1.25f
+        )
+        
+        // 531 percentages for each week
+        val week1Percentages = listOf(0.65f, 0.75f, 0.85f) // Week 1: 65%, 75%, 85%
+        val week2Percentages = listOf(0.70f, 0.80f, 0.90f) // Week 2: 70%, 80%, 90%
+        val week3Percentages = listOf(0.75f, 0.85f, 0.95f) // Week 3: 75%, 85%, 95%
+        
+        val weeklyPercentages = listOf(week1Percentages, week2Percentages, week3Percentages)
+        
+        var currentDate = startDate
+        var cycleNumber = 0
+        
+        while (currentDate.isBefore(endDate)) {
+            val weekInCycle = cycleNumber % 3
+            val cycleCompleted = cycleNumber / 3
+            
+            // Update maxes every 3 weeks
+            val currentMaxes = initialMaxes.mapValues { (exercise, initialMax) ->
+                initialMax + (progressionRates[exercise] ?: 0f) * cycleCompleted
+            }
+            
+            // Day 1: Squat Day (Monday)
+            if (currentDate.dayOfWeek.value == 1) {
+                createSquatWorkout(currentDate, currentMaxes, weeklyPercentages[weekInCycle])
+            }
+            
+            // Day 2: Bench Day (Wednesday) 
+            if (currentDate.dayOfWeek.value == 3) {
+                createBenchWorkout(currentDate, currentMaxes, weeklyPercentages[weekInCycle])
+            }
+            
+            // Day 3: Deadlift Day (Friday)
+            if (currentDate.dayOfWeek.value == 5) {
+                createDeadliftWorkout(currentDate, currentMaxes, weeklyPercentages[weekInCycle])
+            }
+            
+            // Day 4: OHP Day (Saturday)
+            if (currentDate.dayOfWeek.value == 6) {
+                createOHPWorkout(currentDate, currentMaxes, weeklyPercentages[weekInCycle])
+            }
+            
+            currentDate = currentDate.plusDays(1)
+            
+            // Increment cycle every 7 days
+            if (currentDate.dayOfWeek.value == 1) {
+                cycleNumber++
+            }
+        }
+    }
+    
+    private suspend fun createSquatWorkout(date: LocalDateTime, maxes: Map<String, Float>, percentages: List<Float>) {
+        val workoutName = "Lower Body - Squat Focus"
+        val workout = Workout(date = date, notes = "$workoutName [COMPLETED]")
+        val workoutId = workoutDao.insertWorkout(workout)
+        
+        // Main lift: Back Squat (531)
+        val squatMax = maxes["Back Squat"] ?: 140f
+        val squatExercise = searchExercises("Back Squat").firstOrNull()
+        val squatLog = ExerciseLog(
+            workoutId = workoutId,
+            exerciseName = "Back Squat",
+            exerciseId = squatExercise?.id,
+            exerciseOrder = 0
+        )
+        val squatLogId = exerciseLogDao.insertExerciseLog(squatLog)
+        
+        // 531 sets
+        percentages.forEachIndexed { index, percentage ->
+            val weight = (squatMax * percentage).let { 
+                // Round to nearest 2.5kg
+                (it / 2.5f).toInt() * 2.5f
+            }
+            val reps = when (index) {
+                0 -> 5 // First set: 5 reps
+                1 -> 3 // Second set: 3 reps  
+                2 -> (1..5).random() // AMRAP set
+                else -> 1
+            }
+            val rpe = when (index) {
+                0 -> (6.0f..7.0f).random()
+                1 -> (7.5f..8.5f).random()
+                2 -> (8.5f..9.5f).random()
+                else -> 8f
+            }
+            
+            setLogDao.insertSetLog(SetLog(
+                exerciseLogId = squatLogId,
+                setOrder = index,
+                reps = reps,
+                weight = weight,
+                rpe = rpe,
+                isCompleted = true,
+                completedAt = date.toString()
+            ))
+        }
+        
+        // Accessories
+        createAccessoryExercise(workoutId, "Romanian Deadlift", 1, date, (80f..100f), (8..12), 3)
+        createAccessoryExercise(workoutId, "Bulgarian Split Squats", 2, date, (20f..30f), (8..12), 3)
+        createAccessoryExercise(workoutId, "Pull-ups", 3, date, (0f..10f), (5..10), 3)
+    }
+    
+    private suspend fun createBenchWorkout(date: LocalDateTime, maxes: Map<String, Float>, percentages: List<Float>) {
+        val workoutName = "Upper Body - Bench Focus"
+        val workout = Workout(date = date, notes = "$workoutName [COMPLETED]")
+        val workoutId = workoutDao.insertWorkout(workout)
+        
+        // Main lift: Bench Press (531)
+        val benchMax = maxes["Bench Press"] ?: 110f
+        val benchExercise = searchExercises("Bench Press").firstOrNull()
+        val benchLog = ExerciseLog(
+            workoutId = workoutId,
+            exerciseName = "Bench Press",
+            exerciseId = benchExercise?.id,
+            exerciseOrder = 0
+        )
+        val benchLogId = exerciseLogDao.insertExerciseLog(benchLog)
+        
+        // 531 sets
+        percentages.forEachIndexed { index, percentage ->
+            val weight = (benchMax * percentage).let { 
+                (it / 2.5f).toInt() * 2.5f
+            }
+            val reps = when (index) {
+                0 -> 5
+                1 -> 3
+                2 -> (1..8).random() // AMRAP
+                else -> 1
+            }
+            val rpe = when (index) {
+                0 -> (6.0f..7.0f).random()
+                1 -> (7.5f..8.5f).random()
+                2 -> (8.5f..9.5f).random()
+                else -> 8f
+            }
+            
+            setLogDao.insertSetLog(SetLog(
+                exerciseLogId = benchLogId,
+                setOrder = index,
+                reps = reps,
+                weight = weight,
+                rpe = rpe,
+                isCompleted = true,
+                completedAt = date.toString()
+            ))
+        }
+        
+        // Accessories
+        createAccessoryExercise(workoutId, "Incline Dumbbell Press", 1, date, (25f..35f), (8..12), 3)
+        createAccessoryExercise(workoutId, "Bent-Over Barbell Row", 2, date, (60f..80f), (8..12), 3)
+        createAccessoryExercise(workoutId, "Lateral Raises", 3, date, (8f..15f), (12..15), 4)
+    }
+    
+    private suspend fun createDeadliftWorkout(date: LocalDateTime, maxes: Map<String, Float>, percentages: List<Float>) {
+        val workoutName = "Lower Body - Deadlift Focus"
+        val workout = Workout(date = date, notes = "$workoutName [COMPLETED]")
+        val workoutId = workoutDao.insertWorkout(workout)
+        
+        // Main lift: Deadlift (531)
+        val deadliftMax = maxes["Conventional Deadlift"] ?: 170f
+        val deadliftExercise = searchExercises("Conventional Deadlift").firstOrNull()
+        val deadliftLog = ExerciseLog(
+            workoutId = workoutId,
+            exerciseName = "Conventional Deadlift",
+            exerciseId = deadliftExercise?.id,
+            exerciseOrder = 0
+        )
+        val deadliftLogId = exerciseLogDao.insertExerciseLog(deadliftLog)
+        
+        // 531 sets
+        percentages.forEachIndexed { index, percentage ->
+            val weight = (deadliftMax * percentage).let { 
+                (it / 2.5f).toInt() * 2.5f
+            }
+            val reps = when (index) {
+                0 -> 5
+                1 -> 3
+                2 -> (1..3).random() // AMRAP (deadlifts are harder)
+                else -> 1
+            }
+            val rpe = when (index) {
+                0 -> (6.5f..7.5f).random()
+                1 -> (8.0f..8.5f).random()
+                2 -> (9.0f..9.5f).random()
+                else -> 8f
+            }
+            
+            setLogDao.insertSetLog(SetLog(
+                exerciseLogId = deadliftLogId,
+                setOrder = index,
+                reps = reps,
+                weight = weight,
+                rpe = rpe,
+                isCompleted = true,
+                completedAt = date.toString()
+            ))
+        }
+        
+        // Accessories
+        createAccessoryExercise(workoutId, "Front Squats", 1, date, (60f..80f), (6..8), 3)
+        createAccessoryExercise(workoutId, "Barbell Curls", 2, date, (25f..35f), (8..12), 3)
+        createAccessoryExercise(workoutId, "Hanging Leg Raises", 3, date, (0f..10f), (8..15), 3)
+    }
+    
+    private suspend fun createOHPWorkout(date: LocalDateTime, maxes: Map<String, Float>, percentages: List<Float>) {
+        val workoutName = "Upper Body - Press Focus"
+        val workout = Workout(date = date, notes = "$workoutName [COMPLETED]")
+        val workoutId = workoutDao.insertWorkout(workout)
+        
+        // Main lift: Overhead Press (531)
+        val ohpMax = maxes["Overhead Press"] ?: 75f
+        val ohpExercise = searchExercises("Overhead Press").firstOrNull()
+        val ohpLog = ExerciseLog(
+            workoutId = workoutId,
+            exerciseName = "Overhead Press",
+            exerciseId = ohpExercise?.id,
+            exerciseOrder = 0
+        )
+        val ohpLogId = exerciseLogDao.insertExerciseLog(ohpLog)
+        
+        // 531 sets
+        percentages.forEachIndexed { index, percentage ->
+            val weight = (ohpMax * percentage).let { 
+                (it / 1.25f).toInt() * 1.25f // Smaller increments for OHP
+            }
+            val reps = when (index) {
+                0 -> 5
+                1 -> 3
+                2 -> (1..6).random() // AMRAP
+                else -> 1
+            }
+            val rpe = when (index) {
+                0 -> (6.5f..7.5f).random()
+                1 -> (8.0f..8.5f).random()
+                2 -> (9.0f..9.5f).random()
+                else -> 8f
+            }
+            
+            setLogDao.insertSetLog(SetLog(
+                exerciseLogId = ohpLogId,
+                setOrder = index,
+                reps = reps,
+                weight = weight,
+                rpe = rpe,
+                isCompleted = true,
+                completedAt = date.toString()
+            ))
+        }
+        
+        // Accessories
+        createAccessoryExercise(workoutId, "Incline Bench Press", 1, date, (60f..80f), (8..10), 3)
+        createAccessoryExercise(workoutId, "Cable Flys", 2, date, (15f..25f), (10..15), 3)
+        createAccessoryExercise(workoutId, "Dumbbell Curls", 3, date, (12f..20f), (10..15), 3)
+    }
+    
+    private suspend fun createAccessoryExercise(
+        workoutId: Long,
+        exerciseName: String,
+        order: Int,
+        date: LocalDateTime,
+        weightRange: ClosedFloatingPointRange<Float>,
+        repRange: IntRange,
+        numSets: Int
+    ) {
+        // Try to find exercise, if not found just use the name
+        val exercise = try {
+            searchExercises(exerciseName).firstOrNull()
+        } catch (e: Exception) {
+            null
+        }
+        
+        val exerciseLog = ExerciseLog(
+            workoutId = workoutId,
+            exerciseName = exerciseName,
+            exerciseId = exercise?.id,
+            exerciseOrder = order
+        )
+        val exerciseLogId = exerciseLogDao.insertExerciseLog(exerciseLog)
+        
+        val baseWeight = weightRange.start + (weightRange.endInclusive - weightRange.start) * kotlin.random.Random.nextFloat()
+        
+        repeat(numSets) { setIndex ->
+            val weight = if (exerciseName.contains("Pull-ups") || exerciseName.contains("Hanging")) {
+                // Bodyweight exercises - use added weight
+                listOf(0f, 2.5f, 5f, 7.5f, 10f).random()
+            } else {
+                // Normal weight progression through sets
+                baseWeight + (setIndex * 2.5f)
+            }
+            
+            val reps = repRange.random()
+            val rpe = (6.5f..8.5f).random()
+            
+            setLogDao.insertSetLog(SetLog(
+                exerciseLogId = exerciseLogId,
+                setOrder = setIndex,
+                reps = reps,
+                weight = weight,
+                rpe = rpe,
+                isCompleted = true,
+                completedAt = date.toString()
+            ))
+        }
+    }
+
+    // Helper function for random float in range
+    private fun ClosedFloatingPointRange<Float>.random(): Float {
+        return start + (endInclusive - start) * kotlin.random.Random.nextFloat()
+    }
+
+    // ===== OLD SEED DATA (UNUSED) =====
     private suspend fun seedTestData() {
         // Create sample workouts from past dates
         val workout1 =

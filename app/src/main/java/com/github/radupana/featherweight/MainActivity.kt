@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -16,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.radupana.featherweight.ui.screens.AnalyticsScreen
 import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
 import com.github.radupana.featherweight.ui.screens.HistoryScreen
 import com.github.radupana.featherweight.ui.screens.HomeScreen
@@ -23,6 +25,7 @@ import com.github.radupana.featherweight.ui.screens.SplashScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
+import com.github.radupana.featherweight.viewmodel.AnalyticsViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
 enum class Screen {
@@ -32,6 +35,7 @@ enum class Screen {
     ACTIVE_WORKOUT,
     EXERCISE_SELECTOR,
     HISTORY,
+    ANALYTICS,
 }
 
 data class NavigationItem(
@@ -108,6 +112,7 @@ fun MainAppWithNavigation(
         listOf(
             NavigationItem(Screen.HOME, "Workout", Icons.Filled.FitnessCenter),
             NavigationItem(Screen.HISTORY, "History", Icons.Filled.History),
+            NavigationItem(Screen.ANALYTICS, "Analytics", Icons.Filled.Analytics),
         )
 
     Scaffold(
@@ -182,6 +187,14 @@ fun MainAppWithNavigation(
                         onScreenChange(Screen.ACTIVE_WORKOUT)
                     },
                     modifier = Modifier.padding(innerPadding),
+                )
+            }
+
+            Screen.ANALYTICS -> {
+                val analyticsViewModel: AnalyticsViewModel = viewModel()
+                AnalyticsScreen(
+                    viewModel = analyticsViewModel,
+                    modifier = Modifier.padding(innerPadding)
                 )
             }
 
