@@ -40,7 +40,8 @@ fun SetRow(
 
     val bgColor =
         if (set.isCompleted) {
-            androidx.compose.ui.graphics.Color(0xFF4CAF50).copy(alpha = 0.15f)  // Light green background
+            // Use opaque light green to prevent any background bleed-through issues
+            androidx.compose.ui.graphics.Color(0xFFE8F5E9)  // Light green background (opaque)
         } else {
             MaterialTheme.colorScheme.surface
         }

@@ -160,7 +160,7 @@ fun SetEditingModal(
                     Column(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        // Always show the LazyColumn structure
+                        // Show header only when there are sets
                         if (sets.isNotEmpty()) {
                             // Header row
                             Row(
@@ -224,14 +224,15 @@ fun SetEditingModal(
                                     Spacer(modifier = Modifier.width(64.dp))
                                 }
                             }
+                            
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                                thickness = 0.5.dp
+                            )
                         }
-                            
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                            thickness = 0.5.dp
-                        )
-                            
-                            Column(modifier = Modifier.weight(1f)) {
+                        
+                        // Always show the LazyColumn
+                        Column(modifier = Modifier.weight(1f)) {
                                 // Sets list
                                 LazyColumn(
                                     modifier = Modifier
@@ -291,22 +292,25 @@ fun SetEditingModal(
                                         SwipeToDismissBox(
                                             state = dismissState,
                                             backgroundContent = {
-                                                Surface(
-                                                    modifier = Modifier.fillMaxSize(),
-                                                    color = MaterialTheme.colorScheme.error,
-                                                    shape = RoundedCornerShape(8.dp)
-                                                ) {
-                                                    Row(
+                                                // Only show red background when actively dismissing
+                                                if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
+                                                    Surface(
                                                         modifier = Modifier.fillMaxSize(),
-                                                        horizontalArrangement = Arrangement.End,
-                                                        verticalAlignment = Alignment.CenterVertically
+                                                        color = MaterialTheme.colorScheme.error,
+                                                        shape = RoundedCornerShape(8.dp)
                                                     ) {
-                                                        Icon(
-                                                            Icons.Filled.Delete,
-                                                            contentDescription = "Delete",
-                                                            tint = MaterialTheme.colorScheme.onError,
-                                                            modifier = Modifier.padding(16.dp)
-                                                        )
+                                                        Row(
+                                                            modifier = Modifier.fillMaxSize(),
+                                                            horizontalArrangement = Arrangement.End,
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            Icon(
+                                                                Icons.Filled.Delete,
+                                                                contentDescription = "Delete",
+                                                                tint = MaterialTheme.colorScheme.onError,
+                                                                modifier = Modifier.padding(16.dp)
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             },
@@ -432,7 +436,8 @@ private fun ExpandedSetRow(
 
 
     val bgColor = if (set.isCompleted) {
-        Color(0xFF4CAF50).copy(alpha = 0.15f)  // Light green background
+        // Use opaque light green to prevent background bleed-through
+        Color(0xFFE8F5E9)  // Light green background (opaque)
     } else {
         MaterialTheme.colorScheme.surface
     }

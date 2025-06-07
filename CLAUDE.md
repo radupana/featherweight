@@ -189,9 +189,9 @@ which is already available in your context.
 
 ## Current Issues & Immediate Priorities
 
-**CRITICAL - Fix Tomorrow:**
-1. **Red Set Backgrounds**: Completed sets still show red background despite fixes in both SetEditingModal.kt and SetRow.kt (changed tertiary theme to Color(0xFF4CAF50) but still appears red)
-2. **Missing Add Set Button**: Button doesn't appear for new exercises with no sets, despite restructuring LazyColumn to always render
+**✅ FIXED Issues:**
+1. **Red Set Backgrounds**: Fixed by using opaque green color (0xFFE8F5E9) instead of semi-transparent, and only showing SwipeToDismissBox red background during active swipe gesture
+2. **Missing Add Set Button**: Fixed by restructuring SetEditingModal to always show LazyColumn regardless of whether sets exist
 
 **URGENT - Today's Session Results:**
 - ✅ Fixed navigation to return to correct screen (HOME/HISTORY) instead of always WORKOUT_HUB
@@ -204,8 +204,8 @@ which is already available in your context.
 - ✅ Fixed volume display from lbs to kg across all screens
 - ✅ Made exercise cards and in-progress workout cards fully clickable
 - ✅ Changed "Complete Workout" button to "Complete" for better fit
-- ⚠️ **Still broken**: Red backgrounds on completed sets (need to find root cause)
-- ⚠️ **Still broken**: Add Set button missing for new exercises
+- ✅ **Fixed**: Red backgrounds on completed sets (was SwipeToDismissBox red showing through transparent green)
+- ✅ **Fixed**: Add Set button now appears for new exercises
 
 **High Priority After Bug Fixes:**
 1. **Database Migrations**: Implement proper schema versioning (remove fallbackToDestructiveMigration)
@@ -247,44 +247,23 @@ which is already available in your context.
 - Update CLAUDE.md when making architectural changes
 - Use descriptive commit messages explaining the "why"
 
-## Known Issues & Investigation Notes
+## Recently Fixed Issues
 
-### Red Background Problem
-**Files Checked & Modified:**
-- `SetEditingModal.kt:413-417` - Changed to `Color(0xFF4CAF50).copy(alpha = 0.15f)`
-- `SetRow.kt:41-46` - Changed to `Color(0xFF4CAF50).copy(alpha = 0.15f)`  
-- Both files had `MaterialTheme.colorScheme.tertiary` which was red
+### Red Background Problem ✅ SOLVED
+**Root Cause:** SwipeToDismissBox's red delete background was showing through the semi-transparent green background (15% alpha) on completed sets.
 
-**Still Red - Potential Causes:**
-- Another component overriding the background color
-- Theme-level color definition forcing red
-- Cached build/compile issue
-- Different component being used than expected
-- State not properly triggering recomposition
-
-**Investigation Steps for Tomorrow:**
-1. Search entire codebase for any remaining `tertiary` color usage on completed sets
-2. Check if there's a Theme.kt override forcing tertiary to be red
-3. Verify which exact component is rendering (SetRow vs ExpandedSetRow)
-4. Add debug logging to track color values at runtime
-5. Clean build with `./gradlew clean assembleDebug`
-
-### Missing Add Set Button Problem  
-**Root Cause Found:** Two separate empty states - main UI shows text, LazyColumn is conditionally hidden
+**Solution:** 
+1. Changed completed set background from `Color(0xFF4CAF50).copy(alpha = 0.15f)` to opaque `Color(0xFFE8F5E9)`
+2. Modified SwipeToDismissBox to only show red background when actively swiping: `if (dismissState.targetValue != SwipeToDismissBoxValue.Settled)`
 
 **Files Modified:**
-- `SetEditingModal.kt` - Restructured conditional logic to always show LazyColumn
-- Added button for `sets.isEmpty()` case inside LazyColumn items
+- `SetEditingModal.kt` - Opaque green background + conditional swipe background
+- `SetRow.kt` - Opaque green background for consistency
 
-**Still Missing - Potential Causes:**
-- LazyColumn still not rendering when empty
-- Button positioned outside visible area  
-- Conditional logic error in restructuring
-- Build cache not reflecting changes
+### Missing Add Set Button ✅ SOLVED  
+**Root Cause:** LazyColumn was wrapped inside `if (sets.isNotEmpty())`, preventing it from rendering when no sets existed.
 
-**Investigation Steps for Tomorrow:**
-1. Add debug logging to verify LazyColumn render and item count
-2. Check if empty sets list triggers different code path
-3. Verify LazyColumn contentPadding and item visibility
-4. Test with manual empty list to isolate issue
-5. Simplify button logic to always show regardless of conditions
+**Solution:** Restructured SetEditingModal to always show LazyColumn, moving the conditional logic to only wrap the header and divider.
+
+**Files Modified:**
+- `SetEditingModal.kt` - Moved `if (sets.isNotEmpty())` to only wrap header section, LazyColumn always renders
