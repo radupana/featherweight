@@ -631,6 +631,30 @@ class FeatherweightRepository(
 
             mostRecentPR?.let { Pair(it.first, it.second) }
         }
+    
+    suspend fun getAverageTrainingDaysPerWeek(): Float =
+        withContext(Dispatchers.IO) {
+            val allWorkouts =
+                workoutDao.getAllWorkouts()
+                    .filter { it.notes?.contains("[COMPLETED]") == true }
+                    .sortedBy { it.date }
+            
+            if (allWorkouts.isEmpty()) return@withContext 0f
+            
+            // Find earliest and latest workout dates
+            val firstWorkoutDate = allWorkouts.first().date
+            val lastWorkoutDate = allWorkouts.last().date
+            
+            // Calculate weeks between first and last workout
+            val daysBetween = java.time.temporal.ChronoUnit.DAYS.between(firstWorkoutDate, lastWorkoutDate).toFloat()
+            val weeksBetween = (daysBetween / 7f).coerceAtLeast(1f) // At least 1 week
+            
+            // Count unique training days
+            val uniqueTrainingDays = allWorkouts.map { it.date.toLocalDate() }.distinct().size
+            
+            // Calculate average days per week
+            (uniqueTrainingDays / weeksBetween).coerceIn(0f, 7f)
+        }
 
     suspend fun getProgressPercentage(daysSince: Int = 30): Float? =
         withContext(Dispatchers.IO) {

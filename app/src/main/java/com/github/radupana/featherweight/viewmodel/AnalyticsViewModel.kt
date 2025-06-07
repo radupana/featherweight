@@ -38,6 +38,7 @@ data class QuickStats(
     val weeklyVolume: String = "0kg",
     val recentPR: Pair<String, Float>? = null,
     val trainingStreak: Int = 0,
+    val avgTrainingDaysPerWeek: Float = 0f,
     val monthlyProgress: Float? = null,
 )
 
@@ -65,7 +66,7 @@ data class AnalyticsState(
     val strengthMetrics: StrengthMetrics = StrengthMetrics(),
     val performanceMetrics: PerformanceMetrics = PerformanceMetrics(),
     val quickStats: QuickStats = QuickStats(),
-    val availableExercises: List<String> = listOf("Bench Press", "Back Squat", "Conventional Deadlift", "Overhead Press", "Barbell Row"),
+    val availableExercises: List<String> = listOf("Bench Press", "Back Squat", "Conventional Deadlift", "Overhead Press"),
     val selectedTimeframe: String = "1M", // 1W, 1M, 3M, 6M, 1Y
     val chartViewMode: ChartViewMode = ChartViewMode.ONE_RM,
     val cachedData: CachedAnalyticsData = CachedAnalyticsData(),
@@ -406,12 +407,14 @@ class AnalyticsViewModel(
         val weeklyVolume = repository.getWeeklyVolumeTotal(weekStart)
         val recentPR = repository.getRecentPR()
         val trainingStreak = repository.getTrainingStreak()
+        val avgTrainingDaysPerWeek = repository.getAverageTrainingDaysPerWeek()
         val monthlyProgress = repository.getProgressPercentage(30)
 
         return QuickStats(
             weeklyVolume = "${weeklyVolume.toInt()}kg",
             recentPR = recentPR,
             trainingStreak = trainingStreak,
+            avgTrainingDaysPerWeek = avgTrainingDaysPerWeek,
             monthlyProgress = monthlyProgress,
         )
     }

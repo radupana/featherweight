@@ -1,21 +1,30 @@
 package com.github.radupana.featherweight.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+
+// Utility function to format large numbers
+private fun formatVolume(volume: Float): String {
+    return when {
+        volume >= 1000 -> "${String.format("%.1f", volume / 1000)}k kg"
+        else -> "${volume.toInt()}kg"
+    }
+}
 
 @Composable
 fun StrengthProgressionChart(
@@ -98,6 +107,7 @@ fun VolumeBarChart(
     weeklyData: List<Pair<String, Float>>, // label, volume
     modifier: Modifier = Modifier,
     barColor: Color = MaterialTheme.colorScheme.secondary,
+    onBarTapped: ((String, Float) -> Unit)? = null,
 ) {
     if (weeklyData.isEmpty()) {
         Box(
@@ -113,6 +123,8 @@ fun VolumeBarChart(
         return
     }
 
+    var selectedBar by remember { mutableStateOf<Int?>(null) }
+
     Column(modifier = modifier) {
         Text(
             text = "Volume Trends",
@@ -121,14 +133,53 @@ fun VolumeBarChart(
             modifier = Modifier.padding(bottom = 16.dp),
         )
 
-        // Chart area
+        // Show selected value if any
+        selectedBar?.let { index ->
+            if (index in weeklyData.indices) {
+                val (label, volume) = weeklyData[index]
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                ) {
+                    Text(
+                        text = "$label: ${formatVolume(volume)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+
+        // Chart area with tap detection
         Canvas(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .height(160.dp),
+                    .height(160.dp)
+                    .pointerInput(weeklyData) {
+                        detectTapGestures { offset ->
+                            val barWidth = size.width / weeklyData.size * 0.7f
+                            val barSpacing = size.width / weeklyData.size * 0.15f
+                            val padding = 20.dp.toPx()
+                            
+                            weeklyData.forEachIndexed { index, (label, volume) ->
+                                val x = padding + index * (barWidth + barSpacing * 2) + barSpacing
+                                
+                                if (offset.x >= x && offset.x <= x + barWidth) {
+                                    selectedBar = if (selectedBar == index) null else index
+                                    onBarTapped?.invoke(label, volume)
+                                    return@detectTapGestures
+                                }
+                            }
+                        }
+                    },
         ) {
-            drawVolumeChart(weeklyData, barColor)
+            drawVolumeChart(weeklyData, barColor, selectedBar)
         }
 
         // X-axis labels
@@ -230,6 +281,7 @@ private fun DrawScope.drawStrengthChart(
 private fun DrawScope.drawVolumeChart(
     data: List<Pair<String, Float>>,
     barColor: Color,
+    selectedBar: Int? = null,
 ) {
     if (data.isEmpty()) return
 
@@ -244,15 +296,29 @@ private fun DrawScope.drawVolumeChart(
         val x = padding + index * (barWidth + barSpacing)
         val y = size.height - padding - barHeight
 
+        // Use different color for selected bar
+        val currentBarColor = if (selectedBar == index) {
+            barColor.copy(alpha = 1f) // Full opacity for selected
+        } else {
+            barColor.copy(alpha = 0.7f) // Reduced opacity for non-selected
+        }
+
         // Draw bar
         drawRect(
-            color = barColor,
+            color = currentBarColor,
             topLeft = Offset(x, y),
             size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
         )
 
-        // Draw value on top of bar
-        // (Text rendering in Canvas is complex, skipping for now)
+        // Draw border for selected bar
+        if (selectedBar == index) {
+            drawRect(
+                color = barColor,
+                topLeft = Offset(x - 1.dp.toPx(), y - 1.dp.toPx()),
+                size = androidx.compose.ui.geometry.Size(barWidth + 2.dp.toPx(), barHeight + 2.dp.toPx()),
+                style = Stroke(width = 2.dp.toPx())
+            )
+        }
     }
 }
 

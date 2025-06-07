@@ -125,32 +125,32 @@ private fun QuickStatsSection(analyticsState: com.github.radupana.featherweight.
                 ),
                 Triple(
                     QuickStat(
-                        "Recent PR",
+                        recentPR?.first ?: "Recent PR",
                         recentPR?.let {
                             "${it.second.toInt()}kg"
                         } ?: "No PRs",
-                        recentPR?.first ?: "Set a record!",
+                        recentPR?.let { "Personal Record" } ?: "Set a record!",
                         Icons.Filled.TrendingUp,
                         Color(0xFF2196F3),
                     ),
                     "pr",
-                    "Your most recent personal record across all main lifts",
+                    "Your most recent personal record across the main lifts (Squat, Deadlift, Bench Press, Overhead Press)",
                 ),
                 Triple(
                     QuickStat(
-                        "Streak",
-                        "${quickStats.trainingStreak} days",
-                        "Training",
-                        Icons.Filled.LocalFireDepartment,
+                        "Training Frequency",
+                        "${String.format("%.1f", quickStats.avgTrainingDaysPerWeek)} days/week",
+                        "Average",
+                        Icons.Filled.CalendarMonth,
                         Color(0xFFFF6F00),
                     ),
-                    "streak",
-                    "Consecutive days with at least one completed workout",
+                    "frequency",
+                    "Average training days per week since you started using the app",
                 ),
                 Triple(
-                    QuickStat("Progress", progressText, "This Month", Icons.Filled.ShowChart, Color(0xFF9C27B0)),
-                    "progress",
-                    "Average strength improvement across main lifts this month",
+                    QuickStat("Strength Gain", progressText, "This Month", Icons.Filled.ShowChart, Color(0xFF9C27B0)),
+                    "strength",
+                    "Average strength improvement across the main lifts (Squat, Deadlift, Bench Press, Overhead Press) in the last 30 days",
                 ),
             )
 
@@ -435,6 +435,8 @@ private fun PerformanceInsightsSection(analyticsState: com.github.radupana.feath
             ) {
                 val performanceMetrics = analyticsState.performanceMetrics
                 val strengthMetrics = analyticsState.strengthMetrics
+                val volumeMetrics = analyticsState.volumeMetrics
+                val quickStats = analyticsState.quickStats
 
                 // Strength trend insight
                 val strengthDescription =
@@ -449,21 +451,51 @@ private fun PerformanceInsightsSection(analyticsState: com.github.radupana.feath
                     color = if ((strengthMetrics.recentProgress ?: 0f) >= 0) Color(0xFF4CAF50) else Color(0xFFE53935),
                 )
 
-                // Training frequency insight
-                val frequencyDescription =
-                    when (performanceMetrics.trainingFrequency) {
-                        in 5..7 -> "${performanceMetrics.trainingFrequency} sessions this week - excellent consistency!"
-                        in 3..4 -> "${performanceMetrics.trainingFrequency} sessions this week - good frequency"
-                        in 1..2 -> "${performanceMetrics.trainingFrequency} sessions this week - try to increase frequency"
-                        0 -> "No workouts this week - time to get back in there!"
-                        else -> "${performanceMetrics.trainingFrequency} sessions this week"
-                    }
+                // Volume progression insight
+                val volumeDescription = when {
+                    volumeMetrics.weeklyChange > 10 -> "Volume increased ${String.format("%.1f", volumeMetrics.weeklyChange)}% this week - great intensity!"
+                    volumeMetrics.weeklyChange > 0 -> "Volume up ${String.format("%.1f", volumeMetrics.weeklyChange)}% - steady progress"
+                    volumeMetrics.weeklyChange > -10 -> "Volume down ${String.format("%.1f", kotlin.math.abs(volumeMetrics.weeklyChange))}% - recovery week?"
+                    else -> "Volume dropped ${String.format("%.1f", kotlin.math.abs(volumeMetrics.weeklyChange))}% - consider increasing intensity"
+                }
 
                 InsightCard(
-                    icon = Icons.Filled.Schedule,
-                    title = "Training Frequency",
-                    description = frequencyDescription,
-                    color = Color(0xFF2196F3),
+                    icon = Icons.Filled.FitnessCenter,
+                    title = "Volume Progression",
+                    description = volumeDescription,
+                    color = if (volumeMetrics.weeklyChange >= 0) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                )
+
+                // Training consistency insight
+                val consistencyDescription = when {
+                    quickStats.avgTrainingDaysPerWeek >= 4 -> "${String.format("%.1f", quickStats.avgTrainingDaysPerWeek)} days/week average - outstanding consistency!"
+                    quickStats.avgTrainingDaysPerWeek >= 3 -> "${String.format("%.1f", quickStats.avgTrainingDaysPerWeek)} days/week average - solid routine"
+                    quickStats.avgTrainingDaysPerWeek >= 2 -> "${String.format("%.1f", quickStats.avgTrainingDaysPerWeek)} days/week average - room for improvement"
+                    else -> "${String.format("%.1f", quickStats.avgTrainingDaysPerWeek)} days/week average - build the habit"
+                }
+
+                InsightCard(
+                    icon = Icons.Filled.CalendarMonth,
+                    title = "Training Consistency",
+                    description = consistencyDescription,
+                    color = when {
+                        quickStats.avgTrainingDaysPerWeek >= 4 -> Color(0xFF4CAF50)
+                        quickStats.avgTrainingDaysPerWeek >= 3 -> Color(0xFF2196F3)
+                        quickStats.avgTrainingDaysPerWeek >= 2 -> Color(0xFFFF9800)
+                        else -> Color(0xFFE53935)
+                    },
+                )
+
+                // Personal Record insight
+                val prDescription = quickStats.recentPR?.let { (exercise, weight) ->
+                    "Latest PR: ${weight.toInt()}kg on ${exercise.lowercase()} - keep pushing those limits!"
+                } ?: "No recent PRs tracked - time to set some new records!"
+
+                InsightCard(
+                    icon = Icons.Filled.EmojiEvents,
+                    title = "Personal Records",
+                    description = prDescription,
+                    color = if (quickStats.recentPR != null) Color(0xFFFFD700) else Color(0xFF9E9E9E),
                 )
 
                 // RPE/Recovery insight
@@ -471,10 +503,10 @@ private fun PerformanceInsightsSection(analyticsState: com.github.radupana.feath
                     performanceMetrics.averageRPE?.let { avgRPE ->
                         when {
                             avgRPE < 6 -> "Average RPE ${String.format("%.1f", avgRPE)} - you might be able to push harder"
-                            avgRPE <= 8 -> "Average RPE ${String.format("%.1f", avgRPE)} - good training intensity"
-                            else -> "Average RPE ${String.format("%.1f", avgRPE)} - consider more recovery"
+                            avgRPE <= 8 -> "Average RPE ${String.format("%.1f", avgRPE)} - perfect training intensity"
+                            else -> "Average RPE ${String.format("%.1f", avgRPE)} - consider more recovery time"
                         }
-                    } ?: "Track RPE to monitor training intensity"
+                    } ?: "Track RPE to monitor training intensity and recovery"
 
                 InsightCard(
                     icon = Icons.Filled.Psychology,
