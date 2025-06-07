@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -98,12 +97,12 @@ fun MainAppWithNavigation(
 ) {
     // Track previous screen for proper back navigation
     var previousScreen by remember { mutableStateOf<Screen?>(null) }
-    
+
     // Update previous screen when screen changes
     LaunchedEffect(currentScreen) {
-        if (currentScreen == Screen.ACTIVE_WORKOUT) {
-            // Don't update previousScreen when navigating to workout
-            // Keep the previous value
+        if (currentScreen == Screen.ACTIVE_WORKOUT || currentScreen == Screen.EXERCISE_SELECTOR) {
+            // Don't update previousScreen when navigating to workout or exercise selector
+            // Keep the previous value to maintain proper back navigation
         } else {
             previousScreen = currentScreen
         }
@@ -152,7 +151,7 @@ fun MainAppWithNavigation(
             Screen.ACTIVE_WORKOUT -> {
                 val workoutViewModel: WorkoutViewModel = viewModel()
                 WorkoutScreen(
-                    onBack = { 
+                    onBack = {
                         // Navigate back to the screen the user came from
                         val backScreen = previousScreen ?: Screen.HOME
                         onScreenChange(backScreen)
@@ -194,7 +193,7 @@ fun MainAppWithNavigation(
                 val analyticsViewModel: AnalyticsViewModel = viewModel()
                 AnalyticsScreen(
                     viewModel = analyticsViewModel,
-                    modifier = Modifier.padding(innerPadding)
+                    modifier = Modifier.padding(innerPadding),
                 )
             }
 
@@ -252,7 +251,7 @@ fun WorkoutScreen(
 @Composable
 fun HistoryScreen(
     onViewWorkout: (Long) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier) {
         HistoryScreen(onViewWorkout = onViewWorkout)

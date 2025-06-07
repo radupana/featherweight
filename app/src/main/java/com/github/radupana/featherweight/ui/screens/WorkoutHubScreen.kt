@@ -54,7 +54,6 @@ fun WorkoutHubScreen(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-
         // Primary Actions Card
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -171,7 +170,6 @@ fun WorkoutHubScreen(
             }
         }
 
-
         when {
             isLoading -> {
                 Box(
@@ -238,7 +236,7 @@ fun WorkoutHubScreen(
                             },
                             onDelete = { workoutId ->
                                 historyViewModel.deleteWorkout(workoutId)
-                            }
+                            },
                         )
                     }
 
@@ -353,12 +351,13 @@ fun RecentWorkoutCard(
         }
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = onView,
-                onLongClick = { showDeleteDialog = true }
-            ),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = onView,
+                    onLongClick = { showDeleteDialog = true },
+                ),
         elevation = CardDefaults.cardElevation(4.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor),
@@ -439,7 +438,7 @@ fun RecentWorkoutCard(
             }
         }
     }
-    
+
     // Delete confirmation dialog
     if (showDeleteDialog) {
         AlertDialog(
@@ -448,7 +447,7 @@ fun RecentWorkoutCard(
             text = {
                 Text(
                     "Are you sure you want to delete this workout? This action cannot be undone.",
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             },
             confirmButton = {
@@ -457,9 +456,10 @@ fun RecentWorkoutCard(
                         onDelete(workout.id)
                         showDeleteDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                        ),
                 ) {
                     Text("Delete")
                 }
@@ -468,7 +468,7 @@ fun RecentWorkoutCard(
                 OutlinedButton(onClick = { showDeleteDialog = false }) {
                     Text("Cancel")
                 }
-            }
+            },
         )
     }
 }

@@ -8,7 +8,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
@@ -25,9 +24,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.ExerciseCard
 import com.github.radupana.featherweight.ui.components.ProgressCard
-import com.github.radupana.featherweight.ui.components.SetRow
-import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
 import com.github.radupana.featherweight.ui.dialogs.SetEditingModal
+import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -167,63 +165,63 @@ fun WorkoutScreen(
                     .padding(innerPadding)
                     .fillMaxSize(),
         ) {
-                // Normal workout view
-                // Status banners
-                if (workoutState.isCompleted && !isEditMode) {
-                    ReadOnlyBanner(
-                        onEnterEditMode = { showEditModeDialog = true },
-                    )
-                } else if (isEditMode) {
-                    EditModeBanner()
-                }
+            // Normal workout view
+            // Status banners
+            if (workoutState.isCompleted && !isEditMode) {
+                ReadOnlyBanner(
+                    onEnterEditMode = { showEditModeDialog = true },
+                )
+            } else if (isEditMode) {
+                EditModeBanner()
+            }
 
-                // Progress section
-                ProgressCard(
-                    completedSets = completedSets,
-                    totalSets = totalSets,
+            // Progress section
+            ProgressCard(
+                completedSets = completedSets,
+                totalSets = totalSets,
+                modifier = Modifier.padding(16.dp),
+            )
+
+            // Exercises list or empty state
+            if (exercises.isEmpty()) {
+                EmptyWorkoutState(
+                    canEdit = canEdit,
+                    onAddExercise = onSelectExercise,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                ExercisesList(
+                    exercises = exercises,
+                    sets = sets,
+                    canEdit = canEdit,
+                    onDeleteExercise = { exerciseId ->
+                        if (canEdit) {
+                            viewModel.deleteExercise(exerciseId)
+                        }
+                    },
+                    onOpenSetEditingModal = { exerciseId ->
+                        val exercise = exercises.find { it.id == exerciseId }
+                        if (exercise != null) {
+                            setEditingExercise = exercise
+                            showSetEditingModal = true
+                            viewModel.loadSetsForExercise(exerciseId)
+                        }
+                    },
+                    viewModel = viewModel,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            // Action buttons at bottom
+            if (canEdit && exercises.isNotEmpty()) {
+                WorkoutActionButtons(
+                    hasExercises = exercises.isNotEmpty(),
+                    canCompleteWorkout = workoutState.isActive && !isEditMode,
+                    onAddExercise = onSelectExercise,
+                    onCompleteWorkout = { showCompleteWorkoutDialog = true },
                     modifier = Modifier.padding(16.dp),
                 )
-
-                // Exercises list or empty state
-                if (exercises.isEmpty()) {
-                    EmptyWorkoutState(
-                        canEdit = canEdit,
-                        onAddExercise = onSelectExercise,
-                        modifier = Modifier.weight(1f),
-                    )
-                } else {
-                    ExercisesList(
-                        exercises = exercises,
-                        sets = sets,
-                        canEdit = canEdit,
-                        onDeleteExercise = { exerciseId ->
-                            if (canEdit) {
-                                viewModel.deleteExercise(exerciseId)
-                            }
-                        },
-                        onOpenSetEditingModal = { exerciseId ->
-                            val exercise = exercises.find { it.id == exerciseId }
-                            if (exercise != null) {
-                                setEditingExercise = exercise
-                                showSetEditingModal = true
-                                viewModel.loadSetsForExercise(exerciseId)
-                            }
-                        },
-                        viewModel = viewModel,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-
-                // Action buttons at bottom
-                if (canEdit && exercises.isNotEmpty()) {
-                    WorkoutActionButtons(
-                        hasExercises = exercises.isNotEmpty(),
-                        canCompleteWorkout = workoutState.isActive && !isEditMode,
-                        onAddExercise = onSelectExercise,
-                        onCompleteWorkout = { showCompleteWorkoutDialog = true },
-                        modifier = Modifier.padding(16.dp),
-                    )
-                }
+            }
         }
     }
 
@@ -394,7 +392,7 @@ fun WorkoutScreen(
             viewModel = viewModel,
         )
     }
-    
+
     // Set Editing Modal
     if (showSetEditingModal && setEditingExercise != null && canEdit) {
         SetEditingModal(
@@ -411,9 +409,10 @@ fun WorkoutScreen(
                 viewModel.addSetToExercise(setEditingExercise!!.id)
             },
             onCopyLastSet = {
-                val lastSet = sets
-                    .filter { it.exerciseLogId == setEditingExercise!!.id }
-                    .maxByOrNull { it.setOrder }
+                val lastSet =
+                    sets
+                        .filter { it.exerciseLogId == setEditingExercise!!.id }
+                        .maxByOrNull { it.setOrder }
                 if (lastSet != null) {
                     viewModel.addSetToExercise(setEditingExercise!!.id, lastSet.weight, lastSet.reps, lastSet.rpe)
                 } else {
@@ -429,7 +428,7 @@ fun WorkoutScreen(
             onCompleteAllSets = {
                 viewModel.completeAllSetsInExercise(setEditingExercise!!.id)
             },
-            viewModel = viewModel
+            viewModel = viewModel,
         )
     }
 }
@@ -761,7 +760,6 @@ private fun ExercisesList(
     }
 }
 
-
 @Composable
 private fun WorkoutActionButtons(
     hasExercises: Boolean,
@@ -793,9 +791,10 @@ private fun WorkoutActionButtons(
             Button(
                 onClick = onCompleteWorkout,
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                    ),
             ) {
                 Icon(
                     Icons.Filled.CheckCircle,

@@ -1,12 +1,8 @@
 package com.github.radupana.featherweight.ui.dialogs
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,22 +16,22 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.*
-import androidx.compose.material3.Divider
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
@@ -45,6 +41,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun SetEditingModal(
@@ -58,13 +55,13 @@ fun SetEditingModal(
     onToggleCompleted: (Long, Boolean) -> Unit,
     onCompleteAllSets: () -> Unit,
     viewModel: WorkoutViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    
+
     // Scroll to newly added set
     LaunchedEffect(sets.size) {
         if (sets.isNotEmpty()) {
@@ -73,7 +70,7 @@ fun SetEditingModal(
             }
         }
     }
-    
+
     // Handle back button and outside tap to dismiss
     BackHandler {
         keyboardController?.hide()
@@ -87,208 +84,219 @@ fun SetEditingModal(
             focusManager.clearFocus()
             onDismiss()
         },
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false
-        )
+        properties =
+            DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false,
+            ),
     ) {
         Surface(
-            modifier = modifier
-                .fillMaxSize()
-                .systemBarsPadding(),
-            color = MaterialTheme.colorScheme.surface
+            modifier =
+                modifier
+                    .fillMaxSize()
+                    .systemBarsPadding(),
+            color = MaterialTheme.colorScheme.surface,
         ) {
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             ) {
                 // Header
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    tonalElevation = 4.dp
+                    tonalElevation = 4.dp,
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         IconButton(
                             onClick = {
                                 keyboardController?.hide()
                                 focusManager.clearFocus()
                                 onDismiss()
-                            }
+                            },
                         ) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Close",
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.primary,
                             )
                         }
-                        
+
                         Column(
                             modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
                                 exercise.exerciseName,
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.SemiBold,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
                             )
                             if (sets.isNotEmpty()) {
                                 val completedSets = sets.count { it.isCompleted }
                                 Text(
                                     "$completedSets/${sets.size} sets completed",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
-                        
+
                         Spacer(modifier = Modifier.width(48.dp))
                     }
                 }
 
                 // Content area with optimal space usage
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
                     ) {
                         // Show header only when there are sets
                         if (sets.isNotEmpty()) {
                             // Header row
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
                                     "Set",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.width(24.dp),
-                                    textAlign = TextAlign.Center
+                                    textAlign = TextAlign.Center,
                                 )
                                 Text(
                                     "Reps",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1f),
-                                    textAlign = TextAlign.Center
+                                    textAlign = TextAlign.Center,
                                 )
                                 Text(
                                     "Weight (kg)",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1.5f),
-                                    textAlign = TextAlign.Center
+                                    textAlign = TextAlign.Center,
                                 )
                                 Text(
                                     "RPE",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1f),
-                                    textAlign = TextAlign.Center
+                                    textAlign = TextAlign.Center,
                                 )
                                 // Complete All button positioned here
-                                val canCompleteAll = sets.isNotEmpty() && 
-                                    sets.all { viewModel.canMarkSetComplete(it) } &&
-                                    sets.any { !it.isCompleted }
-                                
+                                val canCompleteAll =
+                                    sets.isNotEmpty() &&
+                                        sets.all { viewModel.canMarkSetComplete(it) } &&
+                                        sets.any { !it.isCompleted }
+
                                 if (canCompleteAll) {
                                     OutlinedButton(
                                         onClick = onCompleteAllSets,
                                         modifier = Modifier.height(32.dp),
-                                        contentPadding = PaddingValues(horizontal = 6.dp)
+                                        contentPadding = PaddingValues(horizontal = 6.dp),
                                     ) {
                                         Icon(
                                             Icons.Filled.CheckCircle,
                                             contentDescription = "Complete All",
-                                            modifier = Modifier.size(12.dp)
+                                            modifier = Modifier.size(12.dp),
                                         )
                                         Spacer(modifier = Modifier.width(2.dp))
                                         Text(
                                             "All",
-                                            style = MaterialTheme.typography.labelSmall
+                                            style = MaterialTheme.typography.labelSmall,
                                         )
                                     }
                                 } else {
                                     Spacer(modifier = Modifier.width(64.dp))
                                 }
                             }
-                            
+
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.outlineVariant,
-                                thickness = 0.5.dp
+                                thickness = 0.5.dp,
                             )
                         }
-                        
+
                         // Always show the LazyColumn
                         Column(modifier = Modifier.weight(1f)) {
-                                // Sets list
-                                LazyColumn(
-                                    modifier = Modifier
+                            // Sets list
+                            LazyColumn(
+                                modifier =
+                                    Modifier
                                         .weight(1f)
                                         .fillMaxWidth(),
-                                    state = listState,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = 8.dp)
-                                ) {
-                                    // Always show action buttons first when there are no sets
-                                    if (sets.isEmpty()) {
-                                        item {
-                                            Card(
-                                                modifier = Modifier
+                                state = listState,
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = 8.dp),
+                            ) {
+                                // Always show action buttons first when there are no sets
+                                if (sets.isEmpty()) {
+                                    item {
+                                        Card(
+                                            modifier =
+                                                Modifier
                                                     .fillMaxWidth()
                                                     .padding(top = 16.dp),
-                                                colors = CardDefaults.cardColors(
-                                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                                )
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier
+                                            colors =
+                                                CardDefaults.cardColors(
+                                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                ),
+                                        ) {
+                                            Row(
+                                                modifier =
+                                                    Modifier
                                                         .fillMaxWidth()
                                                         .padding(16.dp),
-                                                    horizontalArrangement = Arrangement.Center
+                                                horizontalArrangement = Arrangement.Center,
+                                            ) {
+                                                OutlinedButton(
+                                                    onClick = onAddSet,
+                                                    modifier = Modifier.fillMaxWidth(0.6f),
                                                 ) {
-                                                    OutlinedButton(
-                                                        onClick = onAddSet,
-                                                        modifier = Modifier.fillMaxWidth(0.6f)
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.Add,
-                                                            contentDescription = "Add Set",
-                                                            modifier = Modifier.size(18.dp)
-                                                        )
-                                                        Spacer(modifier = Modifier.width(8.dp))
-                                                        Text("Add Set")
-                                                    }
+                                                    Icon(
+                                                        Icons.Filled.Add,
+                                                        contentDescription = "Add Set",
+                                                        modifier = Modifier.size(18.dp),
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text("Add Set")
                                                 }
                                             }
                                         }
                                     }
-                                    
+                                }
+
                                 items(sets) { set ->
                                     key(set.id) {
-                                        val dismissState = rememberSwipeToDismissBoxState(
-                                            confirmValueChange = { dismissDirection ->
-                                                if (dismissDirection == SwipeToDismissBoxValue.EndToStart) {
-                                                    onDeleteSet(set.id)
-                                                    true
-                                                } else {
-                                                    false
-                                                }
-                                            }
-                                        )
-                                        
+                                        val dismissState =
+                                            rememberSwipeToDismissBoxState(
+                                                confirmValueChange = { dismissDirection ->
+                                                    if (dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                                                        onDeleteSet(set.id)
+                                                        true
+                                                    } else {
+                                                        false
+                                                    }
+                                                },
+                                            )
+
                                         SwipeToDismissBox(
                                             state = dismissState,
                                             backgroundContent = {
@@ -297,25 +305,25 @@ fun SetEditingModal(
                                                     Surface(
                                                         modifier = Modifier.fillMaxSize(),
                                                         color = MaterialTheme.colorScheme.error,
-                                                        shape = RoundedCornerShape(8.dp)
+                                                        shape = RoundedCornerShape(8.dp),
                                                     ) {
                                                         Row(
                                                             modifier = Modifier.fillMaxSize(),
                                                             horizontalArrangement = Arrangement.End,
-                                                            verticalAlignment = Alignment.CenterVertically
+                                                            verticalAlignment = Alignment.CenterVertically,
                                                         ) {
                                                             Icon(
                                                                 Icons.Filled.Delete,
                                                                 contentDescription = "Delete",
                                                                 tint = MaterialTheme.colorScheme.onError,
-                                                                modifier = Modifier.padding(16.dp)
+                                                                modifier = Modifier.padding(16.dp),
                                                             )
                                                         }
                                                     }
                                                 }
                                             },
                                             enableDismissFromStartToEnd = false,
-                                            enableDismissFromEndToStart = true
+                                            enableDismissFromEndToStart = true,
                                         ) {
                                             ExpandedSetRow(
                                                 set = set,
@@ -325,57 +333,60 @@ fun SetEditingModal(
                                                 onToggleCompleted = { completed ->
                                                     onToggleCompleted(set.id, completed)
                                                 },
-                                                onDelete = { },  // No longer needed as we use swipe
+                                                onDelete = { }, // No longer needed as we use swipe
                                                 canMarkComplete = viewModel.canMarkSetComplete(set),
                                                 keyboardController = keyboardController,
-                                                showDeleteButton = false  // Hide the delete button
+                                                showDeleteButton = false, // Hide the delete button
                                             )
                                         }
                                     }
                                 }
-                                
+
                                 // Action buttons after sets (only when there are sets)
                                 if (sets.isNotEmpty()) {
                                     item {
                                         val lastSet = sets.maxByOrNull { it.setOrder }
                                         val canCopyLast = lastSet != null && lastSet.reps > 0 && lastSet.weight > 0f
-                                        
+
                                         Card(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .imePadding(),
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                            )
+                                            modifier =
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .imePadding(),
+                                            colors =
+                                                CardDefaults.cardColors(
+                                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                ),
                                         ) {
                                             Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(16.dp),
-                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                                modifier =
+                                                    Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(16.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                                             ) {
                                                 OutlinedButton(
                                                     onClick = onAddSet,
-                                                    modifier = Modifier.weight(1f)
+                                                    modifier = Modifier.weight(1f),
                                                 ) {
                                                     Icon(
                                                         Icons.Filled.Add,
                                                         contentDescription = "Add Set",
-                                                        modifier = Modifier.size(18.dp)
+                                                        modifier = Modifier.size(18.dp),
                                                     )
                                                     Spacer(modifier = Modifier.width(8.dp))
                                                     Text("Add Set")
                                                 }
-                
+
                                                 if (canCopyLast) {
                                                     OutlinedButton(
                                                         onClick = onCopyLastSet,
-                                                        modifier = Modifier.weight(1f)
+                                                        modifier = Modifier.weight(1f),
                                                     ) {
                                                         Icon(
                                                             Icons.Filled.ContentCopy,
                                                             contentDescription = "Copy Last",
-                                                            modifier = Modifier.size(18.dp)
+                                                            modifier = Modifier.size(18.dp),
                                                         )
                                                         Spacer(modifier = Modifier.width(8.dp))
                                                         Text("Copy Last")
@@ -403,10 +414,10 @@ private fun ExpandedSetRow(
     canMarkComplete: Boolean,
     keyboardController: SoftwareKeyboardController?,
     modifier: Modifier = Modifier,
-    showDeleteButton: Boolean = true
+    showDeleteButton: Boolean = true,
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
-    
+
     // Text field states - start with no selection to avoid auto-select on copy
     var repsValue by remember(set.id) {
         val text = if (set.reps > 0) set.reps.toString() else ""
@@ -425,12 +436,12 @@ private fun ExpandedSetRow(
     val repsFocusRequester = remember { FocusRequester() }
     val weightFocusRequester = remember { FocusRequester() }
     val rpeFocusRequester = remember { FocusRequester() }
-    
+
     // Simple approach: track when fields have focus for replacement
     var weightFieldHasFocus by remember { mutableStateOf(false) }
     var repsFieldHasFocus by remember { mutableStateOf(false) }
     var rpeFieldHasFocus by remember { mutableStateOf(false) }
-    
+
     // Update fields only when not focused (to avoid interfering with user input)
     LaunchedEffect(set.reps) {
         if (!repsFieldHasFocus) {
@@ -440,7 +451,7 @@ private fun ExpandedSetRow(
             }
         }
     }
-    
+
     LaunchedEffect(set.weight) {
         if (!weightFieldHasFocus) {
             val weightText = if (set.weight > 0) set.weight.toString() else ""
@@ -449,7 +460,7 @@ private fun ExpandedSetRow(
             }
         }
     }
-    
+
     LaunchedEffect(set.rpe) {
         if (!rpeFieldHasFocus) {
             val rpeText = set.rpe?.toString() ?: ""
@@ -467,28 +478,28 @@ private fun ExpandedSetRow(
         onUpdateSet(reps, weight, rpe)
     }
 
-
-    val bgColor = if (set.isCompleted) {
-        // Use opaque light green to prevent background bleed-through
-        Color(0xFFE8F5E9)  // Light green background (opaque)
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
+    val bgColor =
+        if (set.isCompleted) {
+            // Use opaque light green to prevent background bleed-through
+            Color(0xFFE8F5E9) // Light green background (opaque)
+        } else {
+            MaterialTheme.colorScheme.surface
+        }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = bgColor,
         shape = RoundedCornerShape(8.dp),
-        tonalElevation = if (set.isCompleted) 2.dp else 0.dp
+        tonalElevation = if (set.isCompleted) 2.dp else 0.dp,
     ) {
         Column(
-            modifier = Modifier.padding(12.dp)
+            modifier = Modifier.padding(12.dp),
         ) {
             // Compact single row layout
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Set number
                 Text(
@@ -496,26 +507,29 @@ private fun ExpandedSetRow(
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.width(24.dp),
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
                 )
                 // Reps field
                 OutlinedTextField(
-                        value = repsValue,
-                        onValueChange = { newValue ->
-                            val text = newValue.text
-                            if (text.isEmpty() || (text.all { it.isDigit() } && text.length <= 2)) {
-                                repsValue = newValue
-                                saveValues()
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(
+                    value = repsValue,
+                    onValueChange = { newValue ->
+                        val text = newValue.text
+                        if (text.isEmpty() || (text.all { it.isDigit() } && text.length <= 2)) {
+                            repsValue = newValue
+                            saveValues()
+                        }
+                    },
+                    keyboardOptions =
+                        KeyboardOptions(
                             keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Next
+                            imeAction = ImeAction.Next,
                         ),
-                        keyboardActions = KeyboardActions(
-                            onNext = { weightFocusRequester.requestFocus() }
+                    keyboardActions =
+                        KeyboardActions(
+                            onNext = { weightFocusRequester.requestFocus() },
                         ),
-                        modifier = Modifier
+                    modifier =
+                        Modifier
                             .weight(1f)
                             .height(48.dp)
                             .focusRequester(repsFocusRequester)
@@ -527,45 +541,51 @@ private fun ExpandedSetRow(
                                     repsValue = repsValue.copy(selection = TextRange(0, text.length))
                                 }
                             },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodySmall.copy(
-                            textAlign = TextAlign.Center
+                    singleLine = true,
+                    textStyle =
+                        MaterialTheme.typography.bodySmall.copy(
+                            textAlign = TextAlign.Center,
                         ),
-                        placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) }
-                    )
+                    placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) },
+                )
 
-                // Weight field  
+                // Weight field
                 OutlinedTextField(
-                        value = weightValue,
-                        onValueChange = { newValue ->
-                            val text = newValue.text
-                            if (text.isEmpty()) {
-                                weightValue = newValue
-                                saveValues()
-                            } else {
-                                val parts = text.split(".")
-                                val isValid = when (parts.size) {
+                    value = weightValue,
+                    onValueChange = { newValue ->
+                        val text = newValue.text
+                        if (text.isEmpty()) {
+                            weightValue = newValue
+                            saveValues()
+                        } else {
+                            val parts = text.split(".")
+                            val isValid =
+                                when (parts.size) {
                                     1 -> parts[0].all { it.isDigit() } && parts[0].length <= 4
-                                    2 -> parts[0].all { it.isDigit() } && 
-                                         parts[0].length <= 4 && 
-                                         parts[1].all { it.isDigit() } && 
-                                         parts[1].length <= 2
+                                    2 ->
+                                        parts[0].all { it.isDigit() } &&
+                                            parts[0].length <= 4 &&
+                                            parts[1].all { it.isDigit() } &&
+                                            parts[1].length <= 2
                                     else -> false
                                 }
-                                if (isValid) {
-                                    weightValue = newValue
-                                    saveValues()
-                                }
+                            if (isValid) {
+                                weightValue = newValue
+                                saveValues()
                             }
-                        },
-                        keyboardOptions = KeyboardOptions(
+                        }
+                    },
+                    keyboardOptions =
+                        KeyboardOptions(
                             keyboardType = KeyboardType.Decimal,
-                            imeAction = ImeAction.Next
+                            imeAction = ImeAction.Next,
                         ),
-                        keyboardActions = KeyboardActions(
-                            onNext = { rpeFocusRequester.requestFocus() }
+                    keyboardActions =
+                        KeyboardActions(
+                            onNext = { rpeFocusRequester.requestFocus() },
                         ),
-                        modifier = Modifier
+                    modifier =
+                        Modifier
                             .weight(1.5f)
                             .height(48.dp)
                             .focusRequester(weightFocusRequester)
@@ -577,43 +597,48 @@ private fun ExpandedSetRow(
                                     weightValue = weightValue.copy(selection = TextRange(0, text.length))
                                 }
                             },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodySmall.copy(
-                            textAlign = TextAlign.Center
+                    singleLine = true,
+                    textStyle =
+                        MaterialTheme.typography.bodySmall.copy(
+                            textAlign = TextAlign.Center,
                         ),
-                        placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) }
-                    )
+                    placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) },
+                )
 
                 // RPE field
                 OutlinedTextField(
-                        value = rpeValue,
-                        onValueChange = { newValue ->
-                            val text = newValue.text
-                            if (text.isEmpty()) {
+                    value = rpeValue,
+                    onValueChange = { newValue ->
+                        val text = newValue.text
+                        if (text.isEmpty()) {
+                            rpeValue = newValue
+                            saveValues()
+                        } else {
+                            val floatValue = text.toFloatOrNull()
+                            if (floatValue != null &&
+                                floatValue >= 0 &&
+                                floatValue <= 10 &&
+                                text.matches(Regex("^(10(\\.0)?|[0-9](\\.[0-9])?)$")) &&
+                                text.length <= 4
+                            ) {
                                 rpeValue = newValue
                                 saveValues()
-                            } else {
-                                val floatValue = text.toFloatOrNull()
-                                if (floatValue != null &&
-                                    floatValue >= 0 &&
-                                    floatValue <= 10 &&
-                                    text.matches(Regex("^(10(\\.0)?|[0-9](\\.[0-9])?)$")) &&
-                                    text.length <= 4) {
-                                    rpeValue = newValue
-                                    saveValues()
-                                }
                             }
-                        },
-                        keyboardOptions = KeyboardOptions(
+                        }
+                    },
+                    keyboardOptions =
+                        KeyboardOptions(
                             keyboardType = KeyboardType.Decimal,
-                            imeAction = ImeAction.Done
+                            imeAction = ImeAction.Done,
                         ),
-                        keyboardActions = KeyboardActions(
-                            onDone = { 
+                    keyboardActions =
+                        KeyboardActions(
+                            onDone = {
                                 keyboardController?.hide()
-                            }
+                            },
                         ),
-                        modifier = Modifier
+                    modifier =
+                        Modifier
                             .weight(1f)
                             .height(48.dp)
                             .focusRequester(rpeFocusRequester)
@@ -625,17 +650,18 @@ private fun ExpandedSetRow(
                                     rpeValue = rpeValue.copy(selection = TextRange(0, text.length))
                                 }
                             },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodySmall.copy(
-                            textAlign = TextAlign.Center
+                    singleLine = true,
+                    textStyle =
+                        MaterialTheme.typography.bodySmall.copy(
+                            textAlign = TextAlign.Center,
                         ),
-                        placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) }
-                    )
-                
+                    placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) },
+                )
+
                 // Checkbox in same space as Complete All button
                 Box(
                     modifier = Modifier.width(64.dp),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Checkbox(
                         checked = set.isCompleted,
@@ -645,9 +671,10 @@ private fun ExpandedSetRow(
                             }
                         },
                         enabled = canMarkComplete || set.isCompleted,
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = MaterialTheme.colorScheme.tertiary
-                        )
+                        colors =
+                            CheckboxDefaults.colors(
+                                checkedColor = MaterialTheme.colorScheme.tertiary,
+                            ),
                     )
                 }
             }
@@ -658,7 +685,7 @@ private fun ExpandedSetRow(
                     "Add reps & weight to complete",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }
@@ -676,9 +703,10 @@ private fun ExpandedSetRow(
                         onDelete()
                         showDeleteConfirmation = false
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                        ),
                 ) {
                     Text("Delete")
                 }
@@ -687,7 +715,7 @@ private fun ExpandedSetRow(
                 OutlinedButton(onClick = { showDeleteConfirmation = false }) {
                     Text("Cancel")
                 }
-            }
+            },
         )
     }
 }

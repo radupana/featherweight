@@ -43,7 +43,6 @@ fun HomeScreen(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-
         // Primary Actions
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -218,9 +217,10 @@ fun InProgressWorkoutCard(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onContinue() },
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clickable { onContinue() },
         elevation = CardDefaults.cardElevation(2.dp),
         colors =
             CardDefaults.cardColors(
@@ -252,18 +252,18 @@ fun InProgressWorkoutCard(
                 }
 
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         "Tap to continue",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     )
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
             }

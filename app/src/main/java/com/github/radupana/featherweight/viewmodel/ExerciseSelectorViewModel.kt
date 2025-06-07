@@ -120,9 +120,8 @@ class ExerciseSelectorViewModel(
                 // Ensure database is seeded first
                 repository.seedDatabaseIfEmpty()
 
-                // Then load exercises with usage statistics for smart sorting
-                val exercisesWithStats = repository.getAllExercisesWithUsageStats()
-                val exercises = exercisesWithStats.map { it.first }
+                // Load exercises efficiently (usage stats can be calculated on-demand)
+                val exercises = repository.getAllExercises()
                 _allExercises.value = exercises
 
                 println("Loaded ${exercises.size} exercises from database (sorted by usage)")

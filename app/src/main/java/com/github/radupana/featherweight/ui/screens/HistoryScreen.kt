@@ -37,7 +37,7 @@ data class WorkoutSummary(
 @Composable
 fun HistoryScreen(
     onViewWorkout: (Long) -> Unit = {},
-    historyViewModel: HistoryViewModel = viewModel()
+    historyViewModel: HistoryViewModel = viewModel(),
 ) {
     val workoutHistory by historyViewModel.workoutHistory.collectAsState()
     val isLoading by historyViewModel.isLoading.collectAsState()
@@ -53,7 +53,6 @@ fun HistoryScreen(
                 .fillMaxSize()
                 .padding(16.dp),
     ) {
-
         when {
             isLoading -> {
                 // Loading state
@@ -106,7 +105,7 @@ fun HistoryScreen(
                             onViewWorkout = onViewWorkout,
                             onDeleteWorkout = { workoutId ->
                                 historyViewModel.deleteWorkout(workoutId)
-                            }
+                            },
                         )
                     }
                 }
@@ -120,7 +119,7 @@ fun HistoryScreen(
 fun WorkoutHistoryCard(
     workout: WorkoutSummary,
     onViewWorkout: (Long) -> Unit = {},
-    onDeleteWorkout: (Long) -> Unit = {}
+    onDeleteWorkout: (Long) -> Unit = {},
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     // Improved color scheme: light yellow for in-progress, green for completed
@@ -140,12 +139,13 @@ fun WorkoutHistoryCard(
         }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = { onViewWorkout(workout.id) },
-                onLongClick = { showDeleteDialog = true }
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = { onViewWorkout(workout.id) },
+                    onLongClick = { showDeleteDialog = true },
+                ),
         elevation = CardDefaults.cardElevation(4.dp),
         shape = RoundedCornerShape(12.dp),
         colors =
@@ -245,7 +245,7 @@ fun WorkoutHistoryCard(
                         },
                 )
             }
-            
+
             // Long tap hint
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -253,11 +253,11 @@ fun WorkoutHistoryCard(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 textAlign = TextAlign.End,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
-    
+
     // Delete confirmation dialog
     if (showDeleteDialog) {
         AlertDialog(
@@ -266,7 +266,7 @@ fun WorkoutHistoryCard(
             text = {
                 Text(
                     "Are you sure you want to delete this workout? This action cannot be undone.",
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             },
             confirmButton = {
@@ -275,9 +275,10 @@ fun WorkoutHistoryCard(
                         onDeleteWorkout(workout.id)
                         showDeleteDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                        ),
                 ) {
                     Text("Delete")
                 }
@@ -286,7 +287,7 @@ fun WorkoutHistoryCard(
                 OutlinedButton(onClick = { showDeleteDialog = false }) {
                     Text("Cancel")
                 }
-            }
+            },
         )
     }
 }

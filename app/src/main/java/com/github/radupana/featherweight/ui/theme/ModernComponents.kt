@@ -26,55 +26,62 @@ fun GlassCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     elevation: Dp = 4.dp,
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
     var isPressed by remember { mutableStateOf(false) }
-    
+
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "card_scale"
-    )
-    
-    Card(
-        modifier = modifier
-            .scale(scale)
-            .then(
-                if (onClick != null) {
-                    Modifier.clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onClick()
-                    }
-                } else Modifier
+        animationSpec =
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium,
             ),
+        label = "card_scale",
+    )
+
+    Card(
+        modifier =
+            modifier
+                .scale(scale)
+                .then(
+                    if (onClick != null) {
+                        Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onClick()
+                        }
+                    } else {
+                        Modifier
+                    },
+                ),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = FeatherweightColors.cardGlassBackground()
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = elevation
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor = FeatherweightColors.cardGlassBackground(),
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = elevation,
+            ),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(
-                    width = 1.dp,
-                    color = FeatherweightColors.cardGlassBorder(),
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .padding(16.dp),
-            content = content
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .border(
+                        width = 1.dp,
+                        color = FeatherweightColors.cardGlassBorder(),
+                        shape = RoundedCornerShape(16.dp),
+                    )
+                    .padding(16.dp),
+            content = content,
         )
     }
-    
+
     LaunchedEffect(onClick) {
         if (onClick != null) {
             isPressed = false
@@ -90,53 +97,57 @@ fun GradientButton(
     enabled: Boolean = true,
     startColor: Color = FeatherweightColors.primaryGradientStart,
     endColor: Color = FeatherweightColors.primaryGradientEnd,
-    content: @Composable RowScope.() -> Unit
+    content: @Composable RowScope.() -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
     var isPressed by remember { mutableStateOf(false) }
-    
+
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
-        ),
-        label = "button_scale"
+        animationSpec =
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessHigh,
+            ),
+        label = "button_scale",
     )
-    
+
     val alpha by animateFloatAsState(
         targetValue = if (enabled) 1f else 0.6f,
-        label = "button_alpha"
+        label = "button_alpha",
     )
-    
+
     Box(
-        modifier = modifier
-            .scale(scale)
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        startColor.copy(alpha = alpha),
-                        endColor.copy(alpha = alpha)
-                    )
+        modifier =
+            modifier
+                .scale(scale)
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    brush =
+                        Brush.horizontalGradient(
+                            colors =
+                                listOf(
+                                    startColor.copy(alpha = alpha),
+                                    endColor.copy(alpha = alpha),
+                                ),
+                        ),
                 )
-            )
-            .clickable(
-                enabled = enabled,
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) {
-                isPressed = true
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onClick()
-            }
+                .clickable(
+                    enabled = enabled,
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                ) {
+                    isPressed = true
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onClick()
+                },
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-            content = content
+            content = content,
         )
     }
-    
+
     LaunchedEffect(isPressed) {
         if (isPressed) {
             kotlinx.coroutines.delay(150)
@@ -153,34 +164,38 @@ fun GradientProgressIndicator(
     trackColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     progressGradientStart: Color = FeatherweightColors.successGradientStart,
     progressGradientEnd: Color = FeatherweightColors.successGradientEnd,
-    strokeWidth: Dp = 8.dp
+    strokeWidth: Dp = 8.dp,
 ) {
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
-        animationSpec = tween(
-            durationMillis = 1000,
-            easing = EaseOutCubic
-        ),
-        label = "progress_animation"
+        animationSpec =
+            tween(
+                durationMillis = 1000,
+                easing = EaseOutCubic,
+            ),
+        label = "progress_animation",
     )
-    
+
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(strokeWidth)
-            .clip(RoundedCornerShape(strokeWidth / 2))
-            .background(trackColor)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(strokeWidth)
+                .clip(RoundedCornerShape(strokeWidth / 2))
+                .background(trackColor),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(animatedProgress.coerceIn(0f, 1f))
-                .clip(RoundedCornerShape(strokeWidth / 2))
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(progressGradientStart, progressGradientEnd)
-                    )
-                )
+            modifier =
+                Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(animatedProgress.coerceIn(0f, 1f))
+                    .clip(RoundedCornerShape(strokeWidth / 2))
+                    .background(
+                        brush =
+                            Brush.horizontalGradient(
+                                colors = listOf(progressGradientStart, progressGradientEnd),
+                            ),
+                    ),
         )
     }
 }
@@ -189,36 +204,40 @@ fun GradientProgressIndicator(
 @Composable
 fun ShimmerBox(
     modifier: Modifier = Modifier,
-    isLoading: Boolean = true
+    isLoading: Boolean = true,
 ) {
     if (isLoading) {
-        val shimmerColors = listOf(
-            FeatherweightColors.shimmerBase(),
-            FeatherweightColors.shimmerHighlight(),
-            FeatherweightColors.shimmerBase()
-        )
-        
+        val shimmerColors =
+            listOf(
+                FeatherweightColors.shimmerBase(),
+                FeatherweightColors.shimmerHighlight(),
+                FeatherweightColors.shimmerBase(),
+            )
+
         val transition = rememberInfiniteTransition(label = "shimmer")
         val translateAnim by transition.animateFloat(
             initialValue = 0f,
             targetValue = 1000f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1000, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "shimmer_translate"
+            animationSpec =
+                infiniteRepeatable(
+                    animation = tween(1000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+            label = "shimmer_translate",
         )
-        
+
         Box(
-            modifier = modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = shimmerColors,
-                        startX = translateAnim - 300f,
-                        endX = translateAnim
-                    )
-                )
+            modifier =
+                modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        brush =
+                            Brush.horizontalGradient(
+                                colors = shimmerColors,
+                                startX = translateAnim - 300f,
+                                endX = translateAnim,
+                            ),
+                    ),
         )
     }
 }
@@ -228,37 +247,40 @@ fun ShimmerBox(
 fun BreathingGlow(
     modifier: Modifier = Modifier,
     glowColor: Color = FeatherweightColors.primaryGradientStart,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "breathing")
     val alpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
         targetValue = 0.8f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = EaseInOutCubic),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "breathing_alpha"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(2000, easing = EaseInOutCubic),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "breathing_alpha",
     )
-    
+
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.02f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = EaseInOutCubic),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "breathing_scale"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(2000, easing = EaseInOutCubic),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "breathing_scale",
     )
-    
+
     Box(
-        modifier = modifier
-            .scale(scale)
-            .blur(radius = 20.dp)
-            .background(
-                color = glowColor.copy(alpha = alpha),
-                shape = RoundedCornerShape(16.dp)
-            )
+        modifier =
+            modifier
+                .scale(scale)
+                .blur(radius = 20.dp)
+                .background(
+                    color = glowColor.copy(alpha = alpha),
+                    shape = RoundedCornerShape(16.dp),
+                ),
     ) {
         content()
     }

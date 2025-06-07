@@ -14,28 +14,25 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.math.max
-import kotlin.math.min
 
 @Composable
 fun StrengthProgressionChart(
     data: List<Pair<Float, LocalDateTime>>, // weight, date
     modifier: Modifier = Modifier,
     lineColor: Color = MaterialTheme.colorScheme.primary,
-    exerciseName: String = ""
+    exerciseName: String = "",
 ) {
     if (data.isEmpty()) {
         Box(
             modifier = modifier.fillMaxWidth().height(200.dp),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "No data available for $exerciseName",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         return
@@ -48,20 +45,21 @@ fun StrengthProgressionChart(
             text = "$exerciseName Personal Records",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 4.dp)
+            modifier = Modifier.padding(bottom = 4.dp),
         )
         Text(
             text = "Current Max: ${currentMax.toInt()}kg",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 16.dp),
         )
 
         // Chart area
         Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
         ) {
             drawStrengthChart(data, lineColor)
         }
@@ -69,26 +67,26 @@ fun StrengthProgressionChart(
         // X-axis labels (simplified)
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             if (data.isNotEmpty()) {
                 val startDate = data.minByOrNull { it.second }?.second
                 val endDate = data.maxByOrNull { it.second }?.second
-                
+
                 Text(
                     text = startDate?.format(DateTimeFormatter.ofPattern("MMM yy")) ?: "",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = "Progress Over Time",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = endDate?.format(DateTimeFormatter.ofPattern("MMM yy")) ?: "",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -99,17 +97,17 @@ fun StrengthProgressionChart(
 fun VolumeBarChart(
     weeklyData: List<Pair<String, Float>>, // label, volume
     modifier: Modifier = Modifier,
-    barColor: Color = MaterialTheme.colorScheme.secondary
+    barColor: Color = MaterialTheme.colorScheme.secondary,
 ) {
     if (weeklyData.isEmpty()) {
         Box(
             modifier = modifier.fillMaxWidth().height(160.dp),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "No volume data available",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         return
@@ -120,14 +118,15 @@ fun VolumeBarChart(
             text = "Volume Trends",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 16.dp),
         )
 
         // Chart area
         Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(160.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(160.dp),
         ) {
             drawVolumeChart(weeklyData, barColor)
         }
@@ -135,7 +134,7 @@ fun VolumeBarChart(
         // X-axis labels
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             weeklyData.forEach { (label, _) ->
                 Text(
@@ -143,7 +142,7 @@ fun VolumeBarChart(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -152,28 +151,29 @@ fun VolumeBarChart(
 
 private fun DrawScope.drawStrengthChart(
     data: List<Pair<Float, LocalDateTime>>,
-    lineColor: Color
+    lineColor: Color,
 ) {
     if (data.size < 2) return
 
     val sortedData = data.sortedBy { it.second }
-    
+
     // Calculate bounds
     val minWeight = sortedData.minOf { it.first }
     val maxWeight = sortedData.maxOf { it.first }
     val weightRange = maxWeight - minWeight
     val padding = 40.dp.toPx()
-    
+
     val chartWidth = size.width - 2 * padding
     val chartHeight = size.height - 2 * padding
-    
+
     // Create points
-    val points = sortedData.mapIndexed { index, (weight, _) ->
-        val x = padding + (index.toFloat() / (sortedData.size - 1)) * chartWidth
-        val y = padding + (1 - (weight - minWeight) / weightRange) * chartHeight
-        Offset(x, y)
-    }
-    
+    val points =
+        sortedData.mapIndexed { index, (weight, _) ->
+            val x = padding + (index.toFloat() / (sortedData.size - 1)) * chartWidth
+            val y = padding + (1 - (weight - minWeight) / weightRange) * chartHeight
+            Offset(x, y)
+        }
+
     // Draw grid lines (horizontal)
     val gridColor = Color.Gray.copy(alpha = 0.3f)
     repeat(5) { i ->
@@ -182,45 +182,46 @@ private fun DrawScope.drawStrengthChart(
             color = gridColor,
             start = Offset(padding, y),
             end = Offset(size.width - padding, y),
-            strokeWidth = 1.dp.toPx()
+            strokeWidth = 1.dp.toPx(),
         )
     }
-    
+
     // Draw line
-    val path = Path().apply {
-        if (points.isNotEmpty()) {
-            moveTo(points[0].x, points[0].y)
-            for (i in 1 until points.size) {
-                lineTo(points[i].x, points[i].y)
+    val path =
+        Path().apply {
+            if (points.isNotEmpty()) {
+                moveTo(points[0].x, points[0].y)
+                for (i in 1 until points.size) {
+                    lineTo(points[i].x, points[i].y)
+                }
             }
         }
-    }
-    
+
     drawPath(
         path = path,
         color = lineColor,
-        style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+        style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round),
     )
-    
+
     // Draw points
     points.forEach { point ->
         drawCircle(
             color = lineColor,
             radius = 4.dp.toPx(),
-            center = point
+            center = point,
         )
         drawCircle(
             color = Color.White,
             radius = 2.dp.toPx(),
-            center = point
+            center = point,
         )
     }
-    
+
     // Draw Y-axis labels
     repeat(5) { i ->
         val weight = minWeight + (weightRange * i / 4f)
         val y = padding + ((4 - i) / 4f) * chartHeight
-        
+
         // You could add text drawing here if needed, but it's complex with Canvas
         // For now, we'll rely on the title showing the current max
     }
@@ -228,28 +229,28 @@ private fun DrawScope.drawStrengthChart(
 
 private fun DrawScope.drawVolumeChart(
     data: List<Pair<String, Float>>,
-    barColor: Color
+    barColor: Color,
 ) {
     if (data.isEmpty()) return
-    
+
     val maxVolume = data.maxOf { it.second }
     val padding = 20.dp.toPx()
     val chartHeight = size.height - 2 * padding
     val barWidth = (size.width - 2 * padding) / data.size * 0.7f
     val barSpacing = (size.width - 2 * padding) / data.size * 0.3f
-    
+
     data.forEachIndexed { index, (_, volume) ->
         val barHeight = if (maxVolume > 0) (volume / maxVolume) * chartHeight else 0f
         val x = padding + index * (barWidth + barSpacing)
         val y = size.height - padding - barHeight
-        
+
         // Draw bar
         drawRect(
             color = barColor,
             topLeft = Offset(x, y),
-            size = androidx.compose.ui.geometry.Size(barWidth, barHeight)
+            size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
         )
-        
+
         // Draw value on top of bar
         // (Text rendering in Canvas is complex, skipping for now)
     }
@@ -261,7 +262,7 @@ fun SimpleLineChart(
     labels: List<String> = emptyList(),
     modifier: Modifier = Modifier,
     lineColor: Color = MaterialTheme.colorScheme.primary,
-    title: String = ""
+    title: String = "",
 ) {
     Column(modifier = modifier) {
         if (title.isNotEmpty()) {
@@ -269,53 +270,56 @@ fun SimpleLineChart(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 16.dp),
             )
         }
 
         Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(120.dp),
         ) {
             if (dataPoints.size < 2) return@Canvas
-            
+
             val maxValue = dataPoints.maxOrNull() ?: 1f
             val minValue = dataPoints.minOrNull() ?: 0f
             val range = maxValue - minValue
             val padding = 20.dp.toPx()
-            
+
             val chartWidth = size.width - 2 * padding
             val chartHeight = size.height - 2 * padding
-            
-            val points = dataPoints.mapIndexed { index, value ->
-                val x = padding + (index.toFloat() / (dataPoints.size - 1)) * chartWidth
-                val y = padding + (1 - if (range > 0) (value - minValue) / range else 0f) * chartHeight
-                Offset(x, y)
-            }
-            
+
+            val points =
+                dataPoints.mapIndexed { index, value ->
+                    val x = padding + (index.toFloat() / (dataPoints.size - 1)) * chartWidth
+                    val y = padding + (1 - if (range > 0) (value - minValue) / range else 0f) * chartHeight
+                    Offset(x, y)
+                }
+
             // Draw line
-            val path = Path().apply {
-                if (points.isNotEmpty()) {
-                    moveTo(points[0].x, points[0].y)
-                    for (i in 1 until points.size) {
-                        lineTo(points[i].x, points[i].y)
+            val path =
+                Path().apply {
+                    if (points.isNotEmpty()) {
+                        moveTo(points[0].x, points[0].y)
+                        for (i in 1 until points.size) {
+                            lineTo(points[i].x, points[i].y)
+                        }
                     }
                 }
-            }
-            
+
             drawPath(
                 path = path,
                 color = lineColor,
-                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
             )
-            
+
             // Draw points
             points.forEach { point ->
                 drawCircle(
                     color = lineColor,
                     radius = 3.dp.toPx(),
-                    center = point
+                    center = point,
                 )
             }
         }
