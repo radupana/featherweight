@@ -125,11 +125,20 @@ private fun QuickStatsSection(analyticsState: com.github.radupana.featherweight.
                 ),
                 Triple(
                     QuickStat(
-                        recentPR?.first ?: "Recent PR",
+                        "Latest PR",
                         recentPR?.let {
                             "${it.second.toInt()}kg"
                         } ?: "No PRs",
-                        recentPR?.let { "Personal Record" } ?: "Set a record!",
+                        recentPR?.let { 
+                            // Shorten exercise names for better display
+                            when (it.first) {
+                                "Conventional Deadlift" -> "Deadlift"
+                                "Back Squat" -> "Squat"
+                                "Bench Press" -> "Bench"
+                                "Overhead Press" -> "OHP"
+                                else -> it.first
+                            }
+                        } ?: "Set a record!",
                         Icons.Filled.TrendingUp,
                         Color(0xFF2196F3),
                     ),
@@ -138,9 +147,9 @@ private fun QuickStatsSection(analyticsState: com.github.radupana.featherweight.
                 ),
                 Triple(
                     QuickStat(
-                        "Training Frequency",
-                        "${String.format("%.1f", quickStats.avgTrainingDaysPerWeek)} days/week",
-                        "Average",
+                        "Frequency",
+                        "${String.format("%.1f", quickStats.avgTrainingDaysPerWeek)}",
+                        "days/week",
                         Icons.Filled.CalendarMonth,
                         Color(0xFFFF6F00),
                     ),
@@ -309,7 +318,9 @@ private fun StrengthProgressionSection(
                             )
                         },
                         selected = analyticsState.chartViewMode == com.github.radupana.featherweight.viewmodel.ChartViewMode.VOLUME,
-                        modifier = Modifier.height(32.dp),
+                        modifier = Modifier
+                            .height(32.dp)
+                            .widthIn(min = 100.dp),
                     )
                 }
             }

@@ -144,6 +144,15 @@ class FeatherweightRepository(
     ): Long =
         withContext(Dispatchers.IO) {
             try {
+                // Check for duplicate names
+                val existingExercises = exerciseDao.getAllExercisesWithDetails()
+                val duplicateExists = existingExercises.any { 
+                    it.exercise.name.equals(name, ignoreCase = true)
+                }
+                
+                if (duplicateExists) {
+                    throw Exception("An exercise with the name '$name' already exists")
+                }
                 val exercise =
                     Exercise(
                         name = name,

@@ -36,8 +36,18 @@ fun ExerciseSelectorScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val exerciseCreated by viewModel.exerciseCreated.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
+    
+    // Handle successful exercise creation
+    LaunchedEffect(exerciseCreated) {
+        exerciseCreated?.let { exerciseName ->
+            onCreateCustomExercise(exerciseName)
+            viewModel.clearExerciseCreated()
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loadExercises()
@@ -72,6 +82,36 @@ fun ExerciseSelectorScreen(
                     .padding(innerPadding)
                     .fillMaxSize(),
         ) {
+            // Error handling at the top
+            errorMessage?.let { error ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = { viewModel.clearError() }) {
+                            Icon(
+                                Icons.Filled.Clear,
+                                contentDescription = "Clear error",
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
+            }
             // Search Bar
             SearchBar(
                 query = searchQuery,
@@ -140,7 +180,7 @@ fun ExerciseSelectorScreen(
                                 onClick = {
                                     if (searchQuery.isNotEmpty()) {
                                         viewModel.createCustomExercise(searchQuery)
-                                        onCreateCustomExercise(searchQuery)
+                                        // Success will be handled by LaunchedEffect above
                                     } else {
                                         showCreateDialog = true
                                     }
@@ -182,8 +222,8 @@ fun ExerciseSelectorScreen(
             onDismiss = { showCreateDialog = false },
             onCreate = { name ->
                 viewModel.createCustomExercise(name)
-                onCreateCustomExercise(name)
                 showCreateDialog = false
+                // Success will be handled by LaunchedEffect above
             },
         )
     }
@@ -337,6 +377,7 @@ private fun ExerciseCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CreateCustomExerciseDialog(
     initialName: String = "",
@@ -344,6 +385,13 @@ private fun CreateCustomExerciseDialog(
     onCreate: (String) -> Unit,
 ) {
     var exerciseName by remember { mutableStateOf(initialName) }
+    var selectedCategory by remember { mutableStateOf(ExerciseCategory.FULL_BODY) }
+    var selectedPrimaryMuscles by remember { mutableStateOf(setOf<MuscleGroup>()) }
+    var selectedSecondaryMuscles by remember { mutableStateOf(setOf<MuscleGroup>()) }
+    var selectedEquipment by remember { mutableStateOf(setOf<Equipment>()) }
+    var selectedDifficulty by remember { mutableStateOf(ExerciseDifficulty.BEGINNER) }
+    var requiresWeight by remember { mutableStateOf(true) }
+    var showAdvanced by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -355,26 +403,187 @@ private fun CreateCustomExerciseDialog(
             )
         },
         text = {
-            Column {
-                Text(
-                    "Enter the name for your custom exercise:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
+            LazyColumn(
+                modifier = Modifier.height(400.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                item {
+                    OutlinedTextField(
+                        value = exerciseName,
+                        onValueChange = { exerciseName = it },
+                        label = { Text("Exercise name *") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        isError = exerciseName.isBlank(),
+                    )
+                }
 
-                OutlinedTextField(
-                    value = exerciseName,
-                    onValueChange = { exerciseName = it },
-                    label = { Text("Exercise name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
+                item {
+                    Text(
+                        text = "Category *",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(ExerciseCategory.values()) { category ->
+                            FilterChip(
+                                selected = selectedCategory == category,
+                                onClick = { selectedCategory = category },
+                                label = { Text(category.displayName) },
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Show advanced options",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Switch(
+                            checked = showAdvanced,
+                            onCheckedChange = { showAdvanced = it },
+                        )
+                    }
+                }
+
+                if (showAdvanced) {
+                    item {
+                        Text(
+                            text = "Primary Muscles",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(MuscleGroup.values()) { muscle ->
+                                FilterChip(
+                                    selected = muscle in selectedPrimaryMuscles,
+                                    onClick = {
+                                        selectedPrimaryMuscles = if (muscle in selectedPrimaryMuscles) {
+                                            selectedPrimaryMuscles - muscle
+                                        } else {
+                                            selectedPrimaryMuscles + muscle
+                                        }
+                                        // Remove from secondary if added to primary
+                                        if (muscle in selectedPrimaryMuscles) {
+                                            selectedSecondaryMuscles = selectedSecondaryMuscles - muscle
+                                        }
+                                    },
+                                    label = { Text(muscle.displayName) },
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Text(
+                            text = "Secondary Muscles",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(MuscleGroup.values().filter { it !in selectedPrimaryMuscles }) { muscle ->
+                                FilterChip(
+                                    selected = muscle in selectedSecondaryMuscles,
+                                    onClick = {
+                                        selectedSecondaryMuscles = if (muscle in selectedSecondaryMuscles) {
+                                            selectedSecondaryMuscles - muscle
+                                        } else {
+                                            selectedSecondaryMuscles + muscle
+                                        }
+                                    },
+                                    label = { Text(muscle.displayName) },
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Text(
+                            text = "Equipment",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(Equipment.values()) { equipment ->
+                                FilterChip(
+                                    selected = equipment in selectedEquipment,
+                                    onClick = {
+                                        selectedEquipment = if (equipment in selectedEquipment) {
+                                            selectedEquipment - equipment
+                                        } else {
+                                            selectedEquipment + equipment
+                                        }
+                                    },
+                                    label = { Text(equipment.displayName) },
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Text(
+                            text = "Difficulty",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(ExerciseDifficulty.values()) { difficulty ->
+                                FilterChip(
+                                    selected = selectedDifficulty == difficulty,
+                                    onClick = { selectedDifficulty = difficulty },
+                                    label = { Text(difficulty.displayName) },
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Requires weight",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                Text(
+                                    text = "Turn off for bodyweight exercises",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Switch(
+                                checked = requiresWeight,
+                                onCheckedChange = { requiresWeight = it },
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (exerciseName.isNotBlank()) {
+                        // For now, just pass the name - we'll enhance this later
                         onCreate(exerciseName)
                     }
                 },

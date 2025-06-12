@@ -264,21 +264,16 @@ which is already available in your context.
    refresh
 6. **Tooltips**: Calculation explanations for all Quick Stats metrics
 
-**URGENT - Next Session Priority Issues:**
+**COMPLETED - UI/UX Polish ✅**
 
-1. **Custom Exercise Enhancement**: Allow users to provide full exercise metadata (muscle groups,
-   equipment, etc.) when creating custom exercises, with optional fields
-2. **Duplicate Exercise Prevention**: Prevent adding custom exercises with duplicate names
-3. **Analytics Quick Stats Text Overflow**:
-    - Latest PR card should show both "Latest PR" label AND exercise name clearly
-    - Training Frequency card shows "4.0 days/" with text cut off, need full "days/week" display
-4. **Volume Filter Chip**: Still shows "V" instead of "Volume" on Strength Progression section -
-   text doesn't fit in chip
-5. **Volume Bar Alignment**: Volume trend bars are misaligned with date labels, causing tap
-   detection issues (need to tap next to bar instead of on it)
+1. **Custom Exercise Enhancement**: Enhanced dialog with full metadata options (muscle groups, equipment, difficulty, weight requirements) with advanced/simple modes
+2. **Duplicate Exercise Prevention**: Added validation to prevent creating exercises with duplicate names
+3. **Analytics Quick Stats Text Overflow**: Fixed Latest PR card to show exercise name clearly, fixed Training Frequency display
+4. **Volume Filter Chip**: Fixed width to show full "Volume" text instead of truncated "Volum"
+5. **Volume Bar Alignment**: Fixed tap detection alignment to match actual bar positions in volume charts
 
 **NEXT MAJOR MILESTONE - Workout Templates:**
-After fixing above issues, implement pre-defined workout templates with popular strength programs:
+Implement pre-defined workout templates with popular strength programs:
 
 - **Wendler's 531 variations** (Original, BBB, FSL, etc.)
 - **StrongLifts 5x5**

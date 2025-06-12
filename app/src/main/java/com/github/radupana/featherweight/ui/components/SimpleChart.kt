@@ -165,12 +165,14 @@ fun VolumeBarChart(
                     .height(160.dp)
                     .pointerInput(weeklyData) {
                         detectTapGestures { offset ->
-                            val barWidth = size.width / weeklyData.size * 0.7f
-                            val barSpacing = size.width / weeklyData.size * 0.15f
                             val padding = 20.dp.toPx()
+                            val chartWidth = size.width - 2 * padding
+                            val barWidth = chartWidth / weeklyData.size * 0.7f
+                            val barSpacing = chartWidth / weeklyData.size * 0.3f
 
                             weeklyData.forEachIndexed { index, (label, volume) ->
-                                val x = padding + index * (barWidth + barSpacing * 2) + barSpacing
+                                // Match the exact calculation from drawVolumeChart
+                                val x = padding + index * (barWidth + barSpacing)
 
                                 if (offset.x >= x && offset.x <= x + barWidth) {
                                     selectedBar = if (selectedBar == index) null else index

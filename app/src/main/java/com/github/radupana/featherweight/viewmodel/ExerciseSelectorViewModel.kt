@@ -18,6 +18,14 @@ class ExerciseSelectorViewModel(
     // Raw data
     private val _allExercises = MutableStateFlow<List<ExerciseWithDetails>>(emptyList())
     private val _isLoading = MutableStateFlow(false)
+    
+    // Error state
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+    
+    // Success state for creation
+    private val _exerciseCreated = MutableStateFlow<String?>(null)
+    val exerciseCreated: StateFlow<String?> = _exerciseCreated
 
     // Filter state
     private val _searchQuery = MutableStateFlow("")
@@ -160,6 +168,9 @@ class ExerciseSelectorViewModel(
     fun createCustomExercise(name: String) {
         viewModelScope.launch {
             try {
+                _errorMessage.value = null // Clear any previous errors
+                _exerciseCreated.value = null // Clear any previous success
+                
                 // Try to determine category from name
                 val category = inferCategoryFromName(name)
 
@@ -179,10 +190,22 @@ class ExerciseSelectorViewModel(
 
                 // Reload exercises after creating
                 loadExercises()
+                
+                // Signal success
+                _exerciseCreated.value = name
             } catch (e: Exception) {
+                _errorMessage.value = e.message
                 println("Error creating custom exercise: ${e.message}")
             }
         }
+    }
+    
+    fun clearError() {
+        _errorMessage.value = null
+    }
+    
+    fun clearExerciseCreated() {
+        _exerciseCreated.value = null
     }
 
     private fun inferCategoryFromName(name: String): ExerciseCategory {
