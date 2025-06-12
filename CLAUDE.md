@@ -192,7 +192,7 @@ which is already available in your context.
 
 ## Documentation & Resources
 
-- `EXERCISES.md`: Comprehensive exercise system specification with competitive analysis
+
 - `CLAUDE.md`: This file - complete codebase overview and development guidelines
 - Recent git commits show UI improvements and exercise database expansion
 
@@ -270,6 +270,58 @@ After fixing above issues, implement pre-defined workout templates with popular 
 2. **Wearable Integration**: Apple Watch, Wear OS support
 3. **Advanced Analytics**: ML-powered insights, plateau detection
 4. **Nutrition Integration**: Meal tracking, macro calculations
+
+## 🤖 AI Import Feature (Next Major Priority)
+
+### 📋 Feature Overview
+**AI-to-App Workflow Automation** - Users can paste AI-generated workout programs (from ChatGPT, Claude, etc.) and automatically convert them into structured, trackable programs within Featherweight. Eliminates manual transcription of AI workout programs.
+
+### 🎯 Key Implementation Steps
+
+#### 1. Introduce Program Concept
+- **Programs** = Collection of related workouts with shared goals/metadata (e.g., "12-week Upper/Lower Split")
+- Extends current single-workout tracking to multi-workout program tracking
+- Programs contain: name, description, duration, difficulty, goals, progression scheme
+- Individual workouts belong to programs and follow program structure
+
+#### 2. Create JSON Schema for Workout Programs
+- Design flexible schema handling input from vague ("4-day PPL") to specific ("Week 1: Bench 3x8 @80%")
+- Schema must capture: program metadata, individual workouts, exercises with sets/reps/RPE/progression
+- Handle ambiguity with sensible defaults while preserving user-specified details
+- Support various rep schemes (fixed, ranges, RPE-based), weight prescriptions (%, fixed, bodyweight)
+
+#### 3. LLM Integration Service
+- HTTP integration with OpenAI API (GPT-4o mini recommended for cost efficiency)
+- System prompt includes JSON schema + examples of input→output transformations
+- User provides text input → LLM returns structured JSON → App parses JSON
+- Include rate limiting (5 imports per user per month) and quota management
+- Handle malformed responses and API errors gracefully
+
+#### 4. Program Creation Pipeline
+- Parse LLM JSON response into app data structures
+- Match AI exercise names to existing exercise database (handle variations/aliases)
+- Create new exercises for unrecognized names, suggest alternatives
+- Generate Program + ProgramWorkout + Exercise entities in database
+- Validate program structure and provide user review interface before saving
+
+#### 5. UI Integration Points
+- Add "Import" option to Templates/Home screen
+- Create import screen with text input area and processing feedback
+- Add program review screen for user to verify/edit before saving. Allow user to edit program after generation as well.
+- Modify workout flow to support program-based workouts vs standalone workouts
+- Add program management screens (browse, activate, view progress)
+
+### 🎯 Success Metrics
+- Users can go from "Claude, create me a workout program" to trackable templates in under 30 seconds
+- Eliminates manual workout program transcription 
+- Positions Featherweight as first AI-native fitness tracking app
+- Creates viral sharing potential ("Check out this AI import feature")
+
+### ⚠️ Current Dependencies
+- Existing workout tracking system must remain fully functional
+- Template system needs to be expanded to support program templates
+- Exercise database needs robust matching/alias system
+- User quota and rate limiting system for API costs
 
 ## Development Best Practices
 
