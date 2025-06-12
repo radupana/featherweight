@@ -6,13 +6,21 @@ import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.ui.screens.WorkoutSummary
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class HistoryCache(
+data class PaginatedHistoryState(
     val workouts: List<WorkoutSummary> = emptyList(),
-    val lastUpdated: Long = 0L,
-    val sessionWorkoutIds: Set<Long> = emptySet(),
+    val isLoading: Boolean = false,
+    val isLoadingMore: Boolean = false,
+    val hasMoreData: Boolean = true,
+    val currentPage: Int = 0,
+    val pageSize: Int = 20,
+    val totalCount: Int? = null,
+    val error: String? = null,
 )
 
 class HistoryViewModel(
@@ -20,148 +28,194 @@ class HistoryViewModel(
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
 
-    private val _workoutHistory = MutableStateFlow<List<WorkoutSummary>>(emptyList())
-    val workoutHistory: StateFlow<List<WorkoutSummary>> = _workoutHistory
+    private val _historyState = MutableStateFlow(PaginatedHistoryState())
+    val historyState: StateFlow<PaginatedHistoryState> = _historyState
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    // Legacy compatibility - expose workouts and loading separately
+    val workoutHistory: StateFlow<List<WorkoutSummary>> =
+        _historyState.map { state ->
+            state.workouts
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val isLoading: StateFlow<Boolean> =
+        _historyState.map { state ->
+            state.isLoading
+        }.stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
-    private var historyCache = HistoryCache()
-
     init {
-        // Seed database if empty and load history
+        // Seed database if empty and load initial page
         viewModelScope.launch {
             repository.seedDatabaseIfEmpty()
-            loadWorkoutHistory()
+            loadInitialData()
+        }
+    }
+
+    private suspend fun loadInitialData() {
+        val currentState = _historyState.value
+        if (currentState.workouts.isNotEmpty()) {
+            println("🔍 HistoryViewModel: Already loaded ${currentState.workouts.size} workouts, skipping")
+            return // Already loaded
+        }
+
+        println("🔍 HistoryViewModel: Loading initial data...")
+        _historyState.value = currentState.copy(isLoading = true, error = null)
+
+        try {
+            val totalCount = repository.getTotalWorkoutCount()
+            println("🔍 HistoryViewModel: Total workout count: $totalCount")
+            
+            val firstPageRepo = repository.getWorkoutHistoryPaged(page = 0, pageSize = currentState.pageSize)
+            println("🔍 HistoryViewModel: Received ${firstPageRepo.size} workouts from repository")
+            
+            val firstPage = firstPageRepo.map { repoSummary ->
+                WorkoutSummary(
+                    id = repoSummary.id,
+                    date = repoSummary.date,
+                    name = repoSummary.name,
+                    exerciseCount = repoSummary.exerciseCount,
+                    setCount = repoSummary.setCount,
+                    totalWeight = repoSummary.totalWeight,
+                    duration = repoSummary.duration,
+                    isCompleted = repoSummary.isCompleted,
+                )
+            }
+
+            val hasMoreData = firstPage.size == currentState.pageSize && firstPage.size < totalCount
+            println("🔍 HistoryViewModel: Setting state with ${firstPage.size} workouts, hasMoreData: $hasMoreData")
+            println("🔍 HistoryViewModel: Logic: firstPage.size (${firstPage.size}) == pageSize (${currentState.pageSize}) && < totalCount ($totalCount)")
+
+            _historyState.value = currentState.copy(
+                workouts = firstPage,
+                isLoading = false,
+                currentPage = 0,
+                totalCount = totalCount,
+                hasMoreData = hasMoreData,
+            )
+        } catch (e: Exception) {
+            println("🔍 HistoryViewModel: Error loading initial data: ${e.message}")
+            e.printStackTrace()
+            _historyState.value = currentState.copy(
+                isLoading = false,
+                error = "Failed to load workout history: ${e.message}",
+            )
         }
     }
 
     fun loadWorkoutHistory(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            val cacheAge = now - historyCache.lastUpdated
-            val cacheValidDuration = 5 * 60 * 1000L // 5 minutes
-
-            // Use cache-then-update strategy
-            val shouldUseCache = !forceRefresh && cacheAge < cacheValidDuration && historyCache.lastUpdated > 0
-
-            if (shouldUseCache) {
-                // Hydrate immediately from cache
-                hydrateFromCache()
-
-                // Background refresh to check for new data
-                backgroundRefresh()
+            if (forceRefresh) {
+                refreshHistory()
             } else {
-                // Full refresh
-                fullRefresh()
+                loadInitialData()
             }
-        }
-    }
-
-    private suspend fun hydrateFromCache() {
-        if (historyCache.workouts.isNotEmpty()) {
-            _workoutHistory.value = historyCache.workouts
-            _isLoading.value = false
-        }
-    }
-
-    private suspend fun backgroundRefresh() {
-        _isRefreshing.value = true
-
-        try {
-            val freshWorkouts = repository.getWorkoutHistory()
-            val freshWorkoutIds = freshWorkouts.map { it.id }.toSet()
-            val cachedWorkoutIds = historyCache.sessionWorkoutIds
-
-            // Check if there are new workouts since last cache
-            val hasNewData = freshWorkoutIds != cachedWorkoutIds || freshWorkouts.size != historyCache.workouts.size
-
-            if (hasNewData) {
-                // Update with fresh data
-                refreshWithNewData(freshWorkouts)
-            }
-        } catch (e: Exception) {
-            // Silent failure for background refresh
-            println("Background refresh failed: ${e.message}")
-        } finally {
-            _isRefreshing.value = false
-        }
-    }
-
-    private suspend fun refreshWithNewData(freshWorkouts: List<com.github.radupana.featherweight.repository.WorkoutSummary>) {
-        try {
-            // Convert repository WorkoutSummary to UI WorkoutSummary
-            val uiHistory =
-                freshWorkouts.map { repoSummary ->
-                    WorkoutSummary(
-                        id = repoSummary.id,
-                        date = repoSummary.date,
-                        name = repoSummary.name,
-                        exerciseCount = repoSummary.exerciseCount,
-                        setCount = repoSummary.setCount,
-                        totalWeight = repoSummary.totalWeight,
-                        duration = repoSummary.duration,
-                        isCompleted = repoSummary.isCompleted,
-                    )
-                }
-
-            // Update cache
-            historyCache =
-                historyCache.copy(
-                    workouts = uiHistory,
-                    lastUpdated = System.currentTimeMillis(),
-                    sessionWorkoutIds = freshWorkouts.map { it.id }.toSet(),
-                )
-
-            // Update UI
-            _workoutHistory.value = uiHistory
-        } catch (e: Exception) {
-            println("Error refreshing workout history: ${e.message}")
-        }
-    }
-
-    private suspend fun fullRefresh() {
-        _isLoading.value = true
-        try {
-            val history = repository.getWorkoutHistory()
-
-            // Convert repository WorkoutSummary to UI WorkoutSummary
-            val uiHistory =
-                history.map { repoSummary ->
-                    WorkoutSummary(
-                        id = repoSummary.id,
-                        date = repoSummary.date,
-                        name = repoSummary.name,
-                        exerciseCount = repoSummary.exerciseCount,
-                        setCount = repoSummary.setCount,
-                        totalWeight = repoSummary.totalWeight,
-                        duration = repoSummary.duration,
-                        isCompleted = repoSummary.isCompleted,
-                    )
-                }
-
-            // Update cache
-            historyCache =
-                historyCache.copy(
-                    workouts = uiHistory,
-                    lastUpdated = System.currentTimeMillis(),
-                    sessionWorkoutIds = history.map { it.id }.toSet(),
-                )
-
-            _workoutHistory.value = uiHistory
-        } catch (e: Exception) {
-            // Handle error
-            println("Error loading workout history: ${e.message}")
-        } finally {
-            _isLoading.value = false
         }
     }
 
     fun refreshHistory() {
-        loadWorkoutHistory(forceRefresh = true)
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            val currentState = _historyState.value
+
+            try {
+                val totalCount = repository.getTotalWorkoutCount()
+                val firstPageRepo = repository.getWorkoutHistoryPaged(page = 0, pageSize = currentState.pageSize)
+                val firstPage =
+                    firstPageRepo.map { repoSummary ->
+                        WorkoutSummary(
+                            id = repoSummary.id,
+                            date = repoSummary.date,
+                            name = repoSummary.name,
+                            exerciseCount = repoSummary.exerciseCount,
+                            setCount = repoSummary.setCount,
+                            totalWeight = repoSummary.totalWeight,
+                            duration = repoSummary.duration,
+                            isCompleted = repoSummary.isCompleted,
+                        )
+                    }
+
+                _historyState.value =
+                    currentState.copy(
+                        workouts = firstPage,
+                        currentPage = 0,
+                        totalCount = totalCount,
+                        hasMoreData = firstPage.size == currentState.pageSize && firstPage.size < totalCount,
+                        error = null,
+                    )
+            } catch (e: Exception) {
+                _historyState.value =
+                    currentState.copy(
+                        error = "Failed to refresh workout history: ${e.message}",
+                    )
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
+
+    fun loadNextPage() {
+        println("🔍 HistoryViewModel: loadNextPage() called")
+        viewModelScope.launch {
+            val currentState = _historyState.value
+
+            // Don't load if already loading, no more data, or error state
+            if (currentState.isLoadingMore || !currentState.hasMoreData || currentState.error != null) {
+                println("🔍 HistoryViewModel: Skipping loadNextPage - isLoadingMore: ${currentState.isLoadingMore}, hasMoreData: ${currentState.hasMoreData}, error: ${currentState.error}")
+                return@launch
+            }
+
+            println("🔍 HistoryViewModel: Starting to load next page ${currentState.currentPage + 1}")
+            _historyState.value = currentState.copy(isLoadingMore = true)
+
+            try {
+                val nextPage = currentState.currentPage + 1
+                val newWorkoutsRepo =
+                    repository.getWorkoutHistoryPaged(
+                        page = nextPage,
+                        pageSize = currentState.pageSize,
+                    )
+                val newWorkouts =
+                    newWorkoutsRepo.map { repoSummary ->
+                        WorkoutSummary(
+                            id = repoSummary.id,
+                            date = repoSummary.date,
+                            name = repoSummary.name,
+                            exerciseCount = repoSummary.exerciseCount,
+                            setCount = repoSummary.setCount,
+                            totalWeight = repoSummary.totalWeight,
+                            duration = repoSummary.duration,
+                            isCompleted = repoSummary.isCompleted,
+                        )
+                    }
+
+                val allWorkouts = currentState.workouts + newWorkouts
+                val hasMoreData =
+                    newWorkouts.size == currentState.pageSize &&
+                        (currentState.totalCount?.let { allWorkouts.size < it } ?: true)
+                
+                println("🔍 HistoryViewModel: loadNextPage results:")
+                println("  📦 newWorkouts.size: ${newWorkouts.size}")
+                println("  📚 allWorkouts.size after merge: ${allWorkouts.size}")
+                println("  🎯 totalCount: ${currentState.totalCount}")
+                println("  ✅ hasMoreData: $hasMoreData")
+
+                _historyState.value =
+                    currentState.copy(
+                        workouts = allWorkouts,
+                        currentPage = nextPage,
+                        isLoadingMore = false,
+                        hasMoreData = hasMoreData,
+                    )
+            } catch (e: Exception) {
+                _historyState.value =
+                    currentState.copy(
+                        isLoadingMore = false,
+                        error = "Failed to load more workouts: ${e.message}",
+                    )
+            }
+        }
     }
 
     fun deleteWorkout(workoutId: Long) {
@@ -169,39 +223,65 @@ class HistoryViewModel(
             try {
                 repository.deleteWorkout(workoutId)
 
-                // Update cache by removing the deleted workout
-                val updatedWorkouts = historyCache.workouts.filter { it.id != workoutId }
-                val updatedWorkoutIds = updatedWorkouts.map { it.id }.toSet()
+                val currentState = _historyState.value
+                val updatedWorkouts = currentState.workouts.filter { it.id != workoutId }
+                val newTotalCount = (currentState.totalCount ?: 0) - 1
 
-                historyCache =
-                    historyCache.copy(
+                _historyState.value =
+                    currentState.copy(
                         workouts = updatedWorkouts,
-                        lastUpdated = System.currentTimeMillis(),
-                        sessionWorkoutIds = updatedWorkoutIds,
+                        totalCount = newTotalCount,
+                        error = null,
                     )
-
-                // Update UI immediately
-                _workoutHistory.value = updatedWorkouts
             } catch (e: Exception) {
-                println("Error deleting workout: ${e.message}")
+                val currentState = _historyState.value
+                _historyState.value =
+                    currentState.copy(
+                        error = "Failed to delete workout: ${e.message}",
+                    )
                 // Refresh on error to ensure UI is accurate
-                loadWorkoutHistory(forceRefresh = true)
+                refreshHistory()
             }
         }
     }
 
-    // Method to invalidate cache when new workouts are added during the session
     fun addWorkoutToCache(newWorkout: WorkoutSummary) {
-        val updatedWorkouts = listOf(newWorkout) + historyCache.workouts
-        val updatedWorkoutIds = updatedWorkouts.map { it.id }.toSet()
+        val currentState = _historyState.value
+        val updatedWorkouts = listOf(newWorkout) + currentState.workouts
+        val newTotalCount = (currentState.totalCount ?: 0) + 1
 
-        historyCache =
-            historyCache.copy(
+        _historyState.value =
+            currentState.copy(
                 workouts = updatedWorkouts,
-                lastUpdated = System.currentTimeMillis(),
-                sessionWorkoutIds = updatedWorkoutIds,
+                totalCount = newTotalCount,
             )
+    }
 
-        _workoutHistory.value = updatedWorkouts
+    fun clearError() {
+        val currentState = _historyState.value
+        _historyState.value = currentState.copy(error = null)
+    }
+
+    // Check if we should load more data when user scrolls near the end
+    fun shouldLoadMore(visibleItemIndex: Int): Boolean {
+        val currentState = _historyState.value
+        val threshold = 5 // Load more when 5 items from the end
+        val shouldLoad = visibleItemIndex >= (currentState.workouts.size - threshold) &&
+            currentState.hasMoreData &&
+            !currentState.isLoadingMore &&
+            currentState.error == null
+        
+        if (visibleItemIndex >= 0) { // Only log if we have valid index
+            println("🔍 HistoryViewModel: shouldLoadMore check:")
+            println("  👀 visibleItemIndex: $visibleItemIndex")
+            println("  📚 workouts.size: ${currentState.workouts.size}")
+            println("  🎯 threshold: $threshold")
+            println("  ✅ hasMoreData: ${currentState.hasMoreData}")
+            println("  ⏳ isLoadingMore: ${currentState.isLoadingMore}")
+            println("  ❌ error: ${currentState.error}")
+            println("  🚀 shouldLoad: $shouldLoad")
+        }
+        
+        return shouldLoad
     }
 }

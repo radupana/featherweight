@@ -48,10 +48,11 @@ class FeatherweightRepository(
                 println("Seeded ${exerciseDao.getAllExercisesWithDetails().size} exercises")
             }
 
-            // Only seed workouts if database is completely empty
-            if (workoutCount == 0) {
+            if (workoutCount < 10) {
+                // Force seed more data if we have very few workouts for testing
+                println("⚠️ Only $workoutCount workouts found - force seeding more data for pagination testing")
                 seedRealistic531Data()
-                println("Seeded realistic 531 workout data for past year")
+                println("Force-seeded additional workout data")
             }
         }
     }
@@ -76,13 +77,14 @@ class FeatherweightRepository(
             val exercises = exerciseDao.getAllExercisesWithDetails()
 
             // Get usage count for each exercise (count of exercise logs)
-            exercises.map { exercise ->
-                val usageCount = exerciseLogDao.getExerciseUsageCount(exercise.exercise.name)
-                Pair(exercise, usageCount)
-            }.sortedWith(
-                compareByDescending<Pair<ExerciseWithDetails, Int>> { it.second }
-                    .thenBy { it.first.exercise.name },
-            )
+            exercises
+                .map { exercise ->
+                    val usageCount = exerciseLogDao.getExerciseUsageCount(exercise.exercise.name)
+                    Pair(exercise, usageCount)
+                }.sortedWith(
+                    compareByDescending<Pair<ExerciseWithDetails, Int>> { it.second }
+                        .thenBy { it.first.exercise.name },
+                )
         }
 
     suspend fun getExerciseById(id: Long): ExerciseWithDetails? =
@@ -318,6 +320,90 @@ class FeatherweightRepository(
             }.sortedByDescending { it.date }
     }
 
+    // Paginated history functionality for better performance
+    suspend fun getWorkoutHistoryPaged(
+        page: Int,
+        pageSize: Int = 20,
+    ): List<WorkoutSummary> {
+        val offset = page * pageSize
+        val allWorkouts = workoutDao.getAllWorkouts().sortedByDescending { it.date }
+
+        println("🔍 PAGINATION DEBUG:")
+        println("  📊 Total workouts in DB: ${allWorkouts.size}")
+        println("  📄 Requesting page: $page, pageSize: $pageSize, offset: $offset")
+
+        // PRE-FILTER workouts that have exercises BEFORE pagination
+        val validWorkouts =
+            allWorkouts.filter { workout ->
+                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                exercises.isNotEmpty()
+            }
+
+        println("  ✅ Valid workouts (with exercises): ${validWorkouts.size}")
+
+        // NOW paginate the valid workouts
+        val pagedWorkouts = validWorkouts.drop(offset).take(pageSize)
+        println("  📋 Workouts after pagination: ${pagedWorkouts.size}")
+
+        val results =
+            pagedWorkouts.map { workout ->
+                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                // We know exercises is not empty because we pre-filtered
+
+                val allSets = mutableListOf<SetLog>()
+                exercises.forEach { exercise ->
+                    allSets.addAll(setLogDao.getSetLogsForExercise(exercise.id))
+                }
+
+                val completedSets = allSets.filter { it.isCompleted }
+                val totalWeight = completedSets.sumOf { (it.weight * it.reps).toDouble() }.toFloat()
+
+                val isCompleted = workout.notes?.contains("[COMPLETED]") == true
+                val displayName =
+                    if (workout.notes != null && isCompleted) {
+                        workout.notes!!
+                            .replace(" [COMPLETED]", "")
+                            .replace("[COMPLETED]", "")
+                            .trim()
+                            .takeIf { it.isNotBlank() }
+                    } else {
+                        workout.notes?.takeIf { it.isNotBlank() }
+                    }
+
+                println("  ✅ Including workout ${workout.id}: ${displayName ?: "Unnamed"}")
+                WorkoutSummary(
+                    id = workout.id,
+                    date = workout.date,
+                    name = displayName,
+                    exerciseCount = exercises.size,
+                    setCount = allSets.size,
+                    totalWeight = totalWeight,
+                    duration = null, // TODO: Calculate duration
+                    isCompleted = isCompleted,
+                )
+            }
+
+        println("  📦 Final results returned: ${results.size}")
+        return results
+    }
+
+    suspend fun getTotalWorkoutCount(): Int {
+        val allWorkouts = workoutDao.getAllWorkouts()
+        println("🔍 DEBUG: Checking all workouts:")
+        allWorkouts.forEach { workout ->
+            val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+            println("  Workout ${workout.id}: ${workout.notes ?: "Unnamed"} - ${exercises.size} exercises")
+        }
+
+        val count =
+            allWorkouts.count { workout ->
+                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                exercises.isNotEmpty()
+            }
+        println("🔍 getTotalWorkoutCount: $count workouts with exercises out of ${allWorkouts.size} total")
+        return count
+    }
+
     // Smart suggestions functionality (enhanced with exercise data)
     suspend fun getExerciseHistory(
         exerciseName: String,
@@ -498,7 +584,8 @@ class FeatherweightRepository(
                 if (matchingExercise != null) {
                     val sets = setLogDao.getSetLogsForExercise(matchingExercise.id)
                     val maxWeightInWorkout =
-                        sets.filter { it.isCompleted && it.reps > 0 }
+                        sets
+                            .filter { it.isCompleted && it.reps > 0 }
                             .maxOfOrNull { it.weight } ?: 0f
 
                     if (maxWeightInWorkout > currentMaxWeight) {
@@ -540,7 +627,8 @@ class FeatherweightRepository(
     ): Int =
         withContext(Dispatchers.IO) {
             workoutDao.getAllWorkouts().count { workout ->
-                workout.date >= startDate && workout.date < endDate &&
+                workout.date >= startDate &&
+                    workout.date < endDate &&
                     workout.notes?.contains("[COMPLETED]") == true
             }
         }
@@ -577,7 +665,8 @@ class FeatherweightRepository(
     suspend fun getTrainingStreak(): Int =
         withContext(Dispatchers.IO) {
             val allWorkouts =
-                workoutDao.getAllWorkouts()
+                workoutDao
+                    .getAllWorkouts()
                     .filter { it.notes?.contains("[COMPLETED]") == true }
                     .sortedByDescending { it.date }
 
@@ -635,7 +724,8 @@ class FeatherweightRepository(
     suspend fun getAverageTrainingDaysPerWeek(): Float =
         withContext(Dispatchers.IO) {
             val allWorkouts =
-                workoutDao.getAllWorkouts()
+                workoutDao
+                    .getAllWorkouts()
                     .filter { it.notes?.contains("[COMPLETED]") == true }
                     .sortedBy { it.date }
 
@@ -646,7 +736,10 @@ class FeatherweightRepository(
             val lastWorkoutDate = allWorkouts.last().date
 
             // Calculate weeks between first and last workout
-            val daysBetween = java.time.temporal.ChronoUnit.DAYS.between(firstWorkoutDate, lastWorkoutDate).toFloat()
+            val daysBetween =
+                java.time.temporal.ChronoUnit.DAYS
+                    .between(firstWorkoutDate, lastWorkoutDate)
+                    .toFloat()
             val weeksBetween = (daysBetween / 7f).coerceAtLeast(1f) // At least 1 week
 
             // Count unique training days
@@ -1083,9 +1176,7 @@ class FeatherweightRepository(
     }
 
     // Helper function for random float in range
-    private fun ClosedFloatingPointRange<Float>.random(): Float {
-        return start + (endInclusive - start) * kotlin.random.Random.nextFloat()
-    }
+    private fun ClosedFloatingPointRange<Float>.random(): Float = start + (endInclusive - start) * kotlin.random.Random.nextFloat()
 
     // ===== OLD SEED DATA (UNUSED) =====
     private suspend fun seedTestData() {
