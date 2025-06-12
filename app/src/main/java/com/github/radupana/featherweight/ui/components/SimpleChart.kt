@@ -32,6 +32,7 @@ fun StrengthProgressionChart(
     modifier: Modifier = Modifier,
     lineColor: Color = MaterialTheme.colorScheme.primary,
     exerciseName: String = "",
+    onDataPointTapped: ((Float, LocalDateTime) -> Unit)? = null,
 ) {
     if (data.isEmpty()) {
         Box(
@@ -47,6 +48,8 @@ fun StrengthProgressionChart(
         return
     }
 
+    var selectedDataPoint by remember { mutableStateOf<Int?>(null) }
+
     Column(modifier = modifier) {
         // Chart title with current max
         val currentMax = data.maxOfOrNull { it.first } ?: 0f
@@ -60,17 +63,72 @@ fun StrengthProgressionChart(
             text = "Current Max: ${currentMax.toInt()}kg",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 16.dp),
+            modifier = Modifier.padding(bottom = 8.dp),
         )
+
+        // Show selected data point if any
+        selectedDataPoint?.let { index ->
+            if (index in data.indices) {
+                val (weight, date) = data[index]
+                Card(
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                ) {
+                    Text(
+                        text = "${weight.toInt()}kg on ${date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
 
         // Chart area
         Canvas(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .height(200.dp),
+                    .height(200.dp)
+                    .pointerInput(data) {
+                        detectTapGestures { offset ->
+                            val sortedData = data.sortedBy { it.second }
+                            val padding = 40.dp.toPx()
+                            val chartWidth = size.width - 2 * padding
+                            val tapRadius = 20.dp.toPx() // Radius around data points for tap detection
+
+                            sortedData.forEachIndexed { index, (weight, date) ->
+                                val x = padding + (index.toFloat() / (sortedData.size - 1)) * chartWidth
+
+                                // Calculate y position (same logic as in drawStrengthChart)
+                                val minWeight = sortedData.minOf { it.first }
+                                val maxWeight = sortedData.maxOf { it.first }
+                                val weightRange = maxWeight - minWeight
+                                val chartHeight = size.height - 2 * padding
+                                val y = padding + (1 - (weight - minWeight) / weightRange) * chartHeight
+
+                                // Check if tap is within radius of data point
+                                val distance =
+                                    kotlin.math.sqrt(
+                                        (offset.x - x) * (offset.x - x) + (offset.y - y) * (offset.y - y),
+                                    )
+
+                                if (distance <= tapRadius) {
+                                    selectedDataPoint = if (selectedDataPoint == index) null else index
+                                    onDataPointTapped?.invoke(weight, date)
+                                    return@detectTapGestures
+                                }
+                            }
+                        }
+                    },
         ) {
-            drawStrengthChart(data, lineColor)
+            drawStrengthChart(data, lineColor, selectedDataPoint)
         }
 
         // X-axis labels (simplified)
@@ -207,6 +265,7 @@ fun VolumeBarChart(
 private fun DrawScope.drawStrengthChart(
     data: List<Pair<Float, LocalDateTime>>,
     lineColor: Color,
+    selectedDataPoint: Int? = null,
 ) {
     if (data.size < 2) return
 
@@ -259,17 +318,34 @@ private fun DrawScope.drawStrengthChart(
     )
 
     // Draw points
-    points.forEach { point ->
+    points.forEachIndexed { index, point ->
+        val isSelected = selectedDataPoint == index
+        val pointRadius = if (isSelected) 6.dp.toPx() else 4.dp.toPx()
+        val innerRadius = if (isSelected) 3.dp.toPx() else 2.dp.toPx()
+
+        // Outer circle
         drawCircle(
             color = lineColor,
-            radius = 4.dp.toPx(),
+            radius = pointRadius,
             center = point,
         )
+
+        // Inner circle
         drawCircle(
             color = Color.White,
-            radius = 2.dp.toPx(),
+            radius = innerRadius,
             center = point,
         )
+
+        // Additional ring for selected point
+        if (isSelected) {
+            drawCircle(
+                color = lineColor.copy(alpha = 0.3f),
+                radius = 10.dp.toPx(),
+                center = point,
+                style = Stroke(width = 2.dp.toPx()),
+            )
+        }
     }
 
     // Draw Y-axis labels

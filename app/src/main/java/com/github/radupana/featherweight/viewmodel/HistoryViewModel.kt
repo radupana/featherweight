@@ -66,41 +66,46 @@ class HistoryViewModel(
         try {
             val totalCount = repository.getTotalWorkoutCount()
             println("🔍 HistoryViewModel: Total workout count: $totalCount")
-            
+
             val firstPageRepo = repository.getWorkoutHistoryPaged(page = 0, pageSize = currentState.pageSize)
             println("🔍 HistoryViewModel: Received ${firstPageRepo.size} workouts from repository")
-            
-            val firstPage = firstPageRepo.map { repoSummary ->
-                WorkoutSummary(
-                    id = repoSummary.id,
-                    date = repoSummary.date,
-                    name = repoSummary.name,
-                    exerciseCount = repoSummary.exerciseCount,
-                    setCount = repoSummary.setCount,
-                    totalWeight = repoSummary.totalWeight,
-                    duration = repoSummary.duration,
-                    isCompleted = repoSummary.isCompleted,
-                )
-            }
+
+            val firstPage =
+                firstPageRepo.map { repoSummary ->
+                    WorkoutSummary(
+                        id = repoSummary.id,
+                        date = repoSummary.date,
+                        name = repoSummary.name,
+                        exerciseCount = repoSummary.exerciseCount,
+                        setCount = repoSummary.setCount,
+                        totalWeight = repoSummary.totalWeight,
+                        duration = repoSummary.duration,
+                        isCompleted = repoSummary.isCompleted,
+                    )
+                }
 
             val hasMoreData = firstPage.size == currentState.pageSize && firstPage.size < totalCount
             println("🔍 HistoryViewModel: Setting state with ${firstPage.size} workouts, hasMoreData: $hasMoreData")
-            println("🔍 HistoryViewModel: Logic: firstPage.size (${firstPage.size}) == pageSize (${currentState.pageSize}) && < totalCount ($totalCount)")
-
-            _historyState.value = currentState.copy(
-                workouts = firstPage,
-                isLoading = false,
-                currentPage = 0,
-                totalCount = totalCount,
-                hasMoreData = hasMoreData,
+            println(
+                "🔍 HistoryViewModel: Logic: firstPage.size (${firstPage.size}) == pageSize (${currentState.pageSize}) && < totalCount ($totalCount)",
             )
+
+            _historyState.value =
+                currentState.copy(
+                    workouts = firstPage,
+                    isLoading = false,
+                    currentPage = 0,
+                    totalCount = totalCount,
+                    hasMoreData = hasMoreData,
+                )
         } catch (e: Exception) {
             println("🔍 HistoryViewModel: Error loading initial data: ${e.message}")
             e.printStackTrace()
-            _historyState.value = currentState.copy(
-                isLoading = false,
-                error = "Failed to load workout history: ${e.message}",
-            )
+            _historyState.value =
+                currentState.copy(
+                    isLoading = false,
+                    error = "Failed to load workout history: ${e.message}",
+                )
         }
     }
 
@@ -162,7 +167,9 @@ class HistoryViewModel(
 
             // Don't load if already loading, no more data, or error state
             if (currentState.isLoadingMore || !currentState.hasMoreData || currentState.error != null) {
-                println("🔍 HistoryViewModel: Skipping loadNextPage - isLoadingMore: ${currentState.isLoadingMore}, hasMoreData: ${currentState.hasMoreData}, error: ${currentState.error}")
+                println(
+                    "🔍 HistoryViewModel: Skipping loadNextPage - isLoadingMore: ${currentState.isLoadingMore}, hasMoreData: ${currentState.hasMoreData}, error: ${currentState.error}",
+                )
                 return@launch
             }
 
@@ -194,7 +201,7 @@ class HistoryViewModel(
                 val hasMoreData =
                     newWorkouts.size == currentState.pageSize &&
                         (currentState.totalCount?.let { allWorkouts.size < it } ?: true)
-                
+
                 println("🔍 HistoryViewModel: loadNextPage results:")
                 println("  📦 newWorkouts.size: ${newWorkouts.size}")
                 println("  📚 allWorkouts.size after merge: ${allWorkouts.size}")
@@ -266,11 +273,12 @@ class HistoryViewModel(
     fun shouldLoadMore(visibleItemIndex: Int): Boolean {
         val currentState = _historyState.value
         val threshold = 5 // Load more when 5 items from the end
-        val shouldLoad = visibleItemIndex >= (currentState.workouts.size - threshold) &&
-            currentState.hasMoreData &&
-            !currentState.isLoadingMore &&
-            currentState.error == null
-        
+        val shouldLoad =
+            visibleItemIndex >= (currentState.workouts.size - threshold) &&
+                currentState.hasMoreData &&
+                !currentState.isLoadingMore &&
+                currentState.error == null
+
         if (visibleItemIndex >= 0) { // Only log if we have valid index
             println("🔍 HistoryViewModel: shouldLoadMore check:")
             println("  👀 visibleItemIndex: $visibleItemIndex")
@@ -281,7 +289,7 @@ class HistoryViewModel(
             println("  ❌ error: ${currentState.error}")
             println("  🚀 shouldLoad: $shouldLoad")
         }
-        
+
         return shouldLoad
     }
 }

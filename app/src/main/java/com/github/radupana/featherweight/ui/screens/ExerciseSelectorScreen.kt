@@ -40,7 +40,7 @@ fun ExerciseSelectorScreen(
     val exerciseCreated by viewModel.exerciseCreated.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
-    
+
     // Handle successful exercise creation
     LaunchedEffect(exerciseCreated) {
         exerciseCreated?.let { exerciseName ->
@@ -85,28 +85,30 @@ fun ExerciseSelectorScreen(
             // Error handling at the top
             errorMessage?.let { error ->
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                        ),
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             text = error,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                         IconButton(onClick = { viewModel.clearError() }) {
                             Icon(
                                 Icons.Filled.Clear,
                                 contentDescription = "Clear error",
-                                tint = MaterialTheme.colorScheme.onErrorContainer
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
                             )
                         }
                     }
@@ -468,11 +470,12 @@ private fun CreateCustomExerciseDialog(
                                 FilterChip(
                                     selected = muscle in selectedPrimaryMuscles,
                                     onClick = {
-                                        selectedPrimaryMuscles = if (muscle in selectedPrimaryMuscles) {
-                                            selectedPrimaryMuscles - muscle
-                                        } else {
-                                            selectedPrimaryMuscles + muscle
-                                        }
+                                        selectedPrimaryMuscles =
+                                            if (muscle in selectedPrimaryMuscles) {
+                                                selectedPrimaryMuscles - muscle
+                                            } else {
+                                                selectedPrimaryMuscles + muscle
+                                            }
                                         // Remove from secondary if added to primary
                                         if (muscle in selectedPrimaryMuscles) {
                                             selectedSecondaryMuscles = selectedSecondaryMuscles - muscle
@@ -497,11 +500,12 @@ private fun CreateCustomExerciseDialog(
                                 FilterChip(
                                     selected = muscle in selectedSecondaryMuscles,
                                     onClick = {
-                                        selectedSecondaryMuscles = if (muscle in selectedSecondaryMuscles) {
-                                            selectedSecondaryMuscles - muscle
-                                        } else {
-                                            selectedSecondaryMuscles + muscle
-                                        }
+                                        selectedSecondaryMuscles =
+                                            if (muscle in selectedSecondaryMuscles) {
+                                                selectedSecondaryMuscles - muscle
+                                            } else {
+                                                selectedSecondaryMuscles + muscle
+                                            }
                                     },
                                     label = { Text(muscle.displayName) },
                                 )
@@ -522,11 +526,12 @@ private fun CreateCustomExerciseDialog(
                                 FilterChip(
                                     selected = equipment in selectedEquipment,
                                     onClick = {
-                                        selectedEquipment = if (equipment in selectedEquipment) {
-                                            selectedEquipment - equipment
-                                        } else {
-                                            selectedEquipment + equipment
-                                        }
+                                        selectedEquipment =
+                                            if (equipment in selectedEquipment) {
+                                                selectedEquipment - equipment
+                                            } else {
+                                                selectedEquipment + equipment
+                                            }
                                     },
                                     label = { Text(equipment.displayName) },
                                 )

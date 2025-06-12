@@ -129,7 +129,7 @@ private fun QuickStatsSection(analyticsState: com.github.radupana.featherweight.
                         recentPR?.let {
                             "${it.second.toInt()}kg"
                         } ?: "No PRs",
-                        recentPR?.let { 
+                        recentPR?.let {
                             // Shorten exercise names for better display
                             when (it.first) {
                                 "Conventional Deadlift" -> "Deadlift"
@@ -290,13 +290,13 @@ private fun StrengthProgressionSection(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Strength Progression",
+                    text = "Progression",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                 )
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     FilterChip(
                         onClick = { viewModel.setChartViewMode(com.github.radupana.featherweight.viewmodel.ChartViewMode.ONE_RM) },
@@ -313,14 +313,12 @@ private fun StrengthProgressionSection(
                         onClick = { viewModel.setChartViewMode(com.github.radupana.featherweight.viewmodel.ChartViewMode.VOLUME) },
                         label = {
                             Text(
-                                text = "Volume",
+                                text = "Vol",
                                 maxLines = 1,
                             )
                         },
                         selected = analyticsState.chartViewMode == com.github.radupana.featherweight.viewmodel.ChartViewMode.VOLUME,
-                        modifier = Modifier
-                            .height(32.dp)
-                            .widthIn(min = 100.dp),
+                        modifier = Modifier.height(32.dp),
                     )
                 }
             }
@@ -335,6 +333,10 @@ private fun StrengthProgressionSection(
                         exerciseName = analyticsState.strengthMetrics.selectedExercise,
                         lineColor = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxWidth(),
+                        onDataPointTapped = { weight, date ->
+                            // Data point interaction is handled internally by the chart
+                            println("📊 Analytics: Tapped data point - ${weight.toInt()}kg on $date")
+                        },
                     )
                 }
                 com.github.radupana.featherweight.viewmodel.ChartViewMode.VOLUME -> {
