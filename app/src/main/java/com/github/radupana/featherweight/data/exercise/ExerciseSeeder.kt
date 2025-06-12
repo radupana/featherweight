@@ -216,6 +216,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.BICEPS, MuscleGroup.REAR_DELTS),
             requiredEquipment = setOf(Equipment.PULL_UP_BAR),
             movementPatterns = setOf(MovementPattern.VERTICAL_PULL),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -350,6 +351,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.CHEST, MuscleGroup.FRONT_DELTS),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.PUSH),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -375,6 +377,7 @@ class ExerciseSeeder(
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             optionalEquipment = setOf(Equipment.DUMBBELL),
             movementPatterns = setOf(MovementPattern.LUNGE),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -387,6 +390,7 @@ class ExerciseSeeder(
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             optionalEquipment = setOf(Equipment.DUMBBELL),
             movementPatterns = setOf(MovementPattern.LUNGE),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -399,6 +403,7 @@ class ExerciseSeeder(
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             optionalEquipment = setOf(Equipment.DUMBBELL, Equipment.CALF_RAISE),
             movementPatterns = setOf(MovementPattern.PUSH),
+            requiresWeight = false,
         )
     }
 
@@ -426,6 +431,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.TRICEPS, MuscleGroup.FRONT_DELTS),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -729,6 +735,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.CHEST, MuscleGroup.FRONT_DELTS),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -764,6 +771,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.FULL_BODY),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.PLANK),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -775,6 +783,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.SQUAT, MovementPattern.HORIZONTAL_PUSH),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -786,6 +795,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.JUMP),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -797,6 +807,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.LOWER_BACK),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.PLANK),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -808,6 +819,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.GLUTES),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.PLANK),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -819,6 +831,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.ABS, MuscleGroup.LOWER_BACK),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.PLANK),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -830,6 +843,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.ROTATE),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -841,6 +855,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.PULL),
+            requiresWeight = false,
         )
 
         // Additional popular exercises
@@ -853,6 +868,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.TRICEPS, MuscleGroup.FRONT_DELTS),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -864,6 +880,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.TRICEPS, MuscleGroup.FRONT_DELTS),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -875,6 +892,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.TRICEPS),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.VERTICAL_PUSH),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -887,6 +905,7 @@ class ExerciseSeeder(
             requiredEquipment = setOf(Equipment.PULL_UP_BAR),
             alternativeEquipment = setOf(Equipment.RESISTANCE_BAND),
             movementPatterns = setOf(MovementPattern.VERTICAL_PULL),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -898,6 +917,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.BICEPS, MuscleGroup.REAR_DELTS),
             requiredEquipment = setOf(Equipment.PULL_UP_BAR),
             movementPatterns = setOf(MovementPattern.VERTICAL_PULL),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -921,6 +941,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.HAMSTRINGS, MuscleGroup.CALVES),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.SQUAT, MovementPattern.JUMP),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -933,6 +954,7 @@ class ExerciseSeeder(
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             optionalEquipment = setOf(Equipment.DUMBBELL),
             movementPatterns = setOf(MovementPattern.HINGE),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -944,6 +966,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.HAMSTRINGS, MuscleGroup.ABS),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.HINGE),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -955,6 +978,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.SQUAT),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -999,6 +1023,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.OBLIQUES, MuscleGroup.LOWER_BACK),
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             movementPatterns = setOf(MovementPattern.PLANK),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -1011,6 +1036,7 @@ class ExerciseSeeder(
             requiredEquipment = setOf(Equipment.BODYWEIGHT),
             optionalEquipment = setOf(Equipment.MEDICINE_BALL),
             movementPatterns = setOf(MovementPattern.ROTATE),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -1214,6 +1240,7 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(MuscleGroup.OBLIQUES, MuscleGroup.LOWER_BACK),
             requiredEquipment = setOf(Equipment.AB_WHEEL),
             movementPatterns = setOf(MovementPattern.PLANK),
+            requiresWeight = false,
         )
 
         createExercise(
@@ -1253,6 +1280,7 @@ class ExerciseSeeder(
         instructions: String? = null,
         tips: String? = null,
         commonMistakes: String? = null,
+        requiresWeight: Boolean = true,
     ) {
         val exercise =
             Exercise(
@@ -1260,6 +1288,7 @@ class ExerciseSeeder(
                 category = category,
                 type = type,
                 difficulty = difficulty,
+                requiresWeight = requiresWeight,
                 instructions = instructions,
                 tips = tips,
                 commonMistakes = commonMistakes,

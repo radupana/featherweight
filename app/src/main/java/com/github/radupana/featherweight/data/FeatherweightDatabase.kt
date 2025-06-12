@@ -17,7 +17,7 @@ import com.github.radupana.featherweight.data.exercise.*
         ExerciseEquipment::class,
         ExerciseMovementPattern::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)

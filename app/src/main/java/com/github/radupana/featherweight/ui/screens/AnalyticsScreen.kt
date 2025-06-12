@@ -452,12 +452,25 @@ private fun PerformanceInsightsSection(analyticsState: com.github.radupana.feath
                 )
 
                 // Volume progression insight
-                val volumeDescription = when {
-                    volumeMetrics.weeklyChange > 10 -> "Volume increased ${String.format("%.1f", volumeMetrics.weeklyChange)}% this week - great intensity!"
-                    volumeMetrics.weeklyChange > 0 -> "Volume up ${String.format("%.1f", volumeMetrics.weeklyChange)}% - steady progress"
-                    volumeMetrics.weeklyChange > -10 -> "Volume down ${String.format("%.1f", kotlin.math.abs(volumeMetrics.weeklyChange))}% - recovery week?"
-                    else -> "Volume dropped ${String.format("%.1f", kotlin.math.abs(volumeMetrics.weeklyChange))}% - consider increasing intensity"
-                }
+                val volumeDescription =
+                    when {
+                        volumeMetrics.weeklyChange > 10 -> "Volume increased ${String.format(
+                            "%.1f",
+                            volumeMetrics.weeklyChange,
+                        )}% this week - great intensity!"
+                        volumeMetrics.weeklyChange > 0 -> "Volume up ${String.format(
+                            "%.1f",
+                            volumeMetrics.weeklyChange,
+                        )}% - steady progress"
+                        volumeMetrics.weeklyChange > -10 -> "Volume down ${String.format(
+                            "%.1f",
+                            kotlin.math.abs(volumeMetrics.weeklyChange),
+                        )}% - recovery week?"
+                        else -> "Volume dropped ${String.format(
+                            "%.1f",
+                            kotlin.math.abs(volumeMetrics.weeklyChange),
+                        )}% - consider increasing intensity"
+                    }
 
                 InsightCard(
                     icon = Icons.Filled.FitnessCenter,
@@ -467,29 +480,41 @@ private fun PerformanceInsightsSection(analyticsState: com.github.radupana.feath
                 )
 
                 // Training consistency insight
-                val consistencyDescription = when {
-                    quickStats.avgTrainingDaysPerWeek >= 4 -> "${String.format("%.1f", quickStats.avgTrainingDaysPerWeek)} days/week average - outstanding consistency!"
-                    quickStats.avgTrainingDaysPerWeek >= 3 -> "${String.format("%.1f", quickStats.avgTrainingDaysPerWeek)} days/week average - solid routine"
-                    quickStats.avgTrainingDaysPerWeek >= 2 -> "${String.format("%.1f", quickStats.avgTrainingDaysPerWeek)} days/week average - room for improvement"
-                    else -> "${String.format("%.1f", quickStats.avgTrainingDaysPerWeek)} days/week average - build the habit"
-                }
+                val consistencyDescription =
+                    when {
+                        quickStats.avgTrainingDaysPerWeek >= 4 -> "${String.format(
+                            "%.1f",
+                            quickStats.avgTrainingDaysPerWeek,
+                        )} days/week average - outstanding consistency!"
+                        quickStats.avgTrainingDaysPerWeek >= 3 -> "${String.format(
+                            "%.1f",
+                            quickStats.avgTrainingDaysPerWeek,
+                        )} days/week average - solid routine"
+                        quickStats.avgTrainingDaysPerWeek >= 2 -> "${String.format(
+                            "%.1f",
+                            quickStats.avgTrainingDaysPerWeek,
+                        )} days/week average - room for improvement"
+                        else -> "${String.format("%.1f", quickStats.avgTrainingDaysPerWeek)} days/week average - build the habit"
+                    }
 
                 InsightCard(
                     icon = Icons.Filled.CalendarMonth,
                     title = "Training Consistency",
                     description = consistencyDescription,
-                    color = when {
-                        quickStats.avgTrainingDaysPerWeek >= 4 -> Color(0xFF4CAF50)
-                        quickStats.avgTrainingDaysPerWeek >= 3 -> Color(0xFF2196F3)
-                        quickStats.avgTrainingDaysPerWeek >= 2 -> Color(0xFFFF9800)
-                        else -> Color(0xFFE53935)
-                    },
+                    color =
+                        when {
+                            quickStats.avgTrainingDaysPerWeek >= 4 -> Color(0xFF4CAF50)
+                            quickStats.avgTrainingDaysPerWeek >= 3 -> Color(0xFF2196F3)
+                            quickStats.avgTrainingDaysPerWeek >= 2 -> Color(0xFFFF9800)
+                            else -> Color(0xFFE53935)
+                        },
                 )
 
                 // Personal Record insight
-                val prDescription = quickStats.recentPR?.let { (exercise, weight) ->
-                    "Latest PR: ${weight.toInt()}kg on ${exercise.lowercase()} - keep pushing those limits!"
-                } ?: "No recent PRs tracked - time to set some new records!"
+                val prDescription =
+                    quickStats.recentPR?.let { (exercise, weight) ->
+                        "Latest PR: ${weight.toInt()}kg on ${exercise.lowercase()} - keep pushing those limits!"
+                    } ?: "No recent PRs tracked - time to set some new records!"
 
                 InsightCard(
                     icon = Icons.Filled.EmojiEvents,

@@ -55,6 +55,10 @@ class WorkoutViewModel(
     private val _selectedExerciseSets = MutableStateFlow<List<SetLog>>(emptyList())
     val selectedExerciseSets: StateFlow<List<SetLog>> = _selectedExerciseSets
 
+    // Cache validation state for sets
+    private val _setCompletionValidation = MutableStateFlow<Map<Long, Boolean>>(emptyMap())
+    val setCompletionValidation: StateFlow<Map<Long, Boolean>> = _setCompletionValidation
+
     private val _exerciseHistory = MutableStateFlow<Map<String, ExerciseHistory>>(emptyMap())
     val exerciseHistory: StateFlow<Map<String, ExerciseHistory>> = _exerciseHistory
 
@@ -380,14 +384,45 @@ class WorkoutViewModel(
         return !state.isReadOnly || state.isInEditMode
     }
 
-    // Check if we can mark a set as complete (validation)
-    fun canMarkSetComplete(set: SetLog): Boolean = set.reps > 0 && set.weight > 0
+    // Public synchronous function for UI
+    fun canMarkSetComplete(set: SetLog): Boolean {
+        return _setCompletionValidation.value[set.id] ?: (set.reps > 0 && set.weight > 0)
+    }
+
+    // Internal suspend function for validation logic
+    private suspend fun canMarkSetCompleteInternal(set: SetLog): Boolean {
+        // Find the exercise log for this set
+        val exerciseLog = _selectedWorkoutExercises.value.find { it.id == set.exerciseLogId }
+
+        // If exerciseLog has an exerciseId, check if the exercise requires weight
+        if (exerciseLog?.exerciseId != null) {
+            val exerciseDetails = repository.getExerciseById(exerciseLog.exerciseId)
+            return if (exerciseDetails?.exercise?.requiresWeight == false) {
+                // For exercises that don't require weight (like ab roll), only check reps
+                set.reps > 0
+            } else {
+                // For exercises that require weight, check both reps and weight
+                set.reps > 0 && set.weight > 0
+            }
+        }
+
+        // Fallback for legacy data without exerciseId - require both reps and weight
+        return set.reps > 0 && set.weight > 0
+    }
 
     private fun loadExercisesForWorkout(workoutId: Long) {
         viewModelScope.launch {
             _selectedWorkoutExercises.value = repository.getExercisesForWorkout(workoutId)
             loadAllSetsForCurrentExercises()
         }
+    }
+
+    private suspend fun updateSetCompletionValidation() {
+        val validationMap = mutableMapOf<Long, Boolean>()
+        _selectedExerciseSets.value.forEach { set ->
+            validationMap[set.id] = canMarkSetCompleteInternal(set)
+        }
+        _setCompletionValidation.value = validationMap
     }
 
     private fun loadAllSetsForCurrentExercises() {
@@ -398,6 +433,7 @@ class WorkoutViewModel(
                 allSets.addAll(sets)
             }
             _selectedExerciseSets.value = allSets
+            updateSetCompletionValidation()
         }
     }
 
@@ -595,6 +631,11 @@ class WorkoutViewModel(
                     }
                 _selectedExerciseSets.value = updatedSets
 
+                // Update validation cache for this set
+                val validationMap = _setCompletionValidation.value.toMutableMap()
+                validationMap[setId] = canMarkSetCompleteInternal(updatedSet)
+                _setCompletionValidation.value = validationMap
+
                 // Then persist to database
                 repository.updateSetLog(updatedSet)
 
@@ -665,7 +706,7 @@ class WorkoutViewModel(
 
             exerciseSets.forEach { set ->
                 // Only mark as complete if set has valid data
-                if (canMarkSetComplete(set) && !set.isCompleted) {
+                if (canMarkSetCompleteInternal(set) && !set.isCompleted) {
                     repository.markSetCompleted(set.id, true, timestamp)
                 }
             }

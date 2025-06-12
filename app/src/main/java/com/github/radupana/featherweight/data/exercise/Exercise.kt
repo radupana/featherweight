@@ -15,6 +15,8 @@ data class Exercise(
     val category: ExerciseCategory,
     val type: ExerciseType = ExerciseType.STRENGTH,
     val difficulty: ExerciseDifficulty = ExerciseDifficulty.BEGINNER,
+    // false for bodyweight exercises like ab roll
+    val requiresWeight: Boolean = true,
     // Instructions and guidance
     val instructions: String? = null,
     val tips: String? = null,
@@ -25,14 +27,20 @@ data class Exercise(
     val videoUrl: String? = null,
     val demonstrationUrl: String? = null,
     // Exercise relationships (stored as JSON arrays of IDs)
-    val variations: String? = null, // JSON array: "[1,2,3]"
-    val alternatives: String? = null, // JSON array: "[4,5,6]"
-    val prerequisites: String? = null, // JSON array: "[7,8]"
+    // JSON array: "[1,2,3]"
+    val variations: String? = null,
+    // JSON array: "[4,5,6]"
+    val alternatives: String? = null,
+    // JSON array: "[7,8]"
+    val prerequisites: String? = null,
     // Metadata
     val isCustom: Boolean = false,
-    val createdBy: String? = null, // User ID for custom exercises
-    val isPublic: Boolean = true, // For community sharing
-    val tags: String? = null, // JSON array: "['beginner-friendly','home']"
+    // User ID for custom exercises
+    val createdBy: String? = null,
+    // For community sharing
+    val isPublic: Boolean = true,
+    // JSON array: "['beginner-friendly','home']"
+    val tags: String? = null,
     // Timestamps
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now(),
@@ -54,7 +62,8 @@ data class Exercise(
 data class ExerciseMuscleGroup(
     val exerciseId: Long,
     val muscleGroup: MuscleGroup,
-    val isPrimary: Boolean, // true for primary muscles, false for secondary
+    // true for primary muscles, false for secondary
+    val isPrimary: Boolean,
 )
 
 @Entity(
@@ -72,8 +81,10 @@ data class ExerciseMuscleGroup(
 data class ExerciseEquipment(
     val exerciseId: Long,
     val equipment: Equipment,
-    val isRequired: Boolean = true, // false for optional equipment
-    val isAlternative: Boolean = false, // true for alternative equipment options
+    // false for optional equipment
+    val isRequired: Boolean = true,
+    // true for alternative equipment options
+    val isAlternative: Boolean = false,
 )
 
 @Entity(

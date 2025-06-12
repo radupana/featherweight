@@ -138,18 +138,20 @@ fun VolumeBarChart(
             if (index in weeklyData.indices) {
                 val (label, volume) = weeklyData[index]
                 Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp)
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
                 ) {
                     Text(
                         text = "$label: ${formatVolume(volume)}",
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
                     )
                 }
             }
@@ -166,10 +168,10 @@ fun VolumeBarChart(
                             val barWidth = size.width / weeklyData.size * 0.7f
                             val barSpacing = size.width / weeklyData.size * 0.15f
                             val padding = 20.dp.toPx()
-                            
+
                             weeklyData.forEachIndexed { index, (label, volume) ->
                                 val x = padding + index * (barWidth + barSpacing * 2) + barSpacing
-                                
+
                                 if (offset.x >= x && offset.x <= x + barWidth) {
                                     selectedBar = if (selectedBar == index) null else index
                                     onBarTapped?.invoke(label, volume)
@@ -297,11 +299,12 @@ private fun DrawScope.drawVolumeChart(
         val y = size.height - padding - barHeight
 
         // Use different color for selected bar
-        val currentBarColor = if (selectedBar == index) {
-            barColor.copy(alpha = 1f) // Full opacity for selected
-        } else {
-            barColor.copy(alpha = 0.7f) // Reduced opacity for non-selected
-        }
+        val currentBarColor =
+            if (selectedBar == index) {
+                barColor.copy(alpha = 1f) // Full opacity for selected
+            } else {
+                barColor.copy(alpha = 0.7f) // Reduced opacity for non-selected
+            }
 
         // Draw bar
         drawRect(
@@ -316,7 +319,7 @@ private fun DrawScope.drawVolumeChart(
                 color = barColor,
                 topLeft = Offset(x - 1.dp.toPx(), y - 1.dp.toPx()),
                 size = androidx.compose.ui.geometry.Size(barWidth + 2.dp.toPx(), barHeight + 2.dp.toPx()),
-                style = Stroke(width = 2.dp.toPx())
+                style = Stroke(width = 2.dp.toPx()),
             )
         }
     }

@@ -158,8 +158,8 @@ fun ExerciseCard(
                     onClick = { showDeleteExerciseDialog = true },
                 ) {
                     Icon(
-                        Icons.Filled.MoreVert,
-                        contentDescription = "Options",
+                        Icons.Filled.Delete,
+                        contentDescription = "Delete Exercise",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
