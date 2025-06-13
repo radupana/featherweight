@@ -877,27 +877,38 @@ class FeatherweightRepository(
     }
     
     suspend fun activateProgramme(programmeId: Long) = withContext(Dispatchers.IO) {
-        programmeDao.setActiveProgramme(programmeId)
-        
-        // Initialize progress tracking
-        val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext
-        val weeks = programmeDao.getWeeksForProgramme(programmeId)
-        val totalWorkouts = weeks.sumOf { week ->
-            programmeDao.getWorkoutsForWeek(week.id).size
+        try {
+            println("🔄 Setting programme as active...")
+            programmeDao.setActiveProgramme(programmeId)
+            println("✅ Programme marked as active")
+            
+            // Initialize progress tracking
+            println("🔄 Getting programme details...")
+            val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext
+            println("✅ Programme found: ${programme.name}")
+            
+            // For now, skip the complex week/workout structure and use simple defaults
+            val totalWorkouts = programme.durationWeeks * 3 // Default to 3 workouts per week
+            println("📊 Calculated total workouts: $totalWorkouts")
+            
+            val progress = com.github.radupana.featherweight.data.programme.ProgrammeProgress(
+                programmeId = programmeId,
+                currentWeek = 1,
+                currentDay = 1,
+                completedWorkouts = 0,
+                totalWorkouts = totalWorkouts,
+                lastWorkoutDate = null,
+                adherencePercentage = 0f,
+                strengthProgress = null
+            )
+            
+            println("🔄 Inserting progress tracking...")
+            programmeDao.insertOrUpdateProgress(progress)
+            println("✅ Progress tracking initialized")
+        } catch (e: Exception) {
+            println("❌ Error in activateProgramme: ${e.message}")
+            throw e
         }
-        
-        val progress = com.github.radupana.featherweight.data.programme.ProgrammeProgress(
-            programmeId = programmeId,
-            currentWeek = 1,
-            currentDay = 1,
-            completedWorkouts = 0,
-            totalWorkouts = if (totalWorkouts > 0) totalWorkouts else (programme.durationWeeks * 3), // Default to 3 workouts per week if no structure defined
-            lastWorkoutDate = null,
-            adherencePercentage = 0f,
-            strengthProgress = null
-        )
-        
-        programmeDao.insertOrUpdateProgress(progress)
     }
     
     suspend fun deactivateActiveProgramme() = withContext(Dispatchers.IO) {

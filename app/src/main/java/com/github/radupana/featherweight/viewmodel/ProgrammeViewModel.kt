@@ -39,8 +39,21 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
     private val _searchText = MutableStateFlow("")
 
     init {
+        println("🔄 ProgrammeViewModel: Initializing...")
         // Start with immediate loading
         _uiState.value = _uiState.value.copy(isLoading = true)
+        
+        // Add a timeout fallback - if loading takes more than 10 seconds, force complete
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(10000) // 10 seconds
+            if (_uiState.value.isLoading) {
+                println("⚠️ ProgrammeViewModel: Loading timeout - forcing completion")
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Loading timed out. Please try refreshing."
+                )
+            }
+        }
         
         // Combine filter states to update filtered templates
         viewModelScope.launch {
@@ -50,14 +63,17 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
                 _selectedType,
                 _searchText
             ) { templates, difficulty, type, searchText ->
+                println("🔄 ProgrammeViewModel: Combine flow triggered with ${templates.size} templates")
                 filterTemplates(templates, difficulty, type, searchText)
             }.collect { filtered ->
+                println("✅ ProgrammeViewModel: Combine flow collected ${filtered.size} filtered templates")
                 _filteredTemplates.value = filtered
+                // Only update templates, don't manage loading state here
                 _uiState.value = _uiState.value.copy(
                     templates = filtered,
-                    searchText = _searchText.value,
-                    isLoading = false
+                    searchText = _searchText.value
                 )
+                println("✅ ProgrammeViewModel: Templates updated in UI state")
             }
         }
         
@@ -86,26 +102,49 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
     private fun loadProgrammeData() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
+            println("🔄 ProgrammeViewModel: Starting data load...")
             
             try {
-                // Ensure database is seeded first
-                repository.seedDatabaseIfEmpty()
-                
-                // Load templates
-                val templates = repository.getAllProgrammeTemplates()
+                // Try to load templates first without seeding
+                println("🔄 ProgrammeViewModel: Loading templates...")
+                val templates = try {
+                    repository.getAllProgrammeTemplates()
+                } catch (e: Exception) {
+                    println("❌ Error loading templates, trying to seed: ${e.message}")
+                    // Only seed if loading fails
+                    repository.seedDatabaseIfEmpty()
+                    repository.getAllProgrammeTemplates()
+                }
+                println("✅ ProgrammeViewModel: Loaded ${templates.size} templates")
                 _allTemplates.value = templates
                 
                 // Load active programme
+                println("🔄 ProgrammeViewModel: Loading active programme...")
                 val active = repository.getActiveProgramme()
+                println("✅ ProgrammeViewModel: Active programme: ${active?.name ?: "None"}")
                 _activeProgramme.value = active
                 
                 // Load progress if there's an active programme
                 if (active != null) {
+                    println("🔄 ProgrammeViewModel: Loading progress...")
                     val progress = repository.getProgrammeWithDetails(active.id)?.progress
+                    println("✅ ProgrammeViewModel: Progress loaded")
                     _programmeProgress.value = progress
                 }
                 
+                println("✅ ProgrammeViewModel: Data loading complete")
+                
+                // Force update the UI state to ensure loading is false and templates are shown
+                val filteredTemplates = filterTemplates(templates, null, null, "")
+                _uiState.value = _uiState.value.copy(
+                    templates = filteredTemplates,
+                    isLoading = false
+                )
+                println("✅ ProgrammeViewModel: UI state updated with ${filteredTemplates.size} templates, isLoading=false")
+                
             } catch (e: Exception) {
+                println("❌ ProgrammeViewModel: Error loading data: ${e.message}")
+                e.printStackTrace()
                 _uiState.value = _uiState.value.copy(
                     error = "Failed to load programmes: ${e.message}",
                     isLoading = false
@@ -222,6 +261,7 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
             _uiState.value = _uiState.value.copy(isCreating = true)
             
             try {
+                println("🔄 Creating programme from template: ${template.name}")
                 val programmeId = repository.createProgrammeFromTemplate(
                     templateId = template.id,
                     name = customName,
@@ -231,12 +271,22 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
                     ohpMax = if (template.requiresMaxes) maxes.ohp else null,
                     accessoryCustomizations = accessoryCustomizations
                 )
+                println("✅ Programme created with ID: $programmeId")
                 
                 // Activate the new programme
+                println("🔄 Activating programme...")
                 repository.activateProgramme(programmeId)
+                println("✅ Programme activated")
                 
-                // Reload data to reflect changes
-                loadProgrammeData()
+                // Get the newly created and activated programme
+                val newActiveProgramme = repository.getActiveProgramme()
+                val newProgress = if (newActiveProgramme != null) {
+                    repository.getProgrammeWithDetails(newActiveProgramme.id)?.progress
+                } else null
+                
+                // Update UI state directly instead of reloading everything
+                _activeProgramme.value = newActiveProgramme
+                _programmeProgress.value = newProgress
                 
                 // Close dialog
                 dismissSetupDialog()
@@ -245,8 +295,11 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
                     isCreating = false,
                     successMessage = "Programme '${customName ?: template.name}' created and activated!"
                 )
+                println("✅ Programme creation completed successfully")
                 
             } catch (e: Exception) {
+                println("❌ Programme creation failed: ${e.message}")
+                e.printStackTrace()
                 _uiState.value = _uiState.value.copy(
                     error = "Failed to create programme: ${e.message}",
                     isCreating = false

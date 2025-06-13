@@ -34,6 +34,7 @@ import com.github.radupana.featherweight.viewmodel.ProgrammeUiState
 fun ProgrammesScreen(
     modifier: Modifier = Modifier,
     viewModel: ProgrammeViewModel = viewModel(),
+    onNavigateToActiveProgramme: (() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val activeProgramme by viewModel.activeProgramme.collectAsState()
@@ -120,7 +121,8 @@ fun ProgrammesScreen(
                     ActiveProgrammeCard(
                         programme = programme,
                         progress = programmeProgress,
-                        onDeactivate = { viewModel.deactivateActiveProgramme() }
+                        onDeactivate = { viewModel.deactivateActiveProgramme() },
+                        onNavigateToProgramme = onNavigateToActiveProgramme
                     )
                 }
             }
@@ -188,8 +190,15 @@ private fun ActiveProgrammeCard(
     programme: Programme,
     progress: ProgrammeProgress?,
     onDeactivate: () -> Unit,
+    onNavigateToProgramme: (() -> Unit)? = null,
 ) {
-    GlassCard {
+    GlassCard(
+        modifier = if (onNavigateToProgramme != null) {
+            Modifier.clickable { onNavigateToProgramme() }
+        } else {
+            Modifier
+        }
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

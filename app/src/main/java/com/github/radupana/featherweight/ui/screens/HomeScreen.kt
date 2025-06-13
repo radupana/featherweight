@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.viewmodel.InProgressWorkout
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 
@@ -24,9 +25,13 @@ import java.time.format.DateTimeFormatter
 fun HomeScreen(
     onStartFreestyle: () -> Unit,
     onBrowseProgrammes: () -> Unit,
+    onNavigateToActiveProgramme: (() -> Unit)? = null,
     workoutViewModel: WorkoutViewModel = viewModel(),
+    programmeViewModel: ProgrammeViewModel = viewModel(),
 ) {
     val inProgressWorkouts by workoutViewModel.inProgressWorkouts.collectAsState()
+    val activeProgramme by programmeViewModel.activeProgramme.collectAsState()
+    val programmeProgress by programmeViewModel.programmeProgress.collectAsState()
     val scope = rememberCoroutineScope()
     var showWorkoutDialog by remember { mutableStateOf(false) }
     var pendingWorkout by remember { mutableStateOf<InProgressWorkout?>(null) }
@@ -34,6 +39,7 @@ fun HomeScreen(
     // Load in-progress workouts when screen appears
     LaunchedEffect(Unit) {
         workoutViewModel.loadInProgressWorkouts()
+        programmeViewModel.refreshData()
     }
 
     Column(
@@ -102,6 +108,108 @@ fun HomeScreen(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Medium,
                     )
+                }
+            }
+        }
+
+        // Active Programme Section
+        activeProgramme?.let { programme ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Schedule,
+                            contentDescription = "Active Programme",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Active Programme",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNavigateToActiveProgramme?.invoke() },
+                        elevation = CardDefaults.cardElevation(2.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = programme.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    programmeProgress?.let { progress ->
+                                        Text(
+                                            text = "Week ${progress.currentWeek}/${programme.durationWeeks} • ${progress.completedWorkouts}/${progress.totalWorkouts} workouts",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        "Continue",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            // Progress bar
+                            programmeProgress?.let { progress ->
+                                Spacer(modifier = Modifier.height(12.dp))
+                                val progressValue = if (progress.totalWorkouts > 0) {
+                                    (progress.completedWorkouts.toFloat() / progress.totalWorkouts.toFloat()).coerceIn(0f, 1f)
+                                } else {
+                                    0f
+                                }
+                                LinearProgressIndicator(
+                                    progress = { progressValue },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

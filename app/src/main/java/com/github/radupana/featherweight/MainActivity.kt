@@ -42,6 +42,7 @@ enum class Screen {
     HISTORY,
     ANALYTICS,
     PROGRAMMES,
+    ACTIVE_PROGRAMME,
 }
 
 data class NavigationItem(
@@ -142,6 +143,7 @@ fun MainAppWithNavigation(
                 HomeScreen(
                     onStartFreestyle = { onScreenChange(Screen.ACTIVE_WORKOUT) },
                     onBrowseProgrammes = { onScreenChange(Screen.PROGRAMMES) },
+                    onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
                     modifier = Modifier.padding(innerPadding),
                 )
 
@@ -203,8 +205,40 @@ fun MainAppWithNavigation(
 
             Screen.PROGRAMMES -> {
                 com.github.radupana.featherweight.ui.screens.ProgrammesScreen(
+                    onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
                     modifier = Modifier.padding(innerPadding)
                 )
+            }
+
+            Screen.ACTIVE_PROGRAMME -> {
+                // For now, show a placeholder screen for active programme
+                // This will be developed into a full programme workout screen later
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            text = "Active Programme",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Programme workout interface coming soon!",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Button(
+                            onClick = { onScreenChange(Screen.PROGRAMMES) }
+                        ) {
+                            Text("Back to Programmes")
+                        }
+                    }
+                }
             }
 
             Screen.SPLASH -> {
@@ -218,12 +252,14 @@ fun MainAppWithNavigation(
 fun HomeScreen(
     onStartFreestyle: () -> Unit,
     onBrowseProgrammes: () -> Unit,
+    onNavigateToActiveProgramme: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier) {
         HomeScreen(
             onStartFreestyle = onStartFreestyle,
             onBrowseProgrammes = onBrowseProgrammes,
+            onNavigateToActiveProgramme = onNavigateToActiveProgramme,
         )
     }
 }
