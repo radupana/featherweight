@@ -24,7 +24,7 @@ import com.github.radupana.featherweight.data.programme.*
         ExerciseSubstitution::class,
         ProgrammeProgress::class,
     ],
-    version = 11,
+    version = 13,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)

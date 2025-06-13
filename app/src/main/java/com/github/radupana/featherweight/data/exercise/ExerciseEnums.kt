@@ -47,6 +47,18 @@ enum class MuscleGroup(
                 ExerciseCategory.CARDIO -> listOf(FULL_BODY)
                 ExerciseCategory.FULL_BODY -> values().toList()
             }
+        
+        fun fromCategory(category: ExerciseCategory): MuscleGroup =
+            when (category) {
+                ExerciseCategory.CHEST -> CHEST
+                ExerciseCategory.BACK -> UPPER_BACK
+                ExerciseCategory.SHOULDERS -> FRONT_DELTS
+                ExerciseCategory.ARMS -> BICEPS
+                ExerciseCategory.LEGS -> QUADS
+                ExerciseCategory.CORE -> ABS
+                ExerciseCategory.CARDIO -> FULL_BODY
+                ExerciseCategory.FULL_BODY -> FULL_BODY
+            }
     }
 }
 

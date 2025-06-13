@@ -208,7 +208,7 @@ class ExerciseSeeder(
     private suspend fun seedMainCompoundMovements() {
         // Upper Body Pulling
         createExercise(
-            name = "Pull-ups",
+            name = "Pull-up",
             category = ExerciseCategory.BACK,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -220,7 +220,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Chin-ups",
+            name = "Chin-up",
             category = ExerciseCategory.BACK,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -298,7 +298,7 @@ class ExerciseSeeder(
     private suspend fun seedIsolationLifts() {
         // Biceps
         createExercise(
-            name = "Barbell Curls",
+            name = "Barbell Curl",
             category = ExerciseCategory.ARMS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -309,7 +309,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Dumbbell Bicep Curls",
+            name = "Dumbbell Bicep Curl",
             category = ExerciseCategory.ARMS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -320,7 +320,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Hammer Curls",
+            name = "Hammer Curl",
             category = ExerciseCategory.ARMS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -332,7 +332,7 @@ class ExerciseSeeder(
 
         // Triceps
         createExercise(
-            name = "Dips",
+            name = "Dip",
             category = ExerciseCategory.ARMS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -343,7 +343,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Tricep Dips",
+            name = "Tricep Dip",
             category = ExerciseCategory.ARMS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -381,7 +381,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Walking Lunges",
+            name = "Walking Lunge",
             category = ExerciseCategory.LEGS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -394,7 +394,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Calf Raises",
+            name = "Calf Raise",
             category = ExerciseCategory.LEGS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -410,7 +410,7 @@ class ExerciseSeeder(
     private suspend fun seedAccessoryMovements() {
         // Face pulls, lateral raises, etc.
         createExercise(
-            name = "Face Pulls",
+            name = "Face Pull",
             category = ExerciseCategory.SHOULDERS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -423,7 +423,7 @@ class ExerciseSeeder(
 
         // Chest exercises
         createExercise(
-            name = "Push-ups",
+            name = "Push-up",
             category = ExerciseCategory.CHEST,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -604,7 +604,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Dumbbell Lunges",
+            name = "Dumbbell Lunge",
             category = ExerciseCategory.LEGS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -649,7 +649,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Lying Leg Curls",
+            name = "Lying Leg Curl",
             category = ExerciseCategory.LEGS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -660,7 +660,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Seated Leg Curls",
+            name = "Seated Leg Curl",
             category = ExerciseCategory.LEGS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -694,7 +694,7 @@ class ExerciseSeeder(
 
         // Arms - more bicep and tricep variations
         createExercise(
-            name = "EZ Bar Curls",
+            name = "EZ Bar Curl",
             category = ExerciseCategory.ARMS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -705,7 +705,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Concentration Curls",
+            name = "Concentration Curl",
             category = ExerciseCategory.ARMS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -716,7 +716,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Cable Hammer Curls",
+            name = "Cable Hammer Curl",
             category = ExerciseCategory.ARMS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -727,7 +727,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Diamond Push-ups",
+            name = "Diamond Push-up",
             category = ExerciseCategory.ARMS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -763,7 +763,7 @@ class ExerciseSeeder(
 
         // Core and cardio exercises
         createExercise(
-            name = "Mountain Climbers",
+            name = "Mountain Climber",
             category = ExerciseCategory.CARDIO,
             type = ExerciseType.CARDIO,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -775,7 +775,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Burpees",
+            name = "Burpee",
             category = ExerciseCategory.CARDIO,
             type = ExerciseType.CARDIO,
             difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -787,7 +787,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Jumping Jacks",
+            name = "Jumping Jack",
             category = ExerciseCategory.CARDIO,
             type = ExerciseType.CARDIO,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -835,7 +835,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Bicycle Crunches",
+            name = "Bicycle Crunch",
             category = ExerciseCategory.CORE,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -847,7 +847,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Reverse Crunches",
+            name = "Reverse Crunch",
             category = ExerciseCategory.CORE,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -860,7 +860,7 @@ class ExerciseSeeder(
 
         // Additional popular exercises
         createExercise(
-            name = "Incline Push-ups",
+            name = "Incline Push-up",
             category = ExerciseCategory.CHEST,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -872,7 +872,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Decline Push-ups",
+            name = "Decline Push-up",
             category = ExerciseCategory.CHEST,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -884,7 +884,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Pike Push-ups",
+            name = "Pike Push-up",
             category = ExerciseCategory.SHOULDERS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -896,7 +896,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Assisted Pull-ups",
+            name = "Assisted Pull-up",
             category = ExerciseCategory.BACK,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -909,7 +909,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Negative Pull-ups",
+            name = "Negative Pull-up",
             category = ExerciseCategory.BACK,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -921,7 +921,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Step-ups",
+            name = "Step-up",
             category = ExerciseCategory.LEGS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -933,7 +933,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Jump Squats",
+            name = "Jump Squat",
             category = ExerciseCategory.LEGS,
             type = ExerciseType.POWER,
             difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -945,7 +945,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Glute Bridges",
+            name = "Glute Bridge",
             category = ExerciseCategory.LEGS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -982,7 +982,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Wrist Curls",
+            name = "Wrist Curl",
             category = ExerciseCategory.ARMS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -993,7 +993,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Reverse Wrist Curls",
+            name = "Reverse Wrist Curl",
             category = ExerciseCategory.ARMS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -1004,7 +1004,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Lateral Raises",
+            name = "Lateral Raise",
             category = ExerciseCategory.SHOULDERS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -1027,7 +1027,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Russian Twists",
+            name = "Russian Twist",
             category = ExerciseCategory.CORE,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -1051,7 +1051,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Leg Curls",
+            name = "Leg Curl",
             category = ExerciseCategory.LEGS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -1062,7 +1062,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Leg Extensions",
+            name = "Leg Extension",
             category = ExerciseCategory.LEGS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -1084,7 +1084,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Dumbbell Flyes",
+            name = "Dumbbell Fly",
             category = ExerciseCategory.CHEST,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -1128,7 +1128,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Cable Bicep Curls",
+            name = "Cable Bicep Curl",
             category = ExerciseCategory.ARMS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -1139,7 +1139,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Preacher Curls",
+            name = "Preacher Curl",
             category = ExerciseCategory.ARMS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -1151,7 +1151,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Skull Crushers",
+            name = "Skull Crusher",
             category = ExerciseCategory.ARMS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -1197,7 +1197,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Shrugs",
+            name = "Shrug",
             category = ExerciseCategory.SHOULDERS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -1209,7 +1209,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Good Mornings",
+            name = "Good Morning",
             category = ExerciseCategory.LEGS,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -1219,6 +1219,19 @@ class ExerciseSeeder(
             movementPatterns = setOf(MovementPattern.HINGE),
         )
 
+        createExercise(
+            name = "Hip Thrust",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.GLUTES),
+            secondaryMuscles = setOf(MuscleGroup.HAMSTRINGS),
+            requiredEquipment = setOf(Equipment.BARBELL),
+            alternativeEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.HINGE),
+        )
+        
+        // Also add plural form used in programmes
         createExercise(
             name = "Hip Thrust",
             category = ExerciseCategory.LEGS,
@@ -1244,7 +1257,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Hanging Leg Raises",
+            name = "Hanging Leg Raise",
             category = ExerciseCategory.CORE,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -1255,7 +1268,7 @@ class ExerciseSeeder(
         )
 
         createExercise(
-            name = "Cable Crunches",
+            name = "Cable Crunch",
             category = ExerciseCategory.CORE,
             type = ExerciseType.STRENGTH,
             difficulty = ExerciseDifficulty.BEGINNER,
@@ -1263,6 +1276,85 @@ class ExerciseSeeder(
             secondaryMuscles = setOf(),
             requiredEquipment = setOf(Equipment.CABLE_MACHINE),
             movementPatterns = setOf(MovementPattern.PULL),
+        )
+        
+        // Additional exercises used in programmes
+        createExercise(
+            name = "Bent-Over Barbell Row",
+            category = ExerciseCategory.BACK,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.UPPER_BACK, MuscleGroup.LATS),
+            secondaryMuscles = setOf(MuscleGroup.BICEPS, MuscleGroup.REAR_DELTS),
+            requiredEquipment = setOf(Equipment.BARBELL),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
+        )
+        
+        createExercise(
+            name = "Bent-Over Dumbbell Row",
+            category = ExerciseCategory.BACK,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.UPPER_BACK, MuscleGroup.LATS),
+            secondaryMuscles = setOf(MuscleGroup.BICEPS, MuscleGroup.REAR_DELTS),
+            requiredEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
+        )
+        
+        createExercise(
+            name = "Bulgarian Split Squat",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.QUADS, MuscleGroup.GLUTES),
+            secondaryMuscles = setOf(MuscleGroup.HAMSTRINGS),
+            requiredEquipment = setOf(Equipment.BODYWEIGHT),
+            alternativeEquipment = setOf(Equipment.DUMBBELL),
+            movementPatterns = setOf(MovementPattern.LUNGE),
+        )
+        
+        createExercise(
+            name = "Cable Fly",
+            category = ExerciseCategory.CHEST,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.CHEST),
+            secondaryMuscles = setOf(MuscleGroup.FRONT_DELTS),
+            requiredEquipment = setOf(Equipment.CABLE_MACHINE),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
+        )
+        
+        createExercise(
+            name = "Cable Row",
+            category = ExerciseCategory.BACK,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.BEGINNER,
+            primaryMuscles = setOf(MuscleGroup.UPPER_BACK, MuscleGroup.LATS),
+            secondaryMuscles = setOf(MuscleGroup.BICEPS, MuscleGroup.REAR_DELTS),
+            requiredEquipment = setOf(Equipment.CABLE_MACHINE),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
+        )
+        
+        createExercise(
+            name = "Close-Grip Bench Press",
+            category = ExerciseCategory.CHEST,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            primaryMuscles = setOf(MuscleGroup.TRICEPS),
+            secondaryMuscles = setOf(MuscleGroup.CHEST, MuscleGroup.FRONT_DELTS),
+            requiredEquipment = setOf(Equipment.BARBELL),
+            movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
+        )
+        
+        createExercise(
+            name = "Front Squat",
+            category = ExerciseCategory.LEGS,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.ADVANCED,
+            primaryMuscles = setOf(MuscleGroup.QUADS),
+            secondaryMuscles = setOf(MuscleGroup.GLUTES, MuscleGroup.ABS),
+            requiredEquipment = setOf(Equipment.BARBELL),
+            movementPatterns = setOf(MovementPattern.SQUAT),
         )
     }
 

@@ -175,7 +175,7 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                     {"name": "Bench Press", "sets": 3, "reps": [5, 3, "1+"], "intensity": [65, 75, 85], "progression": "531"},
                                     {"name": "Back Squat", "sets": 3, "reps": [5, 5, 5], "intensity": [65, 75, 85], "progression": "fsl"},
                                     {"name": "Bent-Over Dumbbell Row", "sets": 3, "reps": "8-12", "customizable": true},
-                                    {"name": "Bulgarian Split Squats", "sets": 3, "reps": "10-15", "customizable": true}
+                                    {"name": "Bulgarian Split Squat", "sets": 3, "reps": "10-15", "customizable": true}
                                 ]
                             },
                             {
@@ -195,7 +195,7 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                     {"name": "Overhead Press", "sets": 3, "reps": [5, 3, "1+"], "intensity": [65, 75, 85], "progression": "531"},
                                     {"name": "Conventional Deadlift", "sets": 3, "reps": [5, 5, 5], "intensity": [65, 75, 85], "progression": "fsl"},
                                     {"name": "Bent-Over Dumbbell Row", "sets": 3, "reps": "8-12", "customizable": true},
-                                    {"name": "Bulgarian Split Squats", "sets": 3, "reps": "10-15", "customizable": true}
+                                    {"name": "Bulgarian Split Squat", "sets": 3, "reps": "10-15", "customizable": true}
                                 ]
                             }
                         ]
@@ -242,7 +242,7 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                     {"name": "Overhead Press", "sets": 8, "reps": [6,5,3,5,7,4,6,8], "intensity": [50,60,70,70,70,65,60,55], "progression": "nsuns_secondary"},
                                     {"name": "Bent-Over Barbell Row", "sets": 3, "reps": "8-12", "customizable": true, "category": "pull"},
                                     {"name": "Close-Grip Bench Press", "sets": 3, "reps": "8-12", "customizable": true, "category": "triceps"},
-                                    {"name": "Lateral Raises", "sets": 3, "reps": "8-12", "customizable": true, "category": "lateral_delt"}
+                                    {"name": "Lateral Raise", "sets": 3, "reps": "8-12", "customizable": true, "category": "lateral_delt"}
                                 ]
                             },
                             {
@@ -252,8 +252,8 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                     {"name": "Back Squat", "sets": 9, "reps": [5,3,1,3,3,3,5,5,5], "intensity": [75,85,95,90,85,80,75,70,65], "progression": "nsuns"},
                                     {"name": "Sumo Deadlift", "sets": 8, "reps": [5,3,5,3,5,3,3,5], "intensity": [50,60,70,70,70,65,60,55], "progression": "nsuns_secondary"},
                                     {"name": "Leg Press", "sets": 3, "reps": "8-12", "customizable": true, "category": "leg"},
-                                    {"name": "Cable Rows", "sets": 3, "reps": "8-12", "customizable": true, "category": "back"},
-                                    {"name": "Russian Twists", "sets": 3, "reps": "10-15", "customizable": true, "category": "core"}
+                                    {"name": "Cable Row", "sets": 3, "reps": "8-12", "customizable": true, "category": "back"},
+                                    {"name": "Russian Twist", "sets": 3, "reps": "10-15", "customizable": true, "category": "core"}
                                 ]
                             }
                         ]
@@ -300,7 +300,7 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                     {"name": "Bent-Over Barbell Row", "sets": 4, "reps": "6-8", "progression": "linear"},
                                     {"name": "Overhead Press", "sets": 3, "reps": "8-10", "progression": "linear"},
                                     {"name": "Lat Pulldown", "sets": 3, "reps": "8-12", "customizable": true},
-                                    {"name": "Barbell Curls", "sets": 3, "reps": "10-12", "customizable": true}
+                                    {"name": "Barbell Curl", "sets": 3, "reps": "10-12", "customizable": true}
                                 ]
                             },
                             {
@@ -309,9 +309,9 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 "exercises": [
                                     {"name": "Back Squat", "sets": 4, "reps": "6-8", "progression": "linear"},
                                     {"name": "Romanian Deadlift", "sets": 3, "reps": "8-10", "progression": "linear"},
-                                    {"name": "Bulgarian Split Squats", "sets": 3, "reps": "10-12", "progression": "linear"},
-                                    {"name": "Leg Curls", "sets": 3, "reps": "10-15", "customizable": true},
-                                    {"name": "Calf Raises", "sets": 4, "reps": "12-15", "customizable": true}
+                                    {"name": "Bulgarian Split Squat", "sets": 3, "reps": "10-12", "progression": "linear"},
+                                    {"name": "Leg Curl", "sets": 3, "reps": "10-15", "customizable": true},
+                                    {"name": "Calf Raise", "sets": 4, "reps": "12-15", "customizable": true}
                                 ]
                             },
                             {
@@ -319,10 +319,10 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 "name": "Upper Body B",
                                 "exercises": [
                                     {"name": "Incline Dumbbell Press", "sets": 4, "reps": "8-10", "progression": "linear"},
-                                    {"name": "Cable Rows", "sets": 4, "reps": "8-10", "progression": "linear"},
+                                    {"name": "Cable Row", "sets": 4, "reps": "8-10", "progression": "linear"},
                                     {"name": "Dumbbell Shoulder Press", "sets": 3, "reps": "10-12", "progression": "linear"},
-                                    {"name": "Cable Flys", "sets": 3, "reps": "10-12", "customizable": true},
-                                    {"name": "Face Pulls", "sets": 3, "reps": "10-12", "customizable": true}
+                                    {"name": "Cable Fly", "sets": 3, "reps": "10-12", "customizable": true},
+                                    {"name": "Face Pull", "sets": 3, "reps": "10-12", "customizable": true}
                                 ]
                             },
                             {
@@ -330,10 +330,10 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 "name": "Lower Body B",
                                 "exercises": [
                                     {"name": "Conventional Deadlift", "sets": 4, "reps": "5-6", "progression": "linear"},
-                                    {"name": "Front Squats", "sets": 3, "reps": "8-10", "progression": "linear"},
-                                    {"name": "Walking Lunges", "sets": 3, "reps": "12-15", "progression": "linear"},
-                                    {"name": "Leg Extensions", "sets": 3, "reps": "12-15", "customizable": true},
-                                    {"name": "Hip Thrusts", "sets": 3, "reps": "12-15", "customizable": true}
+                                    {"name": "Front Squat", "sets": 3, "reps": "8-10", "progression": "linear"},
+                                    {"name": "Walking Lunge", "sets": 3, "reps": "12-15", "progression": "linear"},
+                                    {"name": "Leg Extension", "sets": 3, "reps": "12-15", "customizable": true},
+                                    {"name": "Hip Thrust", "sets": 3, "reps": "12-15", "customizable": true}
                                 ]
                             }
                         ]

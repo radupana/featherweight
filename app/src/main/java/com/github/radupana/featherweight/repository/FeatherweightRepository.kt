@@ -1075,6 +1075,48 @@ class FeatherweightRepository(
                 null
             }
 
+        // If exercise not found, create it as a custom exercise
+        val exerciseId = if (exercise != null) {
+            exercise.id
+        } else {
+            println("⚠️ Exercise '${exerciseStructure.name}' not found in database, creating as custom exercise")
+            try {
+                // Create a generic custom exercise based on the name
+                val category = when {
+                    exerciseStructure.name.contains("Squat", ignoreCase = true) -> ExerciseCategory.LEGS
+                    exerciseStructure.name.contains("Press", ignoreCase = true) -> ExerciseCategory.CHEST
+                    exerciseStructure.name.contains("Row", ignoreCase = true) -> ExerciseCategory.BACK
+                    exerciseStructure.name.contains("Deadlift", ignoreCase = true) -> ExerciseCategory.LEGS
+                    exerciseStructure.name.contains("Curl", ignoreCase = true) -> ExerciseCategory.ARMS
+                    exerciseStructure.name.contains("Lunge", ignoreCase = true) -> ExerciseCategory.LEGS
+                    exerciseStructure.name.contains("Fly", ignoreCase = true) || exerciseStructure.name.contains("Flys", ignoreCase = true) -> ExerciseCategory.CHEST
+                    exerciseStructure.name.contains("Pull", ignoreCase = true) -> ExerciseCategory.BACK
+                    exerciseStructure.name.contains("Raise", ignoreCase = true) -> ExerciseCategory.SHOULDERS
+                    exerciseStructure.name.contains("Extension", ignoreCase = true) -> ExerciseCategory.LEGS
+                    exerciseStructure.name.contains("Thrust", ignoreCase = true) -> ExerciseCategory.LEGS
+                    else -> ExerciseCategory.FULL_BODY
+                }
+                
+                val equipment = when {
+                    exerciseStructure.name.contains("Barbell", ignoreCase = true) -> setOf(Equipment.BARBELL)
+                    exerciseStructure.name.contains("Dumbbell", ignoreCase = true) -> setOf(Equipment.DUMBBELL)
+                    exerciseStructure.name.contains("Cable", ignoreCase = true) -> setOf(Equipment.CABLE_MACHINE)
+                    else -> setOf(Equipment.MACHINE)
+                }
+                
+                createCustomExercise(
+                    name = exerciseStructure.name,
+                    category = category,
+                    primaryMuscles = setOf(MuscleGroup.fromCategory(category)),
+                    requiredEquipment = equipment,
+                    userId = "programme_template"
+                )
+            } catch (e: Exception) {
+                println("❌ Failed to create custom exercise: ${e.message}")
+                null
+            }
+        }
+
         val notes =
             buildString {
                 if (exerciseStructure.note != null) {
@@ -1093,7 +1135,7 @@ class FeatherweightRepository(
         return ExerciseLog(
             workoutId = workoutId,
             exerciseName = exerciseStructure.name,
-            exerciseId = exercise?.id,
+            exerciseId = exerciseId,
             exerciseOrder = exerciseOrder,
             notes = notes,
         )
@@ -1638,8 +1680,8 @@ class FeatherweightRepository(
 
         // Accessories
         createAccessoryExercise(workoutId, "Romanian Deadlift", 1, date, (80f..100f), (8..12), 3)
-        createAccessoryExercise(workoutId, "Bulgarian Split Squats", 2, date, (20f..30f), (8..12), 3)
-        createAccessoryExercise(workoutId, "Pull-ups", 3, date, (0f..10f), (5..10), 3)
+        createAccessoryExercise(workoutId, "Bulgarian Split Squat", 2, date, (20f..30f), (8..12), 3)
+        createAccessoryExercise(workoutId, "Pull-up", 3, date, (0f..10f), (5..10), 3)
     }
 
     private suspend fun createBenchWorkout(
@@ -1700,7 +1742,7 @@ class FeatherweightRepository(
         // Accessories
         createAccessoryExercise(workoutId, "Incline Dumbbell Press", 1, date, (25f..35f), (8..12), 3)
         createAccessoryExercise(workoutId, "Bent-Over Barbell Row", 2, date, (60f..80f), (8..12), 3)
-        createAccessoryExercise(workoutId, "Lateral Raises", 3, date, (8f..15f), (12..15), 4)
+        createAccessoryExercise(workoutId, "Lateral Raise", 3, date, (8f..15f), (12..15), 4)
     }
 
     private suspend fun createDeadliftWorkout(
@@ -1759,9 +1801,9 @@ class FeatherweightRepository(
         }
 
         // Accessories
-        createAccessoryExercise(workoutId, "Front Squats", 1, date, (60f..80f), (6..8), 3)
-        createAccessoryExercise(workoutId, "Barbell Curls", 2, date, (25f..35f), (8..12), 3)
-        createAccessoryExercise(workoutId, "Hanging Leg Raises", 3, date, (0f..10f), (8..15), 3)
+        createAccessoryExercise(workoutId, "Front Squat", 1, date, (60f..80f), (6..8), 3)
+        createAccessoryExercise(workoutId, "Barbell Curl", 2, date, (25f..35f), (8..12), 3)
+        createAccessoryExercise(workoutId, "Hanging Leg Raise", 3, date, (0f..10f), (8..15), 3)
     }
 
     private suspend fun createOHPWorkout(
@@ -1821,8 +1863,8 @@ class FeatherweightRepository(
 
         // Accessories
         createAccessoryExercise(workoutId, "Incline Bench Press", 1, date, (60f..80f), (8..10), 3)
-        createAccessoryExercise(workoutId, "Cable Flys", 2, date, (15f..25f), (10..15), 3)
-        createAccessoryExercise(workoutId, "Dumbbell Curls", 3, date, (12f..20f), (10..15), 3)
+        createAccessoryExercise(workoutId, "Cable Fly", 2, date, (15f..25f), (10..15), 3)
+        createAccessoryExercise(workoutId, "Dumbbell Curl", 3, date, (12f..20f), (10..15), 3)
     }
 
     private suspend fun createAccessoryExercise(
@@ -1855,7 +1897,7 @@ class FeatherweightRepository(
 
         repeat(numSets) { setIndex ->
             val weight =
-                if (exerciseName.contains("Pull-ups") || exerciseName.contains("Hanging")) {
+                if (exerciseName.contains("Pull-up") || exerciseName.contains("Hanging")) {
                     // Bodyweight exercises - use added weight
                     listOf(0f, 2.5f, 5f, 7.5f, 10f).random()
                 } else {
