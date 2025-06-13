@@ -10,8 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -286,56 +290,36 @@ private fun MaxesInputStep(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Squat 1RM
-        OutlinedTextField(
-            value = userMaxes.squat?.toString() ?: "",
-            onValueChange = { value ->
-                val squat = value.toFloatOrNull()
-                onMaxesUpdate(userMaxes.copy(squat = squat))
-            },
-            label = { Text("Back Squat 1RM (kg)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            isError = userMaxes.squat == null || userMaxes.squat <= 0,
+        // Squat 1RM with robust input handling
+        WeightInputField(
+            value = userMaxes.squat,
+            onValueChange = { squat -> onMaxesUpdate(userMaxes.copy(squat = squat)) },
+            label = "Back Squat 1RM (kg)",
+            isError = userMaxes.squat == null || (userMaxes.squat ?: 0f) <= 0,
         )
 
-        // Bench 1RM
-        OutlinedTextField(
-            value = userMaxes.bench?.toString() ?: "",
-            onValueChange = { value ->
-                val bench = value.toFloatOrNull()
-                onMaxesUpdate(userMaxes.copy(bench = bench))
-            },
-            label = { Text("Bench Press 1RM (kg)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            isError = userMaxes.bench == null || userMaxes.bench <= 0,
+        // Bench 1RM with robust input handling
+        WeightInputField(
+            value = userMaxes.bench,
+            onValueChange = { bench -> onMaxesUpdate(userMaxes.copy(bench = bench)) },
+            label = "Bench Press 1RM (kg)",
+            isError = userMaxes.bench == null || (userMaxes.bench ?: 0f) <= 0,
         )
 
-        // Deadlift 1RM
-        OutlinedTextField(
-            value = userMaxes.deadlift?.toString() ?: "",
-            onValueChange = { value ->
-                val deadlift = value.toFloatOrNull()
-                onMaxesUpdate(userMaxes.copy(deadlift = deadlift))
-            },
-            label = { Text("Deadlift 1RM (kg)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            isError = userMaxes.deadlift == null || userMaxes.deadlift <= 0,
+        // Deadlift 1RM with robust input handling
+        WeightInputField(
+            value = userMaxes.deadlift,
+            onValueChange = { deadlift -> onMaxesUpdate(userMaxes.copy(deadlift = deadlift)) },
+            label = "Deadlift 1RM (kg)",
+            isError = userMaxes.deadlift == null || (userMaxes.deadlift ?: 0f) <= 0,
         )
 
-        // OHP 1RM
-        OutlinedTextField(
-            value = userMaxes.ohp?.toString() ?: "",
-            onValueChange = { value ->
-                val ohp = value.toFloatOrNull()
-                onMaxesUpdate(userMaxes.copy(ohp = ohp))
-            },
-            label = { Text("Overhead Press 1RM (kg)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            isError = userMaxes.ohp == null || userMaxes.ohp <= 0,
+        // OHP 1RM with robust input handling
+        WeightInputField(
+            value = userMaxes.ohp,
+            onValueChange = { ohp -> onMaxesUpdate(userMaxes.copy(ohp = ohp)) },
+            label = "Overhead Press 1RM (kg)",
+            isError = userMaxes.ohp == null || (userMaxes.ohp ?: 0f) <= 0,
         )
 
         Card(
@@ -550,4 +534,73 @@ private fun ProgrammeSummaryRow(
             fontWeight = FontWeight.Medium,
         )
     }
+}
+
+@Composable
+private fun WeightInputField(
+    value: Float?,
+    onValueChange: (Float?) -> Unit,
+    label: String,
+    isError: Boolean = false,
+) {
+    var textFieldValue by remember(value) {
+        val text = if (value != null && value > 0) value.toString() else ""
+        mutableStateOf(TextFieldValue(text, TextRange.Zero))
+    }
+    
+    var hasFocus by remember { mutableStateOf(false) }
+    
+    // Only update from external changes when field doesn't have focus
+    LaunchedEffect(value) {
+        if (!hasFocus) {
+            val newText = if (value != null && value > 0) value.toString() else ""
+            if (textFieldValue.text != newText) {
+                textFieldValue = TextFieldValue(newText, TextRange.Zero)
+            }
+        }
+    }
+
+    OutlinedTextField(
+        value = textFieldValue,
+        onValueChange = { newValue ->
+            val text = newValue.text
+            if (text.isEmpty()) {
+                textFieldValue = newValue
+                onValueChange(null)
+            } else {
+                // Same validation logic as working set weight input
+                val parts = text.split(".")
+                val isValid = when (parts.size) {
+                    1 -> parts[0].all { it.isDigit() } && parts[0].length <= 4
+                    2 -> parts[0].all { it.isDigit() } && 
+                         parts[0].length <= 4 && 
+                         parts[1].all { it.isDigit() } && 
+                         parts[1].length <= 2
+                    else -> false
+                }
+                if (isValid) {
+                    textFieldValue = newValue
+                    val floatValue = text.toFloatOrNull()
+                    onValueChange(floatValue)
+                }
+            }
+        },
+        label = { Text(label) },
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Decimal,
+            imeAction = ImeAction.Next
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .onFocusChanged { focusState ->
+                hasFocus = focusState.isFocused
+                if (focusState.isFocused && textFieldValue.text.isNotEmpty()) {
+                    // Select all text for easy replacement
+                    val text = textFieldValue.text
+                    textFieldValue = textFieldValue.copy(selection = TextRange(0, text.length))
+                }
+            },
+        isError = isError,
+        singleLine = true,
+    )
 }

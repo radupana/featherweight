@@ -5,14 +5,24 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
@@ -136,13 +146,21 @@ fun MainAppWithNavigation(
         },
     ) { innerPadding ->
         when (currentScreen) {
-            Screen.HOME ->
+            Screen.HOME -> {
+                val programmeViewModel: ProgrammeViewModel = viewModel()
+
+                // Refresh programme data when returning to home screen
+                LaunchedEffect(currentScreen) {
+                    programmeViewModel.refreshData()
+                }
+
                 HomeScreen(
                     onStartFreestyle = { onScreenChange(Screen.ACTIVE_WORKOUT) },
                     onBrowseProgrammes = { onScreenChange(Screen.PROGRAMMES) },
                     onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
                     modifier = Modifier.padding(innerPadding),
                 )
+            }
 
             Screen.WORKOUT_HUB ->
                 WorkoutHubScreen(
@@ -153,8 +171,15 @@ fun MainAppWithNavigation(
 
             Screen.ACTIVE_WORKOUT -> {
                 val workoutViewModel: WorkoutViewModel = viewModel()
+                val programmeViewModel: ProgrammeViewModel = viewModel()
                 WorkoutScreen(
                     onBack = {
+                        // Refresh programme data if this was a programme workout
+                        val workoutState = workoutViewModel.workoutState.value
+                        if (workoutState.isProgrammeWorkout) {
+                            programmeViewModel.refreshData()
+                        }
+
                         // Navigate back to the screen the user came from
                         val backScreen = previousScreen ?: Screen.HOME
                         onScreenChange(backScreen)
@@ -210,14 +235,14 @@ fun MainAppWithNavigation(
             Screen.ACTIVE_PROGRAMME -> {
                 val programmeViewModel: ProgrammeViewModel = viewModel()
                 val workoutViewModel: WorkoutViewModel = viewModel()
-                
+
                 // Refresh programme data when returning to this screen
                 LaunchedEffect(currentScreen) {
                     if (currentScreen == Screen.ACTIVE_PROGRAMME) {
                         programmeViewModel.refreshData()
                     }
                 }
-                
+
                 com.github.radupana.featherweight.ui.screens.ActiveProgrammeScreen(
                     onBack = { onScreenChange(Screen.HOME) },
                     onStartProgrammeWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },

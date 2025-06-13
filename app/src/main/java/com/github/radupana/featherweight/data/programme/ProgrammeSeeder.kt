@@ -164,8 +164,8 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 "exercises": [
                                     {"name": "Back Squat", "sets": 3, "reps": [5, 3, "1+"], "intensity": [65, 75, 85], "progression": "531"},
                                     {"name": "Bench Press", "sets": 3, "reps": [5, 5, 5], "intensity": [65, 75, 85], "progression": "fsl"},
-                                    {"name": "ACCESSORY_PUSH", "sets": 3, "reps": "8-12", "customizable": true},
-                                    {"name": "ACCESSORY_CORE", "sets": 3, "reps": "10-15", "customizable": true}
+                                    {"name": "Incline Dumbbell Press", "sets": 3, "reps": "8-12", "customizable": true},
+                                    {"name": "Plank", "sets": 3, "reps": "10-15", "customizable": true}
                                 ]
                             },
                             {
@@ -174,8 +174,8 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 "exercises": [
                                     {"name": "Bench Press", "sets": 3, "reps": [5, 3, "1+"], "intensity": [65, 75, 85], "progression": "531"},
                                     {"name": "Back Squat", "sets": 3, "reps": [5, 5, 5], "intensity": [65, 75, 85], "progression": "fsl"},
-                                    {"name": "ACCESSORY_PULL", "sets": 3, "reps": "8-12", "customizable": true},
-                                    {"name": "ACCESSORY_SINGLE_LEG", "sets": 3, "reps": "10-15", "customizable": true}
+                                    {"name": "Bent-Over Dumbbell Row", "sets": 3, "reps": "8-12", "customizable": true},
+                                    {"name": "Bulgarian Split Squats", "sets": 3, "reps": "10-15", "customizable": true}
                                 ]
                             },
                             {
@@ -184,8 +184,8 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 "exercises": [
                                     {"name": "Conventional Deadlift", "sets": 3, "reps": [5, 3, "1+"], "intensity": [65, 75, 85], "progression": "531"},
                                     {"name": "Overhead Press", "sets": 3, "reps": [5, 5, 5], "intensity": [65, 75, 85], "progression": "fsl"},
-                                    {"name": "ACCESSORY_PUSH", "sets": 3, "reps": "8-12", "customizable": true},
-                                    {"name": "ACCESSORY_CORE", "sets": 3, "reps": "10-15", "customizable": true}
+                                    {"name": "Incline Dumbbell Press", "sets": 3, "reps": "8-12", "customizable": true},
+                                    {"name": "Plank", "sets": 3, "reps": "10-15", "customizable": true}
                                 ]
                             },
                             {
@@ -194,8 +194,8 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 "exercises": [
                                     {"name": "Overhead Press", "sets": 3, "reps": [5, 3, "1+"], "intensity": [65, 75, 85], "progression": "531"},
                                     {"name": "Conventional Deadlift", "sets": 3, "reps": [5, 5, 5], "intensity": [65, 75, 85], "progression": "fsl"},
-                                    {"name": "ACCESSORY_PULL", "sets": 3, "reps": "8-12", "customizable": true},
-                                    {"name": "ACCESSORY_SINGLE_LEG", "sets": 3, "reps": "10-15", "customizable": true}
+                                    {"name": "Bent-Over Dumbbell Row", "sets": 3, "reps": "8-12", "customizable": true},
+                                    {"name": "Bulgarian Split Squats", "sets": 3, "reps": "10-15", "customizable": true}
                                 ]
                             }
                         ]
@@ -240,9 +240,9 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 "exercises": [
                                     {"name": "Bench Press", "sets": 9, "reps": [8,6,4,4,4,6,8,8,8], "intensity": [65,75,85,85,85,80,75,70,65], "progression": "nsuns"},
                                     {"name": "Overhead Press", "sets": 8, "reps": [6,5,3,5,7,4,6,8], "intensity": [50,60,70,70,70,65,60,55], "progression": "nsuns_secondary"},
-                                    {"name": "ACCESSORY_1", "sets": 3, "reps": "8-12", "customizable": true, "category": "pull"},
-                                    {"name": "ACCESSORY_2", "sets": 3, "reps": "8-12", "customizable": true, "category": "triceps"},
-                                    {"name": "ACCESSORY_3", "sets": 3, "reps": "8-12", "customizable": true, "category": "lateral_delt"}
+                                    {"name": "Bent-Over Barbell Row", "sets": 3, "reps": "8-12", "customizable": true, "category": "pull"},
+                                    {"name": "Close-Grip Bench Press", "sets": 3, "reps": "8-12", "customizable": true, "category": "triceps"},
+                                    {"name": "Lateral Raises", "sets": 3, "reps": "8-12", "customizable": true, "category": "lateral_delt"}
                                 ]
                             },
                             {
@@ -251,9 +251,9 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 "exercises": [
                                     {"name": "Back Squat", "sets": 9, "reps": [5,3,1,3,3,3,5,5,5], "intensity": [75,85,95,90,85,80,75,70,65], "progression": "nsuns"},
                                     {"name": "Sumo Deadlift", "sets": 8, "reps": [5,3,5,3,5,3,3,5], "intensity": [50,60,70,70,70,65,60,55], "progression": "nsuns_secondary"},
-                                    {"name": "ACCESSORY_1", "sets": 3, "reps": "8-12", "customizable": true, "category": "leg"},
-                                    {"name": "ACCESSORY_2", "sets": 3, "reps": "8-12", "customizable": true, "category": "back"},
-                                    {"name": "ACCESSORY_3", "sets": 3, "reps": "10-15", "customizable": true, "category": "core"}
+                                    {"name": "Leg Press", "sets": 3, "reps": "8-12", "customizable": true, "category": "leg"},
+                                    {"name": "Cable Rows", "sets": 3, "reps": "8-12", "customizable": true, "category": "back"},
+                                    {"name": "Russian Twists", "sets": 3, "reps": "10-15", "customizable": true, "category": "core"}
                                 ]
                             }
                         ]
@@ -299,8 +299,8 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                     {"name": "Bench Press", "sets": 4, "reps": "6-8", "progression": "linear"},
                                     {"name": "Bent-Over Barbell Row", "sets": 4, "reps": "6-8", "progression": "linear"},
                                     {"name": "Overhead Press", "sets": 3, "reps": "8-10", "progression": "linear"},
-                                    {"name": "ACCESSORY_PULL", "sets": 3, "reps": "8-12", "customizable": true},
-                                    {"name": "ACCESSORY_ARMS", "sets": 3, "reps": "10-12", "customizable": true}
+                                    {"name": "Lat Pulldown", "sets": 3, "reps": "8-12", "customizable": true},
+                                    {"name": "Barbell Curls", "sets": 3, "reps": "10-12", "customizable": true}
                                 ]
                             },
                             {
@@ -310,8 +310,8 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                     {"name": "Back Squat", "sets": 4, "reps": "6-8", "progression": "linear"},
                                     {"name": "Romanian Deadlift", "sets": 3, "reps": "8-10", "progression": "linear"},
                                     {"name": "Bulgarian Split Squats", "sets": 3, "reps": "10-12", "progression": "linear"},
-                                    {"name": "ACCESSORY_HAMSTRING", "sets": 3, "reps": "10-15", "customizable": true},
-                                    {"name": "ACCESSORY_CALF", "sets": 4, "reps": "12-15", "customizable": true}
+                                    {"name": "Leg Curls", "sets": 3, "reps": "10-15", "customizable": true},
+                                    {"name": "Calf Raises", "sets": 4, "reps": "12-15", "customizable": true}
                                 ]
                             },
                             {
@@ -321,8 +321,8 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                     {"name": "Incline Dumbbell Press", "sets": 4, "reps": "8-10", "progression": "linear"},
                                     {"name": "Cable Rows", "sets": 4, "reps": "8-10", "progression": "linear"},
                                     {"name": "Dumbbell Shoulder Press", "sets": 3, "reps": "10-12", "progression": "linear"},
-                                    {"name": "ACCESSORY_CHEST", "sets": 3, "reps": "10-12", "customizable": true},
-                                    {"name": "ACCESSORY_BACK", "sets": 3, "reps": "10-12", "customizable": true}
+                                    {"name": "Cable Flys", "sets": 3, "reps": "10-12", "customizable": true},
+                                    {"name": "Face Pulls", "sets": 3, "reps": "10-12", "customizable": true}
                                 ]
                             },
                             {
@@ -332,8 +332,8 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                     {"name": "Conventional Deadlift", "sets": 4, "reps": "5-6", "progression": "linear"},
                                     {"name": "Front Squats", "sets": 3, "reps": "8-10", "progression": "linear"},
                                     {"name": "Walking Lunges", "sets": 3, "reps": "12-15", "progression": "linear"},
-                                    {"name": "ACCESSORY_QUAD", "sets": 3, "reps": "12-15", "customizable": true},
-                                    {"name": "ACCESSORY_GLUTE", "sets": 3, "reps": "12-15", "customizable": true}
+                                    {"name": "Leg Extensions", "sets": 3, "reps": "12-15", "customizable": true},
+                                    {"name": "Hip Thrusts", "sets": 3, "reps": "12-15", "customizable": true}
                                 ]
                             }
                         ]

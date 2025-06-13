@@ -434,9 +434,11 @@ fun WorkoutScreen(
             completedSets = completedSets,
             totalSets = totalSets,
             onComplete = {
-                viewModel.completeWorkout()
-                showCompleteWorkoutDialog = false
-                onBack()
+                viewModel.completeWorkout {
+                    // Completion callback: let the workout completion finish before navigation
+                    showCompleteWorkoutDialog = false
+                    onBack()
+                }
             },
             onDismiss = { showCompleteWorkoutDialog = false },
         )
