@@ -13,10 +13,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -30,6 +27,7 @@ import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
 import com.github.radupana.featherweight.viewmodel.AnalyticsViewModel
+import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
 enum class Screen {
@@ -210,35 +208,15 @@ fun MainAppWithNavigation(
             }
 
             Screen.ACTIVE_PROGRAMME -> {
-                // For now, show a placeholder screen for active programme
-                // This will be developed into a full programme workout screen later
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        Text(
-                            text = "Active Programme",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = "Programme workout interface coming soon!",
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                        Button(
-                            onClick = { onScreenChange(Screen.PROGRAMMES) },
-                        ) {
-                            Text("Back to Programmes")
-                        }
-                    }
-                }
+                val programmeViewModel: ProgrammeViewModel = viewModel()
+                val workoutViewModel: WorkoutViewModel = viewModel()
+                com.github.radupana.featherweight.ui.screens.ActiveProgrammeScreen(
+                    onBack = { onScreenChange(Screen.PROGRAMMES) },
+                    onStartProgrammeWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
+                    programmeViewModel = programmeViewModel,
+                    workoutViewModel = workoutViewModel,
+                    modifier = Modifier.padding(innerPadding),
+                )
             }
 
             Screen.SPLASH -> {

@@ -22,7 +22,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -104,16 +103,17 @@ fun WorkoutScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 // Main workout title
                                 Text(
-                                    text = if (workoutState.isProgrammeWorkout) {
-                                        workoutState.programmeWorkoutName ?: viewModel.getWorkoutDisplayName()
-                                    } else {
-                                        viewModel.getWorkoutDisplayName()
-                                    },
+                                    text =
+                                        if (workoutState.isProgrammeWorkout) {
+                                            workoutState.programmeWorkoutName ?: viewModel.getWorkoutDisplayName()
+                                        } else {
+                                            viewModel.getWorkoutDisplayName()
+                                        },
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
-                                
+
                                 // Programme subtitle (if this is a programme workout)
                                 if (workoutState.isProgrammeWorkout) {
                                     Row(
@@ -127,13 +127,14 @@ fun WorkoutScreen(
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(
-                                            text = buildString {
-                                                workoutState.programmeName?.let { append(it) }
-                                                if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
-                                                    if (isNotEmpty()) append(" • ")
-                                                    append("Week ${workoutState.weekNumber}, Day ${workoutState.dayNumber}")
-                                                }
-                                            },
+                                            text =
+                                                buildString {
+                                                    workoutState.programmeName?.let { append(it) }
+                                                    if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
+                                                        if (isNotEmpty()) append(" • ")
+                                                        append("Week ${workoutState.weekNumber}, Day ${workoutState.dayNumber}")
+                                                    }
+                                                },
                                             style = MaterialTheme.typography.labelMedium,
                                             color = MaterialTheme.colorScheme.primary,
                                             maxLines = 1,
@@ -142,7 +143,7 @@ fun WorkoutScreen(
                                     }
                                 }
                             }
-                            
+
                             // Status icons
                             if (workoutState.isCompleted && !isEditMode) {
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -242,7 +243,21 @@ fun WorkoutScreen(
             )
 
             // Exercises list or empty state
-            if (exercises.isEmpty()) {
+            if (workoutState.isLoadingExercises) {
+                // Show loading indicator while exercises are being loaded
+                Box(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(48.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            } else if (exercises.isEmpty()) {
                 EmptyWorkoutState(
                     canEdit = canEdit,
                     onAddExercise = onSelectExercise,
@@ -874,19 +889,20 @@ private fun ProgrammeProgressCard(
     modifier: Modifier = Modifier,
 ) {
     var programmeProgress by remember { mutableStateOf<Pair<Int, Int>?>(null) }
-    
+
     // Load programme progress
     LaunchedEffect(workoutState.programmeId) {
         if (workoutState.programmeId != null) {
             programmeProgress = viewModel.getProgrammeProgress()
         }
     }
-    
+
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+            ),
         shape = RoundedCornerShape(12.dp),
     ) {
         Column(
@@ -914,7 +930,7 @@ private fun ProgrammeProgressCard(
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
-                
+
                 // Programme completion progress
                 programmeProgress?.let { (completed, total) ->
                     if (total > 0) {
@@ -933,9 +949,9 @@ private fun ProgrammeProgressCard(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             // Programme details
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -956,7 +972,7 @@ private fun ProgrammeProgressCard(
                         )
                     }
                 }
-                
+
                 // Progress bar
                 programmeProgress?.let { (completed, total) ->
                     if (total > 0) {
@@ -973,9 +989,10 @@ private fun ProgrammeProgressCard(
                             Spacer(modifier = Modifier.height(4.dp))
                             LinearProgressIndicator(
                                 progress = { progress },
-                                modifier = Modifier
-                                    .width(60.dp)
-                                    .height(6.dp),
+                                modifier =
+                                    Modifier
+                                        .width(60.dp)
+                                        .height(6.dp),
                                 color = MaterialTheme.colorScheme.primary,
                                 trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                                 strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,

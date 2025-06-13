@@ -32,6 +32,8 @@ data class WorkoutState(
     val weekNumber: Int? = null,
     val dayNumber: Int? = null,
     val programmeWorkoutName: String? = null,
+    // Loading state to prevent UI from showing "No exercises" while loading
+    val isLoadingExercises: Boolean = false,
 )
 
 data class InProgressWorkout(
@@ -274,6 +276,7 @@ class WorkoutViewModel(
                         programmeWorkoutName = workout.programmeWorkoutName,
                     )
 
+                // Wait for exercises to load completely before UI renders
                 loadExercisesForWorkout(workoutId)
                 loadInProgressWorkouts()
             }
@@ -382,8 +385,22 @@ class WorkoutViewModel(
         viewModelScope.launch {
             val state = _workoutState.value
 
+            // Debug: Check programme progress before completion
+            if (state.isProgrammeWorkout && state.programmeId != null) {
+                println("🔍 DEBUG: Checking programme progress BEFORE completion")
+                val progressBefore = repository.getProgrammeWorkoutProgress(state.programmeId)
+                println("📊 Progress before: ${progressBefore.first}/${progressBefore.second} workouts completed")
+            }
+
             // Complete the workout (this will automatically update programme progress if applicable)
             repository.completeWorkout(currentId)
+
+            // Debug: Check programme progress after completion
+            if (state.isProgrammeWorkout && state.programmeId != null) {
+                println("🔍 DEBUG: Checking programme progress AFTER completion")
+                val progressAfter = repository.getProgrammeWorkoutProgress(state.programmeId)
+                println("📊 Progress after: ${progressAfter.first}/${progressAfter.second} workouts completed")
+            }
 
             _workoutState.value =
                 state.copy(
@@ -452,10 +469,17 @@ class WorkoutViewModel(
         return set.reps > 0 && set.weight > 0
     }
 
-    private fun loadExercisesForWorkout(workoutId: Long) {
-        viewModelScope.launch {
+    private suspend fun loadExercisesForWorkout(workoutId: Long) {
+        // Set loading state to true before starting
+        _workoutState.value = _workoutState.value.copy(isLoadingExercises = true)
+
+        try {
             _selectedWorkoutExercises.value = repository.getExercisesForWorkout(workoutId)
-            loadAllSetsForCurrentExercises()
+            // Wait for sets to be loaded completely
+            loadAllSetsForCurrentExercisesAndWait()
+        } finally {
+            // Always set loading state to false when done
+            _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
         }
     }
 
@@ -477,6 +501,16 @@ class WorkoutViewModel(
             _selectedExerciseSets.value = allSets
             updateSetCompletionValidation()
         }
+    }
+
+    private suspend fun loadAllSetsForCurrentExercisesAndWait() {
+        val allSets = mutableListOf<SetLog>()
+        _selectedWorkoutExercises.value.forEach { exercise ->
+            val sets = repository.getSetsForExercise(exercise.id)
+            allSets.addAll(sets)
+        }
+        _selectedExerciseSets.value = allSets
+        updateSetCompletionValidation()
     }
 
     // ===== ENHANCED EXERCISE MANAGEMENT =====
@@ -850,6 +884,7 @@ class WorkoutViewModel(
                         programmeWorkoutName = workout.programmeWorkoutName,
                     )
 
+                // IMPORTANT: Wait for exercises to load completely before UI renders
                 loadExercisesForWorkout(workoutId)
                 loadInProgressWorkouts()
 
@@ -862,7 +897,7 @@ class WorkoutViewModel(
     }
 
     // Get next programme workout for the active programme
-    suspend fun getNextProgrammeWorkout(): com.github.radupana.featherweight.data.programme.WorkoutStructure? {
+    suspend fun getNextProgrammeWorkout(): com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo? {
         val activeProgramme = repository.getActiveProgramme() ?: return null
         return repository.getNextProgrammeWorkout(activeProgramme.id)
     }

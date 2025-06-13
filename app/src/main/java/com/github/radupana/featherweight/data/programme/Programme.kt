@@ -135,7 +135,7 @@ data class ExerciseSubstitution(
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("programmeId")],
+    indices = [Index("programmeId", unique = true)],
 )
 data class ProgrammeProgress(
     @PrimaryKey(autoGenerate = true)

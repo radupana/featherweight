@@ -38,10 +38,22 @@ interface WorkoutDao {
     @Query("SELECT * FROM Workout WHERE isProgrammeWorkout = 1 ORDER BY date DESC")
     suspend fun getProgrammeWorkouts(): List<Workout>
 
-    @Query("SELECT COUNT(*) FROM Workout WHERE programmeId = :programmeId AND notes LIKE '%[COMPLETED]%'")
+    @Query(
+        """
+        SELECT COALESCE(pp.completedWorkouts, 0) 
+        FROM programme_progress pp 
+        WHERE pp.programmeId = :programmeId
+    """,
+    )
     suspend fun getCompletedProgrammeWorkoutCount(programmeId: Long): Int
 
-    @Query("SELECT COUNT(*) FROM Workout WHERE programmeId = :programmeId")
+    @Query(
+        """
+        SELECT COALESCE(pp.totalWorkouts, 0) 
+        FROM programme_progress pp 
+        WHERE pp.programmeId = :programmeId
+    """,
+    )
     suspend fun getTotalProgrammeWorkoutCount(programmeId: Long): Int
 
     @Query(

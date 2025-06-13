@@ -29,6 +29,10 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
     private val _programmeProgress = MutableStateFlow<ProgrammeProgress?>(null)
     val programmeProgress: StateFlow<ProgrammeProgress?> = _programmeProgress
 
+    // All user programmes (including inactive)
+    private val _allProgrammes = MutableStateFlow<List<Programme>>(emptyList())
+    val allProgrammes: StateFlow<List<Programme>> = _allProgrammes
+
     // User's 1RM values for setup
     private val _userMaxes = MutableStateFlow(UserMaxes())
     val userMaxes: StateFlow<UserMaxes> = _userMaxes
@@ -136,6 +140,12 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
                     _programmeProgress.value = progress
                 }
 
+                // Load all programmes (including inactive)
+                println("🔄 ProgrammeViewModel: Loading all programmes...")
+                val allProgs = repository.getAllProgrammes()
+                println("✅ ProgrammeViewModel: Loaded ${allProgs.size} programmes")
+                _allProgrammes.value = allProgs
+
                 println("✅ ProgrammeViewModel: Data loading complete")
 
                 // Force update the UI state to ensure loading is false and templates are shown
@@ -177,17 +187,51 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun selectTemplate(template: ProgrammeTemplate) {
+        // Check if there's an active programme
+        if (_activeProgramme.value != null) {
+            _uiState.value =
+                _uiState.value.copy(
+                    showOverwriteWarning = true,
+                    pendingTemplate = template,
+                )
+        } else {
+            _uiState.value =
+                _uiState.value.copy(
+                    selectedTemplate = template,
+                    showSetupDialog = true,
+                    setupStep = if (template.requiresMaxes) SetupStep.MAXES_INPUT else SetupStep.CONFIRMATION,
+                )
+
+            // Reset user maxes if template doesn't require them
+            if (!template.requiresMaxes) {
+                _userMaxes.value = UserMaxes()
+            }
+        }
+    }
+
+    fun confirmOverwriteProgramme() {
+        val template = _uiState.value.pendingTemplate ?: return
         _uiState.value =
             _uiState.value.copy(
                 selectedTemplate = template,
                 showSetupDialog = true,
                 setupStep = if (template.requiresMaxes) SetupStep.MAXES_INPUT else SetupStep.CONFIRMATION,
+                showOverwriteWarning = false,
+                pendingTemplate = null,
             )
 
         // Reset user maxes if template doesn't require them
         if (!template.requiresMaxes) {
             _userMaxes.value = UserMaxes()
         }
+    }
+
+    fun cancelOverwriteProgramme() {
+        _uiState.value =
+            _uiState.value.copy(
+                showOverwriteWarning = false,
+                pendingTemplate = null,
+            )
     }
 
     fun updateUserMaxes(maxes: UserMaxes) {
@@ -264,6 +308,7 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
     fun createProgrammeFromTemplate(
         customName: String? = null,
         accessoryCustomizations: Map<String, String> = emptyMap(),
+        onSuccess: (() -> Unit)? = null,
     ) {
         val template = _uiState.value.selectedTemplate ?: return
         val maxes = _userMaxes.value
@@ -312,6 +357,9 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
                         successMessage = "Programme '${customName ?: template.name}' created and activated!",
                     )
                 println("✅ Programme creation completed successfully")
+
+                // Call success callback to navigate
+                onSuccess?.invoke()
             } catch (e: Exception) {
                 println("❌ Programme creation failed: ${e.message}")
                 e.printStackTrace()
@@ -335,10 +383,51 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
                     _uiState.value.copy(
                         successMessage = "Programme deactivated",
                     )
+
+                // Reload to show deactivated programme
+                loadProgrammeData()
             } catch (e: Exception) {
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to deactivate programme: ${e.message}",
+                    )
+            }
+        }
+    }
+
+    fun reactivateProgramme(programme: Programme) {
+        viewModelScope.launch {
+            try {
+                repository.activateProgramme(programme.id)
+                _uiState.value =
+                    _uiState.value.copy(
+                        successMessage = "Programme '${programme.name}' reactivated!",
+                    )
+                // Reload data to update UI
+                loadProgrammeData()
+            } catch (e: Exception) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Failed to reactivate programme: ${e.message}",
+                    )
+            }
+        }
+    }
+
+    fun deleteProgramme(programme: Programme) {
+        viewModelScope.launch {
+            try {
+                repository.deleteProgramme(programme)
+                _uiState.value =
+                    _uiState.value.copy(
+                        successMessage = "Programme '${programme.name}' deleted successfully",
+                    )
+                // Refresh data to update the UI
+                loadProgrammeData()
+            } catch (e: Exception) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Failed to delete programme: ${e.message}",
                     )
             }
         }
@@ -368,6 +457,8 @@ data class ProgrammeUiState(
     val error: String? = null,
     val successMessage: String? = null,
     val searchText: String = "",
+    val showOverwriteWarning: Boolean = false,
+    val pendingTemplate: ProgrammeTemplate? = null,
 )
 
 data class UserMaxes(

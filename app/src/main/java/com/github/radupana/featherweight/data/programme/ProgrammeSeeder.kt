@@ -78,7 +78,7 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                 programmeType = ProgrammeType.STRENGTH,
                 difficulty = ProgrammeDifficulty.BEGINNER,
                 author = "Mehdi Hadim",
-                requiresMaxes = false,
+                requiresMaxes = true,
                 allowsAccessoryCustomization = false,
                 jsonStructure = strongLiftsStructure,
             )
@@ -141,7 +141,7 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                 programmeType = ProgrammeType.STRENGTH,
                 difficulty = ProgrammeDifficulty.BEGINNER,
                 author = "Mark Rippetoe",
-                requiresMaxes = false,
+                requiresMaxes = true,
                 allowsAccessoryCustomization = false,
                 jsonStructure = startingStrengthStructure,
             )

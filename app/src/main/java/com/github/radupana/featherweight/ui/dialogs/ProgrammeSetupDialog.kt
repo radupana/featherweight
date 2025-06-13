@@ -27,6 +27,7 @@ fun ProgrammeSetupDialog(
     template: ProgrammeTemplate,
     uiState: ProgrammeUiState,
     viewModel: ProgrammeViewModel,
+    onProgrammeCreated: (() -> Unit)? = null,
 ) {
     val userMaxes by viewModel.userMaxes.collectAsState()
     var customName by remember { mutableStateOf("") }
@@ -148,6 +149,9 @@ fun ProgrammeSetupDialog(
                             if (uiState.setupStep == SetupStep.CONFIRMATION) {
                                 viewModel.createProgrammeFromTemplate(
                                     customName = customName.takeIf { it.isNotBlank() },
+                                    onSuccess = {
+                                        onProgrammeCreated?.invoke()
+                                    },
                                 )
                             } else {
                                 viewModel.nextSetupStep()

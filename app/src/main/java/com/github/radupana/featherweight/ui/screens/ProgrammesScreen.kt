@@ -36,6 +36,11 @@ fun ProgrammesScreen(
     val uiState by viewModel.uiState.collectAsState()
     val activeProgramme by viewModel.activeProgramme.collectAsState()
     val programmeProgress by viewModel.programmeProgress.collectAsState()
+    val allProgrammes by viewModel.allProgrammes.collectAsState()
+
+    // Confirmation dialog states
+    var showDeactivateConfirmDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     // Handle messages
     LaunchedEffect(uiState.error, uiState.successMessage) {
@@ -46,22 +51,9 @@ fun ProgrammesScreen(
         }
     }
 
-    Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .padding(16.dp),
+    Box(
+        modifier = modifier.fillMaxSize(),
     ) {
-        // Header
-        Text(
-            text = "Programmes",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
         if (uiState.isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -69,110 +61,149 @@ fun ProgrammesScreen(
             ) {
                 CircularProgressIndicator()
             }
-            return@Column
+            return@Box
         }
 
-        // Error/Success Messages
-        uiState.error?.let { error ->
-            Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                    ),
-            ) {
-                Text(
-                    text = error,
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                )
-            }
-        }
-
-        uiState.successMessage?.let { message ->
-            Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = Color(0xFF4CAF50).copy(alpha = 0.1f),
-                    ),
-            ) {
-                Text(
-                    text = message,
-                    modifier = Modifier.padding(16.dp),
-                    color = Color(0xFF4CAF50),
-                )
-            }
-        }
-
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        Column(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .imePadding(), // Only apply keyboard padding to the scrollable content
+                    .padding(horizontal = 16.dp),
         ) {
-            // Active Programme Section
-            activeProgramme?.let { programme ->
-                item {
-                    ActiveProgrammeCard(
-                        programme = programme,
-                        progress = programmeProgress,
-                        onDeactivate = { viewModel.deactivateActiveProgramme() },
-                        onNavigateToProgramme = onNavigateToActiveProgramme,
+            // Header - outside the scrollable area
+            Text(
+                text = "Programmes",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
+            )
+
+            // Error/Success Messages
+            uiState.error?.let { error ->
+                Card(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                        ),
+                ) {
+                    Text(
+                        text = error,
+                        modifier = Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.onErrorContainer,
                     )
                 }
             }
 
-            // Search Section
-            item {
-                SearchSection(
-                    searchText = uiState.searchText,
-                    onSearchTextChange = viewModel::updateSearchText,
-                )
+            uiState.successMessage?.let { message ->
+                Card(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = Color(0xFF4CAF50).copy(alpha = 0.1f),
+                        ),
+                ) {
+                    Text(
+                        text = message,
+                        modifier = Modifier.padding(16.dp),
+                        color = Color(0xFF4CAF50),
+                    )
+                }
             }
 
-            // Filter Section
-            item {
-                FilterSection(
-                    onDifficultyFilter = viewModel::filterByDifficulty,
-                    onTypeFilter = viewModel::filterByType,
-                    onClearFilters = viewModel::clearFilters,
-                    hasActiveFilters = uiState.searchText.isNotEmpty(),
-                )
-            }
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .imePadding(),
+                contentPadding = PaddingValues(bottom = 16.dp),
+            ) {
+                // Active Programme Section
+                activeProgramme?.let { programme ->
+                    item {
+                        ActiveProgrammeCard(
+                            programme = programme,
+                            progress = programmeProgress,
+                            onDeactivate = { showDeactivateConfirmDialog = true },
+                            onDelete = { showDeleteConfirmDialog = true },
+                            onNavigateToProgramme = onNavigateToActiveProgramme,
+                        )
+                    }
+                }
 
-            // Templates Section
-            item {
-                Text(
-                    text = if (activeProgramme != null) "Browse Other Programmes" else "Choose a Programme",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(vertical = 8.dp),
-                )
-            }
-
-            items(uiState.templates) { template ->
-                ProgrammeTemplateCard(
-                    template = template,
-                    isActive = activeProgramme?.name == template.name,
-                    onClick = {
-                        if (activeProgramme?.name != template.name) {
-                            viewModel.selectTemplate(template)
-                        }
-                    },
-                )
-            }
-
-            if (uiState.templates.isEmpty() && !uiState.isLoading) {
+                // Search Section
                 item {
-                    EmptyStateCard()
+                    SearchSection(
+                        searchText = uiState.searchText,
+                        onSearchTextChange = viewModel::updateSearchText,
+                    )
+                }
+
+                // Filter Section
+                item {
+                    FilterSection(
+                        onDifficultyFilter = viewModel::filterByDifficulty,
+                        onTypeFilter = viewModel::filterByType,
+                        onClearFilters = viewModel::clearFilters,
+                        hasActiveFilters = uiState.searchText.isNotEmpty(),
+                    )
+                }
+
+                // Templates Section
+                item {
+                    Text(
+                        text = if (activeProgramme != null) "Browse Other Programmes" else "Choose a Programme",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                }
+
+                items(uiState.templates) { template ->
+                    ProgrammeTemplateCard(
+                        template = template,
+                        isActive = activeProgramme?.name == template.name,
+                        onClick = {
+                            if (activeProgramme?.name != template.name) {
+                                viewModel.selectTemplate(template)
+                            }
+                        },
+                    )
+                }
+
+                if (uiState.templates.isEmpty() && !uiState.isLoading) {
+                    item {
+                        EmptyStateCard()
+                    }
+                }
+
+                // Inactive Programmes Section
+                val inactiveProgrammes = allProgrammes.filter { !it.isActive }
+                if (inactiveProgrammes.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Your Inactive Programmes",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(vertical = 8.dp),
+                        )
+                    }
+
+                    items(inactiveProgrammes) { programme ->
+                        InactiveProgrammeCard(
+                            programme = programme,
+                            onReactivate = { viewModel.reactivateProgramme(programme) },
+                            onDelete = { viewModel.deleteProgramme(programme) },
+                        )
+                    }
                 }
             }
         }
@@ -184,6 +215,142 @@ fun ProgrammesScreen(
             template = uiState.selectedTemplate!!,
             uiState = uiState,
             viewModel = viewModel,
+            onProgrammeCreated = {
+                // Navigate to active programme screen after creation
+                onNavigateToActiveProgramme?.invoke()
+            },
+        )
+    }
+
+    // Deactivate Confirmation Dialog
+    if (showDeactivateConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeactivateConfirmDialog = false },
+            title = { Text("Deactivate Programme?") },
+            text = {
+                Column {
+                    Text(
+                        text = "Are you sure you want to deactivate this programme?",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "• Your progress will be saved\n• You can reactivate it later\n• You won't receive workout notifications",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deactivateActiveProgramme()
+                        showDeactivateConfirmDialog = false
+                    },
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                        ),
+                ) {
+                    Text("Deactivate")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showDeactivateConfirmDialog = false },
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
+    // Delete Confirmation Dialog
+    if (showDeleteConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            title = { Text("Delete Programme?") },
+            text = {
+                Column {
+                    Text(
+                        text = "Are you sure you want to permanently delete this programme?",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "⚠️ This action cannot be undone!\n• All progress will be lost\n• Workout history will remain",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        activeProgramme?.let { programme ->
+                            viewModel.deleteProgramme(programme)
+                        }
+                        showDeleteConfirmDialog = false
+                    },
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                        ),
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.onError)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showDeleteConfirmDialog = false },
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
+    // Overwrite Warning Dialog
+    if (uiState.showOverwriteWarning) {
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelOverwriteProgramme() },
+            title = { Text("Active Programme Warning") },
+            text = {
+                Column {
+                    Text(
+                        text = "You already have an active programme: ${activeProgramme?.name}",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "To start a new programme, you must first deactivate your current one.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Would you like to deactivate it and continue?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deactivateActiveProgramme()
+                        viewModel.confirmOverwriteProgramme()
+                    },
+                ) {
+                    Text("Deactivate & Continue")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { viewModel.cancelOverwriteProgramme() },
+                ) {
+                    Text("Cancel")
+                }
+            },
         )
     }
 }
@@ -193,6 +360,7 @@ private fun ActiveProgrammeCard(
     programme: Programme,
     progress: ProgrammeProgress?,
     onDeactivate: () -> Unit,
+    onDelete: () -> Unit,
     onNavigateToProgramme: (() -> Unit)? = null,
 ) {
     GlassCard(
@@ -230,12 +398,23 @@ private fun ActiveProgrammeCard(
                     )
                 }
 
-                IconButton(onClick = onDeactivate) {
-                    Icon(
-                        Icons.Filled.Close,
-                        contentDescription = "Deactivate programme",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                Row {
+                    // Deactivate button
+                    IconButton(onClick = onDeactivate) {
+                        Icon(
+                            Icons.Filled.Pause,
+                            contentDescription = "Deactivate programme",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    // Delete button
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = "Delete programme",
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
             }
 
@@ -618,6 +797,59 @@ private fun EmptyStateCard() {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 4.dp),
             )
+        }
+    }
+}
+
+@Composable
+private fun InactiveProgrammeCard(
+    programme: Programme,
+    onReactivate: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = programme.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        text = "Inactive • ${programme.durationWeeks} weeks",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                Row {
+                    TextButton(
+                        onClick = onReactivate,
+                    ) {
+                        Text("Reactivate")
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = "Delete programme",
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
         }
     }
 }
