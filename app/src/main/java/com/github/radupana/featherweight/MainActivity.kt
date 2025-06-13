@@ -110,7 +110,7 @@ fun MainAppWithNavigation(
     }
     val navigationItems =
         listOf(
-            NavigationItem(Screen.HOME, "Workout", Icons.Filled.FitnessCenter),
+            NavigationItem(Screen.HOME, "Home", Icons.Filled.FitnessCenter),
             NavigationItem(Screen.PROGRAMMES, "Programmes", Icons.Filled.Schedule),
             NavigationItem(Screen.HISTORY, "History", Icons.Filled.History),
             NavigationItem(Screen.ANALYTICS, "Analytics", Icons.Filled.Analytics),
@@ -210,8 +210,16 @@ fun MainAppWithNavigation(
             Screen.ACTIVE_PROGRAMME -> {
                 val programmeViewModel: ProgrammeViewModel = viewModel()
                 val workoutViewModel: WorkoutViewModel = viewModel()
+                
+                // Refresh programme data when returning to this screen
+                LaunchedEffect(currentScreen) {
+                    if (currentScreen == Screen.ACTIVE_PROGRAMME) {
+                        programmeViewModel.refreshData()
+                    }
+                }
+                
                 com.github.radupana.featherweight.ui.screens.ActiveProgrammeScreen(
-                    onBack = { onScreenChange(Screen.PROGRAMMES) },
+                    onBack = { onScreenChange(Screen.HOME) },
                     onStartProgrammeWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
                     programmeViewModel = programmeViewModel,
                     workoutViewModel = workoutViewModel,

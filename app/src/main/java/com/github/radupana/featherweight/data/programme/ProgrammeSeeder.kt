@@ -42,7 +42,7 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 ]
                             },
                             {
-                                "day": 3,
+                                "day": 2,
                                 "name": "Workout B",
                                 "exercises": [
                                     {"name": "Back Squat", "sets": 5, "reps": 5, "progression": "linear"},
@@ -51,7 +51,7 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 ]
                             },
                             {
-                                "day": 5,
+                                "day": 3,
                                 "name": "Workout A",
                                 "exercises": [
                                     {"name": "Back Squat", "sets": 5, "reps": 5, "progression": "linear"},
@@ -105,7 +105,7 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 ]
                             },
                             {
-                                "day": 3,
+                                "day": 2,
                                 "name": "Day B",
                                 "exercises": [
                                     {"name": "Back Squat", "sets": 3, "reps": 5, "progression": "linear"},
@@ -114,7 +114,7 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 ]
                             },
                             {
-                                "day": 5,
+                                "day": 3,
                                 "name": "Day A",
                                 "exercises": [
                                     {"name": "Back Squat", "sets": 3, "reps": 5, "progression": "linear"},
@@ -315,7 +315,7 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 ]
                             },
                             {
-                                "day": 4,
+                                "day": 3,
                                 "name": "Upper Body B",
                                 "exercises": [
                                     {"name": "Incline Dumbbell Press", "sets": 4, "reps": "8-10", "progression": "linear"},
@@ -326,7 +326,7 @@ class ProgrammeSeeder(private val programmeDao: ProgrammeDao) {
                                 ]
                             },
                             {
-                                "day": 5,
+                                "day": 4,
                                 "name": "Lower Body B",
                                 "exercises": [
                                     {"name": "Conventional Deadlift", "sets": 4, "reps": "5-6", "progression": "linear"},

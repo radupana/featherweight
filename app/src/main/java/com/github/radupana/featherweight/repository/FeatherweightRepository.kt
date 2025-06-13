@@ -316,11 +316,11 @@ class FeatherweightRepository(
         println("✅ Workout marked as completed in database")
 
         // Update programme progress if this is a programme workout
-        if (workout.isProgrammeWorkout && workout.programmeId != null) {
+        if (workout.isProgrammeWorkout && workout.programmeId != null && workout.weekNumber != null && workout.dayNumber != null) {
             println("🔄 This is a programme workout, updating progress...")
             updateProgrammeProgressAfterWorkout(workout.programmeId, workout.weekNumber, workout.dayNumber)
         } else {
-            println("⚠️ Not a programme workout, skipping progress update")
+            println("⚠️ Not a programme workout or missing week/day info, skipping progress update")
         }
     }
 
@@ -335,9 +335,17 @@ class FeatherweightRepository(
                     "week=$weekNumber, day=$dayNumber",
             )
 
+            // Get current progress before incrementing
+            val progressBefore = programmeDao.getProgressForProgramme(programmeId)
+            println("📊 Progress BEFORE increment: completedWorkouts=${progressBefore?.completedWorkouts}")
+
             // Always increment completed workouts when a workout is completed
             programmeDao.incrementCompletedWorkouts(programmeId)
-            println("✅ Incremented completed workouts counter")
+            println("✅ Called incrementCompletedWorkouts")
+
+            // Verify the increment worked
+            val progressAfterIncrement = programmeDao.getProgressForProgramme(programmeId)
+            println("📊 Progress AFTER increment: completedWorkouts=${progressAfterIncrement?.completedWorkouts}")
 
             // Now find the next workout and update current week/day to that
             val nextWorkoutInfo = getNextProgrammeWorkout(programmeId)
@@ -363,8 +371,13 @@ class FeatherweightRepository(
             // Update adherence percentage
             val progress = programmeDao.getProgressForProgramme(programmeId)
             if (progress != null) {
-                val adherence = (progress.completedWorkouts.toFloat() / progress.totalWorkouts.toFloat()) * 100f
-                println("📊 Calculated adherence: ${progress.completedWorkouts}/${progress.totalWorkouts} = $adherence%")
+                val adherence =
+                    if (progress.totalWorkouts > 0) {
+                        (progress.completedWorkouts.toFloat() / progress.totalWorkouts.toFloat()) * 100f
+                    } else {
+                        0f
+                    }
+                println("📊 Final progress: ${progress.completedWorkouts}/${progress.totalWorkouts} = $adherence%")
 
                 val updatedProgress =
                     progress.copy(
@@ -373,6 +386,8 @@ class FeatherweightRepository(
                     )
                 programmeDao.insertOrUpdateProgress(updatedProgress)
                 println("✅ Updated adherence percentage and last workout date")
+            } else {
+                println("⚠️ WARNING: No progress record found after update!")
             }
 
             println("✅ Programme progress update completed")
@@ -984,15 +999,32 @@ class FeatherweightRepository(
                     com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
                         ?: throw IllegalArgumentException("Invalid programme structure")
 
+                println("📚 Template has ${structure.weeks.size} week(s) defined")
+
+                // For programmes with single week templates that repeat (like Starting Strength)
+                // Use modulo to find the template week
+                val templateWeekNumber =
+                    if (structure.weeks.size == 1) {
+                        1 // Always use week 1 if only one week is defined
+                    } else {
+                        ((weekNumber - 1) % structure.weeks.size) + 1
+                    }
+
+                println("🔄 Using template week $templateWeekNumber for actual week $weekNumber")
+
                 // Find the specific workout for this week and day
+                // All programmes MUST have sequential days (1,2,3,4...)
                 val workoutStructure =
                     com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser.getWorkoutForWeekAndDay(
                         structure,
-                        weekNumber,
+                        templateWeekNumber,
                         dayNumber,
-                    ) ?: throw IllegalArgumentException("Workout not found for week $weekNumber, day $dayNumber")
+                    ) ?: throw IllegalArgumentException("Workout not found for template week $templateWeekNumber, day $dayNumber")
+
+                println("🏋️ Found workout: ${workoutStructure.name} with ${workoutStructure.exercises.size} exercises")
 
                 // Create the workout entry
+                // Store actual programme week, not template week
                 val workout =
                     Workout(
                         date = LocalDateTime.now(),
@@ -1020,7 +1052,7 @@ class FeatherweightRepository(
                     createSetsFromStructure(exerciseLogId, exerciseStructure, userMaxes)
                 }
 
-                println("✅ Created programme workout: ${workoutStructure.name} (Week $weekNumber, Day $dayNumber)")
+                println("✅ Created programme workout: ${workoutStructure.name} (Actual Week $weekNumber, Day $dayNumber)")
                 workoutId
             } catch (e: Exception) {
                 println("❌ Error creating workout from programme: ${e.message}")
@@ -1148,9 +1180,18 @@ class FeatherweightRepository(
     // Get programme workout progress
     suspend fun getProgrammeWorkoutProgress(programmeId: Long): Pair<Int, Int> =
         withContext(Dispatchers.IO) {
-            val completed = workoutDao.getCompletedProgrammeWorkoutCount(programmeId)
-            val total = workoutDao.getTotalProgrammeWorkoutCount(programmeId)
-            Pair(completed, total)
+            // Get from the progress table which is the source of truth
+            val progress = programmeDao.getProgressForProgramme(programmeId)
+            if (progress != null) {
+                println("📊 getProgrammeWorkoutProgress from progress table: ${progress.completedWorkouts}/${progress.totalWorkouts}")
+                Pair(progress.completedWorkouts, progress.totalWorkouts)
+            } else {
+                // Fallback to counting workouts
+                val completed = workoutDao.getCompletedProgrammeWorkoutCount(programmeId)
+                val total = workoutDao.getTotalProgrammeWorkoutCount(programmeId)
+                println("📊 getProgrammeWorkoutProgress from workout count: $completed/$total")
+                Pair(completed, total)
+            }
         }
 
     // Check if a specific programme workout has been completed
@@ -1186,69 +1227,45 @@ class FeatherweightRepository(
                 com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
                     ?: return@withContext null
 
-            // Check if programme is actually complete (all programme weeks finished)
+            // Check if programme is actually complete
             if (progress.completedWorkouts >= progress.totalWorkouts) {
                 println("✅ Programme is complete (${progress.completedWorkouts} >= ${progress.totalWorkouts})")
-                return@withContext null // Programme truly complete
+                return@withContext null
             }
 
-            // Get all completed workouts for this programme
-            val allCompletedWorkouts =
-                workoutDao.getWorkoutsByProgramme(programmeId)
-                    .filter { it.notes?.contains("[COMPLETED]") == true }
+            // Calculate workouts per week from template structure
+            val workoutsPerWeek = structure.weeks.flatMap { it.workouts }.size / structure.weeks.size
+            println("📊 Programme has $workoutsPerWeek workouts per week")
 
-            println("📋 Found ${allCompletedWorkouts.size} completed workouts for this programme")
+            // Calculate the next workout position based on completed workouts
+            val nextWorkoutIndex = progress.completedWorkouts
+            val nextWeek = (nextWorkoutIndex / workoutsPerWeek) + 1
+            val nextDay = (nextWorkoutIndex % workoutsPerWeek) + 1
 
-            // Log all completed workouts for debugging
-            allCompletedWorkouts.forEach { workout ->
-                println("  - Week ${workout.weekNumber}, Day ${workout.dayNumber}: ${workout.programmeWorkoutName}")
+            println("🎯 Next workout should be: Week $nextWeek, Day $nextDay (based on ${progress.completedWorkouts} completed)")
+
+            // Make sure we haven't exceeded programme duration
+            if (nextWeek > programme.durationWeeks) {
+                println("✅ Programme complete - exceeded duration weeks")
+                return@withContext null
             }
 
-            // Create a set of completed week/day combinations
-            val completedDays =
-                allCompletedWorkouts
-                    .filter { it.weekNumber != null && it.dayNumber != null }
-                    .map { "${it.weekNumber}_${it.dayNumber}" }
-                    .toSet()
+            // Get the workout structure for this position
+            val templateWeekIndex = ((nextWeek - 1) % structure.weeks.size) + 1
+            val workoutStructure =
+                com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser.getWorkoutForWeekAndDay(
+                    structure,
+                    templateWeekIndex,
+                    nextDay,
+                ) ?: return@withContext null
 
-            println("✅ Completed days: $completedDays")
+            println("💫 Found workout: ${workoutStructure.name} on day ${workoutStructure.day}")
 
-            // Find the next workout to do based on programme structure
-            // Always start from week 1 to find the first incomplete workout
-            for (weekNumber in 1..programme.durationWeeks) {
-                // Use modulo to repeat the week pattern (most programmes have 1-4 week cycles)
-                val templateWeekIndex = ((weekNumber - 1) % structure.weeks.size) + 1
-                val templateWeek =
-                    structure.weeks.find { it.weekNumber == templateWeekIndex }
-                        ?: structure.weeks.firstOrNull()
-                        ?: continue
-
-                println("🔍 Checking week $weekNumber (template week $templateWeekIndex)")
-
-                // Sort workouts by day number to ensure sequential progression
-                val weekWorkouts = templateWeek.workouts.sortedBy { it.day }
-
-                for (workoutStructure in weekWorkouts) {
-                    val dayKey = "${weekNumber}_${workoutStructure.day}"
-
-                    if (!completedDays.contains(dayKey)) {
-                        println(
-                            "🎯 Found next workout: Week $weekNumber, Day ${workoutStructure.day} - ${workoutStructure.name}",
-                        )
-
-                        // DON'T update progress here - it should only be updated AFTER workout completion
-                        // Return both the workout structure and the actual programme week
-                        return@withContext NextProgrammeWorkoutInfo(
-                            workoutStructure = workoutStructure,
-                            actualWeekNumber = weekNumber,
-                        )
-                    }
-                }
-            }
-
-            // No uncompleted workouts found in any week - programme is complete
-            println("✅ No more workouts found - programme is complete!")
-            return@withContext null
+            // Return the workout info
+            return@withContext NextProgrammeWorkoutInfo(
+                workoutStructure = workoutStructure,
+                actualWeekNumber = nextWeek,
+            )
         }
 
     // Calculate total workouts for a programme based on its JSON structure
@@ -1264,23 +1281,18 @@ class FeatherweightRepository(
                 com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
                     ?: return programme.durationWeeks * 3 // Fallback to default
 
-            // Calculate workouts per week cycle based on template structure
-            val workoutsPerWeekCycle = structure.weeks.sumOf { it.workouts.size }
-            val cycleDuration = structure.weeks.size
+            // Calculate workouts per week based on the ACTUAL number of workouts in the template
+            val totalWorkoutsInTemplate = structure.weeks.sumOf { it.workouts.size }
+            val templateWeeks = structure.weeks.size
+            val workoutsPerWeek = totalWorkoutsInTemplate.toFloat() / templateWeeks.toFloat()
 
-            // Calculate how many complete cycles fit in the programme duration
-            val completeCycles = programme.durationWeeks / cycleDuration
-            val remainingWeeks = programme.durationWeeks % cycleDuration
-
-            // Total workouts = complete cycles + partial cycle workouts
-            val totalWorkouts =
-                completeCycles * workoutsPerWeekCycle +
-                    structure.weeks.take(remainingWeeks).sumOf { it.workouts.size }
+            // Total workouts = workouts per week * programme duration
+            val totalWorkouts = (workoutsPerWeek * programme.durationWeeks).toInt()
 
             println("📊 Programme structure analysis:")
-            println("  - Template cycle: $cycleDuration weeks with $workoutsPerWeekCycle workouts")
+            println("  - Template has $totalWorkoutsInTemplate workouts across $templateWeeks week(s)")
+            println("  - Workouts per week: $workoutsPerWeek")
             println("  - Programme duration: ${programme.durationWeeks} weeks")
-            println("  - Complete cycles: $completeCycles, remaining weeks: $remainingWeeks")
             println("  - Total calculated workouts: $totalWorkouts")
 
             totalWorkouts

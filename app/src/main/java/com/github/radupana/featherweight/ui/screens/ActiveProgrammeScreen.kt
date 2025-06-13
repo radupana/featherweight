@@ -4,11 +4,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -18,6 +20,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.programme.WorkoutStructure
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +36,14 @@ fun ActiveProgrammeScreen(
     var nextWorkout by remember { mutableStateOf<WorkoutStructure?>(null) }
     var nextWorkoutWeek by remember { mutableStateOf(1) }
     var isLoading by remember { mutableStateOf(true) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
+    // Refresh programme progress when screen appears
+    LaunchedEffect(Unit) {
+        programmeViewModel.refreshProgrammeProgress()
+    }
+    
     // Load next workout when screen appears
     LaunchedEffect(activeProgramme) {
         isLoading = true
@@ -99,22 +109,40 @@ fun ActiveProgrammeScreen(
                         modifier = Modifier.padding(20.dp),
                     ) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(bottom = 16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top,
                         ) {
-                            Icon(
-                                Icons.Filled.FitnessCenter,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp),
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = programme.name,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Icon(
+                                    Icons.Filled.FitnessCenter,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp),
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = programme.name,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                            }
+                            
+                            IconButton(
+                                onClick = { showDeleteDialog = true },
+                                modifier = Modifier.size(32.dp),
+                            ) {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = "Delete programme",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
                         }
 
                         programmeProgress?.let { progress ->
@@ -200,19 +228,26 @@ fun ActiveProgrammeScreen(
                             println("  - Week: $nextWorkoutWeek")
                             println("  - Workout day: ${nextWorkout!!.day}")
                             println("  - Workout name: ${nextWorkout!!.name}")
-                            workoutViewModel.startProgrammeWorkout(
-                                programmeId = programme.id,
-                                weekNumber = nextWorkoutWeek,
-                                dayNumber = nextWorkout!!.day,
-                                userMaxes =
-                                    mapOf(
-                                        "squat" to (programme.squatMax ?: 100f),
-                                        "bench" to (programme.benchMax ?: 80f),
-                                        "deadlift" to (programme.deadliftMax ?: 120f),
-                                        "ohp" to (programme.ohpMax ?: 60f),
-                                    ),
-                            )
-                            onStartProgrammeWorkout()
+
+                            // Launch coroutine to handle async workout creation
+                            scope.launch {
+                                workoutViewModel.startProgrammeWorkout(
+                                    programmeId = programme.id,
+                                    weekNumber = nextWorkoutWeek,
+                                    dayNumber = nextWorkout!!.day,
+                                    userMaxes =
+                                        mapOf(
+                                            "squat" to (programme.squatMax ?: 100f),
+                                            "bench" to (programme.benchMax ?: 80f),
+                                            "deadlift" to (programme.deadliftMax ?: 120f),
+                                            "ohp" to (programme.ohpMax ?: 60f),
+                                        ),
+                                    onReady = {
+                                        // Navigate only after workout is fully created
+                                        onStartProgrammeWorkout()
+                                    },
+                                )
+                            }
                         }
                     },
                 )
@@ -223,6 +258,47 @@ fun ActiveProgrammeScreen(
 
             Spacer(modifier = Modifier.weight(1f))
         }
+    }
+    
+    // Delete Programme Dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Programme?") },
+            text = {
+                Text(
+                    "Are you sure you want to delete '${activeProgramme?.name}'? " +
+                        "This will permanently remove the programme and all its progress data. This action cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        activeProgramme?.let { programme ->
+                            scope.launch {
+                                programmeViewModel.deleteProgramme(programme)
+                                showDeleteDialog = false
+                                // Navigate back after deletion
+                                onBack()
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showDeleteDialog = false },
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
     }
 }
 

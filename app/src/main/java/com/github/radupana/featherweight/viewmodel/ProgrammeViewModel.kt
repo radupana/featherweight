@@ -87,6 +87,19 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
         loadProgrammeData()
     }
 
+    // Public method to refresh programme progress
+    fun refreshProgrammeProgress() {
+        viewModelScope.launch {
+            val active = _activeProgramme.value
+            if (active != null) {
+                println("🔄 Refreshing programme progress for: ${active.name}")
+                val progress = repository.getProgrammeWithDetails(active.id)?.progress
+                _programmeProgress.value = progress
+                println("✅ Programme progress refreshed: ${progress?.completedWorkouts}/${progress?.totalWorkouts}")
+            }
+        }
+    }
+
     private fun filterTemplates(
         templates: List<ProgrammeTemplate>,
         difficulty: ProgrammeDifficulty?,

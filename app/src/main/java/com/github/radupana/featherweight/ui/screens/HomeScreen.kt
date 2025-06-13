@@ -1,6 +1,8 @@
 package com.github.radupana.featherweight.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -19,7 +21,7 @@ import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     onStartFreestyle: () -> Unit,
@@ -34,6 +36,9 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     var showWorkoutDialog by remember { mutableStateOf(false) }
     var pendingWorkout by remember { mutableStateOf<InProgressWorkout?>(null) }
+    var showDeactivateProgrammeDialog by remember { mutableStateOf(false) }
+    var showDeleteWorkoutDialog by remember { mutableStateOf(false) }
+    var workoutToDelete by remember { mutableStateOf<Long?>(null) }
 
     // Load in-progress workouts when screen appears
     LaunchedEffect(Unit) {
@@ -111,7 +116,17 @@ fun HomeScreen(
             }
         }
 
-        // Active Programme Section
+        // PROGRAMMES Section
+        if (activeProgramme != null) {
+            Text(
+                text = "PROGRAMMES",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        
         activeProgramme?.let { programme ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -146,7 +161,10 @@ fun HomeScreen(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .clickable { onNavigateToActiveProgramme?.invoke() },
+                                .combinedClickable(
+                                    onClick = { onNavigateToActiveProgramme?.invoke() },
+                                    onLongClick = { showDeactivateProgrammeDialog = true },
+                                ),
                         elevation = CardDefaults.cardElevation(2.dp),
                         colors =
                             CardDefaults.cardColors(
@@ -218,8 +236,15 @@ fun HomeScreen(
             }
         }
 
-        // In-Progress Workouts Section - REAL DATA
+        // WORKOUTS Section
         if (inProgressWorkouts.isNotEmpty()) {
+            Text(
+                text = "WORKOUTS",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
+                fontWeight = FontWeight.Bold,
+            )
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors =
@@ -255,6 +280,10 @@ fun HomeScreen(
                             onContinue = {
                                 workoutViewModel.resumeWorkout(workout.id)
                                 onStartFreestyle()
+                            },
+                            onLongClick = {
+                                workoutToDelete = workout.id
+                                showDeleteWorkoutDialog = true
                             },
                         )
                         if (workout != inProgressWorkouts.last()) {
@@ -320,19 +349,101 @@ fun HomeScreen(
             },
         )
     }
+    
+    // Deactivate Programme Dialog
+    if (showDeactivateProgrammeDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeactivateProgrammeDialog = false },
+            title = { Text("Deactivate Programme?") },
+            text = {
+                Text(
+                    "Are you sure you want to deactivate '${activeProgramme?.name}'? " +
+                        "You can reactivate it later from the Programmes screen.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            programmeViewModel.deactivateActiveProgramme()
+                            showDeactivateProgrammeDialog = false
+                        }
+                    },
+                ) {
+                    Text("Deactivate")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showDeactivateProgrammeDialog = false },
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+    
+    // Delete Workout Dialog
+    if (showDeleteWorkoutDialog && workoutToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteWorkoutDialog = false },
+            title = { Text("Delete Workout?") },
+            text = {
+                Text(
+                    "Are you sure you want to delete this in-progress workout? This action cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        workoutToDelete?.let { id ->
+                            scope.launch {
+                                workoutViewModel.deleteWorkout(id)
+                                workoutViewModel.loadInProgressWorkouts()
+                                showDeleteWorkoutDialog = false
+                                workoutToDelete = null
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = {
+                        showDeleteWorkoutDialog = false
+                        workoutToDelete = null
+                    },
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun InProgressWorkoutCard(
     workout: InProgressWorkout,
     onContinue: () -> Unit,
+    onLongClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Card(
         modifier =
             modifier
                 .fillMaxWidth()
-                .clickable { onContinue() },
+                .combinedClickable(
+                    onClick = { onContinue() },
+                    onLongClick = onLongClick,
+                ),
         elevation = CardDefaults.cardElevation(2.dp),
         colors =
             CardDefaults.cardColors(

@@ -24,7 +24,8 @@ data class WorkoutState(
     val workoutName: String? = null,
     val isReadOnly: Boolean = false,
     val isInEditMode: Boolean = false,
-    val originalWorkoutData: Triple<List<ExerciseLog>, List<SetLog>, String?>? = null, // Backup for rollback
+    // Backup for rollback
+    val originalWorkoutData: Triple<List<ExerciseLog>, List<SetLog>, String?>? = null,
     // Programme Integration
     val isProgrammeWorkout: Boolean = false,
     val programmeId: Long? = null,
@@ -145,7 +146,8 @@ class WorkoutViewModel(
                     category = category,
                     primaryMuscles = primaryMuscles,
                     requiredEquipment = equipment,
-                    userId = "current_user", // TODO: Get actual user ID
+                    // TODO: Get actual user ID
+                    userId = "current_user",
                 )
 
             // Reload exercises to include the new one
@@ -191,7 +193,8 @@ class WorkoutViewModel(
                             startDate = summary.date,
                             exerciseCount = summary.exerciseCount,
                             setCount = summary.setCount,
-                            completedSets = 0, // TODO: Calculate from sets
+                            // TODO: Calculate from sets
+                            completedSets = 0,
                         )
                     }
             _inProgressWorkouts.value = inProgress
@@ -380,7 +383,7 @@ class WorkoutViewModel(
     }
 
     // Complete the current workout (handles both regular and programme workouts)
-    fun completeWorkout() {
+    fun completeWorkout(onComplete: (() -> Unit)? = null) {
         val currentId = _currentWorkoutId.value ?: return
         viewModelScope.launch {
             val state = _workoutState.value
@@ -416,6 +419,9 @@ class WorkoutViewModel(
             if (state.isProgrammeWorkout) {
                 println("✅ Completed programme workout: ${state.programmeWorkoutName}")
             }
+
+            // Callback for UI to handle post-completion actions
+            onComplete?.invoke()
         }
     }
 
@@ -829,70 +835,89 @@ class WorkoutViewModel(
             loadInProgressWorkouts()
         }
     }
+    
+    // Delete any workout by ID
+    fun deleteWorkout(workoutId: Long) {
+        viewModelScope.launch {
+            repository.deleteWorkout(workoutId)
+            loadInProgressWorkouts()
+        }
+    }
 
     // ===== PROGRAMME WORKOUT METHODS =====
 
     // Start a workout from a programme template
-    fun startProgrammeWorkout(
+    suspend fun startProgrammeWorkout(
         programmeId: Long,
         weekNumber: Int,
         dayNumber: Int,
         userMaxes: Map<String, Float> = emptyMap(),
+        onReady: (() -> Unit)? = null,
     ) {
-        viewModelScope.launch {
-            try {
-                // Get programme information
-                val programme = repository.getActiveProgramme()
-                if (programme == null || programme.id != programmeId) {
-                    println("❌ Programme not found or not active")
-                    return@launch
-                }
+        try {
+            // Set loading state immediately
+            _workoutState.value = _workoutState.value.copy(isLoadingExercises = true)
 
-                // Create workout from programme template
-                val workoutId =
-                    repository.createWorkoutFromProgrammeTemplate(
-                        programmeId = programmeId,
-                        weekNumber = weekNumber,
-                        dayNumber = dayNumber,
-                        userMaxes = userMaxes,
-                    )
-
-                // Get the created workout to extract metadata
-                val workout = repository.getWorkoutById(workoutId)
-                if (workout == null) {
-                    println("❌ Failed to retrieve created workout")
-                    return@launch
-                }
-
-                _currentWorkoutId.value = workoutId
-                _workoutState.value =
-                    WorkoutState(
-                        isActive = true,
-                        isCompleted = false,
-                        workoutId = workoutId,
-                        startTime = workout.date,
-                        workoutName = workout.programmeWorkoutName,
-                        isReadOnly = false,
-                        isInEditMode = false,
-                        originalWorkoutData = null,
-                        // Programme context
-                        isProgrammeWorkout = true,
-                        programmeId = programmeId,
-                        programmeName = programme.name,
-                        weekNumber = weekNumber,
-                        dayNumber = dayNumber,
-                        programmeWorkoutName = workout.programmeWorkoutName,
-                    )
-
-                // IMPORTANT: Wait for exercises to load completely before UI renders
-                loadExercisesForWorkout(workoutId)
-                loadInProgressWorkouts()
-
-                println("✅ Started programme workout: ${workout.programmeWorkoutName} (Week $weekNumber, Day $dayNumber)")
-            } catch (e: Exception) {
-                println("❌ Error starting programme workout: ${e.message}")
-                e.printStackTrace()
+            // Get programme information
+            val programme = repository.getActiveProgramme()
+            if (programme == null || programme.id != programmeId) {
+                println("❌ Programme not found or not active")
+                _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
+                return
             }
+
+            // Create workout from programme template
+            // Note: dayNumber here is the sequential day (1,2,3,4), not the template day
+            val workoutId =
+                repository.createWorkoutFromProgrammeTemplate(
+                    programmeId = programmeId,
+                    weekNumber = weekNumber,
+                    dayNumber = dayNumber,
+                    userMaxes = userMaxes,
+                )
+
+            // Get the created workout to extract metadata
+            val workout = repository.getWorkoutById(workoutId)
+            if (workout == null) {
+                println("❌ Failed to retrieve created workout")
+                _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
+                return
+            }
+
+            _currentWorkoutId.value = workoutId
+            _workoutState.value =
+                WorkoutState(
+                    isActive = true,
+                    isCompleted = false,
+                    workoutId = workoutId,
+                    startTime = workout.date,
+                    workoutName = workout.programmeWorkoutName,
+                    isReadOnly = false,
+                    isInEditMode = false,
+                    originalWorkoutData = null,
+                    // Programme context
+                    isProgrammeWorkout = true,
+                    programmeId = programmeId,
+                    programmeName = programme.name,
+                    weekNumber = weekNumber,
+                    dayNumber = dayNumber,
+                    programmeWorkoutName = workout.programmeWorkoutName,
+                    // Ensure loading state is set
+                    isLoadingExercises = true,
+                )
+
+            // IMPORTANT: Wait for exercises to load completely before allowing navigation
+            loadExercisesForWorkout(workoutId)
+            loadInProgressWorkouts()
+
+            println("✅ Started programme workout: ${workout.programmeWorkoutName} (Week $weekNumber, Day $dayNumber)")
+
+            // Notify that workout is ready for navigation
+            onReady?.invoke()
+        } catch (e: Exception) {
+            println("❌ Error starting programme workout: ${e.message}")
+            e.printStackTrace()
+            _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
         }
     }
 
