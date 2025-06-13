@@ -4,18 +4,23 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.view.WindowManager
+import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.ui.screens.AnalyticsScreen
 import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
 import com.github.radupana.featherweight.ui.screens.HistoryScreen
@@ -26,6 +31,7 @@ import com.github.radupana.featherweight.ui.screens.WorkoutScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
 import com.github.radupana.featherweight.viewmodel.AnalyticsViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import kotlinx.coroutines.launch
 
 enum class Screen {
     SPLASH,
@@ -35,6 +41,7 @@ enum class Screen {
     EXERCISE_SELECTOR,
     HISTORY,
     ANALYTICS,
+    PROGRAMMES,
 }
 
 data class NavigationItem(
@@ -53,11 +60,19 @@ class MainActivity : ComponentActivity() {
         // Enable edge-to-edge display for modern look
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        
+        // Configure keyboard behavior - this is crucial for proper keyboard handling
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
 
         setContent {
             FeatherweightTheme {
                 var currentScreen by remember { mutableStateOf(Screen.SPLASH) }
-                var showTemplateDialog by remember { mutableStateOf(false) }
+
+                // Seed database early
+                LaunchedEffect(Unit) {
+                    val repository = FeatherweightRepository(application)
+                    repository.seedDatabaseIfEmpty()
+                }
 
                 when (currentScreen) {
                     Screen.SPLASH ->
@@ -70,19 +85,8 @@ class MainActivity : ComponentActivity() {
                         MainAppWithNavigation(
                             currentScreen = currentScreen,
                             onScreenChange = { screen -> currentScreen = screen },
-                            onStartTemplate = { showTemplateDialog = true },
                         )
                     }
-                }
-
-                if (showTemplateDialog) {
-                    com.github.radupana.featherweight.ui.dialogs.ChooseTemplateDialog(
-                        onClose = { showTemplateDialog = false },
-                        onTemplateSelected = {
-                            // TODO: implement template selection
-                            showTemplateDialog = false
-                        },
-                    )
                 }
             }
         }
@@ -93,7 +97,6 @@ class MainActivity : ComponentActivity() {
 fun MainAppWithNavigation(
     currentScreen: Screen,
     onScreenChange: (Screen) -> Unit,
-    onStartTemplate: () -> Unit,
 ) {
     // Track previous screen for proper back navigation
     var previousScreen by remember { mutableStateOf<Screen?>(null) }
@@ -110,6 +113,7 @@ fun MainAppWithNavigation(
     val navigationItems =
         listOf(
             NavigationItem(Screen.HOME, "Workout", Icons.Filled.FitnessCenter),
+            NavigationItem(Screen.PROGRAMMES, "Programmes", Icons.Filled.Schedule),
             NavigationItem(Screen.HISTORY, "History", Icons.Filled.History),
             NavigationItem(Screen.ANALYTICS, "Analytics", Icons.Filled.Analytics),
         )
@@ -137,14 +141,14 @@ fun MainAppWithNavigation(
             Screen.HOME ->
                 HomeScreen(
                     onStartFreestyle = { onScreenChange(Screen.ACTIVE_WORKOUT) },
-                    onStartTemplate = onStartTemplate,
+                    onBrowseProgrammes = { onScreenChange(Screen.PROGRAMMES) },
                     modifier = Modifier.padding(innerPadding),
                 )
 
             Screen.WORKOUT_HUB ->
                 WorkoutHubScreen(
                     onStartActiveWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
-                    onStartTemplate = onStartTemplate,
+                    onStartTemplate = { onScreenChange(Screen.PROGRAMMES) },
                     modifier = Modifier.padding(innerPadding),
                 )
 
@@ -197,6 +201,12 @@ fun MainAppWithNavigation(
                 )
             }
 
+            Screen.PROGRAMMES -> {
+                com.github.radupana.featherweight.ui.screens.ProgrammesScreen(
+                    modifier = Modifier.padding(innerPadding)
+                )
+            }
+
             Screen.SPLASH -> {
                 // Should not reach here
             }
@@ -207,13 +217,13 @@ fun MainAppWithNavigation(
 @Composable
 fun HomeScreen(
     onStartFreestyle: () -> Unit,
-    onStartTemplate: () -> Unit,
+    onBrowseProgrammes: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier) {
         HomeScreen(
             onStartFreestyle = onStartFreestyle,
-            onStartTemplate = onStartTemplate,
+            onBrowseProgrammes = onBrowseProgrammes,
         )
     }
 }

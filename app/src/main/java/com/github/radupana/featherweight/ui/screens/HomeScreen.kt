@@ -23,7 +23,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun HomeScreen(
     onStartFreestyle: () -> Unit,
-    onStartTemplate: () -> Unit,
+    onBrowseProgrammes: () -> Unit,
     workoutViewModel: WorkoutViewModel = viewModel(),
 ) {
     val inProgressWorkouts by workoutViewModel.inProgressWorkouts.collectAsState()
@@ -85,20 +85,20 @@ fun HomeScreen(
                 }
 
                 OutlinedButton(
-                    onClick = onStartTemplate,
+                    onClick = onBrowseProgrammes,
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .height(48.dp),
                 ) {
                     Icon(
-                        Icons.Filled.LibraryBooks,
-                        contentDescription = "Templates",
+                        Icons.Filled.Schedule,
+                        contentDescription = "Programmes",
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Browse Templates",
+                        text = "Browse Programmes",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Medium,
                     )

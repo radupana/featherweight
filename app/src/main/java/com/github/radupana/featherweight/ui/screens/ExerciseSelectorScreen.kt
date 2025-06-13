@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.exercise.*
 import com.github.radupana.featherweight.viewmodel.ExerciseSelectorViewModel
@@ -80,7 +82,9 @@ fun ExerciseSelectorScreen(
             modifier =
                 Modifier
                     .padding(innerPadding)
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .imePadding() // Add keyboard padding
+                    .navigationBarsPadding(), // Add navigation bars padding
         ) {
             // Error handling at the top
             errorMessage?.let { error ->

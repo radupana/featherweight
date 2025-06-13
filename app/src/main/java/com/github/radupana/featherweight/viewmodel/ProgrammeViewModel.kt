@@ -1,0 +1,323 @@
+package com.github.radupana.featherweight.viewmodel
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.github.radupana.featherweight.data.programme.*
+import com.github.radupana.featherweight.repository.FeatherweightRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
+
+class ProgrammeViewModel(application: Application) : AndroidViewModel(application) {
+    private val repository = FeatherweightRepository(application)
+
+    // UI State
+    private val _uiState = MutableStateFlow(ProgrammeUiState())
+    val uiState: StateFlow<ProgrammeUiState> = _uiState
+
+    // Programme Templates
+    private val _allTemplates = MutableStateFlow<List<ProgrammeTemplate>>(emptyList())
+    private val _filteredTemplates = MutableStateFlow<List<ProgrammeTemplate>>(emptyList())
+    
+    // Active Programme
+    private val _activeProgramme = MutableStateFlow<Programme?>(null)
+    val activeProgramme: StateFlow<Programme?> = _activeProgramme
+    
+    // Programme Progress
+    private val _programmeProgress = MutableStateFlow<ProgrammeProgress?>(null)
+    val programmeProgress: StateFlow<ProgrammeProgress?> = _programmeProgress
+
+    // User's 1RM values for setup
+    private val _userMaxes = MutableStateFlow(UserMaxes())
+    val userMaxes: StateFlow<UserMaxes> = _userMaxes
+
+    // Filter state
+    private val _selectedDifficulty = MutableStateFlow<ProgrammeDifficulty?>(null)
+    private val _selectedType = MutableStateFlow<ProgrammeType?>(null)
+    private val _searchText = MutableStateFlow("")
+
+    init {
+        // Start with immediate loading
+        _uiState.value = _uiState.value.copy(isLoading = true)
+        
+        // Combine filter states to update filtered templates
+        viewModelScope.launch {
+            combine(
+                _allTemplates,
+                _selectedDifficulty,
+                _selectedType,
+                _searchText
+            ) { templates, difficulty, type, searchText ->
+                filterTemplates(templates, difficulty, type, searchText)
+            }.collect { filtered ->
+                _filteredTemplates.value = filtered
+                _uiState.value = _uiState.value.copy(
+                    templates = filtered,
+                    searchText = _searchText.value,
+                    isLoading = false
+                )
+            }
+        }
+        
+        // Load data immediately
+        loadProgrammeData()
+    }
+
+    private fun filterTemplates(
+        templates: List<ProgrammeTemplate>,
+        difficulty: ProgrammeDifficulty?,
+        type: ProgrammeType?,
+        searchText: String
+    ): List<ProgrammeTemplate> {
+        return templates.filter { template ->
+            val matchesDifficulty = difficulty == null || template.difficulty == difficulty
+            val matchesType = type == null || template.programmeType == type
+            val matchesSearch = searchText.isBlank() || 
+                template.name.contains(searchText, ignoreCase = true) ||
+                template.description.contains(searchText, ignoreCase = true) ||
+                template.author.contains(searchText, ignoreCase = true)
+            
+            matchesDifficulty && matchesType && matchesSearch
+        }
+    }
+
+    private fun loadProgrammeData() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            
+            try {
+                // Ensure database is seeded first
+                repository.seedDatabaseIfEmpty()
+                
+                // Load templates
+                val templates = repository.getAllProgrammeTemplates()
+                _allTemplates.value = templates
+                
+                // Load active programme
+                val active = repository.getActiveProgramme()
+                _activeProgramme.value = active
+                
+                // Load progress if there's an active programme
+                if (active != null) {
+                    val progress = repository.getProgrammeWithDetails(active.id)?.progress
+                    _programmeProgress.value = progress
+                }
+                
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to load programmes: ${e.message}",
+                    isLoading = false
+                )
+            }
+        }
+    }
+
+    fun filterByDifficulty(difficulty: ProgrammeDifficulty?) {
+        _selectedDifficulty.value = difficulty
+    }
+
+    fun filterByType(type: ProgrammeType?) {
+        _selectedType.value = type
+    }
+
+    fun clearFilters() {
+        _selectedDifficulty.value = null
+        _selectedType.value = null
+        _searchText.value = ""
+    }
+
+    fun updateSearchText(text: String) {
+        _searchText.value = text
+    }
+
+    fun selectTemplate(template: ProgrammeTemplate) {
+        _uiState.value = _uiState.value.copy(
+            selectedTemplate = template,
+            showSetupDialog = true,
+            setupStep = if (template.requiresMaxes) SetupStep.MAXES_INPUT else SetupStep.CONFIRMATION
+        )
+        
+        // Reset user maxes if template doesn't require them
+        if (!template.requiresMaxes) {
+            _userMaxes.value = UserMaxes()
+        }
+    }
+
+    fun updateUserMaxes(maxes: UserMaxes) {
+        _userMaxes.value = maxes
+    }
+
+    fun nextSetupStep() {
+        val currentStep = _uiState.value.setupStep
+        val template = _uiState.value.selectedTemplate
+        
+        when (currentStep) {
+            SetupStep.MAXES_INPUT -> {
+                _uiState.value = _uiState.value.copy(
+                    setupStep = if (template?.allowsAccessoryCustomization == true) {
+                        SetupStep.ACCESSORY_SELECTION
+                    } else {
+                        SetupStep.CONFIRMATION
+                    }
+                )
+            }
+            SetupStep.ACCESSORY_SELECTION -> {
+                _uiState.value = _uiState.value.copy(setupStep = SetupStep.CONFIRMATION)
+            }
+            SetupStep.CONFIRMATION -> {
+                // This should trigger programme creation
+            }
+        }
+    }
+
+    fun previousSetupStep() {
+        val currentStep = _uiState.value.setupStep
+        val template = _uiState.value.selectedTemplate
+        
+        when (currentStep) {
+            SetupStep.ACCESSORY_SELECTION -> {
+                _uiState.value = _uiState.value.copy(
+                    setupStep = if (template?.requiresMaxes == true) {
+                        SetupStep.MAXES_INPUT
+                    } else {
+                        SetupStep.CONFIRMATION
+                    }
+                )
+            }
+            SetupStep.CONFIRMATION -> {
+                if (template?.allowsAccessoryCustomization == true) {
+                    _uiState.value = _uiState.value.copy(setupStep = SetupStep.ACCESSORY_SELECTION)
+                } else if (template?.requiresMaxes == true) {
+                    _uiState.value = _uiState.value.copy(setupStep = SetupStep.MAXES_INPUT)
+                } else {
+                    dismissSetupDialog()
+                }
+            }
+            SetupStep.MAXES_INPUT -> {
+                dismissSetupDialog()
+            }
+        }
+    }
+
+    fun dismissSetupDialog() {
+        _uiState.value = _uiState.value.copy(
+            selectedTemplate = null,
+            showSetupDialog = false,
+            setupStep = SetupStep.MAXES_INPUT,
+            error = null
+        )
+        _userMaxes.value = UserMaxes()
+    }
+
+    fun createProgrammeFromTemplate(
+        customName: String? = null,
+        accessoryCustomizations: Map<String, String> = emptyMap()
+    ) {
+        val template = _uiState.value.selectedTemplate ?: return
+        val maxes = _userMaxes.value
+        
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isCreating = true)
+            
+            try {
+                val programmeId = repository.createProgrammeFromTemplate(
+                    templateId = template.id,
+                    name = customName,
+                    squatMax = if (template.requiresMaxes) maxes.squat else null,
+                    benchMax = if (template.requiresMaxes) maxes.bench else null,
+                    deadliftMax = if (template.requiresMaxes) maxes.deadlift else null,
+                    ohpMax = if (template.requiresMaxes) maxes.ohp else null,
+                    accessoryCustomizations = accessoryCustomizations
+                )
+                
+                // Activate the new programme
+                repository.activateProgramme(programmeId)
+                
+                // Reload data to reflect changes
+                loadProgrammeData()
+                
+                // Close dialog
+                dismissSetupDialog()
+                
+                _uiState.value = _uiState.value.copy(
+                    isCreating = false,
+                    successMessage = "Programme '${customName ?: template.name}' created and activated!"
+                )
+                
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to create programme: ${e.message}",
+                    isCreating = false
+                )
+            }
+        }
+    }
+
+    fun deactivateActiveProgramme() {
+        viewModelScope.launch {
+            try {
+                repository.deactivateActiveProgramme()
+                _activeProgramme.value = null
+                _programmeProgress.value = null
+                
+                _uiState.value = _uiState.value.copy(
+                    successMessage = "Programme deactivated"
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to deactivate programme: ${e.message}"
+                )
+            }
+        }
+    }
+
+    fun clearMessages() {
+        _uiState.value = _uiState.value.copy(
+            error = null,
+            successMessage = null
+        )
+    }
+
+    fun refreshData() {
+        loadProgrammeData()
+    }
+}
+
+// Data classes for UI state
+data class ProgrammeUiState(
+    val templates: List<ProgrammeTemplate> = emptyList(),
+    val selectedTemplate: ProgrammeTemplate? = null,
+    val showSetupDialog: Boolean = false,
+    val setupStep: SetupStep = SetupStep.MAXES_INPUT,
+    val isLoading: Boolean = true,
+    val isCreating: Boolean = false,
+    val error: String? = null,
+    val successMessage: String? = null,
+    val searchText: String = "",
+)
+
+data class UserMaxes(
+    val squat: Float? = null,
+    val bench: Float? = null,
+    val deadlift: Float? = null,
+    val ohp: Float? = null,
+) {
+    fun isValid(requiresMaxes: Boolean): Boolean {
+        return if (requiresMaxes) {
+            squat != null && squat > 0 &&
+            bench != null && bench > 0 &&
+            deadlift != null && deadlift > 0 &&
+            ohp != null && ohp > 0
+        } else {
+            true
+        }
+    }
+}
+
+enum class SetupStep {
+    MAXES_INPUT,
+    ACCESSORY_SELECTION,
+    CONFIRMATION,
+}

@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.github.radupana.featherweight.data.exercise.*
+import com.github.radupana.featherweight.data.programme.*
 
 @Database(
     entities = [
@@ -16,8 +17,14 @@ import com.github.radupana.featherweight.data.exercise.*
         ExerciseMuscleGroup::class,
         ExerciseEquipment::class,
         ExerciseMovementPattern::class,
+        Programme::class,
+        ProgrammeTemplate::class,
+        ProgrammeWeek::class,
+        ProgrammeWorkout::class,
+        ExerciseSubstitution::class,
+        ProgrammeProgress::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -29,6 +36,8 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun setLogDao(): SetLogDao
 
     abstract fun exerciseDao(): ExerciseDao
+    
+    abstract fun programmeDao(): ProgrammeDao
 
     companion object {
         @Volatile
