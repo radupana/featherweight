@@ -1,8 +1,11 @@
 package com.github.radupana.featherweight.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -10,18 +13,20 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.ExerciseCard
@@ -92,35 +97,76 @@ fun WorkoutScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            viewModel.getWorkoutDisplayName(),
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        if (workoutState.isCompleted && !isEditMode) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                Icons.Filled.Lock,
-                                contentDescription = "Read-only",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        if (isEditMode) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Surface(
-                                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
-                                shape = MaterialTheme.shapes.small,
-                            ) {
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                // Main workout title
                                 Text(
-                                    "EDITING",
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.secondary,
-                                    fontWeight = FontWeight.Bold,
+                                    text = if (workoutState.isProgrammeWorkout) {
+                                        workoutState.programmeWorkoutName ?: viewModel.getWorkoutDisplayName()
+                                    } else {
+                                        viewModel.getWorkoutDisplayName()
+                                    },
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
+                                
+                                // Programme subtitle (if this is a programme workout)
+                                if (workoutState.isProgrammeWorkout) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.FitnessCenter,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(12.dp),
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = buildString {
+                                                workoutState.programmeName?.let { append(it) }
+                                                if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
+                                                    if (isNotEmpty()) append(" • ")
+                                                    append("Week ${workoutState.weekNumber}, Day ${workoutState.dayNumber}")
+                                                }
+                                            },
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            // Status icons
+                            if (workoutState.isCompleted && !isEditMode) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(
+                                    Icons.Filled.Lock,
+                                    contentDescription = "Read-only",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (isEditMode) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Surface(
+                                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
+                                    shape = MaterialTheme.shapes.small,
+                                ) {
+                                    Text(
+                                        "EDITING",
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
                             }
                         }
                     }
@@ -177,6 +223,15 @@ fun WorkoutScreen(
                 )
             } else if (isEditMode) {
                 EditModeBanner()
+            }
+
+            // Programme progress card (if this is a programme workout)
+            if (workoutState.isProgrammeWorkout) {
+                ProgrammeProgressCard(
+                    workoutState = workoutState,
+                    viewModel = viewModel,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
             }
 
             // Progress section
@@ -807,6 +862,127 @@ private fun WorkoutActionButtons(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Complete")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProgrammeProgressCard(
+    workoutState: com.github.radupana.featherweight.viewmodel.WorkoutState,
+    viewModel: WorkoutViewModel,
+    modifier: Modifier = Modifier,
+) {
+    var programmeProgress by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    
+    // Load programme progress
+    LaunchedEffect(workoutState.programmeId) {
+        if (workoutState.programmeId != null) {
+            programmeProgress = viewModel.getProgrammeProgress()
+        }
+    }
+    
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+        ),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Filled.Timeline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Programme Progress",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+                
+                // Programme completion progress
+                programmeProgress?.let { (completed, total) ->
+                    if (total > 0) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(8.dp),
+                        ) {
+                            Text(
+                                text = "$completed/$total workouts",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Programme details
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column {
+                    Text(
+                        text = workoutState.programmeName ?: "Programme",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                    if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
+                        Text(
+                            text = "Week ${workoutState.weekNumber} • Day ${workoutState.dayNumber}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        )
+                    }
+                }
+                
+                // Progress bar
+                programmeProgress?.let { (completed, total) ->
+                    if (total > 0) {
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                        ) {
+                            val progress = completed.toFloat() / total.toFloat()
+                            Text(
+                                text = "${(progress * 100).toInt()}%",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier
+                                    .width(60.dp)
+                                    .height(6.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
+                            )
+                        }
+                    }
+                }
             }
         }
     }

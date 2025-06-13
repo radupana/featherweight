@@ -33,28 +33,31 @@ fun ProgrammeSetupDialog(
 
     Dialog(
         onDismissRequest = { viewModel.dismissSetupDialog() },
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnBackPress = true,
-            dismissOnClickOutside = false
-        )
+        properties =
+            DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = false,
+            ),
     ) {
         Card(
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.85f),
-            elevation = CardDefaults.cardElevation(8.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth(0.95f)
+                    .fillMaxHeight(0.85f),
+            elevation = CardDefaults.cardElevation(8.dp),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp)
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
             ) {
                 // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (uiState.setupStep != SetupStep.MAXES_INPUT && template.requiresMaxes) {
                         IconButton(onClick = { viewModel.previousSetupStep() }) {
@@ -69,7 +72,7 @@ fun ProgrammeSetupDialog(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     )
 
                     IconButton(onClick = { viewModel.dismissSetupDialog() }) {
@@ -83,7 +86,7 @@ fun ProgrammeSetupDialog(
                 if (template.requiresMaxes || template.allowsAccessoryCustomization) {
                     SetupProgressIndicator(
                         currentStep = uiState.setupStep,
-                        template = template
+                        template = template,
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -91,7 +94,7 @@ fun ProgrammeSetupDialog(
                 // Content based on setup step
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     item {
                         when (uiState.setupStep) {
@@ -100,14 +103,14 @@ fun ProgrammeSetupDialog(
                                     MaxesInputStep(
                                         template = template,
                                         userMaxes = userMaxes,
-                                        onMaxesUpdate = viewModel::updateUserMaxes
+                                        onMaxesUpdate = viewModel::updateUserMaxes,
                                     )
                                 } else {
                                     ConfirmationStep(
                                         template = template,
                                         customName = customName,
                                         onNameChange = { customName = it },
-                                        userMaxes = userMaxes
+                                        userMaxes = userMaxes,
                                     )
                                 }
                             }
@@ -119,7 +122,7 @@ fun ProgrammeSetupDialog(
                                     template = template,
                                     customName = customName,
                                     onNameChange = { customName = it },
-                                    userMaxes = userMaxes
+                                    userMaxes = userMaxes,
                                 )
                             }
                         }
@@ -131,11 +134,11 @@ fun ProgrammeSetupDialog(
                 // Action buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     OutlinedButton(
                         onClick = { viewModel.dismissSetupDialog() },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         Text("Cancel")
                     }
@@ -144,27 +147,28 @@ fun ProgrammeSetupDialog(
                         onClick = {
                             if (uiState.setupStep == SetupStep.CONFIRMATION) {
                                 viewModel.createProgrammeFromTemplate(
-                                    customName = customName.takeIf { it.isNotBlank() }
+                                    customName = customName.takeIf { it.isNotBlank() },
                                 )
                             } else {
                                 viewModel.nextSetupStep()
                             }
                         },
-                        enabled = when (uiState.setupStep) {
-                            SetupStep.MAXES_INPUT -> userMaxes.isValid(template.requiresMaxes)
-                            else -> true
-                        } && !uiState.isCreating,
-                        modifier = Modifier.weight(1f)
+                        enabled =
+                            when (uiState.setupStep) {
+                                SetupStep.MAXES_INPUT -> userMaxes.isValid(template.requiresMaxes)
+                                else -> true
+                            } && !uiState.isCreating,
+                        modifier = Modifier.weight(1f),
                     ) {
                         if (uiState.isCreating) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = MaterialTheme.colorScheme.onPrimary,
                             )
                         } else {
                             Text(
-                                if (uiState.setupStep == SetupStep.CONFIRMATION) "Create" else "Next"
+                                if (uiState.setupStep == SetupStep.CONFIRMATION) "Create" else "Next",
                             )
                         }
                     }
@@ -184,16 +188,17 @@ private fun SetupProgressIndicator(
     if (template.allowsAccessoryCustomization) steps.add("Accessories")
     steps.add("Confirm")
 
-    val currentIndex = when (currentStep) {
-        SetupStep.MAXES_INPUT -> 0
-        SetupStep.ACCESSORY_SELECTION -> if (template.requiresMaxes) 1 else 0
-        SetupStep.CONFIRMATION -> steps.size - 1
-    }
+    val currentIndex =
+        when (currentStep) {
+            SetupStep.MAXES_INPUT -> 0
+            SetupStep.ACCESSORY_SELECTION -> if (template.requiresMaxes) 1 else 0
+            SetupStep.CONFIRMATION -> steps.size - 1
+        }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         steps.forEachIndexed { index, step ->
             val isActive = index == currentIndex
@@ -203,34 +208,41 @@ private fun SetupProgressIndicator(
             Surface(
                 modifier = Modifier.size(32.dp),
                 shape = androidx.compose.foundation.shape.CircleShape,
-                color = when {
-                    isCompleted -> MaterialTheme.colorScheme.primary
-                    isActive -> MaterialTheme.colorScheme.primary
-                    else -> MaterialTheme.colorScheme.surfaceVariant
-                }
+                color =
+                    when {
+                        isCompleted -> MaterialTheme.colorScheme.primary
+                        isActive -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    },
             ) {
                 Box(
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = if (isCompleted) "✓" else (index + 1).toString(),
                         style = MaterialTheme.typography.labelMedium,
-                        color = when {
-                            isCompleted || isActive -> MaterialTheme.colorScheme.onPrimary
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        fontWeight = FontWeight.Bold
+                        color =
+                            when {
+                                isCompleted || isActive -> MaterialTheme.colorScheme.onPrimary
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             }
 
             if (index < steps.size - 1) {
                 Divider(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(2.dp),
-                    color = if (isCompleted) MaterialTheme.colorScheme.primary 
-                           else MaterialTheme.colorScheme.surfaceVariant
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .height(2.dp),
+                    color =
+                        if (isCompleted) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        },
                 )
             }
         }
@@ -243,7 +255,7 @@ private fun SetupProgressIndicator(
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.Medium,
         textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     )
 }
 
@@ -254,18 +266,18 @@ private fun MaxesInputStep(
     onMaxesUpdate: (UserMaxes) -> Unit,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
             text = "Enter Your 1RM Values",
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
         )
 
         Text(
             text = "${template.name} uses percentage-based training. Enter your current 1-rep max for each lift in kg:",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -280,7 +292,7 @@ private fun MaxesInputStep(
             label = { Text("Back Squat 1RM (kg)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
-            isError = userMaxes.squat == null || userMaxes.squat <= 0
+            isError = userMaxes.squat == null || userMaxes.squat <= 0,
         )
 
         // Bench 1RM
@@ -293,7 +305,7 @@ private fun MaxesInputStep(
             label = { Text("Bench Press 1RM (kg)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
-            isError = userMaxes.bench == null || userMaxes.bench <= 0
+            isError = userMaxes.bench == null || userMaxes.bench <= 0,
         )
 
         // Deadlift 1RM
@@ -306,7 +318,7 @@ private fun MaxesInputStep(
             label = { Text("Deadlift 1RM (kg)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
-            isError = userMaxes.deadlift == null || userMaxes.deadlift <= 0
+            isError = userMaxes.deadlift == null || userMaxes.deadlift <= 0,
         )
 
         // OHP 1RM
@@ -319,26 +331,27 @@ private fun MaxesInputStep(
             label = { Text("Overhead Press 1RM (kg)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth(),
-            isError = userMaxes.ohp == null || userMaxes.ohp <= 0
+            isError = userMaxes.ohp == null || userMaxes.ohp <= 0,
         )
 
         Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            )
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                ),
         ) {
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(16.dp),
             ) {
                 Text(
                     text = "💡 Tip",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = "Don't know your 1RM? Use 90-95% of the heaviest weight you can lift for 3-5 reps with good form.",
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }
@@ -346,56 +359,55 @@ private fun MaxesInputStep(
 }
 
 @Composable
-private fun AccessorySelectionStep(
-    template: ProgrammeTemplate,
-) {
+private fun AccessorySelectionStep(template: ProgrammeTemplate) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
             text = "Customize Accessories",
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
         )
 
         Text(
             text = "This programme includes customizable accessory exercises. You can modify these during workouts:",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            )
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                ),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     text = "Customizable Categories:",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
                 )
-                
+
                 listOf(
                     "Push Accessories (chest, shoulders, triceps)",
                     "Pull Accessories (back, biceps)",
                     "Leg Accessories (quads, hamstrings, calves)",
-                    "Core & Conditioning"
+                    "Core & Conditioning",
                 ).forEach { category ->
                     Row(
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             text = "•",
                             style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(end = 8.dp)
+                            modifier = Modifier.padding(end = 8.dp),
                         )
                         Text(
                             text = category,
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     }
                 }
@@ -403,22 +415,23 @@ private fun AccessorySelectionStep(
         }
 
         Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            )
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                ),
         ) {
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(16.dp),
             ) {
                 Text(
                     text = "🔄 Exercise Swapping",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = "You can substitute any accessory exercise during your workout if you don't have the equipment or prefer a different movement.",
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }
@@ -433,12 +446,12 @@ private fun ConfirmationStep(
     userMaxes: UserMaxes,
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
             text = "Ready to Start",
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
         )
 
         // Custom name input
@@ -447,25 +460,26 @@ private fun ConfirmationStep(
             onValueChange = onNameChange,
             label = { Text("Programme Name (Optional)") },
             placeholder = { Text(template.name) },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         // Programme summary
         Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            )
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                ),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
                     text = "Programme Summary",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
 
                 ProgrammeSummaryRow("Template", template.name)
@@ -478,7 +492,7 @@ private fun ConfirmationStep(
                     Text(
                         text = "Your 1RM Values",
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                     userMaxes.squat?.let { ProgrammeSummaryRow("Squat", "${it.toInt()}kg") }
                     userMaxes.bench?.let { ProgrammeSummaryRow("Bench", "${it.toInt()}kg") }
@@ -489,22 +503,23 @@ private fun ConfirmationStep(
         }
 
         Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            )
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                ),
         ) {
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(16.dp),
             ) {
                 Text(
                     text = "🚀 Ready to begin!",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = "This programme will become your active training plan. You can view your progress and modify workouts from the Programmes tab.",
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }
@@ -518,17 +533,17 @@ private fun ProgrammeSummaryRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
         )
     }
 }

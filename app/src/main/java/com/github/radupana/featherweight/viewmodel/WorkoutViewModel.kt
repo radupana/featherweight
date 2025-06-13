@@ -25,6 +25,13 @@ data class WorkoutState(
     val isReadOnly: Boolean = false,
     val isInEditMode: Boolean = false,
     val originalWorkoutData: Triple<List<ExerciseLog>, List<SetLog>, String?>? = null, // Backup for rollback
+    // Programme Integration
+    val isProgrammeWorkout: Boolean = false,
+    val programmeId: Long? = null,
+    val programmeName: String? = null,
+    val weekNumber: Int? = null,
+    val dayNumber: Int? = null,
+    val programmeWorkoutName: String? = null,
 )
 
 data class InProgressWorkout(
@@ -224,6 +231,18 @@ class WorkoutViewModel(
             if (workout != null) {
                 val isCompleted = workout.notes?.contains("[COMPLETED]") == true
 
+                // Get programme information if this is a programme workout
+                val programmeName =
+                    if (workout.isProgrammeWorkout && workout.programmeId != null) {
+                        try {
+                            repository.getActiveProgramme()?.name
+                        } catch (e: Exception) {
+                            null
+                        }
+                    } else {
+                        null
+                    }
+
                 _currentWorkoutId.value = workoutId
                 _workoutState.value =
                     WorkoutState(
@@ -246,6 +265,13 @@ class WorkoutViewModel(
                         isReadOnly = isCompleted,
                         isInEditMode = false,
                         originalWorkoutData = null,
+                        // Programme Integration
+                        isProgrammeWorkout = workout.isProgrammeWorkout,
+                        programmeId = workout.programmeId,
+                        programmeName = programmeName,
+                        weekNumber = workout.weekNumber,
+                        dayNumber = workout.dayNumber,
+                        programmeWorkoutName = workout.programmeWorkoutName,
                     )
 
                 loadExercisesForWorkout(workoutId)
@@ -272,6 +298,13 @@ class WorkoutViewModel(
                         isReadOnly = false,
                         isInEditMode = false,
                         originalWorkoutData = null,
+                        // No programme context for regular workouts
+                        isProgrammeWorkout = false,
+                        programmeId = null,
+                        programmeName = null,
+                        weekNumber = null,
+                        dayNumber = null,
+                        programmeWorkoutName = null,
                     )
 
                 loadExercisesForWorkout(workoutId)
@@ -343,20 +376,29 @@ class WorkoutViewModel(
         }
     }
 
-    // Complete the current workout
+    // Complete the current workout (handles both regular and programme workouts)
     fun completeWorkout() {
         val currentId = _currentWorkoutId.value ?: return
         viewModelScope.launch {
+            val state = _workoutState.value
+
+            // Complete the workout (this will automatically update programme progress if applicable)
             repository.completeWorkout(currentId)
+
             _workoutState.value =
-                _workoutState.value.copy(
+                state.copy(
                     isActive = false,
                     isCompleted = true,
                     isReadOnly = true,
                     isInEditMode = false,
                     originalWorkoutData = null,
                 )
+
             loadInProgressWorkouts()
+
+            if (state.isProgrammeWorkout) {
+                println("✅ Completed programme workout: ${state.programmeWorkoutName}")
+            }
         }
     }
 
@@ -751,6 +793,122 @@ class WorkoutViewModel(
             _selectedWorkoutExercises.value = emptyList()
             _selectedExerciseSets.value = emptyList()
             loadInProgressWorkouts()
+        }
+    }
+
+    // ===== PROGRAMME WORKOUT METHODS =====
+
+    // Start a workout from a programme template
+    fun startProgrammeWorkout(
+        programmeId: Long,
+        weekNumber: Int,
+        dayNumber: Int,
+        userMaxes: Map<String, Float> = emptyMap(),
+    ) {
+        viewModelScope.launch {
+            try {
+                // Get programme information
+                val programme = repository.getActiveProgramme()
+                if (programme == null || programme.id != programmeId) {
+                    println("❌ Programme not found or not active")
+                    return@launch
+                }
+
+                // Create workout from programme template
+                val workoutId =
+                    repository.createWorkoutFromProgrammeTemplate(
+                        programmeId = programmeId,
+                        weekNumber = weekNumber,
+                        dayNumber = dayNumber,
+                        userMaxes = userMaxes,
+                    )
+
+                // Get the created workout to extract metadata
+                val workout = repository.getWorkoutById(workoutId)
+                if (workout == null) {
+                    println("❌ Failed to retrieve created workout")
+                    return@launch
+                }
+
+                _currentWorkoutId.value = workoutId
+                _workoutState.value =
+                    WorkoutState(
+                        isActive = true,
+                        isCompleted = false,
+                        workoutId = workoutId,
+                        startTime = workout.date,
+                        workoutName = workout.programmeWorkoutName,
+                        isReadOnly = false,
+                        isInEditMode = false,
+                        originalWorkoutData = null,
+                        // Programme context
+                        isProgrammeWorkout = true,
+                        programmeId = programmeId,
+                        programmeName = programme.name,
+                        weekNumber = weekNumber,
+                        dayNumber = dayNumber,
+                        programmeWorkoutName = workout.programmeWorkoutName,
+                    )
+
+                loadExercisesForWorkout(workoutId)
+                loadInProgressWorkouts()
+
+                println("✅ Started programme workout: ${workout.programmeWorkoutName} (Week $weekNumber, Day $dayNumber)")
+            } catch (e: Exception) {
+                println("❌ Error starting programme workout: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+
+    // Get next programme workout for the active programme
+    suspend fun getNextProgrammeWorkout(): com.github.radupana.featherweight.data.programme.WorkoutStructure? {
+        val activeProgramme = repository.getActiveProgramme() ?: return null
+        return repository.getNextProgrammeWorkout(activeProgramme.id)
+    }
+
+    // Check if the current workout is part of a programme
+    fun isProgrammeWorkout(): Boolean {
+        return _workoutState.value.isProgrammeWorkout
+    }
+
+    // Get programme display name for current workout
+    fun getProgrammeDisplayName(): String? {
+        val state = _workoutState.value
+        return if (state.isProgrammeWorkout) {
+            buildString {
+                state.programmeName?.let { append(it) }
+                if (state.weekNumber != null && state.dayNumber != null) {
+                    if (isNotEmpty()) append(" - ")
+                    append("Week ${state.weekNumber}, Day ${state.dayNumber}")
+                }
+                state.programmeWorkoutName?.let { name ->
+                    if (isNotEmpty()) append("\n")
+                    append(name)
+                }
+            }.takeIf { it.isNotEmpty() }
+        } else {
+            null
+        }
+    }
+
+    // Get programme progress information
+    suspend fun getProgrammeProgress(): Pair<Int, Int>? {
+        val state = _workoutState.value
+        return if (state.isProgrammeWorkout && state.programmeId != null) {
+            repository.getProgrammeWorkoutProgress(state.programmeId)
+        } else {
+            null
+        }
+    }
+
+    // Get workouts for the current programme
+    suspend fun getProgrammeWorkouts(): List<Workout>? {
+        val state = _workoutState.value
+        return if (state.isProgrammeWorkout && state.programmeId != null) {
+            repository.getWorkoutsByProgramme(state.programmeId)
+        } else {
+            null
         }
     }
 }

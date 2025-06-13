@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight
 
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import android.view.WindowManager
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.ui.screens.AnalyticsScreen
 import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
@@ -31,7 +31,6 @@ import com.github.radupana.featherweight.ui.screens.WorkoutScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
 import com.github.radupana.featherweight.viewmodel.AnalyticsViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
-import kotlinx.coroutines.launch
 
 enum class Screen {
     SPLASH,
@@ -61,7 +60,7 @@ class MainActivity : ComponentActivity() {
         // Enable edge-to-edge display for modern look
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        
+
         // Configure keyboard behavior - this is crucial for proper keyboard handling
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
 
@@ -206,7 +205,7 @@ fun MainAppWithNavigation(
             Screen.PROGRAMMES -> {
                 com.github.radupana.featherweight.ui.screens.ProgrammesScreen(
                     onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
-                    modifier = Modifier.padding(innerPadding)
+                    modifier = Modifier.padding(innerPadding),
                 )
             }
 
@@ -214,26 +213,27 @@ fun MainAppWithNavigation(
                 // For now, show a placeholder screen for active programme
                 // This will be developed into a full programme workout screen later
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         Text(
                             text = "Active Programme",
                             style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         )
                         Text(
                             text = "Programme workout interface coming soon!",
-                            style = MaterialTheme.typography.bodyLarge
+                            style = MaterialTheme.typography.bodyLarge,
                         )
                         Button(
-                            onClick = { onScreenChange(Screen.PROGRAMMES) }
+                            onClick = { onScreenChange(Screen.PROGRAMMES) },
                         ) {
                             Text("Back to Programmes")
                         }

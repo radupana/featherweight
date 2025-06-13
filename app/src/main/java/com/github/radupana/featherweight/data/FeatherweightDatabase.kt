@@ -24,7 +24,7 @@ import com.github.radupana.featherweight.data.programme.*
         ExerciseSubstitution::class,
         ProgrammeProgress::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -36,7 +36,7 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun setLogDao(): SetLogDao
 
     abstract fun exerciseDao(): ExerciseDao
-    
+
     abstract fun programmeDao(): ProgrammeDao
 
     companion object {

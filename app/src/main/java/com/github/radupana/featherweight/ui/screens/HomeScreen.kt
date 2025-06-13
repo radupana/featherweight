@@ -4,7 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
@@ -15,8 +14,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.viewmodel.InProgressWorkout
-import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
+import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 
@@ -116,77 +115,80 @@ fun HomeScreen(
         activeProgramme?.let { programme ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                )
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                    ),
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(16.dp),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        modifier = Modifier.padding(bottom = 12.dp),
                     ) {
                         Icon(
                             Icons.Filled.Schedule,
                             contentDescription = "Active Programme",
                             modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Active Programme",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                     }
 
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onNavigateToActiveProgramme?.invoke() },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { onNavigateToActiveProgramme?.invoke() },
                         elevation = CardDefaults.cardElevation(2.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        )
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                            ),
                     ) {
                         Column(
-                            modifier = Modifier.padding(16.dp)
+                            modifier = Modifier.padding(16.dp),
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.Top
+                                verticalAlignment = Alignment.Top,
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = programme.name,
                                         style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
                                     )
                                     programmeProgress?.let { progress ->
                                         Text(
                                             text = "Week ${progress.currentWeek}/${programme.durationWeeks} • ${progress.completedWorkouts}/${progress.totalWorkouts} workouts",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                 }
 
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Text(
                                         "Continue",
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.primary,
                                     )
                                     Icon(
                                         Icons.AutoMirrored.Filled.ArrowForward,
                                         contentDescription = null,
                                         modifier = Modifier.size(16.dp),
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                             }
@@ -194,16 +196,18 @@ fun HomeScreen(
                             // Progress bar
                             programmeProgress?.let { progress ->
                                 Spacer(modifier = Modifier.height(12.dp))
-                                val progressValue = if (progress.totalWorkouts > 0) {
-                                    (progress.completedWorkouts.toFloat() / progress.totalWorkouts.toFloat()).coerceIn(0f, 1f)
-                                } else {
-                                    0f
-                                }
+                                val progressValue =
+                                    if (progress.totalWorkouts > 0) {
+                                        (progress.completedWorkouts.toFloat() / progress.totalWorkouts.toFloat()).coerceIn(0f, 1f)
+                                    } else {
+                                        0f
+                                    }
                                 LinearProgressIndicator(
                                     progress = { progressValue },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(6.dp),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(6.dp),
                                     color = MaterialTheme.colorScheme.primary,
                                     trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                                 )
