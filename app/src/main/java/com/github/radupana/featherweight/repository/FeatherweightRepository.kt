@@ -51,15 +51,19 @@ class FeatherweightRepository(
     application: Application,
 ) {
     private val db = FeatherweightDatabase.getDatabase(application)
+    private val userPreferences = com.github.radupana.featherweight.data.UserPreferences(application)
 
     private val workoutDao = db.workoutDao()
     private val exerciseLogDao = db.exerciseLogDao()
     private val setLogDao = db.setLogDao()
     private val exerciseDao = db.exerciseDao()
     private val programmeDao = db.programmeDao()
+    private val profileDao = db.profileDao()
 
     private val exerciseSeeder = ExerciseSeeder(exerciseDao)
     private val programmeSeeder = com.github.radupana.featherweight.data.programme.ProgrammeSeeder(programmeDao)
+
+    fun getCurrentUserId(): Long = userPreferences.getCurrentUserId()
 
     // Initialize with seed data for testing
     suspend fun seedDatabaseIfEmpty() {
@@ -2103,4 +2107,172 @@ class FeatherweightRepository(
         // Mark workout 2 as completed
         completeWorkout(workout2Id)
     }
+
+    // ========== Profile & 1RM Management ==========
+
+    suspend fun ensureUserProfile(userId: Long) =
+        withContext(Dispatchers.IO) {
+            val profile = db.profileDao().getUserProfile(userId)
+            if (profile == null) {
+                // Should not happen as users are created through seedTestUsers
+                throw IllegalStateException("User profile not found for ID: $userId")
+            }
+        }
+
+    fun getUserProfileFlow() = db.profileDao().getUserProfileFlow(getCurrentUserId())
+
+    suspend fun getUserProfile() =
+        withContext(Dispatchers.IO) {
+            db.profileDao().getUserProfile(getCurrentUserId())
+        }
+
+    suspend fun getAllUsers() =
+        withContext(Dispatchers.IO) {
+            db.profileDao().getAllUsers()
+        }
+
+    suspend fun upsertExerciseMax(
+        exerciseId: Long,
+        maxWeight: Float,
+        isEstimated: Boolean = false,
+        notes: String? = null,
+    ) = withContext(Dispatchers.IO) {
+        val userId = getCurrentUserId()
+        ensureUserProfile(userId)
+        db.profileDao().upsertExerciseMax(
+            userId = userId,
+            exerciseId = exerciseId,
+            maxWeight = maxWeight,
+            isEstimated = isEstimated,
+            notes = notes,
+        )
+    }
+
+    fun getAllCurrentMaxes() = db.profileDao().getAllCurrentMaxes(getCurrentUserId())
+
+    fun getCurrentMaxFlow(exerciseId: Long) =
+        db.profileDao().getCurrentMaxFlow(
+            userId = getCurrentUserId(),
+            exerciseId = exerciseId,
+        )
+
+    suspend fun getCurrentMax(exerciseId: Long) =
+        withContext(Dispatchers.IO) {
+            db.profileDao().getCurrentMax(userId = getCurrentUserId(), exerciseId = exerciseId)
+        }
+
+    fun getMaxHistory(exerciseId: Long) =
+        db.profileDao().getMaxHistory(
+            userId = getCurrentUserId(),
+            exerciseId = exerciseId,
+        )
+
+    suspend fun getBig4Exercises() =
+        withContext(Dispatchers.IO) {
+            db.profileDao().getBig4Exercises()
+        }
+
+    suspend fun deleteExerciseMax(max: com.github.radupana.featherweight.data.profile.UserExerciseMax) =
+        withContext(Dispatchers.IO) {
+            db.profileDao().deleteExerciseMax(max)
+        }
+
+    // Calculate percentage of 1RM for a given weight
+    fun calculatePercentageOf1RM(
+        weight: Float,
+        oneRepMax: Float,
+    ): Int {
+        return if (oneRepMax > 0) {
+            ((weight / oneRepMax) * 100).toInt()
+        } else {
+            0
+        }
+    }
+
+    // Check if a weight would be a new 1RM
+    suspend fun isNew1RM(
+        exerciseId: Long,
+        weight: Float,
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            val currentMax = getCurrentMax(exerciseId)
+            currentMax == null || weight > currentMax.maxWeight
+        }
+
+    // ========== Test User Management ==========
+
+    suspend fun seedTestUsers() =
+        withContext(Dispatchers.IO) {
+            val existingUsers = db.profileDao().getAllUsers()
+
+            if (existingUsers.isEmpty()) {
+                // Create test users
+                val user1Id =
+                    db.profileDao().insertUserProfile(
+                        com.github.radupana.featherweight.data.profile.UserProfile(
+                            username = "user1",
+                            displayName = "Alex Johnson",
+                            avatarEmoji = "💪",
+                        ),
+                    )
+
+                val user2Id =
+                    db.profileDao().insertUserProfile(
+                        com.github.radupana.featherweight.data.profile.UserProfile(
+                            username = "user2",
+                            displayName = "Sam Williams",
+                            avatarEmoji = "🏋️",
+                        ),
+                    )
+
+                // Seed some 1RMs for both users
+                val big4 = getBig4Exercises()
+
+                // User 1 - Intermediate lifter
+                big4.forEach { exercise ->
+                    val maxWeight =
+                        when (exercise.name) {
+                            "Back Squat" -> 140f
+                            "Deadlift" -> 180f
+                            "Bench Press" -> 100f
+                            "Overhead Press" -> 60f
+                            else -> 0f
+                        }
+                    if (maxWeight > 0) {
+                        db.profileDao().insertExerciseMax(
+                            com.github.radupana.featherweight.data.profile.UserExerciseMax(
+                                userId = user1Id,
+                                exerciseId = exercise.id,
+                                maxWeight = maxWeight,
+                                isEstimated = false,
+                            ),
+                        )
+                    }
+                }
+
+                // User 2 - Beginner lifter
+                big4.forEach { exercise ->
+                    val maxWeight =
+                        when (exercise.name) {
+                            "Back Squat" -> 80f
+                            "Deadlift" -> 100f
+                            "Bench Press" -> 60f
+                            "Overhead Press" -> 40f
+                            else -> 0f
+                        }
+                    if (maxWeight > 0) {
+                        db.profileDao().insertExerciseMax(
+                            com.github.radupana.featherweight.data.profile.UserExerciseMax(
+                                userId = user2Id,
+                                exerciseId = exercise.id,
+                                maxWeight = maxWeight,
+                                isEstimated = false,
+                            ),
+                        )
+                    }
+                }
+
+                println("✅ Seeded test users with 1RMs")
+            }
+        }
 }

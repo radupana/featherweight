@@ -5,8 +5,22 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.github.radupana.featherweight.data.exercise.*
-import com.github.radupana.featherweight.data.programme.*
+import com.github.radupana.featherweight.data.exercise.Exercise
+import com.github.radupana.featherweight.data.exercise.ExerciseDao
+import com.github.radupana.featherweight.data.exercise.ExerciseEquipment
+import com.github.radupana.featherweight.data.exercise.ExerciseMovementPattern
+import com.github.radupana.featherweight.data.exercise.ExerciseMuscleGroup
+import com.github.radupana.featherweight.data.exercise.ExerciseTypeConverters
+import com.github.radupana.featherweight.data.profile.ProfileDao
+import com.github.radupana.featherweight.data.profile.UserExerciseMax
+import com.github.radupana.featherweight.data.profile.UserProfile
+import com.github.radupana.featherweight.data.programme.ExerciseSubstitution
+import com.github.radupana.featherweight.data.programme.Programme
+import com.github.radupana.featherweight.data.programme.ProgrammeDao
+import com.github.radupana.featherweight.data.programme.ProgrammeProgress
+import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
+import com.github.radupana.featherweight.data.programme.ProgrammeWeek
+import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
 
 @Database(
     entities = [
@@ -23,8 +37,10 @@ import com.github.radupana.featherweight.data.programme.*
         ProgrammeWorkout::class,
         ExerciseSubstitution::class,
         ProgrammeProgress::class,
+        UserProfile::class,
+        UserExerciseMax::class,
     ],
-    version = 13,
+    version = 15,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -39,6 +55,8 @@ abstract class FeatherweightDatabase : RoomDatabase() {
 
     abstract fun programmeDao(): ProgrammeDao
 
+    abstract fun profileDao(): ProfileDao
+
     companion object {
         @Volatile
         private var INSTANCE: FeatherweightDatabase? = null
@@ -51,7 +69,7 @@ abstract class FeatherweightDatabase : RoomDatabase() {
                             context.applicationContext,
                             FeatherweightDatabase::class.java,
                             "featherweight-db",
-                        ).fallbackToDestructiveMigration() // This will nuke and recreate
+                        ).fallbackToDestructiveMigration(false) // This will nuke and recreate
                         .build()
                 INSTANCE = instance
                 instance

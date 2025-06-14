@@ -545,7 +545,7 @@ private fun WeightInputField(
 ) {
     // Keep text field value separate to avoid conversion loops
     var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
-    
+
     // Only set initial value once when first composed
     LaunchedEffect(Unit) {
         if (value != null && value > 0) {
@@ -559,7 +559,7 @@ private fun WeightInputField(
         onValueChange = { newValue ->
             val text = newValue.text
             android.util.Log.d("WeightInput", "onValueChange - text: '$text', old text: '${textFieldValue.text}'")
-            
+
             if (text.isEmpty()) {
                 textFieldValue = newValue
                 onValueChange(null)

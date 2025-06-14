@@ -27,12 +27,14 @@ import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.radupana.featherweight.data.UserPreferences
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.ui.screens.AnalyticsScreen
 import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
 import com.github.radupana.featherweight.ui.screens.HistoryScreen
 import com.github.radupana.featherweight.ui.screens.HomeScreen
 import com.github.radupana.featherweight.ui.screens.SplashScreen
+import com.github.radupana.featherweight.ui.screens.UserSelectionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
@@ -42,6 +44,7 @@ import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
 enum class Screen {
     SPLASH,
+    USER_SELECTION,
     HOME,
     WORKOUT_HUB,
     ACTIVE_WORKOUT,
@@ -50,6 +53,7 @@ enum class Screen {
     ANALYTICS,
     PROGRAMMES,
     ACTIVE_PROGRAMME,
+    PROFILE,
 }
 
 data class NavigationItem(
@@ -75,17 +79,33 @@ class MainActivity : ComponentActivity() {
         setContent {
             FeatherweightTheme {
                 var currentScreen by remember { mutableStateOf(Screen.SPLASH) }
+                val userPreferences = remember { UserPreferences(application) }
 
                 // Seed database early
                 LaunchedEffect(Unit) {
                     val repository = FeatherweightRepository(application)
                     repository.seedDatabaseIfEmpty()
+                    repository.seedTestUsers()
                 }
 
                 when (currentScreen) {
                     Screen.SPLASH ->
                         SplashScreen(
-                            onSplashFinished = { currentScreen = Screen.HOME },
+                            onSplashFinished = {
+                                currentScreen =
+                                    if (userPreferences.hasSelectedUser()) {
+                                        Screen.HOME
+                                    } else {
+                                        Screen.USER_SELECTION
+                                    }
+                            },
+                        )
+
+                    Screen.USER_SELECTION ->
+                        UserSelectionScreen(
+                            onUserSelected = {
+                                currentScreen = Screen.HOME
+                            },
                         )
 
                     else -> {
@@ -129,6 +149,7 @@ fun MainAppWithNavigation(
     Scaffold(
         bottomBar = {
             if (currentScreen != Screen.SPLASH &&
+                currentScreen != Screen.USER_SELECTION &&
                 currentScreen != Screen.ACTIVE_WORKOUT &&
                 currentScreen != Screen.EXERCISE_SELECTOR
             ) {
@@ -158,6 +179,7 @@ fun MainAppWithNavigation(
                     onStartFreestyle = { onScreenChange(Screen.ACTIVE_WORKOUT) },
                     onBrowseProgrammes = { onScreenChange(Screen.PROGRAMMES) },
                     onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
+                    onNavigateToProfile = { onScreenChange(Screen.PROFILE) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -254,6 +276,17 @@ fun MainAppWithNavigation(
 
             Screen.SPLASH -> {
                 // Should not reach here
+            }
+
+            Screen.USER_SELECTION -> {
+                // Should not reach here - handled in parent
+            }
+
+            Screen.PROFILE -> {
+                com.github.radupana.featherweight.ui.screens.ProfileScreen(
+                    onBack = { onScreenChange(Screen.HOME) },
+                    modifier = Modifier.padding(innerPadding),
+                )
             }
         }
     }
