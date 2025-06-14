@@ -5,7 +5,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
@@ -27,7 +26,6 @@ fun HomeScreen(
     onStartFreestyle: () -> Unit,
     onBrowseProgrammes: () -> Unit,
     onNavigateToActiveProgramme: (() -> Unit)? = null,
-    onNavigateToProfile: () -> Unit = {},
     modifier: Modifier = Modifier,
     workoutViewModel: WorkoutViewModel = viewModel(),
     programmeViewModel: ProgrammeViewModel = viewModel(),
@@ -48,35 +46,11 @@ fun HomeScreen(
         programmeViewModel.refreshData()
     }
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Featherweight",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-                },
-                actions = {
-                    IconButton(onClick = onNavigateToProfile) {
-                        Icon(
-                            Icons.Filled.AccountCircle,
-                            contentDescription = "Profile",
-                            modifier = Modifier.size(28.dp),
-                        )
-                    }
-                },
-            )
-        },
-    ) { paddingValues ->
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp),
+    Column(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Primary Actions
@@ -462,7 +436,6 @@ fun HomeScreen(
             }
         }
     }
-}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

@@ -1,10 +1,7 @@
 package com.github.radupana.featherweight.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -22,8 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -33,14 +28,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.profile.ExerciseMaxWithName
 import com.github.radupana.featherweight.ui.dialogs.ExerciseSelectorDialog
-import com.github.radupana.featherweight.viewmodel.ProfileUiState
 import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import java.time.format.DateTimeFormatter
-
-enum class ProfileSection {
-    MAXES,
-    // Future sections can be added here
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,12 +39,18 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var selectedSection by remember { mutableStateOf(ProfileSection.MAXES) }
+    var isMenuExpanded by remember { mutableStateOf(false) }
     var showAdd1RMDialog by remember { mutableStateOf(false) }
     var showExerciseSelector by remember { mutableStateOf(false) }
     var exerciseToEdit by remember { mutableStateOf<Exercise?>(null) }
     var editingMax by remember { mutableStateOf<ExerciseMaxWithName?>(null) }
     var selectedExerciseForDialog by remember { mutableStateOf<Exercise?>(null) }
+
+    val menuWidth by animateFloatAsState(
+        targetValue = if (isMenuExpanded) 180f else 64f,
+        animationSpec = tween(durationMillis = 300),
+        label = "menuWidth",
+    )
 
     Scaffold(
         modifier = modifier,
@@ -81,71 +76,175 @@ fun ProfileScreen(
                     .fillMaxSize()
                     .padding(paddingValues),
         ) {
-            // Left Navigation Panel
-            NavigationRail(
+            // Collapsible Left Navigation
+            Box(
                 modifier =
                     Modifier
                         .fillMaxHeight()
-                        .width(200.dp)
+                        .width(menuWidth.dp)
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                containerColor = Color.Transparent,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             ) {
-                Spacer(modifier = Modifier.height(24.dp))
-
-                NavigationRailItem(
-                    selected = selectedSection == ProfileSection.MAXES,
-                    onClick = { selectedSection = ProfileSection.MAXES },
-                    icon = {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    // Menu Toggle Button
+                    IconButton(
+                        onClick = { isMenuExpanded = !isMenuExpanded },
+                        modifier =
+                            Modifier
+                                .padding(top = 16.dp)
+                                .align(Alignment.CenterHorizontally),
+                    ) {
                         Icon(
-                            Icons.Filled.FitnessCenter,
-                            contentDescription = "Maxes",
+                            Icons.Filled.Menu,
+                            contentDescription = "Toggle Menu",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                    },
-                    label = {
-                        Text(
-                            "1RM Maxes",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight =
-                                if (selectedSection == ProfileSection.MAXES) {
-                                    FontWeight.Bold
-                                } else {
-                                    FontWeight.Normal
-                                },
-                        )
-                    },
-                    colors =
-                        NavigationRailItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                        ),
-                    alwaysShowLabel = true,
-                )
+                    }
 
-                // Future menu items can be added here
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Menu Items
+                    NavigationRailItem(
+                        selected = true,
+                        onClick = { },
+                        icon = {
+                            Icon(
+                                Icons.Filled.FitnessCenter,
+                                contentDescription = "Maxes",
+                            )
+                        },
+                        label =
+                            if (isMenuExpanded) {
+                                {
+                                    Text(
+                                        "1RM Maxes",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            } else {
+                                null
+                            },
+                        colors =
+                            NavigationRailItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                            ),
+                        alwaysShowLabel = false,
+                    )
+                }
             }
 
-            // Content Area
-            AnimatedVisibility(
-                visible = selectedSection == ProfileSection.MAXES,
-                enter =
-                    slideInHorizontally(
-                        animationSpec =
-                            spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow,
-                            ),
-                    ),
-                exit = slideOutHorizontally(),
+            // Main Content Area
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background),
             ) {
-                MaxesContent(
-                    uiState = uiState,
-                    onEditExercise = { exerciseToEdit = it },
-                    onEditMax = { editingMax = it },
-                    onDeleteMax = { viewModel.deleteMax(it) },
-                    onAddNew = { showAdd1RMDialog = true },
-                )
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding =
+                        PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 16.dp,
+                            bottom = 80.dp, // Space for FAB
+                        ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    // Header
+                    item {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column {
+                                Text(
+                                    "1RM Tracking",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    "Track your one-rep maximums",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+
+                    // Big 4 Section
+                    item {
+                        Text(
+                            "Big 4 Lifts",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+
+                    items(uiState.big4Exercises) { exercise ->
+                        val currentMax = uiState.currentMaxes.find { it.exerciseId == exercise.id }
+                        Big4ExerciseCard(
+                            exercise = exercise,
+                            currentMax = currentMax,
+                            onEdit = { exerciseToEdit = exercise },
+                        )
+                    }
+
+                    // Other 1RMs Section
+                    if (uiState.currentMaxes.any { max ->
+                            uiState.big4Exercises.none { it.id == max.exerciseId }
+                        }
+                    ) {
+                        item {
+                            Text(
+                                "Other 1RMs",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(top = 16.dp),
+                            )
+                        }
+
+                        items(
+                            uiState.currentMaxes.filter { max ->
+                                uiState.big4Exercises.none { it.id == max.exerciseId }
+                            },
+                        ) { max ->
+                            OtherExerciseMaxCard(
+                                max = max,
+                                onEdit = { editingMax = max },
+                                onDelete = { viewModel.deleteMax(max) },
+                            )
+                        }
+                    }
+                }
+
+                // Floating Action Button
+                ExtendedFloatingActionButton(
+                    onClick = { showAdd1RMDialog = true },
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = "Add 1RM",
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Add 1RM")
+                }
             }
         }
     }
@@ -203,113 +302,6 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun MaxesContent(
-    uiState: ProfileUiState,
-    onEditExercise: (Exercise) -> Unit,
-    onEditMax: (ExerciseMaxWithName) -> Unit,
-    onDeleteMax: (ExerciseMaxWithName) -> Unit,
-    onAddNew: () -> Unit,
-) {
-    Box(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-    ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            // Header
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column {
-                        Text(
-                            "1RM Tracking",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            "Track your one-rep maximums",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-
-                    Button(
-                        onClick = onAddNew,
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                            ),
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Icon(
-                            Icons.Filled.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Add 1RM")
-                    }
-                }
-            }
-
-            // Big 4 Section
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Big 4 Lifts",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-
-            items(uiState.big4Exercises) { exercise ->
-                val currentMax = uiState.currentMaxes.find { it.exerciseId == exercise.id }
-                Big4ExerciseCard(
-                    exercise = exercise,
-                    currentMax = currentMax,
-                    onEdit = { onEditExercise(exercise) },
-                )
-            }
-
-            // Other 1RMs Section
-            if (uiState.currentMaxes.any { max ->
-                    uiState.big4Exercises.none { it.id == max.exerciseId }
-                }
-            ) {
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "Other 1RMs",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-
-                items(
-                    uiState.currentMaxes.filter { max ->
-                        uiState.big4Exercises.none { it.id == max.exerciseId }
-                    },
-                ) { max ->
-                    OtherExerciseMaxCard(
-                        max = max,
-                        onEdit = { onEditMax(max) },
-                        onDelete = { onDeleteMax(max) },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun Big4ExerciseCard(
     exercise: Exercise,
     currentMax: ExerciseMaxWithName?,
@@ -319,123 +311,16 @@ private fun Big4ExerciseCard(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = ripple(),
                     onClick = onEdit,
                 ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         colors =
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface,
-            ),
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation = 2.dp,
-                pressedElevation = 4.dp,
-            ),
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush =
-                            if (currentMax != null) {
-                                Brush.horizontalGradient(
-                                    colors =
-                                        listOf(
-                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
-                                            Color.Transparent,
-                                        ),
-                                )
-                            } else {
-                                Brush.horizontalGradient(
-                                    colors = listOf(Color.Transparent, Color.Transparent),
-                                )
-                            },
-                    ),
-        ) {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        exercise.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    if (currentMax != null) {
-                        Row(
-                            verticalAlignment = Alignment.Bottom,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Text(
-                                "${currentMax.maxWeight.toInt()}",
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Text(
-                                "kg",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                                modifier = Modifier.padding(bottom = 4.dp),
-                            )
-                        }
-                        Text(
-                            "Set ${currentMax.recordedAt.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        Text(
-                            "Not set",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        )
-                    }
-                }
-
-                Icon(
-                    Icons.Filled.Edit,
-                    contentDescription = "Edit",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun OtherExerciseMaxCard(
-    max: ExerciseMaxWithName,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    var showDeleteConfirmation by remember { mutableStateOf(false) }
-
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(),
-                    onClick = onEdit,
-                ),
-        shape = RoundedCornerShape(16.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
             ),
         elevation =
             CardDefaults.cardElevation(
@@ -453,49 +338,139 @@ private fun OtherExerciseMaxCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    max.exerciseName,
+                    if (exercise.name == "Conventional Deadlift") "Deadlift" else exercise.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
+                if (currentMax != null) {
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            "${currentMax.maxWeight.toInt()}",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            "kg",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(bottom = 2.dp),
+                        )
+                    }
+                    Text(
+                        "Set ${currentMax.recordedAt.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    )
+                } else {
+                    Text(
+                        "Not set",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    )
+                }
+            }
+
+            Icon(
+                Icons.Filled.Edit,
+                contentDescription = "Edit",
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun OtherExerciseMaxCard(
+    max: ExerciseMaxWithName,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = ripple(),
+                    onClick = onEdit,
+                ),
+        shape = RoundedCornerShape(12.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 1.dp,
+            ),
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    max.exerciseName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                )
                 Row(
                     verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
                         "${max.maxWeight.toInt()}",
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                     )
                     Text(
                         "kg",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(bottom = 2.dp),
                     )
                 }
                 Text(
-                    "Set ${max.recordedAt.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}",
+                    max.recordedAt.format(DateTimeFormatter.ofPattern("MMM d, yyyy")),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 )
             }
 
             Row {
-                IconButton(onClick = onEdit) {
+                IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.size(40.dp),
+                ) {
                     Icon(
                         Icons.Filled.Edit,
                         contentDescription = "Edit",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        modifier = Modifier.size(18.dp),
                     )
                 }
-                IconButton(onClick = { showDeleteConfirmation = true }) {
+                IconButton(
+                    onClick = { showDeleteConfirmation = true },
+                    modifier = Modifier.size(40.dp),
+                ) {
                     Icon(
                         Icons.Filled.Delete,
                         contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }
@@ -560,10 +535,13 @@ private fun Add1RMDialog(
                             ),
                     ) {
                         Text(
-                            exerciseName,
+                            if (exerciseName == "Conventional Deadlift") "Deadlift" else exerciseName,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(16.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
                             textAlign = TextAlign.Center,
                         )
                     }

@@ -68,7 +68,7 @@ interface ProfileDao {
         ORDER BY 
             CASE e.name
                 WHEN 'Back Squat' THEN 1
-                WHEN 'Deadlift' THEN 2
+                WHEN 'Conventional Deadlift' THEN 2
                 WHEN 'Bench Press' THEN 3
                 WHEN 'Overhead Press' THEN 4
                 ELSE 5
@@ -93,11 +93,11 @@ interface ProfileDao {
     @Query(
         """
         SELECT e.* FROM exercises e
-        WHERE e.name IN ('Back Squat', 'Deadlift', 'Bench Press', 'Overhead Press')
+        WHERE e.name IN ('Back Squat', 'Conventional Deadlift', 'Bench Press', 'Overhead Press')
         ORDER BY 
             CASE e.name
                 WHEN 'Back Squat' THEN 1
-                WHEN 'Deadlift' THEN 2
+                WHEN 'Conventional Deadlift' THEN 2
                 WHEN 'Bench Press' THEN 3
                 WHEN 'Overhead Press' THEN 4
             END

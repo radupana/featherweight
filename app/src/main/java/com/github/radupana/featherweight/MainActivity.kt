@@ -160,6 +160,7 @@ fun MainAppWithNavigation(
     val showTopBar =
         currentScreen in
             listOf(
+                Screen.HOME,
                 Screen.PROGRAMMES,
                 Screen.HISTORY,
                 Screen.ANALYTICS,
@@ -167,6 +168,7 @@ fun MainAppWithNavigation(
 
     val screenTitle =
         when (currentScreen) {
+            Screen.HOME -> "Featherweight"
             Screen.PROGRAMMES -> "Programmes"
             Screen.HISTORY -> "History"
             Screen.ANALYTICS -> "Analytics"
@@ -228,7 +230,6 @@ fun MainAppWithNavigation(
                     onStartFreestyle = { onScreenChange(Screen.ACTIVE_WORKOUT) },
                     onBrowseProgrammes = { onScreenChange(Screen.PROGRAMMES) },
                     onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
-                    onNavigateToProfile = { onScreenChange(Screen.PROFILE) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -341,21 +342,6 @@ fun MainAppWithNavigation(
     }
 }
 
-@Composable
-fun HomeScreen(
-    onStartFreestyle: () -> Unit,
-    onBrowseProgrammes: () -> Unit,
-    onNavigateToActiveProgramme: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
-) {
-    Box(modifier = modifier) {
-        HomeScreen(
-            onStartFreestyle = onStartFreestyle,
-            onBrowseProgrammes = onBrowseProgrammes,
-            onNavigateToActiveProgramme = onNavigateToActiveProgramme,
-        )
-    }
-}
 
 @Composable
 fun WorkoutHubScreen(
