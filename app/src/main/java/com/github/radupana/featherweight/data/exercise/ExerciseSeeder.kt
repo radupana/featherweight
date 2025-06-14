@@ -1230,7 +1230,7 @@ class ExerciseSeeder(
             alternativeEquipment = setOf(Equipment.DUMBBELL),
             movementPatterns = setOf(MovementPattern.HINGE),
         )
-        
+
         // Also add plural form used in programmes
         createExercise(
             name = "Hip Thrust",
@@ -1277,7 +1277,7 @@ class ExerciseSeeder(
             requiredEquipment = setOf(Equipment.CABLE_MACHINE),
             movementPatterns = setOf(MovementPattern.PULL),
         )
-        
+
         // Additional exercises used in programmes
         createExercise(
             name = "Bent-Over Barbell Row",
@@ -1289,7 +1289,7 @@ class ExerciseSeeder(
             requiredEquipment = setOf(Equipment.BARBELL),
             movementPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
         )
-        
+
         createExercise(
             name = "Bent-Over Dumbbell Row",
             category = ExerciseCategory.BACK,
@@ -1300,7 +1300,7 @@ class ExerciseSeeder(
             requiredEquipment = setOf(Equipment.DUMBBELL),
             movementPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
         )
-        
+
         createExercise(
             name = "Bulgarian Split Squat",
             category = ExerciseCategory.LEGS,
@@ -1312,7 +1312,7 @@ class ExerciseSeeder(
             alternativeEquipment = setOf(Equipment.DUMBBELL),
             movementPatterns = setOf(MovementPattern.LUNGE),
         )
-        
+
         createExercise(
             name = "Cable Fly",
             category = ExerciseCategory.CHEST,
@@ -1323,7 +1323,7 @@ class ExerciseSeeder(
             requiredEquipment = setOf(Equipment.CABLE_MACHINE),
             movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
         )
-        
+
         createExercise(
             name = "Cable Row",
             category = ExerciseCategory.BACK,
@@ -1334,7 +1334,7 @@ class ExerciseSeeder(
             requiredEquipment = setOf(Equipment.CABLE_MACHINE),
             movementPatterns = setOf(MovementPattern.HORIZONTAL_PULL),
         )
-        
+
         createExercise(
             name = "Close-Grip Bench Press",
             category = ExerciseCategory.CHEST,
@@ -1345,7 +1345,7 @@ class ExerciseSeeder(
             requiredEquipment = setOf(Equipment.BARBELL),
             movementPatterns = setOf(MovementPattern.HORIZONTAL_PUSH),
         )
-        
+
         createExercise(
             name = "Front Squat",
             category = ExerciseCategory.LEGS,

@@ -835,7 +835,7 @@ class WorkoutViewModel(
             loadInProgressWorkouts()
         }
     }
-    
+
     // Delete any workout by ID
     fun deleteWorkout(workoutId: Long) {
         viewModelScope.launch {

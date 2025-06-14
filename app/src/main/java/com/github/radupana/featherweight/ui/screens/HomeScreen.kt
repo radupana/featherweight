@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -126,7 +125,7 @@ fun HomeScreen(
                 fontWeight = FontWeight.Bold,
             )
         }
-        
+
         activeProgramme?.let { programme ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -349,7 +348,7 @@ fun HomeScreen(
             },
         )
     }
-    
+
     // Deactivate Programme Dialog
     if (showDeactivateProgrammeDialog) {
         AlertDialog(
@@ -383,7 +382,7 @@ fun HomeScreen(
             },
         )
     }
-    
+
     // Delete Workout Dialog
     if (showDeleteWorkoutDialog && workoutToDelete != null) {
         AlertDialog(
@@ -407,9 +406,10 @@ fun HomeScreen(
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                    ),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                        ),
                 ) {
                     Text("Delete")
                 }

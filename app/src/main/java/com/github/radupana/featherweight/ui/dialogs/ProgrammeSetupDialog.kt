@@ -543,20 +543,14 @@ private fun WeightInputField(
     label: String,
     isError: Boolean = false,
 ) {
-    var textFieldValue by remember(value) {
-        val text = if (value != null && value > 0) value.toString() else ""
-        mutableStateOf(TextFieldValue(text, TextRange.Zero))
-    }
+    // Keep text field value separate to avoid conversion loops
+    var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
     
-    var hasFocus by remember { mutableStateOf(false) }
-    
-    // Only update from external changes when field doesn't have focus
-    LaunchedEffect(value) {
-        if (!hasFocus) {
-            val newText = if (value != null && value > 0) value.toString() else ""
-            if (textFieldValue.text != newText) {
-                textFieldValue = TextFieldValue(newText, TextRange.Zero)
-            }
+    // Only set initial value once when first composed
+    LaunchedEffect(Unit) {
+        if (value != null && value > 0) {
+            val initialText = if (value % 1 == 0f) value.toInt().toString() else value.toString()
+            textFieldValue = TextFieldValue(initialText, TextRange(initialText.length))
         }
     }
 
@@ -564,42 +558,48 @@ private fun WeightInputField(
         value = textFieldValue,
         onValueChange = { newValue ->
             val text = newValue.text
+            android.util.Log.d("WeightInput", "onValueChange - text: '$text', old text: '${textFieldValue.text}'")
+            
             if (text.isEmpty()) {
                 textFieldValue = newValue
                 onValueChange(null)
             } else {
                 // Same validation logic as working set weight input
                 val parts = text.split(".")
-                val isValid = when (parts.size) {
-                    1 -> parts[0].all { it.isDigit() } && parts[0].length <= 4
-                    2 -> parts[0].all { it.isDigit() } && 
-                         parts[0].length <= 4 && 
-                         parts[1].all { it.isDigit() } && 
-                         parts[1].length <= 2
-                    else -> false
-                }
+                val isValid =
+                    when (parts.size) {
+                        1 -> parts[0].all { it.isDigit() } && parts[0].length <= 4
+                        2 ->
+                            parts[0].all { it.isDigit() } &&
+                                parts[0].length <= 4 &&
+                                parts[1].all { it.isDigit() } &&
+                                parts[1].length <= 2
+                        else -> false
+                    }
                 if (isValid) {
                     textFieldValue = newValue
                     val floatValue = text.toFloatOrNull()
+                    android.util.Log.d("WeightInput", "Valid input: '$text' -> $floatValue")
                     onValueChange(floatValue)
                 }
             }
         },
         label = { Text(label) },
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Decimal,
-            imeAction = ImeAction.Next
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .onFocusChanged { focusState ->
-                hasFocus = focusState.isFocused
-                if (focusState.isFocused && textFieldValue.text.isNotEmpty()) {
-                    // Select all text for easy replacement
-                    val text = textFieldValue.text
-                    textFieldValue = textFieldValue.copy(selection = TextRange(0, text.length))
-                }
-            },
+        keyboardOptions =
+            KeyboardOptions(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = ImeAction.Next,
+            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .onFocusChanged { focusState ->
+                    if (focusState.isFocused && textFieldValue.text.isNotEmpty()) {
+                        // Select all text for easy replacement
+                        val text = textFieldValue.text
+                        textFieldValue = textFieldValue.copy(selection = TextRange(0, text.length))
+                    }
+                },
         isError = isError,
         singleLine = true,
     )

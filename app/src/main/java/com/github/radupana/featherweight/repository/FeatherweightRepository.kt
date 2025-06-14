@@ -1076,46 +1076,49 @@ class FeatherweightRepository(
             }
 
         // If exercise not found, create it as a custom exercise
-        val exerciseId = if (exercise != null) {
-            exercise.id
-        } else {
-            println("⚠️ Exercise '${exerciseStructure.name}' not found in database, creating as custom exercise")
-            try {
-                // Create a generic custom exercise based on the name
-                val category = when {
-                    exerciseStructure.name.contains("Squat", ignoreCase = true) -> ExerciseCategory.LEGS
-                    exerciseStructure.name.contains("Press", ignoreCase = true) -> ExerciseCategory.CHEST
-                    exerciseStructure.name.contains("Row", ignoreCase = true) -> ExerciseCategory.BACK
-                    exerciseStructure.name.contains("Deadlift", ignoreCase = true) -> ExerciseCategory.LEGS
-                    exerciseStructure.name.contains("Curl", ignoreCase = true) -> ExerciseCategory.ARMS
-                    exerciseStructure.name.contains("Lunge", ignoreCase = true) -> ExerciseCategory.LEGS
-                    exerciseStructure.name.contains("Fly", ignoreCase = true) || exerciseStructure.name.contains("Flys", ignoreCase = true) -> ExerciseCategory.CHEST
-                    exerciseStructure.name.contains("Pull", ignoreCase = true) -> ExerciseCategory.BACK
-                    exerciseStructure.name.contains("Raise", ignoreCase = true) -> ExerciseCategory.SHOULDERS
-                    exerciseStructure.name.contains("Extension", ignoreCase = true) -> ExerciseCategory.LEGS
-                    exerciseStructure.name.contains("Thrust", ignoreCase = true) -> ExerciseCategory.LEGS
-                    else -> ExerciseCategory.FULL_BODY
+        val exerciseId =
+            if (exercise != null) {
+                exercise.id
+            } else {
+                println("⚠️ Exercise '${exerciseStructure.name}' not found in database, creating as custom exercise")
+                try {
+                    // Create a generic custom exercise based on the name
+                    val category =
+                        when {
+                            exerciseStructure.name.contains("Squat", ignoreCase = true) -> ExerciseCategory.LEGS
+                            exerciseStructure.name.contains("Press", ignoreCase = true) -> ExerciseCategory.CHEST
+                            exerciseStructure.name.contains("Row", ignoreCase = true) -> ExerciseCategory.BACK
+                            exerciseStructure.name.contains("Deadlift", ignoreCase = true) -> ExerciseCategory.LEGS
+                            exerciseStructure.name.contains("Curl", ignoreCase = true) -> ExerciseCategory.ARMS
+                            exerciseStructure.name.contains("Lunge", ignoreCase = true) -> ExerciseCategory.LEGS
+                            exerciseStructure.name.contains("Fly", ignoreCase = true) || exerciseStructure.name.contains("Flys", ignoreCase = true) -> ExerciseCategory.CHEST
+                            exerciseStructure.name.contains("Pull", ignoreCase = true) -> ExerciseCategory.BACK
+                            exerciseStructure.name.contains("Raise", ignoreCase = true) -> ExerciseCategory.SHOULDERS
+                            exerciseStructure.name.contains("Extension", ignoreCase = true) -> ExerciseCategory.LEGS
+                            exerciseStructure.name.contains("Thrust", ignoreCase = true) -> ExerciseCategory.LEGS
+                            else -> ExerciseCategory.FULL_BODY
+                        }
+
+                    val equipment =
+                        when {
+                            exerciseStructure.name.contains("Barbell", ignoreCase = true) -> setOf(Equipment.BARBELL)
+                            exerciseStructure.name.contains("Dumbbell", ignoreCase = true) -> setOf(Equipment.DUMBBELL)
+                            exerciseStructure.name.contains("Cable", ignoreCase = true) -> setOf(Equipment.CABLE_MACHINE)
+                            else -> setOf(Equipment.MACHINE)
+                        }
+
+                    createCustomExercise(
+                        name = exerciseStructure.name,
+                        category = category,
+                        primaryMuscles = setOf(MuscleGroup.fromCategory(category)),
+                        requiredEquipment = equipment,
+                        userId = "programme_template",
+                    )
+                } catch (e: Exception) {
+                    println("❌ Failed to create custom exercise: ${e.message}")
+                    null
                 }
-                
-                val equipment = when {
-                    exerciseStructure.name.contains("Barbell", ignoreCase = true) -> setOf(Equipment.BARBELL)
-                    exerciseStructure.name.contains("Dumbbell", ignoreCase = true) -> setOf(Equipment.DUMBBELL)
-                    exerciseStructure.name.contains("Cable", ignoreCase = true) -> setOf(Equipment.CABLE_MACHINE)
-                    else -> setOf(Equipment.MACHINE)
-                }
-                
-                createCustomExercise(
-                    name = exerciseStructure.name,
-                    category = category,
-                    primaryMuscles = setOf(MuscleGroup.fromCategory(category)),
-                    requiredEquipment = equipment,
-                    userId = "programme_template"
-                )
-            } catch (e: Exception) {
-                println("❌ Failed to create custom exercise: ${e.message}")
-                null
             }
-        }
 
         val notes =
             buildString {

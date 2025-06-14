@@ -43,7 +43,7 @@ fun ActiveProgrammeScreen(
     LaunchedEffect(Unit) {
         programmeViewModel.refreshProgrammeProgress()
     }
-    
+
     // Load next workout when screen appears
     LaunchedEffect(activeProgramme) {
         isLoading = true
@@ -131,7 +131,7 @@ fun ActiveProgrammeScreen(
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 )
                             }
-                            
+
                             IconButton(
                                 onClick = { showDeleteDialog = true },
                                 modifier = Modifier.size(32.dp),
@@ -259,7 +259,7 @@ fun ActiveProgrammeScreen(
             Spacer(modifier = Modifier.weight(1f))
         }
     }
-    
+
     // Delete Programme Dialog
     if (showDeleteDialog) {
         AlertDialog(
@@ -284,9 +284,10 @@ fun ActiveProgrammeScreen(
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                    ),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                        ),
                 ) {
                     Text("Delete")
                 }
