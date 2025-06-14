@@ -7,16 +7,22 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,6 +30,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -121,6 +129,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainAppWithNavigation(
     currentScreen: Screen,
@@ -138,6 +147,7 @@ fun MainAppWithNavigation(
             previousScreen = currentScreen
         }
     }
+
     val navigationItems =
         listOf(
             NavigationItem(Screen.HOME, "Home", Icons.Filled.FitnessCenter),
@@ -146,7 +156,46 @@ fun MainAppWithNavigation(
             NavigationItem(Screen.ANALYTICS, "Analytics", Icons.Filled.Analytics),
         )
 
+    // Determine if we should show the top bar with profile icon
+    val showTopBar =
+        currentScreen in
+            listOf(
+                Screen.PROGRAMMES,
+                Screen.HISTORY,
+                Screen.ANALYTICS,
+            )
+
+    val screenTitle =
+        when (currentScreen) {
+            Screen.PROGRAMMES -> "Programmes"
+            Screen.HISTORY -> "History"
+            Screen.ANALYTICS -> "Analytics"
+            else -> ""
+        }
+
     Scaffold(
+        topBar = {
+            if (showTopBar) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            screenTitle,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    },
+                    actions = {
+                        IconButton(onClick = { onScreenChange(Screen.PROFILE) }) {
+                            Icon(
+                                Icons.Filled.AccountCircle,
+                                contentDescription = "Profile",
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+                    },
+                )
+            }
+        },
         bottomBar = {
             if (currentScreen != Screen.SPLASH &&
                 currentScreen != Screen.USER_SELECTION &&
