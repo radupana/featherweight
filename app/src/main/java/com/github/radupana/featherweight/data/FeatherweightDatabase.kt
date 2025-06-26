@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.ExerciseEquipment
@@ -40,7 +42,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         UserProfile::class,
         UserExerciseMax::class,
     ],
-    version = 15,
+    version = 17,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -61,6 +63,7 @@ abstract class FeatherweightDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: FeatherweightDatabase? = null
 
+
         fun getDatabase(context: Context): FeatherweightDatabase =
             INSTANCE ?: synchronized(this) {
                 val instance =
@@ -69,7 +72,8 @@ abstract class FeatherweightDatabase : RoomDatabase() {
                             context.applicationContext,
                             FeatherweightDatabase::class.java,
                             "featherweight-db",
-                        ).fallbackToDestructiveMigration(false) // This will nuke and recreate
+                        )
+                        .fallbackToDestructiveMigration() // Just nuke and recreate during development
                         .build()
                 INSTANCE = instance
                 instance

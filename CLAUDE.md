@@ -11,7 +11,7 @@ Building a weightlifting Super App that combines the best features from apps lik
 - **Language**: Kotlin
 - **UI Framework**: Jetpack Compose (Material Design 3) 
 - **Design System**: Athletic Elegance with glassmorphism (light theme only)
-- **Database**: Room with SQLite v13 (destructive migration)
+- **Database**: Room with SQLite v17 (destructive migration)
 - **Architecture**: MVVM with Repository layer
 - **Navigation**: Single-Activity with enum-based routing
 - **Async**: Coroutines and Flow with Dispatchers.IO
@@ -45,16 +45,20 @@ Building a weightlifting Super App that combines the best features from apps lik
 - ✅ Fixed programme progress race condition with proper refresh on navigation
 - ✅ Ensured programme workouts only use persisted exercises
 - ✅ Implemented drag-and-drop reordering for workout exercises
-- ✅ Added compact exercise cards with drag handles for better space utilization
+- ✅ Added compact exercise cards with drag handles for better space utilization  
 - ✅ Fixed LazyColumn key-based item identity issues affecting drag state
+- ✅ Added exercise frequency tracking with usage count in database
+- ✅ Implemented frequency-based sorting in exercise selection (most used first)
+- ✅ Added discrete usage count display (e.g., "5×") on exercise selection cards
 
 ## Key Files & Architecture
 
 **Data Layer:**
-- `FeatherweightDatabase.kt` - Room v13 with destructive migration
-- `FeatherweightRepository.kt` - Central data access, programme workout creation
+- `FeatherweightDatabase.kt` - Room v17 with destructive migration
+- `FeatherweightRepository.kt` - Central data access, programme workout creation, usage tracking
 - `ExerciseSeeder.kt` - 112 exercises (all singular names)
 - `ProgrammeSeeder.kt` - Programme templates with real exercises
+- `ExerciseDao.kt` - Exercise queries with frequency-based sorting (usageCount DESC, name ASC)
 
 **Programme Components:**
 - `ProgrammesScreen.kt` - Template browser with filters
@@ -68,12 +72,22 @@ Building a weightlifting Super App that combines the best features from apps lik
 - `CompactExerciseCard.kt` - Compact card with drag handle, progress metrics
 - `DragHandleReorderableUtils.kt` - Drag handle component with visual feedback
 
+**Exercise Selection:**
+- `ExerciseSelectorScreen.kt` - Exercise browser with frequency-based sorting and usage indicators
+- `ExerciseCard.kt` - Shows usage count badge when > 0, maintains visual hierarchy
+
 ## Important Implementation Details
 
 ### Exercise Naming Convention
 - ALL exercises use singular form: "Barbell Curl" not "Barbell Curls"
-- Database enforces this through v13 migration
+- Database enforces this through v17 migration
 - Historical workouts wiped and re-seeded with correct names
+
+### Exercise Usage Tracking
+- `usageCount` field automatically incremented when exercise is logged
+- Exercise selection sorted by frequency (usageCount DESC, name ASC)
+- Usage counts calculated from both real workouts and seeded test data
+- Discrete badge display shows "×" format only when count > 0
 
 ### Programme Workouts
 - Sequential day numbering (1,2,3,4) regardless of week days
@@ -155,3 +169,8 @@ Building a weightlifting Super App that combines the best features from apps lik
 - Heavy logging in frequently recomposing components impacts performance
 - Use `derivedStateOf` for expensive calculations based on changing state
 - Remember to clean up drag state completely on drag end to prevent inconsistencies
+
+### Database Development Strategy
+- Using `fallbackToDestructiveMigration()` during development for simplicity
+- All data is re-seeded on schema changes to avoid migration complexity
+- Usage counts are recalculated after seeding to ensure accurate frequency data

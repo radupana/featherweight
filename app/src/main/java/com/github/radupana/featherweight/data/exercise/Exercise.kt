@@ -41,6 +41,8 @@ data class Exercise(
     val isPublic: Boolean = true,
     // JSON array: "['beginner-friendly','home']"
     val tags: String? = null,
+    // Usage tracking
+    val usageCount: Int = 0,
     // Timestamps
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now(),

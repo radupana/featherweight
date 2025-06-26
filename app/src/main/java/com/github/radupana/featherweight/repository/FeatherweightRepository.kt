@@ -89,6 +89,10 @@ class FeatherweightRepository(
                 println("⚠️ Only $workoutCount workouts found - force seeding more data for pagination testing")
                 seedRealistic531Data()
                 println("Force-seeded additional workout data")
+                
+                // Calculate usage counts after seeding
+                updateExerciseUsageCounts()
+                println("Updated exercise usage counts")
             }
         }
     }
@@ -98,6 +102,29 @@ class FeatherweightRepository(
         val allWorkouts = workoutDao.getAllWorkouts()
         allWorkouts.forEach { workout ->
             workoutDao.deleteWorkout(workout.id)
+        }
+    }
+    
+    private suspend fun updateExerciseUsageCounts() {
+        // Count usage for each exercise based on ExerciseLog entries
+        val allExercises = exerciseDao.getAllExercisesWithDetails()
+        val allWorkouts = workoutDao.getAllWorkouts()
+        
+        allExercises.forEach { exerciseWithDetails ->
+            var count = 0
+            allWorkouts.forEach { workout ->
+                val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                count += exerciseLogs.count { log ->
+                    log.exerciseId == exerciseWithDetails.exercise.id || 
+                    log.exerciseName == exerciseWithDetails.exercise.name
+                }
+            }
+            
+            // Update the exercise with the calculated count
+            if (count > 0) {
+                val updatedExercise = exerciseWithDetails.exercise.copy(usageCount = count)
+                exerciseDao.updateExercise(updatedExercise)
+            }
         }
     }
 
@@ -249,7 +276,14 @@ class FeatherweightRepository(
         completedAt: String?,
     ) = setLogDao.markSetCompleted(setId, completed, completedAt)
 
-    suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long = exerciseLogDao.insertExerciseLog(exerciseLog)
+    suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long {
+        val id = exerciseLogDao.insertExerciseLog(exerciseLog)
+        // Increment usage count if the exercise has an ID reference
+        exerciseLog.exerciseId?.let { exerciseId ->
+            exerciseDao.incrementUsageCount(exerciseId)
+        }
+        return id
+    }
 
     suspend fun insertSetLog(setLog: SetLog): Long = setLogDao.insertSetLog(setLog)
 
@@ -272,7 +306,10 @@ class FeatherweightRepository(
                 exerciseOrder = exerciseOrder,
                 notes = notes,
             )
-        return insertExerciseLog(exerciseLog)
+        val id = exerciseLogDao.insertExerciseLog(exerciseLog)
+        // Always increment usage count when adding exercise through this method
+        exerciseDao.incrementUsageCount(exercise.exercise.id)
+        return id
     }
 
     // Get exercise details for an ExerciseLog

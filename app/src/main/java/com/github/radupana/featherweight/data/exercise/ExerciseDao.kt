@@ -6,14 +6,14 @@ import androidx.room.*
 interface ExerciseDao {
     // Basic queries
     @Transaction
-    @Query("SELECT * FROM exercises ORDER BY name ASC")
+    @Query("SELECT * FROM exercises ORDER BY usageCount DESC, name ASC")
     suspend fun getAllExercisesWithDetails(): List<ExerciseWithDetails>
 
     @Transaction
     @Query("SELECT * FROM exercises WHERE id = :id")
     suspend fun getExerciseWithDetails(id: Long): ExerciseWithDetails?
 
-    @Query("SELECT * FROM exercises WHERE name LIKE '%' || :query || '%' ORDER BY name ASC")
+    @Query("SELECT * FROM exercises WHERE name LIKE '%' || :query || '%' ORDER BY usageCount DESC, name ASC")
     suspend fun searchExercises(query: String): List<Exercise>
 
     @Transaction
@@ -22,7 +22,7 @@ interface ExerciseDao {
         SELECT DISTINCT e.* FROM exercises e
         INNER JOIN exercise_muscle_groups emg ON e.id = emg.exerciseId
         WHERE emg.muscleGroup = :muscleGroup
-        ORDER BY e.name ASC
+        ORDER BY e.usageCount DESC, e.name ASC
     """,
     )
     suspend fun getExercisesByMuscleGroup(muscleGroup: MuscleGroup): List<ExerciseWithDetails>
@@ -33,12 +33,12 @@ interface ExerciseDao {
         SELECT DISTINCT e.* FROM exercises e
         INNER JOIN exercise_equipment ee ON e.id = ee.exerciseId  
         WHERE ee.equipment IN (:equipment)
-        ORDER BY e.name ASC
+        ORDER BY e.usageCount DESC, e.name ASC
     """,
     )
     suspend fun getExercisesByEquipment(equipment: List<Equipment>): List<ExerciseWithDetails>
 
-    @Query("SELECT * FROM exercises WHERE category = :category ORDER BY name ASC")
+    @Query("SELECT * FROM exercises WHERE category = :category ORDER BY usageCount DESC, name ASC")
     suspend fun getExercisesByCategory(category: ExerciseCategory): List<Exercise>
 
     @Query("SELECT * FROM exercises WHERE difficulty <= :maxDifficulty ORDER BY difficulty ASC, name ASC")
@@ -79,6 +79,9 @@ interface ExerciseDao {
     // Update operations
     @Update
     suspend fun updateExercise(exercise: Exercise)
+    
+    @Query("UPDATE exercises SET usageCount = usageCount + 1 WHERE id = :exerciseId")
+    suspend fun incrementUsageCount(exerciseId: Long)
 
     @Query("DELETE FROM exercise_muscle_groups WHERE exerciseId = :exerciseId")
     suspend fun deleteMuscleGroups(exerciseId: Long)
@@ -103,7 +106,7 @@ interface ExerciseDao {
             (:maxDifficulty IS NULL OR e.difficulty <= :maxDifficulty) AND
             (:includeCustom = 1 OR e.isCustom = 0) AND
             (:searchQuery = '' OR e.name LIKE '%' || :searchQuery || '%')
-        ORDER BY e.name ASC
+        ORDER BY e.usageCount DESC, e.name ASC
     """,
     )
     suspend fun getFilteredExercises(

@@ -303,12 +303,34 @@ private fun ExerciseCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = exercise.exercise.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                Row(
                     modifier = Modifier.weight(1f),
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = exercise.exercise.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    
+                    // Usage count indicator - only show if > 0
+                    if (exercise.exercise.usageCount > 0) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text(
+                                text = "${exercise.exercise.usageCount}×",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
 
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
