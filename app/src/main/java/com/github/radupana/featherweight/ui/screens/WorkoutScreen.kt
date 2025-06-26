@@ -1,11 +1,14 @@
 package com.github.radupana.featherweight.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.imePadding
 import com.github.radupana.featherweight.ui.utils.NavigationContext
 import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -15,6 +18,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
@@ -23,13 +27,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.util.Log
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import com.github.radupana.featherweight.data.SetLog
-import com.github.radupana.featherweight.ui.components.ExerciseCard
+import com.github.radupana.featherweight.ui.components.CompactExerciseCard
 import com.github.radupana.featherweight.ui.components.ProgressCard
 import com.github.radupana.featherweight.ui.dialogs.SetEditingModal
 import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
@@ -804,6 +818,7 @@ private fun EmptyWorkoutState(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ExercisesList(
     exercises: List<com.github.radupana.featherweight.data.ExerciseLog>,
@@ -814,13 +829,60 @@ private fun ExercisesList(
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
+    val lazyListState = rememberLazyListState()
+    var draggedExerciseId by remember { mutableStateOf<Long?>(null) }
+    var draggedOffset by remember { mutableStateOf(0f) }
+    var targetIndex by remember { mutableStateOf<Int?>(null) }
+    val density = LocalDensity.current
+    
+    // Item measurements
+    val itemHeightDp = 96.dp // Actual height of compact cards + spacing
+    val itemHeightPx = with(density) { itemHeightDp.toPx() }
+    
+    // Find the current index of the dragged item dynamically
+    val currentDraggedIndex = draggedExerciseId?.let { id ->
+        exercises.indexOfFirst { it.id == id }.takeIf { it >= 0 }
+    }
+    
     LazyColumn(
+        state = lazyListState,
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp), // Reduced spacing
         modifier = modifier,
     ) {
-        items(exercises) { exercise ->
-            ExerciseCard(
+        itemsIndexed(
+            items = exercises,
+            key = { _, exercise -> exercise.id }
+        ) { currentIndex, exercise ->
+            val isDragged = draggedExerciseId == exercise.id
+            
+            // Calculate expected translation for smooth animations
+            val expectedTranslation = when {
+                isDragged -> draggedOffset
+                else -> {
+                    // Only animate if we're actively dragging something
+                    if (currentDraggedIndex != null && targetIndex != null && draggedExerciseId != null) {
+                        val draggedIdx = currentDraggedIndex
+                        val targetIdx = targetIndex!!
+                        when {
+                            draggedIdx < targetIdx && currentIndex > draggedIdx && currentIndex <= targetIdx -> -itemHeightPx
+                            draggedIdx > targetIdx && currentIndex < draggedIdx && currentIndex >= targetIdx -> itemHeightPx
+                            else -> 0f
+                        }
+                    } else 0f
+                }
+            }
+            
+            val animatedTranslation by animateFloatAsState(
+                targetValue = expectedTranslation,
+                animationSpec = tween(
+                    durationMillis = 150,
+                    easing = FastOutSlowInEasing
+                ),
+                label = "translation_${exercise.id}"
+            )
+            
+            CompactExerciseCard(
                 exercise = exercise,
                 sets = sets.filter { it.exerciseLogId == exercise.id },
                 onEditSets = {
@@ -830,6 +892,59 @@ private fun ExercisesList(
                     if (canEdit) onDeleteExercise(exerciseId)
                 },
                 viewModel = viewModel,
+                showDragHandle = canEdit,
+                onDragStart = {
+                    Log.d("DragReorder", "Drag started for exercise ${exercise.exerciseName} at index $currentIndex")
+                    draggedExerciseId = exercise.id
+                    targetIndex = currentIndex
+                    draggedOffset = 0f
+                },
+                onDragEnd = {
+                    val draggedIdx = currentDraggedIndex
+                    Log.d("DragReorder", "Drag ended. Current: $draggedIdx, Target: $targetIndex")
+                    
+                    // Perform the reorder if needed
+                    if (draggedIdx != null && targetIndex != null && draggedIdx != targetIndex) {
+                        val fromIndex = draggedIdx
+                        val toIndex = targetIndex!!
+                        
+                        Log.d("DragReorder", "Reordering from $fromIndex to $toIndex")
+                        
+                        // Update the order instantly in the view model
+                        viewModel.reorderExercisesInstantly(fromIndex, toIndex)
+                    }
+                    
+                    // Reset state
+                    draggedExerciseId = null
+                    targetIndex = null
+                    draggedOffset = 0f
+                },
+                onDrag = { delta ->
+                    // Process drag for the item that initiated the drag
+                    if (draggedExerciseId == exercise.id) {
+                        draggedOffset += delta
+                        
+                        // Find current index of dragged item
+                        val draggedIdx = exercises.indexOfFirst { it.id == draggedExerciseId }
+                        if (draggedIdx >= 0) {
+                            // Calculate which position this item should move to based on center position
+                            val currentCenterY = draggedIdx * itemHeightPx + itemHeightPx / 2 + draggedOffset
+                            val newIndex = (currentCenterY / itemHeightPx).toInt().coerceIn(0, exercises.size - 1)
+                            
+                            if (newIndex != targetIndex) {
+                                Log.d("DragReorder", "Target changed: $targetIndex -> $newIndex (offset: $draggedOffset, centerY: $currentCenterY)")
+                                targetIndex = newIndex
+                            }
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .graphicsLayer {
+                        translationY = if (isDragged) draggedOffset else animatedTranslation
+                        this.shadowElevation = if (isDragged) 8.dp.toPx() else 0f
+                        alpha = if (isDragged) 0.9f else 1f
+                    }
+                    .zIndex(if (isDragged) 1f else 0f)
             )
         }
     }

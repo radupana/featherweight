@@ -821,6 +821,55 @@ class WorkoutViewModel(
         }
     }
 
+    fun reorderExercises(fromIndex: Int, toIndex: Int) {
+        if (!canEditWorkout()) return
+
+        viewModelScope.launch {
+            val exercises = _selectedWorkoutExercises.value.toMutableList()
+            if (fromIndex in exercises.indices && toIndex in exercises.indices) {
+                // Move the item in the list
+                val item = exercises.removeAt(fromIndex)
+                exercises.add(toIndex, item)
+                
+                // Update the exerciseOrder for all affected items
+                exercises.forEachIndexed { index, exercise ->
+                    if (exercise.exerciseOrder != index) {
+                        repository.updateExerciseOrder(exercise.id, index)
+                    }
+                }
+                
+                // Update the UI state
+                _selectedWorkoutExercises.value = exercises
+            }
+        }
+    }
+    
+    fun reorderExercisesInstantly(fromIndex: Int, toIndex: Int) {
+        if (!canEditWorkout()) return
+        
+        val exercises = _selectedWorkoutExercises.value.toMutableList()
+        if (fromIndex in exercises.indices && toIndex in exercises.indices) {
+            // Move the item in the list
+            val item = exercises.removeAt(fromIndex)
+            exercises.add(toIndex, item)
+            
+            // Update the exerciseOrder property in each object to match its new position
+            val updatedExercises = exercises.mapIndexed { index, exercise ->
+                exercise.copy(exerciseOrder = index)
+            }
+            
+            // Update the UI state immediately for smooth animation
+            _selectedWorkoutExercises.value = updatedExercises
+            
+            // Update the database in the background
+            viewModelScope.launch {
+                updatedExercises.forEach { exercise ->
+                    repository.updateExerciseOrder(exercise.id, exercise.exerciseOrder)
+                }
+            }
+        }
+    }
+
     // Delete the current workout entirely
     fun deleteCurrentWorkout() {
         val currentId = _currentWorkoutId.value ?: return

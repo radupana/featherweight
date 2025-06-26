@@ -697,6 +697,9 @@ class FeatherweightRepository(
     // Delete an exercise log (will cascade delete all its sets due to foreign key)
     suspend fun deleteExerciseLog(exerciseLogId: Long) = exerciseLogDao.deleteExerciseLog(exerciseLogId)
 
+    // Update exercise order
+    suspend fun updateExerciseOrder(exerciseLogId: Long, newOrder: Int) = exerciseLogDao.updateExerciseOrder(exerciseLogId, newOrder)
+
     // Delete an entire workout (will cascade delete all exercises and sets)
     suspend fun deleteWorkout(workoutId: Long) = workoutDao.deleteWorkout(workoutId)
 

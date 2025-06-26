@@ -17,4 +17,7 @@ interface ExerciseLogDao {
 
     @Query("SELECT COUNT(*) FROM ExerciseLog WHERE exerciseName = :exerciseName")
     suspend fun getExerciseUsageCount(exerciseName: String): Int
+
+    @Query("UPDATE ExerciseLog SET exerciseOrder = :newOrder WHERE id = :exerciseLogId")
+    suspend fun updateExerciseOrder(exerciseLogId: Long, newOrder: Int)
 }
