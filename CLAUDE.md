@@ -44,6 +44,9 @@ Building a weightlifting Super App that combines the best features from apps lik
 - ✅ Standardized ALL exercises to singular form (Pull-up, not Pull-ups)
 - ✅ Fixed programme progress race condition with proper refresh on navigation
 - ✅ Ensured programme workouts only use persisted exercises
+- ✅ Implemented drag-and-drop reordering for workout exercises
+- ✅ Added compact exercise cards with drag handles for better space utilization
+- ✅ Fixed LazyColumn key-based item identity issues affecting drag state
 
 ## Key Files & Architecture
 
@@ -60,9 +63,10 @@ Building a weightlifting Super App that combines the best features from apps lik
 - `ProgrammeViewModel.kt` - Programme state management with refreshData()
 
 **Workout Components:**
-- `WorkoutScreen.kt` - Main interface with programme context
+- `WorkoutScreen.kt` - Main interface with programme context, drag-and-drop reordering
 - `SetEditingModal.kt` - Full-screen modal with swipe-to-delete
-- `ExerciseCard.kt` - Summary view with progress metrics
+- `CompactExerciseCard.kt` - Compact card with drag handle, progress metrics
+- `DragHandleReorderableUtils.kt` - Drag handle component with visual feedback
 
 ## Important Implementation Details
 
@@ -82,6 +86,14 @@ Building a weightlifting Super App that combines the best features from apps lik
 - Auto-select on focus for easy replacement
 - Validation: reps ≤ 999, weight ≤ 9999.99, RPE ≤ 10.0
 
+### Drag-and-Drop Implementation
+- Long-press drag handles to initiate reordering
+- Smooth animations using tween with FastOutSlowInEasing
+- Real-time position updates from ViewModel state (critical for LazyColumn with keys)
+- 60% hysteresis threshold prevents jittery movement
+- Haptic feedback on drag start
+- Visual feedback: elevation, opacity changes, and color highlights
+
 ## Common Commands
 
 - Lint: `./gradlew lint`
@@ -96,6 +108,10 @@ Building a weightlifting Super App that combines the best features from apps lik
 
 2. **Programme Enhancement**:
    - Exercise substitution UI
+   
+3. **Profile Screen**:
+   - Test user selection implementation
+   - User stats and settings management
 
 ## Future Milestones
 
@@ -122,3 +138,20 @@ Building a weightlifting Super App that combines the best features from apps lik
 - Test edge cases (empty states, long text, errors)
 - Atomic commits with descriptive messages
 - Update CLAUDE.md for architectural changes
+
+## Known Technical Gotchas
+
+### LazyColumn with Keys
+- When using `key` parameter, item composables maintain identity across recompositions
+- Drag handlers can capture stale state references - always access current state from ViewModel
+- Use `items()` instead of `itemsIndexed()` when indices need dynamic calculation
+
+### State Management in Drag Operations
+- Exercise order must be updated both in UI state and database
+- Use `copy()` to ensure immutable updates with correct exerciseOrder values
+- Database updates should be async to maintain smooth UI animations
+
+### Compose Recomposition
+- Heavy logging in frequently recomposing components impacts performance
+- Use `derivedStateOf` for expensive calculations based on changing state
+- Remember to clean up drag state completely on drag end to prevent inconsistencies
