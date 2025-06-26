@@ -50,27 +50,23 @@ fun DragHandle(
             )
             .pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
-                    onDragStart = { offset ->
-                        Log.d("DragHandle", "Long press detected at offset: $offset")
+                    onDragStart = { _ ->
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                         isDragging = true
                         isHovered = true
                         onDragStart()
                     },
                     onDragEnd = {
-                        Log.d("DragHandle", "Drag ended")
                         isDragging = false
                         isHovered = false
                         onDragEnd()
                     },
                     onDragCancel = {
-                        Log.d("DragHandle", "Drag cancelled")
                         isDragging = false
                         isHovered = false
                         onDragEnd()
                     },
                     onDrag = { _, dragAmount ->
-                        Log.d("DragHandle", "Dragging with amount: $dragAmount")
                         onDrag(dragAmount.y)
                     }
                 )

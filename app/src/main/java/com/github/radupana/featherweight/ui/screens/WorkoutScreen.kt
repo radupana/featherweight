@@ -42,6 +42,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.CompactExerciseCard
 import com.github.radupana.featherweight.ui.components.ProgressCard
@@ -58,6 +59,11 @@ fun WorkoutScreen(
     viewModel: WorkoutViewModel = viewModel(),
 ) {
     val exercises by viewModel.selectedWorkoutExercises.collectAsState()
+    
+    // Debug log to track recompositions
+    LaunchedEffect(exercises) {
+        Log.d("DragReorder", "WorkoutScreen recomposed with exercises: ${exercises.mapIndexed { idx, ex -> "$idx:${ex.exerciseName}" }.joinToString()}")
+    }
     val sets by viewModel.selectedExerciseSets.collectAsState()
     val workoutState by viewModel.workoutState.collectAsState()
 
@@ -833,15 +839,21 @@ private fun ExercisesList(
     var draggedExerciseId by remember { mutableStateOf<Long?>(null) }
     var draggedOffset by remember { mutableStateOf(0f) }
     var targetIndex by remember { mutableStateOf<Int?>(null) }
+    var initialDragIndex by remember { mutableStateOf<Int?>(null) }
     val density = LocalDensity.current
     
-    // Item measurements
-    val itemHeightDp = 96.dp // Actual height of compact cards + spacing
+    // Debug mode - set to true to see detailed logging
+    val debugMode = false
+    
+    // Item measurements - CompactExerciseCard height + spacing
+    val cardHeightDp = 80.dp // Estimated height of CompactExerciseCard
+    val spacingDp = 8.dp // From verticalArrangement
+    val itemHeightDp = cardHeightDp + spacingDp
     val itemHeightPx = with(density) { itemHeightDp.toPx() }
     
-    // Find the current index of the dragged item dynamically
-    val currentDraggedIndex = draggedExerciseId?.let { id ->
-        exercises.indexOfFirst { it.id == id }.takeIf { it >= 0 }
+    // Helper function to find current index of an exercise
+    fun findCurrentIndex(exerciseId: Long): Int {
+        return exercises.indexOfFirst { it.id == exerciseId }
     }
     
     LazyColumn(
@@ -850,33 +862,38 @@ private fun ExercisesList(
         verticalArrangement = Arrangement.spacedBy(8.dp), // Reduced spacing
         modifier = modifier,
     ) {
-        itemsIndexed(
+        items(
             items = exercises,
-            key = { _, exercise -> exercise.id }
-        ) { currentIndex, exercise ->
+            key = { exercise -> exercise.id }
+        ) { exercise ->
+            // Find the current index dynamically
+            val currentPosition = findCurrentIndex(exercise.id)
             val isDragged = draggedExerciseId == exercise.id
             
-            // Calculate expected translation for smooth animations
-            val expectedTranslation = when {
-                isDragged -> draggedOffset
-                else -> {
-                    // Only animate if we're actively dragging something
-                    if (currentDraggedIndex != null && targetIndex != null && draggedExerciseId != null) {
-                        val draggedIdx = currentDraggedIndex
-                        val targetIdx = targetIndex!!
-                        when {
-                            draggedIdx < targetIdx && currentIndex > draggedIdx && currentIndex <= targetIdx -> -itemHeightPx
-                            draggedIdx > targetIdx && currentIndex < draggedIdx && currentIndex >= targetIdx -> itemHeightPx
-                            else -> 0f
-                        }
-                    } else 0f
+            // Make sure dragged items observe the offset with derivedStateOf
+            val currentOffset by remember(isDragged) {
+                derivedStateOf { if (isDragged) draggedOffset else 0f }
+            }
+            
+            // Calculate translation for non-dragged items
+            val shouldTranslate = if (!isDragged && draggedExerciseId != null && targetIndex != null && initialDragIndex != null) {
+                val fromIdx = initialDragIndex!!
+                val toIdx = targetIndex!!
+                
+                // Only move items between the drag positions
+                when {
+                    fromIdx < toIdx && currentPosition in (fromIdx + 1)..toIdx -> -itemHeightPx
+                    fromIdx > toIdx && currentPosition in toIdx..<fromIdx -> itemHeightPx
+                    else -> 0f
                 }
+            } else {
+                0f
             }
             
             val animatedTranslation by animateFloatAsState(
-                targetValue = expectedTranslation,
+                targetValue = shouldTranslate,
                 animationSpec = tween(
-                    durationMillis = 150,
+                    durationMillis = 200,
                     easing = FastOutSlowInEasing
                 ),
                 label = "translation_${exercise.id}"
@@ -894,53 +911,87 @@ private fun ExercisesList(
                 viewModel = viewModel,
                 showDragHandle = canEdit,
                 onDragStart = {
-                    Log.d("DragReorder", "Drag started for exercise ${exercise.exerciseName} at index $currentIndex")
+                    // Get the current exercises list from ViewModel to ensure we have the latest
+                    val currentExercisesList = viewModel.selectedWorkoutExercises.value
+                    val startIndex = currentExercisesList.indexOfFirst { it.id == exercise.id }
+                    
+                    if (startIndex == -1) {
+                        Log.e("DragReorder", "ERROR: Exercise ${exercise.exerciseName} not found in list!")
+                        return@CompactExerciseCard
+                    }
+                    
                     draggedExerciseId = exercise.id
-                    targetIndex = currentIndex
+                    initialDragIndex = startIndex
+                    targetIndex = startIndex
                     draggedOffset = 0f
+                    
+                    // Log current state
+                    val exerciseList = currentExercisesList.mapIndexed { idx, ex -> 
+                        "$idx: ${ex.exerciseName} (order=${ex.exerciseOrder})"
+                    }.joinToString(", ")
+                    Log.d("DragReorder", "=== DRAG START ===")
+                    Log.d("DragReorder", "Dragging: ${exercise.exerciseName} from index $startIndex")
+                    Log.d("DragReorder", "Current order: $exerciseList")
                 },
                 onDragEnd = {
-                    val draggedIdx = currentDraggedIndex
-                    Log.d("DragReorder", "Drag ended. Current: $draggedIdx, Target: $targetIndex")
+                    val finalTarget = targetIndex
+                    val startIndex = initialDragIndex
+                    
+                    Log.d("DragReorder", "=== DRAG END ===")
+                    Log.d("DragReorder", "From: $startIndex, To: $finalTarget, Offset: $draggedOffset")
                     
                     // Perform the reorder if needed
-                    if (draggedIdx != null && targetIndex != null && draggedIdx != targetIndex) {
-                        val fromIndex = draggedIdx
-                        val toIndex = targetIndex!!
-                        
-                        Log.d("DragReorder", "Reordering from $fromIndex to $toIndex")
-                        
-                        // Update the order instantly in the view model
-                        viewModel.reorderExercisesInstantly(fromIndex, toIndex)
+                    if (startIndex != null && finalTarget != null && startIndex != finalTarget) {
+                        Log.d("DragReorder", "Executing reorder: ${exercise.exerciseName} from $startIndex to $finalTarget")
+                        viewModel.reorderExercisesInstantly(startIndex, finalTarget)
+                    } else {
+                        Log.d("DragReorder", "No reorder needed")
                     }
                     
                     // Reset state
                     draggedExerciseId = null
                     targetIndex = null
+                    initialDragIndex = null
                     draggedOffset = 0f
                 },
                 onDrag = { delta ->
-                    // Process drag for the item that initiated the drag
-                    if (draggedExerciseId == exercise.id) {
+                    // Only process drag for the item that initiated the drag
+                    if (draggedExerciseId == exercise.id && initialDragIndex != null) {
                         draggedOffset += delta
                         
-                        // Find current index of dragged item
-                        val draggedIdx = exercises.indexOfFirst { it.id == draggedExerciseId }
-                        if (draggedIdx >= 0) {
-                            // Calculate which position this item should move to based on center position
-                            val currentCenterY = draggedIdx * itemHeightPx + itemHeightPx / 2 + draggedOffset
-                            val newIndex = (currentCenterY / itemHeightPx).toInt().coerceIn(0, exercises.size - 1)
-                            
-                            if (newIndex != targetIndex) {
-                                Log.d("DragReorder", "Target changed: $targetIndex -> $newIndex (offset: $draggedOffset, centerY: $currentCenterY)")
-                                targetIndex = newIndex
-                            }
+                        // Get current exercises count from ViewModel
+                        val currentCount = viewModel.selectedWorkoutExercises.value.size
+                        
+                        // Calculate target position based on drag offset
+                        val dragDirection = if (draggedOffset > 0) 1 else -1
+                        val absoluteOffset = kotlin.math.abs(draggedOffset)
+                        val positionsMovedFloat = absoluteOffset / itemHeightPx
+                        val positionsMoved = positionsMovedFloat.toInt()
+                        
+                        // Calculate new target index
+                        var newTargetIndex = initialDragIndex!! + (positionsMoved * dragDirection)
+                        
+                        // Add hysteresis to prevent jittery movement
+                        // Only change target if we're more than 60% into the next position
+                        val remainder = positionsMovedFloat - positionsMoved
+                        if (remainder > 0.6f && dragDirection > 0) {
+                            newTargetIndex++
+                        } else if (remainder > 0.6f && dragDirection < 0) {
+                            newTargetIndex--
+                        }
+                        
+                        newTargetIndex = newTargetIndex.coerceIn(0, currentCount - 1)
+                        
+                        // Only log when target changes
+                        if (newTargetIndex != targetIndex) {
+                            targetIndex = newTargetIndex
+                            Log.d("DragReorder", "Target changed: ${exercise.exerciseName} -> position $newTargetIndex (offset: ${draggedOffset.toInt()}px)")
                         }
                     }
                 },
                 modifier = Modifier
                     .graphicsLayer {
-                        translationY = if (isDragged) draggedOffset else animatedTranslation
+                        translationY = if (isDragged) currentOffset else animatedTranslation
                         this.shadowElevation = if (isDragged) 8.dp.toPx() else 0f
                         alpha = if (isDragged) 0.9f else 1f
                     }

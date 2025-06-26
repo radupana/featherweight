@@ -848,7 +848,10 @@ class WorkoutViewModel(
         if (!canEditWorkout()) return
         
         val exercises = _selectedWorkoutExercises.value.toMutableList()
-        if (fromIndex in exercises.indices && toIndex in exercises.indices) {
+        if (fromIndex in exercises.indices && toIndex in exercises.indices && fromIndex != toIndex) {
+            // Log before reorder
+            android.util.Log.d("DragReorder", "BEFORE reorder: ${exercises.mapIndexed { idx, ex -> "$idx:${ex.exerciseName}(order=${ex.exerciseOrder})" }.joinToString()}")
+            
             // Move the item in the list
             val item = exercises.removeAt(fromIndex)
             exercises.add(toIndex, item)
@@ -858,11 +861,15 @@ class WorkoutViewModel(
                 exercise.copy(exerciseOrder = index)
             }
             
+            // Log after reorder
+            android.util.Log.d("DragReorder", "AFTER reorder: ${updatedExercises.mapIndexed { idx, ex -> "$idx:${ex.exerciseName}(order=${ex.exerciseOrder})" }.joinToString()}")
+            
             // Update the UI state immediately for smooth animation
             _selectedWorkoutExercises.value = updatedExercises
             
             // Update the database in the background
             viewModelScope.launch {
+                // Update all exercise orders in a single transaction
                 updatedExercises.forEach { exercise ->
                     repository.updateExerciseOrder(exercise.id, exercise.exerciseOrder)
                 }
