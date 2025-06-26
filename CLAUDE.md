@@ -50,6 +50,8 @@ Building a weightlifting Super App that combines the best features from apps lik
 - ✅ Added exercise frequency tracking with usage count in database
 - ✅ Implemented frequency-based sorting in exercise selection (most used first)
 - ✅ Added discrete usage count display (e.g., "5×") on exercise selection cards
+- ✅ Implemented core rest timer functionality with auto-start on set completion
+- ✅ Added floating timer pill UI with glassmorphism design and expandable controls
 
 ## Key Files & Architecture
 
@@ -76,6 +78,11 @@ Building a weightlifting Super App that combines the best features from apps lik
 - `ExerciseSelectorScreen.kt` - Exercise browser with frequency-based sorting and usage indicators
 - `ExerciseCard.kt` - Shows usage count badge when > 0, maintains visual hierarchy
 
+**Rest Timer:**
+- `RestTimer.kt` - Domain class with countdown logic and progress tracking
+- `RestTimerViewModel.kt` - Timer state management with coroutines, add/subtract time controls
+- `RestTimerPill.kt` - Floating glassmorphism UI with expandable controls (+30s, -30s, Skip)
+
 ## Important Implementation Details
 
 ### Exercise Naming Convention
@@ -88,6 +95,13 @@ Building a weightlifting Super App that combines the best features from apps lik
 - Exercise selection sorted by frequency (usageCount DESC, name ASC)
 - Usage counts calculated from both real workouts and seeded test data
 - Discrete badge display shows "×" format only when count > 0
+
+### Rest Timer System
+- **Auto-start**: 90s timer triggers when completing any set in WorkoutScreen
+- **UI**: Floating pill at top center with glassmorphism design
+- **Controls**: Tap to expand → +30s, -30s, Skip buttons with exercise name display
+- **State**: Managed by RestTimerViewModel with coroutines and Flow for countdown
+- **Integration**: Currently works in WorkoutScreen, auto-starts from SetEditingModal callbacks
 
 ### Programme Workouts
 - Sequential day numbering (1,2,3,4) regardless of week days
@@ -116,16 +130,46 @@ Building a weightlifting Super App that combines the best features from apps lik
 
 ## Next Priority Issues
 
-1. **Analytics Text Overflow**: 
+1. **Rest Timer UX Improvements**:
+   - **Critical**: Timer pill covers workout progress header → make draggable or relocate
+   - **Critical**: Expanded pill transparency shows confusing background → make opaque or relocate
+   - **High**: Add timer visibility to SetEditingModal (where users actually complete sets)
+   - **Medium**: Implement smart rest suggestions based on exercise type and rep ranges
+   - **Low**: Add haptic feedback and sound notifications when timer completes
+
+2. **Analytics Text Overflow**: 
    - "Latest PR" card needs to show exercise name clearly
    - "Training Frequency" shows "4.0 days/" - needs full "days/week"
 
-2. **Programme Enhancement**:
+3. **Programme Enhancement**:
    - Exercise substitution UI
    
-3. **Profile Screen**:
+4. **Profile Screen**:
    - Test user selection implementation
    - User stats and settings management
+
+## Rest Timer Implementation Status
+
+### ✅ Completed (Phase 1)
+- Core timer domain logic with countdown and progress tracking
+- RestTimerViewModel with coroutines for state management
+- Floating glassmorphism pill UI with expand/collapse
+- Auto-start 90s timer on set completion
+- Manual controls: +30s, -30s, Skip Rest
+- Integration in WorkoutScreen with timer state persistence
+
+### 🚧 Known Issues (Critical)
+- Timer pill positioned at TopCenter covers workout progress header
+- Expanded pill transparency causes visual confusion with background content
+- Timer only visible in WorkoutScreen, not in SetEditingModal where sets are completed
+
+### 📋 Remaining Work
+- **UX Fixes**: Make timer draggable OR relocate to avoid covering content
+- **SetEditingModal Integration**: Add timer visibility where users actually work with sets
+- **Smart Suggestions**: Calculate rest times based on exercise type, rep ranges, 1RM percentage
+- **User Preferences**: Auto-start toggle, default rest periods, sound/haptic settings
+- **Notifications**: Haptic feedback and sound when timer completes
+- **Background Persistence**: Continue timer when navigating between screens
 
 ## Future Milestones
 
@@ -174,3 +218,7 @@ Building a weightlifting Super App that combines the best features from apps lik
 - Using `fallbackToDestructiveMigration()` during development for simplicity
 - All data is re-seeded on schema changes to avoid migration complexity
 - Usage counts are recalculated after seeding to ensure accurate frequency data
+
+## Development Workflow
+
+- don't commit to Git. I do that myself.

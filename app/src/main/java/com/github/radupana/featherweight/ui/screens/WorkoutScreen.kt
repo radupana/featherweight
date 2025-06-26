@@ -37,6 +37,9 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.lifecycle.viewmodel.compose.viewModel
 import android.util.Log
+import com.github.radupana.featherweight.ui.components.RestTimerPill
+import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
+import kotlin.time.Duration.Companion.seconds
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
@@ -57,6 +60,7 @@ fun WorkoutScreen(
     onSelectExercise: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutViewModel = viewModel(),
+    restTimerViewModel: RestTimerViewModel = viewModel(),
 ) {
     val exercises by viewModel.selectedWorkoutExercises.collectAsState()
     
@@ -66,6 +70,9 @@ fun WorkoutScreen(
     }
     val sets by viewModel.selectedExerciseSets.collectAsState()
     val workoutState by viewModel.workoutState.collectAsState()
+    
+    // Rest timer state
+    val timerState by restTimerViewModel.timerState.collectAsState()
 
     // Dialog state
     var showEditSetDialog by remember { mutableStateOf(false) }
@@ -229,12 +236,15 @@ fun WorkoutScreen(
             )
         },
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
+                .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION)
         ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
             // Normal workout view
             // Status banners
             if (workoutState.isCompleted && !isEditMode) {
@@ -315,6 +325,16 @@ fun WorkoutScreen(
                     modifier = Modifier.padding(16.dp),
                 )
             }
+            }
+            
+            // Floating Rest Timer Pill
+            RestTimerPill(
+                timerState = timerState,
+                onAddTime = { restTimerViewModel.addTime(30.seconds) },
+                onSubtractTime = { restTimerViewModel.subtractTime(30.seconds) },
+                onSkip = { restTimerViewModel.stopTimer() },
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 
@@ -519,6 +539,10 @@ fun WorkoutScreen(
             },
             onToggleCompleted = { setId, completed ->
                 viewModel.markSetCompleted(setId, completed)
+                // Auto-start rest timer when completing a set
+                if (completed) {
+                    restTimerViewModel.startTimer(90.seconds, setEditingExercise?.exerciseName)
+                }
             },
             onCompleteAllSets = {
                 viewModel.completeAllSetsInExercise(setEditingExercise!!.id)

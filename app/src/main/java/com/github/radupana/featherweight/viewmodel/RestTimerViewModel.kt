@@ -1,0 +1,62 @@
+package com.github.radupana.featherweight.viewmodel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.github.radupana.featherweight.domain.RestTimer
+import com.github.radupana.featherweight.domain.RestTimerState
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+
+class RestTimerViewModel : ViewModel() {
+    private val restTimer = RestTimer()
+    private var timerJob: Job? = null
+    
+    private val _timerState = MutableStateFlow(RestTimerState())
+    val timerState: StateFlow<RestTimerState> = _timerState.asStateFlow()
+    
+    fun startTimer(duration: Duration, exerciseName: String? = null) {
+        // Cancel any existing timer
+        timerJob?.cancel()
+        
+        timerJob = viewModelScope.launch {
+            restTimer.startTimer(duration, exerciseName).collect { state ->
+                _timerState.value = state
+            }
+        }
+    }
+    
+    fun stopTimer() {
+        timerJob?.cancel()
+        _timerState.value = RestTimerState()
+    }
+    
+    fun addTime(additionalTime: Duration) {
+        val currentState = _timerState.value
+        if (currentState.isActive && !currentState.isPaused) {
+            val newDuration = currentState.remainingTime + additionalTime
+            startTimer(newDuration, currentState.exerciseName)
+        }
+    }
+    
+    fun subtractTime(timeToSubtract: Duration) {
+        val currentState = _timerState.value
+        if (currentState.isActive && !currentState.isPaused) {
+            val newDuration = (currentState.remainingTime - timeToSubtract).coerceAtLeast(Duration.ZERO)
+            if (newDuration == Duration.ZERO) {
+                stopTimer()
+            } else {
+                startTimer(newDuration, currentState.exerciseName)
+            }
+        }
+    }
+    
+    override fun onCleared() {
+        super.onCleared()
+        timerJob?.cancel()
+    }
+}
