@@ -2,7 +2,8 @@ package com.github.radupana.featherweight.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
+import com.github.radupana.featherweight.ui.utils.NavigationContext
+import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -209,12 +210,10 @@ fun WorkoutScreen(
         },
     ) { innerPadding ->
         Column(
-            modifier =
-                Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
-                    .imePadding() // Add keyboard padding
-                    .navigationBarsPadding(), // Add navigation bars padding
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
         ) {
             // Normal workout view
             // Status banners

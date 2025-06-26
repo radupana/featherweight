@@ -1,8 +1,8 @@
 package com.github.radupana.featherweight.ui.screens
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -25,6 +25,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.programme.*
 import com.github.radupana.featherweight.ui.dialogs.ProgrammeSetupDialog
 import com.github.radupana.featherweight.ui.theme.GlassCard
+import com.github.radupana.featherweight.ui.utils.NavigationContext
+import com.github.radupana.featherweight.ui.utils.rememberKeyboardState
+import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 
 @Composable
@@ -37,6 +40,8 @@ fun ProgrammesScreen(
     val activeProgramme by viewModel.activeProgramme.collectAsState()
     val programmeProgress by viewModel.programmeProgress.collectAsState()
     val allProgrammes by viewModel.allProgrammes.collectAsState()
+    val isKeyboardVisible by rememberKeyboardState()
+    val compactPadding = if (isKeyboardVisible) 8.dp else 16.dp
 
     // Confirmation dialog states
     var showDeactivateConfirmDialog by remember { mutableStateOf(false) }
@@ -65,35 +70,38 @@ fun ProgrammesScreen(
         }
 
         Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = compactPadding),
         ) {
             // Header - outside the scrollable area
-            Text(
-                text = "Programmes",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
-            )
+            AnimatedVisibility(
+                visible = !isKeyboardVisible,
+                enter = slideInVertically() + fadeIn(),
+                exit = slideOutVertically() + fadeOut()
+            ) {
+                Text(
+                    text = "Programmes",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = compactPadding, bottom = compactPadding),
+                )
+            }
 
             // Error/Success Messages
             uiState.error?.let { error ->
                 Card(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                        ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = compactPadding),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                    ),
                 ) {
                     Text(
                         text = error,
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(compactPadding),
                         color = MaterialTheme.colorScheme.onErrorContainer,
                     )
                 }
@@ -101,41 +109,45 @@ fun ProgrammesScreen(
 
             uiState.successMessage?.let { message ->
                 Card(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = Color(0xFF4CAF50).copy(alpha = 0.1f),
-                        ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = compactPadding),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF4CAF50).copy(alpha = 0.1f),
+                    ),
                 ) {
                     Text(
                         text = message,
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(compactPadding),
                         color = Color(0xFF4CAF50),
                     )
                 }
             }
 
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .imePadding(),
-                contentPadding = PaddingValues(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(compactPadding),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
+                contentPadding = PaddingValues(bottom = compactPadding),
             ) {
-                // Active Programme Section
+                // Active Programme Section - collapse when keyboard visible
                 activeProgramme?.let { programme ->
                     item {
-                        ActiveProgrammeCard(
-                            programme = programme,
-                            progress = programmeProgress,
-                            onDeactivate = { showDeactivateConfirmDialog = true },
-                            onDelete = { showDeleteConfirmDialog = true },
-                            onNavigateToProgramme = onNavigateToActiveProgramme,
-                        )
+                        AnimatedVisibility(
+                            visible = !isKeyboardVisible,
+                            enter = slideInVertically() + fadeIn(),
+                            exit = slideOutVertically() + fadeOut()
+                        ) {
+                            ActiveProgrammeCard(
+                                programme = programme,
+                                progress = programmeProgress,
+                                onDeactivate = { showDeactivateConfirmDialog = true },
+                                onDelete = { showDeleteConfirmDialog = true },
+                                onNavigateToProgramme = onNavigateToActiveProgramme,
+                                isCompact = isKeyboardVisible
+                            )
+                        }
                     }
                 }
 
@@ -147,23 +159,35 @@ fun ProgrammesScreen(
                     )
                 }
 
-                // Filter Section
+                // Filter Section - hide when keyboard visible
                 item {
-                    FilterSection(
-                        onDifficultyFilter = viewModel::filterByDifficulty,
-                        onTypeFilter = viewModel::filterByType,
-                        onClearFilters = viewModel::clearFilters,
-                        hasActiveFilters = uiState.searchText.isNotEmpty(),
-                    )
+                    AnimatedVisibility(
+                        visible = !isKeyboardVisible,
+                        enter = slideInVertically() + fadeIn(),
+                        exit = slideOutVertically() + fadeOut()
+                    ) {
+                        FilterSection(
+                            onDifficultyFilter = viewModel::filterByDifficulty,
+                            onTypeFilter = viewModel::filterByType,
+                            onClearFilters = viewModel::clearFilters,
+                            hasActiveFilters = uiState.searchText.isNotEmpty(),
+                        )
+                    }
                 }
 
-                // Templates Section
+                // Templates Section header - show even when keyboard visible
                 item {
                     Text(
-                        text = if (activeProgramme != null) "Browse Other Programmes" else "Choose a Programme",
-                        style = MaterialTheme.typography.titleLarge,
+                        text = if (activeProgramme != null && !isKeyboardVisible) 
+                            "Browse Other Programmes" 
+                        else 
+                            "Choose a Programme",
+                        style = if (isKeyboardVisible) 
+                            MaterialTheme.typography.titleMedium 
+                        else 
+                            MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(vertical = 8.dp),
+                        modifier = Modifier.padding(vertical = compactPadding / 2),
                     )
                 }
 
@@ -176,6 +200,7 @@ fun ProgrammesScreen(
                                 viewModel.selectTemplate(template)
                             }
                         },
+                        isCompact = isKeyboardVisible
                     )
                 }
 
@@ -362,7 +387,9 @@ private fun ActiveProgrammeCard(
     onDeactivate: () -> Unit,
     onDelete: () -> Unit,
     onNavigateToProgramme: (() -> Unit)? = null,
+    isCompact: Boolean = false,
 ) {
+    val cardPadding = if (isCompact) 16.dp else 20.dp
     GlassCard(
         modifier =
             if (onNavigateToProgramme != null) {
@@ -372,10 +399,9 @@ private fun ActiveProgrammeCard(
             },
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(cardPadding),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -622,7 +648,9 @@ private fun ProgrammeTemplateCard(
     template: ProgrammeTemplate,
     isActive: Boolean,
     onClick: () -> Unit,
+    isCompact: Boolean = false,
 ) {
+    val cardPadding = if (isCompact) 16.dp else 20.dp
     val cardColors =
         if (isActive) {
             CardDefaults.cardColors(
@@ -641,7 +669,7 @@ private fun ProgrammeTemplateCard(
         elevation = CardDefaults.cardElevation(if (isActive) 0.dp else 4.dp),
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(cardPadding),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

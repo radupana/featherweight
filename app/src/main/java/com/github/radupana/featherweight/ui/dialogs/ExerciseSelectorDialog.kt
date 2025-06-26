@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +19,10 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
+import com.github.radupana.featherweight.ui.components.CompactSearchField
+import com.github.radupana.featherweight.ui.utils.NavigationContext
+import com.github.radupana.featherweight.ui.utils.rememberKeyboardState
+import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import com.github.radupana.featherweight.viewmodel.ExerciseSelectorViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,7 +34,9 @@ fun ExerciseSelectorDialog(
 ) {
     val filteredExercises by viewModel.filteredExercises.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    var searchQuery by remember { mutableStateOf("") }
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val isKeyboardVisible by rememberKeyboardState()
+    val compactPadding = if (isKeyboardVisible) 8.dp else 16.dp
 
     LaunchedEffect(Unit) {
         viewModel.loadExercises()
@@ -47,15 +52,13 @@ fun ExerciseSelectorDialog(
             ),
     ) {
         Card(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(compactPadding),
+            shape = RoundedCornerShape(if (isKeyboardVisible) 16.dp else 24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -65,7 +68,10 @@ fun ExerciseSelectorDialog(
                     title = {
                         Text(
                             "Select Exercise",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = if (isKeyboardVisible) 
+                                MaterialTheme.typography.titleMedium 
+                            else 
+                                MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                         )
                     },
@@ -74,52 +80,46 @@ fun ExerciseSelectorDialog(
                             Icon(Icons.Filled.Close, contentDescription = "Close")
                         }
                     },
-                    colors =
-                        TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                        ),
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
                 )
 
                 // Search Bar
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = {
-                        searchQuery = it
-                        viewModel.updateSearchQuery(it)
-                    },
-                    label = { Text("Search exercises") },
-                    leadingIcon = {
-                        Icon(Icons.Filled.Search, contentDescription = null)
-                    },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                CompactSearchField(
+                    query = searchQuery,
+                    onQueryChange = viewModel::updateSearchQuery,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = compactPadding),
+                    placeholder = "Search exercises"
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                if (!isKeyboardVisible) {
+                    Spacer(modifier = Modifier.height(compactPadding))
+                }
 
                 // Exercise List
                 if (isLoading) {
                     Box(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                         contentAlignment = Alignment.Center,
                     ) {
                         CircularProgressIndicator()
                     }
                 } else {
                     LazyColumn(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .systemBarsPadding(NavigationContext.DIALOG),
+                        contentPadding = PaddingValues(
+                            horizontal = compactPadding, 
+                            vertical = compactPadding / 2
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(compactPadding / 2),
                     ) {
                         items(filteredExercises) { exerciseWithDetails ->
                             ExerciseItem(
@@ -128,6 +128,7 @@ fun ExerciseSelectorDialog(
                                     onExerciseSelected(exerciseWithDetails.exercise)
                                     onDismiss()
                                 },
+                                isCompact = isKeyboardVisible
                             )
                         }
                     }
@@ -141,8 +142,10 @@ fun ExerciseSelectorDialog(
 private fun ExerciseItem(
     exerciseWithDetails: ExerciseWithDetails,
     onClick: () -> Unit,
+    isCompact: Boolean = false,
 ) {
     val exercise = exerciseWithDetails.exercise
+    val itemPadding = if (isCompact) 12.dp else 16.dp
 
     Card(
         modifier =
@@ -160,10 +163,9 @@ private fun ExerciseItem(
             ),
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(itemPadding),
         ) {
             Text(
                 text = exercise.name,
