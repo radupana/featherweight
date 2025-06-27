@@ -337,25 +337,65 @@ Major home screen and navigation improvements for better user experience:
 - Loading states and error handling functional
 - Mock generation completes successfully
 
-#### Phase 2: Guided Input UI (Week 2)
-1. **Quick Start Options**
-   - Goal selection chips: Strength, Muscle, Fat Loss, Athletic
-   - Training frequency selector: 3-6 days
-   - Time per session selector: 30-45, 45-60, 60-90, 90+ minutes
-   - These selections pre-populate the text input
+#### Phase 2: Guided Input UI ✅ COMPLETED
+1. **Quick Start Options** ✅
+   - Goal selection chips: 💪 Build Strength, 🏋️ Build Muscle, 🔥 Lose Fat, ⚡ Athletic Performance, 🎯 Custom
+   - Training frequency selector: 2-7 days per week with visual chips
+   - Session duration selector: Quick (30-45min) → Long (90+min) with descriptive labels
+   - Progressive disclosure: options appear as user makes selections
 
-2. **Smart Placeholder & Examples**
-   - Dynamic placeholder based on quick start selections
-   - Expandable example templates (3-4 common scenarios)
-   - Character count with gentle limit warning
-   - "What to include" tooltip with bullet points
+2. **Smart Placeholder System** ✅
+   - Dynamic placeholders that update based on user selections
+   - Context-aware suggestions guiding users toward relevant information
+   - Goal-specific prompts (e.g., strength focuses on current lifts, muscle on physique goals)
+   - Comprehensive placeholder coverage for all selection combinations
 
-3. **Input Validation Layer**
-   - Real-time feedback showing what's been understood
-   - Missing information indicators
-   - "Generate" button enabled only with minimum viable input
+3. **Input Validation & Feedback Layer** ✅
+   - Real-time text analysis using 150+ keyword patterns
+   - Detects: Experience Level, Current Lifts, Equipment, Injuries, Schedule, Preferences
+   - Completeness progress bar (0-100%) with intelligent scoring:
+     - Goal selection/detection: 20%
+     - Frequency selection: 10% 
+     - Text length: 20%
+     - Detected elements: 50%
+   - Visual checkmarks for detected information
+   - Smart suggestions for missing information
 
-**Test Checkpoint**: Smooth flow from quick options → text input → generation
+4. **Smart Input Chips** ✅
+   - Contextual quick-add chips based on goal and detected gaps
+   - Experience chips: +Beginner, +2 Years, +Advanced
+   - Equipment chips: +Home Gym, +Full Gym, +Dumbbells Only
+   - Programme type chips: +5/3/1, +PPL, +Linear (goal-specific)
+   - One-tap text insertion with proper spacing
+
+5. **Example Templates System** ✅
+   - 8 comprehensive templates covering different scenarios:
+     - Beginner Strength Foundation
+     - Intermediate Muscle Building
+     - Advanced Powerlifting Prep
+     - Home Gym Fat Loss
+     - Athletic Performance
+     - Busy Professional Routine
+     - Post-Injury Comeback
+     - Senior Fitness Focus
+   - Intelligent filtering: scores templates by relevance (Goal=3pts, Frequency=2pts, Duration=1pt)
+   - One-tap template loading with auto-selection of goal/frequency/duration
+   - Tag-based categorization and preview text
+
+6. **Enhanced UI/UX** ✅
+   - Progressive animations with smooth slide-in/fade effects
+   - Scrollable LazyColumn interface accommodating all content
+   - Material Design 3 consistent styling with proper color schemes
+   - Generation limit tracking (5 per day) with "X left today" indicator
+   - Collapsible template browser with expand/collapse animations
+
+**Test Checkpoint**: ✅ Smooth flow from quick options → text input → generation
+- Progressive disclosure works smoothly
+- Text analysis detects information accurately
+- Completeness score updates in real-time
+- Templates filter and load correctly
+- Quick-add chips populate text appropriately
+- All animations and interactions polished
 
 #### Phase 3: Programme Preview & Validation (Week 3)
 1. **Preview Screen**
@@ -422,25 +462,29 @@ Major home screen and navigation improvements for better user experience:
 
 ### Technical Architecture for AI Programme Generation
 
-**New Files to Create**:
-- `AIProgrammeService.kt` - OpenAI API client and prompt management
-- `ExerciseNameMatcher.kt` - Fuzzy matching with alias support
-- `ProgrammeValidator.kt` - Safety and sanity checks
-- `ProgrammeGeneratorScreen.kt` - Main UI for generation flow
-- `ProgrammePreviewScreen.kt` - Preview and edit before activation
-- `ConversationState.kt` - Multi-turn conversation management
+**New Files Created**:
+- `AIProgrammeService.kt` - OpenAI API structure and mock responses ✅
+- `ExerciseNameMatcher.kt` - Fuzzy matching with 60+ exercise aliases ✅
+- `ProgrammeGeneratorScreen.kt` - Main guided input UI ✅
+- `ProgrammeGeneratorViewModel.kt` - State management with real-time analysis ✅
+- `GuidedInputModels.kt` - Data models for goals, duration, chips, templates ✅
+- `InputAnalyzer.kt` - Text analysis with 150+ keyword patterns ✅
+- `PlaceholderGenerator.kt` - Dynamic placeholder based on selections ✅
+- `ExampleTemplates.kt` - 8 comprehensive programme templates ✅
+- `ProgrammeGeneratorComponents.kt` - Reusable UI components ✅
 
-**Database Changes**:
+**Database Changes (Future)**:
 - Add `generated_by_ai` flag to Programme table
 - Create `programme_generation_log` table for analytics
 - Add `exercise_aliases` table for name matching
 
-**Key Technical Decisions**:
-- Start with GPT-3.5-turbo for cost, upgrade to GPT-4 for complex requests
-- Use structured output mode for reliable JSON
-- Client-side validation before API calls
-- Implement exponential backoff for rate limits
-- Store conversation context in ViewModel, not database
+**Key Technical Implementation**:
+- Mock API responses for Phase 1-2, real OpenAI integration ready for Phase 3+ ✅
+- Text analysis using regex patterns and keyword matching ✅
+- Progressive disclosure UI with smooth animations ✅
+- Real-time completeness scoring and validation feedback ✅
+- Template-based example system with intelligent filtering ✅
+- Rate limiting framework (5 generations/day) ✅
 
 ### Social Features
 - Workout sharing
