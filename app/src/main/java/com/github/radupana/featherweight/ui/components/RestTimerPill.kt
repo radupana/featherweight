@@ -5,25 +5,19 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.domain.RestTimerState
 import kotlin.time.Duration.Companion.seconds
@@ -36,9 +30,6 @@ fun RestTimerPill(
     onSkip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val hapticFeedback = LocalHapticFeedback.current
-    var isExpanded by remember { mutableStateOf(false) }
-    
     AnimatedVisibility(
         visible = timerState.isActive,
         enter = expandVertically(),
@@ -48,20 +39,9 @@ fun RestTimerPill(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .clickable { isExpanded = !isExpanded },
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             shape = RoundedCornerShape(24.dp),
-            color = if (isExpanded) {
-                MaterialTheme.colorScheme.surface
-            } else {
-                MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-            },
-            border = if (isExpanded) {
-                BorderStroke(
-                    1.dp, 
-                    MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                )
-            } else null,
+            color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp,
             shadowElevation = 4.dp
         ) {
@@ -76,18 +56,114 @@ fun RestTimerPill(
                         )
                     )
             ) {
-                if (isExpanded) {
-                    ExpandedTimerControls(
-                        timerState = timerState,
-                        onAddTime = onAddTime,
-                        onSubtractTime = onSubtractTime,
-                        onSkip = onSkip,
-                        onCollapse = { isExpanded = false }
+                // Always show all controls
+                AllControlsTimerPill(
+                    timerState = timerState,
+                    onAddTime = onAddTime,
+                    onSubtractTime = onSubtractTime,
+                    onSkip = onSkip
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+fun CompactRestTimer(
+    timerState: RestTimerState,
+    onAddTime: () -> Unit,
+    onSubtractTime: () -> Unit,
+    onSkip: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = timerState.isActive,
+        modifier = modifier
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 4.dp,
+            shadowElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Timer info (compact)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "⏱️",
+                        style = MaterialTheme.typography.titleSmall
                     )
-                } else {
-                    CollapsedTimerPill(
-                        timerState = timerState
+                    Text(
+                        text = formatTime(timerState.remainingTime),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (timerState.isFinished) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
                     )
+                    if (timerState.suggestion != null) {
+                        Text(
+                            text = "• ${timerState.suggestion}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                
+                // Control buttons - always visible
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilledTonalIconButton(
+                        onClick = onSubtractTime,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Remove, 
+                            contentDescription = "Remove 15s",
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    
+                    FilledTonalIconButton(
+                        onClick = onAddTime,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Add, 
+                            contentDescription = "Add 15s",
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    
+                    OutlinedButton(
+                        onClick = onSkip,
+                        modifier = Modifier
+                            .height(32.dp)
+                            .widthIn(min = 50.dp)
+                    ) {
+                        Text(
+                            text = "Skip",
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
             }
         }
@@ -95,8 +171,11 @@ fun RestTimerPill(
 }
 
 @Composable
-private fun CollapsedTimerPill(
-    timerState: RestTimerState
+private fun AllControlsTimerPill(
+    timerState: RestTimerState,
+    onAddTime: () -> Unit,
+    onSubtractTime: () -> Unit,
+    onSkip: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -105,9 +184,11 @@ private fun CollapsedTimerPill(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Timer info
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.weight(1f)
         ) {
             Text(
                 text = "⏱️",
@@ -134,183 +215,43 @@ private fun CollapsedTimerPill(
             }
         }
         
-        // Progress indicator
-        LinearProgressIndicator(
-            progress = { timerState.progress },
-            modifier = Modifier
-                .width(80.dp)
-                .height(4.dp)
-                .clip(RoundedCornerShape(2.dp)),
-            color = if (timerState.isFinished) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.primary
-            },
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun ExpandedTimerControls(
-    timerState: RestTimerState,
-    onAddTime: () -> Unit,
-    onSubtractTime: () -> Unit,
-    onSkip: () -> Unit,
-    onCollapse: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Header with exercise name and close
+        // Control buttons - always visible
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = timerState.exerciseName ?: "Rest Timer",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(
-                onClick = onCollapse,
-                modifier = Modifier.size(24.dp)
-            ) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = "Collapse",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        
-        // Large time display
-        Text(
-            text = formatTime(timerState.remainingTime),
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            color = if (timerState.isFinished) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            }
-        )
-        
-        // Progress bar
-        LinearProgressIndicator(
-            progress = { timerState.progress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp)),
-            color = if (timerState.isFinished) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.primary
-            },
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-        )
-        
-        // Control buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             FilledTonalIconButton(
                 onClick = onSubtractTime,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(36.dp)
             ) {
-                Icon(Icons.Default.Remove, contentDescription = "Remove 30s")
-            }
-            
-            OutlinedButton(
-                onClick = onSkip,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            ) {
-                Text("Skip Rest")
+                Icon(
+                    Icons.Default.Remove, 
+                    contentDescription = "Remove 30s",
+                    modifier = Modifier.size(18.dp)
+                )
             }
             
             FilledTonalIconButton(
                 onClick = onAddTime,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(36.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add 30s")
+                Icon(
+                    Icons.Default.Add, 
+                    contentDescription = "Add 30s",
+                    modifier = Modifier.size(18.dp)
+                )
             }
-        }
-    }
-}
-
-@Composable
-fun CompactRestTimer(
-    timerState: RestTimerState,
-    onSkip: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    AnimatedVisibility(
-        visible = timerState.isActive,
-        modifier = modifier
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 4.dp,
-            shadowElevation = 2.dp
-        ) {
-            Row(
+            
+            OutlinedButton(
+                onClick = onSkip,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .height(36.dp)
+                    .widthIn(min = 60.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "⏱️",
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Text(
-                        text = formatTime(timerState.remainingTime),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (timerState.isFinished) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        }
-                    )
-                    if (timerState.suggestion != null) {
-                        Text(
-                            text = "• ${timerState.suggestion}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                
-                OutlinedButton(
-                    onClick = onSkip,
-                    modifier = Modifier
-                        .height(32.dp)
-                        .widthIn(min = 64.dp)
-                ) {
-                    Text(
-                        text = "Skip",
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                }
+                Text(
+                    text = "Skip",
+                    style = MaterialTheme.typography.labelMedium
+                )
             }
         }
     }

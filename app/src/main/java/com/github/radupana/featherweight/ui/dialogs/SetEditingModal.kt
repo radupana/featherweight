@@ -44,6 +44,7 @@ import com.github.radupana.featherweight.ui.components.CompactRestTimer
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun SetEditingModal(
@@ -158,6 +159,8 @@ fun SetEditingModal(
                 // Compact Rest Timer
                 CompactRestTimer(
                     timerState = timerState,
+                    onAddTime = { restTimerViewModel.addTime(15.seconds) },
+                    onSubtractTime = { restTimerViewModel.subtractTime(15.seconds) },
                     onSkip = { restTimerViewModel.stopTimer() }
                 )
 
@@ -356,7 +359,7 @@ fun SetEditingModal(
                                 if (sets.isNotEmpty()) {
                                     item {
                                         val lastSet = sets.maxByOrNull { it.setOrder }
-                                        val canCopyLast = lastSet != null && lastSet.reps > 0 && lastSet.weight > 0f
+                                        val canCopyLast = lastSet != null && lastSet.reps > 0
 
                                         Card(
                                             modifier =

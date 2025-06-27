@@ -1,6 +1,11 @@
 package com.github.radupana.featherweight.viewmodel
 
+import android.content.Context
+import android.media.MediaPlayer
+import android.os.VibrationEffect
+import android.os.Vibrator
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.domain.RestTimer
@@ -14,9 +19,12 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
-class RestTimerViewModel : ViewModel() {
+class RestTimerViewModel(
+    private val context: Context? = null
+) : ViewModel() {
     private val restTimer = RestTimer()
     private var timerJob: Job? = null
+    private var lastTimerFinishedId: String? = null // Prevent duplicate notifications
     
     private val _timerState = MutableStateFlow(RestTimerState())
     val timerState: StateFlow<RestTimerState> = _timerState.asStateFlow()
@@ -28,6 +36,15 @@ class RestTimerViewModel : ViewModel() {
         timerJob = viewModelScope.launch {
             restTimer.startTimer(duration, exerciseName).collect { state ->
                 _timerState.value = state
+                
+                // Check if timer just finished
+                if (state.isFinished && state.exerciseName != null) {
+                    val timerId = "${state.exerciseName}-${state.totalTime.inWholeSeconds}"
+                    if (lastTimerFinishedId != timerId) {
+                        lastTimerFinishedId = timerId
+                        triggerTimerCompletedFeedback()
+                    }
+                }
             }
         }
     }
@@ -60,6 +77,15 @@ class RestTimerViewModel : ViewModel() {
                 suggestion = suggestion.reasoning
             ).collect { state ->
                 _timerState.value = state
+                
+                // Check if timer just finished
+                if (state.isFinished && state.exerciseName != null) {
+                    val timerId = "${state.exerciseName}-${state.totalTime.inWholeSeconds}"
+                    if (lastTimerFinishedId != timerId) {
+                        lastTimerFinishedId = timerId
+                        triggerTimerCompletedFeedback()
+                    }
+                }
             }
         }
     }
@@ -96,12 +122,54 @@ class RestTimerViewModel : ViewModel() {
         timerJob = viewModelScope.launch {
             restTimer.startTimer(duration, exerciseName, suggestion).collect { state ->
                 _timerState.value = state
+                
+                // Check if timer just finished
+                if (state.isFinished && state.exerciseName != null) {
+                    val timerId = "${state.exerciseName}-${state.totalTime.inWholeSeconds}"
+                    if (lastTimerFinishedId != timerId) {
+                        lastTimerFinishedId = timerId
+                        triggerTimerCompletedFeedback()
+                    }
+                }
             }
+        }
+    }
+    
+    private fun triggerTimerCompletedFeedback() {
+        context?.let { ctx ->
+            // Haptic feedback
+            val vibrator = ctx.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            vibrator?.let { v ->
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    // Create a pulsing pattern for completed timer
+                    val pattern = longArrayOf(0, 100, 50, 100, 50, 100)
+                    val amplitudes = intArrayOf(0, 255, 0, 255, 0, 255)
+                    v.vibrate(VibrationEffect.createWaveform(pattern, amplitudes, -1))
+                } else {
+                    @Suppress("DEPRECATION")
+                    v.vibrate(longArrayOf(0, 100, 50, 100, 50, 100), -1)
+                }
+            }
+            
+            // TODO: Add sound notification (optional)
+            // Could use system notification sound or custom sound
         }
     }
     
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
+    }
+}
+
+class RestTimerViewModelFactory(
+    private val context: Context
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(RestTimerViewModel::class.java)) {
+            return RestTimerViewModel(context) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

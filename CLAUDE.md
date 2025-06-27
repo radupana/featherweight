@@ -6,6 +6,16 @@ Apply critical thinking and give me your objective assessment of the viability o
 
 Building a weightlifting Super App that combines the best features from apps like Boostcamp, Juggernaut.ai, KeyLifts, and Hevy. Focus on iterative development to create an amazing user experience.
 
+### Latest Session (Rest Timer Completion)
+Completed full implementation of smart rest timer system:
+- Fixed timer positioning issues (moved below workout buttons)
+- Added smart exercise categorization and intensity-based suggestions
+- Implemented haptic feedback on timer completion
+- Fixed "All" button to trigger timer
+- Simplified UI by removing expand/collapse - all controls now always visible
+- Fixed Copy Last button for bodyweight exercises
+- Added cross-screen timer persistence
+
 ## Technical Architecture
 
 - **Language**: Kotlin
@@ -37,6 +47,7 @@ Building a weightlifting Super App that combines the best features from apps lik
 
 ### Recent Improvements
 
+**Exercise & Workout Management:**
 - ✅ Fixed navigation to return to correct screen (HOME/HISTORY)
 - ✅ Added long-tap delete for workouts across all screens
 - ✅ Fixed 1RM input UX using TextFieldValue with proper cursor control
@@ -50,8 +61,18 @@ Building a weightlifting Super App that combines the best features from apps lik
 - ✅ Added exercise frequency tracking with usage count in database
 - ✅ Implemented frequency-based sorting in exercise selection (most used first)
 - ✅ Added discrete usage count display (e.g., "5×") on exercise selection cards
-- ✅ Implemented core rest timer functionality with auto-start on set completion
-- ✅ Added floating timer pill UI with glassmorphism design and expandable controls
+- ✅ Fixed Copy Last button for bodyweight exercises (now checks reps only)
+
+**Rest Timer System (Fully Implemented):**
+- ✅ Smart timer with exercise categorization (Compound: 4min, Accessory: 2min, Isolation: 90s, Cardio: 60s)
+- ✅ Intensity-based adjustments (Heavy: +30%, Light: -20%)
+- ✅ Auto-start on set completion with smart suggestions
+- ✅ Timer pill positioned below workout buttons (no UI overlap)
+- ✅ Compact timer in SetEditingModal with +15s/-15s controls
+- ✅ Haptic feedback on timer completion (distinctive pattern)
+- ✅ Cross-screen persistence (ViewModel hoisted to MainActivity)
+- ✅ Fixed "All" button to trigger timer
+- ✅ Simplified UI - removed expand/collapse, all controls always visible
 
 ## Key Files & Architecture
 
@@ -80,8 +101,10 @@ Building a weightlifting Super App that combines the best features from apps lik
 
 **Rest Timer:**
 - `RestTimer.kt` - Domain class with countdown logic and progress tracking
-- `RestTimerViewModel.kt` - Timer state management with coroutines, add/subtract time controls
-- `RestTimerPill.kt` - Floating glassmorphism UI with expandable controls (+30s, -30s, Skip)
+- `RestTimerViewModel.kt` - Timer state management with coroutines, haptic feedback, smart suggestions
+- `RestTimerPill.kt` - Main timer UI with glassmorphism (simplified - all controls visible)
+- `RestTimeCalculator.kt` - Exercise categorization and intensity-based rest calculations
+- `CompactRestTimer` (in RestTimerPill.kt) - Compact version for SetEditingModal
 
 ## Important Implementation Details
 
@@ -97,11 +120,23 @@ Building a weightlifting Super App that combines the best features from apps lik
 - Discrete badge display shows "×" format only when count > 0
 
 ### Rest Timer System
-- **Auto-start**: 90s timer triggers when completing any set in WorkoutScreen
-- **UI**: Floating pill at top center with glassmorphism design
-- **Controls**: Tap to expand → +30s, -30s, Skip buttons with exercise name display
-- **State**: Managed by RestTimerViewModel with coroutines and Flow for countdown
-- **Integration**: Currently works in WorkoutScreen, auto-starts from SetEditingModal callbacks
+- **Smart Auto-start**: Intelligent timer based on exercise type and intensity
+- **UI Design**: 
+  - Main pill: Positioned below workout buttons, all controls visible (+30s/-30s/Skip)
+  - Compact pill: In SetEditingModal with +15s/-15s/Skip controls
+  - Glassmorphism aesthetic with smooth animations
+- **Exercise Intelligence**:
+  - Categorizes exercises by name patterns (Compound/Accessory/Isolation/Cardio)
+  - Adjusts rest based on intensity (reps < 5 = Heavy +30%, reps > 12 = Light -20%)
+  - Shows suggestion reason (e.g., "Compound • Heavy")
+- **State Management**: 
+  - RestTimerViewModel hoisted to MainActivity for cross-screen persistence
+  - Coroutines for countdown with proper lifecycle management
+  - Haptic feedback on completion (pattern: 100ms on, 50ms off, repeated 3x)
+- **Integration Points**:
+  - Auto-starts from set completion in SetEditingModal
+  - Manual start from "All" button in exercise header
+  - Timer visible in both WorkoutScreen and SetEditingModal
 
 ### Programme Workouts
 - Sequential day numbering (1,2,3,4) regardless of week days
@@ -128,32 +163,53 @@ Building a weightlifting Super App that combines the best features from apps lik
 - Build: `./gradlew assembleDebug`
 - Install: `./gradlew installDebug`
 
-## Next Priority Issues
+## Current Known Issues
 
-1. **Rest Timer Enhanced Features** (Phase 3):
-   - **High**: Add user preferences for auto-start toggle and default rest periods
-   - **Medium**: Enhanced feedback with haptic pulse and sound when timer completes
-   - **Medium**: Background persistence using WorkManager for cross-screen timer continuity
-   - **Low**: Exercise database integration for more precise categorization
-
-2. **Analytics Text Overflow**: 
-   - "Latest PR" card needs to show exercise name clearly
-   - "Training Frequency" shows "4.0 days/" - needs full "days/week"
-
-3. **Programme Enhancement**:
-   - Exercise substitution UI
+1. **UI Polish Needed**:
+   - Analytics cards have text overflow issues (exercise names truncated, "days/" instead of "days/week")
+   - Programme screen could use better workout preview cards
+   - History screen pagination could be smoother
    
-4. **Profile Screen**:
-   - Test user selection implementation
-   - User stats and settings management
+2. **Missing Features**:
+   - No exercise substitution in programmes
+   - No user profile management (settings, preferences)
+   - No exercise media (videos, images, form guides)
+   - No export/backup functionality
+
+## Next Priority Features
+
+1. **Analytics Improvements** (Quick Win):
+   - Fix text overflow in PR and frequency cards
+   - Add more detailed volume analytics
+   - Exercise-specific progress tracking
+
+2. **Programme Enhancements**:
+   - Exercise substitution with smart alternatives
+   - Programme workout preview before starting
+   - Custom programme builder
+   - Progress photos integration
+   
+3. **Profile & Settings**:
+   - User profile with stats and achievements
+   - Rest timer preferences (auto-start, default times)
+   - Units preference (kg/lbs)
+   - Theme customization (when we add dark mode)
+   
+4. **Exercise Database Expansion**:
+   - Primary/secondary muscle group data
+   - Form videos and technique guides
+   - Exercise difficulty ratings
+   - Equipment alternatives
 
 ## Rest Timer Implementation Status
 
-### ✅ Completed (Phase 1, 2 & Smart Features)
+### ✅ Completed (All Phases)
 - **Core Architecture**: Timer domain logic with countdown and progress tracking
-- **State Management**: RestTimerViewModel with coroutines and smart suggestion integration
-- **UI Components**: Main RestTimerPill with glassmorphism design and expandable controls
-- **Compact Component**: CompactRestTimer for modal contexts with simplified exercise type display
+- **State Management**: RestTimerViewModel with coroutines, smart suggestions, and haptic feedback
+- **UI Components**: 
+  - Main RestTimerPill with glassmorphism design (simplified - all controls always visible)
+  - CompactRestTimer for modal contexts with simplified exercise type display
+  - Removed expand/collapse complexity - all controls shown in single row
 - **Smart Auto-start**: Intelligent timer suggestions based on exercise categorization and set intensity
 - **Exercise Intelligence**: 
   - Compound movements: 4 minutes base (Squat, Deadlift, Bench Press)
@@ -162,16 +218,21 @@ Building a weightlifting Super App that combines the best features from apps lik
   - Cardio movements: 60 seconds base (Burpees, Sprints)
 - **Intensity Adjustments**: Heavy sets (+30%), Light sets (-20%) based on rep ranges
 - **Visual Feedback**: Shows exercise type reasoning (e.g., "Compound • Heavy", "Isolation")
-- **Manual Controls**: +30s, -30s, Skip Rest buttons with haptic feedback
+- **Manual Controls**: 
+  - Main timer: +30s/-30s/Skip buttons always visible
+  - Compact timer: +15s/-15s/Skip buttons always visible
 - **Optimal Positioning**: Timer appears below action buttons in WorkoutScreen, compact in SetEditingModal
-- **Transparency**: Expanded pill fully opaque, collapsed semi-transparent for glassmorphism
 - **Cross-screen Integration**: Timer visible with appropriate UI in both WorkoutScreen and SetEditingModal
 - **Animation**: Smooth expand/shrink animations that respect content flow
+- **Haptic Feedback**: Distinctive vibration pattern on timer completion
+- **Timer Persistence**: ViewModel hoisted to MainActivity for cross-screen continuity
+- **Bug Fixes**: "All" button now properly triggers smart timer, Copy Last button appears for bodyweight exercises
 
-### 📋 Phase 3 Priorities (Enhanced Features)
+### 📋 Future Enhancements
 - **User Preferences**: Settings for auto-start toggle, default rest periods per exercise type
-- **Enhanced Feedback**: Haptic pulse and optional sound when timer completes
-- **Background Persistence**: Continue timer when navigating between screens using WorkManager
+- **Sound Notifications**: Optional audio alerts when timer completes
+- **Advanced Features**: Rest history tracking, personalized ML suggestions
+- **UI Polish**: Drag-to-reposition timer pill, minimize options
 - **Exercise Database Integration**: Use actual Exercise entities for more precise categorization
 
 ### 📋 Phase 4 Enhancements (Advanced Features)
@@ -198,6 +259,27 @@ Building a weightlifting Super App that combines the best features from apps lik
 - Plateau detection
 - Form video analysis
 
+## Key Technical Decisions & Patterns
+
+### UI/UX Philosophy
+- **Simplicity First**: Removed expand/collapse complexity in favor of always-visible controls
+- **Context Awareness**: Different timer controls for different contexts (±30s main, ±15s compact)
+- **Smart Defaults**: Intelligent rest suggestions reduce user decision fatigue
+- **Visual Feedback**: Haptic feedback for important actions, smooth animations
+- **Information Hierarchy**: Most important info (timer, reps, weight) always prominent
+
+### State Management Patterns
+- **ViewModel Hoisting**: App-level ViewModels (RestTimer) for cross-screen state
+- **Repository Pattern**: Single source of truth for all data operations
+- **Flow & StateFlow**: Reactive UI updates with proper lifecycle handling
+- **Optimistic UI**: Update UI immediately, sync database asynchronously
+
+### Performance Optimizations
+- **Lazy Loading**: Pagination in History screen
+- **Key-based LazyColumn**: Proper item identity for smooth animations
+- **Destructive Migration**: Fast development iteration, production will need proper migrations
+- **Selective Recomposition**: Careful state structuring to minimize recompositions
+
 ## Development Guidelines
 
 - No comments unless explaining complex logic
@@ -205,6 +287,8 @@ Building a weightlifting Super App that combines the best features from apps lik
 - Test edge cases (empty states, long text, errors)
 - Atomic commits with descriptive messages
 - Update CLAUDE.md for architectural changes
+- Use ViewModel factory pattern for ViewModels requiring context/dependencies
+- Prefer composition over inheritance in UI components
 
 ## Known Technical Gotchas
 

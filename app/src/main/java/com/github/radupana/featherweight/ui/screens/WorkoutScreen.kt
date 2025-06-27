@@ -27,6 +27,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -39,6 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import android.util.Log
 import com.github.radupana.featherweight.ui.components.RestTimerPill
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
+import com.github.radupana.featherweight.viewmodel.RestTimerViewModelFactory
 import kotlin.time.Duration.Companion.seconds
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -60,7 +62,7 @@ fun WorkoutScreen(
     onSelectExercise: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutViewModel = viewModel(),
-    restTimerViewModel: RestTimerViewModel = viewModel(),
+    restTimerViewModel: RestTimerViewModel,
 ) {
     val exercises by viewModel.selectedWorkoutExercises.collectAsState()
     
@@ -552,6 +554,19 @@ fun WorkoutScreen(
             },
             onCompleteAllSets = {
                 viewModel.completeAllSetsInExercise(setEditingExercise!!.id)
+                // Auto-start smart rest timer when completing all sets
+                if (setEditingExercise != null) {
+                    // Use the most recent set's data for timer calculation
+                    val mostRecentSet = sets
+                        .filter { it.exerciseLogId == setEditingExercise!!.id }
+                        .maxByOrNull { it.setOrder }
+                    restTimerViewModel.startSmartTimer(
+                        exerciseName = setEditingExercise!!.exerciseName,
+                        exercise = null, // TODO: Add exercise entity lookup
+                        reps = mostRecentSet?.reps,
+                        weight = mostRecentSet?.weight
+                    )
+                }
             },
             viewModel = viewModel,
             restTimerViewModel = restTimerViewModel,

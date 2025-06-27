@@ -48,6 +48,8 @@ import com.github.radupana.featherweight.ui.screens.WorkoutScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
 import com.github.radupana.featherweight.viewmodel.AnalyticsViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
+import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
+import com.github.radupana.featherweight.viewmodel.RestTimerViewModelFactory
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
 enum class Screen {
@@ -88,6 +90,11 @@ class MainActivity : ComponentActivity() {
             FeatherweightTheme {
                 var currentScreen by remember { mutableStateOf(Screen.SPLASH) }
                 val userPreferences = remember { UserPreferences(application) }
+                
+                // App-level ViewModels for persistence across screens
+                val restTimerViewModel: RestTimerViewModel = viewModel(
+                    factory = RestTimerViewModelFactory(this@MainActivity)
+                )
 
                 // Seed database early
                 LaunchedEffect(Unit) {
@@ -121,6 +128,7 @@ class MainActivity : ComponentActivity() {
                         MainAppWithNavigation(
                             currentScreen = currentScreen,
                             onScreenChange = { screen -> currentScreen = screen },
+                            restTimerViewModel = restTimerViewModel,
                         )
                     }
                 }
@@ -134,6 +142,7 @@ class MainActivity : ComponentActivity() {
 fun MainAppWithNavigation(
     currentScreen: Screen,
     onScreenChange: (Screen) -> Unit,
+    restTimerViewModel: RestTimerViewModel,
 ) {
     // Track previous screen for proper back navigation
     var previousScreen by remember { mutableStateOf<Screen?>(null) }
@@ -258,6 +267,7 @@ fun MainAppWithNavigation(
                     },
                     onSelectExercise = { onScreenChange(Screen.EXERCISE_SELECTOR) },
                     workoutViewModel = workoutViewModel,
+                    restTimerViewModel = restTimerViewModel,
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -362,6 +372,7 @@ fun WorkoutScreen(
     onBack: () -> Unit,
     onSelectExercise: () -> Unit,
     workoutViewModel: WorkoutViewModel,
+    restTimerViewModel: RestTimerViewModel,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier) {
@@ -369,6 +380,7 @@ fun WorkoutScreen(
             onBack = onBack,
             onSelectExercise = onSelectExercise,
             viewModel = workoutViewModel,
+            restTimerViewModel = restTimerViewModel,
         )
     }
 }
