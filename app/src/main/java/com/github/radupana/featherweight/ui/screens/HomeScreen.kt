@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
@@ -31,6 +32,7 @@ fun HomeScreen(
     onBrowseProgrammes: () -> Unit,
     onNavigateToActiveProgramme: (() -> Unit)? = null,
     onStartProgrammeWorkout: () -> Unit,
+    onGenerateAIProgramme: () -> Unit,
     modifier: Modifier = Modifier,
     workoutViewModel: WorkoutViewModel = viewModel(),
     programmeViewModel: ProgrammeViewModel = viewModel(),
@@ -115,6 +117,28 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Browse Programmes",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                    
+                    Button(
+                        onClick = onGenerateAIProgramme,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.AutoAwesome,
+                            contentDescription = "AI Generate",
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Generate with AI",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Medium,
                         )

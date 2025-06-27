@@ -37,6 +37,7 @@ fun ProgrammesScreen(
     viewModel: ProgrammeViewModel = viewModel(),
     profileViewModel: ProfileViewModel = viewModel(),
     onNavigateToActiveProgramme: (() -> Unit)? = null,
+    onNavigateToAIGenerator: (() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val activeProgramme by viewModel.activeProgramme.collectAsState()
@@ -158,6 +159,49 @@ fun ProgrammesScreen(
                             onClearFilters = viewModel::clearFilters,
                             hasActiveFilters = uiState.searchText.isNotEmpty(),
                         )
+                    }
+                }
+                
+                // AI Programme Generation Button
+                item {
+                    AnimatedVisibility(
+                        visible = !isKeyboardVisible,
+                        enter = slideInVertically() + fadeIn(),
+                        exit = slideOutVertically() + fadeOut()
+                    ) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = compactPadding / 2)
+                                .clickable { 
+                                    onNavigateToAIGenerator?.invoke()
+                                },
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(compactPadding),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = "AI Generate",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Generate Custom Programme with AI",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                     }
                 }
 

@@ -68,6 +68,7 @@ enum class Screen {
     ANALYTICS,
     PROGRAMMES,
     ACTIVE_PROGRAMME,
+    PROGRAMME_GENERATOR,
     PROFILE,
 }
 
@@ -234,7 +235,8 @@ fun MainAppWithNavigation(
             if (currentScreen != Screen.SPLASH &&
                 currentScreen != Screen.USER_SELECTION &&
                 currentScreen != Screen.ACTIVE_WORKOUT &&
-                currentScreen != Screen.EXERCISE_SELECTOR
+                currentScreen != Screen.EXERCISE_SELECTOR &&
+                currentScreen != Screen.PROGRAMME_GENERATOR
             ) {
                 NavigationBar {
                     navigationItems.forEach { item ->
@@ -263,6 +265,7 @@ fun MainAppWithNavigation(
                     onBrowseProgrammes = { onScreenChange(Screen.PROGRAMMES) },
                     onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
                     onStartProgrammeWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
+                    onGenerateAIProgramme = { onScreenChange(Screen.PROGRAMME_GENERATOR) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -336,6 +339,7 @@ fun MainAppWithNavigation(
                 com.github.radupana.featherweight.ui.screens.ProgrammesScreen(
                     profileViewModel = profileViewModel,
                     onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
+                    onNavigateToAIGenerator = { onScreenChange(Screen.PROGRAMME_GENERATOR) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -367,6 +371,13 @@ fun MainAppWithNavigation(
 
             Screen.USER_SELECTION -> {
                 // Should not reach here - handled in parent
+            }
+
+            Screen.PROGRAMME_GENERATOR -> {
+                com.github.radupana.featherweight.ui.screens.ProgrammeGeneratorScreen(
+                    onBack = { onScreenChange(Screen.PROGRAMMES) },
+                    modifier = Modifier.padding(innerPadding),
+                )
             }
 
             Screen.PROFILE -> {
