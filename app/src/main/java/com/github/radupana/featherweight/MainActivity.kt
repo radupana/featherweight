@@ -331,7 +331,9 @@ fun MainAppWithNavigation(
             }
 
             Screen.PROGRAMMES -> {
+                val profileViewModel: com.github.radupana.featherweight.viewmodel.ProfileViewModel = viewModel()
                 com.github.radupana.featherweight.ui.screens.ProgrammesScreen(
+                    profileViewModel = profileViewModel,
                     onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
                     modifier = Modifier.padding(innerPadding),
                 )

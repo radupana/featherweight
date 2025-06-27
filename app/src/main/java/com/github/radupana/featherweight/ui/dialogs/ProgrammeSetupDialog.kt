@@ -23,6 +23,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
 import com.github.radupana.featherweight.viewmodel.ProgrammeUiState
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
+import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import com.github.radupana.featherweight.viewmodel.SetupStep
 import com.github.radupana.featherweight.viewmodel.UserMaxes
 
@@ -31,10 +32,34 @@ fun ProgrammeSetupDialog(
     template: ProgrammeTemplate,
     uiState: ProgrammeUiState,
     viewModel: ProgrammeViewModel,
+    profileViewModel: ProfileViewModel,
     onProgrammeCreated: (() -> Unit)? = null,
 ) {
     val userMaxes by viewModel.userMaxes.collectAsState()
+    val profileUiState by profileViewModel.uiState.collectAsState()
     var customName by remember { mutableStateOf("") }
+
+    // Auto-populate 1RM values from profile when dialog opens
+    LaunchedEffect(template.requiresMaxes) {
+        if (template.requiresMaxes && userMaxes.squat == null && userMaxes.bench == null && 
+            userMaxes.deadlift == null && userMaxes.ohp == null) {
+            val currentMaxes = profileUiState.currentMaxes
+            val squatMax = currentMaxes.find { it.exerciseName == "Back Squat" }?.maxWeight
+            val benchMax = currentMaxes.find { it.exerciseName == "Bench Press" }?.maxWeight
+            val deadliftMax = currentMaxes.find { it.exerciseName == "Conventional Deadlift" }?.maxWeight
+            val ohpMax = currentMaxes.find { it.exerciseName == "Overhead Press" }?.maxWeight
+            
+            // Update all values at once to ensure proper validation
+            viewModel.updateUserMaxes(
+                UserMaxes(
+                    squat = squatMax,
+                    bench = benchMax,
+                    deadlift = deadliftMax,
+                    ohp = ohpMax
+                )
+            )
+        }
+    }
 
     Dialog(
         onDismissRequest = { viewModel.dismissSetupDialog() },
@@ -100,6 +125,7 @@ fun ProgrammeSetupDialog(
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 100.dp), // Add bottom padding for keyboard
                 ) {
                     item {
                         when (uiState.setupStep) {
@@ -109,6 +135,7 @@ fun ProgrammeSetupDialog(
                                         template = template,
                                         userMaxes = userMaxes,
                                         onMaxesUpdate = viewModel::updateUserMaxes,
+                                        profileMaxes = profileUiState.currentMaxes,
                                     )
                                 } else {
                                     ConfirmationStep(
@@ -163,7 +190,22 @@ fun ProgrammeSetupDialog(
                         },
                         enabled =
                             when (uiState.setupStep) {
-                                SetupStep.MAXES_INPUT -> userMaxes.isValid(template.requiresMaxes)
+                                SetupStep.MAXES_INPUT -> {
+                                    if (template.requiresMaxes) {
+                                        val currentMaxes = profileUiState.currentMaxes
+                                        val effectiveSquat = userMaxes.squat ?: currentMaxes.find { it.exerciseName == "Back Squat" }?.maxWeight
+                                        val effectiveBench = userMaxes.bench ?: currentMaxes.find { it.exerciseName == "Bench Press" }?.maxWeight
+                                        val effectiveDeadlift = userMaxes.deadlift ?: currentMaxes.find { it.exerciseName == "Conventional Deadlift" }?.maxWeight
+                                        val effectiveOhp = userMaxes.ohp ?: currentMaxes.find { it.exerciseName == "Overhead Press" }?.maxWeight
+                                        
+                                        effectiveSquat != null && effectiveSquat > 0 &&
+                                        effectiveBench != null && effectiveBench > 0 &&
+                                        effectiveDeadlift != null && effectiveDeadlift > 0 &&
+                                        effectiveOhp != null && effectiveOhp > 0
+                                    } else {
+                                        true
+                                    }
+                                }
                                 else -> true
                             } && !uiState.isCreating,
                         modifier = Modifier.weight(1f),
@@ -272,6 +314,7 @@ private fun MaxesInputStep(
     template: ProgrammeTemplate,
     userMaxes: UserMaxes,
     onMaxesUpdate: (UserMaxes) -> Unit,
+    profileMaxes: List<com.github.radupana.featherweight.data.profile.ExerciseMaxWithName>,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -291,35 +334,47 @@ private fun MaxesInputStep(
         Spacer(modifier = Modifier.height(8.dp))
 
         // Squat 1RM with robust input handling
+        val squatProfileMax = profileMaxes.find { it.exerciseName == "Back Squat" }
+        val effectiveSquatValue = userMaxes.squat ?: squatProfileMax?.maxWeight
         WeightInputField(
             value = userMaxes.squat,
             onValueChange = { squat -> onMaxesUpdate(userMaxes.copy(squat = squat)) },
             label = "Back Squat 1RM (kg)",
-            isError = userMaxes.squat == null || (userMaxes.squat ?: 0f) <= 0,
+            isError = effectiveSquatValue == null || effectiveSquatValue <= 0,
+            profileValue = squatProfileMax?.maxWeight,
         )
 
         // Bench 1RM with robust input handling
+        val benchProfileMax = profileMaxes.find { it.exerciseName == "Bench Press" }
+        val effectiveBenchValue = userMaxes.bench ?: benchProfileMax?.maxWeight
         WeightInputField(
             value = userMaxes.bench,
             onValueChange = { bench -> onMaxesUpdate(userMaxes.copy(bench = bench)) },
             label = "Bench Press 1RM (kg)",
-            isError = userMaxes.bench == null || (userMaxes.bench ?: 0f) <= 0,
+            isError = effectiveBenchValue == null || effectiveBenchValue <= 0,
+            profileValue = benchProfileMax?.maxWeight,
         )
 
         // Deadlift 1RM with robust input handling
+        val deadliftProfileMax = profileMaxes.find { it.exerciseName == "Conventional Deadlift" }
+        val effectiveDeadliftValue = userMaxes.deadlift ?: deadliftProfileMax?.maxWeight
         WeightInputField(
             value = userMaxes.deadlift,
             onValueChange = { deadlift -> onMaxesUpdate(userMaxes.copy(deadlift = deadlift)) },
             label = "Deadlift 1RM (kg)",
-            isError = userMaxes.deadlift == null || (userMaxes.deadlift ?: 0f) <= 0,
+            isError = effectiveDeadliftValue == null || effectiveDeadliftValue <= 0,
+            profileValue = deadliftProfileMax?.maxWeight,
         )
 
         // OHP 1RM with robust input handling
+        val ohpProfileMax = profileMaxes.find { it.exerciseName == "Overhead Press" }
+        val effectiveOhpValue = userMaxes.ohp ?: ohpProfileMax?.maxWeight
         WeightInputField(
             value = userMaxes.ohp,
             onValueChange = { ohp -> onMaxesUpdate(userMaxes.copy(ohp = ohp)) },
             label = "Overhead Press 1RM (kg)",
-            isError = userMaxes.ohp == null || (userMaxes.ohp ?: 0f) <= 0,
+            isError = effectiveOhpValue == null || effectiveOhpValue <= 0,
+            profileValue = ohpProfileMax?.maxWeight,
         )
 
         Card(
@@ -542,15 +597,21 @@ private fun WeightInputField(
     onValueChange: (Float?) -> Unit,
     label: String,
     isError: Boolean = false,
+    profileValue: Float? = null,
 ) {
     // Keep text field value separate to avoid conversion loops
     var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
 
-    // Only set initial value once when first composed
+    // Only set initial value once when first composed - prefer passed value, fallback to profile
     LaunchedEffect(Unit) {
-        if (value != null && value > 0) {
-            val initialText = if (value % 1 == 0f) value.toInt().toString() else value.toString()
+        val initialValue = value ?: profileValue
+        if (initialValue != null && initialValue > 0) {
+            val initialText = if (initialValue % 1 == 0f) initialValue.toInt().toString() else initialValue.toString()
             textFieldValue = TextFieldValue(initialText, TextRange(initialText.length))
+            // If we're using profile value and current value is null, update the parent state
+            if (value == null && profileValue != null) {
+                onValueChange(profileValue)
+            }
         }
     }
 
@@ -602,5 +663,14 @@ private fun WeightInputField(
                 },
         isError = isError,
         singleLine = true,
+        supportingText = if (profileValue != null && profileValue > 0) {
+            {
+                Text(
+                    text = "From profile: ${if (profileValue % 1 == 0f) profileValue.toInt() else profileValue}kg",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else null,
     )
 }

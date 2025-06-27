@@ -29,11 +29,13 @@ import com.github.radupana.featherweight.ui.utils.NavigationContext
 import com.github.radupana.featherweight.ui.utils.rememberKeyboardState
 import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
+import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 
 @Composable
 fun ProgrammesScreen(
     modifier: Modifier = Modifier,
     viewModel: ProgrammeViewModel = viewModel(),
+    profileViewModel: ProfileViewModel = viewModel(),
     onNavigateToActiveProgramme: (() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -240,6 +242,7 @@ fun ProgrammesScreen(
             template = uiState.selectedTemplate!!,
             uiState = uiState,
             viewModel = viewModel,
+            profileViewModel = profileViewModel,
             onProgrammeCreated = {
                 // Navigate to active programme screen after creation
                 onNavigateToActiveProgramme?.invoke()
