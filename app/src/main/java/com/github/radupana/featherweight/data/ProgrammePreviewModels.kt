@@ -145,7 +145,8 @@ data class ValidationWarning(
 data class ValidationError(
     override val message: String,
     override val category: ValidationCategory,
-    val requiredAction: String
+    val requiredAction: String,
+    val isAutoFixable: Boolean = true
 ) : ValidationIssue() {
     override val severity = ValidationSeverity.ERROR
 }

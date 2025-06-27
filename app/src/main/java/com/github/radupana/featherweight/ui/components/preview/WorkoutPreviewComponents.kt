@@ -146,11 +146,21 @@ fun ExercisePreviewCard(
     val showAlternatives = editState?.showAlternatives == true
     val showResolution = editState?.showResolution == true
     
+    val needsAttention = exercise.matchConfidence < 0.7f
+    val lowConfidence = exercise.matchConfidence < 0.8f && exercise.matchConfidence >= 0.7f
+    
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+            containerColor = when {
+                needsAttention -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                lowConfidence -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+                else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            }
+        ),
+        border = if (needsAttention) {
+            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+        } else null
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -185,6 +195,45 @@ fun ExercisePreviewCard(
                                 }
                             }
                         )
+                    }
+                    
+                    // Show attention message for unresolved exercises
+                    if (needsAttention) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = "Needs resolution - click to select exercise",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    } else if (lowConfidence) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.tertiary
+                            )
+                            Text(
+                                text = "Low confidence match - review recommended",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
                 

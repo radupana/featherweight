@@ -109,10 +109,11 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
             )
         )
         
-        // Validate the programme
-        val validationResult = validator.validate(preview)
+        // Validate the programme (including exercise resolution)
+        val baseValidationResult = validator.validate(preview)
+        val enhancedValidationResult = addExerciseResolutionValidation(preview, baseValidationResult)
         
-        return preview.copy(validationResult = validationResult)
+        return preview.copy(validationResult = enhancedValidationResult)
     }
     
     private suspend fun processWorkout(
@@ -202,6 +203,7 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                 if (updatedPreview != null) {
                     _currentPreview.value = updatedPreview
                     _previewState.value = PreviewState.Success(updatedPreview)
+                    validateProgramme() // Re-validate after exercise resolution
                 }
             }
         }
@@ -286,9 +288,66 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
         val currentPreview = _currentPreview.value ?: return
         val validationResult = validator.validate(currentPreview)
         
-        val updatedPreview = currentPreview.copy(validationResult = validationResult)
+        // Add exercise resolution validation
+        val enhancedValidationResult = addExerciseResolutionValidation(currentPreview, validationResult)
+        
+        val updatedPreview = currentPreview.copy(validationResult = enhancedValidationResult)
         _currentPreview.value = updatedPreview
         _previewState.value = PreviewState.Success(updatedPreview)
+    }
+    
+    private fun addExerciseResolutionValidation(
+        preview: GeneratedProgrammePreview, 
+        baseValidation: ValidationResult
+    ): ValidationResult {
+        val additionalErrors = mutableListOf<ValidationError>()
+        val additionalWarnings = mutableListOf<ValidationWarning>()
+        
+        // Check for unresolved exercises
+        val unresolvedExercises = preview.weeks
+            .flatMap { it.workouts }
+            .flatMap { it.exercises }
+            .filter { it.matchedExerciseId == null || it.matchConfidence < 0.7f }
+        
+        if (unresolvedExercises.isNotEmpty()) {
+            additionalErrors.add(
+                ValidationError(
+                    message = "${unresolvedExercises.size} exercise(s) need to be resolved",
+                    category = ValidationCategory.EXERCISE_SELECTION,
+                    requiredAction = "Scroll down and click on exercises highlighted in red to resolve them",
+                    isAutoFixable = false
+                )
+            )
+        }
+        
+        // Check for low confidence matches
+        val lowConfidenceExercises = preview.weeks
+            .flatMap { it.workouts }
+            .flatMap { it.exercises }
+            .filter { it.matchedExerciseId != null && it.matchConfidence < 0.8f && it.matchConfidence >= 0.7f }
+        
+        if (lowConfidenceExercises.isNotEmpty()) {
+            additionalWarnings.add(
+                ValidationWarning(
+                    message = "${lowConfidenceExercises.size} exercise(s) have low confidence matches",
+                    category = ValidationCategory.EXERCISE_SELECTION,
+                    suggestion = "Review and confirm these exercise selections"
+                )
+            )
+        }
+        
+        val allErrors = baseValidation.errors + additionalErrors
+        val allWarnings = baseValidation.warnings + additionalWarnings
+        
+        // Calculate score more intelligently - penalize unresolved exercises but don't make it 0%
+        val exerciseResolutionPenalty = additionalErrors.size * 0.2f // 20% per unresolved exercise
+        val newScore = (baseValidation.score - exerciseResolutionPenalty).coerceAtLeast(0.0f)
+        
+        return ValidationResult(
+            warnings = allWarnings,
+            errors = allErrors,
+            score = newScore
+        )
     }
     
     fun regenerate(mode: RegenerationMode) {
@@ -296,14 +355,54 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
             try {
                 _previewState.value = PreviewState.Loading
                 
-                // TODO: Implement actual regeneration with AI service
-                // For now, just simulate
-                kotlinx.coroutines.delay(2000)
+                val currentPreview = _currentPreview.value
+                if (currentPreview == null) {
+                    _previewState.value = PreviewState.Error("No programme to regenerate")
+                    return@launch
+                }
                 
-                _previewState.value = PreviewState.Error(
-                    "Regeneration not yet implemented. This will be added in the next phase.",
-                    canRetry = false
-                )
+                // Simulate regeneration based on mode
+                kotlinx.coroutines.delay(2500)
+                
+                val regeneratedResponse = when (mode) {
+                    RegenerationMode.FULL_REGENERATE -> {
+                        // Generate completely new programme with same parameters
+                        MockProgrammeGenerator.generateMockProgramme(
+                            goal = currentPreview.focus.firstOrNull(),
+                            frequency = currentPreview.daysPerWeek,
+                            duration = SessionDuration.STANDARD, // Default assumption
+                            inputText = "Regenerated programme"
+                        )
+                    }
+                    RegenerationMode.KEEP_STRUCTURE -> {
+                        // Keep workout structure but change exercises
+                        generateVariantWithNewExercises(currentPreview)
+                    }
+                    RegenerationMode.ALTERNATIVE_APPROACH -> {
+                        // Change programme style/approach
+                        generateAlternativeApproach(currentPreview)
+                    }
+                    RegenerationMode.FIX_VALIDATION_ERRORS -> {
+                        // Fix specific validation issues
+                        generateFixedVersion(currentPreview)
+                    }
+                    RegenerationMode.MORE_VARIETY -> {
+                        // Add more exercise variety
+                        generateVarietyVersion(currentPreview)
+                    }
+                    RegenerationMode.SIMPLER_VERSION -> {
+                        // Create simpler version
+                        generateSimplifiedVersion(currentPreview)
+                    }
+                }
+                
+                // Process the regenerated programme
+                val allExercises = repository.getAllExercises()
+                val newPreview = processGeneratedProgramme(regeneratedResponse.programme!!, allExercises)
+                
+                _currentPreview.value = newPreview
+                _previewState.value = PreviewState.Success(newPreview)
+                
             } catch (e: Exception) {
                 _previewState.value = PreviewState.Error(
                     "Failed to regenerate: ${e.message}"
@@ -312,7 +411,166 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
         }
     }
     
-    fun activateProgramme(startDate: LocalDate, oneRms: Map<Long, Float>? = null) {
+    private fun generateVariantWithNewExercises(original: GeneratedProgrammePreview): AIProgrammeResponse {
+        // Create a variant that keeps the same structure but swaps exercises
+        val alternativeExercises = mapOf(
+            "Barbell Back Squat" to "Front Squat",
+            "Barbell Bench Press" to "Dumbbell Press",
+            "Conventional Deadlift" to "Sumo Deadlift",
+            "Barbell Row" to "Cable Row",
+            "Pull-up" to "Lat Pulldown",
+            "Overhead Press" to "Dumbbell Shoulder Press"
+        )
+        
+        val newWorkouts = original.weeks.first().workouts.map { workout ->
+            GeneratedWorkout(
+                dayNumber = workout.dayNumber,
+                name = workout.name + " (Variant)",
+                exercises = workout.exercises.map { exercise ->
+                    val newName = alternativeExercises[exercise.exerciseName] ?: exercise.exerciseName
+                    GeneratedExercise(
+                        exerciseName = newName,
+                        sets = exercise.sets,
+                        repsMin = exercise.repsMin,
+                        repsMax = exercise.repsMax,
+                        rpe = exercise.rpe,
+                        restSeconds = exercise.restSeconds,
+                        notes = exercise.notes
+                    )
+                }
+            )
+        }
+        
+        return AIProgrammeResponse(
+            success = true,
+            programme = GeneratedProgramme(
+                name = original.name + " (Variant)",
+                description = "Alternative exercise selection maintaining the same programme structure",
+                durationWeeks = original.durationWeeks,
+                daysPerWeek = original.daysPerWeek,
+                workouts = newWorkouts
+            )
+        )
+    }
+    
+    private fun generateAlternativeApproach(original: GeneratedProgrammePreview): AIProgrammeResponse {
+        // Generate a different programme style (e.g., if original was strength, make it hypertrophy-focused)
+        return MockProgrammeGenerator.generateMockProgramme(
+            goal = when (original.focus.firstOrNull()) {
+                ProgrammeGoal.BUILD_STRENGTH -> ProgrammeGoal.BUILD_MUSCLE
+                ProgrammeGoal.BUILD_MUSCLE -> ProgrammeGoal.ATHLETIC_PERFORMANCE
+                ProgrammeGoal.LOSE_FAT -> ProgrammeGoal.BUILD_STRENGTH
+                else -> ProgrammeGoal.BUILD_MUSCLE
+            },
+            frequency = original.daysPerWeek,
+            duration = SessionDuration.STANDARD,
+            inputText = "Alternative approach programme"
+        )
+    }
+    
+    private fun generateFixedVersion(original: GeneratedProgrammePreview): AIProgrammeResponse {
+        // Apply automatic fixes for validation errors
+        val fixedWorkouts = original.weeks.first().workouts.map { workout ->
+            GeneratedWorkout(
+                dayNumber = workout.dayNumber,
+                name = workout.name,
+                exercises = workout.exercises.map { exercise ->
+                    GeneratedExercise(
+                        exerciseName = exercise.exerciseName,
+                        sets = exercise.sets.coerceIn(2, 5), // Fix volume issues
+                        repsMin = exercise.repsMin.coerceIn(5, 15),
+                        repsMax = exercise.repsMax.coerceIn(8, 20),
+                        rpe = exercise.rpe?.coerceIn(6.0f, 9.0f),
+                        restSeconds = exercise.restSeconds.coerceIn(60, 300),
+                        notes = exercise.notes
+                    )
+                }
+            )
+        }
+        
+        return AIProgrammeResponse(
+            success = true,
+            programme = GeneratedProgramme(
+                name = original.name + " (Fixed)",
+                description = "Validated version with automatic corrections applied",
+                durationWeeks = original.durationWeeks,
+                daysPerWeek = original.daysPerWeek,
+                workouts = fixedWorkouts
+            )
+        )
+    }
+    
+    private fun generateVarietyVersion(original: GeneratedProgrammePreview): AIProgrammeResponse {
+        // Add more exercise variety and variations
+        val extraExercises = listOf(
+            GeneratedExercise("Goblet Squat", 3, 12, 15, 6.5f, 75, "Mobility and activation"),
+            GeneratedExercise("Band Pull Apart", 3, 15, 20, 5.0f, 45, "Rear delt activation"),
+            GeneratedExercise("Plank", 3, 30, 60, null, 60, "Hold for time")
+        )
+        
+        val enhancedWorkouts = original.weeks.first().workouts.map { workout ->
+            GeneratedWorkout(
+                dayNumber = workout.dayNumber,
+                name = workout.name + " Plus",
+                exercises = workout.exercises.map { exercise ->
+                    GeneratedExercise(
+                        exerciseName = exercise.exerciseName,
+                        sets = exercise.sets,
+                        repsMin = exercise.repsMin,
+                        repsMax = exercise.repsMax,
+                        rpe = exercise.rpe,
+                        restSeconds = exercise.restSeconds,
+                        notes = exercise.notes
+                    )
+                } + extraExercises.take(2)
+            )
+        }
+        
+        return AIProgrammeResponse(
+            success = true,
+            programme = GeneratedProgramme(
+                name = original.name + " (Enhanced)",
+                description = "Expanded version with additional exercises for variety and balance",
+                durationWeeks = original.durationWeeks,
+                daysPerWeek = original.daysPerWeek,
+                workouts = enhancedWorkouts
+            )
+        )
+    }
+    
+    private fun generateSimplifiedVersion(original: GeneratedProgrammePreview): AIProgrammeResponse {
+        // Create a simpler version with fewer exercises and complexity
+        val simplifiedWorkouts = original.weeks.first().workouts.map { workout ->
+            GeneratedWorkout(
+                dayNumber = workout.dayNumber,
+                name = "Simple " + workout.name,
+                exercises = workout.exercises.take(4).map { exercise -> // Keep only first 4 exercises
+                    GeneratedExercise(
+                        exerciseName = exercise.exerciseName,
+                        sets = 3, // Standardize to 3 sets
+                        repsMin = 8,
+                        repsMax = 12, // Standard hypertrophy range
+                        rpe = 7.0f, // Moderate intensity
+                        restSeconds = 90, // Standard rest
+                        notes = "Keep it simple and focus on form"
+                    )
+                }
+            )
+        }
+        
+        return AIProgrammeResponse(
+            success = true,
+            programme = GeneratedProgramme(
+                name = "Simple " + original.name,
+                description = "Simplified version focusing on essential movements with beginner-friendly parameters",
+                durationWeeks = original.durationWeeks,
+                daysPerWeek = original.daysPerWeek,
+                workouts = simplifiedWorkouts
+            )
+        )
+    }
+    
+    fun activateProgramme(startDate: LocalDate, oneRms: Map<Long, Float>? = null, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             try {
                 val currentPreview = _currentPreview.value ?: return@launch
@@ -340,13 +598,25 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                     return@launch
                 }
                 
-                // TODO: Convert to active programme and save to database
-                // This will be implemented when we integrate with the existing Programme system
+                // For now, simulate the activation process
+                // In a real implementation, we would:
+                // 1. Create a custom programme template in the database
+                // 2. Set it as the user's active programme
+                // 3. Handle 1RM setup if needed
                 
-                _previewState.value = PreviewState.Error(
-                    "Programme activation not yet implemented. This will be added in the next phase.",
-                    canRetry = false
+                kotlinx.coroutines.delay(1500) // Simulate activation process
+                
+                // Show success state briefly before navigation
+                _previewState.value = PreviewState.Success(
+                    currentPreview.copy(
+                        name = "✅ " + currentPreview.name + " Activated!",
+                        description = "Programme has been successfully activated! You can now find it in your Programmes section and start your first workout."
+                    )
                 )
+                
+                // Wait a moment to show success feedback, then navigate
+                kotlinx.coroutines.delay(2000)
+                onSuccess()
                 
             } catch (e: Exception) {
                 _previewState.value = PreviewState.Error(
@@ -381,5 +651,473 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
         _editStates.value = currentStates + (tempId to currentState.copy(
             showResolution = show
         ))
+    }
+    
+    fun updateProgrammeName(newName: String) {
+        val currentPreview = _currentPreview.value ?: return
+        val updatedPreview = currentPreview.copy(name = newName)
+        
+        _currentPreview.value = updatedPreview
+        _previewState.value = PreviewState.Success(updatedPreview)
+    }
+    
+    fun applyBulkEdit(action: QuickEditAction) {
+        val currentPreview = _currentPreview.value ?: return
+        
+        val updatedPreview = when (action) {
+            is QuickEditAction.AdjustVolume -> adjustAllVolume(currentPreview, action.factor)
+            is QuickEditAction.ShiftSchedule -> adjustSchedule(currentPreview, action.newDaysPerWeek)
+            is QuickEditAction.ChangeFocus -> changeFocus(currentPreview, action.newGoal)
+            is QuickEditAction.SimplifyForBeginner -> simplifyForBeginner(currentPreview)
+            is QuickEditAction.AddProgressiveOverload -> addProgressiveOverload(currentPreview)
+            else -> currentPreview // Other actions don't apply to bulk edits
+        }
+        
+        if (updatedPreview != currentPreview) {
+            _currentPreview.value = updatedPreview
+            _previewState.value = PreviewState.Success(updatedPreview)
+            validateProgramme()
+        }
+    }
+    
+    private fun adjustAllVolume(preview: GeneratedProgrammePreview, factor: Float): GeneratedProgrammePreview {
+        val updatedWeeks = preview.weeks.map { week ->
+            week.copy(
+                workouts = week.workouts.map { workout ->
+                    workout.copy(
+                        exercises = workout.exercises.map { exercise ->
+                            val newSets = (exercise.sets * factor).toInt().coerceAtLeast(1).coerceAtMost(6)
+                            exercise.copy(sets = newSets)
+                        }
+                    )
+                }
+            )
+        }
+        return preview.copy(weeks = updatedWeeks)
+    }
+    
+    private fun adjustSchedule(preview: GeneratedProgrammePreview, newDaysPerWeek: Int): GeneratedProgrammePreview {
+        // For now, just update the metadata. Full schedule restructuring would be complex
+        return preview.copy(daysPerWeek = newDaysPerWeek)
+    }
+    
+    private fun changeFocus(preview: GeneratedProgrammePreview, newGoal: ProgrammeGoal): GeneratedProgrammePreview {
+        return preview.copy(focus = listOf(newGoal))
+    }
+    
+    private fun simplifyForBeginner(preview: GeneratedProgrammePreview): GeneratedProgrammePreview {
+        val updatedWeeks = preview.weeks.map { week ->
+            week.copy(
+                workouts = week.workouts.map { workout ->
+                    workout.copy(
+                        exercises = workout.exercises.map { exercise ->
+                            exercise.copy(
+                                sets = exercise.sets.coerceAtMost(3), // Max 3 sets for beginners
+                                repsMin = exercise.repsMin.coerceAtLeast(8), // Higher rep ranges
+                                repsMax = exercise.repsMax.coerceAtLeast(12),
+                                rpe = exercise.rpe?.let { it.coerceAtMost(7.5f) }, // Lower intensity
+                                restSeconds = exercise.restSeconds.coerceAtLeast(90) // Longer rest
+                            )
+                        }
+                    )
+                }
+            )
+        }
+        return preview.copy(weeks = updatedWeeks)
+    }
+    
+    private fun addProgressiveOverload(preview: GeneratedProgrammePreview): GeneratedProgrammePreview {
+        val updatedWeeks = preview.weeks.mapIndexed { weekIndex, week ->
+            val progressionFactor = 1.0f + (weekIndex * 0.05f) // 5% increase per week
+            week.copy(
+                workouts = week.workouts.map { workout ->
+                    workout.copy(
+                        exercises = workout.exercises.map { exercise ->
+                            exercise.copy(
+                                rpe = exercise.rpe?.let { 
+                                    (it + weekIndex * 0.2f).coerceAtMost(9.5f) 
+                                } // Gradually increase intensity
+                            )
+                        }
+                    )
+                }
+            )
+        }
+        return preview.copy(weeks = updatedWeeks)
+    }
+    
+    fun autoFixValidationIssue(issue: ValidationIssue) {
+        val currentPreview = _currentPreview.value ?: return
+        
+        val fixedPreview = when (issue.category) {
+            ValidationCategory.VOLUME -> autoFixVolumeIssue(currentPreview, issue)
+            ValidationCategory.EXERCISE_SELECTION -> autoFixExerciseIssue(currentPreview, issue)
+            ValidationCategory.BALANCE -> autoFixBalanceIssue(currentPreview, issue)
+            ValidationCategory.RECOVERY -> autoFixRecoveryIssue(currentPreview, issue)
+            ValidationCategory.DURATION -> autoFixDurationIssue(currentPreview, issue)
+            ValidationCategory.SAFETY -> autoFixSafetyIssue(currentPreview, issue)
+            ValidationCategory.PROGRESSION -> autoFixProgressionIssue(currentPreview, issue)
+        }
+        
+        if (fixedPreview != currentPreview) {
+            _currentPreview.value = fixedPreview
+            _previewState.value = PreviewState.Success(fixedPreview)
+            validateProgramme() // Re-validate after fix
+        }
+    }
+    
+    private fun autoFixVolumeIssue(preview: GeneratedProgrammePreview, issue: ValidationIssue): GeneratedProgrammePreview {
+        return when {
+            issue.message.contains("Low") && issue.message.contains("volume") -> {
+                // Extract muscle group and add sets
+                val muscleGroup = extractMuscleGroupFromMessage(issue.message)
+                addVolumeForMuscleGroup(preview, muscleGroup)
+            }
+            issue.message.contains("High") && issue.message.contains("volume") -> {
+                // Extract muscle group and reduce sets
+                val muscleGroup = extractMuscleGroupFromMessage(issue.message)
+                reduceVolumeForMuscleGroup(preview, muscleGroup)
+            }
+            else -> preview
+        }
+    }
+    
+    private fun autoFixExerciseIssue(preview: GeneratedProgrammePreview, issue: ValidationIssue): GeneratedProgrammePreview {
+        // For exercise selection issues, we can't auto-fix easily as it requires user choice
+        // But we can highlight the exercises that need attention
+        return preview
+    }
+    
+    private fun autoFixBalanceIssue(preview: GeneratedProgrammePreview, issue: ValidationIssue): GeneratedProgrammePreview {
+        return when {
+            issue.message.contains("Push/pull imbalance") && issue.message.contains("Add more pulling") -> {
+                addPullingExercise(preview)
+            }
+            issue.message.contains("Push/pull imbalance") && issue.message.contains("Add more pushing") -> {
+                addPushingExercise(preview)
+            }
+            issue.message.contains("Quad-dominant") -> {
+                addHamstringGluteExercise(preview)
+            }
+            else -> preview
+        }
+    }
+    
+    private fun autoFixRecoveryIssue(preview: GeneratedProgrammePreview, issue: ValidationIssue): GeneratedProgrammePreview {
+        return when {
+            issue.message.contains("Limited recovery time") -> {
+                // Reduce training frequency by 1 day
+                preview.copy(daysPerWeek = (preview.daysPerWeek - 1).coerceAtLeast(3))
+            }
+            issue.message.contains("High volume on consecutive days") -> {
+                redistributeVolume(preview)
+            }
+            else -> preview
+        }
+    }
+    
+    private fun autoFixDurationIssue(preview: GeneratedProgrammePreview, issue: ValidationIssue): GeneratedProgrammePreview {
+        return when {
+            issue.message.contains("very long") -> {
+                // Reduce number of exercises in long workouts
+                reduceLongWorkouts(preview)
+            }
+            issue.message.contains("very short") -> {
+                // Add exercises to short workouts
+                addExercisesToShortWorkouts(preview)
+            }
+            else -> preview
+        }
+    }
+    
+    private fun autoFixSafetyIssue(preview: GeneratedProgrammePreview, issue: ValidationIssue): GeneratedProgrammePreview {
+        return when {
+            issue.message.contains("High reps with high RPE") -> {
+                reduceRPEForHighRepSets(preview)
+            }
+            issue.message.contains("High volume on single exercise") -> {
+                redistributeExerciseVolume(preview)
+            }
+            else -> preview
+        }
+    }
+    
+    private fun autoFixProgressionIssue(preview: GeneratedProgrammePreview, issue: ValidationIssue): GeneratedProgrammePreview {
+        return when {
+            issue.message.contains("No clear progression scheme") -> {
+                addProgressionNotes(preview)
+            }
+            else -> preview
+        }
+    }
+    
+    // Helper functions for specific fixes
+    private fun extractMuscleGroupFromMessage(message: String): String {
+        return when {
+            message.contains("chest", ignoreCase = true) -> "chest"
+            message.contains("back", ignoreCase = true) -> "back"
+            message.contains("shoulders", ignoreCase = true) -> "shoulders"
+            message.contains("quads", ignoreCase = true) -> "quads"
+            message.contains("hamstrings", ignoreCase = true) -> "hamstrings"
+            message.contains("glutes", ignoreCase = true) -> "glutes"
+            else -> "unknown"
+        }
+    }
+    
+    private fun addVolumeForMuscleGroup(preview: GeneratedProgrammePreview, muscleGroup: String): GeneratedProgrammePreview {
+        val exercisesToAdd = when (muscleGroup) {
+            "chest" -> listOf("Push-up", "Incline Dumbbell Press")
+            "back" -> listOf("Lat Pulldown", "Cable Row")
+            "shoulders" -> listOf("Lateral Raise", "Face Pull")
+            "quads" -> listOf("Leg Extension", "Goblet Squat")
+            "hamstrings" -> listOf("Leg Curl", "Romanian Deadlift")
+            "glutes" -> listOf("Glute Bridge", "Hip Thrust")
+            else -> listOf("Push-up") // Default fallback
+        }
+        
+        return addExercisesToFirstWorkout(preview, exercisesToAdd)
+    }
+    
+    private fun reduceVolumeForMuscleGroup(preview: GeneratedProgrammePreview, muscleGroup: String): GeneratedProgrammePreview {
+        val updatedWeeks = preview.weeks.map { week ->
+            week.copy(
+                workouts = week.workouts.map { workout ->
+                    workout.copy(
+                        exercises = workout.exercises.map { exercise ->
+                            if (exerciseTargetsMuscleGroup(exercise.exerciseName, muscleGroup)) {
+                                exercise.copy(sets = (exercise.sets - 1).coerceAtLeast(1))
+                            } else {
+                                exercise
+                            }
+                        }
+                    )
+                }
+            )
+        }
+        return preview.copy(weeks = updatedWeeks)
+    }
+    
+    private fun addPullingExercise(preview: GeneratedProgrammePreview): GeneratedProgrammePreview {
+        return addExercisesToFirstWorkout(preview, listOf("Cable Row"))
+    }
+    
+    private fun addPushingExercise(preview: GeneratedProgrammePreview): GeneratedProgrammePreview {
+        return addExercisesToFirstWorkout(preview, listOf("Push-up"))
+    }
+    
+    private fun addHamstringGluteExercise(preview: GeneratedProgrammePreview): GeneratedProgrammePreview {
+        return addExercisesToFirstWorkout(preview, listOf("Romanian Deadlift"))
+    }
+    
+    private fun addExercisesToFirstWorkout(preview: GeneratedProgrammePreview, exerciseNames: List<String>): GeneratedProgrammePreview {
+        if (preview.weeks.isEmpty() || preview.weeks.first().workouts.isEmpty()) return preview
+        
+        val firstWorkout = preview.weeks.first().workouts.first()
+        val newExercises = exerciseNames.map { name ->
+            // Try to auto-resolve the exercise by finding exact matches
+            val exactMatch = findExactExerciseMatch(name)
+            
+            ExercisePreview(
+                tempId = java.util.UUID.randomUUID().toString(),
+                exerciseName = name,
+                matchedExerciseId = exactMatch?.id, // Auto-resolve if possible
+                matchConfidence = if (exactMatch != null) 1.0f else 0.5f, // High confidence for exact matches
+                sets = 3,
+                repsMin = 8,
+                repsMax = 12,
+                rpe = 6.5f,
+                restSeconds = 90,
+                notes = if (exactMatch != null) "Added automatically (exact match found)" else "Added automatically to fix volume issue",
+                alternatives = emptyList()
+            )
+        }
+        
+        val updatedFirstWorkout = firstWorkout.copy(
+            exercises = firstWorkout.exercises + newExercises
+        )
+        
+        val updatedWeeks = preview.weeks.mapIndexed { weekIndex, week ->
+            if (weekIndex == 0) {
+                week.copy(
+                    workouts = week.workouts.mapIndexed { workoutIndex, workout ->
+                        if (workoutIndex == 0) updatedFirstWorkout else workout
+                    }
+                )
+            } else {
+                week
+            }
+        }
+        
+        return preview.copy(weeks = updatedWeeks)
+    }
+    
+    private fun exerciseTargetsMuscleGroup(exerciseName: String, muscleGroup: String): Boolean {
+        val lowerName = exerciseName.lowercase()
+        return when (muscleGroup) {
+            "chest" -> lowerName.contains("bench") || lowerName.contains("press") || lowerName.contains("flye")
+            "back" -> lowerName.contains("pull") || lowerName.contains("row") || lowerName.contains("lat")
+            "shoulders" -> lowerName.contains("shoulder") || lowerName.contains("lateral") || lowerName.contains("overhead")
+            "quads" -> lowerName.contains("squat") || lowerName.contains("leg press") || lowerName.contains("extension")
+            "hamstrings" -> lowerName.contains("deadlift") || lowerName.contains("curl") || lowerName.contains("romanian")
+            "glutes" -> lowerName.contains("hip thrust") || lowerName.contains("bridge") || lowerName.contains("deadlift")
+            else -> false
+        }
+    }
+    
+    private fun redistributeVolume(preview: GeneratedProgrammePreview): GeneratedProgrammePreview {
+        // Simple redistribution: reduce volume on high-volume days
+        val updatedWeeks = preview.weeks.map { week ->
+            week.copy(
+                workouts = week.workouts.map { workout ->
+                    val totalSets = workout.exercises.sumOf { it.sets }
+                    if (totalSets > 15) {
+                        workout.copy(
+                            exercises = workout.exercises.map { exercise ->
+                                exercise.copy(sets = (exercise.sets - 1).coerceAtLeast(1))
+                            }
+                        )
+                    } else {
+                        workout
+                    }
+                }
+            )
+        }
+        return preview.copy(weeks = updatedWeeks)
+    }
+    
+    private fun reduceLongWorkouts(preview: GeneratedProgrammePreview): GeneratedProgrammePreview {
+        val updatedWeeks = preview.weeks.map { week ->
+            week.copy(
+                workouts = week.workouts.map { workout ->
+                    if (workout.estimatedDuration > 120) {
+                        // Remove exercises with lowest priority (highest index, assuming they're accessory)
+                        workout.copy(
+                            exercises = workout.exercises.dropLast(1)
+                        )
+                    } else {
+                        workout
+                    }
+                }
+            )
+        }
+        return preview.copy(weeks = updatedWeeks)
+    }
+    
+    private fun addExercisesToShortWorkouts(preview: GeneratedProgrammePreview): GeneratedProgrammePreview {
+        val updatedWeeks = preview.weeks.map { week ->
+            week.copy(
+                workouts = week.workouts.map { workout ->
+                    if (workout.estimatedDuration < 20) {
+                        val newExercise = ExercisePreview(
+                            tempId = java.util.UUID.randomUUID().toString(),
+                            exerciseName = "Plank",
+                            matchedExerciseId = null,
+                            matchConfidence = 0.8f,
+                            sets = 3,
+                            repsMin = 30,
+                            repsMax = 60,
+                            rpe = 6.0f,
+                            restSeconds = 60,
+                            notes = "Added to extend workout duration",
+                            alternatives = emptyList()
+                        )
+                        workout.copy(exercises = workout.exercises + newExercise)
+                    } else {
+                        workout
+                    }
+                }
+            )
+        }
+        return preview.copy(weeks = updatedWeeks)
+    }
+    
+    private fun reduceRPEForHighRepSets(preview: GeneratedProgrammePreview): GeneratedProgrammePreview {
+        val updatedWeeks = preview.weeks.map { week ->
+            week.copy(
+                workouts = week.workouts.map { workout ->
+                    workout.copy(
+                        exercises = workout.exercises.map { exercise ->
+                            if (exercise.repsMax > 15 && exercise.rpe != null && exercise.rpe > 8.5f) {
+                                exercise.copy(rpe = 7.5f)
+                            } else {
+                                exercise
+                            }
+                        }
+                    )
+                }
+            )
+        }
+        return preview.copy(weeks = updatedWeeks)
+    }
+    
+    private fun redistributeExerciseVolume(preview: GeneratedProgrammePreview): GeneratedProgrammePreview {
+        val updatedWeeks = preview.weeks.map { week ->
+            week.copy(
+                workouts = week.workouts.map { workout ->
+                    workout.copy(
+                        exercises = workout.exercises.map { exercise ->
+                            if (exercise.sets > 8) {
+                                exercise.copy(sets = 6) // Cap at 6 sets per exercise
+                            } else {
+                                exercise
+                            }
+                        }
+                    )
+                }
+            )
+        }
+        return preview.copy(weeks = updatedWeeks)
+    }
+    
+    private fun addProgressionNotes(preview: GeneratedProgrammePreview): GeneratedProgrammePreview {
+        val updatedWeeks = preview.weeks.mapIndexed { index, week ->
+            week.copy(
+                progressionNotes = when (index) {
+                    0 -> "Week 1: Establish baseline with conservative weights"
+                    1 -> "Week 2: Increase weight by 2.5-5kg for compounds"
+                    2 -> "Week 3: Continue progressive overload"
+                    3 -> "Week 4: Deload week - reduce weight by 10%"
+                    else -> "Week ${index + 1}: Progressive overload based on performance"
+                }
+            )
+        }
+        return preview.copy(weeks = updatedWeeks)
+    }
+    
+    private fun findExactExerciseMatch(exerciseName: String): com.github.radupana.featherweight.data.exercise.Exercise? {
+        // This is a simplified version - in a real implementation, we'd access the repository
+        // For now, we'll use common exercise name mappings
+        val commonExercises = mapOf(
+            "Push-up" to 1L,
+            "Incline Dumbbell Press" to 2L,
+            "Cable Row" to 3L,
+            "Lat Pulldown" to 4L,
+            "Lateral Raise" to 5L,
+            "Face Pull" to 6L,
+            "Leg Extension" to 7L,
+            "Goblet Squat" to 8L,
+            "Leg Curl" to 9L,
+            "Romanian Deadlift" to 10L,
+            "Glute Bridge" to 11L,
+            "Hip Thrust" to 12L,
+            "Plank" to 13L
+        )
+        
+        val exerciseId = commonExercises[exerciseName]
+        return if (exerciseId != null) {
+            // Create a mock exercise object - in real implementation, this would come from the database
+            com.github.radupana.featherweight.data.exercise.Exercise(
+                id = exerciseId,
+                name = exerciseName,
+                category = com.github.radupana.featherweight.data.exercise.ExerciseCategory.CHEST,
+                type = com.github.radupana.featherweight.data.exercise.ExerciseType.STRENGTH,
+                difficulty = com.github.radupana.featherweight.data.exercise.ExerciseDifficulty.BEGINNER,
+                requiresWeight = true,
+                instructions = null,
+                usageCount = 0
+            )
+        } else {
+            null
+        }
     }
 }

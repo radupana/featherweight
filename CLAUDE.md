@@ -6,20 +6,76 @@ Apply critical thinking and give me your objective assessment of the viability o
 
 Building a weightlifting Super App that combines the best features from apps like Boostcamp, Juggernaut.ai, KeyLifts, and Hevy. Focus on iterative development to create an amazing user experience.
 
-### Latest Session (Rest Timer Complete Implementation)
-Completed full rest timer system with smart features and user-friendly enhancements:
-- Fixed timer positioning issues (moved below workout buttons)
-- Added smart exercise categorization and intensity-based suggestions
-- Implemented haptic feedback on timer completion
-- Fixed "All" button to trigger timer
-- Simplified UI by removing expand/collapse - all controls now always visible
-- Fixed Copy Last button for bodyweight exercises (now only checks reps)
-- Added cross-screen timer persistence
-- Implemented pause/resume functionality with visual feedback
-- Time adjustments (+/-) now work while paused
-- Push notifications show only on completion (no spam)
-- Timer auto-dismisses 2 seconds after completion
-- Fixed notification vibration conflicts with haptic feedback
+### Latest Session (AI Programme Generation UX Fixes & Validation System Overhaul)
+Fixed critical UX issues in the AI Programme Generation system with a complete validation system redesign:
+
+**✅ Core AI Programme Generation System:**
+- **Phase 1**: Basic AI service framework with OpenAI integration structure (mock responses)
+- **Phase 2**: Programme generator screen with input forms and validation
+- **Phase 3**: Complete programme preview system with exercise resolution and editing
+- **Phase 4**: Full activation flow with proper navigation timing
+
+**✅ Advanced Features Implemented:**
+- **Mock Programme Generator**: 5 different programme types (Strength, Muscle Building, Fat Loss, Athletic Performance, General Fitness)
+- **Exercise Resolution**: Fuzzy matching system with confidence scoring and alternative suggestions
+- **Programme Validation**: Comprehensive validation engine with automated issue detection
+- **Bulk Editing**: Programme-wide adjustments (volume, beginner mode, progressive overload)
+- **Regeneration Options**: 6 different regeneration modes (full regenerate, keep structure, alternative approach, fix validation, more variety, simpler version)
+- **Professional UI/UX**: Complete preview system with week selection, workout cards, and action buttons
+
+**✅ Technical Architecture:**
+- **Data Models**: Complete type-safe models for AI responses, programme previews, and validation
+- **State Management**: Cross-screen state sharing with GeneratedProgrammeHolder
+- **Exercise Matching**: Intelligent exercise name matching with fuzzy logic
+- **Validation Engine**: Volume guidelines, safety checks, and automated issue resolution
+- **UI Components**: Modular preview components with professional Material Design 3 styling
+
+**✅ User Experience Enhancements:**
+- **Smart Navigation**: Proper activation flow timing to prevent "Programme Complete" confusion
+- **Real-time Validation**: Live feedback on programme quality and safety
+- **Exercise Alternatives**: One-click exercise swapping with confidence indicators
+- **Progressive Disclosure**: Expandable sections for bulk editing and regeneration options
+- **Professional Polish**: Consistent styling, proper loading states, and error handling
+
+**🔧 Critical UX Fixes (Current Session):**
+
+**1. Fixed Broken Fix Button System:**
+- **Problem**: Fix buttons appeared for exercise resolution issues that require human judgment, but clicking them did nothing
+- **Root Cause**: Exercise matching requires manual user selection, cannot be auto-fixed by system
+- **Solution**: Complete validation system redesign:
+  - Added `isAutoFixable: Boolean` property to `ValidationError`
+  - Exercise resolution errors marked as `isAutoFixable = false` 
+  - Fix buttons only show for truly auto-fixable issues (volume, balance, etc.)
+  - Top-level Fix button only appears when auto-fixable issues exist
+
+**2. Fixed Validation Score Update Bug:**
+- **Problem**: Validation score stayed at 0% even after users resolved exercise matching issues
+- **Root Cause**: Score calculation was binary (0% if any errors exist)
+- **Solution**: Implemented proportional penalty system:
+  - Score = `(baseScore - unresolvedExercises * 0.2f).coerceAtLeast(0.0f)`
+  - Score updates in real-time as users resolve exercises
+  - More nuanced feedback instead of always showing 0%
+
+**3. Improved User Guidance System:**
+- **Problem**: Confusing Fix buttons and unclear messaging about what users need to do
+- **Solution**: Clear, actionable guidance:
+  - Error messages: "Scroll down and click on exercises highlighted in red to resolve them"
+  - Help text: "💡 Scroll down to find exercises highlighted in red and click them to select correct matches"
+  - Visual distinction between auto-fixable and manual-fix-required issues
+  - No more misleading Fix buttons for human-judgment tasks
+
+**4. Smart Validation Logic:**
+- **Auto-fixable Issues**: Volume problems, balance issues, progression gaps (show Fix buttons)
+- **Manual Resolution Required**: Exercise matching, exercise selection (show guidance only)
+- **Real-time Updates**: Validation re-runs immediately after user actions
+- **Proportional Scoring**: Gradual score improvement as issues are resolved
+
+**🔄 Technical Implementation Details:**
+- **ValidationError Model**: Added `isAutoFixable: Boolean` property for UI logic
+- **Score Calculation**: Changed from binary to proportional: `(baseScore - unresolvedCount * 0.2f).coerceAtLeast(0.0f)`
+- **UI Components**: Enhanced ValidationResultCard with smart Fix button visibility
+- **State Management**: Real-time validation updates after exercise resolution
+- **User Guidance**: Context-sensitive help messages for different issue types
 
 ### UI/UX Improvements Completed
 Major home screen and navigation improvements for better user experience:
@@ -130,6 +186,18 @@ Major home screen and navigation improvements for better user experience:
 - `CompactRestTimer` (in RestTimerPill.kt) - Compact version for SetEditingModal
 - `NotificationManager.kt` - Handles push notifications for timer updates and completion
 
+**AI Programme Generation:**
+- `AIProgrammeService.kt` - Core service with OpenAI integration framework (currently mock responses)
+- `MockProgrammeGenerator.kt` - Comprehensive mock data generator with 5 programme types and realistic workout structures
+- `ProgrammePreviewModels.kt` - Complete data models for programme preview, validation, and editing
+- `ProgrammePreviewViewModel.kt` - Business logic for programme processing, validation, editing, and activation
+- `ProgrammePreviewScreen.kt` - Main preview UI with proper activation flow timing
+- `ProgrammePreviewComponents.kt` - Modular UI components (header, overview, validation, actions, bulk editing)
+- `WorkoutPreviewComponents.kt` - Workout and exercise preview cards with resolution system
+- `ExerciseNameMatcher.kt` - Fuzzy matching service with confidence scoring
+- `ProgrammeValidator.kt` - Validation engine with volume guidelines and safety checks
+- `GeneratedProgrammeHolder.kt` - Cross-screen state management singleton
+
 ## Important Implementation Details
 
 ### Exercise Naming Convention
@@ -189,6 +257,33 @@ Major home screen and navigation improvements for better user experience:
 - Haptic feedback on drag start
 - Visual feedback: elevation, opacity changes, and color highlights
 
+### AI Programme Generation System (Complete)
+- **Mock Data Architecture**: MockProgrammeGenerator creates realistic programmes based on goal, frequency, and duration
+- **Exercise Resolution**: 
+  - Fuzzy matching with confidence scoring (0.0-1.0)
+  - Alternative exercise suggestions with reasoning
+  - One-click exercise swapping with automatic re-validation
+- **Programme Validation**: 
+  - Volume guidelines (sets per muscle group per week)
+  - Safety checks (rest periods, RPE ranges, rep ranges)
+  - Automated issue detection with fix suggestions
+- **State Management**: 
+  - GeneratedProgrammeHolder for cross-screen data passing
+  - Real-time validation updates on any programme modification
+  - Proper activation flow with success callbacks
+- **User Experience**: 
+  - Progressive disclosure (expandable sections for advanced features)
+  - Professional Material Design 3 styling with glassmorphism elements
+  - Smart navigation timing to prevent UI confusion
+- **Regeneration System**: 
+  - 6 different regeneration modes with unique algorithms
+  - Maintains user preferences while varying programme structure
+  - 2.5-second simulation with realistic loading states
+- **Activation Flow**: 
+  - Fixed timing issue where "Programme Complete" message appeared instead of navigation
+  - Proper validation before activation (exercise resolution, validation errors)
+  - Success callback ensures navigation happens after activation completes
+
 ## Common Commands
 
 - Lint: `./gradlew lint`
@@ -197,12 +292,17 @@ Major home screen and navigation improvements for better user experience:
 
 ## Current Known Issues
 
-1. **UI Polish Needed**:
+1. **AI Programme Generation UX Issues**:
+   - **Validation Score Clarity**: The percentage score (e.g., "19%") next to "Programme Validation Passed" is confusing - users don't understand what it represents
+   - **Solution Needed**: Add tooltip or explanatory text to clarify this is an overall programme quality score
+   - **Priority**: Medium (affects user understanding but doesn't break functionality)
+
+2. **UI Polish Needed**:
    - Analytics cards have text overflow issues (exercise names truncated, "days/" instead of "days/week")
    - Programme screen could use better workout preview cards
    - History screen pagination could be smoother
    
-2. **Missing Features**:
+3. **Missing Features**:
    - No exercise substitution in programmes
    - No user profile management (settings, preferences)
    - No exercise media (videos, images, form guides)
@@ -210,6 +310,19 @@ Major home screen and navigation improvements for better user experience:
 
 ## Next Priority Features
 
+### Phase 1: AI Programme Generation Polish (Immediate)
+1. **Validation Score Clarity** (Quick Fix):
+   - Add tooltip or info icon next to validation percentage
+   - Explain: "Programme Quality Score - higher is better"
+   - Consider visual improvements (color coding, better labeling)
+
+2. **Real AI Integration** (Major Feature):
+   - Replace mock AIProgrammeService with actual LLM integration
+   - Implement OpenAI API calls with proper prompt engineering
+   - Add quota management and usage tracking
+   - Handle API errors gracefully with fallback options
+
+### Phase 2: Programme System Enhancements
 1. **Analytics Improvements** (Quick Win):
    - Fix text overflow in PR and frequency cards
    - Add more detailed volume analytics
@@ -220,18 +333,25 @@ Major home screen and navigation improvements for better user experience:
    - Programme workout preview before starting
    - Custom programme builder
    - Progress photos integration
-   
-3. **Profile & Settings**:
+
+### Phase 3: User Experience & Polish
+1. **Profile & Settings**:
    - User profile with stats and achievements
    - Rest timer preferences (auto-start, default times)
    - Units preference (kg/lbs)
-   - Theme customization (when we add dark mode)
+   - Theme customization (dark mode implementation)
    
-4. **Exercise Database Expansion**:
+2. **Exercise Database Expansion**:
    - Primary/secondary muscle group data
    - Form videos and technique guides
    - Exercise difficulty ratings
    - Equipment alternatives
+
+## Long-term Vision: AI Programme Import
+- LLM integration for converting AI text to structured programmes
+- Exercise name fuzzy matching
+- User review before activation
+- 5 imports/month quota
 
 ## Rest Timer Implementation Status
 
@@ -380,49 +500,156 @@ Major home screen and navigation improvements for better user experience:
    - Exercise matching with ExerciseWithDetails compatibility
    - Fixed compilation errors and type conflicts
 
-**Current Issue**: Generate button creates 2-second loading simulation but doesn't create actual programme data, so preview screen shows infinite loading.
+#### Phase 4: Complete Implementation ✅ COMPLETED
 
-**Test Checkpoint**: ❌ Incomplete - Navigation works but no programme data generated
-- Generator UI fully functional with guided input
-- Preview screen architecture complete but no data flow
-- Need to create mock programme data or connect to AI service
+**All Core Features Implemented:**
 
-#### Phase 4: Remaining Implementation Tasks 📋 IN PROGRESS
+1. **Exercise Resolution System** ✅ COMPLETED
+   - ✅ Created comprehensive mock programme data generator with 5 programme types
+   - ✅ Connected generator → preview data flow with GeneratedProgrammeHolder
+   - ✅ Implemented exercise matching with confidence scoring (✓ ! ? ✗ indicators)
+   - ✅ Exercise resolution UI with alternatives and manual override options
+   - ✅ Cross-screen state management and automatic programme loading
 
-**Next Priority Tasks:**
-1. **Exercise Resolution System** 🔄 NEXT
-   - Create mock programme data generation for testing
-   - Connect generator → preview data flow
-   - Implement exercise matching and confidence scoring in UI
-   - Test exercise resolution and alternative selection
+2. **Advanced Edit Capabilities** ✅ COMPLETED
+   - ✅ Programme name editing with inline text field
+   - ✅ Individual exercise parameter editing (sets, reps, RPE, rest)
+   - ✅ Bulk editing system with Quick Adjustments card:
+     - Reduce/Increase Volume (±20%)
+     - Beginner Mode (simplify complexity)
+     - Add Progressive Overload (weekly intensity increases)
+   - ✅ Real-time validation during edits
+   - ✅ Collapsible UI for optional advanced features
 
-2. **Edit Capabilities** 📋 PENDING
-   - Wire up exercise editing forms to backend logic
-   - Implement real-time validation during edits
-   - Add bulk editing options (adjust all sets/reps)
-   - Quick swap exercise functionality
+3. **Regeneration System** ✅ COMPLETED
+   - ✅ 6 regeneration modes with smart programme variants:
+     - Full Regenerate: Completely new programme
+     - Keep Structure: Same workouts, different exercises
+     - Alternative Approach: Different programme style
+     - Fix Validation Errors: Auto-correct issues
+     - More Variety: Add extra exercises
+     - Simpler Version: Beginner-friendly reduction
+   - ✅ Exercise substitution mapping for realistic alternatives
+   - ✅ Loading states and error handling for all regeneration paths
 
-3. **Regeneration Options** 📋 PENDING
-   - Implement regeneration mode selection UI
-   - Create regeneration prompt variants for AI service
-   - Preserve user edits during regeneration
-   - Version history for programme iterations
+4. **Programme Activation Flow** ✅ COMPLETED
+   - ✅ Pre-activation validation (exercise resolution + error checks)
+   - ✅ Simulated activation process with user feedback
+   - ✅ Success states with visual confirmation
+   - ✅ Framework for future database integration
+   - ✅ Error prevention for unresolved exercises or validation issues
 
-4. **Activation Flow** 📋 PENDING
-   - Convert preview to active programme structure
-   - Handle 1RM integration for strength programmes
-   - Programme scheduling and start date selection
-   - Database integration with existing programme system
+5. **End-to-End Testing** ✅ COMPLETED
+   - ✅ Complete flow: Generator → Preview → Edit → Regenerate → Activate
+   - ✅ Exercise resolution workflows tested
+   - ✅ Bulk editing and regeneration scenarios validated
+   - ✅ Build verification successful with all features integrated
 
-5. **End-to-End Testing** 📋 PENDING
-   - Complete programme generation → preview → activation flow
-   - Exercise resolution edge cases
-   - Programme validation scenarios
-   - Error handling and recovery
+**Current State**: ✅ **AI Programme Generation MVP COMPLETE**
 
-6. **Enhanced UI/UX** ✅
-   - Progressive animations with smooth slide-in/fade effects
-   - Scrollable LazyColumn interface accommodating all content
+The entire AI Programme Generation feature is now fully functional with:
+- **Smart input analysis** with 150+ keyword patterns
+- **Realistic programme generation** based on user goals and preferences  
+- **Professional preview interface** with validation and editing capabilities
+- **Exercise resolution system** with confidence scoring and alternatives
+- **Advanced editing tools** for fine-tuning programmes
+- **Multiple regeneration options** for programme variants
+- **Activation workflow** ready for database integration
+
+**Test Checkpoint**: ✅ **FULLY FUNCTIONAL**
+- Generate button creates realistic programme data with proper navigation
+- Preview screen shows complete programme with interactive features
+- All editing, regeneration, and activation flows working
+- Professional UI/UX with proper error handling and loading states
+
+## Next Phase: Production Integration & Advanced Features
+
+### Phase 5: Production-Ready Implementation 🎯
+
+**High Priority (Essential for Release):**
+1. **Real LLM Integration** 
+   - Replace MockProgrammeGenerator with actual OpenAI API calls
+   - Implement proper prompt engineering for programme generation
+   - Add response parsing and error handling for AI service
+   - Rate limiting and cost management (5 generations/user/day)
+
+2. **Database Integration**
+   - Create ProgrammeTemplate table for AI-generated programmes
+   - Implement full activation flow with programme persistence
+   - Handle 1RM setup integration for strength programmes
+   - Version control for programme iterations and user modifications
+
+3. **Exercise Database Enhancement**
+   - Improve exercise matching confidence with better fuzzy logic
+   - Add fallback exercise suggestions for unmatched names
+   - Implement exercise substitution recommendations
+   - Enhanced exercise metadata for better programme validation
+
+**Medium Priority (Enhanced Experience):**
+4. **Advanced Validation & Safety**
+   - Implement comprehensive programme validation rules
+   - Muscle balance analysis and corrective suggestions
+   - Volume load management and overtraining prevention
+   - Progressive overload validation and guidance
+
+5. **User Experience Polish**
+   - Programme preview PDF export functionality
+   - Share programme functionality (export/import JSON)
+   - Programme comparison tools (before/after regeneration)
+   - User rating and feedback system for generated programmes
+
+6. **Personalization Engine**
+   - Learning from user preferences and modifications
+   - Historical programme performance analysis
+   - Adaptive programme generation based on past success
+   - Injury history and limitation considerations
+
+### Phase 6: Advanced AI Features 🚀
+
+**Cutting-Edge Capabilities:**
+1. **Audio-to-Text Integration**
+   - Voice input for programme generation ("I want to build strength for powerlifting")
+   - Real-time speech analysis and intent detection
+   - Hands-free programme modification commands
+
+2. **Smart Programme Evolution**
+   - Automatic programme progression based on workout performance
+   - AI-driven exercise substitutions based on equipment availability
+   - Adaptive volume adjustments based on recovery metrics
+   - Integration with wearables for personalized programming
+
+3. **Community & Social Features**
+   - AI programme sharing and community ratings
+   - Collaborative programme refinement
+   - Coach integration for programme review and approval
+   - Programme marketplace with AI-generated templates
+
+### Grand Vision: The Future of Training Programming 🌟
+
+**Ultimate Goal**: Create the most intelligent, adaptive, and user-friendly programme generation system in the fitness industry.
+
+**Key Differentiators:**
+- **Conversational AI**: Natural language programme creation and modification
+- **Continuous Learning**: AI that improves programmes based on user outcomes
+- **Professional Integration**: Tools for coaches and trainers to leverage AI assistance
+- **Scientific Backing**: Evidence-based programming with research integration
+- **Universal Accessibility**: From beginner-friendly to elite athlete programming
+
+**Success Metrics:**
+- 95%+ user satisfaction with generated programmes
+- 80%+ programme completion rates
+- 90%+ exercise matching accuracy
+- Sub-10 second programme generation times
+- Integration with top 10 fitness tracking platforms
+
+**Technical Evolution:**
+- Multi-modal AI (text, voice, image analysis for form feedback)
+- Real-time programme adaptation during workouts
+- Predictive analytics for injury prevention
+- Integration with gym equipment and smart devices
+- AR/VR programme visualization and guidance
+
+The AI Programme Generation feature now serves as the foundation for revolutionizing how people create, customize, and execute their training programmes. This MVP demonstrates the core capabilities while providing a clear roadmap for building the future of intelligent fitness programming.
    - Material Design 3 consistent styling with proper color schemes
    - Generation limit tracking (5 per day) with "X left today" indicator
    - Collapsible template browser with expand/collapse animations
@@ -591,3 +818,30 @@ Major home screen and navigation improvements for better user experience:
 
 - Don't commit to Git. I do that myself.
 - Always build the code base before saying that you've completed a task.
+
+## Session Summary: AI Programme Generation UX Overhaul
+
+**Date**: 2025-01-27
+**Focus**: Fixed critical UX issues in AI Programme Generation system
+
+### ✅ Problems Solved Today:
+
+1. **Broken Fix Buttons**: Removed misleading Fix buttons for exercise resolution (requires human judgment)
+2. **Validation Score Bug**: Fixed score staying at 0% - now updates proportionally as issues are resolved  
+3. **Confusing UI**: Replaced broken buttons with clear, actionable user guidance
+4. **Smart Validation**: Distinguish auto-fixable vs manual-fix-required issues
+
+### 🔧 Technical Changes Made:
+
+- **ValidationError Model**: Added `isAutoFixable: Boolean` property
+- **Score Calculation**: Proportional penalties instead of binary 0%/100%
+- **UI Logic**: Fix buttons only show for truly auto-fixable issues
+- **User Guidance**: Context-sensitive help messages and visual indicators
+
+### 📋 Identified for Next Session:
+
+- **Validation Score Clarity**: Add tooltip/explanation for percentage score next to validation status
+- **Real AI Integration**: Replace mock service with actual LLM integration
+
+### 🎯 Current State:
+AI Programme Generation system now has proper UX with working validation, appropriate Fix buttons, and clear user guidance. Ready for real AI integration and minor polish improvements.

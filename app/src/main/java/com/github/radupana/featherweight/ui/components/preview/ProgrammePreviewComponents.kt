@@ -219,6 +219,7 @@ private fun OverviewItem(
 fun ValidationResultCard(
     validationResult: ValidationResult,
     onFixIssue: (ValidationIssue) -> Unit,
+    onBulkFix: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -262,16 +263,36 @@ fun ValidationResultCard(
                 Spacer(modifier = Modifier.weight(1f))
                 
                 // Validation Score
-                Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(8.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "${(validationResult.score * 100).toInt()}%",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "${(validationResult.score * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                    
+                    // Top-level Fix button for auto-fixable issues only
+                    val hasAutoFixableIssues = validationResult.errors.any { it.isAutoFixable }
+                    if (hasAutoFixableIssues && onBulkFix != null) {
+                        TextButton(
+                            onClick = onBulkFix,
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text(
+                                "Fix",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             }
             
@@ -354,7 +375,7 @@ private fun ValidationIssueItem(
             }
         }
         
-        if (issue is ValidationError) {
+        if (issue is ValidationError && issue.isAutoFixable) {
             TextButton(onClick = onFix) {
                 Text("Fix")
             }
@@ -476,12 +497,174 @@ fun ActionButtonsCard(
         }
         
         if (!validationResult.isValid) {
-            Text(
-                text = "Fix validation errors before activating",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Issues to fix before activating:",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.error
+                )
+                
+                validationResult.errors.forEach { error ->
+                    Row(
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(top = 1.dp)
+                        )
+                        Text(
+                            text = error.message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                
+                val hasExerciseResolutionIssues = validationResult.errors.any { 
+                    it.category == ValidationCategory.EXERCISE_SELECTION && !it.isAutoFixable 
+                }
+                if (hasExerciseResolutionIssues) {
+                    Text(
+                        text = "💡 Scroll down to find exercises highlighted in red and click them to select correct matches",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
         }
     }
+}
+
+@Composable
+fun BulkEditCard(
+    onBulkEdit: (QuickEditAction) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var showBulkOptions by remember { mutableStateOf(false) }
+    
+    Card(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showBulkOptions = !showBulkOptions },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Tune,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Quick Adjustments",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Icon(
+                    if (showBulkOptions) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (showBulkOptions) "Hide options" else "Show options"
+                )
+            }
+            
+            AnimatedVisibility(
+                visible = showBulkOptions,
+                enter = slideInVertically() + expandVertically(),
+                exit = slideOutVertically() + shrinkVertically()
+            ) {
+                Column(
+                    modifier = Modifier.padding(top = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Apply changes to the entire programme:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                    
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        item {
+                            BulkEditChip(
+                                label = "Reduce Volume",
+                                icon = Icons.Default.Remove,
+                                onClick = { onBulkEdit(QuickEditAction.AdjustVolume(0.8f)) }
+                            )
+                        }
+                        item {
+                            BulkEditChip(
+                                label = "Increase Volume",
+                                icon = Icons.Default.Add,
+                                onClick = { onBulkEdit(QuickEditAction.AdjustVolume(1.2f)) }
+                            )
+                        }
+                        item {
+                            BulkEditChip(
+                                label = "Beginner Mode",
+                                icon = Icons.Default.School,
+                                onClick = { onBulkEdit(QuickEditAction.SimplifyForBeginner) }
+                            )
+                        }
+                        item {
+                            BulkEditChip(
+                                label = "Add Progression",
+                                icon = Icons.Default.TrendingUp,
+                                onClick = { onBulkEdit(QuickEditAction.AddProgressiveOverload) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BulkEditChip(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    FilterChip(
+        onClick = onClick,
+        label = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        },
+        selected = false,
+        modifier = modifier
+    )
 }

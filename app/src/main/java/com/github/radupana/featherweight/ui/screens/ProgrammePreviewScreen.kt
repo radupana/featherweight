@@ -83,9 +83,16 @@ fun ProgrammePreviewScreen(
                     onToggleEdit = viewModel::toggleExerciseEdit,
                     onShowAlternatives = viewModel::showExerciseAlternatives,
                     onShowResolution = viewModel::showExerciseResolution,
+                    onBulkEdit = viewModel::applyBulkEdit,
+                    onProgrammeNameChanged = viewModel::updateProgrammeName,
                     onRegenerate = viewModel::regenerate,
-                    onActivate = { viewModel.activateProgramme(java.time.LocalDate.now()) },
-                    onActivated = onActivated,
+                    onActivate = { 
+                        viewModel.activateProgramme(
+                            startDate = java.time.LocalDate.now(),
+                            onSuccess = onActivated
+                        )
+                    },
+                    onFixIssue = viewModel::autoFixValidationIssue,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
@@ -149,9 +156,11 @@ private fun SuccessPreviewContent(
     onToggleEdit: (String) -> Unit,
     onShowAlternatives: (String, Boolean) -> Unit,
     onShowResolution: (String, Boolean) -> Unit,
+    onBulkEdit: (QuickEditAction) -> Unit,
+    onProgrammeNameChanged: (String) -> Unit,
     onRegenerate: (RegenerationMode) -> Unit,
     onActivate: () -> Unit,
-    onActivated: () -> Unit,
+    onFixIssue: (ValidationIssue) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showRegenerateDialog by remember { mutableStateOf(false) }
@@ -165,7 +174,7 @@ private fun SuccessPreviewContent(
         item {
             ProgrammeHeaderCard(
                 preview = preview,
-                onNameChanged = { /* TODO: Implement name editing */ }
+                onNameChanged = onProgrammeNameChanged
             )
         }
         
@@ -179,7 +188,15 @@ private fun SuccessPreviewContent(
             item {
                 ValidationResultCard(
                     validationResult = preview.validationResult,
-                    onFixIssue = { /* TODO: Implement auto-fix */ }
+                    onFixIssue = onFixIssue,
+                    onBulkFix = {
+                        // Apply auto-fix to all auto-fixable issues only
+                        preview.validationResult.errors
+                            .filter { it.isAutoFixable }
+                            .forEach { error ->
+                                onFixIssue(error)
+                            }
+                    }
                 )
             }
         }
@@ -193,6 +210,13 @@ private fun SuccessPreviewContent(
                     onWeekSelected = onWeekSelected
                 )
             }
+        }
+        
+        // Bulk Edit Options
+        item {
+            BulkEditCard(
+                onBulkEdit = onBulkEdit
+            )
         }
         
         // Workouts for Selected Week
@@ -217,10 +241,7 @@ private fun SuccessPreviewContent(
             ActionButtonsCard(
                 validationResult = preview.validationResult,
                 onRegenerate = { showRegenerateDialog = true },
-                onActivate = {
-                    onActivate()
-                    onActivated()
-                }
+                onActivate = onActivate
             )
         }
     }
