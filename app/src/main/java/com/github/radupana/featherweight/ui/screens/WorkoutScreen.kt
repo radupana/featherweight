@@ -334,6 +334,8 @@ fun WorkoutScreen(
                 onAddTime = { restTimerViewModel.addTime(30.seconds) },
                 onSubtractTime = { restTimerViewModel.subtractTime(30.seconds) },
                 onSkip = { restTimerViewModel.stopTimer() },
+                onTogglePause = { restTimerViewModel.togglePause() },
+                onStartPreset = { duration -> restTimerViewModel.startTimer(duration) },
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
             }

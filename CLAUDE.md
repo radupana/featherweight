@@ -6,15 +6,20 @@ Apply critical thinking and give me your objective assessment of the viability o
 
 Building a weightlifting Super App that combines the best features from apps like Boostcamp, Juggernaut.ai, KeyLifts, and Hevy. Focus on iterative development to create an amazing user experience.
 
-### Latest Session (Rest Timer Completion)
-Completed full implementation of smart rest timer system:
+### Latest Session (Rest Timer Complete Implementation)
+Completed full rest timer system with smart features and user-friendly enhancements:
 - Fixed timer positioning issues (moved below workout buttons)
 - Added smart exercise categorization and intensity-based suggestions
 - Implemented haptic feedback on timer completion
 - Fixed "All" button to trigger timer
 - Simplified UI by removing expand/collapse - all controls now always visible
-- Fixed Copy Last button for bodyweight exercises
+- Fixed Copy Last button for bodyweight exercises (now only checks reps)
 - Added cross-screen timer persistence
+- Implemented pause/resume functionality with visual feedback
+- Time adjustments (+/-) now work while paused
+- Push notifications show only on completion (no spam)
+- Timer auto-dismisses 2 seconds after completion
+- Fixed notification vibration conflicts with haptic feedback
 
 ## Technical Architecture
 
@@ -100,11 +105,12 @@ Completed full implementation of smart rest timer system:
 - `ExerciseCard.kt` - Shows usage count badge when > 0, maintains visual hierarchy
 
 **Rest Timer:**
-- `RestTimer.kt` - Domain class with countdown logic and progress tracking
-- `RestTimerViewModel.kt` - Timer state management with coroutines, haptic feedback, smart suggestions
-- `RestTimerPill.kt` - Main timer UI with glassmorphism (simplified - all controls visible)
+- `RestTimer.kt` - Domain class with countdown logic, progress tracking, and pause/resume support
+- `RestTimerViewModel.kt` - Timer state management with coroutines, haptic feedback, smart suggestions, notifications
+- `RestTimerPill.kt` - Main timer UI with glassmorphism (simplified - all controls visible including pause/resume)
 - `RestTimeCalculator.kt` - Exercise categorization and intensity-based rest calculations
 - `CompactRestTimer` (in RestTimerPill.kt) - Compact version for SetEditingModal
+- `NotificationManager.kt` - Handles push notifications for timer updates and completion
 
 ## Important Implementation Details
 
@@ -119,12 +125,13 @@ Completed full implementation of smart rest timer system:
 - Usage counts calculated from both real workouts and seeded test data
 - Discrete badge display shows "×" format only when count > 0
 
-### Rest Timer System
+### Rest Timer System (Complete)
 - **Smart Auto-start**: Intelligent timer based on exercise type and intensity
 - **UI Design**: 
-  - Main pill: Positioned below workout buttons, all controls visible (+30s/-30s/Skip)
-  - Compact pill: In SetEditingModal with +15s/-15s/Skip controls
+  - Main pill: Positioned below workout buttons, all controls visible (Pause/Play, +30s/-30s/Skip)
+  - Compact pill: In SetEditingModal with Pause/Play, +15s/-15s/Skip controls
   - Glassmorphism aesthetic with smooth animations
+  - Auto-dismisses 2 seconds after completion
 - **Exercise Intelligence**:
   - Categorizes exercises by name patterns (Compound/Accessory/Isolation/Cardio)
   - Adjusts rest based on intensity (reps < 5 = Heavy +30%, reps > 12 = Light -20%)
@@ -132,11 +139,18 @@ Completed full implementation of smart rest timer system:
 - **State Management**: 
   - RestTimerViewModel hoisted to MainActivity for cross-screen persistence
   - Coroutines for countdown with proper lifecycle management
+  - Pause/resume functionality with state preservation
+  - Time adjustments work in any state (running or paused)
+- **User Feedback**:
   - Haptic feedback on completion (pattern: 100ms on, 50ms off, repeated 3x)
+  - Push notification on completion only (no spam)
+  - Visual feedback: red text when finished, blue when paused
+  - "(Paused)" text indicator when timer is paused
 - **Integration Points**:
   - Auto-starts from set completion in SetEditingModal
   - Manual start from "All" button in exercise header
   - Timer visible in both WorkoutScreen and SetEditingModal
+  - Notification permission requested on app start (Android 13+)
 
 ### Programme Workouts
 - Sequential day numbering (1,2,3,4) regardless of week days
@@ -219,20 +233,45 @@ Completed full implementation of smart rest timer system:
 - **Intensity Adjustments**: Heavy sets (+30%), Light sets (-20%) based on rep ranges
 - **Visual Feedback**: Shows exercise type reasoning (e.g., "Compound • Heavy", "Isolation")
 - **Manual Controls**: 
-  - Main timer: +30s/-30s/Skip buttons always visible
-  - Compact timer: +15s/-15s/Skip buttons always visible
+  - Main timer: Pause/Resume, +30s/-30s/Skip buttons always visible
+  - Compact timer: Pause/Resume, +15s/-15s/Skip buttons always visible
+  - Pause state shown with color change and "(Paused)" text
 - **Optimal Positioning**: Timer appears below action buttons in WorkoutScreen, compact in SetEditingModal
 - **Cross-screen Integration**: Timer visible with appropriate UI in both WorkoutScreen and SetEditingModal
 - **Animation**: Smooth expand/shrink animations that respect content flow
 - **Haptic Feedback**: Distinctive vibration pattern on timer completion
 - **Timer Persistence**: ViewModel hoisted to MainActivity for cross-screen continuity
 - **Bug Fixes**: "All" button now properly triggers smart timer, Copy Last button appears for bodyweight exercises
+- **Pause/Resume**: Timer can be paused and resumed with visual feedback, time adjustments work while paused
+- **Push Notifications**: Shows single notification only when timer completes (Android 13+ permission handled)
+- **Auto-dismiss**: Timer automatically disappears 2 seconds after completion
+
+### Rest Timer Known Limitations
+- No exercise-specific rest preferences (always uses smart suggestions)
+- No timer presets for quick manual selection
+- No sound/audio cues (only haptic and visual feedback)
+- Timer resets when navigating away from workout screens
+- No rest history tracking or analytics
 
 ### 📋 Future Enhancements
-- **User Preferences**: Settings for auto-start toggle, default rest periods per exercise type
-- **Sound Notifications**: Optional audio alerts when timer completes
-- **Advanced Features**: Rest history tracking, personalized ML suggestions
-- **UI Polish**: Drag-to-reposition timer pill, minimize options
+
+#### High Priority (Remaining)
+- **Exercise-Specific Settings**: Remember user's preferred rest time per exercise
+- **Timer Presets**: Quick access buttons for common rest periods (30s, 60s, 90s, 2min, 3min)
+
+#### Medium Priority
+- **Circular Progress Visual**: Replace linear progress with circular timer (more glanceable)
+- **Audio Options**: Countdown beeps in final 5 seconds, completion sound
+- **Rest Analytics**: Track average rest times per exercise, show trends
+- **Different Timer Modes**: Separate timers for warm-up vs working sets
+- **Timer Position Options**: Bottom bar vs floating pill preference
+
+#### Low Priority
+- **Timer Templates**: Pre-configured for Strength/Hypertrophy/Endurance
+- **Set-Specific Rest**: Different rest times based on set number or RPE
+- **Auto-Progression**: Suggest rest adjustments based on performance patterns
+- **Motivational Features**: Quotes, form reminders during rest
+- **Smart Integrations**: Wearables for HR recovery, smart home devices
 - **Exercise Database Integration**: Use actual Exercise entities for more precise categorization
 
 ### 📋 Phase 4 Enhancements (Advanced Features)
@@ -314,4 +353,5 @@ Completed full implementation of smart rest timer system:
 
 ## Development Workflow
 
-- don't commit to Git. I do that myself.
+- Don't commit to Git. I do that myself.
+- Always build the code base before saying that you've completed a task.

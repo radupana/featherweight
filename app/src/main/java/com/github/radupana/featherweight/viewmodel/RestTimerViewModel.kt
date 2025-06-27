@@ -11,7 +11,9 @@ import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.domain.RestTimer
 import com.github.radupana.featherweight.domain.RestTimerState
 import com.github.radupana.featherweight.domain.RestTimeCalculator
+import com.github.radupana.featherweight.utils.RestTimerNotificationManager
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +27,8 @@ class RestTimerViewModel(
     private val restTimer = RestTimer()
     private var timerJob: Job? = null
     private var lastTimerFinishedId: String? = null // Prevent duplicate notifications
+    private var currentExerciseRestPreference: Duration? = null // Store current exercise preference
+    private val notificationManager = context?.let { RestTimerNotificationManager(it) }
     
     private val _timerState = MutableStateFlow(RestTimerState())
     val timerState: StateFlow<RestTimerState> = _timerState.asStateFlow()
@@ -43,6 +47,13 @@ class RestTimerViewModel(
                     if (lastTimerFinishedId != timerId) {
                         lastTimerFinishedId = timerId
                         triggerTimerCompletedFeedback()
+                        notificationManager?.showRestCompleteNotification(state.exerciseName)
+                        
+                        // Auto-dismiss timer after a short delay
+                        viewModelScope.launch {
+                            delay(2.seconds) // Show finished state for 2 seconds
+                            stopTimer()
+                        }
                     }
                 }
             }
@@ -84,6 +95,13 @@ class RestTimerViewModel(
                     if (lastTimerFinishedId != timerId) {
                         lastTimerFinishedId = timerId
                         triggerTimerCompletedFeedback()
+                        notificationManager?.showRestCompleteNotification(state.exerciseName)
+                        
+                        // Auto-dismiss timer after a short delay
+                        viewModelScope.launch {
+                            delay(2.seconds) // Show finished state for 2 seconds
+                            stopTimer()
+                        }
                     }
                 }
             }
@@ -93,24 +111,35 @@ class RestTimerViewModel(
     fun stopTimer() {
         timerJob?.cancel()
         _timerState.value = RestTimerState()
+        notificationManager?.cancelNotification()
     }
     
     fun addTime(additionalTime: Duration) {
         val currentState = _timerState.value
-        if (currentState.isActive && !currentState.isPaused) {
+        if (currentState.isActive) {
             val newDuration = currentState.remainingTime + additionalTime
+            val wasPaused = currentState.isPaused
             startTimerWithState(newDuration, currentState.exerciseName, currentState.suggestion)
+            // Restore pause state if it was paused
+            if (wasPaused) {
+                pauseTimer()
+            }
         }
     }
     
     fun subtractTime(timeToSubtract: Duration) {
         val currentState = _timerState.value
-        if (currentState.isActive && !currentState.isPaused) {
+        if (currentState.isActive) {
             val newDuration = (currentState.remainingTime - timeToSubtract).coerceAtLeast(Duration.ZERO)
             if (newDuration == Duration.ZERO) {
                 stopTimer()
             } else {
+                val wasPaused = currentState.isPaused
                 startTimerWithState(newDuration, currentState.exerciseName, currentState.suggestion)
+                // Restore pause state if it was paused
+                if (wasPaused) {
+                    pauseTimer()
+                }
             }
         }
     }
@@ -129,6 +158,13 @@ class RestTimerViewModel(
                     if (lastTimerFinishedId != timerId) {
                         lastTimerFinishedId = timerId
                         triggerTimerCompletedFeedback()
+                        notificationManager?.showRestCompleteNotification(state.exerciseName)
+                        
+                        // Auto-dismiss timer after a short delay
+                        viewModelScope.launch {
+                            delay(2.seconds) // Show finished state for 2 seconds
+                            stopTimer()
+                        }
                     }
                 }
             }
@@ -156,9 +192,26 @@ class RestTimerViewModel(
         }
     }
     
+    fun pauseTimer() {
+        restTimer.pause()
+    }
+    
+    fun resumeTimer() {
+        restTimer.resume()
+    }
+    
+    fun togglePause() {
+        if (_timerState.value.isPaused) {
+            resumeTimer()
+        } else {
+            pauseTimer()
+        }
+    }
+    
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
+        notificationManager?.cancelNotification()
     }
 }
 

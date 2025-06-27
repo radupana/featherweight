@@ -161,7 +161,8 @@ fun SetEditingModal(
                     timerState = timerState,
                     onAddTime = { restTimerViewModel.addTime(15.seconds) },
                     onSubtractTime = { restTimerViewModel.subtractTime(15.seconds) },
-                    onSkip = { restTimerViewModel.stopTimer() }
+                    onSkip = { restTimerViewModel.stopTimer() },
+                    onTogglePause = { restTimerViewModel.togglePause() }
                 )
 
                 // Content area with optimal space usage

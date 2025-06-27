@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.domain.RestTimerState
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
@@ -28,6 +31,8 @@ fun RestTimerPill(
     onAddTime: () -> Unit,
     onSubtractTime: () -> Unit,
     onSkip: () -> Unit,
+    onTogglePause: () -> Unit,
+    onStartPreset: (Duration) -> Unit,
     modifier: Modifier = Modifier
 ) {
     AnimatedVisibility(
@@ -61,7 +66,9 @@ fun RestTimerPill(
                     timerState = timerState,
                     onAddTime = onAddTime,
                     onSubtractTime = onSubtractTime,
-                    onSkip = onSkip
+                    onSkip = onSkip,
+                    onTogglePause = onTogglePause,
+                    onStartPreset = onStartPreset
                 )
             }
         }
@@ -75,6 +82,7 @@ fun CompactRestTimer(
     onAddTime: () -> Unit,
     onSubtractTime: () -> Unit,
     onSkip: () -> Unit,
+    onTogglePause: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     AnimatedVisibility(
@@ -113,6 +121,8 @@ fun CompactRestTimer(
                         fontWeight = FontWeight.SemiBold,
                         color = if (timerState.isFinished) {
                             MaterialTheme.colorScheme.error
+                        } else if (timerState.isPaused) {
+                            MaterialTheme.colorScheme.primary
                         } else {
                             MaterialTheme.colorScheme.onSurface
                         }
@@ -131,6 +141,24 @@ fun CompactRestTimer(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Pause/Resume button
+                    FilledIconButton(
+                        onClick = onTogglePause,
+                        modifier = Modifier.size(32.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = if (timerState.isPaused) 
+                                MaterialTheme.colorScheme.primary 
+                            else 
+                                MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Icon(
+                            if (timerState.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                            contentDescription = if (timerState.isPaused) "Resume" else "Pause",
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    
                     FilledTonalIconButton(
                         onClick = onSubtractTime,
                         modifier = Modifier.size(32.dp)
@@ -175,7 +203,9 @@ private fun AllControlsTimerPill(
     timerState: RestTimerState,
     onAddTime: () -> Unit,
     onSubtractTime: () -> Unit,
-    onSkip: () -> Unit
+    onSkip: () -> Unit,
+    onTogglePause: () -> Unit,
+    onStartPreset: (Duration) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -196,11 +226,17 @@ private fun AllControlsTimerPill(
             )
             Column {
                 Text(
-                    text = formatTime(timerState.remainingTime),
+                    text = if (timerState.isPaused) {
+                        "${formatTime(timerState.remainingTime)} (Paused)"
+                    } else {
+                        formatTime(timerState.remainingTime)
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = if (timerState.isFinished) {
                         MaterialTheme.colorScheme.error
+                    } else if (timerState.isPaused) {
+                        MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.onSurface
                     }
@@ -220,6 +256,24 @@ private fun AllControlsTimerPill(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Pause/Resume button
+            FilledIconButton(
+                onClick = onTogglePause,
+                modifier = Modifier.size(36.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = if (timerState.isPaused) 
+                        MaterialTheme.colorScheme.primary 
+                    else 
+                        MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Icon(
+                    if (timerState.isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                    contentDescription = if (timerState.isPaused) "Resume" else "Pause",
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            
             FilledTonalIconButton(
                 onClick = onSubtractTime,
                 modifier = Modifier.size(36.dp)
