@@ -367,7 +367,6 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
                 _uiState.value =
                     _uiState.value.copy(
                         isCreating = false,
-                        successMessage = "Programme '${customName ?: template.name}' created and activated!",
                     )
                 println("✅ Programme creation completed successfully")
 
@@ -392,10 +391,7 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
                 _activeProgramme.value = null
                 _programmeProgress.value = null
 
-                _uiState.value =
-                    _uiState.value.copy(
-                        successMessage = "Programme deactivated",
-                    )
+                // Programme deactivated successfully - no notification needed
 
                 // Reload to show deactivated programme
                 loadProgrammeData()
@@ -412,10 +408,7 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             try {
                 repository.activateProgramme(programme.id)
-                _uiState.value =
-                    _uiState.value.copy(
-                        successMessage = "Programme '${programme.name}' reactivated!",
-                    )
+                // Programme reactivated successfully - no notification needed
                 // Reload data to update UI
                 loadProgrammeData()
             } catch (e: Exception) {
@@ -431,10 +424,7 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             try {
                 repository.deleteProgramme(programme)
-                _uiState.value =
-                    _uiState.value.copy(
-                        successMessage = "Programme '${programme.name}' deleted successfully",
-                    )
+                // Programme deleted successfully - no notification needed
                 // Refresh data to update the UI
                 loadProgrammeData()
             } catch (e: Exception) {

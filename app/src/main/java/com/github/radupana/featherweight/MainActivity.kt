@@ -262,6 +262,7 @@ fun MainAppWithNavigation(
                     onStartFreestyle = { onScreenChange(Screen.ACTIVE_WORKOUT) },
                     onBrowseProgrammes = { onScreenChange(Screen.PROGRAMMES) },
                     onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
+                    onStartProgrammeWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -343,10 +344,11 @@ fun MainAppWithNavigation(
                 val programmeViewModel: ProgrammeViewModel = viewModel()
                 val workoutViewModel: WorkoutViewModel = viewModel()
 
-                // Refresh programme data when returning to this screen
+                // Refresh programme data and in-progress workouts when returning to this screen
                 LaunchedEffect(currentScreen) {
                     if (currentScreen == Screen.ACTIVE_PROGRAMME) {
                         programmeViewModel.refreshData()
+                        workoutViewModel.loadInProgressWorkouts()
                     }
                 }
 

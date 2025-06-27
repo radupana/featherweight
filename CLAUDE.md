@@ -21,6 +21,15 @@ Completed full rest timer system with smart features and user-friendly enhanceme
 - Timer auto-dismisses 2 seconds after completion
 - Fixed notification vibration conflicts with haptic feedback
 
+### UI/UX Improvements Completed
+Major home screen and navigation improvements for better user experience:
+- **Home Screen Organization**: Separated programme workouts from freestyle workouts into distinct sections
+- **Consolidated Programme Display**: Eliminated redundant programme workout cards - all info now in single Active Programme card
+- **Direct Navigation**: Continue/Start buttons go directly to workout, skipping redundant Active Programme screen step
+- **Removed Confusing Notifications**: No more delayed activation/deactivation messages on wrong screens
+- **Clear Visual Hierarchy**: Programme workouts under PROGRAMMES section, freestyle under FREESTYLE WORKOUTS
+- **Smart Workout Display**: Shows in-progress workout details or "Start Next Workout" button as appropriate
+
 ## Technical Architecture
 
 - **Language**: Kotlin
@@ -51,6 +60,15 @@ Completed full rest timer system with smart features and user-friendly enhanceme
 - **Exercise Validation**: All programme exercises auto-created if missing from database
 
 ### Recent Improvements
+
+**In-Progress Workouts & Programme Integration:**
+- ✅ Enhanced workout tracking to include programme metadata
+- ✅ Fixed multiple in-progress workouts display on Home screen
+- ✅ Visual distinction between programme and freestyle workouts
+- ✅ ActiveProgrammeScreen recognizes existing workouts
+- ✅ Programme workouts link back to ActiveProgrammeScreen
+- ✅ Completed sets tracking for in-progress workouts
+- ✅ Programme 1RM auto-population from user profile
 
 **Exercise & Workout Management:**
 - ✅ Fixed navigation to return to correct screen (HOME/HISTORY)

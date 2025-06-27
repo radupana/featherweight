@@ -49,10 +49,10 @@ fun ProgrammesScreen(
     var showDeactivateConfirmDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
-    // Handle messages
-    LaunchedEffect(uiState.error, uiState.successMessage) {
-        // Auto-clear messages after 3 seconds
-        if (uiState.error != null || uiState.successMessage != null) {
+    // Handle error messages
+    LaunchedEffect(uiState.error) {
+        // Auto-clear error messages after 3 seconds
+        if (uiState.error != null) {
             kotlinx.coroutines.delay(3000)
             viewModel.clearMessages()
         }
@@ -109,22 +109,6 @@ fun ProgrammesScreen(
                 }
             }
 
-            uiState.successMessage?.let { message ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = compactPadding),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF4CAF50).copy(alpha = 0.1f),
-                    ),
-                ) {
-                    Text(
-                        text = message,
-                        modifier = Modifier.padding(compactPadding),
-                        color = Color(0xFF4CAF50),
-                    )
-                }
-            }
 
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(compactPadding),

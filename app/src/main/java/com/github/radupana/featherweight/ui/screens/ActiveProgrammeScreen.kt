@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.programme.WorkoutStructure
+import com.github.radupana.featherweight.viewmodel.InProgressWorkout
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
@@ -33,15 +34,31 @@ fun ActiveProgrammeScreen(
 ) {
     val activeProgramme by programmeViewModel.activeProgramme.collectAsState()
     val programmeProgress by programmeViewModel.programmeProgress.collectAsState()
+    val inProgressWorkouts by workoutViewModel.inProgressWorkouts.collectAsState()
     var nextWorkout by remember { mutableStateOf<WorkoutStructure?>(null) }
     var nextWorkoutWeek by remember { mutableStateOf(1) }
     var isLoading by remember { mutableStateOf(true) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var existingWorkout by remember { mutableStateOf<InProgressWorkout?>(null) }
     val scope = rememberCoroutineScope()
 
-    // Refresh programme progress when screen appears
+    // Refresh programme progress and check for in-progress workouts when screen appears
     LaunchedEffect(Unit) {
         programmeViewModel.refreshProgrammeProgress()
+        workoutViewModel.loadInProgressWorkouts()
+    }
+    
+    // Check for existing in-progress programme workout
+    LaunchedEffect(inProgressWorkouts, activeProgramme, nextWorkout, nextWorkoutWeek) {
+        activeProgramme?.let { programme ->
+            // Find workout that matches the current programme AND the specific week/day
+            existingWorkout = inProgressWorkouts.find { 
+                it.isProgrammeWorkout && 
+                it.programmeId == programme.id &&
+                it.weekNumber == nextWorkoutWeek &&
+                it.dayNumber == nextWorkout?.day
+            }
+        }
     }
 
     // Load next workout when screen appears
@@ -220,6 +237,7 @@ fun ActiveProgrammeScreen(
                     workout = nextWorkout!!,
                     programmeProgress = programmeProgress,
                     actualWeekNumber = nextWorkoutWeek,
+                    existingWorkout = existingWorkout,
                     onStartWorkout = {
                         // Start the programme workout
                         activeProgramme?.let { programme ->
@@ -231,22 +249,29 @@ fun ActiveProgrammeScreen(
 
                             // Launch coroutine to handle async workout creation
                             scope.launch {
-                                workoutViewModel.startProgrammeWorkout(
-                                    programmeId = programme.id,
-                                    weekNumber = nextWorkoutWeek,
-                                    dayNumber = nextWorkout!!.day,
-                                    userMaxes =
-                                        mapOf(
-                                            "squat" to (programme.squatMax ?: 100f),
-                                            "bench" to (programme.benchMax ?: 80f),
-                                            "deadlift" to (programme.deadliftMax ?: 120f),
-                                            "ohp" to (programme.ohpMax ?: 60f),
-                                        ),
-                                    onReady = {
-                                        // Navigate only after workout is fully created
-                                        onStartProgrammeWorkout()
-                                    },
-                                )
+                                if (existingWorkout != null) {
+                                    // Resume existing workout
+                                    workoutViewModel.resumeWorkout(existingWorkout!!.id)
+                                    onStartProgrammeWorkout()
+                                } else {
+                                    // Start new workout
+                                    workoutViewModel.startProgrammeWorkout(
+                                        programmeId = programme.id,
+                                        weekNumber = nextWorkoutWeek,
+                                        dayNumber = nextWorkout!!.day,
+                                        userMaxes =
+                                            mapOf(
+                                                "squat" to (programme.squatMax ?: 100f),
+                                                "bench" to (programme.benchMax ?: 80f),
+                                                "deadlift" to (programme.deadliftMax ?: 120f),
+                                                "ohp" to (programme.ohpMax ?: 60f),
+                                            ),
+                                        onReady = {
+                                            // Navigate only after workout is fully created
+                                            onStartProgrammeWorkout()
+                                        },
+                                    )
+                                }
                             }
                         }
                     },
@@ -308,6 +333,7 @@ private fun NextWorkoutCard(
     workout: WorkoutStructure,
     programmeProgress: com.github.radupana.featherweight.data.programme.ProgrammeProgress?,
     actualWeekNumber: Int = 1,
+    existingWorkout: InProgressWorkout? = null,
     onStartWorkout: () -> Unit,
 ) {
     Card(
@@ -334,13 +360,17 @@ private fun NextWorkoutCard(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "Next Workout",
+                        text = if (existingWorkout != null) "Workout In Progress" else "Next Workout",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                     Text(
-                        text = "Week $actualWeekNumber • Day ${workout.day}",
+                        text = if (existingWorkout != null) {
+                            "Week $actualWeekNumber • Day ${workout.day} • ${existingWorkout.completedSets}/${existingWorkout.setCount} sets"
+                        } else {
+                            "Week $actualWeekNumber • Day ${workout.day}"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                     )
@@ -413,7 +443,7 @@ private fun NextWorkoutCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Start Workout",
+                    text = if (existingWorkout != null) "Continue Workout" else "Start Workout",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                 )

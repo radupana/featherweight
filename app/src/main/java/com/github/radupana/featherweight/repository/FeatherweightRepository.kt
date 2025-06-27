@@ -41,6 +41,7 @@ data class WorkoutSummary(
     val isCompleted: Boolean,
     // Programme Integration Fields
     val isProgrammeWorkout: Boolean = false,
+    val programmeId: Long? = null,
     val programmeName: String? = null,
     val programmeWorkoutName: String? = null,
     val weekNumber: Int? = null,
@@ -507,6 +508,7 @@ class FeatherweightRepository(
                     duration = null,
                     isCompleted = isCompleted,
                     isProgrammeWorkout = workout.isProgrammeWorkout,
+                    programmeId = workout.programmeId,
                     programmeName = programmeName,
                     programmeWorkoutName = workout.programmeWorkoutName,
                     weekNumber = workout.weekNumber,
@@ -589,6 +591,7 @@ class FeatherweightRepository(
                     duration = null,
                     isCompleted = isCompleted,
                     isProgrammeWorkout = workout.isProgrammeWorkout,
+                    programmeId = workout.programmeId,
                     programmeName = programmeName,
                     programmeWorkoutName = workout.programmeWorkoutName,
                     weekNumber = workout.weekNumber,
@@ -1453,6 +1456,11 @@ class FeatherweightRepository(
     suspend fun getActiveProgramme() =
         withContext(Dispatchers.IO) {
             programmeDao.getActiveProgramme()
+        }
+
+    suspend fun getProgrammeById(programmeId: Long) =
+        withContext(Dispatchers.IO) {
+            programmeDao.getProgrammeById(programmeId)
         }
 
     suspend fun getProgrammeWithDetails(programmeId: Long) =

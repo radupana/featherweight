@@ -44,6 +44,13 @@ data class InProgressWorkout(
     val exerciseCount: Int,
     val setCount: Int,
     val completedSets: Int,
+    // Programme information
+    val isProgrammeWorkout: Boolean = false,
+    val programmeName: String? = null,
+    val programmeWorkoutName: String? = null,
+    val weekNumber: Int? = null,
+    val dayNumber: Int? = null,
+    val programmeId: Long? = null,
 )
 
 class WorkoutViewModel(
@@ -187,14 +194,32 @@ class WorkoutViewModel(
                 workoutHistory
                     .filter { !it.isCompleted }
                     .map { summary ->
+                        // Calculate completed sets
+                        val completedSets = try {
+                            val exercises = repository.getExercisesForWorkout(summary.id)
+                            exercises.sumOf { exercise ->
+                                val sets = repository.getSetsForExercise(exercise.id)
+                                sets.count { it.isCompleted }
+                            }
+                        } catch (e: Exception) {
+                            0
+                        }
+                        
                         InProgressWorkout(
                             id = summary.id,
                             name = summary.name,
                             startDate = summary.date,
                             exerciseCount = summary.exerciseCount,
                             setCount = summary.setCount,
-                            // TODO: Calculate from sets
-                            completedSets = 0,
+                            completedSets = completedSets,
+                            // Include programme information
+                            isProgrammeWorkout = summary.isProgrammeWorkout,
+                            programmeName = summary.programmeName,
+                            programmeWorkoutName = summary.programmeWorkoutName,
+                            weekNumber = summary.weekNumber,
+                            dayNumber = summary.dayNumber,
+                            // Get programme ID from the summary
+                            programmeId = summary.programmeId,
                         )
                     }
             _inProgressWorkouts.value = inProgress
@@ -240,7 +265,7 @@ class WorkoutViewModel(
                 val programmeName =
                     if (workout.isProgrammeWorkout && workout.programmeId != null) {
                         try {
-                            repository.getActiveProgramme()?.name
+                            repository.getProgrammeById(workout.programmeId)?.name
                         } catch (e: Exception) {
                             null
                         }
@@ -919,6 +944,21 @@ class WorkoutViewModel(
             if (programme == null || programme.id != programmeId) {
                 println("❌ Programme not found or not active")
                 _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
+                return
+            }
+            
+            // Check if a workout already exists for this programme/week/day
+            val existingWorkout = _inProgressWorkouts.value.find {
+                it.isProgrammeWorkout && 
+                it.programmeId == programmeId &&
+                it.weekNumber == weekNumber &&
+                it.dayNumber == dayNumber
+            }
+            
+            if (existingWorkout != null) {
+                println("✅ Found existing workout for this programme/week/day, resuming instead")
+                resumeWorkout(existingWorkout.id)
+                onReady?.invoke()
                 return
             }
 
