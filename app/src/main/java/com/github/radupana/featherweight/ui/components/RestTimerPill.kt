@@ -291,14 +291,9 @@ fun CompactRestTimer(
                             MaterialTheme.colorScheme.onSurface
                         }
                     )
-                    if (timerState.exerciseName != null) {
-                        val displayText = if (timerState.suggestion != null) {
-                            "• ${timerState.exerciseName} (${timerState.suggestion})"
-                        } else {
-                            "• ${timerState.exerciseName}"
-                        }
+                    if (timerState.suggestion != null) {
                         Text(
-                            text = displayText,
+                            text = "• ${timerState.suggestion}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -307,7 +302,9 @@ fun CompactRestTimer(
                 
                 OutlinedButton(
                     onClick = onSkip,
-                    modifier = Modifier.height(32.dp)
+                    modifier = Modifier
+                        .height(32.dp)
+                        .widthIn(min = 64.dp)
                 ) {
                     Text(
                         text = "Skip",

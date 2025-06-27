@@ -11,7 +11,8 @@ data class RestTimerState(
     val isPaused: Boolean = false,
     val remainingTime: Duration = Duration.ZERO,
     val totalTime: Duration = Duration.ZERO,
-    val exerciseName: String? = null
+    val exerciseName: String? = null,
+    val suggestion: String? = null
 ) {
     val progress: Float
         get() = if (totalTime.inWholeSeconds > 0) {
@@ -23,7 +24,7 @@ data class RestTimerState(
 }
 
 class RestTimer {
-    fun startTimer(duration: Duration, exerciseName: String? = null): Flow<RestTimerState> = flow {
+    fun startTimer(duration: Duration, exerciseName: String? = null, suggestion: String? = null): Flow<RestTimerState> = flow {
         var remaining = duration
         val total = duration
         
@@ -32,7 +33,8 @@ class RestTimer {
             isPaused = false,
             remainingTime = remaining,
             totalTime = total,
-            exerciseName = exerciseName
+            exerciseName = exerciseName,
+            suggestion = suggestion
         ))
         
         while (remaining > Duration.ZERO) {
@@ -44,7 +46,8 @@ class RestTimer {
                 isPaused = false,
                 remainingTime = remaining.coerceAtLeast(Duration.ZERO),
                 totalTime = total,
-                exerciseName = exerciseName
+                exerciseName = exerciseName,
+                suggestion = suggestion
             ))
         }
         
@@ -54,7 +57,8 @@ class RestTimer {
             isPaused = false,
             remainingTime = Duration.ZERO,
             totalTime = total,
-            exerciseName = exerciseName
+            exerciseName = exerciseName,
+            suggestion = suggestion
         ))
     }
 }

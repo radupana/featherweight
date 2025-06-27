@@ -130,11 +130,11 @@ Building a weightlifting Super App that combines the best features from apps lik
 
 ## Next Priority Issues
 
-1. **Rest Timer Smart Features** (Phase 2):
-   - **High**: Implement smart rest suggestions based on exercise type and intensity
-   - **Medium**: Add user preferences for auto-start toggle and default rest periods
+1. **Rest Timer Enhanced Features** (Phase 3):
+   - **High**: Add user preferences for auto-start toggle and default rest periods
    - **Medium**: Enhanced feedback with haptic pulse and sound when timer completes
-   - **Low**: Background persistence using WorkManager for cross-screen timer continuity
+   - **Medium**: Background persistence using WorkManager for cross-screen timer continuity
+   - **Low**: Exercise database integration for more precise categorization
 
 2. **Analytics Text Overflow**: 
    - "Latest PR" card needs to show exercise name clearly
@@ -149,32 +149,36 @@ Building a weightlifting Super App that combines the best features from apps lik
 
 ## Rest Timer Implementation Status
 
-### ✅ Completed (Phase 1 & 2 - Core UX Fixes)
+### ✅ Completed (Phase 1, 2 & Smart Features)
 - **Core Architecture**: Timer domain logic with countdown and progress tracking
-- **State Management**: RestTimerViewModel with coroutines for timer lifecycle
+- **State Management**: RestTimerViewModel with coroutines and smart suggestion integration
 - **UI Components**: Main RestTimerPill with glassmorphism design and expandable controls
-- **Compact Component**: CompactRestTimer for modal contexts with timer + skip button
-- **Auto-start**: 90s timer triggers automatically when completing any set
+- **Compact Component**: CompactRestTimer for modal contexts with simplified exercise type display
+- **Smart Auto-start**: Intelligent timer suggestions based on exercise categorization and set intensity
+- **Exercise Intelligence**: 
+  - Compound movements: 4 minutes base (Squat, Deadlift, Bench Press)
+  - Accessory exercises: 2 minutes base (Rows, Overhead Press)
+  - Isolation work: 90 seconds base (Curls, Extensions)
+  - Cardio movements: 60 seconds base (Burpees, Sprints)
+- **Intensity Adjustments**: Heavy sets (+30%), Light sets (-20%) based on rep ranges
+- **Visual Feedback**: Shows exercise type reasoning (e.g., "Compound • Heavy", "Isolation")
 - **Manual Controls**: +30s, -30s, Skip Rest buttons with haptic feedback
-- **Positioning**: Timer integrated into content flow (no overlaps with UI elements)
+- **Optimal Positioning**: Timer appears below action buttons in WorkoutScreen, compact in SetEditingModal
 - **Transparency**: Expanded pill fully opaque, collapsed semi-transparent for glassmorphism
-- **Cross-screen Integration**: Timer visible in both WorkoutScreen and SetEditingModal
+- **Cross-screen Integration**: Timer visible with appropriate UI in both WorkoutScreen and SetEditingModal
 - **Animation**: Smooth expand/shrink animations that respect content flow
 
-### 📋 Phase 2 Priorities (Smart Features)
-- **Smart Rest Suggestions**: Calculate rest times based on exercise type and intensity
-  - Compound lifts (Squat, Deadlift): 3-5 minutes
-  - Accessories: 90-120 seconds  
-  - Isolation: 60-90 seconds
-  - Adjust based on weight percentage and rep ranges
+### 📋 Phase 3 Priorities (Enhanced Features)
 - **User Preferences**: Settings for auto-start toggle, default rest periods per exercise type
 - **Enhanced Feedback**: Haptic pulse and optional sound when timer completes
 - **Background Persistence**: Continue timer when navigating between screens using WorkManager
+- **Exercise Database Integration**: Use actual Exercise entities for more precise categorization
 
-### 📋 Phase 3 Enhancements (Advanced Features)
+### 📋 Phase 4 Enhancements (Advanced Features)
 - **Analytics Integration**: Track average rest times per exercise for insights
 - **Adaptive Learning**: Suggest rest times based on user's historical patterns
 - **Workout Context**: Shorter rests for volume work, longer for strength phases
+- **1RM Integration**: Use actual 1RM data for precise intensity-based rest calculations
 
 ## Future Milestones
 

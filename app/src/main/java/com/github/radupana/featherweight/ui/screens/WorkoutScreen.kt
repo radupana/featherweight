@@ -315,15 +315,6 @@ fun WorkoutScreen(
                 )
             }
 
-            // Rest Timer Pill (in content flow)
-            RestTimerPill(
-                timerState = timerState,
-                onAddTime = { restTimerViewModel.addTime(30.seconds) },
-                onSubtractTime = { restTimerViewModel.subtractTime(30.seconds) },
-                onSkip = { restTimerViewModel.stopTimer() },
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-            
             // Action buttons at bottom
             if (canEdit && exercises.isNotEmpty()) {
                 WorkoutActionButtons(
@@ -334,6 +325,15 @@ fun WorkoutScreen(
                     modifier = Modifier.padding(16.dp),
                 )
             }
+            
+            // Rest Timer Pill (below action buttons)
+            RestTimerPill(
+                timerState = timerState,
+                onAddTime = { restTimerViewModel.addTime(30.seconds) },
+                onSubtractTime = { restTimerViewModel.subtractTime(30.seconds) },
+                onSkip = { restTimerViewModel.stopTimer() },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
             }
         }
     }
