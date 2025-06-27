@@ -45,7 +45,10 @@ Building a weightlifting Super App that combines the best features from apps lik
 - Timer persists across screens via hoisted ViewModel
 
 #### AI Programme Generation
-- Mock generator with 5 programme types
+- **Real OpenAI Integration**: Uses gpt-4o-mini for personalized programmes
+- **Secure API Management**: BuildConfig + local.properties for API keys
+- **Smart Fallback**: Seamlessly uses mock responses on API failures
+- **Quota System**: 5 generations per day with tracking
 - Exercise fuzzy matching with confidence scoring
 - Validation engine with auto-fixable vs manual issues
 - 6 regeneration modes for programme variants
@@ -71,7 +74,10 @@ Building a weightlifting Super App that combines the best features from apps lik
 - `ExerciseSelectorScreen.kt` - Exercise browser with usage stats
 
 ### AI Programme Features
-- `AIProgrammeService.kt` - Service framework (mock implementation)
+- `AIProgrammeService.kt` - Real OpenAI integration with gpt-4o-mini
+- `OpenAIModels.kt` - Complete OpenAI API data models
+- `OpenAIApi.kt` - Retrofit interface for API calls
+- `AIProgrammeQuotaManager.kt` - Daily quota tracking (5/day limit)
 - `ProgrammePreviewScreen.kt` - Programme preview and editing
 - `ExerciseNameMatcher.kt` - Fuzzy matching with aliases
 - `ProgrammeValidator.kt` - Validation with scoring
@@ -90,11 +96,11 @@ Building a weightlifting Super App that combines the best features from apps lik
 
 ## Next Priority Features
 
-### Immediate (Phase 1)
-1. **AI Programme Real Integration**
-   - Replace mock service with actual OpenAI API
-   - Implement proper prompt engineering
-   - Add rate limiting and error handling
+### Immediate (Phase 1) ✅ COMPLETED
+1. **AI Programme Real Integration** ✅
+   - Integrated real OpenAI API with gpt-4o-mini
+   - Implemented secure API key management
+   - Added graceful error handling with fallbacks
 
 2. **Validation Score Clarity**
    - Add tooltip explaining programme quality score
@@ -154,6 +160,18 @@ Building a weightlifting Super App that combines the best features from apps lik
 
 ## Recent Focus Areas
 
+### Latest Session: Real AI Integration (2025-01-27)
+Successfully integrated real OpenAI API for AI Programme Generation:
+- **API Integration**: Full OpenAI integration with gpt-4o-mini model
+- **Secure Key Management**: BuildConfig + local.properties approach implemented
+- **Network Handling**: Graceful fallback to mock responses on API failures
+- **Cost Management**: Token counting and daily quota system (5/day)
+- **Error Resolution**: Fixed JSON serialization and network permission issues
+- **Production Ready**: System now makes real API calls when configured
+
+**Key Achievement**: Users can now get actual AI-generated workout programmes tailored to their specific goals, experience level, and constraints using GPT-4o-mini.
+
+### Previous Sessions
 - **AI Programme Generation**: Complete MVP with validation system overhaul
 - **Home Screen UX**: Improved navigation flow and workout organization
 - **Exercise Resolution**: Fixed validation scoring and user guidance
