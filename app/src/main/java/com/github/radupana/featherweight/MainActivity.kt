@@ -69,6 +69,7 @@ enum class Screen {
     PROGRAMMES,
     ACTIVE_PROGRAMME,
     PROGRAMME_GENERATOR,
+    PROGRAMME_PREVIEW,
     PROFILE,
 }
 
@@ -236,7 +237,8 @@ fun MainAppWithNavigation(
                 currentScreen != Screen.USER_SELECTION &&
                 currentScreen != Screen.ACTIVE_WORKOUT &&
                 currentScreen != Screen.EXERCISE_SELECTOR &&
-                currentScreen != Screen.PROGRAMME_GENERATOR
+                currentScreen != Screen.PROGRAMME_GENERATOR &&
+                currentScreen != Screen.PROGRAMME_PREVIEW
             ) {
                 NavigationBar {
                     navigationItems.forEach { item ->
@@ -376,6 +378,15 @@ fun MainAppWithNavigation(
             Screen.PROGRAMME_GENERATOR -> {
                 com.github.radupana.featherweight.ui.screens.ProgrammeGeneratorScreen(
                     onBack = { onScreenChange(Screen.PROGRAMMES) },
+                    onNavigateToPreview = { onScreenChange(Screen.PROGRAMME_PREVIEW) },
+                    modifier = Modifier.padding(innerPadding),
+                )
+            }
+
+            Screen.PROGRAMME_PREVIEW -> {
+                com.github.radupana.featherweight.ui.screens.ProgrammePreviewScreen(
+                    onBack = { onScreenChange(Screen.PROGRAMME_GENERATOR) },
+                    onActivated = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }

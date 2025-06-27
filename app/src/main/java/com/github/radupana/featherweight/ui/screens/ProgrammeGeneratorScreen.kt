@@ -33,6 +33,7 @@ import com.github.radupana.featherweight.viewmodel.ProgrammeGeneratorViewModel
 @Composable
 fun ProgrammeGeneratorScreen(
     onBack: () -> Unit,
+    onNavigateToPreview: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     viewModel: ProgrammeGeneratorViewModel = viewModel()
 ) {
@@ -254,7 +255,7 @@ fun ProgrammeGeneratorScreen(
             // Generate Button
             item {
                 Button(
-                    onClick = { viewModel.generateProgramme() },
+                    onClick = { viewModel.generateProgramme(onNavigateToPreview) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),

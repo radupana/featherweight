@@ -331,56 +331,94 @@ Major home screen and navigation improvements for better user experience:
    - Proper navigation flow: Home/Programmes → Generator → Back
    - Tertiary color scheme for visual distinction
 
-**Test Checkpoint**: ✅ Generate a simple 3-day programme from "I want to get stronger"
-- Navigation works from both Home and Programmes screens
-- Text input validates and shows character count
-- Loading states and error handling functional
-- Mock generation completes successfully
-
 #### Phase 2: Guided Input UI ✅ COMPLETED
-1. **Quick Start Options** ✅
-   - Goal selection chips: 💪 Build Strength, 🏋️ Build Muscle, 🔥 Lose Fat, ⚡ Athletic Performance, 🎯 Custom
-   - Training frequency selector: 2-7 days per week with visual chips
-   - Session duration selector: Quick (30-45min) → Long (90+min) with descriptive labels
-   - Progressive disclosure: options appear as user makes selections
+1. **Smart Input Analysis** ✅
+   - Created `InputAnalyzer.kt` with 150+ keyword pattern matching
+   - Real-time analysis for experience level, equipment, injuries, schedule
+   - Completeness scoring with sophisticated pattern recognition
+   - Contextual feedback and suggestions
 
-2. **Smart Placeholder System** ✅
-   - Dynamic placeholders that update based on user selections
-   - Context-aware suggestions guiding users toward relevant information
-   - Goal-specific prompts (e.g., strength focuses on current lifts, muscle on physique goals)
-   - Comprehensive placeholder coverage for all selection combinations
+2. **Progressive Disclosure UI** ✅
+   - Goal selection chips (Strength, Muscle, Endurance, General Fitness)
+   - Frequency selection (2-7 days/week) with animated reveal
+   - Duration selection (30min-2hr) with smart defaults
+   - Quick-add contextual chips based on selections
 
-3. **Input Validation & Feedback Layer** ✅
-   - Real-time text analysis using 150+ keyword patterns
-   - Detects: Experience Level, Current Lifts, Equipment, Injuries, Schedule, Preferences
-   - Completeness progress bar (0-100%) with intelligent scoring:
-     - Goal selection/detection: 20%
-     - Frequency selection: 10% 
-     - Text length: 20%
-     - Detected elements: 50%
-   - Visual checkmarks for detected information
-   - Smart suggestions for missing information
+3. **Example Templates System** ✅
+   - Created `ExampleTemplates.kt` with 8 comprehensive scenarios
+   - Smart template filtering based on user selections (ANY criteria match)
+   - Template scoring system prioritizing better matches
+   - One-click template loading for instant completion
 
-4. **Smart Input Chips** ✅
-   - Contextual quick-add chips based on goal and detected gaps
-   - Experience chips: +Beginner, +2 Years, +Advanced
-   - Equipment chips: +Home Gym, +Full Gym, +Dumbbells Only
-   - Programme type chips: +5/3/1, +PPL, +Linear (goal-specific)
-   - One-tap text insertion with proper spacing
+4. **Dynamic Placeholder System** ✅
+   - Created `PlaceholderGenerator.kt` with context-aware prompts
+   - Placeholders update based on goal/frequency/duration selections
+   - Personalized examples and suggestions
 
-5. **Example Templates System** ✅
-   - 8 comprehensive templates covering different scenarios:
-     - Beginner Strength Foundation
-     - Intermediate Muscle Building
-     - Advanced Powerlifting Prep
-     - Home Gym Fat Loss
-     - Athletic Performance
-     - Busy Professional Routine
-     - Post-Injury Comeback
-     - Senior Fitness Focus
-   - Intelligent filtering: scores templates by relevance (Goal=3pts, Frequency=2pts, Duration=1pt)
-   - One-tap template loading with auto-selection of goal/frequency/duration
-   - Tag-based categorization and preview text
+#### Phase 3: Programme Preview & Validation ✅ COMPLETED
+1. **Data Models & Architecture** ✅
+   - Created `ProgrammePreviewModels.kt` with comprehensive preview structures
+   - Exercise matching confidence scoring and alternatives system
+   - Validation framework with warnings/errors and severity levels
+   - Edit action system for programme modifications
+
+2. **Validation Engine** ✅
+   - Created `ProgrammeValidator.kt` with volume guidelines and safety checks
+   - Muscle balance validation and movement pattern analysis
+   - Programme scoring system (0.0-1.0) with detailed feedback
+   - Category-based validation (Volume, Balance, Progression, Safety, etc.)
+
+3. **Preview UI Components** ✅
+   - Created `ProgrammePreviewScreen.kt` with loading/success/error states
+   - Created `ProgrammePreviewComponents.kt` for programme overview and actions
+   - Created `WorkoutPreviewComponents.kt` for detailed workout and exercise views
+   - Exercise resolution UI with confidence indicators and alternatives
+
+4. **Integration & Navigation** ✅
+   - New navigation route: PROGRAMME_PREVIEW
+   - Connected generator → preview navigation flow
+   - Exercise matching with ExerciseWithDetails compatibility
+   - Fixed compilation errors and type conflicts
+
+**Current Issue**: Generate button creates 2-second loading simulation but doesn't create actual programme data, so preview screen shows infinite loading.
+
+**Test Checkpoint**: ❌ Incomplete - Navigation works but no programme data generated
+- Generator UI fully functional with guided input
+- Preview screen architecture complete but no data flow
+- Need to create mock programme data or connect to AI service
+
+#### Phase 4: Remaining Implementation Tasks 📋 IN PROGRESS
+
+**Next Priority Tasks:**
+1. **Exercise Resolution System** 🔄 NEXT
+   - Create mock programme data generation for testing
+   - Connect generator → preview data flow
+   - Implement exercise matching and confidence scoring in UI
+   - Test exercise resolution and alternative selection
+
+2. **Edit Capabilities** 📋 PENDING
+   - Wire up exercise editing forms to backend logic
+   - Implement real-time validation during edits
+   - Add bulk editing options (adjust all sets/reps)
+   - Quick swap exercise functionality
+
+3. **Regeneration Options** 📋 PENDING
+   - Implement regeneration mode selection UI
+   - Create regeneration prompt variants for AI service
+   - Preserve user edits during regeneration
+   - Version history for programme iterations
+
+4. **Activation Flow** 📋 PENDING
+   - Convert preview to active programme structure
+   - Handle 1RM integration for strength programmes
+   - Programme scheduling and start date selection
+   - Database integration with existing programme system
+
+5. **End-to-End Testing** 📋 PENDING
+   - Complete programme generation → preview → activation flow
+   - Exercise resolution edge cases
+   - Programme validation scenarios
+   - Error handling and recovery
 
 6. **Enhanced UI/UX** ✅
    - Progressive animations with smooth slide-in/fade effects

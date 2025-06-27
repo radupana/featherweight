@@ -8,6 +8,7 @@ import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.AIProgrammeService
 import com.github.radupana.featherweight.service.InputAnalyzer
 import com.github.radupana.featherweight.service.PlaceholderGenerator
+import com.github.radupana.featherweight.service.MockProgrammeGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -158,7 +159,7 @@ class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(a
         )
     }
     
-    fun generateProgramme() {
+    fun generateProgramme(onNavigateToPreview: (() -> Unit)? = null) {
         val currentState = _uiState.value
         
         if (currentState.generationCount >= currentState.maxDailyGenerations) {
@@ -172,23 +173,27 @@ class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(a
             _uiState.value = currentState.copy(isLoading = true, errorMessage = null)
             
             try {
-                // For Phase 2, we'll still simulate the generation
-                // Phase 3+ will implement actual AI integration
+                // Generate mock programme data for testing
                 kotlinx.coroutines.delay(2000) // Simulate API call
+                
+                val response = MockProgrammeGenerator.generateMockProgramme(
+                    goal = currentState.selectedGoal,
+                    frequency = currentState.selectedFrequency,
+                    duration = currentState.selectedDuration,
+                    inputText = currentState.inputText
+                )
+                
+                // Store the response for the preview screen
+                GeneratedProgrammeHolder.setGeneratedProgramme(response)
                 
                 // Increment generation count
                 _uiState.value = _uiState.value.copy(
                     generationCount = currentState.generationCount + 1,
-                    isLoading = false,
-                    errorMessage = "Programme generation coming soon! Phase 2 - guided input complete."
+                    isLoading = false
                 )
                 
-                // TODO: In next phases:
-                // 1. Build comprehensive prompt from guided input
-                // 2. Call AI service with structured request
-                // 3. Parse response into Programme structure
-                // 4. Show preview screen
-                // 5. Allow user to activate programme
+                // Navigate to preview
+                onNavigateToPreview?.invoke()
                 
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
