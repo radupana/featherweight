@@ -40,6 +40,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.ui.components.CompactRestTimer
+import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
 
@@ -55,12 +57,14 @@ fun SetEditingModal(
     onToggleCompleted: (Long, Boolean) -> Unit,
     onCompleteAllSets: () -> Unit,
     viewModel: WorkoutViewModel,
+    restTimerViewModel: RestTimerViewModel,
     modifier: Modifier = Modifier,
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val timerState by restTimerViewModel.timerState.collectAsState()
 
     // Scroll to newly added set
     LaunchedEffect(sets.size) {
@@ -150,6 +154,12 @@ fun SetEditingModal(
                         Spacer(modifier = Modifier.width(48.dp))
                     }
                 }
+
+                // Compact Rest Timer
+                CompactRestTimer(
+                    timerState = timerState,
+                    onSkip = { restTimerViewModel.stopTimer() }
+                )
 
                 // Content area with optimal space usage
                 Box(

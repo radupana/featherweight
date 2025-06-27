@@ -315,6 +315,15 @@ fun WorkoutScreen(
                 )
             }
 
+            // Rest Timer Pill (in content flow)
+            RestTimerPill(
+                timerState = timerState,
+                onAddTime = { restTimerViewModel.addTime(30.seconds) },
+                onSubtractTime = { restTimerViewModel.subtractTime(30.seconds) },
+                onSkip = { restTimerViewModel.stopTimer() },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            
             // Action buttons at bottom
             if (canEdit && exercises.isNotEmpty()) {
                 WorkoutActionButtons(
@@ -326,15 +335,6 @@ fun WorkoutScreen(
                 )
             }
             }
-            
-            // Floating Rest Timer Pill
-            RestTimerPill(
-                timerState = timerState,
-                onAddTime = { restTimerViewModel.addTime(30.seconds) },
-                onSubtractTime = { restTimerViewModel.subtractTime(30.seconds) },
-                onSkip = { restTimerViewModel.stopTimer() },
-                modifier = Modifier.align(Alignment.TopCenter)
-            )
         }
     }
 
@@ -539,15 +539,22 @@ fun WorkoutScreen(
             },
             onToggleCompleted = { setId, completed ->
                 viewModel.markSetCompleted(setId, completed)
-                // Auto-start rest timer when completing a set
-                if (completed) {
-                    restTimerViewModel.startTimer(90.seconds, setEditingExercise?.exerciseName)
+                // Auto-start smart rest timer when completing a set
+                if (completed && setEditingExercise != null) {
+                    val completedSet = sets.find { it.id == setId }
+                    restTimerViewModel.startSmartTimer(
+                        exerciseName = setEditingExercise!!.exerciseName,
+                        exercise = null, // TODO: Add exercise entity lookup
+                        reps = completedSet?.reps,
+                        weight = completedSet?.weight
+                    )
                 }
             },
             onCompleteAllSets = {
                 viewModel.completeAllSetsInExercise(setEditingExercise!!.id)
             },
             viewModel = viewModel,
+            restTimerViewModel = restTimerViewModel,
         )
     }
 }

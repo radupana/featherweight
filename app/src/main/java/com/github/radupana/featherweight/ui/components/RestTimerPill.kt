@@ -1,8 +1,11 @@
 package com.github.radupana.featherweight.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -38,8 +41,8 @@ fun RestTimerPill(
     
     AnimatedVisibility(
         visible = timerState.isActive,
-        enter = slideInVertically(initialOffsetY = { -it }),
-        exit = slideOutVertically(targetOffsetY = { -it }),
+        enter = expandVertically(),
+        exit = shrinkVertically(),
         modifier = modifier
     ) {
         Surface(
@@ -48,7 +51,17 @@ fun RestTimerPill(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .clickable { isExpanded = !isExpanded },
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+            color = if (isExpanded) {
+                MaterialTheme.colorScheme.surface
+            } else {
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+            },
+            border = if (isExpanded) {
+                BorderStroke(
+                    1.dp, 
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                )
+            } else null,
             tonalElevation = 8.dp,
             shadowElevation = 4.dp
         ) {
@@ -100,16 +113,25 @@ private fun CollapsedTimerPill(
                 text = "⏱️",
                 style = MaterialTheme.typography.titleMedium
             )
-            Text(
-                text = formatTime(timerState.remainingTime),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (timerState.isFinished) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurface
+            Column {
+                Text(
+                    text = formatTime(timerState.remainingTime),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (timerState.isFinished) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
+                )
+                if (timerState.suggestion != null) {
+                    Text(
+                        text = timerState.suggestion!!,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-            )
+            }
         }
         
         // Progress indicator
@@ -220,6 +242,78 @@ private fun ExpandedTimerControls(
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add 30s")
+            }
+        }
+    }
+}
+
+@Composable
+fun CompactRestTimer(
+    timerState: RestTimerState,
+    onSkip: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = timerState.isActive,
+        modifier = modifier
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 4.dp,
+            shadowElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "⏱️",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = formatTime(timerState.remainingTime),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (timerState.isFinished) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                    if (timerState.exerciseName != null) {
+                        val displayText = if (timerState.suggestion != null) {
+                            "• ${timerState.exerciseName} (${timerState.suggestion})"
+                        } else {
+                            "• ${timerState.exerciseName}"
+                        }
+                        Text(
+                            text = displayText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                
+                OutlinedButton(
+                    onClick = onSkip,
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text(
+                        text = "Skip",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
             }
         }
     }

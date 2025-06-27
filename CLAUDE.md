@@ -130,12 +130,11 @@ Building a weightlifting Super App that combines the best features from apps lik
 
 ## Next Priority Issues
 
-1. **Rest Timer UX Improvements**:
-   - **Critical**: Timer pill covers workout progress header → make draggable or relocate
-   - **Critical**: Expanded pill transparency shows confusing background → make opaque or relocate
-   - **High**: Add timer visibility to SetEditingModal (where users actually complete sets)
-   - **Medium**: Implement smart rest suggestions based on exercise type and rep ranges
-   - **Low**: Add haptic feedback and sound notifications when timer completes
+1. **Rest Timer Smart Features** (Phase 2):
+   - **High**: Implement smart rest suggestions based on exercise type and intensity
+   - **Medium**: Add user preferences for auto-start toggle and default rest periods
+   - **Medium**: Enhanced feedback with haptic pulse and sound when timer completes
+   - **Low**: Background persistence using WorkManager for cross-screen timer continuity
 
 2. **Analytics Text Overflow**: 
    - "Latest PR" card needs to show exercise name clearly
@@ -150,26 +149,32 @@ Building a weightlifting Super App that combines the best features from apps lik
 
 ## Rest Timer Implementation Status
 
-### ✅ Completed (Phase 1)
-- Core timer domain logic with countdown and progress tracking
-- RestTimerViewModel with coroutines for state management
-- Floating glassmorphism pill UI with expand/collapse
-- Auto-start 90s timer on set completion
-- Manual controls: +30s, -30s, Skip Rest
-- Integration in WorkoutScreen with timer state persistence
+### ✅ Completed (Phase 1 & 2 - Core UX Fixes)
+- **Core Architecture**: Timer domain logic with countdown and progress tracking
+- **State Management**: RestTimerViewModel with coroutines for timer lifecycle
+- **UI Components**: Main RestTimerPill with glassmorphism design and expandable controls
+- **Compact Component**: CompactRestTimer for modal contexts with timer + skip button
+- **Auto-start**: 90s timer triggers automatically when completing any set
+- **Manual Controls**: +30s, -30s, Skip Rest buttons with haptic feedback
+- **Positioning**: Timer integrated into content flow (no overlaps with UI elements)
+- **Transparency**: Expanded pill fully opaque, collapsed semi-transparent for glassmorphism
+- **Cross-screen Integration**: Timer visible in both WorkoutScreen and SetEditingModal
+- **Animation**: Smooth expand/shrink animations that respect content flow
 
-### 🚧 Known Issues (Critical)
-- Timer pill positioned at TopCenter covers workout progress header
-- Expanded pill transparency causes visual confusion with background content
-- Timer only visible in WorkoutScreen, not in SetEditingModal where sets are completed
+### 📋 Phase 2 Priorities (Smart Features)
+- **Smart Rest Suggestions**: Calculate rest times based on exercise type and intensity
+  - Compound lifts (Squat, Deadlift): 3-5 minutes
+  - Accessories: 90-120 seconds  
+  - Isolation: 60-90 seconds
+  - Adjust based on weight percentage and rep ranges
+- **User Preferences**: Settings for auto-start toggle, default rest periods per exercise type
+- **Enhanced Feedback**: Haptic pulse and optional sound when timer completes
+- **Background Persistence**: Continue timer when navigating between screens using WorkManager
 
-### 📋 Remaining Work
-- **UX Fixes**: Make timer draggable OR relocate to avoid covering content
-- **SetEditingModal Integration**: Add timer visibility where users actually work with sets
-- **Smart Suggestions**: Calculate rest times based on exercise type, rep ranges, 1RM percentage
-- **User Preferences**: Auto-start toggle, default rest periods, sound/haptic settings
-- **Notifications**: Haptic feedback and sound when timer completes
-- **Background Persistence**: Continue timer when navigating between screens
+### 📋 Phase 3 Enhancements (Advanced Features)
+- **Analytics Integration**: Track average rest times per exercise for insights
+- **Adaptive Learning**: Suggest rest times based on user's historical patterns
+- **Workout Context**: Shorter rests for volume work, longer for strength phases
 
 ## Future Milestones
 
