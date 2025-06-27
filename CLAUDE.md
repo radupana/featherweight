@@ -300,11 +300,135 @@ Major home screen and navigation improvements for better user experience:
 
 ## Future Milestones
 
-### AI Programme Import
-- LLM integration for converting AI text to structured programmes
-- Exercise name fuzzy matching
-- User review before activation
-- 5 imports/month quota
+### AI Programme Generation (In Development)
+
+**Overview**: Enable users to create custom programmes through natural language input, powered by LLM technology.
+
+#### Phase 1: Core Infrastructure (Week 1)
+1. **Basic Input Screen**
+   - New navigation route: PROGRAMME_GENERATOR
+   - Simple text input with 500 character limit initially
+   - "Generate Programme" button with loading state
+   - Basic error handling UI
+
+2. **LLM Service Setup**
+   - Create `AIProgrammeService.kt` with OpenAI API integration
+   - Environment variable for API key
+   - Basic rate limiting (5 requests/user/day)
+   - Simple JSON schema for programme structure
+
+3. **Exercise Matching System**
+   - Create `ExerciseNameMatcher.kt` with basic string matching
+   - Build exercise alias table (e.g., "bench" → "Barbell Bench Press")
+   - Confidence scoring (exact match = 1.0, fuzzy match < 0.8)
+   - Return top 3 matches for ambiguous names
+
+**Test Checkpoint**: Generate a simple 3-day programme from "I want to get stronger"
+
+#### Phase 2: Guided Input UI (Week 2)
+1. **Quick Start Options**
+   - Goal selection chips: Strength, Muscle, Fat Loss, Athletic
+   - Training frequency selector: 3-6 days
+   - Time per session selector: 30-45, 45-60, 60-90, 90+ minutes
+   - These selections pre-populate the text input
+
+2. **Smart Placeholder & Examples**
+   - Dynamic placeholder based on quick start selections
+   - Expandable example templates (3-4 common scenarios)
+   - Character count with gentle limit warning
+   - "What to include" tooltip with bullet points
+
+3. **Input Validation Layer**
+   - Real-time feedback showing what's been understood
+   - Missing information indicators
+   - "Generate" button enabled only with minimum viable input
+
+**Test Checkpoint**: Smooth flow from quick options → text input → generation
+
+#### Phase 3: Programme Preview & Validation (Week 3)
+1. **Preview Screen**
+   - Full programme display before activation
+   - Exercise name resolution UI (show fuzzy matches for confirmation)
+   - Basic programme stats (volume, frequency, exercise count)
+   - "Activate" or "Regenerate" options
+
+2. **Validation Engine**
+   - Volume sanity checks (sets/week per muscle group)
+   - Progressive overload validation
+   - Rest day distribution check
+   - Exercise availability verification
+
+3. **Edit Capabilities**
+   - Swap exercises with alternatives
+   - Adjust sets/reps/progression
+   - Add/remove training days
+   - Save as draft for later
+
+**Test Checkpoint**: Generate, preview, edit, and activate a programme
+
+#### Phase 4: Iterative Refinement (Week 4)
+1. **Conversation UI**
+   - Chat-style interface for clarifications
+   - LLM can ask for missing information
+   - Previous messages visible for context
+   - "Start Over" option
+
+2. **Advanced System Prompt**
+   - Include full Exercise database schema
+   - Programme progression patterns
+   - Volume/intensity guidelines
+   - Safety constraints
+
+3. **User Profile Integration**
+   - Auto-populate known 1RMs
+   - Consider workout history
+   - Respect equipment preferences
+   - Account for stated limitations
+
+**Test Checkpoint**: Multi-turn conversation producing refined programme
+
+#### Phase 5: Polish & Scale (Week 5)
+1. **Cost Management**
+   - User quota system (free tier: 5/month)
+   - Token usage optimization
+   - Caching for similar requests
+   - Premium tier planning
+
+2. **Programme Quality**
+   - A/B testing framework
+   - User feedback collection
+   - Programme success metrics
+   - Continuous prompt improvement
+
+3. **Advanced Features**
+   - Voice input integration
+   - Programme sharing marketplace
+   - Template library from successful generations
+   - Export to other formats
+
+**Test Checkpoint**: Production-ready with monitoring and analytics
+
+### Technical Architecture for AI Programme Generation
+
+**New Files to Create**:
+- `AIProgrammeService.kt` - OpenAI API client and prompt management
+- `ExerciseNameMatcher.kt` - Fuzzy matching with alias support
+- `ProgrammeValidator.kt` - Safety and sanity checks
+- `ProgrammeGeneratorScreen.kt` - Main UI for generation flow
+- `ProgrammePreviewScreen.kt` - Preview and edit before activation
+- `ConversationState.kt` - Multi-turn conversation management
+
+**Database Changes**:
+- Add `generated_by_ai` flag to Programme table
+- Create `programme_generation_log` table for analytics
+- Add `exercise_aliases` table for name matching
+
+**Key Technical Decisions**:
+- Start with GPT-3.5-turbo for cost, upgrade to GPT-4 for complex requests
+- Use structured output mode for reliable JSON
+- Client-side validation before API calls
+- Implement exponential backoff for rate limits
+- Store conversation context in ViewModel, not database
 
 ### Social Features
 - Workout sharing
