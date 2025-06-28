@@ -24,40 +24,63 @@ import kotlin.time.Duration.Companion.seconds
 class RestTimerViewModel(
     private val context: Context? = null
 ) : ViewModel() {
-    private val restTimer = RestTimer()
-    private var timerJob: Job? = null
-    private var lastTimerFinishedId: String? = null // Prevent duplicate notifications
-    private var currentExerciseRestPreference: Duration? = null // Store current exercise preference
     private val notificationManager = context?.let { RestTimerNotificationManager(it) }
     
+    // Track multiple timers - one per workout
+    private data class WorkoutTimer(
+        val workoutId: Long,
+        var job: Job,
+        var state: RestTimerState,
+        val restTimer: RestTimer = RestTimer()
+    )
+    
+    private val activeTimers = mutableMapOf<Long, WorkoutTimer>()
+    private var currentlyViewedWorkoutId: Long? = null
+    
+    // The timer state that should be displayed (for the current workout)
     private val _timerState = MutableStateFlow(RestTimerState())
     val timerState: StateFlow<RestTimerState> = _timerState.asStateFlow()
     
     fun startTimer(duration: Duration, exerciseName: String? = null) {
-        // Cancel any existing timer
-        timerJob?.cancel()
+        val workoutId = currentlyViewedWorkoutId ?: return
         
-        timerJob = viewModelScope.launch {
-            restTimer.startTimer(duration, exerciseName).collect { state ->
-                _timerState.value = state
+        // Cancel any existing timer for this workout
+        activeTimers[workoutId]?.job?.cancel()
+        
+        val workoutTimer = WorkoutTimer(
+            workoutId = workoutId,
+            job = Job(),
+            state = RestTimerState(),
+            restTimer = RestTimer()
+        )
+        
+        workoutTimer.job = viewModelScope.launch {
+            workoutTimer.restTimer.startTimer(duration, exerciseName).collect { state ->
+                // Update the timer state for this specific workout
+                workoutTimer.state = state
+                
+                // If this is the currently viewed workout, update the displayed state
+                if (workoutId == currentlyViewedWorkoutId) {
+                    _timerState.value = state
+                }
                 
                 // Check if timer just finished
                 if (state.isFinished && state.exerciseName != null) {
-                    val timerId = "${state.exerciseName}-${state.totalTime.inWholeSeconds}"
-                    if (lastTimerFinishedId != timerId) {
-                        lastTimerFinishedId = timerId
-                        triggerTimerCompletedFeedback()
-                        notificationManager?.showRestCompleteNotification(state.exerciseName)
-                        
-                        // Auto-dismiss timer after a short delay
-                        viewModelScope.launch {
-                            delay(2.seconds) // Show finished state for 2 seconds
+                    triggerTimerCompletedFeedback()
+                    notificationManager?.showRestCompleteNotification(state.exerciseName)
+                    
+                    // Auto-dismiss timer after a short delay
+                    viewModelScope.launch {
+                        delay(2.seconds)
+                        if (workoutId == currentlyViewedWorkoutId) {
                             stopTimer()
                         }
                     }
                 }
             }
         }
+        
+        activeTimers[workoutId] = workoutTimer
     }
     
     /**
@@ -70,9 +93,6 @@ class RestTimerViewModel(
         weight: Float? = null,
         oneRepMax: Float? = null
     ) {
-        // Cancel any existing timer
-        timerJob?.cancel()
-        
         val suggestion = RestTimeCalculator.calculateRestTime(
             exerciseName = exerciseName,
             exercise = exercise,
@@ -81,41 +101,97 @@ class RestTimerViewModel(
             oneRepMax = oneRepMax
         )
         
-        timerJob = viewModelScope.launch {
-            restTimer.startTimer(
-                duration = suggestion.duration,
-                exerciseName = exerciseName,
-                suggestion = suggestion.reasoning
-            ).collect { state ->
-                _timerState.value = state
+        startTimerWithState(suggestion.duration, exerciseName, suggestion.reasoning)
+    }
+    
+    private fun startTimerWithState(duration: Duration, exerciseName: String?, suggestion: String?) {
+        val workoutId = currentlyViewedWorkoutId ?: return
+        
+        // Cancel any existing timer for this workout
+        activeTimers[workoutId]?.job?.cancel()
+        
+        val workoutTimer = WorkoutTimer(
+            workoutId = workoutId,
+            job = Job(),
+            state = RestTimerState(),
+            restTimer = RestTimer()
+        )
+        
+        workoutTimer.job = viewModelScope.launch {
+            workoutTimer.restTimer.startTimer(duration, exerciseName, suggestion).collect { state ->
+                workoutTimer.state = state
                 
-                // Check if timer just finished
+                if (workoutId == currentlyViewedWorkoutId) {
+                    _timerState.value = state
+                }
+                
                 if (state.isFinished && state.exerciseName != null) {
-                    val timerId = "${state.exerciseName}-${state.totalTime.inWholeSeconds}"
-                    if (lastTimerFinishedId != timerId) {
-                        lastTimerFinishedId = timerId
-                        triggerTimerCompletedFeedback()
-                        notificationManager?.showRestCompleteNotification(state.exerciseName)
-                        
-                        // Auto-dismiss timer after a short delay
-                        viewModelScope.launch {
-                            delay(2.seconds) // Show finished state for 2 seconds
+                    triggerTimerCompletedFeedback()
+                    notificationManager?.showRestCompleteNotification(state.exerciseName)
+                    
+                    viewModelScope.launch {
+                        delay(2.seconds)
+                        if (workoutId == currentlyViewedWorkoutId) {
                             stopTimer()
                         }
                     }
                 }
             }
         }
+        
+        activeTimers[workoutId] = workoutTimer
     }
     
     fun stopTimer() {
-        timerJob?.cancel()
+        val workoutId = currentlyViewedWorkoutId ?: return
+        activeTimers[workoutId]?.job?.cancel()
+        activeTimers.remove(workoutId)
         _timerState.value = RestTimerState()
         notificationManager?.cancelNotification()
     }
     
+    // Workout lifecycle methods to properly scope timer
+    fun bindToWorkout(workoutId: Long) {
+        currentlyViewedWorkoutId = workoutId
+        // Update displayed timer state to show this workout's timer (if any)
+        val workoutTimer = activeTimers[workoutId]
+        _timerState.value = workoutTimer?.state ?: RestTimerState()
+    }
+    
+    fun unbindFromWorkout(workoutId: Long) {
+        // Just clear the view association, don't stop the timer
+        if (currentlyViewedWorkoutId == workoutId) {
+            currentlyViewedWorkoutId = null
+            _timerState.value = RestTimerState()
+        }
+    }
+    
+    fun onWorkoutCompleted() {
+        val workoutId = currentlyViewedWorkoutId ?: return
+        // Stop and remove timer for completed workout
+        activeTimers[workoutId]?.job?.cancel()
+        activeTimers.remove(workoutId)
+        _timerState.value = RestTimerState()
+        currentlyViewedWorkoutId = null
+    }
+    
+    fun onWorkoutDeleted(workoutId: Long) {
+        // Stop and remove timer for deleted workout
+        activeTimers[workoutId]?.job?.cancel()
+        activeTimers.remove(workoutId)
+        
+        // If this was the currently viewed workout, clear the display
+        if (currentlyViewedWorkoutId == workoutId) {
+            _timerState.value = RestTimerState()
+            currentlyViewedWorkoutId = null
+        }
+    }
+    
     fun addTime(additionalTime: Duration) {
-        val currentState = _timerState.value
+        val workoutId = currentlyViewedWorkoutId ?: return
+        val currentTimer = activeTimers[workoutId] ?: return
+        val currentState = currentTimer.state
+        
         if (currentState.isActive) {
             val newDuration = currentState.remainingTime + additionalTime
             val wasPaused = currentState.isPaused
@@ -128,7 +204,10 @@ class RestTimerViewModel(
     }
     
     fun subtractTime(timeToSubtract: Duration) {
-        val currentState = _timerState.value
+        val workoutId = currentlyViewedWorkoutId ?: return
+        val currentTimer = activeTimers[workoutId] ?: return
+        val currentState = currentTimer.state
+        
         if (currentState.isActive) {
             val newDuration = (currentState.remainingTime - timeToSubtract).coerceAtLeast(Duration.ZERO)
             if (newDuration == Duration.ZERO) {
@@ -136,7 +215,6 @@ class RestTimerViewModel(
             } else {
                 val wasPaused = currentState.isPaused
                 startTimerWithState(newDuration, currentState.exerciseName, currentState.suggestion)
-                // Restore pause state if it was paused
                 if (wasPaused) {
                     pauseTimer()
                 }
@@ -144,83 +222,69 @@ class RestTimerViewModel(
         }
     }
     
-    private fun startTimerWithState(duration: Duration, exerciseName: String?, suggestion: String?) {
-        // Cancel any existing timer
-        timerJob?.cancel()
-        
-        timerJob = viewModelScope.launch {
-            restTimer.startTimer(duration, exerciseName, suggestion).collect { state ->
-                _timerState.value = state
-                
-                // Check if timer just finished
-                if (state.isFinished && state.exerciseName != null) {
-                    val timerId = "${state.exerciseName}-${state.totalTime.inWholeSeconds}"
-                    if (lastTimerFinishedId != timerId) {
-                        lastTimerFinishedId = timerId
-                        triggerTimerCompletedFeedback()
-                        notificationManager?.showRestCompleteNotification(state.exerciseName)
-                        
-                        // Auto-dismiss timer after a short delay
-                        viewModelScope.launch {
-                            delay(2.seconds) // Show finished state for 2 seconds
-                            stopTimer()
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    private fun triggerTimerCompletedFeedback() {
-        context?.let { ctx ->
-            // Haptic feedback
-            val vibrator = ctx.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-            vibrator?.let { v ->
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                    // Create a pulsing pattern for completed timer
-                    val pattern = longArrayOf(0, 100, 50, 100, 50, 100)
-                    val amplitudes = intArrayOf(0, 255, 0, 255, 0, 255)
-                    v.vibrate(VibrationEffect.createWaveform(pattern, amplitudes, -1))
-                } else {
-                    @Suppress("DEPRECATION")
-                    v.vibrate(longArrayOf(0, 100, 50, 100, 50, 100), -1)
-                }
-            }
-            
-            // TODO: Add sound notification (optional)
-            // Could use system notification sound or custom sound
-        }
-    }
-    
     fun pauseTimer() {
-        restTimer.pause()
+        val workoutId = currentlyViewedWorkoutId ?: return
+        val workoutTimer = activeTimers[workoutId] ?: return
+        
+        if (workoutTimer.state.isActive && !workoutTimer.state.isPaused) {
+            workoutTimer.job.cancel()
+            val pausedState = workoutTimer.state.copy(isPaused = true)
+            workoutTimer.state = pausedState
+            activeTimers[workoutId] = workoutTimer
+            _timerState.value = pausedState
+        }
     }
     
     fun resumeTimer() {
-        restTimer.resume()
+        val workoutId = currentlyViewedWorkoutId ?: return
+        val workoutTimer = activeTimers[workoutId] ?: return
+        val currentState = workoutTimer.state
+        
+        if (currentState.isActive && currentState.isPaused) {
+            startTimerWithState(currentState.remainingTime, currentState.exerciseName, currentState.suggestion)
+        }
     }
     
     fun togglePause() {
-        if (_timerState.value.isPaused) {
+        val workoutId = currentlyViewedWorkoutId ?: return
+        val workoutTimer = activeTimers[workoutId] ?: return
+        
+        if (workoutTimer.state.isPaused) {
             resumeTimer()
         } else {
             pauseTimer()
         }
     }
     
+    private fun triggerTimerCompletedFeedback() {
+        // Haptic feedback
+        val vibrator = context?.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        vibrator?.let {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                it.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                it.vibrate(200)
+            }
+        }
+        
+        // Sound feedback temporarily disabled
+        // TODO: Add timer complete sound when resource is available
+    }
+    
     override fun onCleared() {
         super.onCleared()
-        timerJob?.cancel()
+        // Cancel all active timers
+        activeTimers.values.forEach { it.job.cancel() }
+        activeTimers.clear()
         notificationManager?.cancelNotification()
     }
 }
 
-class RestTimerViewModelFactory(
-    private val context: Context
-) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
+class RestTimerViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(RestTimerViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
             return RestTimerViewModel(context) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

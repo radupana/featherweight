@@ -38,7 +38,7 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.lifecycle.viewmodel.compose.viewModel
 import android.util.Log
-import com.github.radupana.featherweight.ui.components.RestTimerPill
+import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModelFactory
 import kotlin.time.Duration.Companion.seconds
@@ -66,6 +66,11 @@ fun WorkoutScreen(
 ) {
     val exercises by viewModel.selectedWorkoutExercises.collectAsState()
     
+    // Connect rest timer to workout lifecycle
+    LaunchedEffect(restTimerViewModel) {
+        viewModel.setRestTimerViewModel(restTimerViewModel)
+    }
+    
     // Debug log to track recompositions
     LaunchedEffect(exercises) {
         Log.d("DragReorder", "WorkoutScreen recomposed with exercises: ${exercises.mapIndexed { idx, ex -> "$idx:${ex.exerciseName}" }.joinToString()}")
@@ -75,6 +80,9 @@ fun WorkoutScreen(
     
     // Rest timer state
     val timerState by restTimerViewModel.timerState.collectAsState()
+    
+    // Workout timer state
+    val elapsedWorkoutTime by viewModel.elapsedWorkoutTime.collectAsState()
 
     // Dialog state
     var showEditSetDialog by remember { mutableStateOf(false) }
@@ -266,6 +274,17 @@ fun WorkoutScreen(
                 )
             }
 
+            // Unified Timer Bar
+            UnifiedTimerBar(
+                workoutElapsed = elapsedWorkoutTime,
+                workoutActive = workoutState.isWorkoutTimerActive,
+                restTimerState = timerState,
+                onRestAddTime = { restTimerViewModel.addTime(15.seconds) },
+                onRestSubtractTime = { restTimerViewModel.subtractTime(15.seconds) },
+                onRestSkip = { restTimerViewModel.stopTimer() },
+                onRestTogglePause = { restTimerViewModel.togglePause() }
+            )
+
             // Progress section
             ProgressCard(
                 completedSets = completedSets,
@@ -328,16 +347,6 @@ fun WorkoutScreen(
                 )
             }
             
-            // Rest Timer Pill (below action buttons)
-            RestTimerPill(
-                timerState = timerState,
-                onAddTime = { restTimerViewModel.addTime(30.seconds) },
-                onSubtractTime = { restTimerViewModel.subtractTime(30.seconds) },
-                onSkip = { restTimerViewModel.stopTimer() },
-                onTogglePause = { restTimerViewModel.togglePause() },
-                onStartPreset = { duration -> restTimerViewModel.startTimer(duration) },
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
             }
         }
     }

@@ -332,7 +332,7 @@ class FeatherweightRepository(
         }
     }
 
-    suspend fun completeWorkout(workoutId: Long) {
+    suspend fun completeWorkout(workoutId: Long, durationSeconds: Long? = null) {
         println("🔄 completeWorkout called with workoutId: $workoutId")
         val workout = workoutDao.getAllWorkouts().find { it.id == workoutId } ?: return
         println(
@@ -353,7 +353,7 @@ class FeatherweightRepository(
                 "[COMPLETED]"
             }
 
-        val updatedWorkout = workout.copy(notes = completedNotes)
+        val updatedWorkout = workout.copy(notes = completedNotes, durationSeconds = durationSeconds)
         workoutDao.updateWorkout(updatedWorkout)
         println("✅ Workout marked as completed in database")
 
