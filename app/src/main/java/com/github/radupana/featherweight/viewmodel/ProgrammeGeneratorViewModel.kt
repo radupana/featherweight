@@ -273,42 +273,12 @@ Or paste existing programmes from ChatGPT, other AI tools, or coaches."""
                             )
                         }
                     } else {
-                        // Exercise validation failed - regenerate automatically
+                        // Exercise validation failed - show error to user
                         println("⚠️ Exercise validation failed: ${validationResult.invalidExercises}")
-                        println("🔄 Attempting regeneration with stricter constraints...")
-                        
-                        // Create a stricter request with emphasis on exercise compliance
-                        val stricterRequest = request.copy(
-                            userInput = buildStricterUserInput(currentState, exerciseNames, validationResult.invalidExercises)
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = "Generated programme contains unsupported exercises: ${validationResult.invalidExercises.joinToString(", ")}. Please try again with different requirements or use Browse Templates for proven programmes."
                         )
-                        
-                        // Try once more with stricter constraints
-                        val retryResponse = aiService.generateProgramme(stricterRequest)
-                        val retryValidation = validateExercisesInProgramme(retryResponse, exerciseNames)
-                        
-                        if (retryResponse.success && retryValidation.isValid) {
-                            println("✅ Regeneration successful with valid exercises")
-                            if (quotaManager.incrementUsage()) {
-                                GeneratedProgrammeHolder.setGeneratedProgramme(retryResponse)
-                                val quotaStatus = quotaManager.getQuotaStatus()
-                                _uiState.value = _uiState.value.copy(
-                                    generationCount = quotaStatus.totalQuota - quotaStatus.remainingGenerations,
-                                    isLoading = false
-                                )
-                                onNavigateToPreview?.invoke()
-                            } else {
-                                _uiState.value = _uiState.value.copy(
-                                    isLoading = false,
-                                    errorMessage = "Daily generation limit reached. Please try again tomorrow."
-                                )
-                            }
-                        } else {
-                            println("❌ Regeneration also failed - showing error to user")
-                            _uiState.value = _uiState.value.copy(
-                                isLoading = false,
-                                errorMessage = "Generated programme contains unsupported exercises. Please try again with more specific requirements or use Browse Templates for proven programmes."
-                            )
-                        }
                     }
                 } else {
                     _uiState.value = _uiState.value.copy(
@@ -432,22 +402,6 @@ Or paste existing programmes from ChatGPT, other AI tools, or coaches."""
         )
     }
 
-    private fun buildStricterUserInput(
-        state: GuidedInputState, 
-        validExerciseNames: List<String>, 
-        invalidExercises: List<String>
-    ): String {
-        val baseInput = buildEnhancedUserInput(state)
-        
-        return """$baseInput
-
-CRITICAL: The previous generation included invalid exercises: ${invalidExercises.joinToString(", ")}.
-
-You MUST use ONLY these exact exercise names (no variations, abbreviations, or alternatives):
-${validExerciseNames.joinToString(", ")}
-
-Do NOT create new exercise names. Do NOT use variations or abbreviations. Use the exact names provided above."""
-    }
 
     data class ExerciseValidationResult(
         val isValid: Boolean,

@@ -6,7 +6,7 @@ class ExerciseAliasSeeder(private val exerciseDao: ExerciseDao) {
         // Map of exercise name to list of aliases
         val exerciseAliases = mapOf(
             // Squats
-            "Back Squat" to listOf("Squat", "Barbell Squat", "Barbell Back Squat"),
+            "Back Squat" to listOf("Squat", "Barbell Squat", "Barbell Back Squat", "High Bar Squat", "Low Bar Squat", "Pause Squat"),
             "Front Squat" to listOf("Barbell Front Squat"),
             "Goblet Squat" to listOf("KB Goblet Squat", "Kettlebell Goblet Squat"),
             
@@ -20,11 +20,15 @@ class ExerciseAliasSeeder(private val exerciseDao: ExerciseDao) {
             "Incline Bench Press" to listOf("Incline Barbell Press", "Incline Press"),
             "Decline Bench Press" to listOf("Decline Barbell Press", "Decline Press"),
             "Close-Grip Bench Press" to listOf("CGBP", "Close Grip Bench", "Tricep Bench Press"),
+            "Dumbbell Bench Press" to listOf("DB Bench Press", "Dumbbell Bench"),
+            "Incline Dumbbell Press" to listOf("Incline DB Press", "Incline Dumbbell Bench Press", "Incline DB Bench Press"),
             
             // Overhead Press
             "Overhead Press" to listOf("OHP", "Military Press", "Shoulder Press", "Standing Press", "Barbell Overhead Press"),
             "Push Press" to listOf("Barbell Push Press"),
-            "Seated Dumbbell Press" to listOf("Seated Shoulder Press", "DB Shoulder Press"),
+            "Seated Dumbbell Press" to listOf("Seated Shoulder Press", "Seated DB Shoulder Press"),
+            "Dumbbell Shoulder Press" to listOf("DB Press", "Standing DB Press", "Dumbbell Press"),
+            "Machine Shoulder Press" to listOf("Machine Press", "Shoulder Press Machine"),
             
             // Rows
             "Barbell Row" to listOf("Row", "Bent Over Row", "Bent-Over Row", "Pendlay Row", "BB Row"),
@@ -33,16 +37,16 @@ class ExerciseAliasSeeder(private val exerciseDao: ExerciseDao) {
             "T-Bar Row" to listOf("T Bar Row", "Landmine Row"),
             
             // Pull-ups/Chin-ups
-            "Pull-up" to listOf("Pullup", "Pull Up", "Wide Grip Pull-up"),
-            "Chin-up" to listOf("Chinup", "Chin Up", "Underhand Pull-up"),
+            "Pull-up" to listOf("Pullup", "Pull Up", "Wide Grip Pull-up", "Weighted Pull-up", "Weighted Pullup"),
+            "Chin-up" to listOf("Chinup", "Chin Up", "Underhand Pull-up", "Weighted Chins", "Weighted Chin-up", "Weighted Chinup"),
             "Lat Pulldown" to listOf("Pulldown", "Wide Grip Pulldown", "Cable Pulldown"),
             
             // Dips
-            "Dip" to listOf("Weighted Dip", "Body Weight Dip", "Bodyweight Dip", "Parallel Bar Dip", "Chest Dip"),
+            "Dip" to listOf("Weighted Dip", "Weighted Dips", "Body Weight Dip", "Bodyweight Dip", "Parallel Bar Dip", "Chest Dip"),
             
             // Curls
-            "Barbell Curl" to listOf("BB Curl", "Standing Barbell Curl", "Bicep Curl"),
-            "Dumbbell Curl" to listOf("DB Curl", "Bicep Curl"),
+            "Barbell Curl" to listOf("BB Curl", "Standing Barbell Curl", "Barbell Bicep Curl"),
+            "Dumbbell Curl" to listOf("DB Curl", "Dumbbell Bicep Curl", "DB Bicep Curl"),
             "Hammer Curl" to listOf("DB Hammer Curl", "Dumbbell Hammer Curl"),
             "Preacher Curl" to listOf("EZ Bar Preacher Curl", "Barbell Preacher Curl"),
             
@@ -51,10 +55,10 @@ class ExerciseAliasSeeder(private val exerciseDao: ExerciseDao) {
             "Cable Tricep Extension" to listOf("Tricep Pushdown", "Cable Pushdown", "Rope Pushdown"),
             
             // Legs
-            "Leg Press" to listOf("Machine Leg Press", "45 Degree Leg Press"),
+            "Leg Press" to listOf("Machine Leg Press", "45 Degree Leg Press", "Leg Press Machine"),
             "Leg Curl" to listOf("Hamstring Curl", "Lying Leg Curl", "Seated Leg Curl"),
             "Leg Extension" to listOf("Quad Extension", "Machine Leg Extension"),
-            "Walking Lunge" to listOf("Lunges", "Lunge", "Forward Lunge"),
+            "Walking Lunge" to listOf("Lunges", "Lunge", "Forward Lunge", "Walking Lunges", "Reverse Lunges", "Reverse Lunge"),
             "Bulgarian Split Squat" to listOf("BSS", "Rear Foot Elevated Split Squat", "Split Squat"),
             "Calf Raise" to listOf("Standing Calf Raise", "Calf Raises"),
             
@@ -71,13 +75,13 @@ class ExerciseAliasSeeder(private val exerciseDao: ExerciseDao) {
             // Other compound movements
             "Hip Thrust" to listOf("Barbell Hip Thrust", "Glute Bridge", "BB Hip Thrust"),
             "Good Morning" to listOf("Barbell Good Morning", "GM"),
-            "Face Pull" to listOf("Cable Face Pull", "Rear Delt Pull"),
+            "Face Pull" to listOf("Cable Face Pull", "Rear Delt Pull", "Face Pull (Cable or Band)", "Band Face Pull"),
             "Shrug" to listOf("Barbell Shrug", "Trap Shrug", "Shoulder Shrug"),
             
             // Machine exercises
             "Chest Fly" to listOf("Pec Fly", "Machine Fly", "Dumbbell Fly", "DB Fly"),
             "Cable Fly" to listOf("Cable Crossover", "Pec Crossover"),
-            "Lateral Raise" to listOf("Side Raise", "Shoulder Raise", "DB Lateral Raise"),
+            "Lateral Raise" to listOf("Side Raise", "Shoulder Raise", "DB Lateral Raise", "Dumbbell Lateral Raise"),
             "Front Raise" to listOf("DB Front Raise", "Shoulder Front Raise"),
             "Rear Delt Fly" to listOf("Reverse Fly", "Rear Fly", "Bent Over Fly")
         )
