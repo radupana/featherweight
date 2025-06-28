@@ -1125,12 +1125,12 @@ private fun ProgrammeProgressCard(
         modifier = modifier.fillMaxWidth(),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
             ),
         shape = RoundedCornerShape(12.dp),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(12.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1151,7 +1151,7 @@ private fun ProgrammeProgressCard(
                         text = "Programme Progress",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
 
@@ -1186,7 +1186,7 @@ private fun ProgrammeProgressCard(
                         text = workoutState.programmeName ?: "Programme",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
                         Text(

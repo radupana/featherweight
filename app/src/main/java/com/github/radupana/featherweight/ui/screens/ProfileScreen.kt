@@ -112,6 +112,7 @@ fun ProfileScreen(
                             Icon(
                                 Icons.Filled.FitnessCenter,
                                 contentDescription = "Maxes",
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         },
                         label =
@@ -148,12 +149,12 @@ fun ProfileScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding =
                         PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            top = 16.dp,
+                            start = 12.dp,
+                            end = 12.dp,
+                            top = 12.dp,
                             bottom = 80.dp, // Space for FAB
                         ),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     // Header
                     item {
@@ -332,7 +333,7 @@ private fun Big4ExerciseCard(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -417,7 +418,7 @@ private fun OtherExerciseMaxCard(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -541,7 +542,7 @@ private fun Add1RMDialog(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
+                                    .padding(12.dp),
                             textAlign = TextAlign.Center,
                         )
                     }

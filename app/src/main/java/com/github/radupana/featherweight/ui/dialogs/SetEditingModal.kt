@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -498,37 +499,53 @@ private fun ExpandedSetRow(
         onUpdateSet(reps, weight, rpe)
     }
 
-    val bgColor =
-        if (set.isCompleted) {
-            // Use opaque light green to prevent background bleed-through
-            Color(0xFFE8F5E9) // Light green background (opaque)
-        } else {
-            MaterialTheme.colorScheme.surface
-        }
+    val bgColor = MaterialTheme.colorScheme.surface
 
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = bgColor,
         shape = RoundedCornerShape(8.dp),
-        tonalElevation = if (set.isCompleted) 2.dp else 0.dp,
+        tonalElevation = 0.dp,
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            // Compact single row layout
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Set number
-                Text(
-                    "${set.setOrder + 1}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.width(24.dp),
-                    textAlign = TextAlign.Center,
+            // Green accent stripe for completed sets
+            if (set.isCompleted) {
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .fillMaxHeight()
+                        .background(
+                            MaterialTheme.colorScheme.primary,
+                            RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
+                        )
                 )
+            } else {
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+            
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(12.dp),
+            ) {
+                // Compact single row layout
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Set number
+                    Text(
+                        "${set.setOrder + 1}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.width(24.dp),
+                        textAlign = TextAlign.Center,
+                    )
                 // Reps field
                 OutlinedTextField(
                     value = repsValue,
@@ -699,14 +716,15 @@ private fun ExpandedSetRow(
                 }
             }
 
-            // Only show validation message if user tried to complete without data
-            if (!canMarkComplete && (set.reps == 0 || set.weight == 0f) && showDeleteConfirmation) {
-                Text(
-                    "Add reps & weight to complete",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
+                // Only show validation message if user tried to complete without data
+                if (!canMarkComplete && (set.reps == 0 || set.weight == 0f) && showDeleteConfirmation) {
+                    Text(
+                        "Add reps & weight to complete",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
             }
         }
     }

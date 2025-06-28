@@ -83,19 +83,6 @@ fun ProgrammesScreen(
                 .padding(horizontal = compactPadding),
         ) {
             // Header - outside the scrollable area
-            AnimatedVisibility(
-                visible = !isKeyboardVisible,
-                enter = slideInVertically() + fadeIn(),
-                exit = slideOutVertically() + fadeOut()
-            ) {
-                Text(
-                    text = "Programmes",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = compactPadding, bottom = compactPadding),
-                )
-            }
 
             // Error/Success Messages
             uiState.error?.let { error ->

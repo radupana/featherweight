@@ -43,15 +43,6 @@ fun AnalyticsScreen(
                 .fillMaxSize()
                 .padding(16.dp),
     ) {
-        // Header
-        Text(
-            text = "Analytics",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
 
         // Quick Stats Cards
         if (analyticsState.isQuickStatsLoading) {

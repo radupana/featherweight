@@ -178,7 +178,8 @@ fun ExercisePreviewCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         
-                        // Match confidence indicator
+                        // Match confidence indicator removed - all exercises are accepted as-is
+                        /*
                         ExerciseMatchIndicator(
                             confidence = exercise.matchConfidence,
                             color = confidenceColor,
@@ -188,6 +189,7 @@ fun ExercisePreviewCard(
                                 }
                             }
                         )
+                        */
                     }
                     
                     // Exercise resolution UI removed - all exercises are accepted as-is
@@ -255,7 +257,8 @@ fun ExercisePreviewCard(
                 ExerciseDisplayInfo(exercise = exercise)
             }
             
-            // Resolution UI for poor matches
+            // Resolution UI removed - all exercises are accepted as-is
+            /*
             AnimatedVisibility(
                 visible = showResolution && exercise.matchConfidence < 0.85f,
                 enter = slideInVertically() + expandVertically(),
@@ -283,6 +286,7 @@ fun ExercisePreviewCard(
                     }
                 )
             }
+            */
         }
     }
 }

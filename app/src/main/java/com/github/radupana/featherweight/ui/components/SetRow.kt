@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,28 +28,41 @@ fun SetRow(
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
-    val bgColor =
-        if (set.isCompleted) {
-            // Use opaque light green to prevent any background bleed-through issues
-            androidx.compose.ui.graphics.Color(0xFFE8F5E9) // Light green background (opaque)
-        } else {
-            MaterialTheme.colorScheme.surface
-        }
+    val bgColor = MaterialTheme.colorScheme.surface
 
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = bgColor,
         shape = RoundedCornerShape(8.dp),
-        tonalElevation = if (set.isCompleted) 2.dp else 0.dp,
+        tonalElevation = 0.dp,
     ) {
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
+            // Green accent stripe for completed sets
+            if (set.isCompleted) {
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .height(56.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary,
+                            RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
+                        )
+                )
+            } else {
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
             // Set number
             Text(
                 "${set.setOrder + 1}",
@@ -186,7 +200,7 @@ fun SetRow(
                     },
                     colors =
                         CheckboxDefaults.colors(
-                            checkedColor = androidx.compose.ui.graphics.Color(0xFF4CAF50), // Green checkbox
+                            checkedColor = MaterialTheme.colorScheme.primary,
                         ),
                     enabled = canMarkComplete || set.isCompleted, // Enable if can mark complete OR already completed (for unchecking)
                 )
@@ -208,6 +222,7 @@ fun SetRow(
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }
+            }
             }
         }
     }

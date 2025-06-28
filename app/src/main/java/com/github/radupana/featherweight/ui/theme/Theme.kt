@@ -8,12 +8,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 
 // Premium Athletic Color Palette
-// Primary: Deep Athletic Blue → Purple gradient
-private val Primary = Color(0xFF1A237E) // Deep blue
-private val PrimaryLight = Color(0xFF3949AB) // Lighter blue
-private val PrimaryDark = Color(0xFF0D1B5F) // Darker blue
+// Primary: Modern teal accent for dark theme
+private val Primary = Color(0xFF4ECDC4) // Teal accent
+private val PrimaryLight = Color(0xFF80E5DB) // Lighter teal
+private val PrimaryDark = Color(0xFF1A9A8F) // Darker teal
 private val Accent = Color(0xFF7C4DFF) // Purple accent for CTAs
 
 // Success/Progress: Energetic gradient
@@ -35,14 +36,14 @@ private val LightOnBackground = Color(0xFF0D1421) // Almost black
 private val LightOnSurface = Color(0xFF1A1A1A) // Dark gray
 private val LightOnSurfaceVariant = Color(0xFF5A6373) // Medium gray
 
-// Dark Theme Colors
-private val DarkBackground = Color(0xFF0A0E27) // Almost black with blue tint
-private val DarkSurface = Color(0xFF1C1F33) // Dark blue-gray
-private val DarkSurfaceVariant = Color(0xFF2A2D42) // Lighter dark surface
-private val DarkSurfaceTint = Color(0xFF252847) // Blue-tinted dark
+// Dark Theme Colors - Premium dark design (softer)
+private val DarkBackground = Color(0xFF121212) // Softer dark for better comfort
+private val DarkSurface = Color(0xFF1C1C1C) // Elevated surface
+private val DarkSurfaceVariant = Color(0xFF2A2A2A) // Higher elevation
+private val DarkSurfaceTint = Color(0xFF242424) // Subtle tint
 
-private val DarkOnBackground = Color(0xFFE8EAED) // Light gray
-private val DarkOnSurface = Color(0xFFE1E3E6) // Off-white
+private val DarkOnBackground = Color(0xFFE1E3E6) // Off-white
+private val DarkOnSurface = Color(0xFFE1E3E6) // Off-white  
 private val DarkOnSurfaceVariant = Color(0xFF9AA0A6) // Medium light gray
 
 // Light Color Scheme
@@ -53,11 +54,11 @@ private val LightColors =
         onPrimary = Color.White,
         primaryContainer = PrimaryLight.copy(alpha = 0.12f),
         onPrimaryContainer = PrimaryDark,
-        // Secondary colors (using accent purple)
-        secondary = Accent,
+        // Secondary colors (neutral teal-based)
+        secondary = PrimaryDark,
         onSecondary = Color.White,
-        secondaryContainer = Accent.copy(alpha = 0.12f),
-        onSecondaryContainer = Color(0xFF4A148C),
+        secondaryContainer = PrimaryDark.copy(alpha = 0.12f),
+        onSecondaryContainer = Color(0xFF003735),
         // Tertiary colors (success green)
         tertiary = Success,
         onTertiary = Color.White,
@@ -95,11 +96,11 @@ private val DarkColors =
         onPrimary = Color(0xFF000051),
         primaryContainer = Primary,
         onPrimaryContainer = Color(0xFFBBC5FF),
-        // Secondary colors (using accent purple)
-        secondary = Color(0xFFB085F5),
-        onSecondary = Color(0xFF2E1A47),
-        secondaryContainer = Color(0xFF4A2C6A),
-        onSecondaryContainer = Color(0xFFD1B3FF),
+        // Secondary colors (neutral teal-based)
+        secondary = Color(0xFF6DB6B2),
+        onSecondary = Color(0xFF003735),
+        secondaryContainer = Color(0xFF1A4E4B),
+        onSecondaryContainer = Color(0xFFB2CFCE),
         // Tertiary colors (success green)
         tertiary = SuccessLight,
         onTertiary = Color(0xFF00402A),
@@ -129,89 +130,104 @@ private val DarkColors =
         scrim = Color.Black.copy(alpha = 0.8f),
     )
 
-// Premium Typography System
+// Compact Typography System - Space efficient
 private val AppTypography =
     Typography(
-        // Display styles - for hero text and major headings
+        // Display styles - reduced sizes
         displayLarge =
             Typography().displayLarge.copy(
+                fontSize = 45.sp, // Was 57sp
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.025).em,
             ),
         displayMedium =
             Typography().displayMedium.copy(
+                fontSize = 36.sp, // Was 45sp
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.025).em,
             ),
         displaySmall =
             Typography().displaySmall.copy(
+                fontSize = 30.sp, // Was 36sp
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.025).em,
             ),
-        // Headlines - for section headers
+        // Headlines - compact for sections
         headlineLarge =
             Typography().headlineLarge.copy(
+                fontSize = 28.sp, // Was 32sp
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.02).em,
             ),
         headlineMedium =
             Typography().headlineMedium.copy(
+                fontSize = 24.sp, // Was 28sp
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = (-0.015).em,
             ),
         headlineSmall =
             Typography().headlineSmall.copy(
+                fontSize = 20.sp, // Was 24sp
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = (-0.01).em,
             ),
-        // Titles - for card headers and important content
+        // Titles - efficient card headers
         titleLarge =
             Typography().titleLarge.copy(
+                fontSize = 18.sp, // Was 22sp
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = (-0.01).em,
             ),
         titleMedium =
             Typography().titleMedium.copy(
+                fontSize = 16.sp, // Unchanged
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 0.em,
             ),
         titleSmall =
             Typography().titleSmall.copy(
+                fontSize = 14.sp, // Unchanged
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 0.005.em,
             ),
-        // Body text - for content and descriptions
+        // Body text - compact content
         bodyLarge =
             Typography().bodyLarge.copy(
+                fontSize = 14.sp, // Was 16sp
                 fontWeight = FontWeight.Normal,
-                lineHeight = 1.6.em,
+                lineHeight = 1.5.em, // Tighter line height
                 letterSpacing = 0.01.em,
             ),
         bodyMedium =
             Typography().bodyMedium.copy(
+                fontSize = 13.sp, // Was 14sp
                 fontWeight = FontWeight.Normal,
-                lineHeight = 1.5.em,
+                lineHeight = 1.4.em, // Tighter line height
                 letterSpacing = 0.01.em,
             ),
         bodySmall =
             Typography().bodySmall.copy(
+                fontSize = 12.sp, // Unchanged
                 fontWeight = FontWeight.Normal,
-                lineHeight = 1.4.em,
+                lineHeight = 1.3.em, // Tighter line height
                 letterSpacing = 0.02.em,
             ),
-        // Labels - for captions and supporting text
+        // Labels - compact supporting text
         labelLarge =
             Typography().labelLarge.copy(
+                fontSize = 13.sp, // Was 14sp
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 0.02.em,
             ),
         labelMedium =
             Typography().labelMedium.copy(
+                fontSize = 12.sp, // Unchanged
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 0.025.em,
             ),
         labelSmall =
             Typography().labelSmall.copy(
+                fontSize = 10.sp, // Was 11sp
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 0.03.em,
             ),
@@ -225,25 +241,37 @@ object FeatherweightColors {
     val primaryGradientEnd = Accent
 
     @Composable
-    fun cardGlassBackground() = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+    fun cardGlassBackground() = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)
 
     @Composable
-    fun cardGlassBorder() = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+    fun cardGlassBorder() = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
 
     @Composable
     fun shimmerBase() = MaterialTheme.colorScheme.surfaceVariant
 
     @Composable
     fun shimmerHighlight() = MaterialTheme.colorScheme.surface
+    
+    @Composable
+    fun primaryGradientColors() = listOf(
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+    )
+    
+    @Composable
+    fun cardGlassGradient() = listOf(
+        Color.White.copy(alpha = 0.05f),
+        Color.White.copy(alpha = 0.02f)
+    )
 }
 
 @Composable
 fun FeatherweightTheme(
-    darkTheme: Boolean = false, // Force light theme always
+    darkTheme: Boolean = true, // Dark theme by default
     content: @Composable () -> Unit,
 ) {
-    // Always use light theme regardless of system setting
-    val colorScheme = LightColors
+    // Use dark theme by default for premium feel
+    val colorScheme = if (darkTheme) DarkColors else LightColors
 
     MaterialTheme(
         colorScheme = colorScheme,
