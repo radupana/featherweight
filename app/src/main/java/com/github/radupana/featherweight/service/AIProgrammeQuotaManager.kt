@@ -38,23 +38,11 @@ class AIProgrammeQuotaManager(context: Context) {
     }
     
     fun canGenerateProgramme(): Boolean {
-        return getQuotaStatus().remainingGenerations > 0
+        return true // Unlimited for testing
     }
     
     fun incrementUsage(): Boolean {
-        resetIfNewDay()
-        
-        val currentUsage = prefs.getInt(KEY_USAGE_COUNT, 0)
-        
-        if (currentUsage >= DAILY_QUOTA) {
-            return false // Quota exceeded
-        }
-        
-        prefs.edit()
-            .putInt(KEY_USAGE_COUNT, currentUsage + 1)
-            .apply()
-        
-        return true
+        return true // Always allow for testing
     }
     
     private fun resetIfNewDay() {

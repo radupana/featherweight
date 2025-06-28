@@ -575,36 +575,13 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
             try {
                 val currentPreview = _currentPreview.value ?: return@launch
                 
-                // Validate all exercises are resolved
-                val unresolvedExercises = currentPreview.weeks
-                    .flatMap { it.workouts }
-                    .flatMap { it.exercises }
-                    .filter { it.matchedExerciseId == null || it.matchConfidence < 0.7f }
+                // Simplified activation - no validation checks required
                 
-                if (unresolvedExercises.isNotEmpty()) {
-                    _previewState.value = PreviewState.Error(
-                        "Please resolve ${unresolvedExercises.size} exercise(s) before activating",
-                        canRetry = false
-                    )
-                    return@launch
-                }
+                // Set activating state
+                _previewState.value = PreviewState.Activating(currentPreview)
                 
-                // Check for validation errors
-                if (currentPreview.validationResult.errors.isNotEmpty()) {
-                    _previewState.value = PreviewState.Error(
-                        "Please fix validation errors before activating",
-                        canRetry = false
-                    )
-                    return@launch
-                }
-                
-                // For now, simulate the activation process
-                // In a real implementation, we would:
-                // 1. Create a custom programme template in the database
-                // 2. Set it as the user's active programme
-                // 3. Handle 1RM setup if needed
-                
-                kotlinx.coroutines.delay(1500) // Simulate activation process
+                // Create the programme in the database
+                val programmeId = repository.createAIGeneratedProgramme(currentPreview)
                 
                 // Show success state briefly before navigation
                 _previewState.value = PreviewState.Success(
@@ -619,6 +596,11 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                 onSuccess()
                 
             } catch (e: Exception) {
+                val currentPreview = _currentPreview.value
+                // If activation fails, go back to Success state
+                if (currentPreview != null) {
+                    _previewState.value = PreviewState.Success(currentPreview)
+                }
                 _previewState.value = PreviewState.Error(
                     "Failed to activate programme: ${e.message}"
                 )

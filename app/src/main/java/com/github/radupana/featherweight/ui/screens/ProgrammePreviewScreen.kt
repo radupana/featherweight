@@ -76,6 +76,7 @@ fun ProgrammePreviewScreen(
                     preview = state.preview,
                     selectedWeek = selectedWeek,
                     editStates = editStates,
+                    isActivating = false,
                     onWeekSelected = viewModel::selectWeek,
                     onExerciseResolved = viewModel::resolveExercise,
                     onExerciseSwapped = viewModel::swapExercise,
@@ -83,7 +84,6 @@ fun ProgrammePreviewScreen(
                     onToggleEdit = viewModel::toggleExerciseEdit,
                     onShowAlternatives = viewModel::showExerciseAlternatives,
                     onShowResolution = viewModel::showExerciseResolution,
-                    onBulkEdit = viewModel::applyBulkEdit,
                     onProgrammeNameChanged = viewModel::updateProgrammeName,
                     onRegenerate = viewModel::regenerate,
                     onActivate = { 
@@ -91,6 +91,31 @@ fun ProgrammePreviewScreen(
                             startDate = java.time.LocalDate.now(),
                             onSuccess = onActivated
                         )
+                    },
+                    onFixIssue = viewModel::autoFixValidationIssue,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                )
+            }
+            
+            is PreviewState.Activating -> {
+                SuccessPreviewContent(
+                    preview = state.preview,
+                    selectedWeek = selectedWeek,
+                    editStates = editStates,
+                    isActivating = true,
+                    onWeekSelected = viewModel::selectWeek,
+                    onExerciseResolved = viewModel::resolveExercise,
+                    onExerciseSwapped = viewModel::swapExercise,
+                    onExerciseUpdated = viewModel::updateExercise,
+                    onToggleEdit = viewModel::toggleExerciseEdit,
+                    onShowAlternatives = viewModel::showExerciseAlternatives,
+                    onShowResolution = viewModel::showExerciseResolution,
+                    onProgrammeNameChanged = viewModel::updateProgrammeName,
+                    onRegenerate = viewModel::regenerate,
+                    onActivate = { 
+                        // Disabled during activation
                     },
                     onFixIssue = viewModel::autoFixValidationIssue,
                     modifier = Modifier
@@ -149,6 +174,7 @@ private fun SuccessPreviewContent(
     preview: GeneratedProgrammePreview,
     selectedWeek: Int,
     editStates: Map<String, ExerciseEditState>,
+    isActivating: Boolean,
     onWeekSelected: (Int) -> Unit,
     onExerciseResolved: (String, Long) -> Unit,
     onExerciseSwapped: (String, String) -> Unit,
@@ -156,7 +182,6 @@ private fun SuccessPreviewContent(
     onToggleEdit: (String) -> Unit,
     onShowAlternatives: (String, Boolean) -> Unit,
     onShowResolution: (String, Boolean) -> Unit,
-    onBulkEdit: (QuickEditAction) -> Unit,
     onProgrammeNameChanged: (String) -> Unit,
     onRegenerate: (RegenerationMode) -> Unit,
     onActivate: () -> Unit,
@@ -183,23 +208,7 @@ private fun SuccessPreviewContent(
             ProgrammeOverviewCard(preview = preview)
         }
         
-        // Validation Results
-        if (preview.validationResult.hasWarnings || !preview.validationResult.isValid) {
-            item {
-                ValidationResultCard(
-                    validationResult = preview.validationResult,
-                    onFixIssue = onFixIssue,
-                    onBulkFix = {
-                        // Apply auto-fix to all auto-fixable issues only
-                        preview.validationResult.errors
-                            .filter { it.isAutoFixable }
-                            .forEach { error ->
-                                onFixIssue(error)
-                            }
-                    }
-                )
-            }
-        }
+        // Validation Results removed for simpler UX
         
         // Week Selector
         if (preview.weeks.size > 1) {
@@ -212,12 +221,7 @@ private fun SuccessPreviewContent(
             }
         }
         
-        // Bulk Edit Options
-        item {
-            BulkEditCard(
-                onBulkEdit = onBulkEdit
-            )
-        }
+        // Bulk Edit Options removed for simplified UX
         
         // Workouts for Selected Week
         val currentWeek = preview.weeks.find { it.weekNumber == selectedWeek }
@@ -239,7 +243,7 @@ private fun SuccessPreviewContent(
         // Action Buttons
         item {
             ActionButtonsCard(
-                validationResult = preview.validationResult,
+                isActivating = isActivating,
                 onRegenerate = { showRegenerateDialog = true },
                 onActivate = onActivate
             )

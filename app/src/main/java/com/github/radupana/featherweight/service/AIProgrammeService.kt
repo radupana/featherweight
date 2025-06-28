@@ -190,7 +190,7 @@ class AIProgrammeService {
     
     private suspend fun callOpenAI(systemPrompt: String, userPrompt: String): String {
         if (useMockFallback) {
-            // Return mock response when API key not configured
+            println("🤖 OpenAI API: Using mock fallback (API key not configured)")
             return getMockResponse()
         }
         
@@ -206,6 +206,18 @@ class AIProgrammeService {
                 responseFormat = ResponseFormat(type = "json_object")
             )
             
+            // Log the complete request
+            println("🤖 OpenAI Request [${java.time.LocalDateTime.now()}]:")
+            println("📝 Model: $MODEL")
+            println("🎯 Temperature: $TEMPERATURE")
+            println("📏 Max Tokens: $MAX_TOKENS")
+            println("📋 System Prompt (${systemPrompt.length} chars):")
+            println("   ${systemPrompt.take(200)}...")
+            println("💬 User Prompt (${userPrompt.length} chars):")
+            println("   $userPrompt")
+            println("🔧 Request JSON:")
+            println("   ${kotlinx.serialization.json.Json.encodeToString(OpenAIRequest.serializer(), request)}")
+            
             val response = api.createChatCompletion(
                 authorization = "Bearer $OPENAI_API_KEY",
                 request = request
@@ -214,12 +226,25 @@ class AIProgrammeService {
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body?.choices?.isNotEmpty() == true) {
-                    body.choices[0].message.content
+                    val responseContent = body.choices[0].message.content
+                    
+                    // Log the complete response
+                    println("✅ OpenAI Response [${java.time.LocalDateTime.now()}]:")
+                    println("📊 Usage: ${body.usage?.totalTokens ?: "unknown"} tokens (prompt: ${body.usage?.promptTokens}, completion: ${body.usage?.completionTokens})")
+                    println("💰 Estimated cost: ~$${((body.usage?.totalTokens ?: 0) * 0.00015f / 1000f)}")
+                    println("📄 Response content (${responseContent.length} chars):")
+                    println("   ${responseContent.take(500)}...")
+                    println("🔍 Full Response JSON:")
+                    println("   ${kotlinx.serialization.json.Json.encodeToString(OpenAIResponse.serializer(), body)}")
+                    
+                    responseContent
                 } else {
+                    println("❌ OpenAI Response: Empty choices array")
                     throw Exception("Empty response from OpenAI")
                 }
             } else {
                 val errorBody = response.errorBody()?.string()
+                println("❌ OpenAI API Error [${response.code()}]: $errorBody")
                 throw Exception("OpenAI API error: ${response.code()} - $errorBody")
             }
         } catch (e: Exception) {

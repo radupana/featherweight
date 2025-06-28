@@ -56,6 +56,7 @@ data class GuidedInputState(
     val inputCompleteness: Float = 0f,
     val showExamples: Boolean = false,
     val availableChips: List<QuickAddChip> = emptyList(),
+    val usedChips: Set<String> = emptySet(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val generationCount: Int = 0,

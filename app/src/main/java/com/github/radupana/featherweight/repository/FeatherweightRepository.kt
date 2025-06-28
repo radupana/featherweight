@@ -1036,6 +1036,17 @@ class FeatherweightRepository(
                     programmeDao.getProgrammeById(programmeId)
                         ?: throw IllegalArgumentException("Programme not found")
 
+                // Check if this is a custom programme (AI-generated or user-created)
+                if (programme.isCustom) {
+                    println("🤖 Handling custom programme workout creation")
+                    return@withContext createWorkoutFromCustomProgramme(
+                        programmeId = programmeId,
+                        weekNumber = weekNumber,
+                        dayNumber = dayNumber,
+                        userMaxes = userMaxes
+                    )
+                }
+
                 // Find the template this programme was created from
                 val template =
                     programmeDao.getAllTemplates().find { it.name == programme.name }
@@ -1107,6 +1118,92 @@ class FeatherweightRepository(
                 throw e
             }
         }
+
+    private suspend fun createWorkoutFromCustomProgramme(
+        programmeId: Long,
+        weekNumber: Int,
+        dayNumber: Int,
+        userMaxes: Map<String, Float> = emptyMap(),
+    ): Long {
+        println("🔧 createWorkoutFromCustomProgramme called:")
+        println("  - programmeId: $programmeId")
+        println("  - weekNumber: $weekNumber")
+        println("  - dayNumber: $dayNumber")
+        
+        // Get the progress to find which workout to use
+        val progress = programmeDao.getProgressForProgramme(programmeId)
+            ?: throw IllegalArgumentException("Programme progress not found")
+        
+        // Get all workouts for this programme
+        val allWorkouts = programmeDao.getAllWorkoutsForProgramme(programmeId)
+        if (allWorkouts.isEmpty()) {
+            throw IllegalArgumentException("No workouts found for custom programme")
+        }
+        
+        // Find the workout index based on completed workouts
+        val workoutIndex = progress.completedWorkouts
+        if (workoutIndex >= allWorkouts.size) {
+            throw IllegalArgumentException("All workouts already completed")
+        }
+        
+        val programmeWorkout = allWorkouts[workoutIndex]
+        println("📋 Using workout: ${programmeWorkout.name}")
+        
+        // Parse workout structure
+        val workoutStructure = try {
+            val json = kotlinx.serialization.json.Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            }
+            json.decodeFromString<com.github.radupana.featherweight.data.programme.WorkoutStructure>(
+                programmeWorkout.workoutStructure
+            )
+        } catch (e: Exception) {
+            // Try to fix invalid JSON
+            val fixedJson = programmeWorkout.workoutStructure
+                .replace("\"reps\":,", "\"reps\":\"8-12\",")
+                .replace("\"reps\": ,", "\"reps\":\"8-12\",")
+            
+            try {
+                val json = kotlinx.serialization.json.Json {
+                    ignoreUnknownKeys = true
+                    isLenient = true
+                }
+                json.decodeFromString<com.github.radupana.featherweight.data.programme.WorkoutStructure>(fixedJson)
+            } catch (e2: Exception) {
+                throw IllegalArgumentException("Failed to parse workout structure: ${e2.message}")
+            }
+        }
+        
+        // Create the workout entry
+        val workout = Workout(
+            date = LocalDateTime.now(),
+            programmeId = programmeId,
+            weekNumber = weekNumber,
+            dayNumber = dayNumber,
+            programmeWorkoutName = workoutStructure.name,
+            isProgrammeWorkout = true,
+            notes = null,
+        )
+        val workoutId = workoutDao.insertWorkout(workout)
+        
+        // Create exercises and sets from the structure
+        workoutStructure.exercises.forEachIndexed { exerciseIndex, exerciseStructure ->
+            val exerciseLog = createExerciseLogFromStructure(
+                workoutId = workoutId,
+                exerciseStructure = exerciseStructure,
+                exerciseOrder = exerciseIndex,
+                userMaxes = userMaxes,
+            )
+            val exerciseLogId = exerciseLogDao.insertExerciseLog(exerciseLog)
+            
+            // Create sets for this exercise
+            createSetsFromStructure(exerciseLogId, exerciseStructure, userMaxes)
+        }
+        
+        println("✅ Created custom programme workout: ${workoutStructure.name}")
+        return workoutId
+    }
 
     private suspend fun createExerciseLogFromStructure(
         workoutId: Long,
@@ -1301,15 +1398,39 @@ class FeatherweightRepository(
         withContext(Dispatchers.IO) {
             println("🔄 getNextProgrammeWorkout called for programmeId: $programmeId")
 
-            val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext null
-            val progress = programmeDao.getProgressForProgramme(programmeId) ?: return@withContext null
+            val programme = programmeDao.getProgrammeById(programmeId)
+            if (programme == null) {
+                println("❌ Programme not found for id: $programmeId")
+                return@withContext null
+            }
+            
+            val progress = programmeDao.getProgressForProgramme(programmeId)
+            if (progress == null) {
+                println("❌ Progress not found for programmeId: $programmeId")
+                return@withContext null
+            }
 
             println(
                 "📊 Current progress: week=${progress.currentWeek}, day=${progress.currentDay}, " +
                     "completed=${progress.completedWorkouts}/${progress.totalWorkouts}",
             )
 
-            // Find the template this programme was created from
+            // Check if programme is actually complete
+            if (progress.completedWorkouts >= progress.totalWorkouts) {
+                println("✅ Programme is complete (${progress.completedWorkouts} >= ${progress.totalWorkouts})")
+                return@withContext null
+            }
+
+            // Check if this is a custom programme (AI-generated or user-created) with direct workout storage
+            if (programme.isCustom) {
+                println("🤖 Handling custom programme (AI-generated or user-created)")
+                println("   Programme: ${programme.name}")
+                println("   Is custom: ${programme.isCustom}")
+                println("   Progress: completedWorkouts=${progress.completedWorkouts}, totalWorkouts=${progress.totalWorkouts}")
+                return@withContext getNextWorkoutFromDatabase(programmeId, progress)
+            }
+
+            // Handle template-based programmes (existing logic)
             val template =
                 programmeDao.getAllTemplates().find { it.name == programme.name }
                     ?: return@withContext null
@@ -1318,12 +1439,6 @@ class FeatherweightRepository(
             val structure =
                 com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
                     ?: return@withContext null
-
-            // Check if programme is actually complete
-            if (progress.completedWorkouts >= progress.totalWorkouts) {
-                println("✅ Programme is complete (${progress.completedWorkouts} >= ${progress.totalWorkouts})")
-                return@withContext null
-            }
 
             // Calculate workouts per week from template structure
             val workoutsPerWeek = structure.weeks.flatMap { it.workouts }.size / structure.weeks.size
@@ -1360,10 +1475,101 @@ class FeatherweightRepository(
             )
         }
 
+    // Handle next workout for custom programmes (AI-generated or user-created)
+    private suspend fun getNextWorkoutFromDatabase(programmeId: Long, progress: com.github.radupana.featherweight.data.programme.ProgrammeProgress): NextProgrammeWorkoutInfo? {
+        println("🔍 Looking up next workout from database for custom programme")
+        
+        // Get all workouts for this programme, ordered by week and day
+        val allWorkouts = programmeDao.getAllWorkoutsForProgramme(programmeId)
+        if (allWorkouts.isEmpty()) {
+            println("❌ No workouts found for programme $programmeId")
+            return null
+        }
+        
+        println("📋 Found ${allWorkouts.size} total workouts for programme")
+        
+        // Find the next workout based on completed workouts count
+        val nextWorkoutIndex = progress.completedWorkouts
+        if (nextWorkoutIndex >= allWorkouts.size) {
+            println("✅ All workouts completed ($nextWorkoutIndex >= ${allWorkouts.size})")
+            return null
+        }
+        
+        val nextWorkout = allWorkouts[nextWorkoutIndex]
+        println("🎯 Next workout: ${nextWorkout.name} (weekId ${nextWorkout.weekId}, day ${nextWorkout.dayNumber})")
+        
+        // Parse the workout structure from JSON with proper configuration
+        val workoutStructure = try {
+            val json = kotlinx.serialization.json.Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            }
+            json.decodeFromString<com.github.radupana.featherweight.data.programme.WorkoutStructure>(
+                nextWorkout.workoutStructure
+            )
+        } catch (e: Exception) {
+            println("❌ Failed to parse workout structure: ${e.message}")
+            println("   JSON content: ${nextWorkout.workoutStructure}")
+            
+            // Try to fix invalid JSON by replacing ,"reps":, with ,"reps":"8-12",
+            val fixedJson = nextWorkout.workoutStructure
+                .replace("\"reps\":,", "\"reps\":\"8-12\",")
+                .replace("\"reps\": ,", "\"reps\":\"8-12\",")
+            
+            println("🔧 Attempting to fix invalid JSON...")
+            try {
+                val json = kotlinx.serialization.json.Json {
+                    ignoreUnknownKeys = true
+                    isLenient = true
+                }
+                json.decodeFromString<com.github.radupana.featherweight.data.programme.WorkoutStructure>(fixedJson)
+            } catch (e2: Exception) {
+                println("❌ Still failed after JSON fix attempt: ${e2.message}")
+                e2.printStackTrace()
+                return null
+            }
+        }
+        
+        // Get the week number from the workout's week
+        val week = programmeDao.getWeekById(nextWorkout.weekId)
+        val actualWeekNumber = week?.weekNumber ?: 1
+        
+        println("💫 Returning workout: ${workoutStructure.name} for actual week $actualWeekNumber")
+        println("   Workout structure: day=${workoutStructure.day}, exercises=${workoutStructure.exercises.size}")
+        
+        return NextProgrammeWorkoutInfo(
+            workoutStructure = workoutStructure,
+            actualWeekNumber = actualWeekNumber
+        )
+    }
+    
+    // Helper to get daily workout count for custom programmes
+    private suspend fun getDailyWorkoutCount(programmeId: Long): Int {
+        val weeks = programmeDao.getWeeksForProgramme(programmeId)
+        if (weeks.isEmpty()) return 3 // fallback
+        
+        // Get the first week's workout count as representative
+        val firstWeekWorkouts = programmeDao.getWorkoutsForWeek(weeks[0].id)
+        return firstWeekWorkouts.size.coerceAtLeast(1)
+    }
+
     // Calculate total workouts for a programme based on its JSON structure
     private suspend fun calculateTotalWorkoutsFromStructure(programme: com.github.radupana.featherweight.data.programme.Programme): Int {
         return try {
-            // Find the template this programme was created from
+            // Check if this is a custom programme (AI-generated or user-created)
+            if (programme.isCustom) {
+                // For custom programmes, count actual workouts in the database
+                val allWorkouts = programmeDao.getAllWorkoutsForProgramme(programme.id)
+                val totalWorkouts = allWorkouts.size
+                
+                println("📊 Custom programme workout count:")
+                println("  - Programme: ${programme.name}")
+                println("  - Total workouts in database: $totalWorkouts")
+                
+                return totalWorkouts
+            }
+            
+            // For template-based programmes, use existing logic
             val template =
                 programmeDao.getAllTemplates().find { it.name == programme.name }
                     ?: return programme.durationWeeks * 3 // Fallback to default
@@ -1445,6 +1651,102 @@ class FeatherweightRepository(
 
             // TODO: Parse JSON structure and create weeks/workouts
             // For now, just return the programme ID
+            programmeId
+        }
+    
+    suspend fun createAIGeneratedProgramme(preview: com.github.radupana.featherweight.data.GeneratedProgrammePreview): Long =
+        withContext(Dispatchers.IO) {
+            // Deactivate any currently active programme
+            programmeDao.deactivateAllProgrammes()
+            
+            // Create the main programme
+            val programme = com.github.radupana.featherweight.data.programme.Programme(
+                name = preview.name,
+                description = preview.description,
+                durationWeeks = preview.durationWeeks,
+                programmeType = com.github.radupana.featherweight.data.programme.ProgrammeType.GENERAL_FITNESS,
+                difficulty = when (preview.volumeLevel) {
+                    com.github.radupana.featherweight.data.VolumeLevel.LOW -> com.github.radupana.featherweight.data.programme.ProgrammeDifficulty.BEGINNER
+                    com.github.radupana.featherweight.data.VolumeLevel.MODERATE -> com.github.radupana.featherweight.data.programme.ProgrammeDifficulty.INTERMEDIATE
+                    com.github.radupana.featherweight.data.VolumeLevel.HIGH, com.github.radupana.featherweight.data.VolumeLevel.VERY_HIGH -> com.github.radupana.featherweight.data.programme.ProgrammeDifficulty.ADVANCED
+                },
+                isCustom = true,
+                isActive = true,
+                startedAt = java.time.LocalDateTime.now()
+            )
+
+            val programmeId = programmeDao.insertProgramme(programme)
+
+            // Create weeks and workouts
+            preview.weeks.forEach { weekPreview ->
+                val week = com.github.radupana.featherweight.data.programme.ProgrammeWeek(
+                    programmeId = programmeId,
+                    weekNumber = weekPreview.weekNumber,
+                    name = "Week ${weekPreview.weekNumber}",
+                    description = weekPreview.progressionNotes,
+                    focusAreas = null
+                )
+                
+                val weekId = programmeDao.insertProgrammeWeek(week)
+                
+                // Create workouts for this week
+                weekPreview.workouts.forEach { workoutPreview ->
+                    // Build workout structure JSON
+                    val workoutStructure = com.github.radupana.featherweight.data.programme.WorkoutStructure(
+                        day = workoutPreview.dayNumber,
+                        name = workoutPreview.name,
+                        exercises = workoutPreview.exercises.map { exercisePreview ->
+                            com.github.radupana.featherweight.data.programme.ExerciseStructure(
+                                name = exercisePreview.exerciseName,
+                                sets = exercisePreview.sets,
+                                reps = com.github.radupana.featherweight.data.programme.RepsStructure.Range(
+                                    min = exercisePreview.repsMin,
+                                    max = exercisePreview.repsMax
+                                ),
+                                note = exercisePreview.notes
+                            )
+                        },
+                        estimatedDuration = workoutPreview.estimatedDuration
+                    )
+                    
+                    val workout = com.github.radupana.featherweight.data.programme.ProgrammeWorkout(
+                        weekId = weekId,
+                        dayNumber = workoutPreview.dayNumber,
+                        name = workoutPreview.name,
+                        description = null,
+                        estimatedDuration = workoutPreview.estimatedDuration,
+                        workoutStructure = kotlinx.serialization.json.Json {
+                            ignoreUnknownKeys = true
+                            isLenient = true
+                        }.encodeToString(
+                            com.github.radupana.featherweight.data.programme.WorkoutStructure.serializer(),
+                            workoutStructure
+                        )
+                    )
+                    
+                    programmeDao.insertProgrammeWorkout(workout)
+                }
+            }
+
+            // Initialize progress tracking for the new programme
+            val totalWorkouts = preview.weeks.sumOf { it.workouts.size }
+            val progress = com.github.radupana.featherweight.data.programme.ProgrammeProgress(
+                programmeId = programmeId,
+                currentWeek = 1,
+                currentDay = 1,
+                completedWorkouts = 0,
+                totalWorkouts = totalWorkouts,
+                lastWorkoutDate = null,
+                adherencePercentage = 0f,
+                strengthProgress = null
+            )
+            
+            println("🔄 Initializing progress for AI-generated programme...")
+            println("  - Programme ID: $programmeId")
+            println("  - Total workouts: $totalWorkouts")
+            programmeDao.insertOrUpdateProgress(progress)
+            println("✅ Progress tracking initialized")
+
             programmeId
         }
 

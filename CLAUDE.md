@@ -160,7 +160,23 @@ Building a weightlifting Super App that combines the best features from apps lik
 
 ## Recent Focus Areas
 
-### Latest Session: Real AI Integration (2025-01-27)
+### Latest Session: Critical AI Programme Fixes (2025-01-28)
+Fixed critical issues with AI programme generation and activation:
+- **Exercise Resolution Removed**: Completely removed exercise resolution UI - all exercises are now accepted as-is
+- **Programme Visibility**: Fixed issue where activated programmes didn't appear immediately by adding refresh on ProgrammesScreen load
+- **Programme Completion Status**: Fixed "Programme Complete" bug for AI-generated programmes by:
+  - Updating `getNextProgrammeWorkout()` to handle custom programmes with direct workout storage
+  - Adding proper progress initialization during programme creation
+  - Implementing `getAllWorkoutsForProgramme()` DAO method for custom programmes
+  - **CRITICAL FIX**: Fixed empty `RepsSerializer.serialize()` that was creating invalid JSON (`"reps":,`)
+- **Key Code Changes**:
+  - `WorkoutPreviewComponents.kt`: Removed needsAttention/resolution UI
+  - `ProgrammesScreen.kt`: Added LaunchedEffect to refresh data on screen appearance
+  - `FeatherweightRepository.kt`: Enhanced programme progress tracking for AI-generated programmes
+  - `ProgrammeWorkoutStructure.kt`: Implemented proper serialization for RepsStructure and IncrementStructure
+- **Daily Quota Removed**: Set `canGenerateProgramme()` and `incrementUsage()` to always return true for unlimited testing
+
+### Previous Session: Real AI Integration (2025-01-27)
 Successfully integrated real OpenAI API for AI Programme Generation:
 - **API Integration**: Full OpenAI integration with gpt-4o-mini model
 - **Secure Key Management**: BuildConfig + local.properties approach implemented

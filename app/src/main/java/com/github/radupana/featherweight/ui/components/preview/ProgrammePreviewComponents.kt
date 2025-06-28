@@ -451,7 +451,7 @@ private fun WeekTab(
 
 @Composable
 fun ActionButtonsCard(
-    validationResult: ValidationResult,
+    isActivating: Boolean = false,
     onRegenerate: () -> Unit,
     onActivate: () -> Unit,
     modifier: Modifier = Modifier
@@ -480,64 +480,28 @@ fun ActionButtonsCard(
             
             Button(
                 onClick = onActivate,
-                enabled = validationResult.isValid,
+                enabled = !isActivating,
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Activate")
-            }
-        }
-        
-        if (!validationResult.isValid) {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = "Issues to fix before activating:",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.error
-                )
-                
-                validationResult.errors.forEach { error ->
-                    Row(
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = "•",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(top = 1.dp)
-                        )
-                        Text(
-                            text = error.message,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-                
-                val hasExerciseResolutionIssues = validationResult.errors.any { 
-                    it.category == ValidationCategory.EXERCISE_SELECTION && !it.isAutoFixable 
-                }
-                if (hasExerciseResolutionIssues) {
-                    Text(
-                        text = "💡 Scroll down to find exercises highlighted in red and click them to select correct matches",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(top = 4.dp)
+                if (isActivating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Activating...")
+                } else {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Activate")
                 }
             }
         }

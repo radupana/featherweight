@@ -59,6 +59,11 @@ fun ProgrammesScreen(
         }
     }
 
+    // Refresh data when screen appears (e.g., after activating a new programme)
+    LaunchedEffect(Unit) {
+        viewModel.refreshData()
+    }
+
     Box(
         modifier = modifier.fillMaxSize(),
     ) {

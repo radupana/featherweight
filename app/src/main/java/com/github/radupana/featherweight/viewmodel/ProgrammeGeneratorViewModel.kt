@@ -37,7 +37,8 @@ class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(a
         val contextualChips = inputAnalyzer.getContextualChips(
             currentState.selectedGoal,
             currentState.selectedFrequency,
-            detectedElements
+            detectedElements,
+            currentState.usedChips
         )
         
         _uiState.value = currentState.copy(
@@ -51,7 +52,9 @@ class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(a
     
     fun selectGoal(goal: ProgrammeGoal) {
         val currentState = _uiState.value
-        _uiState.value = currentState.copy(selectedGoal = goal)
+        // Toggle selection - if already selected, deselect it
+        val newGoal = if (currentState.selectedGoal == goal) null else goal
+        _uiState.value = currentState.copy(selectedGoal = newGoal)
         
         // Re-analyze input with new goal
         if (currentState.inputText.isNotEmpty()) {
@@ -63,7 +66,9 @@ class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(a
     
     fun selectFrequency(frequency: Int) {
         val currentState = _uiState.value
-        _uiState.value = currentState.copy(selectedFrequency = frequency)
+        // Toggle selection - if already selected, deselect it
+        val newFrequency = if (currentState.selectedFrequency == frequency) null else frequency
+        _uiState.value = currentState.copy(selectedFrequency = newFrequency)
         
         // Re-analyze input with new frequency
         if (currentState.inputText.isNotEmpty()) {
@@ -75,9 +80,11 @@ class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(a
     
     fun selectDuration(duration: SessionDuration) {
         val currentState = _uiState.value
-        _uiState.value = currentState.copy(selectedDuration = duration)
+        // Toggle selection - if already selected, deselect it
+        val newDuration = if (currentState.selectedDuration == duration) null else duration
+        _uiState.value = currentState.copy(selectedDuration = newDuration)
         
-        // Update completeness and chips
+        // Update contextual chips
         updateContextualChips()
     }
     
@@ -88,7 +95,22 @@ class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(a
         } else {
             "${currentState.inputText}. $chipText"
         }
-        updateInputText(newText)
+        
+        // Find the full chip info to get the actual text to append
+        val chip = currentState.availableChips.find { it.text == chipText }
+        val textToAppend = chip?.appendText ?: chipText
+        
+        val finalText = if (currentState.inputText.isEmpty()) {
+            textToAppend
+        } else {
+            "${currentState.inputText}. $textToAppend"
+        }
+        
+        // Add chip to used chips and update text
+        _uiState.value = currentState.copy(
+            usedChips = currentState.usedChips + chipText
+        )
+        updateInputText(finalText)
     }
     
     fun toggleExamples() {
@@ -113,6 +135,7 @@ class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(a
             currentState.selectedDuration
         )
     }
+    
     
     fun getSuggestions(): List<String> {
         return inputAnalyzer.generateSuggestions(_uiState.value.detectedElements)
@@ -146,7 +169,8 @@ class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(a
         val contextualChips = inputAnalyzer.getContextualChips(
             currentState.selectedGoal,
             currentState.selectedFrequency,
-            currentState.detectedElements
+            currentState.detectedElements,
+            currentState.usedChips
         )
         
         val completeness = inputAnalyzer.calculateCompleteness(

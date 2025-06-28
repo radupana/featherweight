@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.*
 import com.github.radupana.featherweight.ui.components.*
+import com.github.radupana.featherweight.ui.dialogs.TemplateSelectionDialog
 import com.github.radupana.featherweight.viewmodel.ProgrammeGeneratorViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,6 +39,7 @@ fun ProgrammeGeneratorScreen(
     viewModel: ProgrammeGeneratorViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showTemplateDialog by remember { mutableStateOf(false) }
     
     Scaffold(
         topBar = {
@@ -234,7 +236,7 @@ fun ProgrammeGeneratorScreen(
                             items(uiState.availableChips) { chip ->
                                 QuickAddChipComponent(
                                     chip = chip,
-                                    onClick = { viewModel.addChipText(chip.appendText) }
+                                    onClick = { viewModel.addChipText(chip.text) }
                                 )
                             }
                         }
@@ -242,14 +244,33 @@ fun ProgrammeGeneratorScreen(
                 }
             }
             
-            // Example Templates
+            // Browse Templates Button
             item {
-                ExampleTemplatesSection(
-                    showExamples = uiState.showExamples,
-                    templates = viewModel.getFilteredTemplates(),
-                    onToggleExamples = { viewModel.toggleExamples() },
-                    onSelectTemplate = { viewModel.loadTemplate(it) }
-                )
+                OutlinedButton(
+                    onClick = { showTemplateDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.LibraryBooks,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            "Browse Templates",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
             
             // Generate Button
@@ -315,5 +336,18 @@ fun ProgrammeGeneratorScreen(
                 }
             }
         }
+    }
+    
+    // Template Selection Dialog
+    if (showTemplateDialog) {
+        TemplateSelectionDialog(
+            selectedGoal = uiState.selectedGoal,
+            selectedFrequency = uiState.selectedFrequency,
+            selectedDuration = uiState.selectedDuration,
+            onTemplateSelected = { template ->
+                viewModel.loadTemplate(template)
+            },
+            onDismiss = { showTemplateDialog = false }
+        )
     }
 }

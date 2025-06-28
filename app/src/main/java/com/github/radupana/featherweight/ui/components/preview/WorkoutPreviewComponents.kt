@@ -152,15 +152,8 @@ fun ExercisePreviewCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = when {
-                needsAttention -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-                lowConfidence -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
-                else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            }
-        ),
-        border = if (needsAttention) {
-            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error)
-        } else null
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -197,7 +190,8 @@ fun ExercisePreviewCard(
                         )
                     }
                     
-                    // Show attention message for unresolved exercises
+                    // Exercise resolution UI removed - all exercises are accepted as-is
+                    /*
                     if (needsAttention) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -235,6 +229,7 @@ fun ExercisePreviewCard(
                             )
                         }
                     }
+                    */
                 }
                 
                 // Edit button

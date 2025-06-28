@@ -196,6 +196,7 @@ enum class RegenerationMode(val displayName: String, val description: String) {
 sealed class PreviewState {
     object Loading : PreviewState()
     data class Success(val preview: GeneratedProgrammePreview) : PreviewState()
+    data class Activating(val preview: GeneratedProgrammePreview) : PreviewState()
     data class Error(val message: String, val canRetry: Boolean = true) : PreviewState()
 }
 

@@ -138,15 +138,16 @@ class InputAnalyzer {
     fun getContextualChips(
         goal: ProgrammeGoal?,
         frequency: Int?,
-        detectedElements: Set<DetectedElement>
+        detectedElements: Set<DetectedElement>,
+        usedChips: Set<String> = emptySet()
     ): List<com.github.radupana.featherweight.data.QuickAddChip> {
         val chips = mutableListOf<com.github.radupana.featherweight.data.QuickAddChip>()
         
         // Experience chips
         if (!detectedElements.contains(DetectedElement.EXPERIENCE_LEVEL)) {
             chips.addAll(listOf(
-                com.github.radupana.featherweight.data.QuickAddChip("+Beginner", com.github.radupana.featherweight.data.ChipCategory.EXPERIENCE, "I'm a beginner to lifting"),
-                com.github.radupana.featherweight.data.QuickAddChip("+2 Years", com.github.radupana.featherweight.data.ChipCategory.EXPERIENCE, "I have 2 years of training experience"),
+                com.github.radupana.featherweight.data.QuickAddChip("+Beginner", com.github.radupana.featherweight.data.ChipCategory.EXPERIENCE, "I'm a beginner"),
+                com.github.radupana.featherweight.data.QuickAddChip("+Intermediate", com.github.radupana.featherweight.data.ChipCategory.EXPERIENCE, "I'm intermediate level"),
                 com.github.radupana.featherweight.data.QuickAddChip("+Advanced", com.github.radupana.featherweight.data.ChipCategory.EXPERIENCE, "I'm an advanced lifter")
             ))
         }
@@ -179,6 +180,7 @@ class InputAnalyzer {
             }
         }
         
-        return chips.take(6) // Limit to 6 chips to avoid UI clutter
+        // Filter out used chips and limit to 6 chips to avoid UI clutter
+        return chips.filterNot { usedChips.contains(it.text) }.take(6)
     }
 }
