@@ -386,7 +386,7 @@ fun MainAppWithNavigation(
             Screen.PROGRAMME_PREVIEW -> {
                 com.github.radupana.featherweight.ui.screens.ProgrammePreviewScreen(
                     onBack = { onScreenChange(Screen.PROGRAMME_GENERATOR) },
-                    onActivated = { onScreenChange(Screen.HOME) },
+                    onActivated = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }

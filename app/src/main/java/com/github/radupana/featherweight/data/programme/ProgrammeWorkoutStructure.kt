@@ -46,6 +46,8 @@ data class ExerciseStructure(
     val customizable: Boolean = false,
     val category: String? = null, // For accessory categorization
     val note: String? = null,
+    val suggestedWeight: Float? = null, // AI-suggested weight in kg
+    val weightSource: String? = null, // Source of weight suggestion
 )
 
 @Serializable

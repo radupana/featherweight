@@ -21,7 +21,10 @@ data class WeekPreview(
     val weekNumber: Int,
     val workouts: List<WorkoutPreview>,
     val weeklyVolume: VolumeMetrics,
-    val progressionNotes: String? = null
+    val progressionNotes: String? = null,
+    val intensityLevel: String? = null,
+    val volumeLevel: String? = null,
+    val isDeload: Boolean = false
 )
 
 data class WorkoutPreview(
@@ -45,7 +48,9 @@ data class ExercisePreview(
     val notes: String? = null,
     val alternatives: List<ExerciseAlternative> = emptyList(),
     val muscleGroups: List<MuscleGroup> = emptyList(),
-    val movementPattern: MovementPattern? = null
+    val movementPattern: MovementPattern? = null,
+    val suggestedWeight: Float? = null,
+    val weightSource: String? = null
 )
 
 data class ExerciseAlternative(

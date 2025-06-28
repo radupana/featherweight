@@ -8,6 +8,7 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.github.radupana.featherweight.data.exercise.Exercise
+import com.github.radupana.featherweight.data.exercise.ExerciseAlias
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.ExerciseEquipment
 import com.github.radupana.featherweight.data.exercise.ExerciseMovementPattern
@@ -33,6 +34,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         ExerciseMuscleGroup::class,
         ExerciseEquipment::class,
         ExerciseMovementPattern::class,
+        ExerciseAlias::class,
         Programme::class,
         ProgrammeTemplate::class,
         ProgrammeWeek::class,
@@ -42,7 +44,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         UserProfile::class,
         UserExerciseMax::class,
     ],
-    version = 18,
+    version = 20,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)

@@ -632,3 +632,149 @@ private fun BulkEditChip(
         modifier = modifier
     )
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CollapsibleWeekCard(
+    week: WeekPreview,
+    weekProgress: String,
+    isExpanded: Boolean,
+    onToggleExpanded: (Int) -> Unit,
+    editStates: Map<String, ExerciseEditState>,
+    onExerciseResolved: (String, Long) -> Unit,
+    onExerciseSwapped: (String, String) -> Unit,
+    onExerciseUpdated: (QuickEditAction.UpdateExercise) -> Unit,
+    onToggleEdit: (String) -> Unit,
+    onShowAlternatives: (String, Boolean) -> Unit,
+    onShowResolution: (String, Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        onClick = { onToggleExpanded(week.weekNumber) }
+    ) {
+        Column {
+            // Week Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Week ${week.weekNumber}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (week.isDeload) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = "Deload",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                    
+                    Text(
+                        text = weekProgress,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.FitnessCenter,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = "${week.workouts.size} workouts",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Numbers,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = "${week.weeklyVolume.totalSets} sets",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+                
+                Icon(
+                    if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
+            
+            // Expanded Content
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier.padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+                    
+                    week.workouts.forEach { workout ->
+                        WorkoutPreviewCard(
+                            workout = workout,
+                            editStates = editStates,
+                            onExerciseResolved = onExerciseResolved,
+                            onExerciseSwapped = onExerciseSwapped,
+                            onExerciseUpdated = onExerciseUpdated,
+                            onToggleEdit = onToggleEdit,
+                            onShowAlternatives = onShowAlternatives,
+                            onShowResolution = onShowResolution
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

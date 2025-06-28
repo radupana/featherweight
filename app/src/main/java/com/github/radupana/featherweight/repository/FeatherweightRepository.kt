@@ -18,6 +18,9 @@ import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.domain.ExerciseHistory
+import com.github.radupana.featherweight.ai.WeightCalculator
+import com.github.radupana.featherweight.ai.ProgrammeType
+import com.github.radupana.featherweight.ai.WeightCalculation
 import com.github.radupana.featherweight.domain.ExerciseStats
 import com.github.radupana.featherweight.domain.SmartSuggestions
 import kotlinx.coroutines.Dispatchers
@@ -62,6 +65,7 @@ class FeatherweightRepository(
     private val profileDao = db.profileDao()
 
     private val exerciseSeeder = ExerciseSeeder(exerciseDao)
+    private val exerciseAliasSeeder = com.github.radupana.featherweight.data.exercise.ExerciseAliasSeeder(exerciseDao)
     private val programmeSeeder = com.github.radupana.featherweight.data.programme.ProgrammeSeeder(programmeDao)
 
     fun getCurrentUserId(): Long = userPreferences.getCurrentUserId()
@@ -77,6 +81,10 @@ class FeatherweightRepository(
             if (exerciseCount == 0) {
                 exerciseSeeder.seedMainLifts()
                 println("Seeded ${exerciseDao.getAllExercisesWithDetails().size} exercises")
+                
+                // Seed aliases after exercises are created
+                exerciseAliasSeeder.seedExerciseAliases()
+                println("Seeded exercise aliases")
             }
 
             // Seed programme templates if none exist
@@ -135,6 +143,24 @@ class FeatherweightRepository(
         withContext(Dispatchers.IO) {
             exerciseDao.getAllExercisesWithDetails()
         }
+    
+    suspend fun getAllExerciseNamesIncludingAliases(): List<String> = withContext(Dispatchers.IO) {
+        val exercises = exerciseDao.getAllExercisesWithDetails()
+        val allNames = mutableListOf<String>()
+        
+        // Add all primary exercise names
+        exercises.forEach { exercise ->
+            allNames.add(exercise.exercise.name)
+            
+            // Add aliases for this exercise
+            val aliases = exerciseDao.getAliasesForExercise(exercise.exercise.id)
+            aliases.forEach { alias ->
+                allNames.add(alias.alias)
+            }
+        }
+        
+        allNames.distinct()
+    }
 
     suspend fun getAllExercisesWithUsageStats(): List<Pair<ExerciseWithDetails, Int>> =
         withContext(Dispatchers.IO) {
@@ -1342,13 +1368,12 @@ class FeatherweightRepository(
                 exerciseStructure.intensity?.getOrNull(setIndex)
                     ?: exerciseStructure.intensity?.firstOrNull()
 
-            val weight =
-                com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser.calculateWeight(
-                    exerciseName = exerciseStructure.name,
-                    intensity = intensity,
-                    userMaxes = userMaxes,
-                    baseWeight = 45f,
-                )
+            val weight = calculateIntelligentWeight(
+                exerciseStructure = exerciseStructure,
+                reps = reps,
+                intensity = intensity,
+                userMaxes = userMaxes
+            )
 
             val setLog =
                 SetLog(
@@ -1754,7 +1779,11 @@ class FeatherweightRepository(
                     weekNumber = weekPreview.weekNumber,
                     name = "Week ${weekPreview.weekNumber}",
                     description = weekPreview.progressionNotes,
-                    focusAreas = null
+                    focusAreas = null,
+                    intensityLevel = weekPreview.intensityLevel,
+                    volumeLevel = weekPreview.volumeLevel,
+                    isDeload = weekPreview.isDeload,
+                    phase = weekPreview.progressionNotes?.substringBefore(":")?.trim()
                 )
                 
                 val weekId = programmeDao.insertProgrammeWeek(week)
@@ -1773,7 +1802,9 @@ class FeatherweightRepository(
                                     min = exercisePreview.repsMin,
                                     max = exercisePreview.repsMax
                                 ),
-                                note = exercisePreview.notes
+                                note = exercisePreview.notes,
+                                suggestedWeight = exercisePreview.suggestedWeight,
+                                weightSource = exercisePreview.weightSource
                             )
                         },
                         estimatedDuration = workoutPreview.estimatedDuration
@@ -1799,7 +1830,8 @@ class FeatherweightRepository(
             }
 
             // Initialize progress tracking for the new programme
-            val totalWorkouts = preview.weeks.sumOf { it.workouts.size }
+            // CRITICAL FIX: Calculate total workouts based on programme duration, not just preview data
+            val totalWorkouts = preview.daysPerWeek * preview.durationWeeks
             val progress = com.github.radupana.featherweight.data.programme.ProgrammeProgress(
                 programmeId = programmeId,
                 currentWeek = 1,
@@ -1813,6 +1845,8 @@ class FeatherweightRepository(
             
             println("🔄 Initializing progress for AI-generated programme...")
             println("  - Programme ID: $programmeId")
+            println("  - Duration: ${preview.durationWeeks} weeks")
+            println("  - Days per week: ${preview.daysPerWeek}")
             println("  - Total workouts: $totalWorkouts")
             programmeDao.insertOrUpdateProgress(progress)
             println("✅ Progress tracking initialized")
@@ -1991,9 +2025,14 @@ class FeatherweightRepository(
         programmeDao.getSubstitutionsForExercise(programmeId, exerciseName)
     }
 
-    // Helper method to get exercise by name
+    // Helper method to get exercise by name or alias
     private suspend fun getExerciseByName(name: String): com.github.radupana.featherweight.data.exercise.Exercise? {
-        return exerciseDao.getAllExercisesWithDetails().find { it.exercise.name == name }?.exercise
+        // First try exact name match
+        val exactMatch = exerciseDao.findExerciseByExactName(name)
+        if (exactMatch != null) return exactMatch
+        
+        // Then try alias match
+        return exerciseDao.findExerciseByAlias(name)
     }
 
     // ===== REALISTIC 531 SEED DATA =====
@@ -2720,4 +2759,57 @@ class FeatherweightRepository(
                 println("✅ Seeded test users with 1RMs")
             }
         }
+    
+    private fun calculateIntelligentWeight(
+        exerciseStructure: com.github.radupana.featherweight.data.programme.ExerciseStructure,
+        reps: Int,
+        intensity: Int?,
+        userMaxes: Map<String, Float>
+    ): Float {
+        val weightCalculator = WeightCalculator()
+        
+        // Parse rep range from the exercise structure
+        val repRange = when (val repsStructure = exerciseStructure.reps) {
+            is com.github.radupana.featherweight.data.programme.RepsStructure.Single -> 
+                repsStructure.value..repsStructure.value
+            is com.github.radupana.featherweight.data.programme.RepsStructure.Range -> 
+                repsStructure.min..repsStructure.max
+            is com.github.radupana.featherweight.data.programme.RepsStructure.RangeString -> 
+                reps..reps // Fallback to actual reps
+            is com.github.radupana.featherweight.data.programme.RepsStructure.PerSet -> 
+                reps..reps // Fallback to actual reps
+        }
+        
+        // Determine programme type from exercise structure or use general
+        val programmeType = ProgrammeType.GENERAL // Could be enhanced to detect from context
+        
+        // Get user's 1RM for this exercise
+        val user1RM = getUserMaxForExercise(exerciseStructure.name, userMaxes)
+        
+        // Use the intelligent weight calculation
+        val weightCalculation = weightCalculator.calculateWorkingWeight(
+            exerciseName = exerciseStructure.name,
+            repRange = repRange,
+            programmeType = programmeType,
+            user1RM = user1RM,
+            extractedWeight = null, // This would come from user input analysis
+            aiSuggestedWeight = exerciseStructure.suggestedWeight
+        )
+        
+        return weightCalculation.weight
+    }
+    
+    private fun getUserMaxForExercise(exerciseName: String, userMaxes: Map<String, Float>): Float? {
+        // Map exercise names to user max keys (similar to existing logic)
+        val maxKey = when {
+            exerciseName.contains("Squat", ignoreCase = true) -> "squat"
+            exerciseName.contains("Bench", ignoreCase = true) -> "bench"
+            exerciseName.contains("Deadlift", ignoreCase = true) -> "deadlift"
+            exerciseName.contains("Press", ignoreCase = true) && 
+                !exerciseName.contains("Bench", ignoreCase = true) -> "ohp"
+            else -> null
+        }
+        
+        return maxKey?.let { userMaxes[it] }
+    }
 }

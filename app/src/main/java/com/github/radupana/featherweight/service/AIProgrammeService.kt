@@ -31,6 +31,17 @@ data class GeneratedProgramme(
     val description: String,
     val durationWeeks: Int,
     val daysPerWeek: Int,
+    val weeks: List<GeneratedWeek>
+)
+
+data class GeneratedWeek(
+    val weekNumber: Int,
+    val name: String,
+    val description: String,
+    val intensityLevel: String,
+    val volumeLevel: String,
+    val focus: List<String>,
+    val isDeload: Boolean = false,
     val workouts: List<GeneratedWorkout>
 )
 
@@ -47,7 +58,9 @@ data class GeneratedExercise(
     val repsMax: Int,
     val rpe: Float? = null,
     val restSeconds: Int = 180,
-    val notes: String? = null
+    val notes: String? = null,
+    val suggestedWeight: Float? = null,
+    val weightSource: String? = null
 )
 
 class AIProgrammeService {
@@ -127,6 +140,15 @@ class AIProgrammeService {
             3. Volume Balance: Respect muscle group volume guidelines (10-20 sets per muscle per week)
             4. Recovery: Allow adequate rest between sessions (48-72 hours for same muscles)
             5. Movement Patterns: Balance push/pull, squat/hinge, unilateral/bilateral
+            
+            WEEK PROGRESSION GUIDELINES:
+            - Week 1-2: Foundation/Adaptation (moderate intensity/volume)
+            - Middle weeks: Progressive overload (increasing intensity or volume)
+            - Include deload weeks every 3-4 weeks for programmes > 4 weeks
+            - Final week: Peak or taper depending on goal
+            - Name each week's phase clearly (e.g., "Volume Accumulation", "Intensity Peak", "Deload")
+            - intensityLevel options: "low", "moderate", "high", "very_high"
+            - volumeLevel options: "low", "moderate", "high", "very_high"
 
             CONSTRAINTS:
             - Maximum ${request.maxDays} training days per week
@@ -146,31 +168,73 @@ class AIProgrammeService {
             - Endurance: 12+ reps, 2-4 sets, RPE 5-7, rest 1-3 minutes
             - Power: 1-5 reps, 3-6 sets, RPE 6-8, rest 3-5 minutes
 
+            WEIGHT CALCULATION GUIDELINES:
+            
+            CRITICAL: RESPECT USER SPECIFICATIONS
+            - If the user provides EXACT specifications (e.g., "5×5 @ 97.5kg"), use those EXACTLY
+            - Do NOT modify sets, reps, or weights when the user is being specific
+            - If user provides a structured programme with details, treat it as a template to follow precisely
+            
+            WHEN TO BE FLEXIBLE:
+            - When user is vague (e.g., "I want a strength programme")
+            - When user asks for suggestions or variations
+            - When creating programmes from general descriptions
+            
+            WEIGHT ASSIGNMENT PRIORITY:
+            1. User-specified exact weights (e.g., "5×5 @ 97.5kg") - USE EXACTLY
+            2. User's saved 1RMs (provided below) - calculate percentages
+            3. For average gym-goer (when no 1RMs available):
+               - Back Squat: 60-80kg for men, 40-60kg for women
+               - Bench Press: 50-70kg for men, 30-45kg for women
+               - Deadlift: 70-100kg for men, 50-70kg for women
+               - Overhead Press: 35-50kg for men, 20-35kg for women
+               - Rows/Pulls: 40-60kg for men, 25-40kg for women
+               - Isolation exercises: 10-25kg depending on movement
+            
+            - Include "suggestedWeight" (in kg) and "weightSource" for each exercise
+            - WeightSource options: "user_specified", "user_1rm", "average_estimate"
+
             OUTPUT FORMAT:
-            Return a JSON object with this exact structure:
+            Return a JSON object with this EXACT hierarchical structure:
             {
                 "name": "Programme name (engaging and descriptive)",
                 "description": "2-3 sentence description explaining the programme's focus and benefits",
                 "durationWeeks": 8,
                 "daysPerWeek": 4,
-                "workouts": [
+                "weeks": [
                     {
-                        "dayNumber": 1,
-                        "name": "Day 1 - Upper Power",
-                        "exercises": [
+                        "weekNumber": 1,
+                        "name": "Foundation Phase",
+                        "description": "Establishing baseline strength and movement patterns",
+                        "intensityLevel": "moderate",
+                        "volumeLevel": "moderate",
+                        "focus": ["technique", "adaptation"],
+                        "isDeload": false,
+                        "workouts": [
                             {
-                                "exerciseName": "Barbell Bench Press",
-                                "sets": 5,
-                                "repsMin": 3,
-                                "repsMax": 5,
-                                "rpe": 8.0,
-                                "restSeconds": 240,
-                                "notes": "Focus on explosive concentric movement"
+                                "dayNumber": 1,
+                                "name": "Lower Power",
+                                "exercises": [
+                                    {
+                                        "exerciseName": "Back Squat",
+                                        "sets": 5,
+                                        "repsMin": 5,
+                                        "repsMax": 5,
+                                        "rpe": 7.0,
+                                        "restSeconds": 240,
+                                        "notes": "Focus on depth and control",
+                                        "suggestedWeight": 80.0,
+                                        "weightSource": "user_1rm"
+                                    }
+                                ]
                             }
                         ]
                     }
                 ]
             }
+            
+            IMPORTANT: Generate ALL weeks of the programme, not just the first week.
+            Each week should have appropriate phase name, description, and progression.
 
             If you need clarification before creating a programme, return:
             {
@@ -190,8 +254,8 @@ class AIProgrammeService {
     
     private suspend fun callOpenAI(systemPrompt: String, userPrompt: String): String {
         if (useMockFallback) {
-            println("🤖 OpenAI API: Using mock fallback (API key not configured)")
-            return getMockResponse()
+            println("🤖 OpenAI API: API key not configured")
+            throw Exception("AI service is not configured. Please ensure the app is properly set up or use a template programme.")
         }
         
         return try {
@@ -248,72 +312,11 @@ class AIProgrammeService {
                 throw Exception("OpenAI API error: ${response.code()} - $errorBody")
             }
         } catch (e: Exception) {
-            // Log detailed error and fallback to mock
+            // Log detailed error and throw exception instead of using mock
             println("OpenAI API call failed: ${e.javaClass.simpleName}: ${e.message}")
             e.printStackTrace()
-            getMockResponse()
+            throw Exception("AI service is temporarily unavailable. Please try again later or use a template programme.")
         }
-    }
-    
-    private fun getMockResponse(): String {
-        return """
-            {
-                "name": "AI Strength Programme",
-                "description": "A personalized strength training programme designed by AI",
-                "durationWeeks": 8,
-                "daysPerWeek": 4,
-                "workouts": [
-                    {
-                        "dayNumber": 1,
-                        "name": "Day 1 - Upper Power",
-                        "exercises": [
-                            {
-                                "exerciseName": "Barbell Bench Press",
-                                "sets": 5,
-                                "repsMin": 3,
-                                "repsMax": 5,
-                                "rpe": 8.0,
-                                "restSeconds": 240,
-                                "notes": "Focus on explosive movement"
-                            },
-                            {
-                                "exerciseName": "Bent-over Barbell Row",
-                                "sets": 4,
-                                "repsMin": 6,
-                                "repsMax": 8,
-                                "rpe": 7.5,
-                                "restSeconds": 180,
-                                "notes": "Maintain neutral spine"
-                            }
-                        ]
-                    },
-                    {
-                        "dayNumber": 2,
-                        "name": "Day 2 - Lower Power",
-                        "exercises": [
-                            {
-                                "exerciseName": "Barbell Back Squat",
-                                "sets": 5,
-                                "repsMin": 3,
-                                "repsMax": 5,
-                                "rpe": 8.0,
-                                "restSeconds": 300,
-                                "notes": "Full depth, explosive up"
-                            },
-                            {
-                                "exerciseName": "Romanian Deadlift",
-                                "sets": 4,
-                                "repsMin": 6,
-                                "repsMax": 8,
-                                "rpe": 7.0,
-                                "restSeconds": 180,
-                                "notes": "Focus on hip hinge"
-                            }
-                        ]
-                    }
-                ]
-            }
-        """.trimIndent()
     }
     
     private fun parseAIResponse(response: String): AIProgrammeResponse {
@@ -338,7 +341,7 @@ class AIProgrammeService {
             }
             
             // Validate required fields
-            if (!json.has("name") || !json.has("workouts")) {
+            if (!json.has("name") || !json.has("weeks")) {
                 return AIProgrammeResponse(
                     success = false,
                     error = "Invalid response format: missing required fields"
@@ -346,20 +349,20 @@ class AIProgrammeService {
             }
             
             // Parse the programme with validation
-            val workouts = parseWorkouts(json.getJSONArray("workouts"))
-            if (workouts.isEmpty()) {
+            val weeks = parseWeeks(json.getJSONArray("weeks"))
+            if (weeks.isEmpty()) {
                 return AIProgrammeResponse(
                     success = false,
-                    error = "Programme must contain at least one workout"
+                    error = "Programme must contain at least one week"
                 )
             }
             
             val programme = GeneratedProgramme(
                 name = json.getString("name"),
                 description = json.optString("description", "A personalized training programme"),
-                durationWeeks = json.optInt("durationWeeks", 8),
-                daysPerWeek = json.optInt("daysPerWeek", workouts.size),
-                workouts = workouts
+                durationWeeks = json.optInt("durationWeeks", weeks.size),
+                daysPerWeek = json.optInt("daysPerWeek", 3),
+                weeks = weeks
             )
             
             // Validate programme structure
@@ -382,6 +385,41 @@ class AIProgrammeService {
                 error = "Failed to parse AI response: ${e.message}"
             )
         }
+    }
+    
+    private fun parseWeeks(weeksArray: org.json.JSONArray): List<GeneratedWeek> {
+        val weeks = mutableListOf<GeneratedWeek>()
+        
+        for (i in 0 until weeksArray.length()) {
+            try {
+                val weekJson = weeksArray.getJSONObject(i)
+                
+                // Parse focus as list of strings
+                val focusList = mutableListOf<String>()
+                if (weekJson.has("focus")) {
+                    val focusArray = weekJson.getJSONArray("focus")
+                    for (j in 0 until focusArray.length()) {
+                        focusList.add(focusArray.getString(j))
+                    }
+                }
+                
+                val week = GeneratedWeek(
+                    weekNumber = weekJson.optInt("weekNumber", i + 1),
+                    name = weekJson.optString("name", "Week ${i + 1}"),
+                    description = weekJson.optString("description", ""),
+                    intensityLevel = weekJson.optString("intensityLevel", "moderate"),
+                    volumeLevel = weekJson.optString("volumeLevel", "moderate"),
+                    focus = focusList,
+                    isDeload = weekJson.optBoolean("isDeload", false),
+                    workouts = parseWorkouts(weekJson.getJSONArray("workouts"))
+                )
+                weeks.add(week)
+            } catch (e: Exception) {
+                println("Error parsing week ${i + 1}: ${e.message}")
+            }
+        }
+        
+        return weeks
     }
     
     private fun parseWorkouts(workoutsArray: org.json.JSONArray): List<GeneratedWorkout> {

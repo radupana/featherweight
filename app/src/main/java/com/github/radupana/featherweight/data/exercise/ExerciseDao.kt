@@ -118,6 +118,39 @@ interface ExerciseDao {
         includeCustom: Boolean = true,
         searchQuery: String = "",
     ): List<ExerciseWithDetails>
+    
+    // Alias operations
+    @Insert
+    suspend fun insertAliases(aliases: List<ExerciseAlias>)
+    
+    @Query("SELECT * FROM exercise_aliases WHERE exerciseId = :exerciseId")
+    suspend fun getAliasesForExercise(exerciseId: Long): List<ExerciseAlias>
+    
+    @Query("SELECT * FROM exercise_aliases WHERE alias = :alias")
+    suspend fun getExerciseByAlias(alias: String): ExerciseAlias?
+    
+    @Query("""
+        SELECT e.* FROM exercises e
+        INNER JOIN exercise_aliases ea ON e.id = ea.exerciseId
+        WHERE LOWER(ea.alias) = LOWER(:alias)
+        LIMIT 1
+    """)
+    suspend fun findExerciseByAlias(alias: String): Exercise?
+    
+    @Query("""
+        SELECT e.* FROM exercises e
+        WHERE LOWER(e.name) = LOWER(:name)
+        LIMIT 1
+    """)
+    suspend fun findExerciseByExactName(name: String): Exercise?
+    
+    @Query("""
+        SELECT e.* FROM exercises e
+        LEFT JOIN exercise_aliases ea ON e.id = ea.exerciseId
+        WHERE LOWER(e.name) = LOWER(:searchTerm) OR LOWER(ea.alias) = LOWER(:searchTerm)
+        LIMIT 1
+    """)
+    suspend fun findExerciseByNameOrAlias(searchTerm: String): Exercise?
 }
 
 // Type converters for Room

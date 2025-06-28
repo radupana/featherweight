@@ -11,9 +11,10 @@ import com.github.radupana.featherweight.service.AIProgrammeResponse
 import com.github.radupana.featherweight.service.AIProgrammeQuotaManager
 import com.github.radupana.featherweight.service.InputAnalyzer
 import com.github.radupana.featherweight.service.PlaceholderGenerator
-import com.github.radupana.featherweight.service.MockProgrammeGenerator
+import com.github.radupana.featherweight.ai.WeightExtractionService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(application) {
@@ -22,6 +23,7 @@ class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(a
     private val quotaManager = AIProgrammeQuotaManager(application)
     private val inputAnalyzer = InputAnalyzer()
     private val placeholderGenerator = PlaceholderGenerator()
+    private val weightExtractor = WeightExtractionService()
     
     private val _uiState = MutableStateFlow(GuidedInputState())
     val uiState = _uiState.asStateFlow()
@@ -228,13 +230,15 @@ Or paste existing programmes from ChatGPT, other AI tools, or coaches."""
             _uiState.value = currentState.copy(isLoading = true, errorMessage = null)
             
             try {
-                // Get exercise database for AI context
-                val exercises = repository.getAllExercises()
-                val exerciseNames = exercises.map { it.exercise.name }
+                // Get exercise database for AI context (including aliases)
+                val exerciseNames = repository.getAllExerciseNamesIncludingAliases()
+                
+                // Get user's 1RMs for context
+                val user1RMs = repository.getAllCurrentMaxes().first()
                 
                 // Create AI request
                 val request = AIProgrammeRequest(
-                    userInput = buildEnhancedUserInput(currentState),
+                    userInput = buildEnhancedUserInputWithWeights(currentState, user1RMs),
                     exerciseDatabase = exerciseNames,
                     maxDays = 7,
                     maxWeeks = 16
@@ -373,11 +377,34 @@ Or paste existing programmes from ChatGPT, other AI tools, or coaches."""
             parts.add("Note: User has mentioned schedule constraints")
         }
         
+        // No need to extract weights - let AI handle it directly
+        
         return if (parts.isNotEmpty()) {
             parts.joinToString("\n\n")
         } else {
             "Create a general fitness programme suitable for someone looking to improve their overall health and fitness."
         }
+    }
+    
+    private fun buildEnhancedUserInputWithWeights(
+        state: GuidedInputState, 
+        user1RMs: List<com.github.radupana.featherweight.data.profile.ExerciseMaxWithName>
+    ): String {
+        val baseInput = buildEnhancedUserInput(state)
+        val parts = mutableListOf(baseInput)
+        
+        // Add user's saved 1RMs if available
+        if (user1RMs.isNotEmpty()) {
+            val maxes = user1RMs.joinToString(", ") { max ->
+                "${max.exerciseName}: ${max.maxWeight}kg"
+            }
+            parts.add("USER'S SAVED 1RMs from their profile: $maxes")
+            parts.add("Use these for calculating percentages ONLY if the user hasn't specified exact weights")
+        } else {
+            parts.add("NO SAVED 1RMs - use average gym-goer weights as specified in guidelines")
+        }
+        
+        return parts.joinToString("\n\n")
     }
 
     private fun validateExercisesInProgramme(response: AIProgrammeResponse, validExerciseNames: List<String>): ExerciseValidationResult {
@@ -388,11 +415,13 @@ Or paste existing programmes from ChatGPT, other AI tools, or coaches."""
         val validExerciseSet = validExerciseNames.toSet()
         val invalidExercises = mutableListOf<String>()
         
-        // Check all exercises in all workouts
-        response.programme.workouts.forEach { workout ->
-            workout.exercises.forEach { exercise ->
-                if (exercise.exerciseName !in validExerciseSet) {
-                    invalidExercises.add(exercise.exerciseName)
+        // Check all exercises in all workouts across all weeks
+        response.programme.weeks.forEach { week ->
+            week.workouts.forEach { workout ->
+                workout.exercises.forEach { exercise ->
+                    if (exercise.exerciseName !in validExerciseSet) {
+                        invalidExercises.add(exercise.exerciseName)
+                    }
                 }
             }
         }

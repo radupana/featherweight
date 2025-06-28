@@ -69,6 +69,10 @@ data class ProgrammeWeek(
     val name: String?,
     val description: String?,
     val focusAreas: String?, // JSON array of muscle groups or movement patterns
+    val intensityLevel: String? = null, // "low", "moderate", "high", "very_high"
+    val volumeLevel: String? = null, // "low", "moderate", "high", "very_high"
+    val isDeload: Boolean = false,
+    val phase: String? = null // e.g., "Foundation", "Accumulation", "Peak"
 )
 
 /**

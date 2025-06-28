@@ -144,3 +144,26 @@ data class ExerciseWithDetails(
     val primaryMovements: Set<MovementPattern>
         get() = movementPatterns.filter { it.isPrimary }.map { it.movementPattern }.toSet()
 }
+
+@Entity(
+    tableName = "exercise_aliases",
+    primaryKeys = ["exerciseId", "alias"],
+    foreignKeys = [
+        ForeignKey(
+            entity = Exercise::class,
+            parentColumns = ["id"],
+            childColumns = ["exerciseId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class ExerciseAlias(
+    val exerciseId: Long,
+    val alias: String,
+    // Confidence score for fuzzy matching (0.0 to 1.0)
+    val confidence: Float = 1.0f,
+    // Whether this alias should be exact match only
+    val exactMatchOnly: Boolean = false,
+    // Source of the alias (e.g., "common", "ai", "user")
+    val source: String = "common"
+)

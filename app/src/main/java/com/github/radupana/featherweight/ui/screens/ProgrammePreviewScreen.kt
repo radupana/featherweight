@@ -100,28 +100,26 @@ fun ProgrammePreviewScreen(
             }
             
             is PreviewState.Activating -> {
-                SuccessPreviewContent(
-                    preview = state.preview,
-                    selectedWeek = selectedWeek,
-                    editStates = editStates,
-                    isActivating = true,
-                    onWeekSelected = viewModel::selectWeek,
-                    onExerciseResolved = viewModel::resolveExercise,
-                    onExerciseSwapped = viewModel::swapExercise,
-                    onExerciseUpdated = viewModel::updateExercise,
-                    onToggleEdit = viewModel::toggleExerciseEdit,
-                    onShowAlternatives = viewModel::showExerciseAlternatives,
-                    onShowResolution = viewModel::showExerciseResolution,
-                    onProgrammeNameChanged = viewModel::updateProgrammeName,
-                    onRegenerate = viewModel::regenerate,
-                    onActivate = { 
-                        // Disabled during activation
-                    },
-                    onFixIssue = viewModel::autoFixValidationIssue,
+                // Show simple loading state during activation
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues)
-                )
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text(
+                            text = "Activating programme...",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
             }
             
             is PreviewState.Error -> {
@@ -189,6 +187,7 @@ private fun SuccessPreviewContent(
     modifier: Modifier = Modifier
 ) {
     var showRegenerateDialog by remember { mutableStateOf(false) }
+    var expandedWeeks by remember { mutableStateOf(setOf(1)) } // Start with week 1 expanded
     
     LazyColumn(
         modifier = modifier.padding(horizontal = 16.dp),
@@ -210,34 +209,27 @@ private fun SuccessPreviewContent(
         
         // Validation Results removed for simpler UX
         
-        // Week Selector
-        if (preview.weeks.size > 1) {
-            item {
-                WeekSelectorCard(
-                    weeks = preview.weeks,
-                    selectedWeek = selectedWeek,
-                    onWeekSelected = onWeekSelected
-                )
-            }
-        }
-        
-        // Bulk Edit Options removed for simplified UX
-        
-        // Workouts for Selected Week
-        val currentWeek = preview.weeks.find { it.weekNumber == selectedWeek }
-        currentWeek?.let { week ->
-            items(week.workouts) { workout ->
-                WorkoutPreviewCard(
-                    workout = workout,
-                    editStates = editStates,
-                    onExerciseResolved = onExerciseResolved,
-                    onExerciseSwapped = onExerciseSwapped,
-                    onExerciseUpdated = onExerciseUpdated,
-                    onToggleEdit = onToggleEdit,
-                    onShowAlternatives = onShowAlternatives,
-                    onShowResolution = onShowResolution
-                )
-            }
+        // All Weeks with Collapsible UI
+        items(preview.weeks) { week ->
+            CollapsibleWeekCard(
+                week = week,
+                weekProgress = getWeekProgressInfo(week, preview),
+                isExpanded = week.weekNumber in expandedWeeks,
+                onToggleExpanded = { weekNumber ->
+                    expandedWeeks = if (weekNumber in expandedWeeks) {
+                        expandedWeeks - weekNumber
+                    } else {
+                        expandedWeeks + weekNumber
+                    }
+                },
+                editStates = editStates,
+                onExerciseResolved = onExerciseResolved,
+                onExerciseSwapped = onExerciseSwapped,
+                onExerciseUpdated = onExerciseUpdated,
+                onToggleEdit = onToggleEdit,
+                onShowAlternatives = onShowAlternatives,
+                onShowResolution = onShowResolution
+            )
         }
         
         // Action Buttons
@@ -380,4 +372,30 @@ private fun RegenerateDialog(
             }
         }
     )
+}
+
+private fun getWeekProgressInfo(
+    week: WeekPreview,
+    programme: GeneratedProgrammePreview
+): String {
+    val progressionNotes = week.progressionNotes ?: ""
+    val intensityText = when (week.intensityLevel) {
+        "low" -> "Low Intensity"
+        "moderate" -> "Moderate Intensity"
+        "high" -> "High Intensity"
+        "very_high" -> "Very High Intensity"
+        else -> ""
+    }
+    val volumeText = when (week.volumeLevel) {
+        "low" -> "Low Volume"
+        "moderate" -> "Moderate Volume"
+        "high" -> "High Volume"
+        "very_high" -> "Very High Volume"
+        else -> ""
+    }
+    val deloadText = if (week.isDeload) " (Deload)" else ""
+    
+    return listOf(progressionNotes, intensityText, volumeText)
+        .filter { it.isNotEmpty() }
+        .joinToString(" • ") + deloadText
 }

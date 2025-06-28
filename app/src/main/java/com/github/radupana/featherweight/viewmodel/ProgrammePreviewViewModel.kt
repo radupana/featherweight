@@ -60,19 +60,21 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
         generated: GeneratedProgramme,
         allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithDetails>
     ): GeneratedProgrammePreview {
-        // Convert generated workouts to preview format
-        val weeks = generated.workouts.groupBy { (it.dayNumber - 1) / generated.daysPerWeek + 1 }
-            .map { (weekNum, workouts) ->
-                val weekWorkouts = workouts.map { workout ->
-                    processWorkout(workout, allExercises)
-                }
-                WeekPreview(
-                    weekNumber = weekNum,
-                    workouts = weekWorkouts,
-                    weeklyVolume = calculateWeekVolume(weekWorkouts),
-                    progressionNotes = if (weekNum == 1) "Week 1: Establish baseline" else null
-                )
+        // Convert generated weeks to preview format
+        val weeks = generated.weeks.map { week ->
+            val weekWorkouts = week.workouts.map { workout ->
+                processWorkout(workout, allExercises)
             }
+            WeekPreview(
+                weekNumber = week.weekNumber,
+                workouts = weekWorkouts,
+                weeklyVolume = calculateWeekVolume(weekWorkouts),
+                progressionNotes = "${week.name}: ${week.description}",
+                intensityLevel = week.intensityLevel,
+                volumeLevel = week.volumeLevel,
+                isDeload = week.isDeload
+            )
+        }
         
         // Create exercise match info
         val exerciseMatches = mutableListOf<ExerciseMatchInfo>()
@@ -136,6 +138,8 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                 rpe = exercise.rpe,
                 restSeconds = exercise.restSeconds,
                 notes = exercise.notes,
+                suggestedWeight = exercise.suggestedWeight,
+                weightSource = exercise.weightSource,
                 alternatives = matches.drop(1).take(2).map { match ->
                     ExerciseAlternative(
                         exerciseId = allExercises.find { it.exercise.name == match.exerciseName }?.exercise?.id ?: 0L,
@@ -390,24 +394,33 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                                 description = currentPreview.description,
                                 durationWeeks = currentPreview.durationWeeks,
                                 daysPerWeek = currentPreview.daysPerWeek,
-                                workouts = currentPreview.weeks.flatMap { week ->
-                                    week.workouts.map { workout ->
-                                        com.github.radupana.featherweight.service.GeneratedWorkout(
-                                            dayNumber = workout.dayNumber,
-                                            name = workout.name,
-                                            exercises = workout.exercises.map { exercise ->
-                                                com.github.radupana.featherweight.service.GeneratedExercise(
-                                                    exerciseName = exercise.exerciseName,
-                                                    sets = exercise.sets,
-                                                    repsMin = exercise.repsMin,
-                                                    repsMax = exercise.repsMax,
-                                                    rpe = exercise.rpe,
-                                                    restSeconds = exercise.restSeconds,
-                                                    notes = exercise.notes
-                                                )
-                                            }
-                                        )
-                                    }
+                                weeks = currentPreview.weeks.map { week ->
+                                    com.github.radupana.featherweight.service.GeneratedWeek(
+                                        weekNumber = week.weekNumber,
+                                        name = "Week ${week.weekNumber}",
+                                        description = week.progressionNotes ?: "",
+                                        intensityLevel = week.intensityLevel ?: "moderate",
+                                        volumeLevel = week.volumeLevel ?: "moderate",
+                                        focus = emptyList(),
+                                        isDeload = week.isDeload,
+                                        workouts = week.workouts.map { workout ->
+                                            com.github.radupana.featherweight.service.GeneratedWorkout(
+                                                dayNumber = workout.dayNumber,
+                                                name = workout.name,
+                                                exercises = workout.exercises.map { exercise ->
+                                                    com.github.radupana.featherweight.service.GeneratedExercise(
+                                                        exerciseName = exercise.exerciseName,
+                                                        sets = exercise.sets,
+                                                        repsMin = exercise.repsMin,
+                                                        repsMax = exercise.repsMax,
+                                                        rpe = exercise.rpe,
+                                                        restSeconds = exercise.restSeconds,
+                                                        notes = exercise.notes
+                                                    )
+                                                }
+                                            )
+                                        }
+                                    )
                                 }
                             )
                         )
@@ -440,20 +453,31 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
             "Overhead Press" to "Dumbbell Shoulder Press"
         )
         
-        val newWorkouts = original.weeks.first().workouts.map { workout ->
-            GeneratedWorkout(
-                dayNumber = workout.dayNumber,
-                name = workout.name + " (Variant)",
-                exercises = workout.exercises.map { exercise ->
-                    val newName = alternativeExercises[exercise.exerciseName] ?: exercise.exerciseName
-                    GeneratedExercise(
-                        exerciseName = newName,
-                        sets = exercise.sets,
-                        repsMin = exercise.repsMin,
-                        repsMax = exercise.repsMax,
-                        rpe = exercise.rpe,
-                        restSeconds = exercise.restSeconds,
-                        notes = exercise.notes
+        val newWeeks = original.weeks.map { week ->
+            GeneratedWeek(
+                weekNumber = week.weekNumber,
+                name = "Week ${week.weekNumber}",
+                description = week.progressionNotes ?: "",
+                intensityLevel = week.intensityLevel ?: "moderate",
+                volumeLevel = week.volumeLevel ?: "moderate",
+                focus = emptyList(),
+                isDeload = week.isDeload,
+                workouts = week.workouts.map { workout ->
+                    GeneratedWorkout(
+                        dayNumber = workout.dayNumber,
+                        name = workout.name + " (Variant)",
+                        exercises = workout.exercises.map { exercise ->
+                            val newName = alternativeExercises[exercise.exerciseName] ?: exercise.exerciseName
+                            GeneratedExercise(
+                                exerciseName = newName,
+                                sets = exercise.sets,
+                                repsMin = exercise.repsMin,
+                                repsMax = exercise.repsMax,
+                                rpe = exercise.rpe,
+                                restSeconds = exercise.restSeconds,
+                                notes = exercise.notes
+                            )
+                        }
                     )
                 }
             )
@@ -466,41 +490,43 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                 description = "Alternative exercise selection maintaining the same programme structure",
                 durationWeeks = original.durationWeeks,
                 daysPerWeek = original.daysPerWeek,
-                workouts = newWorkouts
+                weeks = newWeeks
             )
         )
     }
     
     private fun generateAlternativeApproach(original: GeneratedProgrammePreview): AIProgrammeResponse {
-        // Generate a different programme style (e.g., if original was strength, make it hypertrophy-focused)
-        return MockProgrammeGenerator.generateMockProgramme(
-            goal = when (original.focus.firstOrNull()) {
-                ProgrammeGoal.BUILD_STRENGTH -> ProgrammeGoal.BUILD_MUSCLE
-                ProgrammeGoal.BUILD_MUSCLE -> ProgrammeGoal.ATHLETIC_PERFORMANCE
-                ProgrammeGoal.LOSE_FAT -> ProgrammeGoal.BUILD_STRENGTH
-                else -> ProgrammeGoal.BUILD_MUSCLE
-            },
-            frequency = original.daysPerWeek,
-            duration = SessionDuration.STANDARD,
-            inputText = "Alternative approach programme"
-        )
+        // For alternative approach, we should call the real AI service with modified parameters
+        // For now, just throw an error since we can't generate without AI
+        throw Exception("Alternative generation requires AI service. Please try again when the service is available.")
     }
     
     private fun generateFixedVersion(original: GeneratedProgrammePreview): AIProgrammeResponse {
         // Apply automatic fixes for validation errors
-        val fixedWorkouts = original.weeks.first().workouts.map { workout ->
-            GeneratedWorkout(
-                dayNumber = workout.dayNumber,
-                name = workout.name,
-                exercises = workout.exercises.map { exercise ->
-                    GeneratedExercise(
-                        exerciseName = exercise.exerciseName,
-                        sets = exercise.sets.coerceIn(2, 5), // Fix volume issues
-                        repsMin = exercise.repsMin.coerceIn(5, 15),
-                        repsMax = exercise.repsMax.coerceIn(8, 20),
-                        rpe = exercise.rpe?.coerceIn(6.0f, 9.0f),
-                        restSeconds = exercise.restSeconds.coerceIn(60, 300),
-                        notes = exercise.notes
+        val fixedWeeks = original.weeks.map { week ->
+            GeneratedWeek(
+                weekNumber = week.weekNumber,
+                name = "Week ${week.weekNumber}",
+                description = week.progressionNotes ?: "",
+                intensityLevel = week.intensityLevel ?: "moderate",
+                volumeLevel = week.volumeLevel ?: "moderate",
+                focus = emptyList(),
+                isDeload = week.isDeload,
+                workouts = week.workouts.map { workout ->
+                    GeneratedWorkout(
+                        dayNumber = workout.dayNumber,
+                        name = workout.name,
+                        exercises = workout.exercises.map { exercise ->
+                            GeneratedExercise(
+                                exerciseName = exercise.exerciseName,
+                                sets = exercise.sets.coerceIn(2, 5), // Fix volume issues
+                                repsMin = exercise.repsMin.coerceIn(5, 15),
+                                repsMax = exercise.repsMax.coerceIn(8, 20),
+                                rpe = exercise.rpe?.coerceIn(6.0f, 9.0f),
+                                restSeconds = exercise.restSeconds.coerceIn(60, 300),
+                                notes = exercise.notes
+                            )
+                        }
                     )
                 }
             )
@@ -513,7 +539,7 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                 description = "Validated version with automatic corrections applied",
                 durationWeeks = original.durationWeeks,
                 daysPerWeek = original.daysPerWeek,
-                workouts = fixedWorkouts
+                weeks = fixedWeeks
             )
         )
     }
@@ -526,21 +552,32 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
             GeneratedExercise("Plank", 3, 30, 60, null, 60, "Hold for time")
         )
         
-        val enhancedWorkouts = original.weeks.first().workouts.map { workout ->
-            GeneratedWorkout(
-                dayNumber = workout.dayNumber,
-                name = workout.name + " Plus",
-                exercises = workout.exercises.map { exercise ->
-                    GeneratedExercise(
-                        exerciseName = exercise.exerciseName,
-                        sets = exercise.sets,
-                        repsMin = exercise.repsMin,
-                        repsMax = exercise.repsMax,
-                        rpe = exercise.rpe,
-                        restSeconds = exercise.restSeconds,
-                        notes = exercise.notes
+        val enhancedWeeks = original.weeks.map { week ->
+            GeneratedWeek(
+                weekNumber = week.weekNumber,
+                name = "Week ${week.weekNumber}",
+                description = week.progressionNotes ?: "",
+                intensityLevel = week.intensityLevel ?: "moderate",
+                volumeLevel = week.volumeLevel ?: "moderate",
+                focus = emptyList(),
+                isDeload = week.isDeload,
+                workouts = week.workouts.map { workout ->
+                    GeneratedWorkout(
+                        dayNumber = workout.dayNumber,
+                        name = workout.name + " Plus",
+                        exercises = workout.exercises.map { exercise ->
+                            GeneratedExercise(
+                                exerciseName = exercise.exerciseName,
+                                sets = exercise.sets,
+                                repsMin = exercise.repsMin,
+                                repsMax = exercise.repsMax,
+                                rpe = exercise.rpe,
+                                restSeconds = exercise.restSeconds,
+                                notes = exercise.notes
+                            )
+                        } + extraExercises.take(2)
                     )
-                } + extraExercises.take(2)
+                }
             )
         }
         
@@ -551,26 +588,37 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                 description = "Expanded version with additional exercises for variety and balance",
                 durationWeeks = original.durationWeeks,
                 daysPerWeek = original.daysPerWeek,
-                workouts = enhancedWorkouts
+                weeks = enhancedWeeks
             )
         )
     }
     
     private fun generateSimplifiedVersion(original: GeneratedProgrammePreview): AIProgrammeResponse {
         // Create a simpler version with fewer exercises and complexity
-        val simplifiedWorkouts = original.weeks.first().workouts.map { workout ->
-            GeneratedWorkout(
-                dayNumber = workout.dayNumber,
-                name = "Simple " + workout.name,
-                exercises = workout.exercises.take(4).map { exercise -> // Keep only first 4 exercises
-                    GeneratedExercise(
-                        exerciseName = exercise.exerciseName,
-                        sets = 3, // Standardize to 3 sets
-                        repsMin = 8,
-                        repsMax = 12, // Standard hypertrophy range
-                        rpe = 7.0f, // Moderate intensity
-                        restSeconds = 90, // Standard rest
-                        notes = "Keep it simple and focus on form"
+        val simplifiedWeeks = original.weeks.map { week ->
+            GeneratedWeek(
+                weekNumber = week.weekNumber,
+                name = "Week ${week.weekNumber}",
+                description = "Simplified training week",
+                intensityLevel = "moderate",
+                volumeLevel = "low",
+                focus = emptyList(),
+                isDeload = week.isDeload,
+                workouts = week.workouts.map { workout ->
+                    GeneratedWorkout(
+                        dayNumber = workout.dayNumber,
+                        name = "Simple " + workout.name,
+                        exercises = workout.exercises.take(4).map { exercise -> // Keep only first 4 exercises
+                            GeneratedExercise(
+                                exerciseName = exercise.exerciseName,
+                                sets = 3, // Standardize to 3 sets
+                                repsMin = 8,
+                                repsMax = 12, // Standard hypertrophy range
+                                rpe = 7.0f, // Moderate intensity
+                                restSeconds = 90, // Standard rest
+                                notes = "Keep it simple and focus on form"
+                            )
+                        }
                     )
                 }
             )
@@ -583,7 +631,7 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                 description = "Simplified version focusing on essential movements with beginner-friendly parameters",
                 durationWeeks = original.durationWeeks,
                 daysPerWeek = original.daysPerWeek,
-                workouts = simplifiedWorkouts
+                weeks = simplifiedWeeks
             )
         )
     }
@@ -593,24 +641,13 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
             try {
                 val currentPreview = _currentPreview.value ?: return@launch
                 
-                // Simplified activation - no validation checks required
-                
-                // Set activating state
+                // Set activating state to show loading indicator
                 _previewState.value = PreviewState.Activating(currentPreview)
                 
                 // Create the programme in the database
                 val programmeId = repository.createAIGeneratedProgramme(currentPreview)
                 
-                // Show success state briefly before navigation
-                _previewState.value = PreviewState.Success(
-                    currentPreview.copy(
-                        name = "✅ " + currentPreview.name + " Activated!",
-                        description = "Programme has been successfully activated! You can now find it in your Programmes section and start your first workout."
-                    )
-                )
-                
-                // Wait a moment to show success feedback, then navigate
-                kotlinx.coroutines.delay(2000)
+                // Navigate immediately to home screen
                 onSuccess()
                 
             } catch (e: Exception) {
@@ -928,7 +965,9 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                 rpe = 6.5f,
                 restSeconds = 90,
                 notes = if (exactMatch != null) "Added automatically (exact match found)" else "Added automatically to fix volume issue",
-                alternatives = emptyList()
+                alternatives = emptyList(),
+                suggestedWeight = null,
+                weightSource = null
             )
         }
         
@@ -1019,7 +1058,9 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                             rpe = 6.0f,
                             restSeconds = 60,
                             notes = "Added to extend workout duration",
-                            alternatives = emptyList()
+                            alternatives = emptyList(),
+                            suggestedWeight = null,
+                            weightSource = null
                         )
                         workout.copy(exercises = workout.exercises + newExercise)
                     } else {
@@ -1124,32 +1165,43 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
     // New simplified regeneration methods
     private fun generateHighVolumeVersion(original: GeneratedProgrammePreview): AIProgrammeResponse {
         // Increase training volume with more sets and exercises
-        val highVolumeWorkouts = original.weeks.first().workouts.map { workout ->
-            GeneratedWorkout(
-                dayNumber = workout.dayNumber,
-                name = "High Volume " + workout.name,
-                exercises = workout.exercises.map { exercise ->
-                    GeneratedExercise(
-                        exerciseName = exercise.exerciseName,
-                        sets = (exercise.sets + 1).coerceAtMost(6), // Add 1 set, max 6
-                        repsMin = exercise.repsMin,
-                        repsMax = exercise.repsMax,
-                        rpe = exercise.rpe,
-                        restSeconds = (exercise.restSeconds + 30).coerceAtMost(180), // Longer rest for volume
-                        notes = "Increased volume for greater training stimulus"
+        val highVolumeWeeks = original.weeks.map { week ->
+            GeneratedWeek(
+                weekNumber = week.weekNumber,
+                name = "Week ${week.weekNumber}",
+                description = "High volume training week",
+                intensityLevel = week.intensityLevel ?: "moderate",
+                volumeLevel = "high",
+                focus = emptyList(),
+                isDeload = week.isDeload,
+                workouts = week.workouts.map { workout ->
+                    GeneratedWorkout(
+                        dayNumber = workout.dayNumber,
+                        name = "High Volume " + workout.name,
+                        exercises = workout.exercises.map { exercise ->
+                            GeneratedExercise(
+                                exerciseName = exercise.exerciseName,
+                                sets = (exercise.sets + 1).coerceAtMost(6), // Add 1 set, max 6
+                                repsMin = exercise.repsMin,
+                                repsMax = exercise.repsMax,
+                                rpe = exercise.rpe,
+                                restSeconds = (exercise.restSeconds + 30).coerceAtMost(180), // Longer rest for volume
+                                notes = "Increased volume for greater training stimulus"
+                            )
+                        } + listOf(
+                            // Add one extra exercise per workout
+                            GeneratedExercise(
+                                exerciseName = "Additional Accessory",
+                                sets = 3,
+                                repsMin = 12,
+                                repsMax = 15,
+                                rpe = 7.0f,
+                                restSeconds = 60,
+                                notes = "Extra volume exercise"
+                            )
+                        )
                     )
-                } + listOf(
-                    // Add one extra exercise per workout
-                    GeneratedExercise(
-                        exerciseName = "Additional Accessory",
-                        sets = 3,
-                        repsMin = 12,
-                        repsMax = 15,
-                        rpe = 7.0f,
-                        restSeconds = 60,
-                        notes = "Extra volume exercise"
-                    )
-                )
+                }
             )
         }
         
@@ -1160,26 +1212,37 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                 description = "Increased volume version with more sets and exercises for greater training stimulus",
                 durationWeeks = original.durationWeeks,
                 daysPerWeek = original.daysPerWeek,
-                workouts = highVolumeWorkouts
+                weeks = highVolumeWeeks
             )
         )
     }
 
     private fun generateLowVolumeVersion(original: GeneratedProgrammePreview): AIProgrammeResponse {
         // Reduce training volume for easier recovery
-        val lowVolumeWorkouts = original.weeks.first().workouts.map { workout ->
-            GeneratedWorkout(
-                dayNumber = workout.dayNumber,
-                name = "Low Volume " + workout.name,
-                exercises = workout.exercises.take(workout.exercises.size - 1).map { exercise ->
-                    GeneratedExercise(
-                        exerciseName = exercise.exerciseName,
-                        sets = (exercise.sets - 1).coerceAtLeast(2), // Remove 1 set, min 2
-                        repsMin = exercise.repsMin,
-                        repsMax = exercise.repsMax,
-                        rpe = exercise.rpe,
-                        restSeconds = (exercise.restSeconds - 30).coerceAtLeast(60), // Shorter rest
-                        notes = "Reduced volume for better recovery"
+        val lowVolumeWeeks = original.weeks.map { week ->
+            GeneratedWeek(
+                weekNumber = week.weekNumber,
+                name = "Week ${week.weekNumber}",
+                description = "Low volume training week",
+                intensityLevel = week.intensityLevel ?: "moderate",
+                volumeLevel = "low",
+                focus = emptyList(),
+                isDeload = week.isDeload,
+                workouts = week.workouts.map { workout ->
+                    GeneratedWorkout(
+                        dayNumber = workout.dayNumber,
+                        name = "Low Volume " + workout.name,
+                        exercises = workout.exercises.take(workout.exercises.size - 1).map { exercise ->
+                            GeneratedExercise(
+                                exerciseName = exercise.exerciseName,
+                                sets = (exercise.sets - 1).coerceAtLeast(2), // Remove 1 set, min 2
+                                repsMin = exercise.repsMin,
+                                repsMax = exercise.repsMax,
+                                rpe = exercise.rpe,
+                                restSeconds = (exercise.restSeconds - 30).coerceAtLeast(60), // Shorter rest
+                                notes = "Reduced volume for better recovery"
+                            )
+                        }
                     )
                 }
             )
@@ -1192,26 +1255,37 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                 description = "Reduced volume version for easier recovery and time efficiency",
                 durationWeeks = original.durationWeeks,
                 daysPerWeek = original.daysPerWeek,
-                workouts = lowVolumeWorkouts
+                weeks = lowVolumeWeeks
             )
         )
     }
 
     private fun generateHighIntensityVersion(original: GeneratedProgrammePreview): AIProgrammeResponse {
         // Increase intensity with heavier weights and lower reps
-        val highIntensityWorkouts = original.weeks.first().workouts.map { workout ->
-            GeneratedWorkout(
-                dayNumber = workout.dayNumber,
-                name = "High Intensity " + workout.name,
-                exercises = workout.exercises.map { exercise ->
-                    GeneratedExercise(
-                        exerciseName = exercise.exerciseName,
-                        sets = exercise.sets,
-                        repsMin = (exercise.repsMin - 2).coerceAtLeast(1), // Lower reps
-                        repsMax = (exercise.repsMax - 2).coerceAtLeast(3),
-                        rpe = (exercise.rpe?.plus(1.0f))?.coerceAtMost(9.5f) ?: 8.5f, // Higher intensity
-                        restSeconds = (exercise.restSeconds + 60).coerceAtMost(300), // Longer rest for heavy lifting
-                        notes = "High intensity - focus on heavy weights and perfect form"
+        val highIntensityWeeks = original.weeks.map { week ->
+            GeneratedWeek(
+                weekNumber = week.weekNumber,
+                name = "Week ${week.weekNumber}",
+                description = "High intensity training week",
+                intensityLevel = "high",
+                volumeLevel = week.volumeLevel ?: "moderate",
+                focus = emptyList(),
+                isDeload = week.isDeload,
+                workouts = week.workouts.map { workout ->
+                    GeneratedWorkout(
+                        dayNumber = workout.dayNumber,
+                        name = "High Intensity " + workout.name,
+                        exercises = workout.exercises.map { exercise ->
+                            GeneratedExercise(
+                                exerciseName = exercise.exerciseName,
+                                sets = exercise.sets,
+                                repsMin = (exercise.repsMin - 2).coerceAtLeast(1), // Lower reps
+                                repsMax = (exercise.repsMax - 2).coerceAtLeast(3),
+                                rpe = (exercise.rpe?.plus(1.0f))?.coerceAtMost(9.5f) ?: 8.5f, // Higher intensity
+                                restSeconds = (exercise.restSeconds + 60).coerceAtMost(300), // Longer rest for heavy lifting
+                                notes = "High intensity - focus on heavy weights and perfect form"
+                            )
+                        }
                     )
                 }
             )
@@ -1224,26 +1298,37 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                 description = "High intensity version with heavier weights and lower reps for strength focus",
                 durationWeeks = original.durationWeeks,
                 daysPerWeek = original.daysPerWeek,
-                workouts = highIntensityWorkouts
+                weeks = highIntensityWeeks
             )
         )
     }
 
     private fun generateLowIntensityVersion(original: GeneratedProgrammePreview): AIProgrammeResponse {
         // Reduce intensity with lighter weights and higher reps
-        val lowIntensityWorkouts = original.weeks.first().workouts.map { workout ->
-            GeneratedWorkout(
-                dayNumber = workout.dayNumber,
-                name = "Low Intensity " + workout.name,
-                exercises = workout.exercises.map { exercise ->
-                    GeneratedExercise(
-                        exerciseName = exercise.exerciseName,
-                        sets = exercise.sets,
-                        repsMin = (exercise.repsMin + 3).coerceAtMost(15), // Higher reps
-                        repsMax = (exercise.repsMax + 3).coerceAtMost(20),
-                        rpe = (exercise.rpe?.minus(1.0f))?.coerceAtLeast(5.5f) ?: 6.5f, // Lower intensity
-                        restSeconds = (exercise.restSeconds - 30).coerceAtLeast(45), // Shorter rest
-                        notes = "Low intensity - focus on muscle endurance and technique"
+        val lowIntensityWeeks = original.weeks.map { week ->
+            GeneratedWeek(
+                weekNumber = week.weekNumber,
+                name = "Week ${week.weekNumber}",
+                description = "Low intensity training week",
+                intensityLevel = "low",
+                volumeLevel = week.volumeLevel ?: "moderate",
+                focus = emptyList(),
+                isDeload = week.isDeload,
+                workouts = week.workouts.map { workout ->
+                    GeneratedWorkout(
+                        dayNumber = workout.dayNumber,
+                        name = "Low Intensity " + workout.name,
+                        exercises = workout.exercises.map { exercise ->
+                            GeneratedExercise(
+                                exerciseName = exercise.exerciseName,
+                                sets = exercise.sets,
+                                repsMin = (exercise.repsMin + 3).coerceAtMost(15), // Higher reps
+                                repsMax = (exercise.repsMax + 3).coerceAtMost(20),
+                                rpe = (exercise.rpe?.minus(1.0f))?.coerceAtLeast(5.5f) ?: 6.5f, // Lower intensity
+                                restSeconds = (exercise.restSeconds - 30).coerceAtLeast(45), // Shorter rest
+                                notes = "Low intensity - focus on muscle endurance and technique"
+                            )
+                        }
                     )
                 }
             )
@@ -1256,7 +1341,7 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                 description = "Low intensity version with lighter weights and higher reps for endurance and technique",
                 durationWeeks = original.durationWeeks,
                 daysPerWeek = original.daysPerWeek,
-                workouts = lowIntensityWorkouts
+                weeks = lowIntensityWeeks
             )
         )
     }
