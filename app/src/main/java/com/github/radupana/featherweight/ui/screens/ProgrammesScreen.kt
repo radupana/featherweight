@@ -59,10 +59,7 @@ fun ProgrammesScreen(
         }
     }
 
-    // Refresh data when screen appears (e.g., after activating a new programme)
-    LaunchedEffect(Unit) {
-        viewModel.refreshData()
-    }
+    // Data is loaded once in ViewModel init - no need for refresh on every screen appear
 
     Box(
         modifier = modifier.fillMaxSize(),

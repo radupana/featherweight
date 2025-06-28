@@ -365,34 +365,21 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                 kotlinx.coroutines.delay(2500)
                 
                 val regeneratedResponse = when (mode) {
-                    RegenerationMode.FULL_REGENERATE -> {
-                        // Generate completely new programme with same parameters
-                        MockProgrammeGenerator.generateMockProgramme(
-                            goal = currentPreview.focus.firstOrNull(),
-                            frequency = currentPreview.daysPerWeek,
-                            duration = SessionDuration.STANDARD, // Default assumption
-                            inputText = "Regenerated programme"
-                        )
+                    RegenerationMode.MORE_VOLUME -> {
+                        // Increase training volume with more sets and exercises
+                        generateHighVolumeVersion(currentPreview)
                     }
-                    RegenerationMode.KEEP_STRUCTURE -> {
-                        // Keep workout structure but change exercises
-                        generateVariantWithNewExercises(currentPreview)
+                    RegenerationMode.LESS_VOLUME -> {
+                        // Reduce training volume for easier recovery
+                        generateLowVolumeVersion(currentPreview)
                     }
-                    RegenerationMode.ALTERNATIVE_APPROACH -> {
-                        // Change programme style/approach
-                        generateAlternativeApproach(currentPreview)
+                    RegenerationMode.MORE_INTENSITY -> {
+                        // Increase intensity with heavier weights and lower reps
+                        generateHighIntensityVersion(currentPreview)
                     }
-                    RegenerationMode.FIX_VALIDATION_ERRORS -> {
-                        // Fix specific validation issues
-                        generateFixedVersion(currentPreview)
-                    }
-                    RegenerationMode.MORE_VARIETY -> {
-                        // Add more exercise variety
-                        generateVarietyVersion(currentPreview)
-                    }
-                    RegenerationMode.SIMPLER_VERSION -> {
-                        // Create simpler version
-                        generateSimplifiedVersion(currentPreview)
+                    RegenerationMode.LESS_INTENSITY -> {
+                        // Reduce intensity with lighter weights and higher reps
+                        generateLowIntensityVersion(currentPreview)
                     }
                 }
                 
@@ -1101,5 +1088,145 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
         } else {
             null
         }
+    }
+
+    // New simplified regeneration methods
+    private fun generateHighVolumeVersion(original: GeneratedProgrammePreview): AIProgrammeResponse {
+        // Increase training volume with more sets and exercises
+        val highVolumeWorkouts = original.weeks.first().workouts.map { workout ->
+            GeneratedWorkout(
+                dayNumber = workout.dayNumber,
+                name = "High Volume " + workout.name,
+                exercises = workout.exercises.map { exercise ->
+                    GeneratedExercise(
+                        exerciseName = exercise.exerciseName,
+                        sets = (exercise.sets + 1).coerceAtMost(6), // Add 1 set, max 6
+                        repsMin = exercise.repsMin,
+                        repsMax = exercise.repsMax,
+                        rpe = exercise.rpe,
+                        restSeconds = (exercise.restSeconds + 30).coerceAtMost(180), // Longer rest for volume
+                        notes = "Increased volume for greater training stimulus"
+                    )
+                } + listOf(
+                    // Add one extra exercise per workout
+                    GeneratedExercise(
+                        exerciseName = "Additional Accessory",
+                        sets = 3,
+                        repsMin = 12,
+                        repsMax = 15,
+                        rpe = 7.0f,
+                        restSeconds = 60,
+                        notes = "Extra volume exercise"
+                    )
+                )
+            )
+        }
+        
+        return AIProgrammeResponse(
+            success = true,
+            programme = GeneratedProgramme(
+                name = "High Volume " + original.name,
+                description = "Increased volume version with more sets and exercises for greater training stimulus",
+                durationWeeks = original.durationWeeks,
+                daysPerWeek = original.daysPerWeek,
+                workouts = highVolumeWorkouts
+            )
+        )
+    }
+
+    private fun generateLowVolumeVersion(original: GeneratedProgrammePreview): AIProgrammeResponse {
+        // Reduce training volume for easier recovery
+        val lowVolumeWorkouts = original.weeks.first().workouts.map { workout ->
+            GeneratedWorkout(
+                dayNumber = workout.dayNumber,
+                name = "Low Volume " + workout.name,
+                exercises = workout.exercises.take(workout.exercises.size - 1).map { exercise ->
+                    GeneratedExercise(
+                        exerciseName = exercise.exerciseName,
+                        sets = (exercise.sets - 1).coerceAtLeast(2), // Remove 1 set, min 2
+                        repsMin = exercise.repsMin,
+                        repsMax = exercise.repsMax,
+                        rpe = exercise.rpe,
+                        restSeconds = (exercise.restSeconds - 30).coerceAtLeast(60), // Shorter rest
+                        notes = "Reduced volume for better recovery"
+                    )
+                }
+            )
+        }
+        
+        return AIProgrammeResponse(
+            success = true,
+            programme = GeneratedProgramme(
+                name = "Low Volume " + original.name,
+                description = "Reduced volume version for easier recovery and time efficiency",
+                durationWeeks = original.durationWeeks,
+                daysPerWeek = original.daysPerWeek,
+                workouts = lowVolumeWorkouts
+            )
+        )
+    }
+
+    private fun generateHighIntensityVersion(original: GeneratedProgrammePreview): AIProgrammeResponse {
+        // Increase intensity with heavier weights and lower reps
+        val highIntensityWorkouts = original.weeks.first().workouts.map { workout ->
+            GeneratedWorkout(
+                dayNumber = workout.dayNumber,
+                name = "High Intensity " + workout.name,
+                exercises = workout.exercises.map { exercise ->
+                    GeneratedExercise(
+                        exerciseName = exercise.exerciseName,
+                        sets = exercise.sets,
+                        repsMin = (exercise.repsMin - 2).coerceAtLeast(1), // Lower reps
+                        repsMax = (exercise.repsMax - 2).coerceAtLeast(3),
+                        rpe = (exercise.rpe?.plus(1.0f))?.coerceAtMost(9.5f) ?: 8.5f, // Higher intensity
+                        restSeconds = (exercise.restSeconds + 60).coerceAtMost(300), // Longer rest for heavy lifting
+                        notes = "High intensity - focus on heavy weights and perfect form"
+                    )
+                }
+            )
+        }
+        
+        return AIProgrammeResponse(
+            success = true,
+            programme = GeneratedProgramme(
+                name = "High Intensity " + original.name,
+                description = "High intensity version with heavier weights and lower reps for strength focus",
+                durationWeeks = original.durationWeeks,
+                daysPerWeek = original.daysPerWeek,
+                workouts = highIntensityWorkouts
+            )
+        )
+    }
+
+    private fun generateLowIntensityVersion(original: GeneratedProgrammePreview): AIProgrammeResponse {
+        // Reduce intensity with lighter weights and higher reps
+        val lowIntensityWorkouts = original.weeks.first().workouts.map { workout ->
+            GeneratedWorkout(
+                dayNumber = workout.dayNumber,
+                name = "Low Intensity " + workout.name,
+                exercises = workout.exercises.map { exercise ->
+                    GeneratedExercise(
+                        exerciseName = exercise.exerciseName,
+                        sets = exercise.sets,
+                        repsMin = (exercise.repsMin + 3).coerceAtMost(15), // Higher reps
+                        repsMax = (exercise.repsMax + 3).coerceAtMost(20),
+                        rpe = (exercise.rpe?.minus(1.0f))?.coerceAtLeast(5.5f) ?: 6.5f, // Lower intensity
+                        restSeconds = (exercise.restSeconds - 30).coerceAtLeast(45), // Shorter rest
+                        notes = "Low intensity - focus on muscle endurance and technique"
+                    )
+                }
+            )
+        }
+        
+        return AIProgrammeResponse(
+            success = true,
+            programme = GeneratedProgramme(
+                name = "Low Intensity " + original.name,
+                description = "Low intensity version with lighter weights and higher reps for endurance and technique",
+                durationWeeks = original.durationWeeks,
+                daysPerWeek = original.daysPerWeek,
+                workouts = lowIntensityWorkouts
+            )
+        )
     }
 }

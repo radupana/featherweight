@@ -26,18 +26,20 @@ Building a weightlifting Super App that combines the best features from apps lik
 - **Analytics**: Interactive charts, Quick Stats, Big 4 focus
 - **History**: Paginated with long-tap delete, edit mode for completed workouts
 - **Rest Timer**: Smart auto-start based on exercise type with cross-screen persistence
-- **AI Programme Generation**: Complete MVP with mock data, exercise resolution, validation, and editing
+- **AI Programme Generation**: Complete production system with dual-mode interface, template library, and bulletproof exercise validation
 
 ### Key Implementation Details
 
 #### Exercise Naming Convention
 - ALL exercises use singular form: "Barbell Curl" not "Barbell Curls"
 - Usage tracking with frequency-based sorting in exercise selection
+- **Exercise Database Integrity**: Strict 1-to-1 validation ensures LLM responses only contain supported exercises
 
 #### Programme System
 - Sequential day numbering (1,2,3,4) regardless of week structure
-- Automatic exercise creation if not in database
+- Enhanced progress tracking with comprehensive debugging
 - Programme progress refreshes on screen navigation
+- **Fixed Critical Bug**: Programmes no longer incorrectly marked inactive mid-programme
 
 #### Rest Timer
 - Smart categorization: Compound (4min), Accessory (2min), Isolation (90s), Cardio (60s)
@@ -48,10 +50,11 @@ Building a weightlifting Super App that combines the best features from apps lik
 - **Real OpenAI Integration**: Uses gpt-4o-mini for personalized programmes
 - **Secure API Management**: BuildConfig + local.properties for API keys
 - **Smart Fallback**: Seamlessly uses mock responses on API failures
-- **Quota System**: 5 generations per day with tracking
-- Exercise fuzzy matching with confidence scoring
-- Validation engine with auto-fixable vs manual issues
-- 6 regeneration modes for programme variants
+- **Quota System**: 5 generations per day with tracking (disabled for testing)
+- **Exercise Database Validation**: Strict validation with automatic retry logic
+- **Dual-Mode Interface**: Simplified (guided) and Advanced (freeform) generation modes
+- **Comprehensive Template Library**: 28 well-researched templates covering diverse scenarios
+- **Streamlined Regeneration**: 4 intuitive options (More/Less Volume, More/Less Intensity)
 
 ## Key Files & Architecture
 
@@ -79,8 +82,10 @@ Building a weightlifting Super App that combines the best features from apps lik
 - `OpenAIApi.kt` - Retrofit interface for API calls
 - `AIProgrammeQuotaManager.kt` - Daily quota tracking (5/day limit)
 - `ProgrammePreviewScreen.kt` - Programme preview and editing
+- `ProgrammeGeneratorScreen.kt` - Dual-mode generation interface
 - `ExerciseNameMatcher.kt` - Fuzzy matching with aliases
 - `ProgrammeValidator.kt` - Validation with scoring
+- `ExampleTemplates.kt` - 28 comprehensive programme templates
 
 ## Common Commands
 
@@ -90,21 +95,19 @@ Building a weightlifting Super App that combines the best features from apps lik
 
 ## Current Known Issues
 
-1. **AI Programme Validation Score**: Percentage next to "Programme Validation Passed" is confusing - needs tooltip
-2. **UI Polish**: Analytics cards have text overflow, programme preview cards need improvement
-3. **Missing Features**: No exercise substitution in programmes, no user profile/settings, no exercise media
+1. **UI Polish**: Analytics cards have text overflow, programme preview cards need improvement
+2. **Missing Features**: No exercise substitution in programmes, no user profile/settings, no exercise media
 
 ## Next Priority Features
 
 ### Immediate (Phase 1) ✅ COMPLETED
-1. **AI Programme Real Integration** ✅
+1. **AI Programme Complete Overhaul** ✅
    - Integrated real OpenAI API with gpt-4o-mini
-   - Implemented secure API key management
-   - Added graceful error handling with fallbacks
-
-2. **Validation Score Clarity**
-   - Add tooltip explaining programme quality score
-   - Consider visual improvements (color coding)
+   - Implemented dual-mode generation interface
+   - Added 28 comprehensive programme templates
+   - Bulletproof exercise database validation
+   - Enhanced programme progress tracking
+   - Streamlined regeneration options
 
 ### Short-term (Phase 2)
 1. **Analytics Improvements**
@@ -115,18 +118,32 @@ Building a weightlifting Super App that combines the best features from apps lik
 2. **Programme Enhancements**
    - Exercise substitution in active programmes
    - Programme workout preview before starting
-   - Custom programme builder
+   - Custom programme builder (enhance existing AI system)
+
+3. **AI System Refinements**
+   - Programme validation score tooltip
+   - Advanced mode templates and examples
+   - Exercise preference learning
+   - Programme difficulty auto-adjustment
 
 ### Medium-term (Phase 3)
 1. **User Profile & Settings**
    - User stats and preferences
    - Units preference (kg/lbs)
    - Rest timer preferences
+   - AI generation history and favorites
 
 2. **Exercise Database Expansion**
    - Muscle group data
    - Form videos and guides
    - Equipment alternatives
+   - Exercise demonstration integration
+
+3. **Advanced AI Features**
+   - Workout auto-progression based on performance
+   - Injury prevention recommendations
+   - Plateau detection and programme adjustments
+   - Integration with wearable devices for recovery metrics
 
 ## Development Guidelines
 
@@ -160,34 +177,37 @@ Building a weightlifting Super App that combines the best features from apps lik
 
 ## Recent Focus Areas
 
-### Latest Session: Critical AI Programme Fixes (2025-01-28)
+### Latest Session: Complete AI Programme System Overhaul (2025-06-28)
+Comprehensive enhancement of the AI programme generation system based on extensive UAT:
+
+**Critical Bug Fixes:**
+- **Programme Progress Tracking**: Fixed programmes being incorrectly marked inactive after first week
+- **Post-Activation Navigation**: Changed to navigate to Home screen instead of Programmes screen
+- **Exercise Database Validation**: Implemented strict 1-to-1 relationship enforcement with automatic retry logic
+
+**Major Feature Implementations:**
+- **Dual-Mode Generation**: Added Simplified (guided) and Advanced (freeform) generation modes
+- **Template Library Expansion**: Increased from 8 to 28 comprehensive, well-researched templates
+- **Regeneration Simplification**: Reduced from 6 complex options to 4 intuitive ones
+- **UI/UX Overhaul**: Unified styling, repositioned Browse Templates, enhanced Quick Add chips
+
+**Technical Enhancements:**
+- `ProgrammeGeneratorViewModel.kt`: Added exercise validation with retry logic
+- `ProgrammeGeneratorScreen.kt`: Implemented dual-mode interface with dynamic UI
+- `ExampleTemplates.kt`: Added 20 new templates covering diverse scenarios
+- `MainActivity.kt`: Fixed post-activation navigation flow
+- `FeatherweightRepository.kt`: Enhanced programme progress debugging
+
+**Result**: AI programme generation is now production-ready with bulletproof exercise validation, comprehensive template library, and significantly improved user experience.
+
+### Previous Session: Critical AI Programme Fixes (2025-01-28)
 Fixed critical issues with AI programme generation and activation:
 - **Exercise Resolution Removed**: Completely removed exercise resolution UI - all exercises are now accepted as-is
 - **Programme Visibility**: Fixed issue where activated programmes didn't appear immediately by adding refresh on ProgrammesScreen load
-- **Programme Completion Status**: Fixed "Programme Complete" bug for AI-generated programmes by:
-  - Updating `getNextProgrammeWorkout()` to handle custom programmes with direct workout storage
-  - Adding proper progress initialization during programme creation
-  - Implementing `getAllWorkoutsForProgramme()` DAO method for custom programmes
-  - **CRITICAL FIX**: Fixed empty `RepsSerializer.serialize()` that was creating invalid JSON (`"reps":,`)
-- **Key Code Changes**:
-  - `WorkoutPreviewComponents.kt`: Removed needsAttention/resolution UI
-  - `ProgrammesScreen.kt`: Added LaunchedEffect to refresh data on screen appearance
-  - `FeatherweightRepository.kt`: Enhanced programme progress tracking for AI-generated programmes
-  - `ProgrammeWorkoutStructure.kt`: Implemented proper serialization for RepsStructure and IncrementStructure
-- **Daily Quota Removed**: Set `canGenerateProgramme()` and `incrementUsage()` to always return true for unlimited testing
+- **Programme Completion Status**: Fixed "Programme Complete" bug for AI-generated programmes
 
 ### Previous Session: Real AI Integration (2025-01-27)
 Successfully integrated real OpenAI API for AI Programme Generation:
 - **API Integration**: Full OpenAI integration with gpt-4o-mini model
 - **Secure Key Management**: BuildConfig + local.properties approach implemented
-- **Network Handling**: Graceful fallback to mock responses on API failures
-- **Cost Management**: Token counting and daily quota system (5/day)
-- **Error Resolution**: Fixed JSON serialization and network permission issues
 - **Production Ready**: System now makes real API calls when configured
-
-**Key Achievement**: Users can now get actual AI-generated workout programmes tailored to their specific goals, experience level, and constraints using GPT-4o-mini.
-
-### Previous Sessions
-- **AI Programme Generation**: Complete MVP with validation system overhaul
-- **Home Screen UX**: Improved navigation flow and workout organization
-- **Exercise Resolution**: Fixed validation scoring and user guidance

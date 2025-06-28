@@ -7,6 +7,7 @@ import com.github.radupana.featherweight.data.*
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.AIProgrammeService
 import com.github.radupana.featherweight.service.AIProgrammeRequest
+import com.github.radupana.featherweight.service.AIProgrammeResponse
 import com.github.radupana.featherweight.service.AIProgrammeQuotaManager
 import com.github.radupana.featherweight.service.InputAnalyzer
 import com.github.radupana.featherweight.service.PlaceholderGenerator
@@ -50,6 +51,19 @@ class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(a
         )
     }
     
+    fun selectGenerationMode(mode: GenerationMode) {
+        val currentState = _uiState.value
+        _uiState.value = currentState.copy(
+            generationMode = mode,
+            // Clear text when switching modes
+            inputText = "",
+            // Reset chips and analysis for fresh start
+            usedChips = emptySet(),
+            detectedElements = emptySet(),
+            inputCompleteness = 0f
+        )
+    }
+
     fun selectGoal(goal: ProgrammeGoal) {
         val currentState = _uiState.value
         // Toggle selection - if already selected, deselect it
@@ -129,11 +143,23 @@ class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(a
     
     fun getPlaceholderText(): String {
         val currentState = _uiState.value
-        return placeholderGenerator.generatePlaceholder(
-            currentState.selectedGoal,
-            currentState.selectedFrequency,
-            currentState.selectedDuration
-        )
+        return when (currentState.generationMode) {
+            GenerationMode.SIMPLIFIED -> placeholderGenerator.generatePlaceholder(
+                currentState.selectedGoal,
+                currentState.selectedFrequency,
+                currentState.selectedDuration
+            )
+            GenerationMode.ADVANCED -> """Paste your complete programme description here...
+
+For example:
+"I want a 12-week strength programme, 4 days per week, focusing on powerlifting. 
+Week 1-4: Build base strength with compound movements
+Week 5-8: Intensify with heavier loads
+Week 9-12: Peak for competition
+Include squat, bench press, deadlift as main lifts with assistance work..."
+
+Or paste existing programmes from ChatGPT, other AI tools, or coaches."""
+        }
     }
     
     
@@ -218,25 +244,67 @@ class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(a
                 val response = aiService.generateProgramme(request)
                 
                 if (response.success) {
-                    // Increment quota usage
-                    if (quotaManager.incrementUsage()) {
-                        // Store the response for the preview screen
-                        GeneratedProgrammeHolder.setGeneratedProgramme(response)
-                        
-                        // Update UI state
-                        val quotaStatus = quotaManager.getQuotaStatus()
-                        _uiState.value = _uiState.value.copy(
-                            generationCount = quotaStatus.totalQuota - quotaStatus.remainingGenerations,
-                            isLoading = false
-                        )
-                        
-                        // Navigate to preview
-                        onNavigateToPreview?.invoke()
+                    // Validate that all exercises in the response exist in our database
+                    val validationResult = validateExercisesInProgramme(response, exerciseNames)
+                    
+                    if (validationResult.isValid) {
+                        // Increment quota usage
+                        if (quotaManager.incrementUsage()) {
+                            // Store the response for the preview screen
+                            GeneratedProgrammeHolder.setGeneratedProgramme(response)
+                            
+                            // Update UI state
+                            val quotaStatus = quotaManager.getQuotaStatus()
+                            _uiState.value = _uiState.value.copy(
+                                generationCount = quotaStatus.totalQuota - quotaStatus.remainingGenerations,
+                                isLoading = false
+                            )
+                            
+                            // Navigate to preview
+                            onNavigateToPreview?.invoke()
+                        } else {
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                errorMessage = "Daily generation limit reached. Please try again tomorrow."
+                            )
+                        }
                     } else {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            errorMessage = "Daily generation limit reached. Please try again tomorrow."
+                        // Exercise validation failed - regenerate automatically
+                        println("⚠️ Exercise validation failed: ${validationResult.invalidExercises}")
+                        println("🔄 Attempting regeneration with stricter constraints...")
+                        
+                        // Create a stricter request with emphasis on exercise compliance
+                        val stricterRequest = request.copy(
+                            userInput = buildStricterUserInput(currentState, exerciseNames, validationResult.invalidExercises)
                         )
+                        
+                        // Try once more with stricter constraints
+                        val retryResponse = aiService.generateProgramme(stricterRequest)
+                        val retryValidation = validateExercisesInProgramme(retryResponse, exerciseNames)
+                        
+                        if (retryResponse.success && retryValidation.isValid) {
+                            println("✅ Regeneration successful with valid exercises")
+                            if (quotaManager.incrementUsage()) {
+                                GeneratedProgrammeHolder.setGeneratedProgramme(retryResponse)
+                                val quotaStatus = quotaManager.getQuotaStatus()
+                                _uiState.value = _uiState.value.copy(
+                                    generationCount = quotaStatus.totalQuota - quotaStatus.remainingGenerations,
+                                    isLoading = false
+                                )
+                                onNavigateToPreview?.invoke()
+                            } else {
+                                _uiState.value = _uiState.value.copy(
+                                    isLoading = false,
+                                    errorMessage = "Daily generation limit reached. Please try again tomorrow."
+                                )
+                            }
+                        } else {
+                            println("❌ Regeneration also failed - showing error to user")
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                errorMessage = "Generated programme contains unsupported exercises. Please try again with more specific requirements or use Browse Templates for proven programmes."
+                            )
+                        }
                     }
                 } else {
                     _uiState.value = _uiState.value.copy(
@@ -311,4 +379,49 @@ class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(a
             "Create a general fitness programme suitable for someone looking to improve their overall health and fitness."
         }
     }
+
+    private fun validateExercisesInProgramme(response: AIProgrammeResponse, validExerciseNames: List<String>): ExerciseValidationResult {
+        if (!response.success || response.programme == null) {
+            return ExerciseValidationResult(false, emptyList())
+        }
+
+        val validExerciseSet = validExerciseNames.toSet()
+        val invalidExercises = mutableListOf<String>()
+        
+        // Check all exercises in all workouts
+        response.programme.workouts.forEach { workout ->
+            workout.exercises.forEach { exercise ->
+                if (exercise.exerciseName !in validExerciseSet) {
+                    invalidExercises.add(exercise.exerciseName)
+                }
+            }
+        }
+        
+        return ExerciseValidationResult(
+            isValid = invalidExercises.isEmpty(),
+            invalidExercises = invalidExercises.distinct()
+        )
+    }
+
+    private fun buildStricterUserInput(
+        state: GuidedInputState, 
+        validExerciseNames: List<String>, 
+        invalidExercises: List<String>
+    ): String {
+        val baseInput = buildEnhancedUserInput(state)
+        
+        return """$baseInput
+
+CRITICAL: The previous generation included invalid exercises: ${invalidExercises.joinToString(", ")}.
+
+You MUST use ONLY these exact exercise names (no variations, abbreviations, or alternatives):
+${validExerciseNames.joinToString(", ")}
+
+Do NOT create new exercise names. Do NOT use variations or abbreviations. Use the exact names provided above."""
+    }
+
+    data class ExerciseValidationResult(
+        val isValid: Boolean,
+        val invalidExercises: List<String>
+    )
 }

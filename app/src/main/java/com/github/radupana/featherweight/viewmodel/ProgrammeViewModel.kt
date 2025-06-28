@@ -33,6 +33,9 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
     private val _allProgrammes = MutableStateFlow<List<Programme>>(emptyList())
     val allProgrammes: StateFlow<List<Programme>> = _allProgrammes
 
+    // Track if initial load is complete to avoid flashing on refresh
+    private var hasLoadedInitialData = false
+
     // User's 1RM values for setup
     private val _userMaxes = MutableStateFlow(UserMaxes())
     val userMaxes: StateFlow<UserMaxes> = _userMaxes
@@ -119,9 +122,11 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    private fun loadProgrammeData() {
+    private fun loadProgrammeData(showLoading: Boolean = true) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            if (showLoading) {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+            }
             println("🔄 ProgrammeViewModel: Starting data load...")
 
             try {
@@ -168,6 +173,7 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
                         templates = filteredTemplates,
                         isLoading = false,
                     )
+                hasLoadedInitialData = true
                 println("✅ ProgrammeViewModel: UI state updated with ${filteredTemplates.size} templates, isLoading=false")
             } catch (e: Exception) {
                 println("❌ ProgrammeViewModel: Error loading data: ${e.message}")
@@ -445,7 +451,11 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun refreshData() {
-        loadProgrammeData()
+        // Only refresh if we've already loaded initial data to avoid duplicate loading
+        if (hasLoadedInitialData) {
+            // Don't show loading state on refresh to avoid flash
+            loadProgrammeData(showLoading = false)
+        }
     }
 }
 

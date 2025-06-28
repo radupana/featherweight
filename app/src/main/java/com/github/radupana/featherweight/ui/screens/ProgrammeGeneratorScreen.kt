@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -68,7 +69,67 @@ fun ProgrammeGeneratorScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
-            // Goal Selection
+            // Mode Selection
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Generation Mode",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            GenerationMode.values().forEach { mode ->
+                                val isSelected = uiState.generationMode == mode
+                                if (isSelected) {
+                                    Button(
+                                        onClick = { viewModel.selectGenerationMode(mode) },
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    ) {
+                                        Text(
+                                            text = mode.displayName,
+                                            style = MaterialTheme.typography.labelLarge
+                                        )
+                                    }
+                                } else {
+                                    OutlinedButton(
+                                        onClick = { viewModel.selectGenerationMode(mode) },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text(
+                                            text = mode.displayName,
+                                            style = MaterialTheme.typography.labelLarge
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Text(
+                            text = uiState.generationMode.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+            }
+            
+            // Goal Selection (only for Simplified mode)
+            if (uiState.generationMode == GenerationMode.SIMPLIFIED) {
             item {
                 Text(
                     text = "What's your main goal?",
@@ -149,13 +210,47 @@ fun ProgrammeGeneratorScreen(
                     }
                 }
             }
+            } // End Simplified mode if statement
+            
+            // Browse Templates Button (moved to top for easier access)
+            item {
+                OutlinedButton(
+                    onClick = { showTemplateDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.LibraryBooks,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            "Browse Templates",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
             
             // Text Input Area
             item {
+                val inputHeight = when (uiState.generationMode) {
+                    GenerationMode.SIMPLIFIED -> 200.dp
+                    GenerationMode.ADVANCED -> 400.dp
+                }
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp),
+                        .height(inputHeight),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface
                     ),
@@ -169,7 +264,11 @@ fun ProgrammeGeneratorScreen(
                         BasicTextField(
                             value = uiState.inputText,
                             onValueChange = { newText ->
-                                if (newText.length <= 500) {
+                                val maxLength = when (uiState.generationMode) {
+                                    GenerationMode.SIMPLIFIED -> 500
+                                    GenerationMode.ADVANCED -> 5000
+                                }
+                                if (newText.length <= maxLength) {
                                     viewModel.updateInputText(newText)
                                 }
                             },
@@ -219,8 +318,42 @@ fun ProgrammeGeneratorScreen(
                 )
             }
             
-            // Quick Add Chips
-            if (uiState.availableChips.isNotEmpty()) {
+            // Character count for Advanced mode
+            if (uiState.generationMode == GenerationMode.ADVANCED) {
+                item {
+                    val maxLength = 5000
+                    val currentLength = uiState.inputText.length
+                    val color = when {
+                        currentLength < 500 -> MaterialTheme.colorScheme.error
+                        currentLength < 1000 -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (currentLength < 500) {
+                                "Need at least 500 characters for Advanced mode"
+                            } else {
+                                "Good! Programme description looks comprehensive"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = color
+                        )
+                        Text(
+                            text = "$currentLength / $maxLength",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            
+            // Quick Add Chips (only for Simplified mode)
+            if (uiState.generationMode == GenerationMode.SIMPLIFIED && uiState.availableChips.isNotEmpty()) {
                 item {
                     Column {
                         Text(
@@ -244,35 +377,6 @@ fun ProgrammeGeneratorScreen(
                 }
             }
             
-            // Browse Templates Button
-            item {
-                OutlinedButton(
-                    onClick = { showTemplateDialog = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.LibraryBooks,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            "Browse Templates",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-            
             // Generate Button
             item {
                 Button(
@@ -280,7 +384,19 @@ fun ProgrammeGeneratorScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    enabled = uiState.inputText.length >= 20 && !uiState.isLoading,
+                    enabled = when (uiState.generationMode) {
+                        GenerationMode.SIMPLIFIED -> {
+                            // Simplified mode: guided values OR 20+ chars
+                            ((uiState.selectedGoal != null && 
+                              uiState.selectedFrequency != null && 
+                              uiState.selectedDuration != null) ||
+                             uiState.inputText.length >= 20) && !uiState.isLoading
+                        }
+                        GenerationMode.ADVANCED -> {
+                            // Advanced mode: requires substantial text (2000+ chars)
+                            uiState.inputText.length >= 500 && !uiState.isLoading
+                        }
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
                     )

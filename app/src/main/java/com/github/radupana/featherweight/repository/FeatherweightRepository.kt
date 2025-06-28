@@ -379,7 +379,7 @@ class FeatherweightRepository(
 
             // Get current progress before incrementing
             val progressBefore = programmeDao.getProgressForProgramme(programmeId)
-            println("📊 Progress BEFORE increment: completedWorkouts=${progressBefore?.completedWorkouts}")
+            println("📊 Progress BEFORE increment: completedWorkouts=${progressBefore?.completedWorkouts}/${progressBefore?.totalWorkouts}")
 
             // Always increment completed workouts when a workout is completed
             programmeDao.incrementCompletedWorkouts(programmeId)
@@ -387,7 +387,17 @@ class FeatherweightRepository(
 
             // Verify the increment worked
             val progressAfterIncrement = programmeDao.getProgressForProgramme(programmeId)
-            println("📊 Progress AFTER increment: completedWorkouts=${progressAfterIncrement?.completedWorkouts}")
+            println("📊 Progress AFTER increment: completedWorkouts=${progressAfterIncrement?.completedWorkouts}/${progressAfterIncrement?.totalWorkouts}")
+
+            // Add additional debugging for programme details
+            val programme = programmeDao.getProgrammeById(programmeId)
+            if (programme != null) {
+                println("📋 Programme details: name='${programme.name}', isCustom=${programme.isCustom}, durationWeeks=${programme.durationWeeks}")
+                if (programme.isCustom) {
+                    val allWorkouts = programmeDao.getAllWorkoutsForProgramme(programmeId)
+                    println("📋 Custom programme has ${allWorkouts.size} total workouts in database")
+                }
+            }
 
             // Now find the next workout and update current week/day to that
             val nextWorkoutInfo = getNextProgrammeWorkout(programmeId)
@@ -402,11 +412,19 @@ class FeatherweightRepository(
                 )
             } else {
                 println("🎆 No more workouts - programme complete!")
-                // Programme is complete
-                val programme = programmeDao.getProgrammeById(programmeId)
-                if (programme != null) {
-                    // Mark programme as complete
-                    completeProgramme(programmeId)
+                // Double-check the completion logic before marking complete
+                val finalProgress = programmeDao.getProgressForProgramme(programmeId)
+                if (finalProgress != null) {
+                    println("🔍 Final completion check: ${finalProgress.completedWorkouts} completed out of ${finalProgress.totalWorkouts} total")
+                    if (finalProgress.completedWorkouts >= finalProgress.totalWorkouts) {
+                        println("✅ Programme truly complete - marking as finished")
+                        completeProgramme(programmeId)
+                    } else {
+                        println("⚠️ WARNING: getNextProgrammeWorkout returned null but programme not complete!")
+                        println("   This suggests a bug in the next workout logic")
+                    }
+                } else {
+                    println("❌ ERROR: No progress record found for completion check")
                 }
             }
 
@@ -1420,6 +1438,10 @@ class FeatherweightRepository(
                 println("✅ Programme is complete (${progress.completedWorkouts} >= ${progress.totalWorkouts})")
                 return@withContext null
             }
+            
+            // Add debug info for completion check
+            val remainingWorkouts = progress.totalWorkouts - progress.completedWorkouts
+            println("📊 Remaining workouts: $remainingWorkouts (${progress.completedWorkouts}/${progress.totalWorkouts} completed)")
 
             // Check if this is a custom programme (AI-generated or user-created) with direct workout storage
             if (programme.isCustom) {
@@ -1487,9 +1509,12 @@ class FeatherweightRepository(
         }
         
         println("📋 Found ${allWorkouts.size} total workouts for programme")
+        println("📊 Progress tracking: completedWorkouts=${progress.completedWorkouts}, totalWorkouts=${progress.totalWorkouts}")
         
         // Find the next workout based on completed workouts count
         val nextWorkoutIndex = progress.completedWorkouts
+        println("🎯 Looking for workout at index $nextWorkoutIndex (0-based)")
+        
         if (nextWorkoutIndex >= allWorkouts.size) {
             println("✅ All workouts completed ($nextWorkoutIndex >= ${allWorkouts.size})")
             return null
@@ -1497,6 +1522,13 @@ class FeatherweightRepository(
         
         val nextWorkout = allWorkouts[nextWorkoutIndex]
         println("🎯 Next workout: ${nextWorkout.name} (weekId ${nextWorkout.weekId}, day ${nextWorkout.dayNumber})")
+        
+        // Additional debug info about all workouts
+        println("📋 All workouts for debugging:")
+        allWorkouts.forEachIndexed { index, workout ->
+            val status = if (index < progress.completedWorkouts) "✅ COMPLETED" else if (index == progress.completedWorkouts) "➡️ NEXT" else "⏳ PENDING"
+            println("   [$index] ${workout.name} (Week ${workout.weekId}, Day ${workout.dayNumber}) $status")
+        }
         
         // Parse the workout structure from JSON with proper configuration
         val workoutStructure = try {
@@ -1565,6 +1597,14 @@ class FeatherweightRepository(
                 println("📊 Custom programme workout count:")
                 println("  - Programme: ${programme.name}")
                 println("  - Total workouts in database: $totalWorkouts")
+                println("  - Programme duration: ${programme.durationWeeks} weeks")
+                
+                // Additional validation - make sure we have reasonable number of workouts
+                if (totalWorkouts == 0) {
+                    println("⚠️ WARNING: Custom programme has 0 workouts!")
+                } else if (totalWorkouts < programme.durationWeeks) {
+                    println("⚠️ WARNING: Custom programme has fewer workouts ($totalWorkouts) than weeks (${programme.durationWeeks})")
+                }
                 
                 return totalWorkouts
             }
@@ -1814,8 +1854,22 @@ class FeatherweightRepository(
 
     suspend fun completeProgramme(programmeId: Long) =
         withContext(Dispatchers.IO) {
+            println("🏁 completeProgramme called for programmeId: $programmeId")
+            
+            // Get programme details for logging
+            val programme = programmeDao.getProgrammeById(programmeId)
+            val progress = programmeDao.getProgressForProgramme(programmeId)
+            
+            if (programme != null && progress != null) {
+                println("🏁 Marking programme as complete:")
+                println("   Programme: ${programme.name}")
+                println("   Progress: ${progress.completedWorkouts}/${progress.totalWorkouts} workouts")
+                println("   Adherence: ${progress.adherencePercentage}%")
+            }
+            
             programmeDao.completeProgramme(programmeId, LocalDateTime.now().toString())
             programmeDao.deactivateAllProgrammes()
+            println("✅ Programme marked as complete and deactivated")
         }
 
     suspend fun deleteProgramme(programme: com.github.radupana.featherweight.data.programme.Programme) =

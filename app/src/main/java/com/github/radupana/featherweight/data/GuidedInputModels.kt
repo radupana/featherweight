@@ -15,6 +15,11 @@ enum class SessionDuration(val displayName: String, val minutesRange: String) {
     LONG("Long", "90+ min")
 }
 
+enum class GenerationMode(val displayName: String, val description: String) {
+    SIMPLIFIED("Simplified", "Guided options with quick prompts"),
+    ADVANCED("Advanced", "Paste full programme descriptions")
+}
+
 enum class DetectedElement {
     GOAL,
     EXPERIENCE_LEVEL,
@@ -48,6 +53,7 @@ data class ExampleTemplate(
 )
 
 data class GuidedInputState(
+    val generationMode: GenerationMode = GenerationMode.SIMPLIFIED,
     val selectedGoal: ProgrammeGoal? = null,
     val selectedFrequency: Int? = null,
     val selectedDuration: SessionDuration? = null,

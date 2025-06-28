@@ -73,7 +73,7 @@ fun HomeScreen(
                     modifier = Modifier.padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Button(
+                    OutlinedButton(
                         onClick = {
                             scope.launch {
                                 if (workoutViewModel.hasInProgressWorkouts()) {
@@ -90,10 +90,7 @@ fun HomeScreen(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .height(48.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
+                                .height(48.dp)
                     ) {
                         Icon(
                             Icons.Filled.PlayArrow,

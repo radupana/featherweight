@@ -184,12 +184,10 @@ sealed class QuickEditAction {
 }
 
 enum class RegenerationMode(val displayName: String, val description: String) {
-    FULL_REGENERATE("Start Over", "Regenerate the entire programme with the same input"),
-    KEEP_STRUCTURE("Keep Structure", "Keep the weekly structure but change exercises"),
-    ALTERNATIVE_APPROACH("Different Style", "Try a different programme approach"),
-    FIX_VALIDATION_ERRORS("Fix Issues", "Address validation errors automatically"),
-    MORE_VARIETY("Add Variety", "Include more exercise variations"),
-    SIMPLER_VERSION("Simplify", "Create a simpler, more beginner-friendly version")
+    MORE_VOLUME("More Volume", "Increase training volume with more sets and exercises"),
+    LESS_VOLUME("Less Volume", "Reduce training volume for easier recovery"),
+    MORE_INTENSITY("More Intensity", "Increase intensity with heavier weights and lower reps"),
+    LESS_INTENSITY("Less Intensity", "Reduce intensity with lighter weights and higher reps")
 }
 
 // Preview state
