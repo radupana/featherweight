@@ -33,15 +33,31 @@ fun TemplateSelectionDialog(
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var selectedFilters by remember { mutableStateOf<Set<TemplateFilter>>(emptySet()) }
+    var expandedCategory by remember { mutableStateOf<TemplateFilterCategory?>(null) }
     
-    // Filter templates based on search only
-    val filteredTemplates = remember(searchQuery) {
+    // Filter templates based on search and selected filters
+    val filteredTemplates = remember(searchQuery, selectedFilters) {
         ExampleTemplates.templates.filter { template ->
-            // Search filter only
-            searchQuery.isEmpty() || 
+            // Search filter
+            val matchesSearch = searchQuery.isEmpty() || 
                 template.title.contains(searchQuery, ignoreCase = true) ||
                 template.tags.any { it.contains(searchQuery, ignoreCase = true) } ||
                 template.exampleText.contains(searchQuery, ignoreCase = true)
+            
+            // Category filters (if any selected, template must match at least one per category)
+            val matchesFilters = if (selectedFilters.isEmpty()) {
+                true
+            } else {
+                // Group filters by category
+                val filtersByCategory = selectedFilters.groupBy { it.category }
+                // For each category, template must match at least one filter
+                filtersByCategory.all { (_, filters) ->
+                    filters.any { filter -> TemplateFilters.matchesFilter(template, filter) }
+                }
+            }
+            
+            matchesSearch && matchesFilters
         }
     }
     
@@ -103,14 +119,92 @@ fun TemplateSelectionDialog(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Applied filters removed - showing all templates
+                // Filter categories
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 200.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TemplateFilterCategory.values().forEach { category ->
+                        item {
+                            Column {
+                                // Category header
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { 
+                                            expandedCategory = if (expandedCategory == category) null else category 
+                                        }
+                                        .padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = category.displayName,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    
+                                    val categoryFilters = TemplateFilters.getFiltersByCategory(category)
+                                    val selectedCount = categoryFilters.count { it in selectedFilters }
+                                    if (selectedCount > 0) {
+                                        Text(
+                                            text = "$selectedCount selected",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                                
+                                // Filter chips (expanded)
+                                if (expandedCategory == category) {
+                                    LazyRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.padding(vertical = 8.dp)
+                                    ) {
+                                        items(TemplateFilters.getFiltersByCategory(category)) { filter ->
+                                            FilterChip(
+                                                selected = filter in selectedFilters,
+                                                onClick = {
+                                                    selectedFilters = if (filter in selectedFilters) {
+                                                        selectedFilters - filter
+                                                    } else {
+                                                        selectedFilters + filter
+                                                    }
+                                                },
+                                                label = { Text(filter.displayName) },
+                                                modifier = Modifier.height(32.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Clear filters button (if any filters selected)
+                if (selectedFilters.isNotEmpty()) {
+                    TextButton(
+                        onClick = { selectedFilters = emptySet() },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("Clear all filters")
+                    }
+                }
                 
                 // Templates count
                 Text(
-                    text = if (searchQuery.isEmpty()) {
-                        "${filteredTemplates.size} templates available"
-                    } else {
-                        "${filteredTemplates.size} templates found"
+                    text = when {
+                        searchQuery.isNotEmpty() && selectedFilters.isNotEmpty() -> 
+                            "${filteredTemplates.size} templates match your search and filters"
+                        searchQuery.isNotEmpty() -> 
+                            "${filteredTemplates.size} templates found"
+                        selectedFilters.isNotEmpty() -> 
+                            "${filteredTemplates.size} templates match your filters"
+                        else -> 
+                            "${filteredTemplates.size} templates available"
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

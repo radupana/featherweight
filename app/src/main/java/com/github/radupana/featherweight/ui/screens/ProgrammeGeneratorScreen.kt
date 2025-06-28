@@ -212,31 +212,33 @@ fun ProgrammeGeneratorScreen(
             }
             } // End Simplified mode if statement
             
-            // Browse Templates Button (moved to top for easier access)
-            item {
-                OutlinedButton(
-                    onClick = { showTemplateDialog = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Browse Templates Button (only for Simplified mode)
+            if (uiState.generationMode == GenerationMode.SIMPLIFIED) {
+                item {
+                    OutlinedButton(
+                        onClick = { showTemplateDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
                     ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.LibraryBooks,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            "Browse Templates",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.LibraryBooks,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                "Browse Templates",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
@@ -261,7 +263,7 @@ fun ProgrammeGeneratorScreen(
                             .fillMaxSize()
                             .padding(16.dp)
                     ) {
-                        BasicTextField(
+                        OutlinedTextField(
                             value = uiState.inputText,
                             onValueChange = { newText ->
                                 val maxLength = when (uiState.generationMode) {
@@ -277,33 +279,65 @@ fun ProgrammeGeneratorScreen(
                                 fontSize = 16.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             ),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                            decorationBox = { innerTextField ->
-                                Box {
-                                    if (uiState.inputText.isEmpty()) {
-                                        Text(
-                                            text = viewModel.getPlaceholderText(),
-                                            style = TextStyle(
-                                                fontSize = 16.sp,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                            )
-                                        )
-                                    }
-                                    innerTextField()
-                                }
-                            }
+                            placeholder = {
+                                Text(
+                                    text = viewModel.getPlaceholderText(),
+                                    style = TextStyle(
+                                        fontSize = 16.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    )
+                                )
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color.Transparent,
+                                unfocusedBorderColor = Color.Transparent,
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent
+                            ),
+                            // Enable multiline for better text input
+                            singleLine = false,
+                            maxLines = if (uiState.generationMode == GenerationMode.ADVANCED) 20 else 8
                         )
                         
-                        // Character count
+                        // Character count - only show for Simplified mode
+                        if (uiState.generationMode == GenerationMode.SIMPLIFIED) {
+                            Text(
+                                text = "${uiState.inputText.length}/500",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (uiState.inputText.length > 450) {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                },
+                                modifier = Modifier.align(Alignment.BottomEnd)
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Helper text for Simplified mode
+            if (uiState.generationMode == GenerationMode.SIMPLIFIED) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = "Info",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "${uiState.inputText.length}/500",
+                            text = "The preview text above shows what will be sent to AI based on your selections",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (uiState.inputText.length > 450) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                            },
-                            modifier = Modifier.align(Alignment.BottomEnd)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -324,14 +358,16 @@ fun ProgrammeGeneratorScreen(
                     val maxLength = 5000
                     val currentLength = uiState.inputText.length
                     val color = when {
-                        currentLength < 500 -> MaterialTheme.colorScheme.error
-                        currentLength < 1000 -> MaterialTheme.colorScheme.primary
+                        currentLength > maxLength - 500 -> MaterialTheme.colorScheme.error
+                        currentLength > maxLength - 1000 -> MaterialTheme.colorScheme.primary
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
                     
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp),
+                        horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(

@@ -101,7 +101,6 @@ fun HomeScreen(
                         Text(
                             text = "Start Freestyle Workout",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
                         )
                     }
 
@@ -140,7 +139,7 @@ fun HomeScreen(
                         Text(
                             text = "Generate with AI",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.Bold,
                         )
                     }
                 }

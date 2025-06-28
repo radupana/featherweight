@@ -327,6 +327,8 @@ class WorkoutViewModel(
                 
                 // Bind rest timer to this workout (only if not completed)
                 if (!isCompleted) {
+                    // Clear any existing timer state before binding to this workout
+                    restTimerViewModel?.onWorkoutCompleted()
                     restTimerViewModel?.bindToWorkout(workoutId)
                 }
             }
@@ -363,6 +365,8 @@ class WorkoutViewModel(
                 loadExercisesForWorkout(workoutId)
                 loadInProgressWorkouts()
                 
+                // Clear any existing timer state before binding to new workout
+                restTimerViewModel?.onWorkoutCompleted()
                 // Bind rest timer to this workout
                 restTimerViewModel?.bindToWorkout(workoutId)
             } else {
@@ -1055,6 +1059,8 @@ class WorkoutViewModel(
             loadExercisesForWorkout(workoutId)
             loadInProgressWorkouts()
             
+            // Clear any existing timer state before binding to new workout
+            restTimerViewModel?.onWorkoutCompleted()
             // Bind rest timer to this workout
             restTimerViewModel?.bindToWorkout(workoutId)
 

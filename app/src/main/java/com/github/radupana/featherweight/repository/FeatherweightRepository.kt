@@ -411,16 +411,36 @@ class FeatherweightRepository(
                     LocalDateTime.now().toString(),
                 )
             } else {
-                println("🎆 No more workouts - programme complete!")
+                println("🎆 No more workouts - checking if programme is actually complete...")
                 // Double-check the completion logic before marking complete
                 val finalProgress = programmeDao.getProgressForProgramme(programmeId)
                 if (finalProgress != null) {
                     println("🔍 Final completion check: ${finalProgress.completedWorkouts} completed out of ${finalProgress.totalWorkouts} total")
+                    
+                    // CRITICAL FIX: Recalculate total workouts for custom programmes to ensure accuracy
+                    val programme = programmeDao.getProgrammeById(programmeId)
+                    if (programme != null && programme.isCustom) {
+                        val actualTotalWorkouts = programmeDao.getAllWorkoutsForProgramme(programmeId).size
+                        println("🔍 Rechecking custom programme workout count: $actualTotalWorkouts workouts in database")
+                        
+                        if (finalProgress.completedWorkouts < actualTotalWorkouts) {
+                            println("⚠️ CRITICAL: Programme marked as complete but only ${finalProgress.completedWorkouts}/$actualTotalWorkouts workouts done!")
+                            println("⚠️ There's a mismatch in workout tracking - NOT marking as complete")
+                            
+                            // Update the total workouts to fix the mismatch
+                            val correctedProgress = finalProgress.copy(totalWorkouts = actualTotalWorkouts)
+                            programmeDao.insertOrUpdateProgress(correctedProgress)
+                            println("✅ Fixed progress tracking: now shows ${correctedProgress.completedWorkouts}/${correctedProgress.totalWorkouts}")
+                            return
+                        }
+                    }
+                    
                     if (finalProgress.completedWorkouts >= finalProgress.totalWorkouts) {
                         println("✅ Programme truly complete - marking as finished")
                         completeProgramme(programmeId)
                     } else {
                         println("⚠️ WARNING: getNextProgrammeWorkout returned null but programme not complete!")
+                        println("   Completed: ${finalProgress.completedWorkouts}, Total: ${finalProgress.totalWorkouts}")
                         println("   This suggests a bug in the next workout logic")
                     }
                 } else {
@@ -1511,12 +1531,21 @@ class FeatherweightRepository(
         println("📋 Found ${allWorkouts.size} total workouts for programme")
         println("📊 Progress tracking: completedWorkouts=${progress.completedWorkouts}, totalWorkouts=${progress.totalWorkouts}")
         
+        // CRITICAL DEBUG: Check for mismatch
+        if (allWorkouts.size != progress.totalWorkouts) {
+            println("⚠️ WARNING: Workout count mismatch!")
+            println("   Database has ${allWorkouts.size} workouts")
+            println("   Progress tracking expects ${progress.totalWorkouts} workouts")
+            println("   This may cause premature programme completion!")
+        }
+        
         // Find the next workout based on completed workouts count
         val nextWorkoutIndex = progress.completedWorkouts
         println("🎯 Looking for workout at index $nextWorkoutIndex (0-based)")
         
         if (nextWorkoutIndex >= allWorkouts.size) {
             println("✅ All workouts completed ($nextWorkoutIndex >= ${allWorkouts.size})")
+            println("⚠️ CRITICAL: Programme being marked complete after ${progress.completedWorkouts} workouts")
             return null
         }
         
@@ -1697,6 +1726,7 @@ class FeatherweightRepository(
     suspend fun createAIGeneratedProgramme(preview: com.github.radupana.featherweight.data.GeneratedProgrammePreview): Long =
         withContext(Dispatchers.IO) {
             // Deactivate any currently active programme
+            println("⚠️ createAIGeneratedProgramme: Deactivating all programmes before creating new one")
             programmeDao.deactivateAllProgrammes()
             
             // Create the main programme
@@ -1849,6 +1879,11 @@ class FeatherweightRepository(
 
     suspend fun deactivateActiveProgramme() =
         withContext(Dispatchers.IO) {
+            println("⚠️ deactivateActiveProgramme: Deactivating all programmes")
+            val activeProgramme = programmeDao.getActiveProgramme()
+            if (activeProgramme != null) {
+                println("   Active programme was: ${activeProgramme.name}")
+            }
             programmeDao.deactivateAllProgrammes()
         }
 
@@ -1865,11 +1900,17 @@ class FeatherweightRepository(
                 println("   Programme: ${programme.name}")
                 println("   Progress: ${progress.completedWorkouts}/${progress.totalWorkouts} workouts")
                 println("   Adherence: ${progress.adherencePercentage}%")
+                
+                // Only mark this specific programme as complete, don't deactivate all programmes
+                programmeDao.completeProgramme(programmeId, LocalDateTime.now().toString())
+                
+                // Only deactivate this specific programme, not all programmes
+                val updatedProgramme = programme.copy(isActive = false)
+                programmeDao.updateProgramme(updatedProgramme)
+                println("✅ Programme marked as complete and deactivated (other programmes remain active)")
+            } else {
+                println("❌ Programme or progress not found for completion")
             }
-            
-            programmeDao.completeProgramme(programmeId, LocalDateTime.now().toString())
-            programmeDao.deactivateAllProgrammes()
-            println("✅ Programme marked as complete and deactivated")
         }
 
     suspend fun deleteProgramme(programme: com.github.radupana.featherweight.data.programme.Programme) =

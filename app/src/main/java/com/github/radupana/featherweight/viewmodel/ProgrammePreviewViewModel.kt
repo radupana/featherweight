@@ -374,12 +374,43 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
                         generateLowVolumeVersion(currentPreview)
                     }
                     RegenerationMode.MORE_INTENSITY -> {
-                        // Increase intensity with heavier weights and lower reps
+                        // Increase intensity with heavier weights and higher reps
                         generateHighIntensityVersion(currentPreview)
                     }
                     RegenerationMode.LESS_INTENSITY -> {
                         // Reduce intensity with lighter weights and higher reps
                         generateLowIntensityVersion(currentPreview)
+                    }
+                    RegenerationMode.CUSTOM_FEEDBACK -> {
+                        // For now, just return the current preview wrapped in AIProgrammeResponse - custom feedback would need UI for text input
+                        AIProgrammeResponse(
+                            success = true,
+                            programme = com.github.radupana.featherweight.service.GeneratedProgramme(
+                                name = currentPreview.name,
+                                description = currentPreview.description,
+                                durationWeeks = currentPreview.durationWeeks,
+                                daysPerWeek = currentPreview.daysPerWeek,
+                                workouts = currentPreview.weeks.flatMap { week ->
+                                    week.workouts.map { workout ->
+                                        com.github.radupana.featherweight.service.GeneratedWorkout(
+                                            dayNumber = workout.dayNumber,
+                                            name = workout.name,
+                                            exercises = workout.exercises.map { exercise ->
+                                                com.github.radupana.featherweight.service.GeneratedExercise(
+                                                    exerciseName = exercise.exerciseName,
+                                                    sets = exercise.sets,
+                                                    repsMin = exercise.repsMin,
+                                                    repsMax = exercise.repsMax,
+                                                    rpe = exercise.rpe,
+                                                    restSeconds = exercise.restSeconds,
+                                                    notes = exercise.notes
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            )
+                        )
                     }
                 }
                 
