@@ -135,9 +135,11 @@ class AIProgrammeService(private val context: android.content.Context) {
     private fun buildSystemPrompt(request: AIProgrammeRequest): String {
         // Load simplified exercise reference from assets
         val exerciseReference = try {
+            println("📋 Loading exercise reference from wger_exercises_simple.json...")
             val json = context.assets.open("wger_exercises_simple.json").bufferedReader().use { it.readText() }
             val jsonObject = org.json.JSONObject(json)
             val exercises = jsonObject.getJSONArray("exercises")
+            println("✅ Loaded ${exercises.length()} exercises for LLM context")
             
             // Format exercises by category for better readability
             val exercisesByCategory = mutableMapOf<String, MutableList<String>>()

@@ -231,7 +231,9 @@ Or paste existing programmes from ChatGPT, other AI tools, or coaches."""
             
             try {
                 // Get exercise database for AI context (including aliases)
+                println("🔍 Fetching exercise database for validation...")
                 val exerciseNames = repository.getAllExerciseNamesIncludingAliases()
+                println("📊 Exercise validation database ready: ${exerciseNames.size} names/aliases")
                 
                 // Get user's 1RMs for context
                 val user1RMs = repository.getAllCurrentMaxes().first()
