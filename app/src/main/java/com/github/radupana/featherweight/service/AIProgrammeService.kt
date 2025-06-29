@@ -63,7 +63,7 @@ data class GeneratedExercise(
     val weightSource: String? = null,
 )
 
-class AIProgrammeService {
+class AIProgrammeService(private val context: android.content.Context) {
     companion object {
         private val OPENAI_API_KEY = BuildConfig.OPENAI_API_KEY
         private const val BASE_URL = "https://api.openai.com/"
@@ -132,9 +132,48 @@ class AIProgrammeService {
             }
         }
 
-    private fun buildSystemPrompt(request: AIProgrammeRequest): String =
-        """
+    private fun buildSystemPrompt(request: AIProgrammeRequest): String {
+        // Load simplified exercise reference from assets
+        val exerciseReference = try {
+            val json = context.assets.open("wger_exercises_simple.json").bufferedReader().use { it.readText() }
+            val jsonObject = org.json.JSONObject(json)
+            val exercises = jsonObject.getJSONArray("exercises")
+            
+            // Format exercises by category for better readability
+            val exercisesByCategory = mutableMapOf<String, MutableList<String>>()
+            for (i in 0 until exercises.length()) {
+                val exercise = exercises.getJSONObject(i)
+                val category = exercise.getString("category")
+                val name = exercise.getString("name")
+                exercisesByCategory.getOrPut(category) { mutableListOf() }.add(name)
+            }
+            
+            // Build formatted exercise list
+            buildString {
+                appendLine("AVAILABLE EXERCISES BY CATEGORY:")
+                exercisesByCategory.toSortedMap().forEach { (category, exerciseList) ->
+                    appendLine("\n$category (${exerciseList.size} exercises):")
+                    exerciseList.sorted().forEach { exercise ->
+                        appendLine("- $exercise")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            println("Failed to load exercise reference: ${e.message}")
+            "AVAILABLE EXERCISES: Use common gym exercises appropriate for the user's goals and experience level.\n"
+        }
+        
+        return """
         You are an elite strength and conditioning coach with 20+ years of experience creating personalized training programmes. Your goal is to create safe, effective, and engaging programmes tailored to each individual.
+
+        $exerciseReference
+        
+        CRITICAL EXERCISE SELECTION RULES:
+        - You MUST ONLY use exercises from the available exercises list above
+        - Use the EXACT exercise names as listed (case-sensitive)
+        - DO NOT create or modify exercise names
+        - If you're unsure about an exercise, choose a similar one from the list
+        - Focus on common, well-known exercises for safety
 
         PROGRAMME DESIGN PRINCIPLES:
         1. Safety First: Ensure proper exercise selection based on experience level
@@ -233,6 +272,7 @@ class AIProgrammeService {
 
         Remember: You're creating a programme that could change someone's life. Make it excellent.
         """.trimIndent()
+    }
 
     private suspend fun callOpenAI(
         systemPrompt: String,
@@ -456,7 +496,7 @@ class AIProgrammeService {
                                         null
                                     },
                                 restSeconds = exerciseJson.optInt("restSeconds", 180).coerceIn(30, 600),
-                                notes = exerciseJson.optString("notes", null)?.takeIf { it.isNotBlank() },
+                                notes = exerciseJson.optString("notes", "").takeIf { it.isNotBlank() },
                             ),
                         )
                     } catch (e: Exception) {

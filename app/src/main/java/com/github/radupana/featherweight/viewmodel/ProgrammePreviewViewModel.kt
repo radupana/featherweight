@@ -16,7 +16,7 @@ class ProgrammePreviewViewModel(application: Application) : AndroidViewModel(app
     private val repository = FeatherweightRepository(application)
     private val validator = ProgrammeValidator()
     private val exerciseMatcher = ExerciseNameMatcher()
-    private val aiService = AIProgrammeService()
+    private val aiService = AIProgrammeService(application)
     
     private val _previewState = MutableStateFlow<PreviewState>(PreviewState.Loading)
     val previewState = _previewState.asStateFlow()

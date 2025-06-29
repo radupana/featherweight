@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 
 class ProgrammeGeneratorViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
-    private val aiService = AIProgrammeService()
+    private val aiService = AIProgrammeService(application)
     private val quotaManager = AIProgrammeQuotaManager(application)
     private val inputAnalyzer = InputAnalyzer()
     private val placeholderGenerator = PlaceholderGenerator()
