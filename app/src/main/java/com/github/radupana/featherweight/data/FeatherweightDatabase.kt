@@ -14,6 +14,9 @@ import com.github.radupana.featherweight.data.exercise.ExerciseEquipment
 import com.github.radupana.featherweight.data.exercise.ExerciseMovementPattern
 import com.github.radupana.featherweight.data.exercise.ExerciseMuscleGroup
 import com.github.radupana.featherweight.data.exercise.ExerciseTypeConverters
+import com.github.radupana.featherweight.data.exercise.WgerCategory
+import com.github.radupana.featherweight.data.exercise.WgerExerciseMuscle
+import com.github.radupana.featherweight.data.exercise.WgerMuscle
 import com.github.radupana.featherweight.data.profile.ProfileDao
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.data.profile.UserProfile
@@ -35,6 +38,9 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         ExerciseEquipment::class,
         ExerciseMovementPattern::class,
         ExerciseAlias::class,
+        WgerMuscle::class,
+        WgerCategory::class,
+        WgerExerciseMuscle::class,
         Programme::class,
         ProgrammeTemplate::class,
         ProgrammeWeek::class,
@@ -44,7 +50,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         UserProfile::class,
         UserExerciseMax::class,
     ],
-    version = 20,
+    version = 21,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)

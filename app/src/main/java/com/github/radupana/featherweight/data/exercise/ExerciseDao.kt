@@ -151,6 +151,41 @@ interface ExerciseDao {
         LIMIT 1
     """)
     suspend fun findExerciseByNameOrAlias(searchTerm: String): Exercise?
+    
+    // wger.de integration queries
+    @Query("SELECT * FROM exercises WHERE wgerId = :wgerId LIMIT 1")
+    suspend fun findExerciseByWgerId(wgerId: Int): Exercise?
+    
+    @Query("SELECT * FROM exercises WHERE wgerUuid = :wgerUuid LIMIT 1")
+    suspend fun findExerciseByWgerUuid(wgerUuid: String): Exercise?
+    
+    @Query("SELECT * FROM exercises WHERE syncSource = 'wger' ORDER BY name ASC")
+    suspend fun getWgerExercises(): List<Exercise>
+    
+    @Query("SELECT * FROM exercises WHERE lastSyncedAt IS NULL OR lastSyncedAt < :cutoffTime")
+    suspend fun getExercisesNeedingSync(cutoffTime: java.time.LocalDateTime): List<Exercise>
+    
+    @Query("UPDATE exercises SET lastSyncedAt = :syncTime WHERE wgerId = :wgerId")
+    suspend fun updateSyncTime(wgerId: Int, syncTime: java.time.LocalDateTime)
+    
+    // wger muscle and category operations
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertWgerMuscles(muscles: List<WgerMuscle>)
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertWgerCategories(categories: List<WgerCategory>)
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertWgerExerciseMuscles(exerciseMuscles: List<WgerExerciseMuscle>)
+    
+    @Query("SELECT * FROM wger_muscles")
+    suspend fun getAllWgerMuscles(): List<WgerMuscle>
+    
+    @Query("SELECT * FROM wger_categories")
+    suspend fun getAllWgerCategories(): List<WgerCategory>
+    
+    @Query("SELECT * FROM wger_exercise_muscles WHERE exerciseId = :exerciseId")
+    suspend fun getWgerMusclesForExercise(exerciseId: Long): List<WgerExerciseMuscle>
 }
 
 // Type converters for Room

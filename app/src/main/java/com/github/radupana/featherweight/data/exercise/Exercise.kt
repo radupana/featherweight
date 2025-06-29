@@ -46,6 +46,17 @@ data class Exercise(
     // Timestamps
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now(),
+    // wger.de integration fields
+    val wgerId: Int? = null,
+    val wgerUuid: String? = null,
+    val wgerCategoryId: Int? = null,
+    val wgerLicenseId: Int? = null,
+    val wgerLicenseAuthor: String? = null,
+    val wgerStatus: String? = null,
+    val wgerCreationDate: String? = null,
+    val wgerUpdateDate: String? = null,
+    val lastSyncedAt: LocalDateTime? = null,
+    val syncSource: String = "local",
 )
 
 // Junction tables for many-to-many relationships
@@ -166,4 +177,46 @@ data class ExerciseAlias(
     val exactMatchOnly: Boolean = false,
     // Source of the alias (e.g., "common", "ai", "user")
     val source: String = "common"
+)
+
+@Entity(tableName = "wger_muscles")
+data class WgerMuscle(
+    @PrimaryKey val id: Int,
+    val name: String,
+    val nameEn: String,
+    val isFront: Boolean,
+    val imageUrlMain: String?,
+    val imageUrlSecondary: String?,
+    val mappedMuscleGroup: MuscleGroup?
+)
+
+@Entity(tableName = "wger_categories")
+data class WgerCategory(
+    @PrimaryKey val id: Int,
+    val name: String,
+    val mappedCategory: ExerciseCategory?
+)
+
+@Entity(
+    tableName = "wger_exercise_muscles",
+    primaryKeys = ["exerciseId", "muscleId"],
+    foreignKeys = [
+        ForeignKey(
+            entity = Exercise::class,
+            parentColumns = ["id"],
+            childColumns = ["exerciseId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+        ForeignKey(
+            entity = WgerMuscle::class,
+            parentColumns = ["id"],
+            childColumns = ["muscleId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class WgerExerciseMuscle(
+    val exerciseId: Long,
+    val muscleId: Int,
+    val isPrimary: Boolean
 )
