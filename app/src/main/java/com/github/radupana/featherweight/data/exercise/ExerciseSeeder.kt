@@ -1,12 +1,178 @@
 // app/src/main/java/com/github/radupana/featherweight/data/exercise/ExerciseSeeder.kt
 package com.github.radupana.featherweight.data.exercise
 
+import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import java.time.LocalDateTime
 
 class ExerciseSeeder(
     private val exerciseDao: ExerciseDao,
+    private val context: Context? = null,
 ) {
+    private val json = Json {
+        ignoreUnknownKeys = true
+        coerceInputValues = true
+    }
+    
+    suspend fun seedExercisesFromWger() = withContext(Dispatchers.IO) {
+        // Check if already seeded
+        val existingCount = exerciseDao.getAllExercisesWithDetails().size
+        if (existingCount > 100) {
+            println("Exercises already seeded (count: $existingCount), skipping wger import")
+            return@withContext
+        }
+        
+        if (context == null) {
+            println("Context not available, falling back to manual seeding")
+            seedMainLifts()
+            return@withContext
+        }
+        
+        try {
+            // Load from bundled JSON
+            val inputStream = context.assets.open("wger_exercises_complete.json")
+            val jsonString = inputStream.bufferedReader().use { it.readText() }
+            val wgerResponse = json.decodeFromString<WgerExerciseResponse>(jsonString)
+            
+            println("Loaded ${wgerResponse.results.size} exercises from wger bundle")
+            
+            // Convert and filter English exercises only
+            val exercises = mutableListOf<Exercise>()
+            val muscleGroups = mutableListOf<ExerciseMuscleGroup>()
+            val equipment = mutableListOf<ExerciseEquipment>()
+            val movementPatterns = mutableListOf<ExerciseMovementPattern>()
+            val aliases = mutableListOf<ExerciseAlias>()
+            
+            wgerResponse.results.forEach { wgerExercise ->
+                // All exercises are already English-filtered, get first translation
+                val englishTranslation = wgerExercise.translations.firstOrNull()
+                if (englishTranslation != null && englishTranslation.name.isNotBlank()) {
+                    try {
+                        val localExercise = convertWgerToExercise(wgerExercise, englishTranslation)
+                        val exerciseId = exercises.size + 1L // Temporary ID for relationships
+                        
+                        exercises.add(localExercise)
+                        
+                        // Add muscle groups
+                        wgerExercise.muscles.forEach { wgerMuscle ->
+                            val mappedMuscle = WgerMapper.mapWgerMuscleToMuscleGroup(wgerMuscle.id, wgerMuscle.nameEn)
+                            if (mappedMuscle != null) {
+                                muscleGroups.add(ExerciseMuscleGroup(exerciseId, mappedMuscle, true))
+                            }
+                        }
+                        
+                        wgerExercise.musclesSecondary.forEach { wgerMuscle ->
+                            val mappedMuscle = WgerMapper.mapWgerMuscleToMuscleGroup(wgerMuscle.id, wgerMuscle.nameEn)
+                            if (mappedMuscle != null) {
+                                muscleGroups.add(ExerciseMuscleGroup(exerciseId, mappedMuscle, false))
+                            }
+                        }
+                        
+                        // Add equipment
+                        wgerExercise.equipment.forEach { wgerEquip ->
+                            val mappedEquipment = WgerMapper.mapWgerEquipmentToEquipment(wgerEquip.id, wgerEquip.name)
+                            if (mappedEquipment != null) {
+                                equipment.add(ExerciseEquipment(exerciseId, mappedEquipment, true, false))
+                            }
+                        }
+                        
+                        // Add basic movement pattern
+                        val category = WgerMapper.mapWgerCategoryToExerciseCategory(wgerExercise.category.id, wgerExercise.category.name)
+                        val movementPattern = when (category) {
+                            ExerciseCategory.LEGS -> MovementPattern.SQUAT
+                            ExerciseCategory.BACK -> MovementPattern.PULL
+                            ExerciseCategory.CHEST -> MovementPattern.PUSH
+                            ExerciseCategory.SHOULDERS -> MovementPattern.VERTICAL_PUSH
+                            ExerciseCategory.ARMS -> MovementPattern.PULL
+                            ExerciseCategory.CORE -> MovementPattern.PLANK
+                            else -> MovementPattern.CONDITIONING
+                        }
+                        movementPatterns.add(ExerciseMovementPattern(exerciseId, movementPattern, true))
+                        
+                        // Add aliases
+                        val generatedAliases = WgerMapper.generateAliasesFromWgerName(englishTranslation.name)
+                        generatedAliases.forEach { alias ->
+                            if (alias != englishTranslation.name) {
+                                aliases.add(ExerciseAlias(exerciseId, alias, 1.0f, false, "wger"))
+                            }
+                        }
+                        
+                    } catch (e: Exception) {
+                        println("Error converting exercise ${englishTranslation.name}: ${e.message}")
+                    }
+                }
+            }
+            
+            // Insert all data
+            println("Inserting ${exercises.size} exercises into database...")
+            
+            exercises.forEachIndexed { index, exercise ->
+                val exerciseId = exerciseDao.insertExercise(exercise)
+                
+                // Update relationships with real exercise ID
+                val exerciseMuscleGroups = muscleGroups.filter { it.exerciseId == (index + 1L) }
+                    .map { it.copy(exerciseId = exerciseId) }
+                if (exerciseMuscleGroups.isNotEmpty()) {
+                    exerciseDao.insertMuscleGroups(exerciseMuscleGroups)
+                }
+                
+                val exerciseEquipment = equipment.filter { it.exerciseId == (index + 1L) }
+                    .map { it.copy(exerciseId = exerciseId) }
+                if (exerciseEquipment.isNotEmpty()) {
+                    exerciseDao.insertEquipment(exerciseEquipment)
+                }
+                
+                val exerciseMovementPatterns = movementPatterns.filter { it.exerciseId == (index + 1L) }
+                    .map { it.copy(exerciseId = exerciseId) }
+                if (exerciseMovementPatterns.isNotEmpty()) {
+                    exerciseDao.insertMovementPatterns(exerciseMovementPatterns)
+                }
+                
+                val exerciseAliases = aliases.filter { it.exerciseId == (index + 1L) }
+                    .map { it.copy(exerciseId = exerciseId) }
+                if (exerciseAliases.isNotEmpty()) {
+                    exerciseDao.insertAliases(exerciseAliases)
+                }
+            }
+            
+            println("Successfully seeded ${exercises.size} exercises from wger.de")
+            
+        } catch (e: Exception) {
+            println("Error loading wger exercises: ${e.message}")
+            println("Falling back to manual seeding")
+            seedMainLifts()
+        }
+    }
+    
+    private fun convertWgerToExercise(wgerExercise: WgerExercise, translation: WgerTranslation): Exercise {
+        val category = WgerMapper.mapWgerCategoryToExerciseCategory(
+            wgerExercise.category.id,
+            wgerExercise.category.name
+        )
+        
+        return Exercise(
+            id = 0, // Auto-generate
+            wgerId = wgerExercise.id,
+            wgerUuid = wgerExercise.uuid,
+            name = translation.name,
+            category = category,
+            type = ExerciseType.STRENGTH,
+            difficulty = ExerciseDifficulty.INTERMEDIATE,
+            requiresWeight = !wgerExercise.equipment.any { it.name.contains("bodyweight", true) },
+            instructions = translation.description.take(500), // Limit length
+            wgerCategoryId = wgerExercise.category.id,
+            wgerLicenseId = wgerExercise.license.id,
+            wgerLicenseAuthor = wgerExercise.licenseAuthor,
+            wgerCreationDate = wgerExercise.created,
+            wgerUpdateDate = wgerExercise.lastUpdate,
+            syncSource = "wger",
+            usageCount = 0,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
+        )
+    }
     suspend fun seedMainLifts() =
         withContext(Dispatchers.IO) {
             // Seed all main lifts

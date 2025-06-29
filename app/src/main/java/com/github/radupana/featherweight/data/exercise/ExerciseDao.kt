@@ -170,19 +170,19 @@ interface ExerciseDao {
     
     // wger muscle and category operations
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertWgerMuscles(muscles: List<WgerMuscle>)
+    suspend fun insertWgerMuscles(muscles: List<WgerMuscleEntity>)
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertWgerCategories(categories: List<WgerCategory>)
+    suspend fun insertWgerCategories(categories: List<WgerCategoryEntity>)
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWgerExerciseMuscles(exerciseMuscles: List<WgerExerciseMuscle>)
     
-    @Query("SELECT * FROM wger_muscles")
-    suspend fun getAllWgerMuscles(): List<WgerMuscle>
+    @Query("SELECT * FROM wger_muscles_db")
+    suspend fun getAllWgerMuscles(): List<WgerMuscleEntity>
     
-    @Query("SELECT * FROM wger_categories")
-    suspend fun getAllWgerCategories(): List<WgerCategory>
+    @Query("SELECT * FROM wger_categories_db")
+    suspend fun getAllWgerCategories(): List<WgerCategoryEntity>
     
     @Query("SELECT * FROM wger_exercise_muscles WHERE exerciseId = :exerciseId")
     suspend fun getWgerMusclesForExercise(exerciseId: Long): List<WgerExerciseMuscle>

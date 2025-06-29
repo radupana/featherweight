@@ -64,7 +64,7 @@ class FeatherweightRepository(
     private val programmeDao = db.programmeDao()
     private val profileDao = db.profileDao()
 
-    private val exerciseSeeder = ExerciseSeeder(exerciseDao)
+    private val exerciseSeeder = ExerciseSeeder(exerciseDao, application)
     private val exerciseAliasSeeder = com.github.radupana.featherweight.data.exercise.ExerciseAliasSeeder(exerciseDao)
     private val programmeSeeder = com.github.radupana.featherweight.data.programme.ProgrammeSeeder(programmeDao)
 
@@ -79,12 +79,16 @@ class FeatherweightRepository(
 
             // Always seed exercises if there are none
             if (exerciseCount == 0) {
-                exerciseSeeder.seedMainLifts()
+                // Try to seed from wger first, fallback to manual seeding
+                exerciseSeeder.seedExercisesFromWger()
                 println("Seeded ${exerciseDao.getAllExercisesWithDetails().size} exercises")
                 
-                // Seed aliases after exercises are created
-                exerciseAliasSeeder.seedExerciseAliases()
-                println("Seeded exercise aliases")
+                // Seed aliases after exercises are created (wger seeding includes aliases)
+                if (exerciseDao.getAllExercisesWithDetails().size < 50) {
+                    // If wger seeding failed, seed aliases manually
+                    exerciseAliasSeeder.seedExerciseAliases()
+                    println("Seeded exercise aliases")
+                }
             }
 
             // Seed programme templates if none exist

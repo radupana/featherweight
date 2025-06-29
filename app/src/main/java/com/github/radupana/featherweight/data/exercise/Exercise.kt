@@ -179,8 +179,8 @@ data class ExerciseAlias(
     val source: String = "common"
 )
 
-@Entity(tableName = "wger_muscles")
-data class WgerMuscle(
+@Entity(tableName = "wger_muscles_db")
+data class WgerMuscleEntity(
     @PrimaryKey val id: Int,
     val name: String,
     val nameEn: String,
@@ -190,8 +190,8 @@ data class WgerMuscle(
     val mappedMuscleGroup: MuscleGroup?
 )
 
-@Entity(tableName = "wger_categories")
-data class WgerCategory(
+@Entity(tableName = "wger_categories_db")
+data class WgerCategoryEntity(
     @PrimaryKey val id: Int,
     val name: String,
     val mappedCategory: ExerciseCategory?
@@ -208,7 +208,7 @@ data class WgerCategory(
             onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
-            entity = WgerMuscle::class,
+            entity = WgerMuscleEntity::class,
             parentColumns = ["id"],
             childColumns = ["muscleId"],
             onDelete = ForeignKey.CASCADE,
