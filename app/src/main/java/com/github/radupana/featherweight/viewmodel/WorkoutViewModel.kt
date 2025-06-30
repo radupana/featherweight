@@ -11,11 +11,11 @@ import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.Job
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -63,10 +63,10 @@ class WorkoutViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
-    
+
     // Rest timer reference to manage its lifecycle
     private var restTimerViewModel: RestTimerViewModel? = null
-    
+
     fun setRestTimerViewModel(restTimer: RestTimerViewModel) {
         this.restTimerViewModel = restTimer
     }
@@ -150,26 +150,19 @@ class WorkoutViewModel(
         category: ExerciseCategory? = null,
         muscleGroup: String? = null,
         equipment: Equipment? = null,
-        availableEquipment: List<Equipment> = emptyList(),
-        maxDifficulty: ExerciseDifficulty? = null,
         searchQuery: String = "",
     ): List<ExerciseWithDetails> {
         // TODO: Re-implement filtering logic
         val allExercises = repository.getAllExercises()
         return allExercises.filter { exercise ->
             (category == null || exercise.exercise.category == category) &&
-            (muscleGroup == null || exercise.exercise.muscleGroup.equals(muscleGroup, ignoreCase = true)) &&
-            (equipment == null || exercise.exercise.equipment == equipment) &&
-            (searchQuery.isEmpty() || exercise.exercise.name.contains(searchQuery, ignoreCase = true))
+                (muscleGroup == null || exercise.exercise.muscleGroup.equals(muscleGroup, ignoreCase = true)) &&
+                (equipment == null || exercise.exercise.equipment == equipment) &&
+                (searchQuery.isEmpty() || exercise.exercise.name.contains(searchQuery, ignoreCase = true))
         }
     }
 
-    suspend fun createCustomExercise(
-        name: String,
-        category: ExerciseCategory = ExerciseCategory.FULL_BODY,
-        primaryMuscles: Set<String> = emptySet(),
-        equipment: Set<Equipment> = setOf(Equipment.BODYWEIGHT),
-    ): ExerciseWithDetails? {
+    suspend fun createCustomExercise(name: String): ExerciseWithDetails? {
         // TODO: Re-implement custom exercise creation
         println("Custom exercise creation not yet implemented: $name")
         return null
@@ -203,16 +196,17 @@ class WorkoutViewModel(
                     .filter { !it.isCompleted }
                     .map { summary ->
                         // Calculate completed sets
-                        val completedSets = try {
-                            val exercises = repository.getExercisesForWorkout(summary.id)
-                            exercises.sumOf { exercise ->
-                                val sets = repository.getSetsForExercise(exercise.id)
-                                sets.count { it.isCompleted }
+                        val completedSets =
+                            try {
+                                val exercises = repository.getExercisesForWorkout(summary.id)
+                                exercises.sumOf { exercise ->
+                                    val sets = repository.getSetsForExercise(exercise.id)
+                                    sets.count { it.isCompleted }
+                                }
+                            } catch (e: Exception) {
+                                0
                             }
-                        } catch (e: Exception) {
-                            0
-                        }
-                        
+
                         InProgressWorkout(
                             id = summary.id,
                             name = summary.name,
@@ -315,7 +309,7 @@ class WorkoutViewModel(
                 // Wait for exercises to load completely before UI renders
                 loadExercisesForWorkout(workoutId)
                 loadInProgressWorkouts()
-                
+
                 // Bind rest timer to this workout (only if not completed)
                 if (!isCompleted) {
                     // Clear any existing timer state before binding to this workout
@@ -355,7 +349,7 @@ class WorkoutViewModel(
 
                 loadExercisesForWorkout(workoutId)
                 loadInProgressWorkouts()
-                
+
                 // Clear any existing timer state before binding to new workout
                 restTimerViewModel?.onWorkoutCompleted()
                 // Bind rest timer to this workout
@@ -441,10 +435,13 @@ class WorkoutViewModel(
             }
 
             // Calculate final duration and complete the workout
-            val finalDuration = if (state.isWorkoutTimerActive) {
-                _elapsedWorkoutTime.value
-            } else null
-            
+            val finalDuration =
+                if (state.isWorkoutTimerActive) {
+                    _elapsedWorkoutTime.value
+                } else {
+                    null
+                }
+
             // Complete the workout (this will automatically update programme progress if applicable)
             repository.completeWorkout(currentId, finalDuration)
 
@@ -457,7 +454,7 @@ class WorkoutViewModel(
 
             // Stop workout timer
             stopWorkoutTimer()
-            
+
             // Stop rest timer for this workout
             restTimerViewModel?.onWorkoutCompleted()
 
@@ -506,9 +503,7 @@ class WorkoutViewModel(
     }
 
     // Public synchronous function for UI
-    fun canMarkSetComplete(set: SetLog): Boolean {
-        return _setCompletionValidation.value[set.id] ?: (set.reps > 0 && set.weight > 0)
-    }
+    fun canMarkSetComplete(set: SetLog): Boolean = _setCompletionValidation.value[set.id] ?: (set.reps > 0 && set.weight > 0)
 
     // Internal suspend function for validation logic
     private suspend fun canMarkSetCompleteInternal(set: SetLog): Boolean {
@@ -638,7 +633,6 @@ class WorkoutViewModel(
     suspend fun getExerciseSuggestions(
         query: String = "",
         currentMuscleGroups: Set<String> = emptySet(),
-        availableEquipment: List<Equipment> = Equipment.getBasicEquipment(),
     ): List<ExerciseWithDetails> =
         try {
             if (query.isNotEmpty()) {
@@ -654,14 +648,13 @@ class WorkoutViewModel(
                 // If no current muscle groups, suggest compound movements
                 if (currentMuscleGroups.isEmpty()) {
                     suggestions.addAll(
-                        getFilteredExercises(
-                            maxDifficulty = ExerciseDifficulty.ADVANCED,
-                        ).filter { exercise ->
-                            exercise.exercise.movementPattern.contains("Squat", ignoreCase = true) ||
-                            exercise.exercise.movementPattern.contains("Press", ignoreCase = true) ||
-                            exercise.exercise.movementPattern.contains("Deadlift", ignoreCase = true) ||
-                            exercise.exercise.movementPattern.contains("Row", ignoreCase = true)
-                        }.take(10),
+                        getFilteredExercises()
+                            .filter { exercise ->
+                                exercise.exercise.movementPattern.contains("Squat", ignoreCase = true) ||
+                                    exercise.exercise.movementPattern.contains("Press", ignoreCase = true) ||
+                                    exercise.exercise.movementPattern.contains("Deadlift", ignoreCase = true) ||
+                                    exercise.exercise.movementPattern.contains("Row", ignoreCase = true)
+                            }.take(10),
                     )
                 } else {
                     // Suggest complementary muscle groups
@@ -684,8 +677,18 @@ class WorkoutViewModel(
         val complementary = mutableListOf<String>()
 
         // Basic push/pull balance
-        val hasPush = currentMuscles.any { it.contains("Chest", ignoreCase = true) || it.contains("Tricep", ignoreCase = true) || it.contains("Shoulder", ignoreCase = true) }
-        val hasPull = currentMuscles.any { it.contains("Back", ignoreCase = true) || it.contains("Lat", ignoreCase = true) || it.contains("Bicep", ignoreCase = true) }
+        val hasPush =
+            currentMuscles.any {
+                it.contains("Chest", ignoreCase = true) ||
+                    it.contains("Tricep", ignoreCase = true) ||
+                    it.contains("Shoulder", ignoreCase = true)
+            }
+        val hasPull =
+            currentMuscles.any {
+                it.contains("Back", ignoreCase = true) ||
+                    it.contains("Lat", ignoreCase = true) ||
+                    it.contains("Bicep", ignoreCase = true)
+            }
 
         if (hasPush && !hasPull) {
             complementary.addAll(listOf("Lats", "Biceps"))
@@ -694,8 +697,18 @@ class WorkoutViewModel(
         }
 
         // Upper/lower balance
-        val hasUpper = currentMuscles.any { it.contains("Chest", ignoreCase = true) || it.contains("Back", ignoreCase = true) || it.contains("Shoulder", ignoreCase = true) }
-        val hasLower = currentMuscles.any { it.contains("Quad", ignoreCase = true) || it.contains("Hamstring", ignoreCase = true) || it.contains("Glute", ignoreCase = true) }
+        val hasUpper =
+            currentMuscles.any {
+                it.contains("Chest", ignoreCase = true) ||
+                    it.contains("Back", ignoreCase = true) ||
+                    it.contains("Shoulder", ignoreCase = true)
+            }
+        val hasLower =
+            currentMuscles.any {
+                it.contains("Quad", ignoreCase = true) ||
+                    it.contains("Hamstring", ignoreCase = true) ||
+                    it.contains("Glute", ignoreCase = true)
+            }
 
         if (hasUpper && !hasLower) {
             complementary.addAll(listOf("Quadriceps", "Hamstrings", "Glutes"))
@@ -866,7 +879,7 @@ class WorkoutViewModel(
         return repository.getSmartSuggestions(exerciseName, currentId)
     }
 
-    fun loadSetsForExercise(exerciseLogId: Long) {
+    fun loadSetsForExercise() {
         viewModelScope.launch {
             loadAllSetsForCurrentExercises()
         }
@@ -883,7 +896,10 @@ class WorkoutViewModel(
         }
     }
 
-    fun reorderExercises(fromIndex: Int, toIndex: Int) {
+    fun reorderExercises(
+        fromIndex: Int,
+        toIndex: Int,
+    ) {
         if (!canEditWorkout()) return
 
         viewModelScope.launch {
@@ -892,40 +908,40 @@ class WorkoutViewModel(
                 // Move the item in the list
                 val item = exercises.removeAt(fromIndex)
                 exercises.add(toIndex, item)
-                
+
                 // Update the exerciseOrder for all affected items
                 exercises.forEachIndexed { index, exercise ->
                     if (exercise.exerciseOrder != index) {
                         repository.updateExerciseOrder(exercise.id, index)
                     }
                 }
-                
+
                 // Update the UI state
                 _selectedWorkoutExercises.value = exercises
             }
         }
     }
-    
+
     // ===== EXERCISE SWAP METHODS =====
-    
+
     fun initiateExerciseSwap(exerciseLogId: Long) {
         if (!canEditWorkout()) return
-        
+
         val exercise = _selectedWorkoutExercises.value.find { it.id == exerciseLogId }
         if (exercise != null) {
             _swappingExercise.value = exercise
         }
     }
-    
+
     fun cancelExerciseSwap() {
         _swappingExercise.value = null
     }
-    
+
     fun confirmExerciseSwap(newExerciseId: Long) {
         if (!canEditWorkout()) return
-        
+
         val swappingExercise = _swappingExercise.value ?: return
-        
+
         viewModelScope.launch {
             try {
                 // Get the new exercise details
@@ -936,12 +952,12 @@ class WorkoutViewModel(
                         exerciseLogId = swappingExercise.id,
                         newExerciseId = newExerciseId,
                         newExerciseName = newExercise.name,
-                        originalExerciseId = swappingExercise.exerciseId ?: swappingExercise.id
+                        originalExerciseId = swappingExercise.exerciseId ?: swappingExercise.id,
                     )
-                    
+
                     // Clear all sets for this exercise
                     repository.deleteSetsForExerciseLog(swappingExercise.id)
-                    
+
                     // Record swap history
                     val userId = repository.getCurrentUserId()
                     repository.recordExerciseSwap(
@@ -949,13 +965,13 @@ class WorkoutViewModel(
                         originalExerciseId = swappingExercise.exerciseId ?: swappingExercise.id,
                         swappedToExerciseId = newExerciseId,
                         workoutId = _currentWorkoutId.value,
-                        programmeId = _workoutState.value.programmeId
+                        programmeId = _workoutState.value.programmeId,
                     )
-                    
+
                     // Reload exercises for the workout
                     val currentId = _currentWorkoutId.value ?: return@launch
                     loadExercisesForWorkout(currentId)
-                    
+
                     // Clear swap state
                     _swappingExercise.value = null
                 }
@@ -964,30 +980,50 @@ class WorkoutViewModel(
             }
         }
     }
-    
-    fun reorderExercisesInstantly(fromIndex: Int, toIndex: Int) {
+
+    fun reorderExercisesInstantly(
+        fromIndex: Int,
+        toIndex: Int,
+    ) {
         if (!canEditWorkout()) return
-        
+
         val exercises = _selectedWorkoutExercises.value.toMutableList()
         if (fromIndex in exercises.indices && toIndex in exercises.indices && fromIndex != toIndex) {
             // Log before reorder
-            android.util.Log.d("DragReorder", "BEFORE reorder: ${exercises.mapIndexed { idx, ex -> "$idx:${ex.exerciseName}(order=${ex.exerciseOrder})" }.joinToString()}")
-            
+            android.util.Log.d(
+                "DragReorder",
+                "BEFORE reorder: ${exercises.mapIndexed {
+                    idx,
+                    ex,
+                    ->
+                    "$idx:${ex.exerciseName}(order=${ex.exerciseOrder})"
+                }.joinToString()}",
+            )
+
             // Move the item in the list
             val item = exercises.removeAt(fromIndex)
             exercises.add(toIndex, item)
-            
+
             // Update the exerciseOrder property in each object to match its new position
-            val updatedExercises = exercises.mapIndexed { index, exercise ->
-                exercise.copy(exerciseOrder = index)
-            }
-            
+            val updatedExercises =
+                exercises.mapIndexed { index, exercise ->
+                    exercise.copy(exerciseOrder = index)
+                }
+
             // Log after reorder
-            android.util.Log.d("DragReorder", "AFTER reorder: ${updatedExercises.mapIndexed { idx, ex -> "$idx:${ex.exerciseName}(order=${ex.exerciseOrder})" }.joinToString()}")
-            
+            android.util.Log.d(
+                "DragReorder",
+                "AFTER reorder: ${updatedExercises.mapIndexed {
+                    idx,
+                    ex,
+                    ->
+                    "$idx:${ex.exerciseName}(order=${ex.exerciseOrder})"
+                }.joinToString()}",
+            )
+
             // Update the UI state immediately for smooth animation
             _selectedWorkoutExercises.value = updatedExercises
-            
+
             // Update the database in the background
             viewModelScope.launch {
                 // Update all exercise orders in a single transaction
@@ -1005,7 +1041,7 @@ class WorkoutViewModel(
             // Stop timers for this workout
             restTimerViewModel?.onWorkoutDeleted(currentId)
             stopWorkoutTimer()
-            
+
             repository.deleteWorkout(currentId)
 
             // Reset state after deletion
@@ -1048,15 +1084,16 @@ class WorkoutViewModel(
                 _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
                 return
             }
-            
+
             // Check if a workout already exists for this programme/week/day
-            val existingWorkout = _inProgressWorkouts.value.find {
-                it.isProgrammeWorkout && 
-                it.programmeId == programmeId &&
-                it.weekNumber == weekNumber &&
-                it.dayNumber == dayNumber
-            }
-            
+            val existingWorkout =
+                _inProgressWorkouts.value.find {
+                    it.isProgrammeWorkout &&
+                        it.programmeId == programmeId &&
+                        it.weekNumber == weekNumber &&
+                        it.dayNumber == dayNumber
+                }
+
             if (existingWorkout != null) {
                 println("✅ Found existing workout for this programme/week/day, resuming instead")
                 resumeWorkout(existingWorkout.id)
@@ -1107,7 +1144,7 @@ class WorkoutViewModel(
             // IMPORTANT: Wait for exercises to load completely before allowing navigation
             loadExercisesForWorkout(workoutId)
             loadInProgressWorkouts()
-            
+
             // Clear any existing timer state before binding to new workout
             restTimerViewModel?.onWorkoutCompleted()
             // Bind rest timer to this workout
@@ -1131,9 +1168,7 @@ class WorkoutViewModel(
     }
 
     // Check if the current workout is part of a programme
-    fun isProgrammeWorkout(): Boolean {
-        return _workoutState.value.isProgrammeWorkout
-    }
+    fun isProgrammeWorkout(): Boolean = _workoutState.value.isProgrammeWorkout
 
     // Get programme display name for current workout
     fun getProgrammeDisplayName(): String? {
@@ -1179,27 +1214,30 @@ class WorkoutViewModel(
 
     private fun startWorkoutTimer() {
         val currentTime = System.currentTimeMillis()
-        _workoutState.value = _workoutState.value.copy(
-            workoutTimerStartTime = currentTime,
-            isWorkoutTimerActive = true
-        )
-        
+        _workoutState.value =
+            _workoutState.value.copy(
+                workoutTimerStartTime = currentTime,
+                isWorkoutTimerActive = true,
+            )
+
         // Start the timer coroutine
         workoutTimerJob?.cancel()
-        workoutTimerJob = viewModelScope.launch {
-            while (_workoutState.value.isWorkoutTimerActive) {
-                val startTime = _workoutState.value.workoutTimerStartTime ?: currentTime
-                val elapsed = (System.currentTimeMillis() - startTime) / 1000
-                _elapsedWorkoutTime.value = elapsed
-                delay(1000) // Update every second
+        workoutTimerJob =
+            viewModelScope.launch {
+                while (_workoutState.value.isWorkoutTimerActive) {
+                    val startTime = _workoutState.value.workoutTimerStartTime ?: currentTime
+                    val elapsed = (System.currentTimeMillis() - startTime) / 1000
+                    _elapsedWorkoutTime.value = elapsed
+                    delay(1000) // Update every second
+                }
             }
-        }
     }
 
     private fun stopWorkoutTimer() {
-        _workoutState.value = _workoutState.value.copy(
-            isWorkoutTimerActive = false
-        )
+        _workoutState.value =
+            _workoutState.value.copy(
+                isWorkoutTimerActive = false,
+            )
         workoutTimerJob?.cancel()
         workoutTimerJob = null
     }
@@ -1212,34 +1250,38 @@ class WorkoutViewModel(
             val hasCompletedSets = _selectedExerciseSets.value.any { it.isCompleted }
             if (hasCompletedSets && !state.isWorkoutTimerActive) {
                 // Calculate the start time from the first completed set
-                val firstCompletedSet = _selectedExerciseSets.value
-                    .filter { it.isCompleted && it.completedAt != null }
-                    .minByOrNull { it.completedAt!! }
-                
+                val firstCompletedSet =
+                    _selectedExerciseSets.value
+                        .filter { it.isCompleted && it.completedAt != null }
+                        .minByOrNull { it.completedAt!! }
+
                 if (firstCompletedSet != null) {
                     // Parse the timestamp and calculate elapsed time
-                    val firstSetTime = try {
-                        LocalDateTime.parse(firstCompletedSet.completedAt)
-                    } catch (e: Exception) {
-                        null
-                    }
-                    
+                    val firstSetTime =
+                        try {
+                            LocalDateTime.parse(firstCompletedSet.completedAt)
+                        } catch (e: Exception) {
+                            null
+                        }
+
                     if (firstSetTime != null) {
                         val startTimeMillis = firstSetTime.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
-                        _workoutState.value = _workoutState.value.copy(
-                            workoutTimerStartTime = startTimeMillis,
-                            isWorkoutTimerActive = true
-                        )
-                        
+                        _workoutState.value =
+                            _workoutState.value.copy(
+                                workoutTimerStartTime = startTimeMillis,
+                                isWorkoutTimerActive = true,
+                            )
+
                         // Start the timer coroutine with the restored start time
                         workoutTimerJob?.cancel()
-                        workoutTimerJob = viewModelScope.launch {
-                            while (_workoutState.value.isWorkoutTimerActive) {
-                                val elapsed = (System.currentTimeMillis() - startTimeMillis) / 1000
-                                _elapsedWorkoutTime.value = elapsed
-                                delay(1000) // Update every second
+                        workoutTimerJob =
+                            viewModelScope.launch {
+                                while (_workoutState.value.isWorkoutTimerActive) {
+                                    val elapsed = (System.currentTimeMillis() - startTimeMillis) / 1000
+                                    _elapsedWorkoutTime.value = elapsed
+                                    delay(1000) // Update every second
+                                }
                             }
-                        }
                     }
                 }
             }
@@ -1249,7 +1291,7 @@ class WorkoutViewModel(
     override fun onCleared() {
         super.onCleared()
         workoutTimerJob?.cancel()
-        
+
         // Don't unbind rest timer here - let it continue running
         // The timer should persist across navigation
     }

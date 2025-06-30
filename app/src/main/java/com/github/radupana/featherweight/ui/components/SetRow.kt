@@ -19,7 +19,6 @@ import com.github.radupana.featherweight.data.SetLog
 fun SetRow(
     set: SetLog,
     onToggleCompleted: (Boolean) -> Unit,
-    onEdit: () -> Unit,
     onDelete: () -> Unit,
     onOpenModal: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -44,185 +43,187 @@ fun SetRow(
             // Green accent stripe for completed sets
             if (set.isCompleted) {
                 Box(
-                    modifier = Modifier
-                        .width(4.dp)
-                        .height(56.dp)
-                        .background(
-                            MaterialTheme.colorScheme.primary,
-                            RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
-                        )
+                    modifier =
+                        Modifier
+                            .width(4.dp)
+                            .height(56.dp)
+                            .background(
+                                MaterialTheme.colorScheme.primary,
+                                RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp),
+                            ),
                 )
             } else {
                 Spacer(modifier = Modifier.width(4.dp))
             }
-            
+
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-            // Set number
-            Text(
-                "${set.setOrder + 1}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.weight(0.12f),
-            )
-
-            // Reps
-            Box(
-                modifier = Modifier.weight(0.18f),
-                contentAlignment = Alignment.Center,
-            ) {
-                Surface(
-                    modifier =
-                        Modifier
-                            .width(80.dp)
-                            .height(40.dp)
-                            .clickable {
-                                if (!isReadOnly) {
-                                    onOpenModal()
-                                }
-                            },
-                    color =
-                        if (!isReadOnly) {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                        } else {
-                            MaterialTheme.colorScheme.surface
-                        },
-                    shape = RoundedCornerShape(4.dp),
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        Text(
-                            if (set.reps > 0) "${set.reps}" else "—",
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                }
-            }
-
-            // Weight
-            Box(
-                modifier = Modifier.weight(0.22f),
-                contentAlignment = Alignment.Center,
-            ) {
-                Surface(
-                    modifier =
-                        Modifier
-                            .width(100.dp)
-                            .height(40.dp)
-                            .clickable {
-                                if (!isReadOnly) {
-                                    onOpenModal()
-                                }
-                            },
-                    color =
-                        if (!isReadOnly) {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                        } else {
-                            MaterialTheme.colorScheme.surface
-                        },
-                    shape = RoundedCornerShape(4.dp),
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        Text(
-                            if (set.weight > 0) "${set.weight}kg" else "—",
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                }
-            }
-
-            // RPE
-            Box(
-                modifier = Modifier.weight(0.15f),
-                contentAlignment = Alignment.Center,
-            ) {
-                Surface(
-                    modifier =
-                        Modifier
-                            .width(80.dp)
-                            .height(40.dp)
-                            .clickable {
-                                if (!isReadOnly) {
-                                    onOpenModal()
-                                }
-                            },
-                    color =
-                        if (!isReadOnly) {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                        } else {
-                            MaterialTheme.colorScheme.surface
-                        },
-                    shape = RoundedCornerShape(4.dp),
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        Text(
-                            set.rpe?.let { rpe ->
-                                if (rpe == rpe.toInt().toFloat()) {
-                                    rpe.toInt().toString()
-                                } else {
-                                    rpe.toString()
-                                }
-                            } ?: "—",
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                }
-            }
-
-            // Checkbox
-            Box(
-                modifier = Modifier.weight(0.15f),
-                contentAlignment = Alignment.Center,
-            ) {
-                Checkbox(
-                    checked = set.isCompleted,
-                    onCheckedChange = { newChecked ->
-                        // Only allow checking if the set can be marked complete, or if unchecking
-                        if (!newChecked || canMarkComplete) {
-                            onToggleCompleted(newChecked)
-                        }
-                    },
-                    colors =
-                        CheckboxDefaults.colors(
-                            checkedColor = MaterialTheme.colorScheme.primary,
-                        ),
-                    enabled = canMarkComplete || set.isCompleted, // Enable if can mark complete OR already completed (for unchecking)
+                // Set number
+                Text(
+                    "${set.setOrder + 1}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(0.12f),
                 )
-            }
 
-            // Delete button
-            Box(
-                modifier = Modifier.weight(0.18f),
-                contentAlignment = Alignment.CenterEnd,
-            ) {
-                IconButton(
-                    onClick = { showDeleteConfirmation = true },
-                    modifier = Modifier.size(32.dp),
+                // Reps
+                Box(
+                    modifier = Modifier.weight(0.18f),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        Icons.Filled.Delete,
-                        contentDescription = "Delete Set",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.error,
+                    Surface(
+                        modifier =
+                            Modifier
+                                .width(80.dp)
+                                .height(40.dp)
+                                .clickable {
+                                    if (!isReadOnly) {
+                                        onOpenModal()
+                                    }
+                                },
+                        color =
+                            if (!isReadOnly) {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            },
+                        shape = RoundedCornerShape(4.dp),
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            Text(
+                                if (set.reps > 0) "${set.reps}" else "—",
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+
+                // Weight
+                Box(
+                    modifier = Modifier.weight(0.22f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Surface(
+                        modifier =
+                            Modifier
+                                .width(100.dp)
+                                .height(40.dp)
+                                .clickable {
+                                    if (!isReadOnly) {
+                                        onOpenModal()
+                                    }
+                                },
+                        color =
+                            if (!isReadOnly) {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            },
+                        shape = RoundedCornerShape(4.dp),
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            Text(
+                                if (set.weight > 0) "${set.weight}kg" else "—",
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+
+                // RPE
+                Box(
+                    modifier = Modifier.weight(0.15f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Surface(
+                        modifier =
+                            Modifier
+                                .width(80.dp)
+                                .height(40.dp)
+                                .clickable {
+                                    if (!isReadOnly) {
+                                        onOpenModal()
+                                    }
+                                },
+                        color =
+                            if (!isReadOnly) {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            },
+                        shape = RoundedCornerShape(4.dp),
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            Text(
+                                set.rpe?.let { rpe ->
+                                    if (rpe == rpe.toInt().toFloat()) {
+                                        rpe.toInt().toString()
+                                    } else {
+                                        rpe.toString()
+                                    }
+                                } ?: "—",
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+
+                // Checkbox
+                Box(
+                    modifier = Modifier.weight(0.15f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Checkbox(
+                        checked = set.isCompleted,
+                        onCheckedChange = { newChecked ->
+                            // Only allow checking if the set can be marked complete, or if unchecking
+                            if (!newChecked || canMarkComplete) {
+                                onToggleCompleted(newChecked)
+                            }
+                        },
+                        colors =
+                            CheckboxDefaults.colors(
+                                checkedColor = MaterialTheme.colorScheme.primary,
+                            ),
+                        enabled = canMarkComplete || set.isCompleted, // Enable if can mark complete OR already completed (for unchecking)
                     )
                 }
-            }
+
+                // Delete button
+                Box(
+                    modifier = Modifier.weight(0.18f),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
+                    IconButton(
+                        onClick = { showDeleteConfirmation = true },
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = "Delete Set",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
             }
         }
     }

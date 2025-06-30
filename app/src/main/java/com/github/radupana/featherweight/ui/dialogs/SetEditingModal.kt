@@ -1,12 +1,12 @@
 package com.github.radupana.featherweight.ui.dialogs
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.background
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -15,7 +15,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.*
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -26,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.SoftwareKeyboardController
@@ -67,7 +65,7 @@ fun SetEditingModal(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val timerState by restTimerViewModel.timerState.collectAsState()
-    
+
     // Workout timer state
     val workoutState by viewModel.workoutState.collectAsState()
     val elapsedWorkoutTime by viewModel.elapsedWorkoutTime.collectAsState()
@@ -169,7 +167,7 @@ fun SetEditingModal(
                     onRestAddTime = { restTimerViewModel.addTime(15.seconds) },
                     onRestSubtractTime = { restTimerViewModel.subtractTime(15.seconds) },
                     onRestSkip = { restTimerViewModel.stopTimer() },
-                    onRestTogglePause = { restTimerViewModel.togglePause() }
+                    onRestTogglePause = { restTimerViewModel.togglePause() },
                 )
 
                 // Content area with optimal space usage
@@ -357,7 +355,7 @@ fun SetEditingModal(
                                                 onDelete = { }, // No longer needed as we use swipe
                                                 canMarkComplete = viewModel.canMarkSetComplete(set),
                                                 keyboardController = keyboardController,
-                                                showDeleteButton = false, // Hide the delete button
+                                                // Hide the delete button
                                             )
                                         }
                                     }
@@ -435,7 +433,6 @@ private fun ExpandedSetRow(
     canMarkComplete: Boolean,
     keyboardController: SoftwareKeyboardController?,
     modifier: Modifier = Modifier,
-    showDeleteButton: Boolean = true,
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
@@ -515,22 +512,24 @@ private fun ExpandedSetRow(
             // Green accent stripe for completed sets
             if (set.isCompleted) {
                 Box(
-                    modifier = Modifier
-                        .width(4.dp)
-                        .fillMaxHeight()
-                        .background(
-                            MaterialTheme.colorScheme.primary,
-                            RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
-                        )
+                    modifier =
+                        Modifier
+                            .width(4.dp)
+                            .fillMaxHeight()
+                            .background(
+                                MaterialTheme.colorScheme.primary,
+                                RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp),
+                            ),
                 )
             } else {
                 Spacer(modifier = Modifier.width(4.dp))
             }
-            
+
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(12.dp),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .padding(12.dp),
             ) {
                 // Compact single row layout
                 Row(
@@ -546,175 +545,175 @@ private fun ExpandedSetRow(
                         modifier = Modifier.width(24.dp),
                         textAlign = TextAlign.Center,
                     )
-                // Reps field
-                OutlinedTextField(
-                    value = repsValue,
-                    onValueChange = { newValue ->
-                        val text = newValue.text
-                        if (text.isEmpty() || (text.all { it.isDigit() } && text.length <= 2)) {
-                            repsValue = newValue
-                            saveValues()
-                        }
-                    },
-                    keyboardOptions =
-                        KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Next,
-                        ),
-                    keyboardActions =
-                        KeyboardActions(
-                            onNext = { weightFocusRequester.requestFocus() },
-                        ),
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                            .focusRequester(repsFocusRequester)
-                            .onFocusChanged { focusState ->
-                                repsFieldHasFocus = focusState.isFocused
-                                if (focusState.isFocused && repsValue.text.isNotEmpty()) {
-                                    // Select all text for easy replacement
-                                    val text = repsValue.text
-                                    repsValue = repsValue.copy(selection = TextRange(0, text.length))
-                                }
-                            },
-                    singleLine = true,
-                    textStyle =
-                        MaterialTheme.typography.bodySmall.copy(
-                            textAlign = TextAlign.Center,
-                        ),
-                    placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) },
-                )
-
-                // Weight field
-                OutlinedTextField(
-                    value = weightValue,
-                    onValueChange = { newValue ->
-                        val text = newValue.text
-                        if (text.isEmpty()) {
-                            weightValue = newValue
-                            saveValues()
-                        } else {
-                            val parts = text.split(".")
-                            val isValid =
-                                when (parts.size) {
-                                    1 -> parts[0].all { it.isDigit() } && parts[0].length <= 4
-                                    2 ->
-                                        parts[0].all { it.isDigit() } &&
-                                            parts[0].length <= 4 &&
-                                            parts[1].all { it.isDigit() } &&
-                                            parts[1].length <= 2
-                                    else -> false
-                                }
-                            if (isValid) {
-                                weightValue = newValue
+                    // Reps field
+                    OutlinedTextField(
+                        value = repsValue,
+                        onValueChange = { newValue ->
+                            val text = newValue.text
+                            if (text.isEmpty() || (text.all { it.isDigit() } && text.length <= 2)) {
+                                repsValue = newValue
                                 saveValues()
-                            }
-                        }
-                    },
-                    keyboardOptions =
-                        KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal,
-                            imeAction = ImeAction.Next,
-                        ),
-                    keyboardActions =
-                        KeyboardActions(
-                            onNext = { rpeFocusRequester.requestFocus() },
-                        ),
-                    modifier =
-                        Modifier
-                            .weight(1.5f)
-                            .height(48.dp)
-                            .focusRequester(weightFocusRequester)
-                            .onFocusChanged { focusState ->
-                                weightFieldHasFocus = focusState.isFocused
-                                if (focusState.isFocused && weightValue.text.isNotEmpty()) {
-                                    // Select all text for easy replacement
-                                    val text = weightValue.text
-                                    weightValue = weightValue.copy(selection = TextRange(0, text.length))
-                                }
-                            },
-                    singleLine = true,
-                    textStyle =
-                        MaterialTheme.typography.bodySmall.copy(
-                            textAlign = TextAlign.Center,
-                        ),
-                    placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) },
-                )
-
-                // RPE field
-                OutlinedTextField(
-                    value = rpeValue,
-                    onValueChange = { newValue ->
-                        val text = newValue.text
-                        if (text.isEmpty()) {
-                            rpeValue = newValue
-                            saveValues()
-                        } else {
-                            val floatValue = text.toFloatOrNull()
-                            if (floatValue != null &&
-                                floatValue >= 0 &&
-                                floatValue <= 10 &&
-                                text.matches(Regex("^(10(\\.0)?|[0-9](\\.[0-9])?)$")) &&
-                                text.length <= 4
-                            ) {
-                                rpeValue = newValue
-                                saveValues()
-                            }
-                        }
-                    },
-                    keyboardOptions =
-                        KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal,
-                            imeAction = ImeAction.Done,
-                        ),
-                    keyboardActions =
-                        KeyboardActions(
-                            onDone = {
-                                keyboardController?.hide()
-                            },
-                        ),
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                            .focusRequester(rpeFocusRequester)
-                            .onFocusChanged { focusState ->
-                                rpeFieldHasFocus = focusState.isFocused
-                                if (focusState.isFocused && rpeValue.text.isNotEmpty()) {
-                                    // Select all text for easy replacement
-                                    val text = rpeValue.text
-                                    rpeValue = rpeValue.copy(selection = TextRange(0, text.length))
-                                }
-                            },
-                    singleLine = true,
-                    textStyle =
-                        MaterialTheme.typography.bodySmall.copy(
-                            textAlign = TextAlign.Center,
-                        ),
-                    placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) },
-                )
-
-                // Checkbox in same space as Complete All button
-                Box(
-                    modifier = Modifier.width(64.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Checkbox(
-                        checked = set.isCompleted,
-                        onCheckedChange = { newChecked ->
-                            if (!newChecked || canMarkComplete) {
-                                onToggleCompleted(newChecked)
                             }
                         },
-                        enabled = canMarkComplete || set.isCompleted,
-                        colors =
-                            CheckboxDefaults.colors(
-                                checkedColor = MaterialTheme.colorScheme.tertiary,
+                        keyboardOptions =
+                            KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Next,
                             ),
+                        keyboardActions =
+                            KeyboardActions(
+                                onNext = { weightFocusRequester.requestFocus() },
+                            ),
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .focusRequester(repsFocusRequester)
+                                .onFocusChanged { focusState ->
+                                    repsFieldHasFocus = focusState.isFocused
+                                    if (focusState.isFocused && repsValue.text.isNotEmpty()) {
+                                        // Select all text for easy replacement
+                                        val text = repsValue.text
+                                        repsValue = repsValue.copy(selection = TextRange(0, text.length))
+                                    }
+                                },
+                        singleLine = true,
+                        textStyle =
+                            MaterialTheme.typography.bodySmall.copy(
+                                textAlign = TextAlign.Center,
+                            ),
+                        placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) },
                     )
+
+                    // Weight field
+                    OutlinedTextField(
+                        value = weightValue,
+                        onValueChange = { newValue ->
+                            val text = newValue.text
+                            if (text.isEmpty()) {
+                                weightValue = newValue
+                                saveValues()
+                            } else {
+                                val parts = text.split(".")
+                                val isValid =
+                                    when (parts.size) {
+                                        1 -> parts[0].all { it.isDigit() } && parts[0].length <= 4
+                                        2 ->
+                                            parts[0].all { it.isDigit() } &&
+                                                parts[0].length <= 4 &&
+                                                parts[1].all { it.isDigit() } &&
+                                                parts[1].length <= 2
+                                        else -> false
+                                    }
+                                if (isValid) {
+                                    weightValue = newValue
+                                    saveValues()
+                                }
+                            }
+                        },
+                        keyboardOptions =
+                            KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal,
+                                imeAction = ImeAction.Next,
+                            ),
+                        keyboardActions =
+                            KeyboardActions(
+                                onNext = { rpeFocusRequester.requestFocus() },
+                            ),
+                        modifier =
+                            Modifier
+                                .weight(1.5f)
+                                .height(48.dp)
+                                .focusRequester(weightFocusRequester)
+                                .onFocusChanged { focusState ->
+                                    weightFieldHasFocus = focusState.isFocused
+                                    if (focusState.isFocused && weightValue.text.isNotEmpty()) {
+                                        // Select all text for easy replacement
+                                        val text = weightValue.text
+                                        weightValue = weightValue.copy(selection = TextRange(0, text.length))
+                                    }
+                                },
+                        singleLine = true,
+                        textStyle =
+                            MaterialTheme.typography.bodySmall.copy(
+                                textAlign = TextAlign.Center,
+                            ),
+                        placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) },
+                    )
+
+                    // RPE field
+                    OutlinedTextField(
+                        value = rpeValue,
+                        onValueChange = { newValue ->
+                            val text = newValue.text
+                            if (text.isEmpty()) {
+                                rpeValue = newValue
+                                saveValues()
+                            } else {
+                                val floatValue = text.toFloatOrNull()
+                                if (floatValue != null &&
+                                    floatValue >= 0 &&
+                                    floatValue <= 10 &&
+                                    text.matches(Regex("^(10(\\.0)?|[0-9](\\.[0-9])?)$")) &&
+                                    text.length <= 4
+                                ) {
+                                    rpeValue = newValue
+                                    saveValues()
+                                }
+                            }
+                        },
+                        keyboardOptions =
+                            KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal,
+                                imeAction = ImeAction.Done,
+                            ),
+                        keyboardActions =
+                            KeyboardActions(
+                                onDone = {
+                                    keyboardController?.hide()
+                                },
+                            ),
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .focusRequester(rpeFocusRequester)
+                                .onFocusChanged { focusState ->
+                                    rpeFieldHasFocus = focusState.isFocused
+                                    if (focusState.isFocused && rpeValue.text.isNotEmpty()) {
+                                        // Select all text for easy replacement
+                                        val text = rpeValue.text
+                                        rpeValue = rpeValue.copy(selection = TextRange(0, text.length))
+                                    }
+                                },
+                        singleLine = true,
+                        textStyle =
+                            MaterialTheme.typography.bodySmall.copy(
+                                textAlign = TextAlign.Center,
+                            ),
+                        placeholder = { Text("", style = MaterialTheme.typography.bodyMedium) },
+                    )
+
+                    // Checkbox in same space as Complete All button
+                    Box(
+                        modifier = Modifier.width(64.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Checkbox(
+                            checked = set.isCompleted,
+                            onCheckedChange = { newChecked ->
+                                if (!newChecked || canMarkComplete) {
+                                    onToggleCompleted(newChecked)
+                                }
+                            },
+                            enabled = canMarkComplete || set.isCompleted,
+                            colors =
+                                CheckboxDefaults.colors(
+                                    checkedColor = MaterialTheme.colorScheme.tertiary,
+                                ),
+                        )
+                    }
                 }
-            }
 
                 // Only show validation message if user tried to complete without data
                 if (!canMarkComplete && (set.reps == 0 || set.weight == 0f) && showDeleteConfirmation) {

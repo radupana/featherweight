@@ -1,13 +1,13 @@
 package com.github.radupana.featherweight.ui.screens
 
+import android.util.Log
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.imePadding
-import com.github.radupana.featherweight.ui.utils.NavigationContext
-import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
@@ -27,34 +26,27 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.lifecycle.viewmodel.compose.viewModel
-import android.util.Log
-import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
-import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
-import com.github.radupana.featherweight.viewmodel.RestTimerViewModelFactory
-import kotlin.time.Duration.Companion.seconds
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.ExerciseLog
+import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.CompactExerciseCard
 import com.github.radupana.featherweight.ui.components.ProgressCard
+import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
 import com.github.radupana.featherweight.ui.dialogs.SetEditingModal
 import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
-import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import com.github.radupana.featherweight.ui.utils.NavigationContext
+import com.github.radupana.featherweight.ui.utils.systemBarsPadding
+import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutState
+import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,22 +58,30 @@ fun WorkoutScreen(
     restTimerViewModel: RestTimerViewModel,
 ) {
     val exercises by viewModel.selectedWorkoutExercises.collectAsState()
-    
+
     // Connect rest timer to workout lifecycle
     LaunchedEffect(restTimerViewModel) {
         viewModel.setRestTimerViewModel(restTimerViewModel)
     }
-    
+
     // Debug log to track recompositions
     LaunchedEffect(exercises) {
-        Log.d("DragReorder", "WorkoutScreen recomposed with exercises: ${exercises.mapIndexed { idx, ex -> "$idx:${ex.exerciseName}" }.joinToString()}")
+        Log.d(
+            "DragReorder",
+            "WorkoutScreen recomposed with exercises: ${exercises.mapIndexed {
+                idx,
+                ex,
+                ->
+                "$idx:${ex.exerciseName}"
+            }.joinToString()}",
+        )
     }
     val sets by viewModel.selectedExerciseSets.collectAsState()
     val workoutState by viewModel.workoutState.collectAsState()
-    
+
     // Rest timer state
     val timerState by restTimerViewModel.timerState.collectAsState()
-    
+
     // Workout timer state
     val elapsedWorkoutTime by viewModel.elapsedWorkoutTime.collectAsState()
 
@@ -248,107 +248,106 @@ fun WorkoutScreen(
         },
     ) { innerPadding ->
         Box(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION)
+            modifier =
+                Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+                    .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
         ) {
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             ) {
-            // Normal workout view
-            // Status banners
-            if (workoutState.isCompleted && !isEditMode) {
-                ReadOnlyBanner(
-                    onEnterEditMode = { showEditModeDialog = true },
-                )
-            } else if (isEditMode) {
-                EditModeBanner()
-            }
+                // Normal workout view
+                // Status banners
+                if (workoutState.isCompleted && !isEditMode) {
+                    ReadOnlyBanner(
+                        onEnterEditMode = { showEditModeDialog = true },
+                    )
+                } else if (isEditMode) {
+                    EditModeBanner()
+                }
 
-            // Programme progress card (if this is a programme workout)
-            if (workoutState.isProgrammeWorkout) {
-                ProgrammeProgressCard(
-                    workoutState = workoutState,
-                    viewModel = viewModel,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-            }
-
-            // Unified Timer Bar
-            UnifiedTimerBar(
-                workoutElapsed = elapsedWorkoutTime,
-                workoutActive = workoutState.isWorkoutTimerActive,
-                restTimerState = timerState,
-                onRestAddTime = { restTimerViewModel.addTime(15.seconds) },
-                onRestSubtractTime = { restTimerViewModel.subtractTime(15.seconds) },
-                onRestSkip = { restTimerViewModel.stopTimer() },
-                onRestTogglePause = { restTimerViewModel.togglePause() }
-            )
-
-            // Progress section
-            ProgressCard(
-                completedSets = completedSets,
-                totalSets = totalSets,
-                modifier = Modifier.padding(16.dp),
-            )
-
-            // Exercises list or empty state
-            if (workoutState.isLoadingExercises) {
-                // Show loading indicator while exercises are being loaded
-                Box(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(48.dp),
-                        color = MaterialTheme.colorScheme.primary,
+                // Programme progress card (if this is a programme workout)
+                if (workoutState.isProgrammeWorkout) {
+                    ProgrammeProgressCard(
+                        workoutState = workoutState,
+                        viewModel = viewModel,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                 }
-            } else if (exercises.isEmpty()) {
-                EmptyWorkoutState(
-                    canEdit = canEdit,
-                    onAddExercise = onSelectExercise,
-                    modifier = Modifier.weight(1f),
-                )
-            } else {
-                ExercisesList(
-                    exercises = exercises,
-                    sets = sets,
-                    canEdit = canEdit,
-                    onDeleteExercise = { exerciseId ->
-                        if (canEdit) {
-                            viewModel.deleteExercise(exerciseId)
-                        }
-                    },
-                    onOpenSetEditingModal = { exerciseId ->
-                        val exercise = exercises.find { it.id == exerciseId }
-                        if (exercise != null) {
-                            setEditingExercise = exercise
-                            showSetEditingModal = true
-                            viewModel.loadSetsForExercise(exerciseId)
-                        }
-                    },
-                    onSelectExercise = onSelectExercise,
-                    viewModel = viewModel,
-                    modifier = Modifier.weight(1f),
-                )
-            }
 
-            // Action buttons at bottom
-            if (canEdit && exercises.isNotEmpty()) {
-                WorkoutActionButtons(
-                    hasExercises = exercises.isNotEmpty(),
-                    canCompleteWorkout = workoutState.isActive && !isEditMode,
-                    onAddExercise = onSelectExercise,
-                    onCompleteWorkout = { showCompleteWorkoutDialog = true },
+                // Unified Timer Bar
+                UnifiedTimerBar(
+                    workoutElapsed = elapsedWorkoutTime,
+                    workoutActive = workoutState.isWorkoutTimerActive,
+                    restTimerState = timerState,
+                    onRestAddTime = { restTimerViewModel.addTime(15.seconds) },
+                    onRestSubtractTime = { restTimerViewModel.subtractTime(15.seconds) },
+                    onRestSkip = { restTimerViewModel.stopTimer() },
+                    onRestTogglePause = { restTimerViewModel.togglePause() },
+                )
+
+                // Progress section
+                ProgressCard(
+                    completedSets = completedSets,
+                    totalSets = totalSets,
                     modifier = Modifier.padding(16.dp),
                 )
-            }
-            
+
+                // Exercises list or empty state
+                if (workoutState.isLoadingExercises) {
+                    // Show loading indicator while exercises are being loaded
+                    Box(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                } else if (exercises.isEmpty()) {
+                    EmptyWorkoutState(
+                        canEdit = canEdit,
+                        onAddExercise = onSelectExercise,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    ExercisesList(
+                        exercises = exercises,
+                        sets = sets,
+                        canEdit = canEdit,
+                        onDeleteExercise = { exerciseId ->
+                            if (canEdit) {
+                                viewModel.deleteExercise(exerciseId)
+                            }
+                        },
+                        onOpenSetEditingModal = { exerciseId ->
+                            val exercise = exercises.find { it.id == exerciseId }
+                            if (exercise != null) {
+                                setEditingExercise = exercise
+                                showSetEditingModal = true
+                                viewModel.loadSetsForExercise()
+                            }
+                        },
+                        onSelectExercise = onSelectExercise,
+                        viewModel = viewModel,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                // Action buttons at bottom
+                if (canEdit && exercises.isNotEmpty()) {
+                    WorkoutActionButtons(
+                        canCompleteWorkout = workoutState.isActive && !isEditMode,
+                        onAddExercise = onSelectExercise,
+                        onCompleteWorkout = { showCompleteWorkoutDialog = true },
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
             }
         }
     }
@@ -423,7 +422,6 @@ fun WorkoutScreen(
     if (showWorkoutMenuDialog && !isEditMode) {
         WorkoutMenuDialog(
             canEdit = canEdit,
-            hasContent = hasContent,
             onEditName = {
                 showWorkoutMenuDialog = false
                 showEditWorkoutNameDialog = true
@@ -561,7 +559,7 @@ fun WorkoutScreen(
                         exerciseName = setEditingExercise!!.exerciseName,
                         exercise = null, // TODO: Add exercise entity lookup
                         reps = completedSet?.reps,
-                        weight = completedSet?.weight
+                        weight = completedSet?.weight,
                     )
                 }
             },
@@ -570,14 +568,15 @@ fun WorkoutScreen(
                 // Auto-start smart rest timer when completing all sets
                 if (setEditingExercise != null) {
                     // Use the most recent set's data for timer calculation
-                    val mostRecentSet = sets
-                        .filter { it.exerciseLogId == setEditingExercise!!.id }
-                        .maxByOrNull { it.setOrder }
+                    val mostRecentSet =
+                        sets
+                            .filter { it.exerciseLogId == setEditingExercise!!.id }
+                            .maxByOrNull { it.setOrder }
                     restTimerViewModel.startSmartTimer(
                         exerciseName = setEditingExercise!!.exerciseName,
                         exercise = null, // TODO: Add exercise entity lookup
                         reps = mostRecentSet?.reps,
-                        weight = mostRecentSet?.weight
+                        weight = mostRecentSet?.weight,
                     )
                 }
             },
@@ -670,7 +669,6 @@ private fun EditModeBanner() {
 @Composable
 private fun WorkoutMenuDialog(
     canEdit: Boolean,
-    hasContent: Boolean,
     onEditName: () -> Unit,
     onDeleteWorkout: () -> Unit,
     onClose: () -> Unit,
@@ -901,21 +899,19 @@ private fun ExercisesList(
     var targetIndex by remember { mutableStateOf<Int?>(null) }
     var initialDragIndex by remember { mutableStateOf<Int?>(null) }
     val density = LocalDensity.current
-    
+
     // Debug mode - set to true to see detailed logging
     val debugMode = false
-    
+
     // Item measurements - CompactExerciseCard height + spacing
     val cardHeightDp = 80.dp // Estimated height of CompactExerciseCard
     val spacingDp = 8.dp // From verticalArrangement
     val itemHeightDp = cardHeightDp + spacingDp
     val itemHeightPx = with(density) { itemHeightDp.toPx() }
-    
+
     // Helper function to find current index of an exercise
-    fun findCurrentIndex(exerciseId: Long): Int {
-        return exercises.indexOfFirst { it.id == exerciseId }
-    }
-    
+    fun findCurrentIndex(exerciseId: Long): Int = exercises.indexOfFirst { it.id == exerciseId }
+
     LazyColumn(
         state = lazyListState,
         contentPadding = PaddingValues(16.dp),
@@ -924,41 +920,43 @@ private fun ExercisesList(
     ) {
         items(
             items = exercises,
-            key = { exercise -> exercise.id }
+            key = { exercise -> exercise.id },
         ) { exercise ->
             // Find the current index dynamically
             val currentPosition = findCurrentIndex(exercise.id)
             val isDragged = draggedExerciseId == exercise.id
-            
+
             // Make sure dragged items observe the offset with derivedStateOf
             val currentOffset by remember(isDragged) {
                 derivedStateOf { if (isDragged) draggedOffset else 0f }
             }
-            
+
             // Calculate translation for non-dragged items
-            val shouldTranslate = if (!isDragged && draggedExerciseId != null && targetIndex != null && initialDragIndex != null) {
-                val fromIdx = initialDragIndex!!
-                val toIdx = targetIndex!!
-                
-                // Only move items between the drag positions
-                when {
-                    fromIdx < toIdx && currentPosition in (fromIdx + 1)..toIdx -> -itemHeightPx
-                    fromIdx > toIdx && currentPosition in toIdx..<fromIdx -> itemHeightPx
-                    else -> 0f
+            val shouldTranslate =
+                if (!isDragged && draggedExerciseId != null && targetIndex != null && initialDragIndex != null) {
+                    val fromIdx = initialDragIndex!!
+                    val toIdx = targetIndex!!
+
+                    // Only move items between the drag positions
+                    when {
+                        fromIdx < toIdx && currentPosition in (fromIdx + 1)..toIdx -> -itemHeightPx
+                        fromIdx > toIdx && currentPosition in toIdx..<fromIdx -> itemHeightPx
+                        else -> 0f
+                    }
+                } else {
+                    0f
                 }
-            } else {
-                0f
-            }
-            
+
             val animatedTranslation by animateFloatAsState(
                 targetValue = shouldTranslate,
-                animationSpec = tween(
-                    durationMillis = 200,
-                    easing = FastOutSlowInEasing
-                ),
-                label = "translation_${exercise.id}"
+                animationSpec =
+                    tween(
+                        durationMillis = 200,
+                        easing = FastOutSlowInEasing,
+                    ),
+                label = "translation_${exercise.id}",
             )
-            
+
             CompactExerciseCard(
                 exercise = exercise,
                 sets = sets.filter { it.exerciseLogId == exercise.id },
@@ -980,21 +978,23 @@ private fun ExercisesList(
                     // Get the current exercises list from ViewModel to ensure we have the latest
                     val currentExercisesList = viewModel.selectedWorkoutExercises.value
                     val startIndex = currentExercisesList.indexOfFirst { it.id == exercise.id }
-                    
+
                     if (startIndex == -1) {
                         Log.e("DragReorder", "ERROR: Exercise ${exercise.exerciseName} not found in list!")
                         return@CompactExerciseCard
                     }
-                    
+
                     draggedExerciseId = exercise.id
                     initialDragIndex = startIndex
                     targetIndex = startIndex
                     draggedOffset = 0f
-                    
+
                     // Log current state
-                    val exerciseList = currentExercisesList.mapIndexed { idx, ex -> 
-                        "$idx: ${ex.exerciseName} (order=${ex.exerciseOrder})"
-                    }.joinToString(", ")
+                    val exerciseList =
+                        currentExercisesList
+                            .mapIndexed { idx, ex ->
+                                "$idx: ${ex.exerciseName} (order=${ex.exerciseOrder})"
+                            }.joinToString(", ")
                     Log.d("DragReorder", "=== DRAG START ===")
                     Log.d("DragReorder", "Dragging: ${exercise.exerciseName} from index $startIndex")
                     Log.d("DragReorder", "Current order: $exerciseList")
@@ -1002,10 +1002,10 @@ private fun ExercisesList(
                 onDragEnd = {
                     val finalTarget = targetIndex
                     val startIndex = initialDragIndex
-                    
+
                     Log.d("DragReorder", "=== DRAG END ===")
                     Log.d("DragReorder", "From: $startIndex, To: $finalTarget, Offset: $draggedOffset")
-                    
+
                     // Perform the reorder if needed
                     if (startIndex != null && finalTarget != null && startIndex != finalTarget) {
                         Log.d("DragReorder", "Executing reorder: ${exercise.exerciseName} from $startIndex to $finalTarget")
@@ -1013,7 +1013,7 @@ private fun ExercisesList(
                     } else {
                         Log.d("DragReorder", "No reorder needed")
                     }
-                    
+
                     // Reset state
                     draggedExerciseId = null
                     targetIndex = null
@@ -1024,19 +1024,19 @@ private fun ExercisesList(
                     // Only process drag for the item that initiated the drag
                     if (draggedExerciseId == exercise.id && initialDragIndex != null) {
                         draggedOffset += delta
-                        
+
                         // Get current exercises count from ViewModel
                         val currentCount = viewModel.selectedWorkoutExercises.value.size
-                        
+
                         // Calculate target position based on drag offset
                         val dragDirection = if (draggedOffset > 0) 1 else -1
                         val absoluteOffset = kotlin.math.abs(draggedOffset)
                         val positionsMovedFloat = absoluteOffset / itemHeightPx
                         val positionsMoved = positionsMovedFloat.toInt()
-                        
+
                         // Calculate new target index
                         var newTargetIndex = initialDragIndex!! + (positionsMoved * dragDirection)
-                        
+
                         // Add hysteresis to prevent jittery movement
                         // Only change target if we're more than 60% into the next position
                         val remainder = positionsMovedFloat - positionsMoved
@@ -1045,23 +1045,26 @@ private fun ExercisesList(
                         } else if (remainder > 0.6f && dragDirection < 0) {
                             newTargetIndex--
                         }
-                        
+
                         newTargetIndex = newTargetIndex.coerceIn(0, currentCount - 1)
-                        
+
                         // Only log when target changes
                         if (newTargetIndex != targetIndex) {
                             targetIndex = newTargetIndex
-                            Log.d("DragReorder", "Target changed: ${exercise.exerciseName} -> position $newTargetIndex (offset: ${draggedOffset.toInt()}px)")
+                            Log.d(
+                                "DragReorder",
+                                "Target changed: ${exercise.exerciseName} -> position $newTargetIndex (offset: ${draggedOffset.toInt()}px)",
+                            )
                         }
                     }
                 },
-                modifier = Modifier
-                    .graphicsLayer {
-                        translationY = if (isDragged) currentOffset else animatedTranslation
-                        this.shadowElevation = if (isDragged) 8.dp.toPx() else 0f
-                        alpha = if (isDragged) 0.9f else 1f
-                    }
-                    .zIndex(if (isDragged) 1f else 0f)
+                modifier =
+                    Modifier
+                        .graphicsLayer {
+                            translationY = if (isDragged) currentOffset else animatedTranslation
+                            this.shadowElevation = if (isDragged) 8.dp.toPx() else 0f
+                            alpha = if (isDragged) 0.9f else 1f
+                        }.zIndex(if (isDragged) 1f else 0f),
             )
         }
     }
@@ -1069,7 +1072,6 @@ private fun ExercisesList(
 
 @Composable
 private fun WorkoutActionButtons(
-    hasExercises: Boolean,
     canCompleteWorkout: Boolean,
     onAddExercise: () -> Unit,
     onCompleteWorkout: () -> Unit,

@@ -30,6 +30,8 @@ import com.github.radupana.featherweight.ui.utils.NavigationContext
 import com.github.radupana.featherweight.ui.utils.rememberKeyboardState
 import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import com.github.radupana.featherweight.viewmodel.ExerciseSelectorViewModel
+import com.github.radupana.featherweight.viewmodel.ExerciseSuggestion
+import androidx.compose.material.icons.filled.SwapHoriz
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +51,8 @@ fun ExerciseSelectorScreen(
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val exerciseCreated by viewModel.exerciseCreated.collectAsState()
+    val swapSuggestions by viewModel.swapSuggestions.collectAsState()
+    val previouslySwappedExercises by viewModel.previouslySwappedExercises.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
 
@@ -66,6 +70,18 @@ fun ExerciseSelectorScreen(
 
     LaunchedEffect(Unit) {
         viewModel.loadExercises()
+    }
+    
+    // Load swap suggestions when in swap mode
+    LaunchedEffect(isSwapMode, currentExercise) {
+        if (isSwapMode && currentExercise != null && currentExercise.exerciseId != null) {
+            viewModel.clearSearchQuery() // Clear search when entering swap mode
+            viewModel.clearSwapSuggestions() // Clear previous suggestions
+            viewModel.loadSwapSuggestions(currentExercise.exerciseId)
+        } else if (!isSwapMode) {
+            // Clear suggestions when not in swap mode
+            viewModel.clearSwapSuggestions()
+        }
     }
 
     // For now, let's use a simpler approach without the adaptive layout
@@ -273,6 +289,63 @@ fun ExerciseSelectorScreen(
                             ),
                             verticalArrangement = Arrangement.spacedBy(compactPadding / 2),
                         ) {
+                            // Show suggestions when in swap mode
+                            if (isSwapMode) {
+                                // Previously swapped exercises section
+                                if (previouslySwappedExercises.isNotEmpty()) {
+                                    item {
+                                        Text(
+                                            text = "Previously Swapped",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(vertical = compactPadding / 2)
+                                        )
+                                    }
+                                    items(previouslySwappedExercises) { suggestion ->
+                                        SuggestionCard(
+                                            suggestion = suggestion,
+                                            onSelect = { onExerciseSelected(suggestion.exercise) },
+                                            isCompact = isKeyboardVisible
+                                        )
+                                    }
+                                }
+                                
+                                // Smart suggestions section
+                                if (swapSuggestions.isNotEmpty()) {
+                                    item {
+                                        Text(
+                                            text = "Suggested Alternatives",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(vertical = compactPadding / 2)
+                                        )
+                                    }
+                                    items(swapSuggestions) { suggestion ->
+                                        SuggestionCard(
+                                            suggestion = suggestion,
+                                            onSelect = { onExerciseSelected(suggestion.exercise) },
+                                            isCompact = isKeyboardVisible
+                                        )
+                                    }
+                                }
+                                
+                                // Divider before all exercises if we have suggestions
+                                if (previouslySwappedExercises.isNotEmpty() || swapSuggestions.isNotEmpty()) {
+                                    item {
+                                        Spacer(modifier = Modifier.height(compactPadding))
+                                        Text(
+                                            text = "All Exercises",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.padding(vertical = compactPadding / 2)
+                                        )
+                                    }
+                                }
+                            }
+                            
                             items(exercises) { exercise ->
                                 ExerciseCard(
                                     exercise = exercise,
@@ -698,4 +771,186 @@ private fun CreateCustomExerciseDialog(
             }
         },
     )
+}
+
+@Composable
+private fun SuggestionCard(
+    suggestion: ExerciseSuggestion,
+    onSelect: () -> Unit,
+    isCompact: Boolean = false,
+) {
+    val cardPadding = if (isCompact) 10.dp else 12.dp
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSelect() },
+        elevation = CardDefaults.cardElevation(2.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(cardPadding)
+        ) {
+            // Top row: Exercise name and swap count badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = suggestion.exercise.exercise.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    
+                    // Swap count badge for previously swapped exercises
+                    if (suggestion.swapCount > 0) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Filled.SwapHoriz,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = "${suggestion.swapCount}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // Category badge
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Text(
+                        text = suggestion.exercise.exercise.category.displayName,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+            
+            // Bottom row: Exercise details
+            if (suggestion.exercise.exercise.muscleGroup.isNotEmpty() || 
+                suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT) {
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Primary muscles
+                    if (suggestion.exercise.exercise.muscleGroup.isNotEmpty()) {
+                        Text(
+                            text = suggestion.exercise.exercise.muscleGroup,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    
+                    // Equipment (if any)
+                    if (suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT) {
+                        if (suggestion.exercise.exercise.muscleGroup.isNotEmpty()) {
+                            Text(
+                                text = " • ",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text(
+                            text = suggestion.exercise.exercise.equipment.name.replace('_', ' '),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+            
+            // Show structured details for smart suggestions
+            if (suggestion.swapCount == 0) {
+                // This is a smart suggestion, show exercise details
+                Spacer(modifier = Modifier.height(2.dp))
+                
+                val details = buildString {
+                    // Muscle groups
+                    if (suggestion.exercise.exercise.muscleGroup.isNotEmpty()) {
+                        append(suggestion.exercise.exercise.muscleGroup)
+                    }
+                    
+                    // Equipment
+                    if (suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT) {
+                        if (isNotEmpty()) append(" • ")
+                        append(suggestion.exercise.exercise.equipment.name.replace('_', ' ').lowercase()
+                            .replaceFirstChar { it.uppercase() })
+                    }
+                    
+                    // Category/Movement type
+                    if (isNotEmpty()) append(" • ")
+                    append(when (suggestion.exercise.exercise.category) {
+                        ExerciseCategory.LEGS, ExerciseCategory.CHEST, 
+                        ExerciseCategory.BACK, ExerciseCategory.SHOULDERS -> "Compound"
+                        ExerciseCategory.ARMS, ExerciseCategory.CORE -> "Isolation"
+                        ExerciseCategory.CARDIO -> "Cardio"
+                        else -> suggestion.exercise.exercise.category.displayName
+                    })
+                    
+                    // Usage count
+                    if (suggestion.exercise.exercise.usageCount > 0) {
+                        append(" • Used ${suggestion.exercise.exercise.usageCount}x")
+                    }
+                }
+                
+                Text(
+                    text = details,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            } else {
+                // Previously swapped - keep the existing reason
+                if (suggestion.suggestionReason.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = suggestion.suggestionReason,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                        fontWeight = FontWeight.Normal,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
 }

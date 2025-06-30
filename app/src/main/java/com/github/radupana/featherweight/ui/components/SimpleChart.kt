@@ -19,12 +19,11 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 // Utility function to format large numbers
-private fun formatVolume(volume: Float): String {
-    return when {
+private fun formatVolume(volume: Float): String =
+    when {
         volume >= 1000 -> "${String.format("%.1f", volume / 1000)}k kg"
         else -> "${volume.toInt()}kg"
     }
-}
 
 @Composable
 fun StrengthProgressionChart(
@@ -388,7 +387,9 @@ private fun DrawScope.drawVolumeChart(
         drawRect(
             color = currentBarColor,
             topLeft = Offset(x, y),
-            size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
+            size =
+                androidx.compose.ui.geometry
+                    .Size(barWidth, barHeight),
         )
 
         // Draw border for selected bar
@@ -396,7 +397,9 @@ private fun DrawScope.drawVolumeChart(
             drawRect(
                 color = barColor,
                 topLeft = Offset(x - 1.dp.toPx(), y - 1.dp.toPx()),
-                size = androidx.compose.ui.geometry.Size(barWidth + 2.dp.toPx(), barHeight + 2.dp.toPx()),
+                size =
+                    androidx.compose.ui.geometry
+                        .Size(barWidth + 2.dp.toPx(), barHeight + 2.dp.toPx()),
                 style = Stroke(width = 2.dp.toPx()),
             )
         }
@@ -406,7 +409,6 @@ private fun DrawScope.drawVolumeChart(
 @Composable
 fun SimpleLineChart(
     dataPoints: List<Float>,
-    labels: List<String> = emptyList(),
     modifier: Modifier = Modifier,
     lineColor: Color = MaterialTheme.colorScheme.primary,
     title: String = "",

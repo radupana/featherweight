@@ -27,7 +27,7 @@ experience.
 
 - **Exercise Database**: 500 curated exercises with consistent naming and comprehensive metadata
 - **Programme System**: Popular templates (531, StrongLifts, etc.) with 1RM setup
-- **Workout Tracking**: Real-time set completion, smart weight input, programme integration
+- **Workout Tracking**: Real-time set completion, smart weight input, programme integration, exercise swapping
 - **Analytics**: Interactive charts, Quick Stats, Big 4 focus
 - **History**: Paginated with long-tap delete, edit mode for completed workouts
 - **Rest Timer**: Smart auto-start based on exercise type with cross-screen persistence
@@ -69,6 +69,16 @@ experience.
 - **Dual-Mode Interface**: Simplified (guided) and Advanced (freeform) generation modes
 - **Comprehensive Template Library**: 28 well-researched templates covering diverse scenarios
 - **Streamlined Regeneration**: 4 intuitive options (More/Less Volume, More/Less Intensity)
+
+#### Exercise Swapping
+
+- **Three-dot menu entry**: Swap option in CompactExerciseCard during workouts
+- **Smart suggestions**: Ranked by historical swaps, muscle groups, equipment, usage
+- **Swap history tracking**: ExerciseSwapHistory entity tracks all swaps with context
+- **Visual indicators**: SwapHoriz icon shows on swapped exercises
+- **Structured details**: Shows "Quads, Glutes • Barbell • Compound • Used 12x"
+- **Clear UX**: All sets cleared on swap, warning shown before confirmation
+- **Race condition fixed**: Suggestions load reliably on first navigation
 
 ## Key Files & Architecture
 
@@ -176,6 +186,7 @@ experience.
 - Prefer composition over inheritance in UI components
 - **Import Style**: Always use non-fully qualified class names (e.g., `VolumeMetrics` not `com.github.radupana.featherweight.data.VolumeMetrics`) unless there's a naming conflict requiring disambiguation
 - **Fail-Fast Philosophy**: NO mock fallbacks or degraded functionality. If exercise database fails to load, if AI generation fails, or if any core system fails - the app should fail fast and clearly. We want users to experience the full app or nothing. No loading 50 common exercises as fallback, no static programmes as AI backup, no graceful degradation that results in a subpar experience.
+- **Clean Code Maintenance**: Always remove unused declarations, dead code, and unused imports. Before completing any task, audit the codebase for orphaned code that can be deleted. Keep the codebase lean and focused - unused code creates maintenance burden and bloat.
 
 ## Technical Gotchas
 
@@ -234,6 +245,26 @@ Expanded exercise database from 140 to 500 exercises to solve OpenAI API timeout
 - Olympic lifts and variations
 - Gymnastics and calisthenics movements
 - Strongman equipment exercises
+
+## Recent Focus Areas
+
+### Latest Session: Exercise Swapping Feature (2025-06-30)
+
+Implemented comprehensive exercise swapping functionality for workout flexibility:
+
+**Core Implementation:**
+- **Three-dot menu interface**: Replaced delete button with dropdown menu in CompactExerciseCard
+- **Swap mode in ExerciseSelectorScreen**: Shows current exercise, warning about cleared sets
+- **Database tracking**: ExerciseSwapHistory entity tracks all swaps with full context
+- **Visual indicators**: SwapHoriz icon shows on swapped exercises
+
+**Smart Suggestions System:**
+- **Historical swaps**: "Previously Swapped" section with swap count badges
+- **Intelligent ranking**: Algorithm scores by muscle groups (+40), equipment (+30), category (+50)
+- **Structured details**: Shows "Quads, Glutes • Barbell • Compound • Used 12x"
+- **Race condition fix**: Ensures exercises load before generating suggestions
+
+**Result**: Users can now seamlessly swap exercises during workouts with smart, context-aware suggestions based on their history and exercise similarity.
 
 ### Previous Session: Complete AI Programme System Overhaul (2025-06-28)
 

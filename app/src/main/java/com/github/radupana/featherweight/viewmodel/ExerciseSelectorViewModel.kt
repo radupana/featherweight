@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.*
+import com.github.radupana.featherweight.data.SwapHistoryCount
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,6 +52,13 @@ class ExerciseSelectorViewModel(
     // Filtered exercises
     private val _filteredExercises = MutableStateFlow<List<ExerciseWithDetails>>(emptyList())
     val filteredExercises: StateFlow<List<ExerciseWithDetails>> = _filteredExercises
+    
+    // Swap suggestions
+    private val _swapSuggestions = MutableStateFlow<List<ExerciseSuggestion>>(emptyList())
+    val swapSuggestions: StateFlow<List<ExerciseSuggestion>> = _swapSuggestions
+    
+    private val _previouslySwappedExercises = MutableStateFlow<List<ExerciseSuggestion>>(emptyList())
+    val previouslySwappedExercises: StateFlow<List<ExerciseSuggestion>> = _previouslySwappedExercises
 
     init {
         // Combine all filter states and update filtered exercises
@@ -142,6 +150,15 @@ class ExerciseSelectorViewModel(
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
+    }
+    
+    fun clearSearchQuery() {
+        _searchQuery.value = ""
+    }
+    
+    fun clearSwapSuggestions() {
+        _swapSuggestions.value = emptyList()
+        _previouslySwappedExercises.value = emptyList()
     }
 
     fun selectCategory(category: ExerciseCategory?) {
@@ -279,4 +296,147 @@ class ExerciseSelectorViewModel(
     fun refreshExercises() {
         loadExercises()
     }
+    
+    // Load swap suggestions for the given exercise
+    fun loadSwapSuggestions(exerciseId: Long) {
+        viewModelScope.launch {
+            try {
+                println("Loading swap suggestions for exercise ID: $exerciseId")
+                
+                // Wait for exercises to be loaded if they're not already
+                if (_allExercises.value.isEmpty()) {
+                    println("Exercises not loaded yet, waiting...")
+                    // Ensure exercises are loaded first
+                    repository.seedDatabaseIfEmpty()
+                    val exercises = repository.getAllExercises()
+                    _allExercises.value = exercises
+                    println("Loaded ${exercises.size} exercises")
+                }
+                
+                // Get historical swaps
+                val swapHistory = repository.getSwapHistoryForExercise(exerciseId)
+                val previouslySwapped = mutableListOf<ExerciseSuggestion>()
+                
+                println("Found ${swapHistory.size} historical swaps")
+                
+                // Get exercise details for historically swapped exercises
+                swapHistory.forEach { historyCount ->
+                    val exercise = repository.getExerciseById(historyCount.swappedToExerciseId)
+                    if (exercise != null) {
+                        previouslySwapped.add(
+                            ExerciseSuggestion(
+                                exercise = exercise,
+                                swapCount = historyCount.swapCount,
+                                suggestionReason = "Previously swapped ${historyCount.swapCount}x"
+                            )
+                        )
+                    }
+                }
+                
+                _previouslySwappedExercises.value = previouslySwapped
+                
+                // Get current exercise details for smart suggestions
+                val currentExercise = repository.getExerciseById(exerciseId)
+                if (currentExercise != null) {
+                    val suggestions = generateSmartSuggestions(currentExercise, previouslySwapped)
+                    println("Generated ${suggestions.size} smart suggestions")
+                    _swapSuggestions.value = suggestions
+                } else {
+                    println("Could not find current exercise with ID: $exerciseId")
+                }
+                
+            } catch (e: Exception) {
+                println("Error loading swap suggestions: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    private suspend fun generateSmartSuggestions(
+        currentExercise: ExerciseWithDetails,
+        previouslySwapped: List<ExerciseSuggestion>
+    ): List<ExerciseSuggestion> {
+        // Ensure we have exercises loaded
+        val allExercises = if (_allExercises.value.isEmpty()) {
+            repository.getAllExercises().also { _allExercises.value = it }
+        } else {
+            _allExercises.value
+        }
+        
+        val suggestions = mutableListOf<ExerciseSuggestion>()
+        val previouslySwappedIds = previouslySwapped.map { it.exercise.exercise.id }.toSet()
+        
+        // Filter out the current exercise and previously swapped ones
+        val candidateExercises = allExercises.filter { 
+            it.exercise.id != currentExercise.exercise.id && 
+            it.exercise.id !in previouslySwappedIds 
+        }
+        
+        candidateExercises.forEach { exercise ->
+            val score = calculateSuggestionScore(currentExercise, exercise)
+            if (score > 0) {
+                val reason = getSuggestionReason(currentExercise, exercise)
+                suggestions.add(
+                    ExerciseSuggestion(
+                        exercise = exercise,
+                        swapCount = 0,
+                        suggestionReason = reason,
+                        relevanceScore = score
+                    )
+                )
+            }
+        }
+        
+        // Sort by relevance score (higher is better) and take top 10
+        return suggestions.sortedByDescending { it.relevanceScore }.take(10)
+    }
+    
+    private fun calculateSuggestionScore(
+        current: ExerciseWithDetails,
+        candidate: ExerciseWithDetails
+    ): Int {
+        var score = 0
+        
+        // Same category gets high score
+        if (current.exercise.category == candidate.exercise.category) {
+            score += 50
+        }
+        
+        // Same equipment gets medium score
+        if (current.exercise.equipment == candidate.exercise.equipment) {
+            score += 30
+        }
+        
+        // Same muscle group gets high score
+        if (current.exercise.muscleGroup == candidate.exercise.muscleGroup) {
+            score += 40
+        }
+        
+        // Similar difficulty gets small score
+        if (current.exercise.difficulty == candidate.exercise.difficulty) {
+            score += 10
+        }
+        
+        // Usage count adds to score (more used = better suggestion)
+        score += candidate.exercise.usageCount
+        
+        return score
+    }
+    
+    private fun getSuggestionReason(
+        current: ExerciseWithDetails,
+        candidate: ExerciseWithDetails
+    ): String {
+        // For smart suggestions, we'll build details in the UI
+        // This is kept for backwards compatibility but won't be displayed
+        return ""
+    }
 }
+
+// Data class for exercise suggestions
+data class ExerciseSuggestion(
+    val exercise: ExerciseWithDetails,
+    val swapCount: Int = 0,
+    val suggestionReason: String,
+    val relevanceScore: Int = 0
+)

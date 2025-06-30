@@ -10,7 +10,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
-class ProgrammeViewModel(application: Application) : AndroidViewModel(application) {
+class ProgrammeViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
 
     // UI State
@@ -108,8 +110,8 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
         difficulty: ProgrammeDifficulty?,
         type: ProgrammeType?,
         searchText: String,
-    ): List<ProgrammeTemplate> {
-        return templates.filter { template ->
+    ): List<ProgrammeTemplate> =
+        templates.filter { template ->
             val matchesDifficulty = difficulty == null || template.difficulty == difficulty
             val matchesType = type == null || template.programmeType == type
             val matchesSearch =
@@ -120,7 +122,6 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
 
             matchesDifficulty && matchesType && matchesSearch
         }
-    }
 
     private fun loadProgrammeData(showLoading: Boolean = true) {
         viewModelScope.launch {
@@ -345,7 +346,6 @@ class ProgrammeViewModel(application: Application) : AndroidViewModel(applicatio
                         benchMax = if (template.requiresMaxes) maxes.bench else null,
                         deadliftMax = if (template.requiresMaxes) maxes.deadlift else null,
                         ohpMax = if (template.requiresMaxes) maxes.ohp else null,
-                        accessoryCustomizations = accessoryCustomizations,
                     )
                 println("✅ Programme created with ID: $programmeId")
 
@@ -480,16 +480,19 @@ data class UserMaxes(
     val deadlift: Float? = null,
     val ohp: Float? = null,
 ) {
-    fun isValid(requiresMaxes: Boolean): Boolean {
-        return if (requiresMaxes) {
-            squat != null && squat > 0 &&
-                bench != null && bench > 0 &&
-                deadlift != null && deadlift > 0 &&
-                ohp != null && ohp > 0
+    fun isValid(requiresMaxes: Boolean): Boolean =
+        if (requiresMaxes) {
+            squat != null &&
+                squat > 0 &&
+                bench != null &&
+                bench > 0 &&
+                deadlift != null &&
+                deadlift > 0 &&
+                ohp != null &&
+                ohp > 0
         } else {
             true
         }
-    }
 }
 
 enum class SetupStep {

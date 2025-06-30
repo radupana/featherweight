@@ -20,13 +20,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.github.radupana.featherweight.data.profile.ExerciseMaxWithName
 import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
+import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeUiState
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
-import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import com.github.radupana.featherweight.viewmodel.SetupStep
 import com.github.radupana.featherweight.viewmodel.UserMaxes
-import com.github.radupana.featherweight.data.profile.ExerciseMaxWithName
 
 @Composable
 fun ProgrammeSetupDialog(
@@ -42,22 +42,26 @@ fun ProgrammeSetupDialog(
 
     // Auto-populate 1RM values from profile when dialog opens
     LaunchedEffect(template.requiresMaxes) {
-        if (template.requiresMaxes && userMaxes.squat == null && userMaxes.bench == null && 
-            userMaxes.deadlift == null && userMaxes.ohp == null) {
+        if (template.requiresMaxes &&
+            userMaxes.squat == null &&
+            userMaxes.bench == null &&
+            userMaxes.deadlift == null &&
+            userMaxes.ohp == null
+        ) {
             val currentMaxes = profileUiState.currentMaxes
             val squatMax = currentMaxes.find { it.exerciseName == "Back Squat" }?.maxWeight
             val benchMax = currentMaxes.find { it.exerciseName == "Bench Press" }?.maxWeight
             val deadliftMax = currentMaxes.find { it.exerciseName == "Conventional Deadlift" }?.maxWeight
             val ohpMax = currentMaxes.find { it.exerciseName == "Overhead Press" }?.maxWeight
-            
+
             // Update all values at once to ensure proper validation
             viewModel.updateUserMaxes(
                 UserMaxes(
                     squat = squatMax,
                     bench = benchMax,
                     deadlift = deadliftMax,
-                    ohp = ohpMax
-                )
+                    ohp = ohpMax,
+                ),
             )
         }
     }
@@ -148,7 +152,7 @@ fun ProgrammeSetupDialog(
                                 }
                             }
                             SetupStep.ACCESSORY_SELECTION -> {
-                                AccessorySelectionStep(template = template)
+                                AccessorySelectionStep()
                             }
                             SetupStep.CONFIRMATION -> {
                                 ConfirmationStep(
@@ -194,21 +198,31 @@ fun ProgrammeSetupDialog(
                                 SetupStep.MAXES_INPUT -> {
                                     if (template.requiresMaxes) {
                                         val currentMaxes = profileUiState.currentMaxes
-                                        val effectiveSquat = userMaxes.squat ?: currentMaxes.find { it.exerciseName == "Back Squat" }?.maxWeight
-                                        val effectiveBench = userMaxes.bench ?: currentMaxes.find { it.exerciseName == "Bench Press" }?.maxWeight
-                                        val effectiveDeadlift = userMaxes.deadlift ?: currentMaxes.find { it.exerciseName == "Conventional Deadlift" }?.maxWeight
-                                        val effectiveOhp = userMaxes.ohp ?: currentMaxes.find { it.exerciseName == "Overhead Press" }?.maxWeight
-                                        
-                                        effectiveSquat != null && effectiveSquat > 0 &&
-                                        effectiveBench != null && effectiveBench > 0 &&
-                                        effectiveDeadlift != null && effectiveDeadlift > 0 &&
-                                        effectiveOhp != null && effectiveOhp > 0
+                                        val effectiveSquat =
+                                            userMaxes.squat ?: currentMaxes.find { it.exerciseName == "Back Squat" }?.maxWeight
+                                        val effectiveBench =
+                                            userMaxes.bench ?: currentMaxes.find { it.exerciseName == "Bench Press" }?.maxWeight
+                                        val effectiveDeadlift =
+                                            userMaxes.deadlift
+                                                ?: currentMaxes.find { it.exerciseName == "Conventional Deadlift" }?.maxWeight
+                                        val effectiveOhp =
+                                            userMaxes.ohp ?: currentMaxes.find { it.exerciseName == "Overhead Press" }?.maxWeight
+
+                                        effectiveSquat != null &&
+                                            effectiveSquat > 0 &&
+                                            effectiveBench != null &&
+                                            effectiveBench > 0 &&
+                                            effectiveDeadlift != null &&
+                                            effectiveDeadlift > 0 &&
+                                            effectiveOhp != null &&
+                                            effectiveOhp > 0
                                     } else {
                                         true
                                     }
                                 }
                                 else -> true
-                            } && !uiState.isCreating,
+                            } &&
+                                !uiState.isCreating,
                         modifier = Modifier.weight(1f),
                     ) {
                         if (uiState.isCreating) {
@@ -403,7 +417,7 @@ private fun MaxesInputStep(
 }
 
 @Composable
-private fun AccessorySelectionStep(template: ProgrammeTemplate) {
+private fun AccessorySelectionStep() {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -529,7 +543,12 @@ private fun ConfirmationStep(
                 ProgrammeSummaryRow("Template", template.name)
                 ProgrammeSummaryRow("Author", template.author)
                 ProgrammeSummaryRow("Duration", "${template.durationWeeks} weeks")
-                ProgrammeSummaryRow("Difficulty", template.difficulty.name.lowercase().capitalize())
+                ProgrammeSummaryRow(
+                    "Difficulty",
+                    template.difficulty.name
+                        .lowercase()
+                        .capitalize(),
+                )
 
                 if (template.requiresMaxes && userMaxes.isValid(true)) {
                     Divider(modifier = Modifier.padding(vertical = 4.dp))
@@ -664,14 +683,17 @@ private fun WeightInputField(
                 },
         isError = isError,
         singleLine = true,
-        supportingText = if (profileValue != null && profileValue > 0) {
-            {
-                Text(
-                    text = "From profile: ${if (profileValue % 1 == 0f) profileValue.toInt() else profileValue}kg",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else null,
+        supportingText =
+            if (profileValue != null && profileValue > 0) {
+                {
+                    Text(
+                        text = "From profile: ${if (profileValue % 1 == 0f) profileValue.toInt() else profileValue}kg",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                null
+            },
     )
 }

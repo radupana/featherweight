@@ -1,16 +1,15 @@
 package com.github.radupana.featherweight.ui.screens
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,13 +26,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.profile.ExerciseMaxWithName
@@ -59,10 +58,11 @@ fun ProfileScreen(
 
     val menuWidth by animateFloatAsState(
         targetValue = if (isMenuExpanded) 180f else 64f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        animationSpec =
+            spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow,
+            ),
         label = "menuWidth",
     )
 
@@ -103,9 +103,9 @@ fun ProfileScreen(
                 ) {
                     // Menu Toggle Button
                     IconButton(
-                        onClick = { 
+                        onClick = {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            isMenuExpanded = !isMenuExpanded 
+                            isMenuExpanded = !isMenuExpanded
                         },
                         modifier =
                             Modifier
@@ -129,7 +129,7 @@ fun ProfileScreen(
                             Icon(
                                 Icons.Filled.FitnessCenter,
                                 contentDescription = "Maxes",
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.primary,
                             )
                         },
                         label =
@@ -185,7 +185,7 @@ fun ProfileScreen(
                                 "Track your one-rep maximums",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(bottom = 16.dp)
+                                modifier = Modifier.padding(bottom = 16.dp),
                             )
                         }
                     }
@@ -198,14 +198,14 @@ fun ProfileScreen(
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(bottom = 8.dp),
                         )
-                        
+
                         // Compact 2x2 Grid
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
                             modifier = Modifier.height(180.dp), // Fixed height for 2 rows
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
-                            userScrollEnabled = false // Disable scrolling since it's embedded
+                            userScrollEnabled = false, // Disable scrolling since it's embedded
                         ) {
                             items(uiState.big4Exercises) { exercise ->
                                 val currentMax = uiState.currentMaxes.find { it.exerciseId == exercise.id }
@@ -248,9 +248,9 @@ fun ProfileScreen(
 
                 // Floating Action Button
                 ExtendedFloatingActionButton(
-                    onClick = { 
+                    onClick = {
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        showAdd1RMDialog = true 
+                        showAdd1RMDialog = true
                     },
                     modifier =
                         Modifier
@@ -277,9 +277,10 @@ fun ProfileScreen(
             exerciseId = exerciseToEdit?.id ?: editingMax?.exerciseId ?: selectedExerciseForDialog?.id,
             exerciseName = exerciseToEdit?.name ?: editingMax?.exerciseName ?: selectedExerciseForDialog?.name,
             currentWeight =
-                editingMax?.maxWeight ?: uiState.currentMaxes.find {
-                    it.exerciseId == (exerciseToEdit?.id ?: 0)
-                }?.maxWeight,
+                editingMax?.maxWeight ?: uiState.currentMaxes
+                    .find {
+                        it.exerciseId == (exerciseToEdit?.id ?: 0)
+                    }?.maxWeight,
             onDismiss = {
                 showAdd1RMDialog = false
                 exerciseToEdit = null
@@ -330,71 +331,76 @@ private fun Compact1RMCard(
     onEdit: () -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
-    
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(80.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(),
-                onClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onEdit()
-                },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = ripple(),
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onEdit()
+                    },
+                ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
             ),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp,
-            pressedElevation = 2.dp,
-        ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 1.dp,
+                pressedElevation = 2.dp,
+            ),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = when (exercise.name) {
-                    "Back Squat" -> "Squat"
-                    "Bench Press" -> "Bench" 
-                    "Conventional Deadlift" -> "Deadlift"
-                    "Overhead Press" -> "OHP"
-                    else -> exercise.name
-                },
+                text =
+                    when (exercise.name) {
+                        "Back Squat" -> "Squat"
+                        "Bench Press" -> "Bench"
+                        "Conventional Deadlift" -> "Deadlift"
+                        "Overhead Press" -> "OHP"
+                        else -> exercise.name
+                    },
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
+                maxLines = 1,
             )
-            
+
             Row(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 if (currentMax != null) {
                     Text(
                         "${currentMax.maxWeight.toInt()}",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     )
                     Text(
                         "kg",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 2.dp)
+                        modifier = Modifier.padding(bottom = 2.dp),
                     )
                 } else {
                     Text(
                         "Set 1RM",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
                     )
                 }
             }
@@ -410,17 +416,18 @@ private fun SwipeableExerciseMaxCard(
     onDelete: () -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { dismissDirection ->
-            if (dismissDirection == SwipeToDismissBoxValue.EndToStart) {
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                onDelete()
-                true
-            } else {
-                false
-            }
-        }
-    )
+    val dismissState =
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = { dismissDirection ->
+                if (dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onDelete()
+                    true
+                } else {
+                    false
+                }
+            },
+        )
 
     SwipeToDismissBox(
         state = dismissState,
@@ -428,30 +435,31 @@ private fun SwipeableExerciseMaxCard(
             // Only show red background when actively dismissing
             if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            MaterialTheme.colorScheme.error,
-                            RoundedCornerShape(12.dp)
-                        ),
-                    contentAlignment = Alignment.CenterEnd
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(
+                                MaterialTheme.colorScheme.error,
+                                RoundedCornerShape(12.dp),
+                            ),
+                    contentAlignment = Alignment.CenterEnd,
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(
                             Icons.Filled.Delete,
                             contentDescription = "Delete",
                             tint = MaterialTheme.colorScheme.onError,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(24.dp),
                         )
                         Text(
                             "Delete",
                             color = MaterialTheme.colorScheme.onError,
                             style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
                         )
                     }
                 }
@@ -463,7 +471,7 @@ private fun SwipeableExerciseMaxCard(
         OtherExerciseMaxCard(
             max = max,
             onEdit = onEdit,
-            onDelete = {} // Disable original delete since swipe handles it
+            // Disable original delete since swipe handles it
         )
     }
 }
@@ -472,35 +480,38 @@ private fun SwipeableExerciseMaxCard(
 private fun OtherExerciseMaxCard(
     max: ExerciseMaxWithName,
     onEdit: () -> Unit,
-    onDelete: () -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(),
-                onClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onEdit()
-                },
-            ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = ripple(),
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onEdit()
+                    },
+                ),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 0.dp,
-            pressedElevation = 1.dp,
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 1.dp,
+            ),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -562,13 +573,14 @@ private fun Add1RMBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             // Title
@@ -577,24 +589,26 @@ private fun Add1RMBottomSheet(
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
             )
-            
+
             // Exercise Selection
             if (exerciseName != null) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                    ),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                        ),
                 ) {
                     Text(
                         if (exerciseName == "Conventional Deadlift") "Deadlift" else exerciseName,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -606,10 +620,11 @@ private fun Add1RMBottomSheet(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    ),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
                 ) {
                     Icon(
                         Icons.Filled.Search,
@@ -636,11 +651,11 @@ private fun Add1RMBottomSheet(
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
             )
-            
+
             // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 OutlinedButton(
                     onClick = {
@@ -652,7 +667,7 @@ private fun Add1RMBottomSheet(
                 ) {
                     Text("Cancel")
                 }
-                
+
                 Button(
                     onClick = {
                         val weight = weightText.text.toFloatOrNull()
