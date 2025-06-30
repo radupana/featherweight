@@ -65,6 +65,7 @@ abstract class FeatherweightDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): FeatherweightDatabase =
             INSTANCE ?: synchronized(this) {
+                android.util.Log.e("FeatherweightDebug", "FeatherweightDatabase.getDatabase: Starting database creation")
                 val instance =
                     Room
                         .databaseBuilder(
@@ -74,6 +75,7 @@ abstract class FeatherweightDatabase : RoomDatabase() {
                         )
                         .fallbackToDestructiveMigration() // Just nuke and recreate during development
                         .build()
+                android.util.Log.e("FeatherweightDebug", "FeatherweightDatabase.getDatabase: Database instance created")
                 INSTANCE = instance
                 instance
             }

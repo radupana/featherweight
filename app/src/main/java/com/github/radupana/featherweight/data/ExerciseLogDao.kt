@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.data
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 
 @Dao
 interface ExerciseLogDao {
@@ -20,4 +21,10 @@ interface ExerciseLogDao {
 
     @Query("UPDATE ExerciseLog SET exerciseOrder = :newOrder WHERE id = :exerciseLogId")
     suspend fun updateExerciseOrder(exerciseLogId: Long, newOrder: Int)
+    
+    @Update
+    suspend fun update(exerciseLog: ExerciseLog)
+    
+    @Query("SELECT * FROM ExerciseLog WHERE id = :id")
+    suspend fun getExerciseLogById(id: Long): ExerciseLog?
 }

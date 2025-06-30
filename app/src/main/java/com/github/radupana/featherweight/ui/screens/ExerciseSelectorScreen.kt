@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.exercise.*
+import com.github.radupana.featherweight.data.ExerciseLog
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -37,6 +39,8 @@ fun ExerciseSelectorScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ExerciseSelectorViewModel = viewModel(),
+    isSwapMode: Boolean = false,
+    currentExercise: ExerciseLog? = null,
 ) {
     val exercises by viewModel.filteredExercises.collectAsState()
     val categories by viewModel.categories.collectAsState()
@@ -71,7 +75,7 @@ fun ExerciseSelectorScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Select Exercise",
+                        if (isSwapMode) "Swap Exercise" else "Select Exercise",
                         fontWeight = FontWeight.SemiBold,
                     )
                 },
@@ -93,6 +97,51 @@ fun ExerciseSelectorScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
+            // Show current exercise when in swap mode
+            if (isSwapMode && currentExercise != null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(compactPadding),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    ),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(compactPadding)
+                    ) {
+                        Text(
+                            text = "Currently selected:",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            text = currentExercise.exerciseName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Filled.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "All sets will be cleared when you swap",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+            }
+            
             // Error handling at the top
             errorMessage?.let { error ->
                 Card(

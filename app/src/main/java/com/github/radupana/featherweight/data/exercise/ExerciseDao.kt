@@ -73,6 +73,9 @@ interface ExerciseDao {
     """)
     suspend fun findExerciseByNameOrAlias(searchTerm: String): Exercise?
     
+    @Query("SELECT * FROM exercises WHERE id = :id")
+    suspend fun getExerciseById(id: Long): Exercise?
+    
 }
 
 // Type converters for Room

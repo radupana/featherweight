@@ -98,9 +98,16 @@ enum class Equipment(
     DUMBBELL("Dumbbell"),
     KETTLEBELL("Kettlebell"),
     PLATES("Weight Plates"),
+    TRAP_BAR("Trap Bar"),
+    SAFETY_BAR("Safety Bar"),
+    BUFFALO_BAR("Buffalo Bar"),
+    SWISS_BAR("Swiss Bar"),
+    CAMBERED_BAR("Cambered Bar"),
+    AXLE_BAR("Axle Bar"),
 
     // Machines
-    CABLE_MACHINE("Cable Machine"),
+    CABLE("Cable Machine"),
+    CABLE_MACHINE("Cable Machine"), // Keep for backward compatibility
     MACHINE("Machine"),
     SMITH_MACHINE("Smith Machine"),
     LEG_PRESS("Leg Press"),
@@ -111,12 +118,18 @@ enum class Equipment(
     LEG_CURL("Leg Curl Machine"),
     LEG_EXTENSION("Leg Extension Machine"),
     CALF_RAISE("Calf Raise Machine"),
+    BELT_SQUAT("Belt Squat Machine"),
+    GHD_MACHINE("GHD Machine"),
 
     // Bodyweight/Basic
     BODYWEIGHT("Bodyweight"),
     PULL_UP_BAR("Pull-up Bar"),
     DIP_STATION("Dip Station"),
     PARALLEL_BARS("Parallel Bars"),
+    PARALLETTES("Parallettes"),
+    RINGS("Gymnastic Rings"),
+    BOX("Plyo Box"),
+    BENCH("Bench"),
 
     LEG_PRESS_MACHINE("Leg Press Machine"),
     PREACHER_BENCH("Preacher Bench"),
@@ -124,16 +137,35 @@ enum class Equipment(
 
     // Accessories
     RESISTANCE_BAND("Resistance Band"),
+    BAND("Resistance Band"), // Alias for RESISTANCE_BAND
     SUSPENSION_TRAINER("Suspension Trainer"),
+    TRX("TRX"),
     MEDICINE_BALL("Medicine Ball"),
     BOSU_BALL("Bosu Ball"),
     FOAM_ROLLER("Foam Roller"),
+    STABILITY_BALL("Stability Ball"),
+    POLE("Pole"),
 
     // Cardio
     TREADMILL("Treadmill"),
     BIKE("Exercise Bike"),
+    ASSAULT_BIKE("Assault Bike"),
     ROWING_MACHINE("Rowing Machine"),
+    ROWER("Rower"),
     ELLIPTICAL("Elliptical"),
+    SKI_ERG("Ski Erg"),
+
+    // Strongman Equipment
+    LOG("Log"),
+    YOKE("Yoke"),
+    SLED("Sled"),
+    TIRE("Tire"),
+    SLEDGEHAMMER("Sledgehammer"),
+    ATLAS_STONE("Atlas Stone"),
+    KEG("Keg"),
+    SANDBAG("Sandbag"),
+    CAR_DEADLIFT("Car Deadlift Frame"),
+    BATTLE_ROPES("Battle Ropes"),
 
     NONE("No Equipment"),
     ;
@@ -209,4 +241,6 @@ enum class ExerciseType(
     REHABILITATION("Rehabilitation"),
     WARMUP("Warm-up"),
     COOLDOWN("Cool-down"),
+    CONDITIONING("Conditioning"),
+    SKILL("Skill Work"),
 }

@@ -108,6 +108,10 @@ class WorkoutViewModel(
     private val _exerciseDetails = MutableStateFlow<Map<Long, ExerciseWithDetails>>(emptyMap())
     val exerciseDetails: StateFlow<Map<Long, ExerciseWithDetails>> = _exerciseDetails
 
+    // Exercise swap state
+    private val _swappingExercise = MutableStateFlow<ExerciseLog?>(null)
+    val swappingExercise: StateFlow<ExerciseLog?> = _swappingExercise
+
     init {
         checkForOngoingWorkout()
         loadInProgressWorkouts()
@@ -898,6 +902,65 @@ class WorkoutViewModel(
                 
                 // Update the UI state
                 _selectedWorkoutExercises.value = exercises
+            }
+        }
+    }
+    
+    // ===== EXERCISE SWAP METHODS =====
+    
+    fun initiateExerciseSwap(exerciseLogId: Long) {
+        if (!canEditWorkout()) return
+        
+        val exercise = _selectedWorkoutExercises.value.find { it.id == exerciseLogId }
+        if (exercise != null) {
+            _swappingExercise.value = exercise
+        }
+    }
+    
+    fun cancelExerciseSwap() {
+        _swappingExercise.value = null
+    }
+    
+    fun confirmExerciseSwap(newExerciseId: Long) {
+        if (!canEditWorkout()) return
+        
+        val swappingExercise = _swappingExercise.value ?: return
+        
+        viewModelScope.launch {
+            try {
+                // Get the new exercise details
+                val newExercise = repository.getExerciseEntityById(newExerciseId)
+                if (newExercise != null) {
+                    // Perform the swap
+                    repository.swapExercise(
+                        exerciseLogId = swappingExercise.id,
+                        newExerciseId = newExerciseId,
+                        newExerciseName = newExercise.name,
+                        originalExerciseId = swappingExercise.exerciseId ?: swappingExercise.id
+                    )
+                    
+                    // Clear all sets for this exercise
+                    repository.deleteSetsForExerciseLog(swappingExercise.id)
+                    
+                    // Record swap history
+                    val userId = repository.getCurrentUserId()
+                    repository.recordExerciseSwap(
+                        userId = userId,
+                        originalExerciseId = swappingExercise.exerciseId ?: swappingExercise.id,
+                        swappedToExerciseId = newExerciseId,
+                        workoutId = _currentWorkoutId.value,
+                        programmeId = _workoutState.value.programmeId
+                    )
+                    
+                    // Reload exercises for the workout
+                    val currentId = _currentWorkoutId.value ?: return@launch
+                    loadExercisesForWorkout(currentId)
+                    
+                    // Clear swap state
+                    _swappingExercise.value = null
+                }
+            } catch (e: Exception) {
+                println("Error swapping exercise: ${e.message}")
             }
         }
     }

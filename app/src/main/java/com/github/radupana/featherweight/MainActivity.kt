@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -81,6 +82,16 @@ data class NavigationItem(
 
 class MainActivity : ComponentActivity() {
     
+    companion object {
+        init {
+            android.util.Log.e("FeatherweightDebug", "MainActivity: Companion object initialized")
+        }
+    }
+    
+    init {
+        android.util.Log.e("FeatherweightDebug", "MainActivity: Class initialized")
+    }
+    
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -89,11 +100,15 @@ class MainActivity : ComponentActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install splash screen (Android 12+ native splash)
+        android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: Starting")
         installSplashScreen()
+        android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: Splash screen installed")
 
         super.onCreate(savedInstanceState)
+        android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: super.onCreate completed")
         
         // Request notification permission for Android 13+
+        android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: Checking notification permission")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     this,
@@ -105,27 +120,43 @@ class MainActivity : ComponentActivity() {
         }
 
         // Enable edge-to-edge display for modern look
+        android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: Enabling edge-to-edge")
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         // Configure keyboard behavior - this is crucial for proper keyboard handling
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
 
-        setContent {
-            FeatherweightTheme {
+        android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: About to setContent")
+        try {
+            setContent {
+                android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Inside setContent")
+                FeatherweightTheme {
+                android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Inside FeatherweightTheme")
                 var currentScreen by remember { mutableStateOf(Screen.SPLASH) }
                 val userPreferences = remember { UserPreferences(application) }
                 
                 // App-level ViewModels for persistence across screens
+                android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Creating RestTimerViewModel")
                 val restTimerViewModel: RestTimerViewModel = viewModel(
                     factory = RestTimerViewModelFactory(this@MainActivity)
                 )
+                android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: RestTimerViewModel created")
 
                 // Seed database early
                 LaunchedEffect(Unit) {
-                    val repository = FeatherweightRepository(application)
-                    repository.seedDatabaseIfEmpty()
-                    repository.seedTestUsers()
+                    try {
+                        android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Creating repository")
+                        val repository = FeatherweightRepository(application)
+                        android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Repository created, seeding database")
+                        repository.seedDatabaseIfEmpty()
+                        android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Database seeded, seeding test users")
+                        repository.seedTestUsers()
+                        android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Test users seeded")
+                    } catch (e: Exception) {
+                        android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Exception caught!", e)
+                        e.printStackTrace()
+                    }
                 }
 
                 when (currentScreen) {
@@ -158,6 +189,10 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+        } catch (e: Exception) {
+            android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: Exception in setContent!", e)
+            e.printStackTrace()
         }
     }
 }
@@ -303,16 +338,29 @@ fun MainAppWithNavigation(
 
             Screen.EXERCISE_SELECTOR -> {
                 val workoutViewModel: WorkoutViewModel = viewModel()
+                val swappingExercise by workoutViewModel.swappingExercise.collectAsState()
+                
                 ExerciseSelectorScreen(
                     onExerciseSelected = { exercise ->
-                        workoutViewModel.addExerciseToCurrentWorkout(exercise)
+                        if (swappingExercise != null) {
+                            // We're in swap mode
+                            workoutViewModel.confirmExerciseSwap(exercise.exercise.id)
+                        } else {
+                            // Normal add mode
+                            workoutViewModel.addExerciseToCurrentWorkout(exercise)
+                        }
                         onScreenChange(Screen.ACTIVE_WORKOUT)
                     },
                     onCreateCustomExercise = { name ->
                         workoutViewModel.addExerciseToCurrentWorkout(name)
                         onScreenChange(Screen.ACTIVE_WORKOUT)
                     },
-                    onBack = { onScreenChange(Screen.ACTIVE_WORKOUT) },
+                    onBack = { 
+                        workoutViewModel.cancelExerciseSwap()
+                        onScreenChange(Screen.ACTIVE_WORKOUT) 
+                    },
+                    isSwapMode = swappingExercise != null,
+                    currentExercise = swappingExercise,
                     modifier = Modifier.padding(innerPadding),
                 )
             }

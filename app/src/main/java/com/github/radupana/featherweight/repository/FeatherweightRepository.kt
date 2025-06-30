@@ -5,6 +5,8 @@ import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
+import com.github.radupana.featherweight.data.ExerciseSwapHistory
+import com.github.radupana.featherweight.data.SwapHistoryCount
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
@@ -67,19 +69,45 @@ data class WorkoutSummary(
 class FeatherweightRepository(
     application: Application,
 ) {
-    private val db = FeatherweightDatabase.getDatabase(application)
-    private val userPreferences = UserPreferences(application)
+    init {
+        android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: Starting initialization")
+    }
+    
+    private val db = FeatherweightDatabase.getDatabase(application).also {
+        android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: Database obtained")
+    }
+    private val userPreferences = UserPreferences(application).also {
+        android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: UserPreferences created")
+    }
 
-    private val workoutDao = db.workoutDao()
-    private val exerciseLogDao = db.exerciseLogDao()
-    private val setLogDao = db.setLogDao()
-    private val exerciseDao = db.exerciseDao()
-    private val programmeDao = db.programmeDao()
-    private val profileDao = db.profileDao()
+    private val workoutDao = db.workoutDao().also {
+        android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: workoutDao obtained")
+    }
+    private val exerciseLogDao = db.exerciseLogDao().also {
+        android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: exerciseLogDao obtained")
+    }
+    private val setLogDao = db.setLogDao().also {
+        android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: setLogDao obtained")
+    }
+    private val exerciseDao = db.exerciseDao().also {
+        android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: exerciseDao obtained")
+    }
+    private val programmeDao = db.programmeDao().also {
+        android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: programmeDao obtained")
+    }
+    private val profileDao = db.profileDao().also {
+        android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: profileDao obtained")
+    }
 
-    private val exerciseSeeder = ExerciseSeeder(exerciseDao, application)
-    private val exerciseAliasSeeder = ExerciseAliasSeeder(exerciseDao)
-    private val programmeSeeder = ProgrammeSeeder(programmeDao)
+    private val exerciseSeeder = ExerciseSeeder(exerciseDao, application).also {
+        android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: ExerciseSeeder created")
+    }
+    private val exerciseAliasSeeder = ExerciseAliasSeeder(exerciseDao).also {
+        android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: ExerciseAliasSeeder created")
+    }
+    private val programmeSeeder = ProgrammeSeeder(programmeDao).also {
+        android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: ProgrammeSeeder created")
+    }
 
     fun getCurrentUserId(): Long = userPreferences.getCurrentUserId()
 
@@ -725,6 +753,61 @@ class FeatherweightRepository(
 
     // Delete an entire workout (will cascade delete all exercises and sets)
     suspend fun deleteWorkout(workoutId: Long) = workoutDao.deleteWorkout(workoutId)
+    
+    // Update an exercise log
+    suspend fun updateExerciseLog(exerciseLog: ExerciseLog) = exerciseLogDao.update(exerciseLog)
+    
+    // Delete all sets for a specific exercise
+    suspend fun deleteSetsForExercise(exerciseLogId: Long) = setLogDao.deleteAllSetsForExercise(exerciseLogId)
+    
+    suspend fun deleteSetsForExerciseLog(exerciseLogId: Long) = setLogDao.deleteAllSetsForExercise(exerciseLogId)
+    
+    // Get exercise by ID (returns basic Exercise)
+    suspend fun getExerciseEntityById(exerciseId: Long): Exercise? = exerciseDao.getExerciseById(exerciseId)
+    
+    // Swap exercise
+    suspend fun swapExercise(
+        exerciseLogId: Long,
+        newExerciseId: Long,
+        newExerciseName: String,
+        originalExerciseId: Long
+    ) {
+        val exerciseLog = exerciseLogDao.getExerciseLogById(exerciseLogId)
+        if (exerciseLog != null) {
+            val updatedLog = exerciseLog.copy(
+                exerciseId = newExerciseId,
+                exerciseName = newExerciseName,
+                originalExerciseId = originalExerciseId,
+                isSwapped = true
+            )
+            exerciseLogDao.update(updatedLog)
+        }
+    }
+    
+    // Record an exercise swap in history
+    suspend fun recordExerciseSwap(
+        userId: Long,
+        originalExerciseId: Long,
+        swappedToExerciseId: Long,
+        workoutId: Long? = null,
+        programmeId: Long? = null
+    ) {
+        val swapHistory = ExerciseSwapHistory(
+            userId = userId,
+            originalExerciseId = originalExerciseId,
+            swappedToExerciseId = swappedToExerciseId,
+            swapDate = LocalDateTime.now(),
+            workoutId = workoutId,
+            programmeId = programmeId
+        )
+        db.exerciseSwapHistoryDao().insert(swapHistory)
+    }
+    
+    // Get swap history for exercise
+    suspend fun getSwapHistoryForExercise(exerciseId: Long): List<SwapHistoryCount> {
+        val userId = getCurrentUserId()
+        return db.exerciseSwapHistoryDao().getSwapHistoryForExercise(userId, exerciseId)
+    }
 
     // ===== ANALYTICS METHODS =====
 

@@ -25,4 +25,7 @@ interface SetLogDao {
 
     @Query("DELETE FROM SetLog WHERE id = :setId")
     suspend fun deleteSetLog(setId: Long)
+    
+    @Query("DELETE FROM SetLog WHERE exerciseLogId = :exerciseLogId")
+    suspend fun deleteAllSetsForExercise(exerciseLogId: Long)
 }

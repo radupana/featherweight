@@ -25,7 +25,7 @@ experience.
 
 ### Core Features ✅
 
-- **Exercise Database**: 112 exercises with full metadata (all singular naming)
+- **Exercise Database**: 500 curated exercises with consistent naming and comprehensive metadata
 - **Programme System**: Popular templates (531, StrongLifts, etc.) with 1RM setup
 - **Workout Tracking**: Real-time set completion, smart weight input, programme integration
 - **Analytics**: Interactive charts, Quick Stats, Big 4 focus
@@ -36,12 +36,15 @@ experience.
 
 ### Key Implementation Details
 
-#### Exercise Naming Convention
+#### Exercise Database & Naming Convention
 
-- ALL exercises use singular form: "Barbell Curl" not "Barbell Curls"
-- Usage tracking with frequency-based sorting in exercise selection
-- **Exercise Database Integrity**: Strict 1-to-1 validation ensures LLM responses only contain
-  supported exercises
+- **500 exercises** covering all major equipment types and movement patterns
+- **Consistent naming**: `[Equipment] [Target/Muscle] [Movement]` (e.g., "Barbell Back Squat")
+- **Equipment-first naming**: Always lead with equipment type
+- **Singular form**: "Barbell Curl" not "Barbell Curls"
+- **No abbreviations**: "Romanian Deadlift" not "RDL"
+- **Fuzzy matching**: Smart alias system for LLM exercise resolution
+- **Static JSON asset**: `/app/src/main/assets/exercises.json`
 
 #### Programme System
 
@@ -60,7 +63,7 @@ experience.
 
 - **Real OpenAI Integration**: Uses gpt-4.1-mini for personalized programmes (NOTE: gpt-4.1-mini is correct - this is a new model)
 - **Secure API Management**: BuildConfig + local.properties for API keys
-- **Smart Fallback**: Seamlessly uses mock responses on API failures
+- **No Fallbacks**: Fails fast on API failures - no mock responses or degraded functionality
 - **Quota System**: 5 generations per day with tracking (disabled for testing)
 - **Exercise Database Validation**: Strict validation with automatic retry logic
 - **Dual-Mode Interface**: Simplified (guided) and Advanced (freeform) generation modes
@@ -73,7 +76,7 @@ experience.
 
 - `FeatherweightDatabase.kt` - Room database with destructive migration
 - `FeatherweightRepository.kt` - Central data access layer
-- `ExerciseSeeder.kt` - 112 exercises initialization
+- `exercises.json` - 500 exercises in JSON asset file
 - `ProgrammeSeeder.kt` - Programme templates
 
 ### Core Screens
@@ -172,6 +175,7 @@ experience.
 - Use ViewModel factory pattern for ViewModels requiring dependencies
 - Prefer composition over inheritance in UI components
 - **Import Style**: Always use non-fully qualified class names (e.g., `VolumeMetrics` not `com.github.radupana.featherweight.data.VolumeMetrics`) unless there's a naming conflict requiring disambiguation
+- **Fail-Fast Philosophy**: NO mock fallbacks or degraded functionality. If exercise database fails to load, if AI generation fails, or if any core system fails - the app should fail fast and clearly. We want users to experience the full app or nothing. No loading 50 common exercises as fallback, no static programmes as AI backup, no graceful degradation that results in a subpar experience.
 
 ## Technical Gotchas
 
@@ -206,7 +210,32 @@ experience.
 
 ## Recent Focus Areas
 
-### Latest Session: Complete AI Programme System Overhaul (2025-06-28)
+### Latest Session: Exercise Database Expansion (2025-06-30)
+
+Expanded exercise database from 140 to 500 exercises to solve OpenAI API timeout issues:
+
+**Problem Solved:**
+- OpenAI API requests timing out after 60+ seconds due to 19K+ character system prompts
+- Previous implementation sent 662 exercises in prompt, causing massive payloads
+
+**Solution Implemented:**
+- Removed wger.de integration completely
+- Created curated static exercise database with 500 exercises
+- Consistent naming convention: `[Equipment] [Target/Muscle] [Movement]`
+- Fuzzy matching system with aliases for LLM exercise resolution
+- Static JSON asset file for exercises
+
+**Exercise Categories Added:**
+- Machine exercises (leg press, pec deck, lat pulldown)
+- Kettlebell variations
+- Cable exercises and band work
+- TRX and suspension training
+- Medicine ball exercises
+- Olympic lifts and variations
+- Gymnastics and calisthenics movements
+- Strongman equipment exercises
+
+### Previous Session: Complete AI Programme System Overhaul (2025-06-28)
 
 Comprehensive enhancement of the AI programme generation system based on extensive UAT:
 

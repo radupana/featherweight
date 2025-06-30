@@ -27,7 +27,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -333,6 +332,7 @@ fun WorkoutScreen(
                             viewModel.loadSetsForExercise(exerciseId)
                         }
                     },
+                    onSelectExercise = onSelectExercise,
                     viewModel = viewModel,
                     modifier = Modifier.weight(1f),
                 )
@@ -891,6 +891,7 @@ private fun ExercisesList(
     canEdit: Boolean,
     onDeleteExercise: (Long) -> Unit,
     onOpenSetEditingModal: (Long) -> Unit,
+    onSelectExercise: () -> Unit,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
@@ -966,6 +967,12 @@ private fun ExercisesList(
                 },
                 onDeleteExercise = { exerciseId ->
                     if (canEdit) onDeleteExercise(exerciseId)
+                },
+                onSwapExercise = { exerciseId ->
+                    if (canEdit) {
+                        viewModel.initiateExerciseSwap(exerciseId)
+                        onSelectExercise()
+                    }
                 },
                 viewModel = viewModel,
                 showDragHandle = canEdit,

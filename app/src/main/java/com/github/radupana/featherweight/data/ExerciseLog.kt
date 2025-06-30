@@ -29,4 +29,6 @@ data class ExerciseLog(
     val exerciseOrder: Int,
     val supersetGroup: Int? = null,
     val notes: String? = null,
+    val originalExerciseId: Long? = null, // Track original exercise if swapped
+    val isSwapped: Boolean = false, // Flag to indicate if exercise was swapped
 )
