@@ -49,11 +49,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.ui.components.CompactExerciseCard
 import com.github.radupana.featherweight.ui.components.ProgressCard
 import com.github.radupana.featherweight.ui.dialogs.SetEditingModal
 import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import com.github.radupana.featherweight.viewmodel.WorkoutState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,7 +100,7 @@ fun WorkoutScreen(
 
     // Set editing modal state
     var showSetEditingModal by remember { mutableStateOf(false) }
-    var setEditingExercise by remember { mutableStateOf<com.github.radupana.featherweight.data.ExerciseLog?>(null) }
+    var setEditingExercise by remember { mutableStateOf<ExerciseLog?>(null) }
 
     // Calculate progress stats
     val totalSets = exercises.sumOf { ex -> sets.count { it.exerciseLogId == ex.id } }
@@ -884,7 +886,7 @@ private fun EmptyWorkoutState(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ExercisesList(
-    exercises: List<com.github.radupana.featherweight.data.ExerciseLog>,
+    exercises: List<ExerciseLog>,
     sets: List<SetLog>,
     canEdit: Boolean,
     onDeleteExercise: (Long) -> Unit,
@@ -1108,7 +1110,7 @@ private fun WorkoutActionButtons(
 
 @Composable
 private fun ProgrammeProgressCard(
-    workoutState: com.github.radupana.featherweight.viewmodel.WorkoutState,
+    workoutState: WorkoutState,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {

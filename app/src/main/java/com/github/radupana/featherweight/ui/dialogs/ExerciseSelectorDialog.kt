@@ -179,13 +179,11 @@ private fun ExerciseItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            if (exerciseWithDetails.primaryMuscles.isNotEmpty()) {
-                Text(
-                    text = exerciseWithDetails.primaryMuscles.joinToString(", ") { it.name.replace('_', ' ') },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                )
-            }
+            Text(
+                text = exerciseWithDetails.exercise.muscleGroup,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            )
         }
     }
 }

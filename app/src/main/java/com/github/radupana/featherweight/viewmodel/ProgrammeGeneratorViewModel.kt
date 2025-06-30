@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.*
+import com.github.radupana.featherweight.data.profile.ExerciseMaxWithName
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.AIProgrammeService
 import com.github.radupana.featherweight.service.AIProgrammeRequest
@@ -360,7 +361,7 @@ Or paste existing programmes from ChatGPT, other AI tools, or coaches."""
     
     private fun buildEnhancedUserInputWithWeights(
         state: GuidedInputState, 
-        user1RMs: List<com.github.radupana.featherweight.data.profile.ExerciseMaxWithName>
+        user1RMs: List<ExerciseMaxWithName>
     ): String {
         val baseInput = buildEnhancedUserInput(state)
         val parts = mutableListOf(baseInput)

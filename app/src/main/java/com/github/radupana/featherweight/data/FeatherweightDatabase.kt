@@ -10,13 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseAlias
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
-import com.github.radupana.featherweight.data.exercise.ExerciseEquipment
-import com.github.radupana.featherweight.data.exercise.ExerciseMovementPattern
-import com.github.radupana.featherweight.data.exercise.ExerciseMuscleGroup
 import com.github.radupana.featherweight.data.exercise.ExerciseTypeConverters
-import com.github.radupana.featherweight.data.exercise.WgerCategoryEntity
-import com.github.radupana.featherweight.data.exercise.WgerExerciseMuscle
-import com.github.radupana.featherweight.data.exercise.WgerMuscleEntity
 import com.github.radupana.featherweight.data.profile.ProfileDao
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.data.profile.UserProfile
@@ -34,13 +28,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         ExerciseLog::class,
         SetLog::class,
         Exercise::class,
-        ExerciseMuscleGroup::class,
-        ExerciseEquipment::class,
-        ExerciseMovementPattern::class,
         ExerciseAlias::class,
-        WgerMuscleEntity::class,
-        WgerCategoryEntity::class,
-        WgerExerciseMuscle::class,
         Programme::class,
         ProgrammeTemplate::class,
         ProgrammeWeek::class,
@@ -49,8 +37,9 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         ProgrammeProgress::class,
         UserProfile::class,
         UserExerciseMax::class,
+        ExerciseSwapHistory::class,
     ],
-    version = 21,
+    version = 22,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -66,6 +55,8 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun programmeDao(): ProgrammeDao
 
     abstract fun profileDao(): ProfileDao
+
+    abstract fun exerciseSwapHistoryDao(): ExerciseSwapHistoryDao
 
     companion object {
         @Volatile

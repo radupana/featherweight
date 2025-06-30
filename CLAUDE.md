@@ -58,7 +58,7 @@ experience.
 
 #### AI Programme Generation
 
-- **Real OpenAI Integration**: Uses gpt-4o-mini for personalized programmes
+- **Real OpenAI Integration**: Uses gpt-4.1-mini for personalized programmes (NOTE: gpt-4.1-mini is correct - this is a new model)
 - **Secure API Management**: BuildConfig + local.properties for API keys
 - **Smart Fallback**: Seamlessly uses mock responses on API failures
 - **Quota System**: 5 generations per day with tracking (disabled for testing)
@@ -171,6 +171,7 @@ experience.
 - Test edge cases (empty states, long text, errors)
 - Use ViewModel factory pattern for ViewModels requiring dependencies
 - Prefer composition over inheritance in UI components
+- **Import Style**: Always use non-fully qualified class names (e.g., `VolumeMetrics` not `com.github.radupana.featherweight.data.VolumeMetrics`) unless there's a naming conflict requiring disambiguation
 
 ## Technical Gotchas
 
@@ -191,6 +192,8 @@ experience.
 - Using `fallbackToDestructiveMigration()` during development
 - All data re-seeded on schema changes
 - Production will need proper migrations
+- **IMPORTANT**: We're in development - NEVER create V2 classes/entities or similar versioning. Just
+  modify existing entities directly. Destructive migrations are preferred. Delete and recreate is fine.
 
 ## Development Workflow
 
@@ -198,6 +201,8 @@ experience.
 - Always build the code base before saying that you've completed a task.
 - Don't provide estimates for how long a particular work item will take (like 2 weeks). We're not
   doing that here. We're getting things done ASAP!
+- NEVER put timeline estimates like "Day 1-2", "Week 1", etc. in implementation plans. We implement
+  everything ASAP to get immediate feedback. Each workstream should be completable in a few hours max.
 
 ## Recent Focus Areas
 

@@ -9,26 +9,39 @@ import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
-import com.github.radupana.featherweight.data.exercise.ExerciseEquipment
-import com.github.radupana.featherweight.data.exercise.ExerciseMovementPattern
-import com.github.radupana.featherweight.data.exercise.ExerciseMuscleGroup
 import com.github.radupana.featherweight.data.exercise.ExerciseSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseType
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
-import com.github.radupana.featherweight.data.exercise.MovementPattern
-import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.ai.WeightCalculator
 import com.github.radupana.featherweight.ai.ProgrammeType
 import com.github.radupana.featherweight.ai.WeightCalculation
 import com.github.radupana.featherweight.domain.ExerciseStats
 import com.github.radupana.featherweight.domain.SmartSuggestions
+import com.github.radupana.featherweight.data.UserPreferences
+import com.github.radupana.featherweight.data.GeneratedProgrammePreview
+import com.github.radupana.featherweight.data.VolumeLevel
+import com.github.radupana.featherweight.data.exercise.ExerciseAliasSeeder
+import com.github.radupana.featherweight.data.programme.WorkoutStructure
+import com.github.radupana.featherweight.data.programme.ProgrammeSeeder
+import com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser
+import com.github.radupana.featherweight.data.programme.ExerciseStructure
+import com.github.radupana.featherweight.data.programme.ProgrammeProgress
+import com.github.radupana.featherweight.data.programme.Programme
+import com.github.radupana.featherweight.data.programme.ProgrammeType as DataProgrammeType
+import com.github.radupana.featherweight.data.programme.ProgrammeDifficulty
+import com.github.radupana.featherweight.data.programme.ProgrammeWeek
+import com.github.radupana.featherweight.data.programme.RepsStructure
+import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
+import com.github.radupana.featherweight.data.programme.ExerciseSubstitution
+import com.github.radupana.featherweight.data.profile.UserExerciseMax
+import com.github.radupana.featherweight.data.profile.UserProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
 data class NextProgrammeWorkoutInfo(
-    val workoutStructure: com.github.radupana.featherweight.data.programme.WorkoutStructure,
+    val workoutStructure: WorkoutStructure,
     val actualWeekNumber: Int,
 )
 
@@ -55,7 +68,7 @@ class FeatherweightRepository(
     application: Application,
 ) {
     private val db = FeatherweightDatabase.getDatabase(application)
-    private val userPreferences = com.github.radupana.featherweight.data.UserPreferences(application)
+    private val userPreferences = UserPreferences(application)
 
     private val workoutDao = db.workoutDao()
     private val exerciseLogDao = db.exerciseLogDao()
@@ -65,8 +78,8 @@ class FeatherweightRepository(
     private val profileDao = db.profileDao()
 
     private val exerciseSeeder = ExerciseSeeder(exerciseDao, application)
-    private val exerciseAliasSeeder = com.github.radupana.featherweight.data.exercise.ExerciseAliasSeeder(exerciseDao)
-    private val programmeSeeder = com.github.radupana.featherweight.data.programme.ProgrammeSeeder(programmeDao)
+    private val exerciseAliasSeeder = ExerciseAliasSeeder(exerciseDao)
+    private val programmeSeeder = ProgrammeSeeder(programmeDao)
 
     fun getCurrentUserId(): Long = userPreferences.getCurrentUserId()
 
@@ -79,16 +92,12 @@ class FeatherweightRepository(
 
             // Always seed exercises if there are none
             if (exerciseCount == 0) {
-                // Try to seed from wger first, fallback to manual seeding
-                exerciseSeeder.seedExercisesFromWger()
+                exerciseSeeder.seedExercises()
                 println("Seeded ${exerciseDao.getAllExercisesWithDetails().size} exercises")
                 
-                // Seed aliases after exercises are created (wger seeding includes aliases)
-                if (exerciseDao.getAllExercisesWithDetails().size < 50) {
-                    // If wger seeding failed, seed aliases manually
-                    exerciseAliasSeeder.seedExerciseAliases()
-                    println("Seeded exercise aliases")
-                }
+                // Seed aliases after exercises are created
+                exerciseAliasSeeder.seedExerciseAliases()
+                println("Seeded exercise aliases")
             }
 
             // Seed programme templates if none exist
@@ -97,16 +106,6 @@ class FeatherweightRepository(
                 println("Seeded ${programmeDao.getAllTemplates().size} programme templates")
             }
 
-            if (workoutCount < 10) {
-                // Force seed more data if we have very few workouts for testing
-                println("⚠️ Only $workoutCount workouts found - force seeding more data for pagination testing")
-                seedRealistic531Data()
-                println("Force-seeded additional workout data")
-                
-                // Calculate usage counts after seeding
-                updateExerciseUsageCounts()
-                println("Updated exercise usage counts")
-            }
         }
     }
 
@@ -196,101 +195,17 @@ class FeatherweightRepository(
             exerciseDao.getExercisesByCategory(category)
         }
 
-    suspend fun getExercisesByMuscleGroup(muscleGroup: MuscleGroup): List<ExerciseWithDetails> =
+    suspend fun getExercisesByMuscleGroup(muscleGroup: String): List<Exercise> =
         withContext(Dispatchers.IO) {
             exerciseDao.getExercisesByMuscleGroup(muscleGroup)
         }
 
-    suspend fun getExercisesByEquipment(equipment: List<Equipment>): List<ExerciseWithDetails> =
+    suspend fun getExercisesByEquipment(equipment: Equipment): List<Exercise> =
         withContext(Dispatchers.IO) {
             exerciseDao.getExercisesByEquipment(equipment)
         }
 
-    suspend fun getFilteredExercises(
-        category: ExerciseCategory? = null,
-        muscleGroup: MuscleGroup? = null,
-        equipment: Equipment? = null,
-        availableEquipment: List<Equipment> = emptyList(),
-        maxDifficulty: ExerciseDifficulty? = null,
-        includeCustom: Boolean = true,
-        searchQuery: String = "",
-    ): List<ExerciseWithDetails> =
-        withContext(Dispatchers.IO) {
-            exerciseDao.getFilteredExercises(
-                category,
-                muscleGroup,
-                equipment,
-                availableEquipment,
-                maxDifficulty,
-                includeCustom,
-                searchQuery,
-            )
-        }
 
-    suspend fun createCustomExercise(
-        name: String,
-        category: ExerciseCategory,
-        primaryMuscles: Set<MuscleGroup>,
-        secondaryMuscles: Set<MuscleGroup> = emptySet(),
-        requiredEquipment: Set<Equipment> = emptySet(),
-        movementPatterns: Set<MovementPattern> = emptySet(),
-        userId: String,
-    ): Long =
-        withContext(Dispatchers.IO) {
-            try {
-                // Check for duplicate names
-                val existingExercises = exerciseDao.getAllExercisesWithDetails()
-                val duplicateExists =
-                    existingExercises.any {
-                        it.exercise.name.equals(name, ignoreCase = true)
-                    }
-
-                if (duplicateExists) {
-                    throw Exception("An exercise with the name '$name' already exists")
-                }
-                val exercise =
-                    Exercise(
-                        name = name,
-                        category = category,
-                        type = ExerciseType.STRENGTH,
-                        difficulty = ExerciseDifficulty.BEGINNER,
-                        isCustom = true,
-                        createdBy = userId,
-                        isPublic = false,
-                    )
-
-                // Remove duplicates and ensure primary muscles take precedence over secondary
-                val cleanSecondaryMuscles = secondaryMuscles - primaryMuscles
-
-                val muscleGroups =
-                    mutableListOf<ExerciseMuscleGroup>().apply {
-                        // Add primary muscles
-                        primaryMuscles.forEach { muscle ->
-                            add(ExerciseMuscleGroup(0, muscle, isPrimary = true))
-                        }
-                        // Add secondary muscles (excluding any that are already primary)
-                        cleanSecondaryMuscles.forEach { muscle ->
-                            add(ExerciseMuscleGroup(0, muscle, isPrimary = false))
-                        }
-                    }
-
-                val equipment =
-                    requiredEquipment.map {
-                        ExerciseEquipment(0, it, isRequired = true, isAlternative = false)
-                    }
-
-                val patterns =
-                    movementPatterns.map {
-                        ExerciseMovementPattern(0, it, isPrimary = true)
-                    }
-
-                exerciseDao.insertExerciseWithDetails(exercise, muscleGroups, equipment, patterns)
-            } catch (e: Exception) {
-                println("Error creating custom exercise '$name': ${e.message}")
-                e.printStackTrace()
-                throw Exception("Failed to create custom exercise: ${e.message}", e)
-            }
-        }
 
     // ===== EXISTING WORKOUT METHODS (Updated to work with new Exercise system) =====
 
@@ -1122,7 +1037,7 @@ class FeatherweightRepository(
 
                 // Parse the JSON structure
                 val structure =
-                    com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
+                    ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
                         ?: throw IllegalArgumentException("Invalid programme structure")
 
                 println("📚 Template has ${structure.weeks.size} week(s) defined")
@@ -1141,7 +1056,7 @@ class FeatherweightRepository(
                 // Find the specific workout for this week and day
                 // All programmes MUST have sequential days (1,2,3,4...)
                 val workoutStructure =
-                    com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser.getWorkoutForWeekAndDay(
+                    ProgrammeWorkoutParser.getWorkoutForWeekAndDay(
                         structure,
                         templateWeekNumber,
                         dayNumber,
@@ -1223,7 +1138,7 @@ class FeatherweightRepository(
                 ignoreUnknownKeys = true
                 isLenient = true
             }
-            json.decodeFromString<com.github.radupana.featherweight.data.programme.WorkoutStructure>(
+            json.decodeFromString<WorkoutStructure>(
                 programmeWorkout.workoutStructure
             )
         } catch (e: Exception) {
@@ -1237,7 +1152,7 @@ class FeatherweightRepository(
                     ignoreUnknownKeys = true
                     isLenient = true
                 }
-                json.decodeFromString<com.github.radupana.featherweight.data.programme.WorkoutStructure>(fixedJson)
+                json.decodeFromString<WorkoutStructure>(fixedJson)
             } catch (e2: Exception) {
                 throw IllegalArgumentException("Failed to parse workout structure: ${e2.message}")
             }
@@ -1275,7 +1190,7 @@ class FeatherweightRepository(
 
     private suspend fun createExerciseLogFromStructure(
         workoutId: Long,
-        exerciseStructure: com.github.radupana.featherweight.data.programme.ExerciseStructure,
+        exerciseStructure: ExerciseStructure,
         exerciseOrder: Int,
         userMaxes: Map<String, Float>,
     ): ExerciseLog {
@@ -1287,50 +1202,8 @@ class FeatherweightRepository(
                 null
             }
 
-        // If exercise not found, create it as a custom exercise
-        val exerciseId =
-            if (exercise != null) {
-                exercise.id
-            } else {
-                println("⚠️ Exercise '${exerciseStructure.name}' not found in database, creating as custom exercise")
-                try {
-                    // Create a generic custom exercise based on the name
-                    val category =
-                        when {
-                            exerciseStructure.name.contains("Squat", ignoreCase = true) -> ExerciseCategory.LEGS
-                            exerciseStructure.name.contains("Press", ignoreCase = true) -> ExerciseCategory.CHEST
-                            exerciseStructure.name.contains("Row", ignoreCase = true) -> ExerciseCategory.BACK
-                            exerciseStructure.name.contains("Deadlift", ignoreCase = true) -> ExerciseCategory.LEGS
-                            exerciseStructure.name.contains("Curl", ignoreCase = true) -> ExerciseCategory.ARMS
-                            exerciseStructure.name.contains("Lunge", ignoreCase = true) -> ExerciseCategory.LEGS
-                            exerciseStructure.name.contains("Fly", ignoreCase = true) || exerciseStructure.name.contains("Flys", ignoreCase = true) -> ExerciseCategory.CHEST
-                            exerciseStructure.name.contains("Pull", ignoreCase = true) -> ExerciseCategory.BACK
-                            exerciseStructure.name.contains("Raise", ignoreCase = true) -> ExerciseCategory.SHOULDERS
-                            exerciseStructure.name.contains("Extension", ignoreCase = true) -> ExerciseCategory.LEGS
-                            exerciseStructure.name.contains("Thrust", ignoreCase = true) -> ExerciseCategory.LEGS
-                            else -> ExerciseCategory.FULL_BODY
-                        }
-
-                    val equipment =
-                        when {
-                            exerciseStructure.name.contains("Barbell", ignoreCase = true) -> setOf(Equipment.BARBELL)
-                            exerciseStructure.name.contains("Dumbbell", ignoreCase = true) -> setOf(Equipment.DUMBBELL)
-                            exerciseStructure.name.contains("Cable", ignoreCase = true) -> setOf(Equipment.CABLE_MACHINE)
-                            else -> setOf(Equipment.MACHINE)
-                        }
-
-                    createCustomExercise(
-                        name = exerciseStructure.name,
-                        category = category,
-                        primaryMuscles = setOf(MuscleGroup.fromCategory(category)),
-                        requiredEquipment = equipment,
-                        userId = "programme_template",
-                    )
-                } catch (e: Exception) {
-                    println("❌ Failed to create custom exercise: ${e.message}")
-                    null
-                }
-            }
+        // If exercise not found, log and use null (we'll handle this in the UI)
+        val exerciseId = exercise?.id
 
         val notes =
             buildString {
@@ -1358,12 +1231,12 @@ class FeatherweightRepository(
 
     private suspend fun createSetsFromStructure(
         exerciseLogId: Long,
-        exerciseStructure: com.github.radupana.featherweight.data.programme.ExerciseStructure,
+        exerciseStructure: ExerciseStructure,
         userMaxes: Map<String, Float>,
     ) {
         repeat(exerciseStructure.sets) { setIndex ->
             val reps =
-                com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser.parseRepsForSet(
+                ProgrammeWorkoutParser.parseRepsForSet(
                     exerciseStructure.reps,
                     setIndex,
                 )
@@ -1508,7 +1381,7 @@ class FeatherweightRepository(
 
             // Parse the JSON structure
             val structure =
-                com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
+                ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
                     ?: return@withContext null
 
             // Calculate workouts per week from template structure
@@ -1531,7 +1404,7 @@ class FeatherweightRepository(
             // Get the workout structure for this position
             val templateWeekIndex = ((nextWeek - 1) % structure.weeks.size) + 1
             val workoutStructure =
-                com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser.getWorkoutForWeekAndDay(
+                ProgrammeWorkoutParser.getWorkoutForWeekAndDay(
                     structure,
                     templateWeekIndex,
                     nextDay,
@@ -1547,7 +1420,7 @@ class FeatherweightRepository(
         }
 
     // Handle next workout for custom programmes (AI-generated or user-created)
-    private suspend fun getNextWorkoutFromDatabase(programmeId: Long, progress: com.github.radupana.featherweight.data.programme.ProgrammeProgress): NextProgrammeWorkoutInfo? {
+    private suspend fun getNextWorkoutFromDatabase(programmeId: Long, progress: ProgrammeProgress): NextProgrammeWorkoutInfo? {
         println("🔍 Looking up next workout from database for custom programme")
         
         // Get all workouts for this programme, ordered by week and day
@@ -1594,7 +1467,7 @@ class FeatherweightRepository(
                 ignoreUnknownKeys = true
                 isLenient = true
             }
-            json.decodeFromString<com.github.radupana.featherweight.data.programme.WorkoutStructure>(
+            json.decodeFromString<WorkoutStructure>(
                 nextWorkout.workoutStructure
             )
         } catch (e: Exception) {
@@ -1612,7 +1485,7 @@ class FeatherweightRepository(
                     ignoreUnknownKeys = true
                     isLenient = true
                 }
-                json.decodeFromString<com.github.radupana.featherweight.data.programme.WorkoutStructure>(fixedJson)
+                json.decodeFromString<WorkoutStructure>(fixedJson)
             } catch (e2: Exception) {
                 println("❌ Still failed after JSON fix attempt: ${e2.message}")
                 e2.printStackTrace()
@@ -1644,7 +1517,7 @@ class FeatherweightRepository(
     }
 
     // Calculate total workouts for a programme based on its JSON structure
-    private suspend fun calculateTotalWorkoutsFromStructure(programme: com.github.radupana.featherweight.data.programme.Programme): Int {
+    private suspend fun calculateTotalWorkoutsFromStructure(programme: Programme): Int {
         return try {
             // Check if this is a custom programme (AI-generated or user-created)
             if (programme.isCustom) {
@@ -1674,7 +1547,7 @@ class FeatherweightRepository(
 
             // Parse the JSON structure
             val structure =
-                com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
+                ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
                     ?: return programme.durationWeeks * 3 // Fallback to default
 
             // Calculate workouts per week based on the ACTUAL number of workouts in the template
@@ -1706,7 +1579,7 @@ class FeatherweightRepository(
             programmeDao.getAllTemplates()
         }
 
-    suspend fun getTemplatesByDifficulty(difficulty: com.github.radupana.featherweight.data.programme.ProgrammeDifficulty) =
+    suspend fun getTemplatesByDifficulty(difficulty: ProgrammeDifficulty) =
         withContext(Dispatchers.IO) {
             programmeDao.getTemplatesByDifficulty(difficulty)
         }
@@ -1732,7 +1605,7 @@ class FeatherweightRepository(
                     ?: throw IllegalArgumentException("Template not found")
 
             val programme =
-                com.github.radupana.featherweight.data.programme.Programme(
+                Programme(
                     name = name ?: template.name,
                     description = template.description,
                     durationWeeks = template.durationWeeks,
@@ -1752,22 +1625,22 @@ class FeatherweightRepository(
             programmeId
         }
     
-    suspend fun createAIGeneratedProgramme(preview: com.github.radupana.featherweight.data.GeneratedProgrammePreview): Long =
+    suspend fun createAIGeneratedProgramme(preview: GeneratedProgrammePreview): Long =
         withContext(Dispatchers.IO) {
             // Deactivate any currently active programme
             println("⚠️ createAIGeneratedProgramme: Deactivating all programmes before creating new one")
             programmeDao.deactivateAllProgrammes()
             
             // Create the main programme
-            val programme = com.github.radupana.featherweight.data.programme.Programme(
+            val programme = Programme(
                 name = preview.name,
                 description = preview.description,
                 durationWeeks = preview.durationWeeks,
-                programmeType = com.github.radupana.featherweight.data.programme.ProgrammeType.GENERAL_FITNESS,
+                programmeType = DataProgrammeType.GENERAL_FITNESS,
                 difficulty = when (preview.volumeLevel) {
-                    com.github.radupana.featherweight.data.VolumeLevel.LOW -> com.github.radupana.featherweight.data.programme.ProgrammeDifficulty.BEGINNER
-                    com.github.radupana.featherweight.data.VolumeLevel.MODERATE -> com.github.radupana.featherweight.data.programme.ProgrammeDifficulty.INTERMEDIATE
-                    com.github.radupana.featherweight.data.VolumeLevel.HIGH, com.github.radupana.featherweight.data.VolumeLevel.VERY_HIGH -> com.github.radupana.featherweight.data.programme.ProgrammeDifficulty.ADVANCED
+                    VolumeLevel.LOW -> ProgrammeDifficulty.BEGINNER
+                    VolumeLevel.MODERATE -> ProgrammeDifficulty.INTERMEDIATE
+                    VolumeLevel.HIGH, VolumeLevel.VERY_HIGH -> ProgrammeDifficulty.ADVANCED
                 },
                 isCustom = true,
                 isActive = true,
@@ -1778,7 +1651,7 @@ class FeatherweightRepository(
 
             // Create weeks and workouts
             preview.weeks.forEach { weekPreview ->
-                val week = com.github.radupana.featherweight.data.programme.ProgrammeWeek(
+                val week = ProgrammeWeek(
                     programmeId = programmeId,
                     weekNumber = weekPreview.weekNumber,
                     name = "Week ${weekPreview.weekNumber}",
@@ -1795,14 +1668,14 @@ class FeatherweightRepository(
                 // Create workouts for this week
                 weekPreview.workouts.forEach { workoutPreview ->
                     // Build workout structure JSON
-                    val workoutStructure = com.github.radupana.featherweight.data.programme.WorkoutStructure(
+                    val workoutStructure = WorkoutStructure(
                         day = workoutPreview.dayNumber,
                         name = workoutPreview.name,
                         exercises = workoutPreview.exercises.map { exercisePreview ->
-                            com.github.radupana.featherweight.data.programme.ExerciseStructure(
+                            ExerciseStructure(
                                 name = exercisePreview.exerciseName,
                                 sets = exercisePreview.sets,
-                                reps = com.github.radupana.featherweight.data.programme.RepsStructure.Range(
+                                reps = RepsStructure.Range(
                                     min = exercisePreview.repsMin,
                                     max = exercisePreview.repsMax
                                 ),
@@ -1814,7 +1687,7 @@ class FeatherweightRepository(
                         estimatedDuration = workoutPreview.estimatedDuration
                     )
                     
-                    val workout = com.github.radupana.featherweight.data.programme.ProgrammeWorkout(
+                    val workout = ProgrammeWorkout(
                         weekId = weekId,
                         dayNumber = workoutPreview.dayNumber,
                         name = workoutPreview.name,
@@ -1824,7 +1697,7 @@ class FeatherweightRepository(
                             ignoreUnknownKeys = true
                             isLenient = true
                         }.encodeToString(
-                            com.github.radupana.featherweight.data.programme.WorkoutStructure.serializer(),
+                            WorkoutStructure.serializer(),
                             workoutStructure
                         )
                     )
@@ -1836,7 +1709,7 @@ class FeatherweightRepository(
             // Initialize progress tracking for the new programme
             // CRITICAL FIX: Calculate total workouts based on programme duration, not just preview data
             val totalWorkouts = preview.daysPerWeek * preview.durationWeeks
-            val progress = com.github.radupana.featherweight.data.programme.ProgrammeProgress(
+            val progress = ProgrammeProgress(
                 programmeId = programmeId,
                 currentWeek = 1,
                 currentDay = 1,
@@ -1895,7 +1768,7 @@ class FeatherweightRepository(
                 println("📊 Calculated total workouts: $totalWorkouts")
 
                 val progress =
-                    com.github.radupana.featherweight.data.programme.ProgrammeProgress(
+                    ProgrammeProgress(
                         programmeId = programmeId,
                         currentWeek = 1,
                         currentDay = 1,
@@ -1951,7 +1824,7 @@ class FeatherweightRepository(
             }
         }
 
-    suspend fun deleteProgramme(programme: com.github.radupana.featherweight.data.programme.Programme) =
+    suspend fun deleteProgramme(programme: Programme) =
         withContext(Dispatchers.IO) {
             // First deactivate the programme if it's active
             if (programme.isActive) {
@@ -1980,7 +1853,7 @@ class FeatherweightRepository(
             if (programme != null) {
                 val totalWorkouts = calculateTotalWorkoutsFromStructure(programme)
                 progress =
-                    com.github.radupana.featherweight.data.programme.ProgrammeProgress(
+                    ProgrammeProgress(
                         programmeId = programmeId,
                         currentWeek = week,
                         currentDay = day,
@@ -2012,10 +1885,10 @@ class FeatherweightRepository(
     ) = withContext(Dispatchers.IO) {
         val exercise = getExerciseByName(substitutionExercise)
         val substitution =
-            com.github.radupana.featherweight.data.programme.ExerciseSubstitution(
+            ExerciseSubstitution(
                 programmeId = programmeId,
                 originalExerciseName = originalExercise,
-                substitutionCategory = exercise?.category ?: com.github.radupana.featherweight.data.exercise.ExerciseCategory.FULL_BODY,
+                substitutionCategory = exercise?.category ?: ExerciseCategory.FULL_BODY,
                 substitutionCriteria = null,
                 isUserDefined = true,
             )
@@ -2030,7 +1903,7 @@ class FeatherweightRepository(
     }
 
     // Helper method to get exercise by name or alias
-    private suspend fun getExerciseByName(name: String): com.github.radupana.featherweight.data.exercise.Exercise? {
+    private suspend fun getExerciseByName(name: String): Exercise? {
         // First try exact name match
         val exactMatch = exerciseDao.findExerciseByExactName(name)
         if (exactMatch != null) return exactMatch
@@ -2660,7 +2533,7 @@ class FeatherweightRepository(
             db.profileDao().getBig4Exercises()
         }
 
-    suspend fun deleteExerciseMax(max: com.github.radupana.featherweight.data.profile.UserExerciseMax) =
+    suspend fun deleteExerciseMax(max: UserExerciseMax) =
         withContext(Dispatchers.IO) {
             db.profileDao().deleteExerciseMax(max)
         }
@@ -2697,7 +2570,7 @@ class FeatherweightRepository(
                 // Create test users
                 val user1Id =
                     db.profileDao().insertUserProfile(
-                        com.github.radupana.featherweight.data.profile.UserProfile(
+                        UserProfile(
                             username = "user1",
                             displayName = "Alex Johnson",
                             avatarEmoji = "💪",
@@ -2706,7 +2579,7 @@ class FeatherweightRepository(
 
                 val user2Id =
                     db.profileDao().insertUserProfile(
-                        com.github.radupana.featherweight.data.profile.UserProfile(
+                        UserProfile(
                             username = "user2",
                             displayName = "Sam Williams",
                             avatarEmoji = "🏋️",
@@ -2728,7 +2601,7 @@ class FeatherweightRepository(
                         }
                     if (maxWeight > 0) {
                         db.profileDao().insertExerciseMax(
-                            com.github.radupana.featherweight.data.profile.UserExerciseMax(
+                            UserExerciseMax(
                                 userId = user1Id,
                                 exerciseId = exercise.id,
                                 maxWeight = maxWeight,
@@ -2750,7 +2623,7 @@ class FeatherweightRepository(
                         }
                     if (maxWeight > 0) {
                         db.profileDao().insertExerciseMax(
-                            com.github.radupana.featherweight.data.profile.UserExerciseMax(
+                            UserExerciseMax(
                                 userId = user2Id,
                                 exerciseId = exercise.id,
                                 maxWeight = maxWeight,
@@ -2765,7 +2638,7 @@ class FeatherweightRepository(
         }
     
     private fun calculateIntelligentWeight(
-        exerciseStructure: com.github.radupana.featherweight.data.programme.ExerciseStructure,
+        exerciseStructure: ExerciseStructure,
         reps: Int,
         intensity: Int?,
         userMaxes: Map<String, Float>
@@ -2774,13 +2647,13 @@ class FeatherweightRepository(
         
         // Parse rep range from the exercise structure
         val repRange = when (val repsStructure = exerciseStructure.reps) {
-            is com.github.radupana.featherweight.data.programme.RepsStructure.Single -> 
+            is RepsStructure.Single -> 
                 repsStructure.value..repsStructure.value
-            is com.github.radupana.featherweight.data.programme.RepsStructure.Range -> 
+            is RepsStructure.Range -> 
                 repsStructure.min..repsStructure.max
-            is com.github.radupana.featherweight.data.programme.RepsStructure.RangeString -> 
+            is RepsStructure.RangeString -> 
                 reps..reps // Fallback to actual reps
-            is com.github.radupana.featherweight.data.programme.RepsStructure.PerSet -> 
+            is RepsStructure.PerSet -> 
                 reps..reps // Fallback to actual reps
         }
         

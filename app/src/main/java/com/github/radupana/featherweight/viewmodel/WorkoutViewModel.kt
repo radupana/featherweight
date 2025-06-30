@@ -10,6 +10,7 @@ import com.github.radupana.featherweight.data.exercise.*
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -136,53 +137,39 @@ class WorkoutViewModel(
 
     suspend fun getExercisesByCategory(category: ExerciseCategory): List<Exercise> = repository.getExercisesByCategory(category)
 
-    suspend fun getExercisesByMuscleGroup(muscleGroup: MuscleGroup): List<ExerciseWithDetails> =
-        repository.getExercisesByMuscleGroup(muscleGroup)
+    suspend fun getExercisesByMuscleGroup(muscleGroup: String): List<ExerciseWithDetails> {
+        val allExercises = repository.getAllExercises()
+        return allExercises.filter { it.exercise.muscleGroup.equals(muscleGroup, ignoreCase = true) }
+    }
 
     suspend fun getFilteredExercises(
         category: ExerciseCategory? = null,
-        muscleGroup: MuscleGroup? = null,
+        muscleGroup: String? = null,
         equipment: Equipment? = null,
         availableEquipment: List<Equipment> = emptyList(),
         maxDifficulty: ExerciseDifficulty? = null,
         searchQuery: String = "",
-    ): List<ExerciseWithDetails> =
-        repository.getFilteredExercises(
-            category,
-            muscleGroup,
-            equipment,
-            availableEquipment,
-            maxDifficulty,
-            true,
-            searchQuery,
-        )
+    ): List<ExerciseWithDetails> {
+        // TODO: Re-implement filtering logic
+        val allExercises = repository.getAllExercises()
+        return allExercises.filter { exercise ->
+            (category == null || exercise.exercise.category == category) &&
+            (muscleGroup == null || exercise.exercise.muscleGroup.equals(muscleGroup, ignoreCase = true)) &&
+            (equipment == null || exercise.exercise.equipment == equipment) &&
+            (searchQuery.isEmpty() || exercise.exercise.name.contains(searchQuery, ignoreCase = true))
+        }
+    }
 
     suspend fun createCustomExercise(
         name: String,
         category: ExerciseCategory = ExerciseCategory.FULL_BODY,
-        primaryMuscles: Set<MuscleGroup> = emptySet(),
+        primaryMuscles: Set<String> = emptySet(),
         equipment: Set<Equipment> = setOf(Equipment.BODYWEIGHT),
-    ): ExerciseWithDetails? =
-        try {
-            val exerciseId =
-                repository.createCustomExercise(
-                    name = name,
-                    category = category,
-                    primaryMuscles = primaryMuscles,
-                    requiredEquipment = equipment,
-                    // TODO: Get actual user ID
-                    userId = "current_user",
-                )
-
-            // Reload exercises to include the new one
-            loadExercises()
-
-            // Return the created exercise
-            repository.getExerciseById(exerciseId)
-        } catch (e: Exception) {
-            println("Error creating custom exercise: ${e.message}")
-            null
-        }
+    ): ExerciseWithDetails? {
+        // TODO: Re-implement custom exercise creation
+        println("Custom exercise creation not yet implemented: $name")
+        return null
+    }
 
     fun getExerciseDetails(exerciseId: Long): ExerciseWithDetails? = _exerciseDetails.value[exerciseId]
 
@@ -646,7 +633,7 @@ class WorkoutViewModel(
     // Get exercise suggestions based on current workout context
     suspend fun getExerciseSuggestions(
         query: String = "",
-        currentMuscleGroups: Set<MuscleGroup> = emptySet(),
+        currentMuscleGroups: Set<String> = emptySet(),
         availableEquipment: List<Equipment> = Equipment.getBasicEquipment(),
     ): List<ExerciseWithDetails> =
         try {
@@ -663,22 +650,21 @@ class WorkoutViewModel(
                 // If no current muscle groups, suggest compound movements
                 if (currentMuscleGroups.isEmpty()) {
                     suggestions.addAll(
-                        repository
-                            .getFilteredExercises(
-                                availableEquipment = availableEquipment,
-                                maxDifficulty = ExerciseDifficulty.ADVANCED,
-                            ).filter { exercise ->
-                                exercise.primaryMovements.any {
-                                    it in MovementPattern.getCompoundMovements()
-                                }
-                            }.take(10),
+                        getFilteredExercises(
+                            maxDifficulty = ExerciseDifficulty.ADVANCED,
+                        ).filter { exercise ->
+                            exercise.exercise.movementPattern.contains("Squat", ignoreCase = true) ||
+                            exercise.exercise.movementPattern.contains("Press", ignoreCase = true) ||
+                            exercise.exercise.movementPattern.contains("Deadlift", ignoreCase = true) ||
+                            exercise.exercise.movementPattern.contains("Row", ignoreCase = true)
+                        }.take(10),
                     )
                 } else {
                     // Suggest complementary muscle groups
                     val complementaryMuscles = getComplementaryMuscleGroups(currentMuscleGroups)
                     complementaryMuscles.forEach { muscleGroup ->
                         suggestions.addAll(
-                            repository.getExercisesByMuscleGroup(muscleGroup).take(3),
+                            getExercisesByMuscleGroup(muscleGroup).take(3),
                         )
                     }
                 }
@@ -690,27 +676,27 @@ class WorkoutViewModel(
             emptyList()
         }
 
-    private fun getComplementaryMuscleGroups(currentMuscles: Set<MuscleGroup>): List<MuscleGroup> {
-        val complementary = mutableListOf<MuscleGroup>()
+    private fun getComplementaryMuscleGroups(currentMuscles: Set<String>): List<String> {
+        val complementary = mutableListOf<String>()
 
         // Basic push/pull balance
-        val hasPush = currentMuscles.any { it in setOf(MuscleGroup.CHEST, MuscleGroup.FRONT_DELTS, MuscleGroup.TRICEPS) }
-        val hasPull = currentMuscles.any { it in setOf(MuscleGroup.UPPER_BACK, MuscleGroup.LATS, MuscleGroup.BICEPS) }
+        val hasPush = currentMuscles.any { it.contains("Chest", ignoreCase = true) || it.contains("Tricep", ignoreCase = true) || it.contains("Shoulder", ignoreCase = true) }
+        val hasPull = currentMuscles.any { it.contains("Back", ignoreCase = true) || it.contains("Lat", ignoreCase = true) || it.contains("Bicep", ignoreCase = true) }
 
         if (hasPush && !hasPull) {
-            complementary.addAll(listOf(MuscleGroup.UPPER_BACK, MuscleGroup.LATS, MuscleGroup.BICEPS))
+            complementary.addAll(listOf("Lats", "Biceps"))
         } else if (hasPull && !hasPush) {
-            complementary.addAll(listOf(MuscleGroup.CHEST, MuscleGroup.FRONT_DELTS, MuscleGroup.TRICEPS))
+            complementary.addAll(listOf("Chest", "Triceps"))
         }
 
         // Upper/lower balance
-        val hasUpper = currentMuscles.any { it in setOf(MuscleGroup.CHEST, MuscleGroup.UPPER_BACK, MuscleGroup.FRONT_DELTS) }
-        val hasLower = currentMuscles.any { it in setOf(MuscleGroup.QUADS, MuscleGroup.HAMSTRINGS, MuscleGroup.GLUTES) }
+        val hasUpper = currentMuscles.any { it.contains("Chest", ignoreCase = true) || it.contains("Back", ignoreCase = true) || it.contains("Shoulder", ignoreCase = true) }
+        val hasLower = currentMuscles.any { it.contains("Quad", ignoreCase = true) || it.contains("Hamstring", ignoreCase = true) || it.contains("Glute", ignoreCase = true) }
 
         if (hasUpper && !hasLower) {
-            complementary.addAll(listOf(MuscleGroup.QUADS, MuscleGroup.HAMSTRINGS, MuscleGroup.GLUTES))
+            complementary.addAll(listOf("Quadriceps", "Hamstrings", "Glutes"))
         } else if (hasLower && !hasUpper) {
-            complementary.addAll(listOf(MuscleGroup.CHEST, MuscleGroup.UPPER_BACK, MuscleGroup.FRONT_DELTS))
+            complementary.addAll(listOf("Chest", "Lats", "Shoulders"))
         }
 
         return complementary.distinct()
@@ -1076,7 +1062,7 @@ class WorkoutViewModel(
     }
 
     // Get next programme workout for the active programme
-    suspend fun getNextProgrammeWorkout(): com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo? {
+    suspend fun getNextProgrammeWorkout(): NextProgrammeWorkoutInfo? {
         val activeProgramme = repository.getActiveProgramme() ?: return null
         return repository.getNextProgrammeWorkout(activeProgramme.id)
     }

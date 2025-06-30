@@ -67,7 +67,7 @@ class AIProgrammeService(private val context: android.content.Context) {
     companion object {
         private val OPENAI_API_KEY = BuildConfig.OPENAI_API_KEY
         private const val BASE_URL = "https://api.openai.com/"
-        private const val MODEL = "gpt-4.1-mini"
+        private const val MODEL = "gpt-4.1-mini" // NOTE: This is correct - new model name
         private const val MAX_TOKENS = 32768
         private const val TEMPERATURE = 0.7
     }
@@ -83,7 +83,7 @@ class AIProgrammeService(private val context: android.content.Context) {
         OkHttpClient
             .Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor(
                 HttpLoggingInterceptor().apply {
@@ -101,8 +101,6 @@ class AIProgrammeService(private val context: android.content.Context) {
 
     private val api = retrofit.create(OpenAIApi::class.java)
 
-    // Fallback to mock for development/testing
-    private val useMockFallback = OPENAI_API_KEY == "YOUR_API_KEY_HERE"
 
     suspend fun generateProgramme(request: AIProgrammeRequest): AIProgrammeResponse =
         withContext(Dispatchers.IO) {
@@ -133,49 +131,27 @@ class AIProgrammeService(private val context: android.content.Context) {
         }
 
     private fun buildSystemPrompt(request: AIProgrammeRequest): String {
-        // Load simplified exercise reference from assets
-        val exerciseReference = try {
-            println("📋 Loading exercise reference from wger_exercises_simple.json...")
-            val json = context.assets.open("wger_exercises_simple.json").bufferedReader().use { it.readText() }
-            val jsonObject = org.json.JSONObject(json)
-            val exercises = jsonObject.getJSONArray("exercises")
-            println("✅ Loaded ${exercises.length()} exercises for LLM context")
-            
-            // Format exercises by category for better readability
-            val exercisesByCategory = mutableMapOf<String, MutableList<String>>()
-            for (i in 0 until exercises.length()) {
-                val exercise = exercises.getJSONObject(i)
-                val category = exercise.getString("category")
-                val name = exercise.getString("name")
-                exercisesByCategory.getOrPut(category) { mutableListOf() }.add(name)
-            }
-            
-            // Build formatted exercise list
-            buildString {
-                appendLine("AVAILABLE EXERCISES BY CATEGORY:")
-                exercisesByCategory.toSortedMap().forEach { (category, exerciseList) ->
-                    appendLine("\n$category (${exerciseList.size} exercises):")
-                    exerciseList.sorted().forEach { exercise ->
-                        appendLine("- $exercise")
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            println("Failed to load exercise reference: ${e.message}")
-            "AVAILABLE EXERCISES: Use common gym exercises appropriate for the user's goals and experience level.\n"
-        }
         
         return """
         You are an elite strength and conditioning coach with 20+ years of experience creating personalized training programmes. Your goal is to create safe, effective, and engaging programmes tailored to each individual.
 
-        $exerciseReference
+        EXERCISE DATABASE LIMITATION:
+        Our database contains approximately 500 well-known exercises covering all major movement patterns and equipment types (barbells, dumbbells, cables, bodyweight, machines). Please focus your workout recommendations on commonly used and well-established exercises rather than obscure or highly specialized movements. This ensures all exercises in your programme can be properly tracked and executed.
+
+        EXERCISE NAMING RULES (CRITICAL - FOLLOW EXACTLY):
+        - Always use long form names: "Barbell Back Squat" not "Squat" or "Back Squat"
+        - Equipment first: "Dumbbell Chest Press" not "Chest Press with Dumbbells"
+        - Standard equipment names: Barbell, Dumbbell, Cable, Machine, Bodyweight
+        - Use these muscle names: Chest, Back, Bicep, Tricep, Quad, Hamstring, Glute, Calf, Shoulder, Core
         
-        CRITICAL EXERCISE SELECTION RULES:
-        - You MUST ONLY use exercises from the available exercises list above
-        - Use the EXACT exercise names as listed (case-sensitive)
-        - DO NOT create or modify exercise names
-        - If you're unsure about an exercise, choose a similar one from the list
-        - Focus on common, well-known exercises for safety
+        NAMING PATTERNS:
+        - [Equipment] [Target] [Movement]: "Barbell Bicep Curl"
+        - [Equipment] [Angle] [Movement]: "Dumbbell Incline Press"  
+        - [Equipment] [Variation] [Movement]: "Barbell Romanian Deadlift"
+        
+        EXAMPLES:
+        ✅ Correct: "Barbell Back Squat", "Dumbbell Chest Press", "Cable Lateral Raise"
+        ❌ Wrong: "Squats", "DB Press", "Lateral Raises"
 
         PROGRAMME DESIGN PRINCIPLES:
         1. Safety First: Ensure proper exercise selection based on experience level
@@ -280,9 +256,9 @@ class AIProgrammeService(private val context: android.content.Context) {
         systemPrompt: String,
         userPrompt: String,
     ): String {
-        if (useMockFallback) {
-            println("🤖 OpenAI API: API key not configured")
-            throw Exception("AI service is not configured. Please ensure the app is properly set up or use a template programme.")
+        if (OPENAI_API_KEY == "YOUR_API_KEY_HERE" || OPENAI_API_KEY.isBlank()) {
+            println("❌ FATAL: OpenAI API key not configured")
+            throw IllegalStateException("AI service is not configured. Please configure your OpenAI API key to use AI programme generation.")
         }
 
         return try {

@@ -346,8 +346,8 @@ private fun ExerciseCard(
             }
 
             // Bottom row: All metadata in one line
-            if (exercise.primaryMuscles.isNotEmpty() || 
-                exercise.requiredEquipment.isNotEmpty() || 
+            if (exercise.exercise.muscleGroup.isNotEmpty() || 
+                exercise.exercise.equipment != Equipment.BODYWEIGHT || 
                 exercise.exercise.difficulty != ExerciseDifficulty.BEGINNER) {
                 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -364,9 +364,9 @@ private fun ExerciseCard(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         // Primary muscles
-                        if (exercise.primaryMuscles.isNotEmpty()) {
+                        if (exercise.exercise.muscleGroup.isNotEmpty()) {
                             Text(
-                                text = exercise.primaryMuscles.joinToString(", ") { it.displayName },
+                                text = exercise.exercise.muscleGroup,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Medium,
@@ -376,8 +376,8 @@ private fun ExerciseCard(
                         }
                         
                         // Equipment (if any)
-                        if (exercise.requiredEquipment.isNotEmpty()) {
-                            if (exercise.primaryMuscles.isNotEmpty()) {
+                        if (exercise.exercise.equipment != Equipment.BODYWEIGHT) {
+                            if (exercise.exercise.muscleGroup.isNotEmpty()) {
                                 Text(
                                     text = " • ",
                                     style = MaterialTheme.typography.bodySmall,
@@ -385,7 +385,7 @@ private fun ExerciseCard(
                                 )
                             }
                             Text(
-                                text = exercise.requiredEquipment.joinToString(", ") { it.displayName },
+                                text = exercise.exercise.equipment.name.replace('_', ' '),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,

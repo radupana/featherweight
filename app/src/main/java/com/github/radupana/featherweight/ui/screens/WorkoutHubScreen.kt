@@ -23,6 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
 import com.github.radupana.featherweight.viewmodel.InProgressWorkout
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import com.github.radupana.featherweight.ui.screens.WorkoutSummary
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 
@@ -329,7 +330,7 @@ fun WorkoutHubScreen(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RecentWorkoutCard(
-    workout: com.github.radupana.featherweight.ui.screens.WorkoutSummary,
+    workout: WorkoutSummary,
     onView: () -> Unit,
     onDelete: (Long) -> Unit = {},
     modifier: Modifier = Modifier,

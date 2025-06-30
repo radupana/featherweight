@@ -16,27 +16,11 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises WHERE name LIKE '%' || :query || '%' ORDER BY usageCount DESC, name ASC")
     suspend fun searchExercises(query: String): List<Exercise>
 
-    @Transaction
-    @Query(
-        """
-        SELECT DISTINCT e.* FROM exercises e
-        INNER JOIN exercise_muscle_groups emg ON e.id = emg.exerciseId
-        WHERE emg.muscleGroup = :muscleGroup
-        ORDER BY e.usageCount DESC, e.name ASC
-    """,
-    )
-    suspend fun getExercisesByMuscleGroup(muscleGroup: MuscleGroup): List<ExerciseWithDetails>
+    @Query("SELECT * FROM exercises WHERE muscleGroup = :muscleGroup ORDER BY usageCount DESC, name ASC")
+    suspend fun getExercisesByMuscleGroup(muscleGroup: String): List<Exercise>
 
-    @Transaction
-    @Query(
-        """
-        SELECT DISTINCT e.* FROM exercises e
-        INNER JOIN exercise_equipment ee ON e.id = ee.exerciseId  
-        WHERE ee.equipment IN (:equipment)
-        ORDER BY e.usageCount DESC, e.name ASC
-    """,
-    )
-    suspend fun getExercisesByEquipment(equipment: List<Equipment>): List<ExerciseWithDetails>
+    @Query("SELECT * FROM exercises WHERE equipment = :equipment ORDER BY usageCount DESC, name ASC")
+    suspend fun getExercisesByEquipment(equipment: Equipment): List<Exercise>
 
     @Query("SELECT * FROM exercises WHERE category = :category ORDER BY usageCount DESC, name ASC")
     suspend fun getExercisesByCategory(category: ExerciseCategory): List<Exercise>
@@ -44,37 +28,9 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises WHERE difficulty <= :maxDifficulty ORDER BY difficulty ASC, name ASC")
     suspend fun getExercisesByMaxDifficulty(maxDifficulty: ExerciseDifficulty): List<Exercise>
 
-    // Custom exercises
-    @Query("SELECT * FROM exercises WHERE isCustom = 1 AND createdBy = :userId ORDER BY name ASC")
-    suspend fun getCustomExercises(userId: String): List<Exercise>
-
     // Insert operations
     @Insert
     suspend fun insertExercise(exercise: Exercise): Long
-
-    @Insert
-    suspend fun insertMuscleGroups(muscleGroups: List<ExerciseMuscleGroup>)
-
-    @Insert
-    suspend fun insertEquipment(equipment: List<ExerciseEquipment>)
-
-    @Insert
-    suspend fun insertMovementPatterns(patterns: List<ExerciseMovementPattern>)
-
-    // Transaction for creating complete exercise
-    @Transaction
-    suspend fun insertExerciseWithDetails(
-        exercise: Exercise,
-        muscleGroups: List<ExerciseMuscleGroup>,
-        equipment: List<ExerciseEquipment>,
-        movementPatterns: List<ExerciseMovementPattern>,
-    ): Long {
-        val exerciseId = insertExercise(exercise)
-        insertMuscleGroups(muscleGroups.map { it.copy(exerciseId = exerciseId) })
-        insertEquipment(equipment.map { it.copy(exerciseId = exerciseId) })
-        insertMovementPatterns(movementPatterns.map { it.copy(exerciseId = exerciseId) })
-        return exerciseId
-    }
 
     // Update operations
     @Update
@@ -83,41 +39,6 @@ interface ExerciseDao {
     @Query("UPDATE exercises SET usageCount = usageCount + 1 WHERE id = :exerciseId")
     suspend fun incrementUsageCount(exerciseId: Long)
 
-    @Query("DELETE FROM exercise_muscle_groups WHERE exerciseId = :exerciseId")
-    suspend fun deleteMuscleGroups(exerciseId: Long)
-
-    @Query("DELETE FROM exercise_equipment WHERE exerciseId = :exerciseId")
-    suspend fun deleteEquipment(exerciseId: Long)
-
-    @Query("DELETE FROM exercise_movement_patterns WHERE exerciseId = :exerciseId")
-    suspend fun deleteMovementPatterns(exerciseId: Long)
-
-    // Advanced filtering
-    @Transaction
-    @Query(
-        """
-        SELECT DISTINCT e.* FROM exercises e
-        LEFT JOIN exercise_muscle_groups emg ON e.id = emg.exerciseId
-        LEFT JOIN exercise_equipment ee ON e.id = ee.exerciseId
-        WHERE 
-            (:category IS NULL OR e.category = :category) AND
-            (:muscleGroup IS NULL OR emg.muscleGroup = :muscleGroup) AND
-            (:equipment IS NULL OR ee.equipment IN (:availableEquipment)) AND
-            (:maxDifficulty IS NULL OR e.difficulty <= :maxDifficulty) AND
-            (:includeCustom = 1 OR e.isCustom = 0) AND
-            (:searchQuery = '' OR e.name LIKE '%' || :searchQuery || '%')
-        ORDER BY e.usageCount DESC, e.name ASC
-    """,
-    )
-    suspend fun getFilteredExercises(
-        category: ExerciseCategory? = null,
-        muscleGroup: MuscleGroup? = null,
-        equipment: Equipment? = null,
-        availableEquipment: List<Equipment> = emptyList(),
-        maxDifficulty: ExerciseDifficulty? = null,
-        includeCustom: Boolean = true,
-        searchQuery: String = "",
-    ): List<ExerciseWithDetails>
     
     // Alias operations
     @Insert
@@ -152,40 +73,6 @@ interface ExerciseDao {
     """)
     suspend fun findExerciseByNameOrAlias(searchTerm: String): Exercise?
     
-    // wger.de integration queries
-    @Query("SELECT * FROM exercises WHERE wgerId = :wgerId LIMIT 1")
-    suspend fun findExerciseByWgerId(wgerId: Int): Exercise?
-    
-    @Query("SELECT * FROM exercises WHERE wgerUuid = :wgerUuid LIMIT 1")
-    suspend fun findExerciseByWgerUuid(wgerUuid: String): Exercise?
-    
-    @Query("SELECT * FROM exercises WHERE syncSource = 'wger' ORDER BY name ASC")
-    suspend fun getWgerExercises(): List<Exercise>
-    
-    @Query("SELECT * FROM exercises WHERE lastSyncedAt IS NULL OR lastSyncedAt < :cutoffTime")
-    suspend fun getExercisesNeedingSync(cutoffTime: java.time.LocalDateTime): List<Exercise>
-    
-    @Query("UPDATE exercises SET lastSyncedAt = :syncTime WHERE wgerId = :wgerId")
-    suspend fun updateSyncTime(wgerId: Int, syncTime: java.time.LocalDateTime)
-    
-    // wger muscle and category operations
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertWgerMuscles(muscles: List<WgerMuscleEntity>)
-    
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertWgerCategories(categories: List<WgerCategoryEntity>)
-    
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertWgerExerciseMuscles(exerciseMuscles: List<WgerExerciseMuscle>)
-    
-    @Query("SELECT * FROM wger_muscles_db")
-    suspend fun getAllWgerMuscles(): List<WgerMuscleEntity>
-    
-    @Query("SELECT * FROM wger_categories_db")
-    suspend fun getAllWgerCategories(): List<WgerCategoryEntity>
-    
-    @Query("SELECT * FROM wger_exercise_muscles WHERE exerciseId = :exerciseId")
-    suspend fun getWgerMusclesForExercise(exerciseId: Long): List<WgerExerciseMuscle>
 }
 
 // Type converters for Room
@@ -209,20 +96,8 @@ class ExerciseTypeConverters {
     fun toExerciseDifficulty(difficulty: String): ExerciseDifficulty = ExerciseDifficulty.valueOf(difficulty)
 
     @TypeConverter
-    fun fromMuscleGroup(muscleGroup: MuscleGroup): String = muscleGroup.name
-
-    @TypeConverter
-    fun toMuscleGroup(muscleGroup: String): MuscleGroup = MuscleGroup.valueOf(muscleGroup)
-
-    @TypeConverter
     fun fromEquipment(equipment: Equipment): String = equipment.name
 
     @TypeConverter
     fun toEquipment(equipment: String): Equipment = Equipment.valueOf(equipment)
-
-    @TypeConverter
-    fun fromMovementPattern(pattern: MovementPattern): String = pattern.name
-
-    @TypeConverter
-    fun toMovementPattern(pattern: String): MovementPattern = MovementPattern.valueOf(pattern)
 }

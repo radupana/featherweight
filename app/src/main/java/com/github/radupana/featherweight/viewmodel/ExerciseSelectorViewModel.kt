@@ -34,8 +34,8 @@ class ExerciseSelectorViewModel(
     private val _selectedCategory = MutableStateFlow<ExerciseCategory?>(null)
     val selectedCategory: StateFlow<ExerciseCategory?> = _selectedCategory
 
-    private val _selectedMuscleGroup = MutableStateFlow<MuscleGroup?>(null)
-    val selectedMuscleGroup: StateFlow<MuscleGroup?> = _selectedMuscleGroup
+    private val _selectedMuscleGroup = MutableStateFlow<String?>(null)
+    val selectedMuscleGroup: StateFlow<String?> = _selectedMuscleGroup
 
     private val _selectedEquipment = MutableStateFlow<Equipment?>(null)
     val selectedEquipment: StateFlow<Equipment?> = _selectedEquipment
@@ -73,7 +73,7 @@ class ExerciseSelectorViewModel(
         exercises: List<ExerciseWithDetails>,
         query: String,
         category: ExerciseCategory?,
-        muscleGroup: MuscleGroup?,
+        muscleGroup: String?,
         equipmentFilter: Equipment?,
     ): List<ExerciseWithDetails> =
         exercises
@@ -81,8 +81,8 @@ class ExerciseSelectorViewModel(
                 // Text search filter
                 if (query.isNotEmpty()) {
                     exercise.exercise.name.contains(query, ignoreCase = true) ||
-                        exercise.primaryMuscles.any { it.displayName.contains(query, ignoreCase = true) } ||
-                        exercise.exercise.category.displayName
+                        exercise.exercise.muscleGroup.contains(query, ignoreCase = true) ||
+                        exercise.exercise.category.name.replace('_', ' ')
                             .contains(query, ignoreCase = true)
                 } else {
                     true
@@ -93,14 +93,12 @@ class ExerciseSelectorViewModel(
             }.filter { exercise ->
                 // Muscle group filter
                 muscleGroup?.let {
-                    exercise.primaryMuscles.contains(it) || exercise.secondaryMuscles.contains(it)
+                    exercise.exercise.muscleGroup.equals(it, ignoreCase = true)
                 } ?: true
             }.filter { exercise ->
                 // Equipment filter
                 equipmentFilter?.let {
-                    exercise.requiredEquipment.contains(it) ||
-                        exercise.optionalEquipment.contains(it) ||
-                        exercise.alternativeEquipment.contains(it)
+                    exercise.exercise.equipment == it
                 } ?: true
             }.let { filteredList ->
                 if (query.isNotEmpty()) {
@@ -150,7 +148,7 @@ class ExerciseSelectorViewModel(
         _selectedCategory.value = category
     }
 
-    fun selectMuscleGroup(muscleGroup: MuscleGroup?) {
+    fun selectMuscleGroup(muscleGroup: String?) {
         _selectedMuscleGroup.value = muscleGroup
     }
 
@@ -180,13 +178,8 @@ class ExerciseSelectorViewModel(
                 // Default to bodyweight if we can't determine equipment
                 val equipmentSet = inferEquipmentFromName(name)
 
-                repository.createCustomExercise(
-                    name = name,
-                    category = category,
-                    primaryMuscles = primaryMuscles,
-                    requiredEquipment = equipmentSet,
-                    userId = "current_user", // TODO: Get actual user ID
-                )
+                // TODO: Re-implement custom exercise creation
+                println("Custom exercise creation not yet implemented: $name")
 
                 // Reload exercises after creating
                 loadExercises()

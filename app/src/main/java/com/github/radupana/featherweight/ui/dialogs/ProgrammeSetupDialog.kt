@@ -26,6 +26,7 @@ import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import com.github.radupana.featherweight.viewmodel.SetupStep
 import com.github.radupana.featherweight.viewmodel.UserMaxes
+import com.github.radupana.featherweight.data.profile.ExerciseMaxWithName
 
 @Composable
 fun ProgrammeSetupDialog(
@@ -314,7 +315,7 @@ private fun MaxesInputStep(
     template: ProgrammeTemplate,
     userMaxes: UserMaxes,
     onMaxesUpdate: (UserMaxes) -> Unit,
-    profileMaxes: List<com.github.radupana.featherweight.data.profile.ExerciseMaxWithName>,
+    profileMaxes: List<ExerciseMaxWithName>,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),

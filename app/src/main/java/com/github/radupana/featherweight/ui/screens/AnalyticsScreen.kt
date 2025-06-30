@@ -30,6 +30,8 @@ import com.github.radupana.featherweight.ui.components.StrengthProgressionChart
 import com.github.radupana.featherweight.ui.components.VolumeBarChart
 import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.viewmodel.AnalyticsViewModel
+import com.github.radupana.featherweight.viewmodel.AnalyticsState
+import com.github.radupana.featherweight.viewmodel.ChartViewMode
 
 @Composable
 fun AnalyticsScreen(
@@ -93,7 +95,7 @@ private fun formatVolume(volume: Float): String {
 }
 
 @Composable
-private fun QuickStatsSection(analyticsState: com.github.radupana.featherweight.viewmodel.AnalyticsState) {
+private fun QuickStatsSection(analyticsState: AnalyticsState) {
     var showTooltip by remember { mutableStateOf<String?>(null) }
 
     LazyRow(
@@ -268,7 +270,7 @@ private fun QuickStatCard(
 
 @Composable
 private fun StrengthProgressionSection(
-    analyticsState: com.github.radupana.featherweight.viewmodel.AnalyticsState,
+    analyticsState: AnalyticsState,
     viewModel: AnalyticsViewModel,
 ) {
     GlassCard {
@@ -290,25 +292,25 @@ private fun StrengthProgressionSection(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     FilterChip(
-                        onClick = { viewModel.setChartViewMode(com.github.radupana.featherweight.viewmodel.ChartViewMode.ONE_RM) },
+                        onClick = { viewModel.setChartViewMode(ChartViewMode.ONE_RM) },
                         label = {
                             Text(
                                 text = "1RM",
                                 maxLines = 1,
                             )
                         },
-                        selected = analyticsState.chartViewMode == com.github.radupana.featherweight.viewmodel.ChartViewMode.ONE_RM,
+                        selected = analyticsState.chartViewMode == ChartViewMode.ONE_RM,
                         modifier = Modifier.height(32.dp),
                     )
                     FilterChip(
-                        onClick = { viewModel.setChartViewMode(com.github.radupana.featherweight.viewmodel.ChartViewMode.VOLUME) },
+                        onClick = { viewModel.setChartViewMode(ChartViewMode.VOLUME) },
                         label = {
                             Text(
                                 text = "Vol",
                                 maxLines = 1,
                             )
                         },
-                        selected = analyticsState.chartViewMode == com.github.radupana.featherweight.viewmodel.ChartViewMode.VOLUME,
+                        selected = analyticsState.chartViewMode == ChartViewMode.VOLUME,
                         modifier = Modifier.height(32.dp),
                     )
                 }
@@ -318,7 +320,7 @@ private fun StrengthProgressionSection(
 
             // Chart display based on view mode
             when (analyticsState.chartViewMode) {
-                com.github.radupana.featherweight.viewmodel.ChartViewMode.ONE_RM -> {
+                ChartViewMode.ONE_RM -> {
                     StrengthProgressionChart(
                         data = analyticsState.strengthMetrics.personalRecords,
                         exerciseName = analyticsState.strengthMetrics.selectedExercise,
@@ -330,7 +332,7 @@ private fun StrengthProgressionSection(
                         },
                     )
                 }
-                com.github.radupana.featherweight.viewmodel.ChartViewMode.VOLUME -> {
+                ChartViewMode.VOLUME -> {
                     // Show volume trend for selected exercise
                     VolumeBarChart(
                         weeklyData = analyticsState.volumeMetrics.weeklyHistory.takeLast(6),
@@ -359,7 +361,7 @@ private fun StrengthProgressionSection(
 }
 
 @Composable
-private fun VolumeAnalysisSection(analyticsState: com.github.radupana.featherweight.viewmodel.AnalyticsState) {
+private fun VolumeAnalysisSection(analyticsState: AnalyticsState) {
     GlassCard {
         Column {
             Text(
@@ -423,7 +425,7 @@ private fun VolumeAnalysisSection(analyticsState: com.github.radupana.featherwei
 }
 
 @Composable
-private fun PerformanceInsightsSection(analyticsState: com.github.radupana.featherweight.viewmodel.AnalyticsState) {
+private fun PerformanceInsightsSection(analyticsState: AnalyticsState) {
     GlassCard {
         Column {
             Text(

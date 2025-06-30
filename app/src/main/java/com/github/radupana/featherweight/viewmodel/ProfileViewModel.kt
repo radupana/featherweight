@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.profile.ExerciseMaxWithName
+import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -125,7 +126,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             try {
                 repository.deleteExerciseMax(
-                    com.github.radupana.featherweight.data.profile.UserExerciseMax(
+                    UserExerciseMax(
                         id = max.id,
                         userId = max.userId,
                         exerciseId = max.exerciseId,
