@@ -510,7 +510,7 @@ fun WorkoutScreen(
                     viewModel.updateSet(editingSet!!.id, reps, weight, rpe)
                 } else {
                     val exercise = exercises.find { it.exerciseName == editingExerciseName }
-                    exercise?.let { viewModel.addSetToExercise(it.id, weight, reps, rpe) }
+                    exercise?.let { viewModel.addSetToExercise(it.id, reps, weight, weight, reps, rpe) }
                 }
                 showEditSetDialog = false
                 editingSet = null
@@ -541,7 +541,7 @@ fun WorkoutScreen(
                         .filter { it.exerciseLogId == setEditingExercise!!.id }
                         .maxByOrNull { it.setOrder }
                 if (lastSet != null) {
-                    viewModel.addSetToExercise(setEditingExercise!!.id, lastSet.weight, lastSet.reps, lastSet.rpe)
+                    viewModel.addSetToExercise(setEditingExercise!!.id, lastSet.reps, lastSet.weight, lastSet.weight, lastSet.reps, lastSet.rpe)
                 } else {
                     viewModel.addSetToExercise(setEditingExercise!!.id)
                 }
@@ -581,6 +581,7 @@ fun WorkoutScreen(
             },
             viewModel = viewModel,
             restTimerViewModel = restTimerViewModel,
+            isProgrammeWorkout = workoutState.isProgrammeWorkout,
         )
     }
 }

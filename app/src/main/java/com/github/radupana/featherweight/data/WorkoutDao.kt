@@ -79,4 +79,46 @@ interface WorkoutDao {
     """,
     )
     suspend fun getCompletedWeeksForProgramme(programmeId: Long): List<Int>
+    
+    // ===== INTELLIGENT SUGGESTIONS QUERIES =====
+    
+    @Query("SELECT * FROM ExerciseLog WHERE exerciseName = :exerciseName ORDER BY id DESC")
+    suspend fun getExerciseLogsByName(exerciseName: String): List<ExerciseLog>
+    
+    @Query("""
+        SELECT s.* FROM SetLog s 
+        WHERE s.exerciseLogId IN (:exerciseIds) 
+        AND s.actualReps BETWEEN :minReps AND :maxReps 
+        AND s.isCompleted = 1
+        ORDER BY s.id DESC 
+        LIMIT 50
+    """)
+    suspend fun getSetsForExercisesInRepRange(
+        exerciseIds: List<Long>, 
+        minReps: Int, 
+        maxReps: Int
+    ): List<SetLog>
+    
+    @Query("""
+        SELECT s.* FROM SetLog s 
+        WHERE s.exerciseLogId IN (:exerciseIds) 
+        AND s.isCompleted = 1
+        ORDER BY s.id DESC 
+        LIMIT :limit
+    """)
+    suspend fun getRecentSetsForExercises(exerciseIds: List<Long>, limit: Int): List<SetLog>
+    
+    @Query("""
+        SELECT s.* FROM SetLog s 
+        WHERE s.exerciseLogId IN (:exerciseIds) 
+        AND s.actualWeight BETWEEN :minWeight AND :maxWeight 
+        AND s.isCompleted = 1
+        ORDER BY s.id DESC 
+        LIMIT 50
+    """)
+    suspend fun getSetsForExercisesInWeightRange(
+        exerciseIds: List<Long>, 
+        minWeight: Float, 
+        maxWeight: Float
+    ): List<SetLog>
 }

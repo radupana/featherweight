@@ -2715,4 +2715,95 @@ class FeatherweightRepository(
 
         return maxKey?.let { userMaxes[it] }
     }
+    
+    // ===== INTELLIGENT SUGGESTIONS SUPPORT =====
+    
+    suspend fun getOneRMForExercise(exerciseName: String): Float? = withContext(Dispatchers.IO) {
+        // Get exercise ID by name first
+        val exercise = db.exerciseDao().findExerciseByExactName(exerciseName) ?: return@withContext null
+        
+        // Get the first user profile (single user app for now)
+        val profile = db.profileDao().getUserProfile() ?: return@withContext null
+        
+        // Get current max for this exercise
+        val exerciseMax = db.profileDao().getCurrentMax(profile.id, exercise.id)
+        return@withContext exerciseMax?.maxWeight
+    }
+    
+    suspend fun getHistoricalPerformance(
+        exerciseName: String, 
+        minReps: Int, 
+        maxReps: Int
+    ): List<com.github.radupana.featherweight.service.PerformanceData> = withContext(Dispatchers.IO) {
+        // Get exercise logs for this exercise
+        val exerciseLogs = db.workoutDao().getExerciseLogsByName(exerciseName)
+        val exerciseIds = exerciseLogs.map { it.id }
+        
+        if (exerciseIds.isEmpty()) return@withContext emptyList()
+        
+        // Get sets within rep range
+        val sets = db.workoutDao().getSetsForExercisesInRepRange(exerciseIds, minReps, maxReps)
+        
+        sets.map { setLog ->
+            com.github.radupana.featherweight.service.PerformanceData(
+                targetReps = setLog.targetReps,
+                targetWeight = setLog.targetWeight,
+                actualReps = setLog.actualReps,
+                actualWeight = setLog.actualWeight,
+                actualRpe = setLog.actualRpe,
+                timestamp = setLog.completedAt ?: ""
+            )
+        }.sortedByDescending { it.timestamp }
+    }
+    
+    suspend fun getRecentPerformance(
+        exerciseName: String, 
+        limit: Int = 10
+    ): List<com.github.radupana.featherweight.service.PerformanceData> = withContext(Dispatchers.IO) {
+        // Get recent exercise logs for this exercise
+        val exerciseLogs = db.workoutDao().getExerciseLogsByName(exerciseName)
+        val exerciseIds = exerciseLogs.map { it.id }
+        
+        if (exerciseIds.isEmpty()) return@withContext emptyList()
+        
+        // Get recent sets
+        val sets = db.workoutDao().getRecentSetsForExercises(exerciseIds, limit)
+        
+        sets.map { setLog ->
+            com.github.radupana.featherweight.service.PerformanceData(
+                targetReps = setLog.targetReps,
+                targetWeight = setLog.targetWeight,
+                actualReps = setLog.actualReps,
+                actualWeight = setLog.actualWeight,
+                actualRpe = setLog.actualRpe,
+                timestamp = setLog.completedAt ?: ""
+            )
+        }.sortedByDescending { it.timestamp }
+    }
+    
+    suspend fun getHistoricalPerformanceForWeight(
+        exerciseName: String, 
+        minWeight: Float, 
+        maxWeight: Float
+    ): List<com.github.radupana.featherweight.service.PerformanceData> = withContext(Dispatchers.IO) {
+        // Get exercise logs for this exercise
+        val exerciseLogs = db.workoutDao().getExerciseLogsByName(exerciseName)
+        val exerciseIds = exerciseLogs.map { it.id }
+        
+        if (exerciseIds.isEmpty()) return@withContext emptyList()
+        
+        // Get sets within weight range
+        val sets = db.workoutDao().getSetsForExercisesInWeightRange(exerciseIds, minWeight, maxWeight)
+        
+        sets.map { setLog ->
+            com.github.radupana.featherweight.service.PerformanceData(
+                targetReps = setLog.targetReps,
+                targetWeight = setLog.targetWeight,
+                actualReps = setLog.actualReps,
+                actualWeight = setLog.actualWeight,
+                actualRpe = setLog.actualRpe,
+                timestamp = setLog.completedAt ?: ""
+            )
+        }.sortedByDescending { it.timestamp }
+    }
 }

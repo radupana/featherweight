@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -15,6 +17,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.*
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -33,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -40,8 +46,10 @@ import androidx.compose.ui.window.DialogProperties
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
+import com.github.radupana.featherweight.ui.components.IntelligentSetInput
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
 
@@ -58,6 +66,7 @@ fun SetEditingModal(
     onCompleteAllSets: () -> Unit,
     viewModel: WorkoutViewModel,
     restTimerViewModel: RestTimerViewModel,
+    isProgrammeWorkout: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -180,71 +189,62 @@ fun SetEditingModal(
                     Column(
                         modifier = Modifier.fillMaxSize(),
                     ) {
-                        // Show header only when there are sets
+                        // Collapsible reference section toggle state
+                        var showReference by remember { mutableStateOf(true) }
+                        
+                        // Show header and toggle only when there are sets
                         if (sets.isNotEmpty()) {
-                            // Header row
+                            
+                            TextButton(
+                                onClick = { showReference = !showReference },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    if (showReference) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = if (showReference) "Hide" else "Show",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    if (showReference) "Hide Previous & Targets" else "Show Previous & Targets",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                            
+                            // Modal header for input fields
                             Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    "Set",
+                                    "Weight (kg)",
                                     style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.width(24.dp),
+                                    modifier = Modifier.weight(1.2f),
                                     textAlign = TextAlign.Center,
                                 )
                                 Text(
                                     "Reps",
                                     style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1f),
-                                    textAlign = TextAlign.Center,
-                                )
-                                Text(
-                                    "Weight (kg)",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1.5f),
+                                    modifier = Modifier.weight(0.8f),
                                     textAlign = TextAlign.Center,
                                 )
                                 Text(
                                     "RPE",
                                     style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier.weight(0.8f),
                                     textAlign = TextAlign.Center,
                                 )
-                                // Complete All button positioned here
-                                val canCompleteAll =
-                                    sets.isNotEmpty() &&
-                                        sets.all { viewModel.canMarkSetComplete(it) } &&
-                                        sets.any { !it.isCompleted }
-
-                                if (canCompleteAll) {
-                                    OutlinedButton(
-                                        onClick = onCompleteAllSets,
-                                        modifier = Modifier.height(32.dp),
-                                        contentPadding = PaddingValues(horizontal = 6.dp),
-                                    ) {
-                                        Icon(
-                                            Icons.Filled.CheckCircle,
-                                            contentDescription = "Complete All",
-                                            modifier = Modifier.size(12.dp),
-                                        )
-                                        Spacer(modifier = Modifier.width(2.dp))
-                                        Text(
-                                            "All",
-                                            style = MaterialTheme.typography.labelSmall,
-                                        )
-                                    }
-                                } else {
-                                    Spacer(modifier = Modifier.width(64.dp))
-                                }
+                                // Space for checkbox
+                                Spacer(modifier = Modifier.width(48.dp))
                             }
 
                             HorizontalDivider(
@@ -302,6 +302,7 @@ fun SetEditingModal(
                                     }
                                 }
 
+
                                 items(sets) { set ->
                                     key(set.id) {
                                         val dismissState =
@@ -344,18 +345,22 @@ fun SetEditingModal(
                                             enableDismissFromStartToEnd = false,
                                             enableDismissFromEndToStart = true,
                                         ) {
-                                            ExpandedSetRow(
+                                            CleanSetLayout(
                                                 set = set,
+                                                exercise = exercise,
                                                 onUpdateSet = { reps, weight, rpe ->
                                                     onUpdateSet(set.id, reps, weight, rpe)
+                                                },
+                                                onUpdateTarget = { reps, weight ->
+                                                    viewModel.updateSetTarget(set.id, reps, weight)
                                                 },
                                                 onToggleCompleted = { completed ->
                                                     onToggleCompleted(set.id, completed)
                                                 },
-                                                onDelete = { }, // No longer needed as we use swipe
                                                 canMarkComplete = viewModel.canMarkSetComplete(set),
-                                                keyboardController = keyboardController,
-                                                // Hide the delete button
+                                                viewModel = viewModel,
+                                                isProgrammeWorkout = isProgrammeWorkout,
+                                                showReference = showReference,
                                             )
                                         }
                                     }
@@ -756,3 +761,229 @@ private fun ExpandedSetRow(
         )
     }
 }
+
+@Composable
+fun CleanSetLayout(
+    set: SetLog,
+    exercise: ExerciseLog,
+    onUpdateSet: (Int, Float, Float?) -> Unit,
+    onUpdateTarget: (Int, Float?) -> Unit,
+    onToggleCompleted: (Boolean) -> Unit,
+    canMarkComplete: Boolean,
+    viewModel: WorkoutViewModel,
+    isProgrammeWorkout: Boolean,
+    showReference: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    // Collect suggestions from ViewModel
+    val weightSuggestions by viewModel.weightSuggestions.collectAsState()
+    
+    // Get suggestion for this set
+    val weightSuggestion = weightSuggestions[set.id]
+    
+    // Input states
+    var weightInput by remember(set.id, set.actualWeight) {
+        mutableStateOf(if (set.actualWeight > 0) set.actualWeight.toString() else "")
+    }
+    var repsInput by remember(set.id, set.actualReps) {
+        mutableStateOf(if (set.actualReps > 0) set.actualReps.toString() else "")
+    }
+    var rpeInput by remember(set.id, set.actualRpe) {
+        mutableStateOf(set.actualRpe?.toString() ?: "")
+    }
+    
+    // Generate suggestions for freestyle workouts
+    LaunchedEffect(set.targetReps, exercise.exerciseName) {
+        if (!isProgrammeWorkout && set.targetReps > 0) {
+            try {
+                val suggestion = viewModel.getWeightSuggestion(exercise.exerciseName, set.targetReps)
+                viewModel.updateWeightSuggestion(set.id, suggestion)
+            } catch (e: Exception) {
+                println("Error generating weight suggestion: ${e.message}")
+            }
+        }
+    }
+
+    // Format reference information
+    val previousDisplay = "-" // TODO: Load from actual previous workout data
+    val targetDisplay = if (isProgrammeWorkout && set.targetReps > 0) {
+        if (set.targetWeight != null) {
+            "Target: ${set.targetReps} reps @ ${set.targetWeight}kg"
+        } else {
+            "Target: ${set.targetReps} reps"
+        }
+    } else if (!isProgrammeWorkout && weightSuggestion != null) {
+        "Suggestion: ${weightSuggestion.weight}kg"
+    } else {
+        null
+    }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        // Collapsible Reference Information
+        if (showReference) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Previous performance
+                    Text(
+                        "Previous: $previousDisplay",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    
+                    // Target or suggestion
+                    if (targetDisplay != null) {
+                        if (!isProgrammeWorkout && weightSuggestion != null) {
+                            // Clickable suggestion for freestyle
+                            TextButton(
+                                onClick = {
+                                    weightInput = weightSuggestion.weight.toString()
+                                    onUpdateSet(set.actualReps, weightSuggestion.weight, set.actualRpe)
+                                },
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.tertiary
+                                )
+                            ) {
+                                Text(
+                                    "💡 ${weightSuggestion.weight}kg",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        } else {
+                            // Programme target (read-only)
+                            Text(
+                                targetDisplay,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Clean Input Row - Aligned with Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Weight input - NO INLINE LABEL
+            OutlinedTextField(
+                value = weightInput,
+                onValueChange = { newValue ->
+                    if (newValue.isEmpty()) {
+                        weightInput = newValue
+                        onUpdateSet(set.actualReps, 0f, set.actualRpe)
+                    } else {
+                        val weight = newValue.toFloatOrNull()
+                        if (weight != null && weight >= 0) {
+                            weightInput = newValue
+                            onUpdateSet(set.actualReps, weight, set.actualRpe)
+                        }
+                    }
+                },
+                placeholder = { Text("0", textAlign = TextAlign.Center) },
+                modifier = Modifier.weight(1.2f).height(56.dp),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    textAlign = TextAlign.Center,
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
+
+            // Reps input - NO INLINE LABEL
+            OutlinedTextField(
+                value = repsInput,
+                onValueChange = { newValue ->
+                    if (newValue.isEmpty()) {
+                        repsInput = newValue
+                        onUpdateSet(0, set.actualWeight, set.actualRpe)
+                    } else if (newValue.all { it.isDigit() } && newValue.length <= 2) {
+                        repsInput = newValue
+                        val reps = newValue.toIntOrNull() ?: 0
+                        onUpdateSet(reps, set.actualWeight, set.actualRpe)
+                    }
+                },
+                placeholder = { Text("0", textAlign = TextAlign.Center) },
+                modifier = Modifier.weight(0.8f).height(56.dp),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    textAlign = TextAlign.Center,
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+
+            // RPE input - NO INLINE LABEL
+            OutlinedTextField(
+                value = rpeInput,
+                onValueChange = { newValue ->
+                    if (newValue.isEmpty()) {
+                        rpeInput = newValue
+                        onUpdateSet(set.actualReps, set.actualWeight, null)
+                    } else {
+                        val rpe = newValue.toFloatOrNull()
+                        if (rpe != null && rpe >= 0 && rpe <= 10) {
+                            rpeInput = newValue
+                            onUpdateSet(set.actualReps, set.actualWeight, rpe)
+                        }
+                    }
+                },
+                placeholder = { Text("RPE", textAlign = TextAlign.Center) },
+                modifier = Modifier.weight(0.8f).height(56.dp),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    textAlign = TextAlign.Center,
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
+
+            // Completion checkbox
+            Checkbox(
+                checked = set.isCompleted,
+                onCheckedChange = { newChecked ->
+                    if (!newChecked || canMarkComplete) {
+                        onToggleCompleted(newChecked)
+                    }
+                },
+                enabled = canMarkComplete || set.isCompleted,
+                colors = CheckboxDefaults.colors(
+                    checkedColor = MaterialTheme.colorScheme.primary,
+                ),
+            )
+        }
+    }
+}
+

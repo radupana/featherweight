@@ -700,6 +700,8 @@ class WorkoutViewModel(
     // Set management - only allowed if workout can be edited
     fun addSetToExercise(
         exerciseLogId: Long,
+        targetReps: Int = 0,
+        targetWeight: Float? = null,
         weight: Float = 0f,
         reps: Int = 0,
         rpe: Float? = null,
@@ -712,9 +714,14 @@ class WorkoutViewModel(
                 SetLog(
                     exerciseLogId = exerciseLogId,
                     setOrder = setOrder,
-                    reps = reps,
-                    weight = weight,
-                    rpe = rpe,
+                    targetReps = targetReps,
+                    targetWeight = targetWeight,
+                    actualReps = reps,
+                    actualWeight = weight,
+                    actualRpe = rpe,
+                    reps = reps, // Legacy field
+                    weight = weight, // Legacy field
+                    rpe = rpe, // Legacy field
                     tag = null,
                     notes = null,
                     isCompleted = false,
@@ -738,7 +745,14 @@ class WorkoutViewModel(
             val currentSets = _selectedExerciseSets.value
             val currentSet = currentSets.firstOrNull { it.id == setId }
             if (currentSet != null) {
-                val updatedSet = currentSet.copy(reps = reps, weight = weight, rpe = rpe)
+                val updatedSet = currentSet.copy(
+                    actualReps = reps,
+                    actualWeight = weight,
+                    actualRpe = rpe,
+                    reps = reps, // Legacy field
+                    weight = weight, // Legacy field
+                    rpe = rpe // Legacy field
+                )
 
                 // Update the set in the local state immediately to prevent UI flicker
                 val updatedSets =
@@ -1264,6 +1278,169 @@ class WorkoutViewModel(
                             }
                     }
                 }
+            }
+        }
+    }
+    
+    // ===== ENHANCED SET MANAGEMENT FOR TARGET/ACTUAL =====
+    
+    fun updateSetTarget(
+        setId: Long,
+        targetReps: Int,
+        targetWeight: Float?
+    ) {
+        if (!canEditWorkout()) return
+
+        viewModelScope.launch {
+            val currentSets = _selectedExerciseSets.value
+            val currentSet = currentSets.firstOrNull { it.id == setId }
+            if (currentSet != null) {
+                val updatedSet = currentSet.copy(
+                    targetReps = targetReps,
+                    targetWeight = targetWeight
+                )
+
+                // Update the set in the local state immediately
+                val updatedSets = currentSets.map { set ->
+                    if (set.id == setId) updatedSet else set
+                }
+                _selectedExerciseSets.value = updatedSets
+
+                // Persist to database
+                repository.updateSetLog(updatedSet)
+            }
+        }
+    }
+    
+    fun updateSetActual(
+        setId: Long,
+        actualReps: Int,
+        actualWeight: Float,
+        actualRpe: Float?
+    ) {
+        if (!canEditWorkout()) return
+
+        viewModelScope.launch {
+            val currentSets = _selectedExerciseSets.value
+            val currentSet = currentSets.firstOrNull { it.id == setId }
+            if (currentSet != null) {
+                val updatedSet = currentSet.copy(
+                    actualReps = actualReps,
+                    actualWeight = actualWeight,
+                    actualRpe = actualRpe,
+                    reps = actualReps, // Legacy field
+                    weight = actualWeight, // Legacy field
+                    rpe = actualRpe // Legacy field
+                )
+
+                // Update the set in the local state immediately
+                val updatedSets = currentSets.map { set ->
+                    if (set.id == setId) updatedSet else set
+                }
+                _selectedExerciseSets.value = updatedSets
+
+                // Update validation cache for this set
+                val validationMap = _setCompletionValidation.value.toMutableMap()
+                validationMap[setId] = canMarkSetCompleteInternal(updatedSet)
+                _setCompletionValidation.value = validationMap
+
+                // Persist to database
+                repository.updateSetLog(updatedSet)
+                loadInProgressWorkouts()
+            }
+        }
+    }
+    
+    fun updateSetSuggestion(
+        setId: Long,
+        suggestedWeight: Float?,
+        suggestedReps: Int?,
+        suggestionSource: String?,
+        suggestionConfidence: Float?,
+        calculationDetails: String?
+    ) {
+        viewModelScope.launch {
+            val currentSets = _selectedExerciseSets.value
+            val currentSet = currentSets.firstOrNull { it.id == setId }
+            if (currentSet != null) {
+                val updatedSet = currentSet.copy(
+                    suggestedWeight = suggestedWeight,
+                    suggestedReps = suggestedReps,
+                    suggestionSource = suggestionSource,
+                    suggestionConfidence = suggestionConfidence,
+                    calculationDetails = calculationDetails
+                )
+
+                // Update the set in the local state immediately
+                val updatedSets = currentSets.map { set ->
+                    if (set.id == setId) updatedSet else set
+                }
+                _selectedExerciseSets.value = updatedSets
+
+                // Persist to database
+                repository.updateSetLog(updatedSet)
+            }
+        }
+    }
+
+    // ===== INTELLIGENT SUGGESTIONS =====
+    
+    private val suggestionEngine = com.github.radupana.featherweight.service.FeatherweightSuggestionEngine(repository)
+    
+    // Suggestion state
+    private val _weightSuggestions = MutableStateFlow<Map<Long, com.github.radupana.featherweight.service.WeightSuggestion>>(emptyMap())
+    val weightSuggestions: StateFlow<Map<Long, com.github.radupana.featherweight.service.WeightSuggestion>> = _weightSuggestions
+    
+    private val _repsSuggestions = MutableStateFlow<Map<Long, com.github.radupana.featherweight.service.RepsSuggestion>>(emptyMap())
+    val repsSuggestions: StateFlow<Map<Long, com.github.radupana.featherweight.service.RepsSuggestion>> = _repsSuggestions
+    
+    suspend fun getWeightSuggestion(exerciseName: String, targetReps: Int): com.github.radupana.featherweight.service.WeightSuggestion {
+        return suggestionEngine.suggestWeight(exerciseName, targetReps)
+    }
+    
+    suspend fun getRepsSuggestion(exerciseName: String, targetWeight: Float): com.github.radupana.featherweight.service.RepsSuggestion {
+        return suggestionEngine.suggestReps(exerciseName, targetWeight)
+    }
+    
+    fun updateWeightSuggestion(setId: Long, suggestion: com.github.radupana.featherweight.service.WeightSuggestion) {
+        val currentSuggestions = _weightSuggestions.value.toMutableMap()
+        currentSuggestions[setId] = suggestion
+        _weightSuggestions.value = currentSuggestions
+    }
+    
+    fun updateRepsSuggestion(setId: Long, suggestion: com.github.radupana.featherweight.service.RepsSuggestion) {
+        val currentSuggestions = _repsSuggestions.value.toMutableMap()
+        currentSuggestions[setId] = suggestion
+        _repsSuggestions.value = currentSuggestions
+    }
+    
+    suspend fun generateSuggestionsForExercise(exerciseLog: ExerciseLog) {
+        viewModelScope.launch {
+            try {
+                // Get current sets for this exercise to generate suggestions
+                val sets = repository.getSetsForExercise(exerciseLog.id)
+                
+                sets.forEach { setLog ->
+                    // Generate weight suggestion based on target reps
+                    if (setLog.targetReps > 0) {
+                        val weightSuggestion = suggestionEngine.suggestWeight(
+                            exerciseLog.exerciseName, 
+                            setLog.targetReps
+                        )
+                        updateWeightSuggestion(setLog.id, weightSuggestion)
+                    }
+                    
+                    // Generate reps suggestion based on actual weight (if set)
+                    if (setLog.actualWeight > 0) {
+                        val repsSuggestion = suggestionEngine.suggestReps(
+                            exerciseLog.exerciseName, 
+                            setLog.actualWeight
+                        )
+                        updateRepsSuggestion(setLog.id, repsSuggestion)
+                    }
+                }
+            } catch (e: Exception) {
+                println("Error generating suggestions: ${e.message}")
             }
         }
     }
