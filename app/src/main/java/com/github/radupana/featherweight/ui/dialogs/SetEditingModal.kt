@@ -319,52 +319,24 @@ fun SetEditingModal(
                                                 },
                                             )
 
-                                        SwipeToDismissBox(
-                                            state = dismissState,
-                                            backgroundContent = {
-                                                // Only show red background when actively dismissing
-                                                if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
-                                                    Surface(
-                                                        modifier = Modifier.fillMaxSize(),
-                                                        color = MaterialTheme.colorScheme.error,
-                                                        shape = RoundedCornerShape(8.dp),
-                                                    ) {
-                                                        Row(
-                                                            modifier = Modifier.fillMaxSize(),
-                                                            horizontalArrangement = Arrangement.End,
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                        ) {
-                                                            Icon(
-                                                                Icons.Filled.Delete,
-                                                                contentDescription = "Delete",
-                                                                tint = MaterialTheme.colorScheme.onError,
-                                                                modifier = Modifier.padding(16.dp),
-                                                            )
-                                                        }
-                                                    }
-                                                }
+                                        CleanSetLayout(
+                                            set = set,
+                                            exercise = exercise,
+                                            onUpdateSet = { reps, weight, rpe ->
+                                                onUpdateSet(set.id, reps, weight, rpe)
                                             },
-                                            enableDismissFromStartToEnd = false,
-                                            enableDismissFromEndToStart = true,
-                                        ) {
-                                            CleanSetLayout(
-                                                set = set,
-                                                exercise = exercise,
-                                                onUpdateSet = { reps, weight, rpe ->
-                                                    onUpdateSet(set.id, reps, weight, rpe)
-                                                },
-                                                onUpdateTarget = { reps, weight ->
-                                                    viewModel.updateSetTarget(set.id, reps, weight)
-                                                },
-                                                onToggleCompleted = { completed ->
-                                                    onToggleCompleted(set.id, completed)
-                                                },
-                                                canMarkComplete = viewModel.canMarkSetComplete(set),
-                                                viewModel = viewModel,
-                                                isProgrammeWorkout = isProgrammeWorkout,
-                                                showReference = showReference,
-                                            )
-                                        }
+                                            onUpdateTarget = { reps, weight ->
+                                                viewModel.updateSetTarget(set.id, reps, weight)
+                                            },
+                                            onToggleCompleted = { completed ->
+                                                onToggleCompleted(set.id, completed)
+                                            },
+                                            canMarkComplete = viewModel.canMarkSetComplete(set),
+                                            viewModel = viewModel,
+                                            isProgrammeWorkout = isProgrammeWorkout,
+                                            showReference = showReference,
+                                            swipeToDismissState = dismissState,
+                                        )
                                     }
                                 }
 
@@ -775,6 +747,7 @@ fun CleanSetLayout(
     viewModel: WorkoutViewModel,
     isProgrammeWorkout: Boolean,
     showReference: Boolean,
+    swipeToDismissState: SwipeToDismissBoxState,
     modifier: Modifier = Modifier,
 ) {
     // Collect suggestions from ViewModel
@@ -828,7 +801,7 @@ fun CleanSetLayout(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // Collapsible Reference Information
+        // Collapsible Reference Information - OUTSIDE swipe area
         if (showReference) {
             Card(
                 modifier = Modifier
@@ -887,7 +860,44 @@ fun CleanSetLayout(
             }
         }
         
-        // Clean Input Row - Aligned with Header
+        // Swipeable Input Area - ONLY this part can be swiped to delete
+        SwipeToDismissBox(
+            state = swipeToDismissState,
+            backgroundContent = {
+                // Only show red background when actively dismissing
+                if (swipeToDismissState.targetValue != SwipeToDismissBoxValue.Settled) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        // Elegant narrow red stripe only on the right
+                        Surface(
+                            modifier = Modifier
+                                .width(80.dp)  // Narrow width
+                                .fillMaxHeight()
+                                .padding(vertical = 4.dp),  // Minimal vertical padding
+                            color = MaterialTheme.colorScheme.error,
+                            shape = RoundedCornerShape(8.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = "Delete",
+                                    tint = MaterialTheme.colorScheme.onError,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            enableDismissFromStartToEnd = false,
+            enableDismissFromEndToStart = true,
+        ) {
+            // Clean Input Row - Only this gets swiped
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -951,6 +961,7 @@ fun CleanSetLayout(
                 ),
             )
         }
-    }
+        }  // Close SwipeToDismissBox
+    }  // Close Column
 }
 
