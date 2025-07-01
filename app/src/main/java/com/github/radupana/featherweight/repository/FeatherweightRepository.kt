@@ -12,6 +12,7 @@ import com.github.radupana.featherweight.data.SwapHistoryCount
 import com.github.radupana.featherweight.data.UserPreferences
 import com.github.radupana.featherweight.data.VolumeLevel
 import com.github.radupana.featherweight.data.Workout
+import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseAliasSeeder
@@ -58,7 +59,7 @@ data class WorkoutSummary(
     val totalWeight: Float,
     // minutes
     val duration: Long?,
-    val isCompleted: Boolean,
+    val status: WorkoutStatus,
     // Programme Integration Fields
     val isProgrammeWorkout: Boolean = false,
     val programmeId: Long? = null,
@@ -311,7 +312,7 @@ class FeatherweightRepository(
             // Check if workout has exercises but no completion marker
             val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
             val hasExercises = exercises.isNotEmpty()
-            val isCompleted = workout.notes?.contains("[COMPLETED]") == true
+            val isCompleted = workout.status == WorkoutStatus.COMPLETED
 
             hasExercises && !isCompleted
         }
@@ -329,19 +330,12 @@ class FeatherweightRepository(
         )
 
         // Check if already completed
-        if (workout.notes?.contains("[COMPLETED]") == true) {
+        if (workout.status == WorkoutStatus.COMPLETED) {
             println("⚠️ Workout already marked as completed, skipping")
             return
         }
 
-        val completedNotes =
-            if (workout.notes != null) {
-                "${workout.notes} [COMPLETED]"
-            } else {
-                "[COMPLETED]"
-            }
-
-        val updatedWorkout = workout.copy(notes = completedNotes, durationSeconds = durationSeconds)
+        val updatedWorkout = workout.copy(status = WorkoutStatus.COMPLETED, durationSeconds = durationSeconds)
         workoutDao.updateWorkout(updatedWorkout)
         println("✅ Workout marked as completed in database")
 
@@ -484,7 +478,7 @@ class FeatherweightRepository(
 
         val newNotes =
             if (isCompleted) {
-                if (name != null) "$name [COMPLETED]" else "[COMPLETED]"
+                name ?: ""
             } else {
                 name
             }
@@ -509,12 +503,10 @@ class FeatherweightRepository(
                 val completedSets = allSets.filter { it.isCompleted }
                 val totalWeight = completedSets.sumOf { (it.weight * it.reps).toDouble() }.toFloat()
 
-                val isCompleted = workout.notes?.contains("[COMPLETED]") == true
+                val isCompleted = workout.status == WorkoutStatus.COMPLETED
                 val displayName =
                     if (workout.notes != null && isCompleted) {
                         workout.notes!!
-                            .replace(" [COMPLETED]", "")
-                            .replace("[COMPLETED]", "")
                             .trim()
                             .takeIf { it.isNotBlank() }
                     } else {
@@ -542,7 +534,7 @@ class FeatherweightRepository(
                     totalWeight = totalWeight,
                     // TODO: Calculate duration
                     duration = null,
-                    isCompleted = isCompleted,
+                    status = workout.status,
                     isProgrammeWorkout = workout.isProgrammeWorkout,
                     programmeId = workout.programmeId,
                     programmeName = programmeName,
@@ -591,12 +583,10 @@ class FeatherweightRepository(
                 val completedSets = allSets.filter { it.isCompleted }
                 val totalWeight = completedSets.sumOf { (it.weight * it.reps).toDouble() }.toFloat()
 
-                val isCompleted = workout.notes?.contains("[COMPLETED]") == true
+                val isCompleted = workout.status == WorkoutStatus.COMPLETED
                 val displayName =
                     if (workout.notes != null && isCompleted) {
                         workout.notes!!
-                            .replace(" [COMPLETED]", "")
-                            .replace("[COMPLETED]", "")
                             .trim()
                             .takeIf { it.isNotBlank() }
                     } else {
@@ -625,7 +615,7 @@ class FeatherweightRepository(
                     totalWeight = totalWeight,
                     // TODO: Calculate duration
                     duration = null,
-                    isCompleted = isCompleted,
+                    status = workout.status,
                     isProgrammeWorkout = workout.isProgrammeWorkout,
                     programmeId = workout.programmeId,
                     programmeName = programmeName,
@@ -944,7 +934,7 @@ class FeatherweightRepository(
             workoutDao.getAllWorkouts().count { workout ->
                 workout.date >= startDate &&
                     workout.date < endDate &&
-                    workout.notes?.contains("[COMPLETED]") == true
+                    workout.status == WorkoutStatus.COMPLETED
             }
         }
 
@@ -982,7 +972,7 @@ class FeatherweightRepository(
             val allWorkouts =
                 workoutDao
                     .getAllWorkouts()
-                    .filter { it.notes?.contains("[COMPLETED]") == true }
+                    .filter { it.status == WorkoutStatus.COMPLETED }
                     .sortedByDescending { it.date }
 
             if (allWorkouts.isEmpty()) return@withContext 0
@@ -1041,7 +1031,7 @@ class FeatherweightRepository(
             val allWorkouts =
                 workoutDao
                     .getAllWorkouts()
-                    .filter { it.notes?.contains("[COMPLETED]") == true }
+                    .filter { it.status == WorkoutStatus.COMPLETED }
                     .sortedBy { it.date }
 
             if (allWorkouts.isEmpty()) return@withContext 0f
@@ -1477,7 +1467,7 @@ class FeatherweightRepository(
     ): Boolean =
         withContext(Dispatchers.IO) {
             val lastExecution = workoutDao.getLastProgrammeWorkoutExecution(programmeId, programmeWorkoutId)
-            lastExecution?.notes?.contains("[COMPLETED]") == true
+            lastExecution?.status == WorkoutStatus.COMPLETED
         }
 
     // Get next programme workout to do
@@ -2075,8 +2065,23 @@ class FeatherweightRepository(
             if (programme.isActive) {
                 programmeDao.deactivateAllProgrammes()
             }
+            // Delete all workouts associated with this programme to prevent orphaned workouts
+            workoutDao.deleteWorkoutsByProgramme(programme.id)
             // Then delete the programme (will cascade delete progress and related data)
             programmeDao.deleteProgramme(programme)
+        }
+
+    suspend fun getInProgressWorkoutCountByProgramme(programmeId: Long): Int =
+        withContext(Dispatchers.IO) {
+            workoutDao.getInProgressWorkoutCountByProgramme(programmeId)
+        }
+
+    suspend fun updateWorkoutStatus(workoutId: Long, status: WorkoutStatus) =
+        withContext(Dispatchers.IO) {
+            val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
+            val updatedWorkout = workout.copy(status = status)
+            workoutDao.updateWorkout(updatedWorkout)
+            println("📊 Workout $workoutId status updated to $status")
         }
 
     // Programme Progress

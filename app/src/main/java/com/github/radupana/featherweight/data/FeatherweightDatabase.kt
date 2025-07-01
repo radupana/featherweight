@@ -39,7 +39,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         UserExerciseMax::class,
         ExerciseSwapHistory::class,
     ],
-    version = 27,
+    version = 28,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)

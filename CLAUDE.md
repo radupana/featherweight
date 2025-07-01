@@ -109,3 +109,33 @@ that are transparent and explicit about reasoning. Always show WHY a weight was 
 **Phase 4**: Advanced programme support (5/3/1, nSuns, etc.)
 
 **Key Principle**: Perfect one programme completely before expanding to others.
+
+## Latest Session: Set Input UI Overhaul (2025-07-01)
+
+Fixed critical UI/UX issues with set input fields that were causing major usability problems:
+
+**Problems Solved:**
+- **Text Reversal Bug**: Typing "123" resulted in "321" due to cursor position loss
+- **Auto-Decimal Insertion**: Keyboard was inserting unwanted decimals ("1.02" instead of "123")
+- **Placeholder Misalignment**: Placeholder text was left-aligned while input was center-aligned
+- **Missing Text Selection**: Select-all on focus was completely broken
+- **Input Length Limits**: No enforcement of max character limits per field type
+
+**Technical Fixes:**
+- **Fixed Cursor Position**: Changed `CleanSetLayout` to store `TextFieldValue` instead of `String`
+- **Removed Recomposition Triggers**: Fixed `remember` keys that caused input resets on every keystroke
+- **Implemented Hard Input Limits**: Weight (7 chars max), Reps (2 chars), RPE (2 chars with >10 clamping)
+- **Created CenteredInputField**: Universal component with proper validation and center alignment
+- **Fixed Keyboard Type**: Used `KeyboardType.Number` for all fields to prevent auto-decimals
+
+**UI Improvements:**
+- **Elegant Swipe-to-Delete**: Narrow red stripe (80dp) only covers input area, excludes reference info
+- **Proper Text Selection**: Select-all works correctly on field focus
+- **Consistent Placeholders**: All placeholders center-aligned and disappear on focus
+
+**Key Files Modified:**
+- `CenteredInputField.kt` - New universal input component with validation
+- `SetEditingModal.kt` - Fixed state management and swipe behavior
+- Deleted `SelectAllOnFocusTextField.kt` - Replaced with working solution
+
+**Critical Lesson**: Always store `TextFieldValue` for cursor preservation, never convert to/from `String` in input flows.

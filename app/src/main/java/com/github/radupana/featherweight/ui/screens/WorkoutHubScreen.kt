@@ -337,7 +337,7 @@ fun RecentWorkoutCard(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     val (containerColor, statusColor, statusTextColor) =
-        if (workout.isCompleted) {
+        if (workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
             Triple(
                 MaterialTheme.colorScheme.surface,
                 MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
@@ -380,7 +380,7 @@ fun RecentWorkoutCard(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color =
-                            if (workout.isCompleted) {
+                            if (workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
                                 MaterialTheme.colorScheme.onSurface
                             } else {
                                 Color(0xFF5D4037)
@@ -390,7 +390,7 @@ fun RecentWorkoutCard(
                         text = workout.date.format(DateTimeFormatter.ofPattern("EEEE, MMM dd")),
                         style = MaterialTheme.typography.bodySmall,
                         color =
-                            if (workout.isCompleted) {
+                            if (workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             } else {
                                 Color(0xFF8D6E63)
@@ -403,7 +403,7 @@ fun RecentWorkoutCard(
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Text(
-                        text = if (workout.isCompleted) "Completed" else "In Progress",
+                        text = if (workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) "Completed" else "In Progress",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
                         color = statusTextColor,
@@ -421,19 +421,19 @@ fun RecentWorkoutCard(
                 QuickStat(
                     label = "Exercises",
                     value = workout.exerciseCount.toString(),
-                    isCompleted = workout.isCompleted,
+                    isCompleted = workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED,
                     modifier = Modifier.weight(1f),
                 )
                 QuickStat(
                     label = "Sets",
                     value = workout.setCount.toString(),
-                    isCompleted = workout.isCompleted,
+                    isCompleted = workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED,
                     modifier = Modifier.weight(1f),
                 )
                 QuickStat(
                     label = "Volume",
                     value = "${String.format("%.1f", workout.totalWeight / 1000)}k kg",
-                    isCompleted = workout.isCompleted,
+                    isCompleted = workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED,
                     modifier = Modifier.weight(1f),
                 )
             }

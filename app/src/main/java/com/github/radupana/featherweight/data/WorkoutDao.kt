@@ -22,6 +22,12 @@ interface WorkoutDao {
     @Query("DELETE FROM Workout WHERE id = :workoutId")
     suspend fun deleteWorkout(workoutId: Long)
 
+    @Query("DELETE FROM Workout WHERE programmeId = :programmeId")
+    suspend fun deleteWorkoutsByProgramme(programmeId: Long)
+
+    @Query("SELECT COUNT(*) FROM Workout WHERE programmeId = :programmeId AND status != 'COMPLETED'")
+    suspend fun getInProgressWorkoutCountByProgramme(programmeId: Long): Int
+
     // Programme-related queries
     @Query("SELECT * FROM Workout WHERE programmeId = :programmeId ORDER BY date DESC")
     suspend fun getWorkoutsByProgramme(programmeId: Long): List<Workout>

@@ -407,6 +407,10 @@ class ProgrammeViewModel(
 
     // Removed deactivateActiveProgramme and reactivateProgramme - we only support delete now
 
+    suspend fun getInProgressWorkoutCount(programme: Programme): Int {
+        return repository.getInProgressWorkoutCountByProgramme(programme.id)
+    }
+
     fun deleteProgramme(programme: Programme) {
         viewModelScope.launch {
             try {

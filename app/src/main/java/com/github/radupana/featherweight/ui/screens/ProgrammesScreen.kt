@@ -260,6 +260,17 @@ fun ProgrammesScreen(
 
     // Delete Confirmation Dialog
     if (showDeleteConfirmDialog) {
+        var inProgressWorkoutCount by remember { mutableStateOf(0) }
+        
+        // Check for in-progress workouts when dialog opens
+        LaunchedEffect(showDeleteConfirmDialog) {
+            if (showDeleteConfirmDialog) {
+                activeProgramme?.let { programme ->
+                    inProgressWorkoutCount = viewModel.getInProgressWorkoutCount(programme)
+                }
+            }
+        }
+        
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false },
             title = { Text("Delete Programme?") },
@@ -270,8 +281,18 @@ fun ProgrammesScreen(
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                    
+                    val warningText = buildString {
+                        append("⚠️ This action cannot be undone!\n")
+                        append("• All progress will be lost\n")
+                        append("• All workout history will be deleted")
+                        if (inProgressWorkoutCount > 0) {
+                            append("\n• $inProgressWorkoutCount in-progress workout${if (inProgressWorkoutCount > 1) "s" else ""} will be deleted")
+                        }
+                    }
+                    
                     Text(
-                        text = "⚠️ This action cannot be undone!\n• All progress will be lost\n• Workout history will remain",
+                        text = warningText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )

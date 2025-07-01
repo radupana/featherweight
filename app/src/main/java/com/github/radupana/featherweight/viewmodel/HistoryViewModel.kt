@@ -80,7 +80,7 @@ class HistoryViewModel(
                         setCount = repoSummary.setCount,
                         totalWeight = repoSummary.totalWeight,
                         duration = repoSummary.duration,
-                        isCompleted = repoSummary.isCompleted,
+                        status = repoSummary.status,
                     )
                 }
 
@@ -137,7 +137,7 @@ class HistoryViewModel(
                             setCount = repoSummary.setCount,
                             totalWeight = repoSummary.totalWeight,
                             duration = repoSummary.duration,
-                            isCompleted = repoSummary.isCompleted,
+                            status = repoSummary.status,
                         )
                     }
 
@@ -193,7 +193,7 @@ class HistoryViewModel(
                             setCount = repoSummary.setCount,
                             totalWeight = repoSummary.totalWeight,
                             duration = repoSummary.duration,
-                            isCompleted = repoSummary.isCompleted,
+                            status = repoSummary.status,
                         )
                     }
 

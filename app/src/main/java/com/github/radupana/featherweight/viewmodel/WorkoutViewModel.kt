@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
+import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.*
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.SmartSuggestions
@@ -21,7 +22,7 @@ import java.time.format.DateTimeFormatter
 
 data class WorkoutState(
     val isActive: Boolean = false,
-    val isCompleted: Boolean = false,
+    val status: WorkoutStatus = WorkoutStatus.NOT_STARTED,
     val workoutId: Long? = null,
     val startTime: LocalDateTime? = null,
     val workoutName: String? = null,
@@ -173,7 +174,7 @@ class WorkoutViewModel(
             val workoutHistory = repository.getWorkoutHistory()
             val inProgress =
                 workoutHistory
-                    .filter { !it.isCompleted }
+                    .filter { it.status != com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED }
                     .map { summary ->
                         // Calculate completed sets
                         val completedSets =
@@ -227,7 +228,7 @@ class WorkoutViewModel(
             id = ongoingWorkout.id,
             name =
                 ongoingWorkout.notes?.let { notes ->
-                    if (notes.contains("[COMPLETED]")) null else notes
+                    notes
                 },
             startDate = ongoingWorkout.date,
             exerciseCount = exercises.size,
@@ -241,7 +242,7 @@ class WorkoutViewModel(
         viewModelScope.launch {
             val workout = repository.getWorkoutById(workoutId)
             if (workout != null) {
-                val isCompleted = workout.notes?.contains("[COMPLETED]") == true
+                val isCompleted = workout.status == WorkoutStatus.COMPLETED
 
                 // Get programme information if this is a programme workout
                 val programmeName =
@@ -259,20 +260,14 @@ class WorkoutViewModel(
                 _workoutState.value =
                     WorkoutState(
                         isActive = !isCompleted,
-                        isCompleted = isCompleted,
+                        status = if (isCompleted) WorkoutStatus.COMPLETED else WorkoutStatus.IN_PROGRESS,
                         workoutId = workoutId,
                         startTime = workout.date,
                         workoutName =
                             workout.notes?.let { notes ->
-                                if (notes.contains("[COMPLETED]")) {
-                                    notes
-                                        .replace(" [COMPLETED]", "")
-                                        .replace("[COMPLETED]", "")
-                                        .trim()
-                                        .takeIf { it.isNotBlank() }
-                                } else {
-                                    notes.takeIf { it.isNotBlank() }
-                                }
+                                notes
+                                    .trim()
+                                    .takeIf { it.isNotBlank() }
                             },
                         isReadOnly = isCompleted,
                         isInEditMode = false,
@@ -311,7 +306,7 @@ class WorkoutViewModel(
                 _workoutState.value =
                     WorkoutState(
                         isActive = true,
-                        isCompleted = false,
+                        status = WorkoutStatus.IN_PROGRESS,
                         workoutId = workoutId,
                         startTime = LocalDateTime.now(),
                         workoutName = null,
@@ -345,7 +340,7 @@ class WorkoutViewModel(
 
     fun enterEditMode() {
         val currentState = _workoutState.value
-        if (currentState.isCompleted && !currentState.isInEditMode) {
+        if (currentState.status == WorkoutStatus.COMPLETED && !currentState.isInEditMode) {
             // Backup current data for potential rollback
             val backupData =
                 Triple(
@@ -429,7 +424,7 @@ class WorkoutViewModel(
             _workoutState.value =
                 state.copy(
                     isActive = false,
-                    isCompleted = true,
+                    status = WorkoutStatus.COMPLETED,
                     isReadOnly = true,
                     isInEditMode = false,
                     originalWorkoutData = null,
@@ -828,6 +823,19 @@ class WorkoutViewModel(
                 startWorkoutTimer()
             }
 
+            // Update workout status to IN_PROGRESS when first set is completed
+            val currentWorkoutId = _currentWorkoutId.value
+            if (completed && currentWorkoutId != null) {
+                val currentState = _workoutState.value
+                if (currentState.isActive && currentState.status != WorkoutStatus.COMPLETED) {
+                    // Check if this is the first completed set
+                    val hasCompletedSets = _selectedExerciseSets.value.any { it.isCompleted && it.id != setId }
+                    if (!hasCompletedSets) {
+                        repository.updateWorkoutStatus(currentWorkoutId, WorkoutStatus.IN_PROGRESS)
+                    }
+                }
+            }
+
             // Then persist to database
             repository.markSetCompleted(setId, completed, timestamp)
             loadInProgressWorkouts()
@@ -1120,7 +1128,7 @@ class WorkoutViewModel(
             _workoutState.value =
                 WorkoutState(
                     isActive = true,
-                    isCompleted = false,
+                    status = WorkoutStatus.IN_PROGRESS,
                     workoutId = workoutId,
                     startTime = workout.date,
                     workoutName = workout.programmeWorkoutName,
@@ -1239,7 +1247,7 @@ class WorkoutViewModel(
     // Resume timer if workout was already started (for when user navigates away and back)
     private fun resumeWorkoutTimerIfNeeded() {
         val state = _workoutState.value
-        if (state.isActive && !state.isCompleted) {
+        if (state.isActive && state.status != WorkoutStatus.COMPLETED) {
             // Check if any sets are completed to determine if timer should be active
             val hasCompletedSets = _selectedExerciseSets.value.any { it.isCompleted }
             if (hasCompletedSets && !state.isWorkoutTimerActive) {

@@ -114,7 +114,7 @@ fun WorkoutScreen(
 
     // If no active workout, start one
     LaunchedEffect(workoutState.isActive) {
-        if (!workoutState.isActive && !workoutState.isCompleted) {
+        if (!workoutState.isActive && workoutState.status != com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
             viewModel.startNewWorkout()
         }
     }
@@ -185,7 +185,7 @@ fun WorkoutScreen(
                             }
 
                             // Status icons
-                            if (workoutState.isCompleted && !isEditMode) {
+                            if (workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED && !isEditMode) {
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Icon(
                                     Icons.Filled.Lock,
@@ -260,7 +260,7 @@ fun WorkoutScreen(
             ) {
                 // Normal workout view
                 // Status banners
-                if (workoutState.isCompleted && !isEditMode) {
+                if (workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED && !isEditMode) {
                     ReadOnlyBanner(
                         onEnterEditMode = { showEditModeDialog = true },
                     )
