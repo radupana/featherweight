@@ -325,6 +325,7 @@ fun WorkoutScreen(
                                 setEditingExercise = exercise
                                 showSetEditingModal = true
                                 viewModel.loadSetsForExercise()
+                                viewModel.loadExerciseHistoryForName(exercise.exerciseName)
                             }
                         },
                         onSelectExercise = onSelectExercise,

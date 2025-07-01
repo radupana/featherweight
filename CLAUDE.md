@@ -139,3 +139,83 @@ Fixed critical UI/UX issues with set input fields that were causing major usabil
 - Deleted `SelectAllOnFocusTextField.kt` - Replaced with working solution
 
 **Critical Lesson**: Always store `TextFieldValue` for cursor preservation, never convert to/from `String` in input flows.
+
+## Critical Bug Fixes & Architecture Lessons (2025-07-01 Continued)
+
+### 1. **SetLog Field Mismatch Bug**
+**Problem**: Checkbox wouldn't become clickable even with valid data entered
+**Root Cause**: UI was updating `actualReps`/`actualWeight` fields, but validation was checking legacy `reps`/`weight` fields
+**Fix**: Updated `canMarkSetComplete` to check actual fields: `set.actualReps > 0 && set.actualWeight > 0`
+**Lesson**: Always verify which fields the UI is actually updating vs what validation is checking
+
+### 2. **Exercise Weight Requirements**
+**Problem**: "Complete All" functionality didn't respect that some exercises (pull-ups) don't require weight
+**Solution**: Use existing `exercise.requiresWeight` flag in validation logic
+**Database**: 157/500 exercises correctly marked as `requiresWeight=false` (all bodyweight exercises)
+
+### 3. **History Not Showing Completed Workouts**
+**Problem**: Completed workouts weren't appearing in history
+**Fix**: Modified history query to include completed workouts even without exercises
+**Code**: Changed filter from `exercises.isNotEmpty()` to `workout.status == COMPLETED || exercises.isNotEmpty()`
+
+### 4. **Previous Performance Data**
+**Problem**: "Previous: -" shown on every set row, never loading actual data
+**Fix**: 
+- Call `loadExerciseHistoryForName()` when opening set modal
+- Filter to only completed workouts/sets
+- Display in dedicated card instead of per-row
+
+### 5. **UI Information Architecture Overhaul**
+
+**Removed Confusing Features:**
+- Weight suggestions (lightbulb) - unclear what it represented
+- Hide/Show Previous toggle - unnecessary complexity
+- Per-row previous display - redundant
+
+**New Clean Architecture:**
+```
+[Exercise Name Header]
+[Previous Performance Card] ← Shows last workout: "3 × 5×100kg @8"
+[Rest Timer Bar]
+[Set Input Table]
+  | Target | Weight | Reps | RPE | ✓ |
+  | 5×80   |   [ ]  | [ ]  | [ ] | □ |  ← Programme workout
+  |        |   [ ]  | [ ]  | [ ] | □ |  ← Freestyle workout
+```
+
+**Benefits:**
+- Clear separation of intent (Target) vs execution (actual values)
+- Consistent UI for both programme and freestyle workouts
+- No placeholder text - headers are sufficient
+- Target column shows it's read-only with subtle background
+
+### 6. **Missing "Complete All" Button**
+**Problem**: Feature was accidentally removed during UI refactoring
+**Fix**: Re-added icon button in header, only shows when uncompleted sets have reps
+**Implementation**: Check `sets.any { !it.isCompleted && it.actualReps > 0 }`
+
+## Key Development Principles
+
+### Database Field Usage
+- **ALWAYS** check which fields the UI is updating
+- `actualReps`/`actualWeight` = what user did
+- `targetReps`/`targetWeight` = what programme prescribed
+- `reps`/`weight` = legacy fields, being phased out
+
+### UI/UX Guidelines
+- **Remove before adding**: Question every UI element's purpose
+- **Consistent layouts**: Same structure for all contexts (programme/freestyle)
+- **Clear visual hierarchy**: Read-only data looks different from editable
+- **No redundant information**: Show data once in the right place
+
+### Validation Logic
+- **Respect exercise requirements**: Not all exercises need weight
+- **Cache validation results**: Async validation in `_setCompletionValidation`
+- **Check actual values**: Validate what the UI actually updates
+
+### Common Pitfalls to Avoid
+1. Don't add features without clear user benefit
+2. Don't show the same information in multiple places
+3. Don't make UI elements that aren't self-explanatory
+4. Always test with both weighted and bodyweight exercises
+5. Verify database saves are actually happening (check logs)

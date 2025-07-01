@@ -1,6 +1,9 @@
 package com.github.radupana.featherweight.ui.dialogs
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -180,6 +183,17 @@ fun SetEditingModal(
                     onRestSkip = { restTimerViewModel.stopTimer() },
                     onRestTogglePause = { restTimerViewModel.togglePause() },
                 )
+                
+                // Previous Performance Card
+                val exerciseHistory by viewModel.exerciseHistory.collectAsState()
+                val previousSets = exerciseHistory[exercise.exerciseName]?.sets ?: emptyList()
+                if (previousSets.isNotEmpty()) {
+                    PreviousPerformanceCard(
+                        exerciseName = exercise.exerciseName,
+                        previousSets = previousSets,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
 
                 // Content area with optimal space usage
                 Box(
@@ -191,28 +205,8 @@ fun SetEditingModal(
                     Column(
                         modifier = Modifier.fillMaxSize(),
                     ) {
-                        // Collapsible reference section toggle state
-                        var showReference by remember { mutableStateOf(true) }
-                        
-                        // Show header and toggle only when there are sets
+                        // Show header only when there are sets
                         if (sets.isNotEmpty()) {
-                            
-                            TextButton(
-                                onClick = { showReference = !showReference },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(
-                                    if (showReference) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                    contentDescription = if (showReference) "Hide" else "Show",
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    if (showReference) "Hide Previous & Targets" else "Show Previous & Targets",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                            
                             // Modal header for input fields
                             Row(
                                 modifier = Modifier
@@ -222,11 +216,19 @@ fun SetEditingModal(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    "Weight (kg)",
+                                    "Target",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1.2f),
+                                    modifier = Modifier.weight(0.8f),
+                                    textAlign = TextAlign.Center,
+                                )
+                                Text(
+                                    "Weight",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(0.8f),
                                     textAlign = TextAlign.Center,
                                 )
                                 Text(
@@ -234,7 +236,7 @@ fun SetEditingModal(
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(0.8f),
+                                    modifier = Modifier.weight(0.6f),
                                     textAlign = TextAlign.Center,
                                 )
                                 Text(
@@ -242,11 +244,28 @@ fun SetEditingModal(
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(0.8f),
+                                    modifier = Modifier.weight(0.6f),
                                     textAlign = TextAlign.Center,
                                 )
-                                // Space for checkbox
-                                Spacer(modifier = Modifier.width(48.dp))
+                                // "All" button for marking all sets complete
+                                // Note: We check reps > 0 here because the actual weight requirement
+                                // is checked in the ViewModel's canMarkSetComplete function
+                                val hasPopulatedSets = sets.any { !it.isCompleted && it.actualReps > 0 }
+                                if (hasPopulatedSets) {
+                                    IconButton(
+                                        onClick = onCompleteAllSets,
+                                        modifier = Modifier.size(48.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.CheckCircle,
+                                            contentDescription = "Complete all",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.width(48.dp))
+                                }
                             }
 
                             HorizontalDivider(
@@ -334,7 +353,6 @@ fun SetEditingModal(
                                             canMarkComplete = viewModel.canMarkSetComplete(set),
                                             viewModel = viewModel,
                                             isProgrammeWorkout = isProgrammeWorkout,
-                                            showReference = showReference,
                                             swipeToDismissState = dismissState,
                                         )
                                     }
@@ -746,16 +764,9 @@ fun CleanSetLayout(
     canMarkComplete: Boolean,
     viewModel: WorkoutViewModel,
     isProgrammeWorkout: Boolean,
-    showReference: Boolean,
     swipeToDismissState: SwipeToDismissBoxState,
     modifier: Modifier = Modifier,
 ) {
-    // Collect suggestions from ViewModel
-    val weightSuggestions by viewModel.weightSuggestions.collectAsState()
-    
-    // Get suggestion for this set
-    val weightSuggestion = weightSuggestions[set.id]
-    
     // Input states - Store as TextFieldValue to preserve cursor position  
     // ONLY use set.id as remember key to avoid recomposition on value changes
     var weightInput by remember(set.id) {
@@ -770,96 +781,11 @@ fun CleanSetLayout(
         val text = set.actualRpe?.let { if (it % 1.0f == 0.0f) it.toInt().toString() else it.toString() } ?: ""
         mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
-    
-    // Generate suggestions for freestyle workouts
-    LaunchedEffect(set.targetReps, exercise.exerciseName) {
-        if (!isProgrammeWorkout && set.targetReps > 0) {
-            try {
-                val suggestion = viewModel.getWeightSuggestion(exercise.exerciseName, set.targetReps)
-                viewModel.updateWeightSuggestion(set.id, suggestion)
-            } catch (e: Exception) {
-                println("Error generating weight suggestion: ${e.message}")
-            }
-        }
-    }
-
-    // Format reference information
-    val previousDisplay = "-" // TODO: Load from actual previous workout data
-    val targetDisplay = if (isProgrammeWorkout && set.targetReps > 0) {
-        if (set.targetWeight != null) {
-            "Target: ${set.targetReps} reps @ ${set.targetWeight}kg"
-        } else {
-            "Target: ${set.targetReps} reps"
-        }
-    } else if (!isProgrammeWorkout && weightSuggestion != null) {
-        "Suggestion: ${weightSuggestion.weight}kg"
-    } else {
-        null
-    }
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // Collapsible Reference Information - OUTSIDE swipe area
-        if (showReference) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Previous performance
-                    Text(
-                        "Previous: $previousDisplay",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    
-                    // Target or suggestion
-                    if (targetDisplay != null) {
-                        if (!isProgrammeWorkout && weightSuggestion != null) {
-                            // Clickable suggestion for freestyle
-                            TextButton(
-                                onClick = {
-                                    val text = weightSuggestion.weight.toString()
-                                    weightInput = TextFieldValue(text, TextRange(text.length))
-                                    onUpdateSet(set.actualReps, weightSuggestion.weight, set.actualRpe)
-                                },
-                                colors = ButtonDefaults.textButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.tertiary
-                                )
-                            ) {
-                                Text(
-                                    "💡 ${weightSuggestion.weight}kg",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        } else {
-                            // Programme target (read-only)
-                            Text(
-                                targetDisplay,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        
         // Swipeable Input Area - ONLY this part can be swiped to delete
         SwipeToDismissBox(
             state = swipeToDismissState,
@@ -905,6 +831,35 @@ fun CleanSetLayout(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Target column - read-only
+            val targetDisplay = if (isProgrammeWorkout && set.targetReps > 0) {
+                if (set.targetWeight != null && set.targetWeight > 0) {
+                    "${set.targetReps}×${set.targetWeight.toInt()}"
+                } else {
+                    "${set.targetReps}"
+                }
+            } else {
+                ""
+            }
+            
+            Box(
+                modifier = Modifier
+                    .weight(0.8f)
+                    .height(56.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(8.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = targetDisplay,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (targetDisplay.isNotEmpty()) FontWeight.Medium else FontWeight.Normal
+                )
+            }
+
             // Weight input
             CenteredInputField(
                 value = weightInput,
@@ -914,8 +869,8 @@ fun CleanSetLayout(
                     onUpdateSet(set.actualReps, weight, set.actualRpe)
                 },
                 fieldType = InputFieldType.WEIGHT,
-                placeholder = "Weight",
-                modifier = Modifier.weight(1.2f).height(56.dp),
+                placeholder = "",  // No placeholder
+                modifier = Modifier.weight(0.8f).height(56.dp),
                 imeAction = ImeAction.Next
             )
 
@@ -928,8 +883,8 @@ fun CleanSetLayout(
                     onUpdateSet(reps, set.actualWeight, set.actualRpe)
                 },
                 fieldType = InputFieldType.REPS,
-                placeholder = "Reps",
-                modifier = Modifier.weight(0.8f).height(56.dp),
+                placeholder = "",  // No placeholder
+                modifier = Modifier.weight(0.6f).height(56.dp),
                 imeAction = ImeAction.Next
             )
 
@@ -942,26 +897,112 @@ fun CleanSetLayout(
                     onUpdateSet(set.actualReps, set.actualWeight, rpe)
                 },
                 fieldType = InputFieldType.RPE,
-                placeholder = "RPE",
-                modifier = Modifier.weight(0.8f).height(56.dp),
+                placeholder = "",  // No placeholder
+                modifier = Modifier.weight(0.6f).height(56.dp),
                 imeAction = ImeAction.Done
             )
 
             // Completion checkbox
-            Checkbox(
-                checked = set.isCompleted,
-                onCheckedChange = { newChecked ->
-                    if (!newChecked || canMarkComplete) {
-                        onToggleCompleted(newChecked)
-                    }
-                },
-                enabled = canMarkComplete || set.isCompleted,
-                colors = CheckboxDefaults.colors(
-                    checkedColor = MaterialTheme.colorScheme.primary,
-                ),
-            )
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clickable(
+                        enabled = canMarkComplete || set.isCompleted,
+                        onClick = {
+                            val newChecked = !set.isCompleted
+                            if (!newChecked || canMarkComplete) {
+                                onToggleCompleted(newChecked)
+                            }
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Checkbox(
+                    checked = set.isCompleted,
+                    onCheckedChange = null, // Handle clicks on the Box instead
+                    enabled = canMarkComplete || set.isCompleted,
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = MaterialTheme.colorScheme.primary,
+                    ),
+                )
+            }
         }
         }  // Close SwipeToDismissBox
     }  // Close Column
+}
+
+@Composable
+private fun PreviousPerformanceCard(
+    exerciseName: String,
+    previousSets: List<SetLog>,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                "Previous Performance",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            // Show last 3 sets
+            val lastThreeSets = previousSets
+                .filter { it.isCompleted }
+                .take(3)
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                lastThreeSets.forEach { set ->
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (set.weight > 0) {
+                                    "${set.reps}×${set.weight.toInt()}kg"
+                                } else {
+                                    "${set.reps} reps"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            if (set.rpe != null) {
+                                Text(
+                                    "@${set.rpe.toInt()}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // Fill remaining space if less than 3 sets
+                if (lastThreeSets.size < 3) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
 }
 

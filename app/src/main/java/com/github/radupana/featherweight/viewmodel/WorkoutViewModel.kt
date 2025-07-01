@@ -399,9 +399,11 @@ class WorkoutViewModel(
     // Complete the current workout (handles both regular and programme workouts)
     fun completeWorkout(onComplete: (() -> Unit)? = null) {
         val currentId = _currentWorkoutId.value ?: return
+        println("🏁 Starting workout completion for ID: $currentId")
+        
         viewModelScope.launch {
             val state = _workoutState.value
-
+            println("🏁 Current workout state: isActive=${state.isActive}, status=${state.status}, isProgramme=${state.isProgrammeWorkout}")
 
             // Calculate final duration and complete the workout
             val finalDuration =
@@ -410,10 +412,12 @@ class WorkoutViewModel(
                 } else {
                     null
                 }
+            println("🏁 Final duration: $finalDuration seconds")
 
             // Complete the workout (this will automatically update programme progress if applicable)
+            println("🏁 Calling repository.completeWorkout($currentId, $finalDuration)")
             repository.completeWorkout(currentId, finalDuration)
-
+            println("🏁 Repository completeWorkout returned")
 
             // Stop workout timer
             stopWorkoutTimer()
@@ -421,18 +425,21 @@ class WorkoutViewModel(
             // Stop rest timer for this workout
             restTimerViewModel?.onWorkoutCompleted()
 
+            val newStatus = WorkoutStatus.COMPLETED
+            println("🏁 Setting workout state to completed")
             _workoutState.value =
                 state.copy(
                     isActive = false,
-                    status = WorkoutStatus.COMPLETED,
+                    status = newStatus,
                     isReadOnly = true,
                     isInEditMode = false,
                     originalWorkoutData = null,
                 )
 
+            println("🏁 Loading in-progress workouts")
             loadInProgressWorkouts()
 
-
+            println("🏁 Workout completion finished successfully")
             // Callback for UI to handle post-completion actions
             onComplete?.invoke()
         }
@@ -463,7 +470,18 @@ class WorkoutViewModel(
     }
 
     // Public synchronous function for UI
-    fun canMarkSetComplete(set: SetLog): Boolean = _setCompletionValidation.value[set.id] ?: (set.reps > 0 && set.weight > 0)
+    fun canMarkSetComplete(set: SetLog): Boolean {
+        // Use cached validation result if available, otherwise fallback to basic check
+        val cachedResult = _setCompletionValidation.value[set.id]
+        val result = if (cachedResult != null) {
+            cachedResult
+        } else {
+            // Fallback: assume weight is required if we don't have cached info
+            set.actualReps > 0 && set.actualWeight > 0
+        }
+        println("🔍 canMarkSetComplete: setId=${set.id}, actualReps=${set.actualReps}, actualWeight=${set.actualWeight}, cached=$cachedResult, result=$result")
+        return result
+    }
 
     // Internal suspend function for validation logic
     private suspend fun canMarkSetCompleteInternal(set: SetLog): Boolean {
@@ -473,17 +491,23 @@ class WorkoutViewModel(
         // If exerciseLog has an exerciseId, check if the exercise requires weight
         if (exerciseLog?.exerciseId != null) {
             val exerciseDetails = repository.getExerciseById(exerciseLog.exerciseId)
-            return if (exerciseDetails?.exercise?.requiresWeight == false) {
-                // For exercises that don't require weight (like ab roll), only check reps
-                set.reps > 0
+            val requiresWeight = exerciseDetails?.exercise?.requiresWeight ?: true
+            
+            val result = if (!requiresWeight) {
+                // For exercises that don't require weight (like pull-ups), only check actualReps
+                set.actualReps > 0
             } else {
-                // For exercises that require weight, check both reps and weight
-                set.reps > 0 && set.weight > 0
+                // For exercises that require weight, check both actualReps and actualWeight
+                set.actualReps > 0 && set.actualWeight > 0
             }
+            
+            println("🏋️ canMarkSetCompleteInternal: exercise=${exerciseLog.exerciseName}, requiresWeight=$requiresWeight, actualReps=${set.actualReps}, actualWeight=${set.actualWeight}, result=$result")
+            return result
         }
 
-        // Fallback for legacy data without exerciseId - require both reps and weight
-        return set.reps > 0 && set.weight > 0
+        // Fallback for legacy data without exerciseId - require both actualReps and actualWeight
+        println("🏋️ canMarkSetCompleteInternal: FALLBACK - no exerciseId, actualReps=${set.actualReps}, actualWeight=${set.actualWeight}")
+        return set.actualReps > 0 && set.actualWeight > 0
     }
 
     private suspend fun loadExercisesForWorkout(workoutId: Long) {
@@ -686,8 +710,17 @@ class WorkoutViewModel(
                 val currentHistory = _exerciseHistory.value.toMutableMap()
                 currentHistory[exerciseName] = history
                 _exerciseHistory.value = currentHistory
+                
+                println("📊 Loaded exercise history for $exerciseName: ${history.sets.size} sets from ${history.lastWorkoutDate}")
+            } else {
+                println("📊 No exercise history found for $exerciseName")
             }
         }
+    }
+    
+    // Public method to load exercise history for SetEditingModal
+    fun loadExerciseHistoryForName(exerciseName: String) {
+        loadExerciseHistory(exerciseName)
     }
 
     // ===== EXISTING SET MANAGEMENT METHODS =====
@@ -756,10 +789,12 @@ class WorkoutViewModel(
                     }
                 _selectedExerciseSets.value = updatedSets
 
-                // Update validation cache for this set
-                val validationMap = _setCompletionValidation.value.toMutableMap()
-                validationMap[setId] = canMarkSetCompleteInternal(updatedSet)
-                _setCompletionValidation.value = validationMap
+                // Update validation cache for this set - must be done in coroutine scope
+                viewModelScope.launch {
+                    val validationMap = _setCompletionValidation.value.toMutableMap()
+                    validationMap[setId] = canMarkSetCompleteInternal(updatedSet)
+                    _setCompletionValidation.value = validationMap
+                }
 
                 // Then persist to database
                 repository.updateSetLog(updatedSet)
@@ -878,7 +913,16 @@ class WorkoutViewModel(
 
     fun canCompleteAllSetsInWorkout(): Boolean {
         val allSets = _selectedExerciseSets.value
-        return allSets.isNotEmpty() && allSets.any { canMarkSetComplete(it) && !it.isCompleted }
+        val result = allSets.isNotEmpty() && allSets.any { canMarkSetComplete(it) && !it.isCompleted }
+        
+        // Debug logging
+        println("🔍 canCompleteAllSetsInWorkout Debug:")
+        println("  Total sets: ${allSets.size}")
+        println("  Sets that can be marked complete: ${allSets.count { canMarkSetComplete(it) }}")
+        println("  Uncompleted sets that can be marked: ${allSets.count { canMarkSetComplete(it) && !it.isCompleted }}")
+        println("  Result: $result")
+        
+        return result
     }
 
     // Smart suggestions
@@ -1393,65 +1437,8 @@ class WorkoutViewModel(
 
     // ===== INTELLIGENT SUGGESTIONS =====
     
-    private val suggestionEngine = com.github.radupana.featherweight.service.FeatherweightSuggestionEngine(repository)
+    // Removed weight suggestion feature - will be reimplemented later with better intelligence
     
-    // Suggestion state
-    private val _weightSuggestions = MutableStateFlow<Map<Long, com.github.radupana.featherweight.service.WeightSuggestion>>(emptyMap())
-    val weightSuggestions: StateFlow<Map<Long, com.github.radupana.featherweight.service.WeightSuggestion>> = _weightSuggestions
-    
-    private val _repsSuggestions = MutableStateFlow<Map<Long, com.github.radupana.featherweight.service.RepsSuggestion>>(emptyMap())
-    val repsSuggestions: StateFlow<Map<Long, com.github.radupana.featherweight.service.RepsSuggestion>> = _repsSuggestions
-    
-    suspend fun getWeightSuggestion(exerciseName: String, targetReps: Int): com.github.radupana.featherweight.service.WeightSuggestion {
-        return suggestionEngine.suggestWeight(exerciseName, targetReps)
-    }
-    
-    suspend fun getRepsSuggestion(exerciseName: String, targetWeight: Float): com.github.radupana.featherweight.service.RepsSuggestion {
-        return suggestionEngine.suggestReps(exerciseName, targetWeight)
-    }
-    
-    fun updateWeightSuggestion(setId: Long, suggestion: com.github.radupana.featherweight.service.WeightSuggestion) {
-        val currentSuggestions = _weightSuggestions.value.toMutableMap()
-        currentSuggestions[setId] = suggestion
-        _weightSuggestions.value = currentSuggestions
-    }
-    
-    fun updateRepsSuggestion(setId: Long, suggestion: com.github.radupana.featherweight.service.RepsSuggestion) {
-        val currentSuggestions = _repsSuggestions.value.toMutableMap()
-        currentSuggestions[setId] = suggestion
-        _repsSuggestions.value = currentSuggestions
-    }
-    
-    suspend fun generateSuggestionsForExercise(exerciseLog: ExerciseLog) {
-        viewModelScope.launch {
-            try {
-                // Get current sets for this exercise to generate suggestions
-                val sets = repository.getSetsForExercise(exerciseLog.id)
-                
-                sets.forEach { setLog ->
-                    // Generate weight suggestion based on target reps
-                    if (setLog.targetReps > 0) {
-                        val weightSuggestion = suggestionEngine.suggestWeight(
-                            exerciseLog.exerciseName, 
-                            setLog.targetReps
-                        )
-                        updateWeightSuggestion(setLog.id, weightSuggestion)
-                    }
-                    
-                    // Generate reps suggestion based on actual weight (if set)
-                    if (setLog.actualWeight > 0) {
-                        val repsSuggestion = suggestionEngine.suggestReps(
-                            exerciseLog.exerciseName, 
-                            setLog.actualWeight
-                        )
-                        updateRepsSuggestion(setLog.id, repsSuggestion)
-                    }
-                }
-            } catch (e: Exception) {
-                println("Error generating suggestions: ${e.message}")
-            }
-        }
-    }
 
     override fun onCleared() {
         super.onCleared()

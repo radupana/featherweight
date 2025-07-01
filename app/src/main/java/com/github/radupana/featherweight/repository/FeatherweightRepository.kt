@@ -322,11 +322,22 @@ class FeatherweightRepository(
         workoutId: Long,
         durationSeconds: Long? = null,
     ) {
-        println("🔄 completeWorkout called with workoutId: $workoutId")
-        val workout = workoutDao.getAllWorkouts().find { it.id == workoutId } ?: return
+        println("🔄 Repository.completeWorkout called with workoutId: $workoutId, duration: $durationSeconds")
+        
+        // Get all workouts to verify
+        val allWorkouts = workoutDao.getAllWorkouts()
+        println("📊 Total workouts in database: ${allWorkouts.size}")
+        
+        val workout = allWorkouts.find { it.id == workoutId }
+        if (workout == null) {
+            println("❌ ERROR: Workout $workoutId not found in database!")
+            return
+        }
+        
         println(
-            "📊 Workout found: isProgrammeWorkout=${workout.isProgrammeWorkout}, " +
-                "programmeId=${workout.programmeId}, week=${workout.weekNumber}, day=${workout.dayNumber}",
+            "📊 Workout found: id=${workout.id}, isProgrammeWorkout=${workout.isProgrammeWorkout}, " +
+                "programmeId=${workout.programmeId}, week=${workout.weekNumber}, day=${workout.dayNumber}, " +
+                "currentStatus=${workout.status}, notes='${workout.notes}'",
         )
 
         // Check if already completed
@@ -335,9 +346,16 @@ class FeatherweightRepository(
             return
         }
 
+        println("📝 Creating updated workout with COMPLETED status")
         val updatedWorkout = workout.copy(status = WorkoutStatus.COMPLETED, durationSeconds = durationSeconds)
+        
+        println("💾 Saving to database...")
         workoutDao.updateWorkout(updatedWorkout)
         println("✅ Workout marked as completed in database")
+        
+        // Verify the update
+        val verifyWorkout = workoutDao.getAllWorkouts().find { it.id == workoutId }
+        println("🔍 Verification - workout status after update: ${verifyWorkout?.status}")
 
         // Update programme progress if this is a programme workout
         if (workout.isProgrammeWorkout && workout.programmeId != null && workout.weekNumber != null && workout.dayNumber != null) {
@@ -557,14 +575,15 @@ class FeatherweightRepository(
         println("  📊 Total workouts in DB: ${allWorkouts.size}")
         println("  📄 Requesting page: $page, pageSize: $pageSize, offset: $offset")
 
-        // PRE-FILTER workouts that have exercises BEFORE pagination
+        // PRE-FILTER workouts - show completed workouts even without exercises
         val validWorkouts =
             allWorkouts.filter { workout ->
                 val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                exercises.isNotEmpty()
+                // Show workout if it's completed OR has exercises
+                workout.status == WorkoutStatus.COMPLETED || exercises.isNotEmpty()
             }
 
-        println("  ✅ Valid workouts (with exercises): ${validWorkouts.size}")
+        println("  ✅ Valid workouts (completed or with exercises): ${validWorkouts.size}")
 
         // NOW paginate the valid workouts
         val pagedWorkouts = validWorkouts.drop(offset).take(pageSize)
@@ -634,15 +653,16 @@ class FeatherweightRepository(
         println("🔍 DEBUG: Checking all workouts:")
         allWorkouts.forEach { workout ->
             val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-            println("  Workout ${workout.id}: ${workout.notes ?: "Unnamed"} - ${exercises.size} exercises")
+            println("  Workout ${workout.id}: ${workout.notes ?: "Unnamed"} - ${exercises.size} exercises, status: ${workout.status}")
         }
 
         val count =
             allWorkouts.count { workout ->
                 val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                exercises.isNotEmpty()
+                // Count workout if it's completed OR has exercises
+                workout.status == WorkoutStatus.COMPLETED || exercises.isNotEmpty()
             }
-        println("🔍 getTotalWorkoutCount: $count workouts with exercises out of ${allWorkouts.size} total")
+        println("🔍 getTotalWorkoutCount: $count valid workouts out of ${allWorkouts.size} total")
         return count
     }
 
@@ -652,6 +672,8 @@ class FeatherweightRepository(
         currentWorkoutId: Long,
     ): ExerciseHistory? {
         val allWorkouts = workoutDao.getAllWorkouts()
+            .filter { it.status == WorkoutStatus.COMPLETED } // Only look at completed workouts
+            .sortedByDescending { it.date } // Most recent first
 
         for (workout in allWorkouts) {
             if (workout.id == currentWorkoutId) continue
@@ -661,11 +683,15 @@ class FeatherweightRepository(
 
             if (matchingExercise != null) {
                 val sets = setLogDao.getSetLogsForExercise(matchingExercise.id)
-                return ExerciseHistory(
-                    exerciseName = exerciseName,
-                    lastWorkoutDate = workout.date,
-                    sets = sets,
-                )
+                    .filter { it.isCompleted } // Only completed sets
+                
+                if (sets.isNotEmpty()) {
+                    return ExerciseHistory(
+                        exerciseName = exerciseName,
+                        lastWorkoutDate = workout.date,
+                        sets = sets,
+                    )
+                }
             }
         }
         return null

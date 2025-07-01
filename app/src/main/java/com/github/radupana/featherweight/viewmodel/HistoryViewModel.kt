@@ -69,6 +69,11 @@ class HistoryViewModel(
 
             val firstPageRepo = repository.getWorkoutHistoryPaged(page = 0, pageSize = currentState.pageSize)
             println("🔍 HistoryViewModel: Received ${firstPageRepo.size} workouts from repository")
+            
+            // Debug logging for workout statuses
+            firstPageRepo.forEach { workout ->
+                println("  Workout ${workout.id}: status=${workout.status}, exercises=${workout.exerciseCount}, sets=${workout.setCount}")
+            }
 
             val firstPage =
                 firstPageRepo.map { repoSummary ->
