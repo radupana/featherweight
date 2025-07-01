@@ -47,6 +47,8 @@ import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
 import com.github.radupana.featherweight.ui.components.IntelligentSetInput
+import com.github.radupana.featherweight.ui.components.CenteredInputField
+import com.github.radupana.featherweight.ui.components.InputFieldType
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import androidx.lifecycle.viewModelScope
@@ -781,15 +783,19 @@ fun CleanSetLayout(
     // Get suggestion for this set
     val weightSuggestion = weightSuggestions[set.id]
     
-    // Input states
-    var weightInput by remember(set.id, set.actualWeight) {
-        mutableStateOf(if (set.actualWeight > 0) set.actualWeight.toString() else "")
+    // Input states - Store as TextFieldValue to preserve cursor position  
+    // ONLY use set.id as remember key to avoid recomposition on value changes
+    var weightInput by remember(set.id) {
+        val text = if (set.actualWeight > 0) set.actualWeight.toString() else ""
+        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
-    var repsInput by remember(set.id, set.actualReps) {
-        mutableStateOf(if (set.actualReps > 0) set.actualReps.toString() else "")
+    var repsInput by remember(set.id) {
+        val text = if (set.actualReps > 0) set.actualReps.toString() else ""
+        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
-    var rpeInput by remember(set.id, set.actualRpe) {
-        mutableStateOf(set.actualRpe?.toString() ?: "")
+    var rpeInput by remember(set.id) {
+        val text = set.actualRpe?.let { if (it % 1.0f == 0.0f) it.toInt().toString() else it.toString() } ?: ""
+        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
     
     // Generate suggestions for freestyle workouts
@@ -853,7 +859,8 @@ fun CleanSetLayout(
                             // Clickable suggestion for freestyle
                             TextButton(
                                 onClick = {
-                                    weightInput = weightSuggestion.weight.toString()
+                                    val text = weightSuggestion.weight.toString()
+                                    weightInput = TextFieldValue(text, TextRange(text.length))
                                     onUpdateSet(set.actualReps, weightSuggestion.weight, set.actualRpe)
                                 },
                                 colors = ButtonDefaults.textButtonColors(
@@ -888,86 +895,46 @@ fun CleanSetLayout(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Weight input - NO INLINE LABEL
-            OutlinedTextField(
+            // Weight input
+            CenteredInputField(
                 value = weightInput,
-                onValueChange = { newValue ->
-                    if (newValue.isEmpty()) {
-                        weightInput = newValue
-                        onUpdateSet(set.actualReps, 0f, set.actualRpe)
-                    } else {
-                        val weight = newValue.toFloatOrNull()
-                        if (weight != null && weight >= 0) {
-                            weightInput = newValue
-                            onUpdateSet(set.actualReps, weight, set.actualRpe)
-                        }
-                    }
+                onValueChange = { textFieldValue ->
+                    weightInput = textFieldValue
+                    val weight = textFieldValue.text.toFloatOrNull() ?: 0f
+                    onUpdateSet(set.actualReps, weight, set.actualRpe)
                 },
-                placeholder = { Text("0", textAlign = TextAlign.Center) },
+                fieldType = InputFieldType.WEIGHT,
+                placeholder = "Weight",
                 modifier = Modifier.weight(1.2f).height(56.dp),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    textAlign = TextAlign.Center,
-                ),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                ),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                imeAction = ImeAction.Next
             )
 
-            // Reps input - NO INLINE LABEL
-            OutlinedTextField(
+            // Reps input
+            CenteredInputField(
                 value = repsInput,
-                onValueChange = { newValue ->
-                    if (newValue.isEmpty()) {
-                        repsInput = newValue
-                        onUpdateSet(0, set.actualWeight, set.actualRpe)
-                    } else if (newValue.all { it.isDigit() } && newValue.length <= 2) {
-                        repsInput = newValue
-                        val reps = newValue.toIntOrNull() ?: 0
-                        onUpdateSet(reps, set.actualWeight, set.actualRpe)
-                    }
+                onValueChange = { textFieldValue ->
+                    repsInput = textFieldValue
+                    val reps = textFieldValue.text.toIntOrNull() ?: 0
+                    onUpdateSet(reps, set.actualWeight, set.actualRpe)
                 },
-                placeholder = { Text("0", textAlign = TextAlign.Center) },
+                fieldType = InputFieldType.REPS,
+                placeholder = "Reps",
                 modifier = Modifier.weight(0.8f).height(56.dp),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    textAlign = TextAlign.Center,
-                ),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                ),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                imeAction = ImeAction.Next
             )
 
-            // RPE input - NO INLINE LABEL
-            OutlinedTextField(
+            // RPE input
+            CenteredInputField(
                 value = rpeInput,
-                onValueChange = { newValue ->
-                    if (newValue.isEmpty()) {
-                        rpeInput = newValue
-                        onUpdateSet(set.actualReps, set.actualWeight, null)
-                    } else {
-                        val rpe = newValue.toFloatOrNull()
-                        if (rpe != null && rpe >= 0 && rpe <= 10) {
-                            rpeInput = newValue
-                            onUpdateSet(set.actualReps, set.actualWeight, rpe)
-                        }
-                    }
+                onValueChange = { textFieldValue ->
+                    rpeInput = textFieldValue
+                    val rpe = textFieldValue.text.toIntOrNull()?.toFloat()
+                    onUpdateSet(set.actualReps, set.actualWeight, rpe)
                 },
-                placeholder = { Text("RPE", textAlign = TextAlign.Center) },
+                fieldType = InputFieldType.RPE,
+                placeholder = "RPE",
                 modifier = Modifier.weight(0.8f).height(56.dp),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    textAlign = TextAlign.Center,
-                ),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                ),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                imeAction = ImeAction.Done
             )
 
             // Completion checkbox
