@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 
 class ProgrammeViewModel(
     application: Application,
@@ -329,6 +331,7 @@ class ProgrammeViewModel(
         customName: String? = null,
         accessoryCustomizations: Map<String, String> = emptyMap(),
         onSuccess: (() -> Unit)? = null,
+        profileViewModel: ProfileViewModel? = null,
     ) {
         val template = _uiState.value.selectedTemplate ?: return
         val maxes = _userMaxes.value
@@ -376,7 +379,19 @@ class ProgrammeViewModel(
                     )
                 println("✅ Programme creation completed successfully")
 
-                // Call success callback to navigate
+                // Check if we should update profile 1RMs BEFORE navigation
+                if (template.requiresMaxes && profileViewModel != null) {
+                    val hasUpdates = checkAndPromptForProfileUpdate(maxes, profileViewModel)
+                    if (hasUpdates) {
+                        // Store the success callback to execute after profile update
+                        _uiState.value = _uiState.value.copy(
+                            pendingNavigationCallback = onSuccess
+                        )
+                        return@launch // Don't navigate yet
+                    }
+                }
+                
+                // No profile updates needed, navigate immediately
                 onSuccess?.invoke()
             } catch (e: Exception) {
                 println("❌ Programme creation failed: ${e.message}")
@@ -390,41 +405,7 @@ class ProgrammeViewModel(
         }
     }
 
-    fun deactivateActiveProgramme() {
-        viewModelScope.launch {
-            try {
-                repository.deactivateActiveProgramme()
-                _activeProgramme.value = null
-                _programmeProgress.value = null
-
-                // Programme deactivated successfully - no notification needed
-
-                // Reload to show deactivated programme
-                loadProgrammeData()
-            } catch (e: Exception) {
-                _uiState.value =
-                    _uiState.value.copy(
-                        error = "Failed to deactivate programme: ${e.message}",
-                    )
-            }
-        }
-    }
-
-    fun reactivateProgramme(programme: Programme) {
-        viewModelScope.launch {
-            try {
-                repository.activateProgramme(programme.id)
-                // Programme reactivated successfully - no notification needed
-                // Reload data to update UI
-                loadProgrammeData()
-            } catch (e: Exception) {
-                _uiState.value =
-                    _uiState.value.copy(
-                        error = "Failed to reactivate programme: ${e.message}",
-                    )
-            }
-        }
-    }
+    // Removed deactivateActiveProgramme and reactivateProgramme - we only support delete now
 
     fun deleteProgramme(programme: Programme) {
         viewModelScope.launch {
@@ -457,6 +438,121 @@ class ProgrammeViewModel(
             loadProgrammeData(showLoading = false)
         }
     }
+    
+    private suspend fun checkAndPromptForProfileUpdate(
+        enteredMaxes: UserMaxes,
+        profileViewModel: ProfileViewModel
+    ): Boolean {
+        val currentMaxes = profileViewModel.uiState.value.currentMaxes
+        val updates = mutableListOf<Pair<String, Float>>()
+        
+        // Check Squat - compare against actual value, not just null
+        enteredMaxes.squat?.let { newSquat ->
+            val currentSquat = currentMaxes.find { it.exerciseName == "Barbell Back Squat" }?.maxWeight
+            if (currentSquat != newSquat) {
+                updates.add("Barbell Back Squat" to newSquat)
+            }
+        }
+        
+        // Check Bench - compare against actual value, not just null
+        enteredMaxes.bench?.let { newBench ->
+            val currentBench = currentMaxes.find { it.exerciseName == "Barbell Bench Press" }?.maxWeight
+            if (currentBench != newBench) {
+                updates.add("Barbell Bench Press" to newBench)
+            }
+        }
+        
+        // Check Deadlift - compare against actual value, not just null
+        enteredMaxes.deadlift?.let { newDeadlift ->
+            val currentDeadlift = currentMaxes.find { it.exerciseName == "Barbell Deadlift" }?.maxWeight
+            if (currentDeadlift != newDeadlift) {
+                updates.add("Barbell Deadlift" to newDeadlift)
+            }
+        }
+        
+        // Check OHP - compare against actual value, not just null
+        enteredMaxes.ohp?.let { newOhp ->
+            val currentOhp = currentMaxes.find { it.exerciseName == "Barbell Overhead Press" }?.maxWeight
+            if (currentOhp != newOhp) {
+                updates.add("Barbell Overhead Press" to newOhp)
+            }
+        }
+        
+        // If there are updates, show prompt
+        if (updates.isNotEmpty()) {
+            _uiState.value = _uiState.value.copy(
+                showProfileUpdatePrompt = true,
+                pendingProfileUpdates = updates
+            )
+            return true
+        }
+        return false
+    }
+    
+    fun confirmProfileUpdate(profileViewModel: ProfileViewModel) {
+        viewModelScope.launch {
+            println("🔄 ProgrammeViewModel: Starting profile update")
+            val updates = _uiState.value.pendingProfileUpdates
+            println("📊 ProgrammeViewModel: Updating ${updates.size} exercises")
+            
+            // Wait for all updates to complete
+            val updateJobs = updates.map { (exerciseName, newMax) ->
+                async {
+                    println("🔄 ProgrammeViewModel: Updating $exerciseName to $newMax kg")
+                    // Call the suspend function directly instead of launching another coroutine
+                    updateExerciseMaxDirectly(profileViewModel, exerciseName, newMax)
+                }
+            }
+            
+            // Wait for all updates to complete
+            updateJobs.awaitAll()
+            println("✅ ProgrammeViewModel: All profile updates completed")
+            
+            // Execute pending navigation if any
+            val callback = _uiState.value.pendingNavigationCallback
+            dismissProfileUpdatePrompt()
+            callback?.invoke()
+        }
+    }
+    
+    private suspend fun updateExerciseMaxDirectly(
+        profileViewModel: ProfileViewModel,
+        exerciseName: String,
+        maxWeight: Float
+    ) {
+        try {
+            println("🔄 Updating 1RM for $exerciseName to $maxWeight kg")
+            val exercise = repository.getExerciseByName(exerciseName)
+            if (exercise != null) {
+                println("✅ Found exercise ${exercise.name} with ID ${exercise.id}")
+                repository.upsertExerciseMax(
+                    exerciseId = exercise.id,
+                    maxWeight = maxWeight,
+                    isEstimated = false,
+                    notes = "Updated from programme setup"
+                )
+                println("✅ Successfully updated 1RM for $exerciseName")
+            } else {
+                println("❌ Exercise not found for name: $exerciseName")
+            }
+        } catch (e: Exception) {
+            println("❌ Error updating 1RM: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+    
+    fun dismissProfileUpdatePrompt() {
+        // Execute pending navigation even if user skips update
+        val callback = _uiState.value.pendingNavigationCallback
+        
+        _uiState.value = _uiState.value.copy(
+            showProfileUpdatePrompt = false,
+            pendingProfileUpdates = emptyList(),
+            pendingNavigationCallback = null
+        )
+        
+        callback?.invoke()
+    }
 }
 
 // Data classes for UI state
@@ -472,6 +568,9 @@ data class ProgrammeUiState(
     val searchText: String = "",
     val showOverwriteWarning: Boolean = false,
     val pendingTemplate: ProgrammeTemplate? = null,
+    val showProfileUpdatePrompt: Boolean = false,
+    val pendingProfileUpdates: List<Pair<String, Float>> = emptyList(),
+    val pendingNavigationCallback: (() -> Unit)? = null,
 )
 
 data class UserMaxes(

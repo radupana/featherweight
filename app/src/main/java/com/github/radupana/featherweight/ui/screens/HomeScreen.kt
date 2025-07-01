@@ -44,7 +44,7 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     var showWorkoutDialog by remember { mutableStateOf(false) }
     var pendingWorkout by remember { mutableStateOf<InProgressWorkout?>(null) }
-    var showDeactivateProgrammeDialog by remember { mutableStateOf(false) }
+    var showDeleteProgrammeDialog by remember { mutableStateOf(false) }
     var showDeleteWorkoutDialog by remember { mutableStateOf(false) }
     var workoutToDelete by remember { mutableStateOf<Long?>(null) }
 
@@ -203,7 +203,7 @@ fun HomeScreen(
                                         .fillMaxWidth()
                                         .combinedClickable(
                                             onClick = { onNavigateToActiveProgramme?.invoke() },
-                                            onLongClick = { showDeactivateProgrammeDialog = true },
+                                            onLongClick = { showDeleteProgrammeDialog = true },
                                         ),
                                 elevation = CardDefaults.cardElevation(2.dp),
                                 colors =
@@ -472,33 +472,43 @@ fun HomeScreen(
         )
     }
 
-    // Deactivate Programme Dialog
-    if (showDeactivateProgrammeDialog) {
+    // Delete Programme Dialog
+    if (showDeleteProgrammeDialog) {
         AlertDialog(
-            onDismissRequest = { showDeactivateProgrammeDialog = false },
-            title = { Text("Deactivate Programme?") },
+            onDismissRequest = { showDeleteProgrammeDialog = false },
+            title = { Text("Delete Programme?") },
             text = {
-                Text(
-                    "Are you sure you want to deactivate '${activeProgramme?.name}'? " +
-                        "You can reactivate it later from the Programmes screen.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Column {
+                    Text(
+                        text = "Are you sure you want to permanently delete '${activeProgramme?.name}'?",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "⚠️ This action cannot be undone!\n• All progress will be lost\n• Workout history will remain",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             },
             confirmButton = {
                 Button(
                     onClick = {
                         scope.launch {
-                            programmeViewModel.deactivateActiveProgramme()
-                            showDeactivateProgrammeDialog = false
+                            activeProgramme?.let { programmeViewModel.deleteProgramme(it) }
+                            showDeleteProgrammeDialog = false
                         }
                     },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
                 ) {
-                    Text("Deactivate")
+                    Text("Delete", color = MaterialTheme.colorScheme.onError)
                 }
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = { showDeactivateProgrammeDialog = false },
+                    onClick = { showDeleteProgrammeDialog = false },
                 ) {
                     Text("Cancel")
                 }

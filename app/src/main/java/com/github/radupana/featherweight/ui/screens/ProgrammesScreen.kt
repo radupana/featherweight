@@ -47,7 +47,6 @@ fun ProgrammesScreen(
     val compactPadding = if (isKeyboardVisible) 8.dp else 16.dp
 
     // Confirmation dialog states
-    var showDeactivateConfirmDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     // Handle error messages
@@ -118,7 +117,6 @@ fun ProgrammesScreen(
                             ActiveProgrammeCard(
                                 programme = programme,
                                 progress = programmeProgress,
-                                onDeactivate = { showDeactivateConfirmDialog = true },
                                 onDelete = { showDeleteConfirmDialog = true },
                                 onNavigateToProgramme = onNavigateToActiveProgramme,
                                 isCompact = isKeyboardVisible
@@ -229,26 +227,6 @@ fun ProgrammesScreen(
                     }
                 }
 
-                // Inactive Programmes Section
-                val inactiveProgrammes = allProgrammes.filter { !it.isActive }
-                if (inactiveProgrammes.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "Your Inactive Programmes",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(vertical = 8.dp),
-                        )
-                    }
-
-                    items(inactiveProgrammes) { programme ->
-                        InactiveProgrammeCard(
-                            programme = programme,
-                            onReactivate = { viewModel.reactivateProgramme(programme) },
-                            onDelete = { viewModel.deleteProgramme(programme) },
-                        )
-                    }
-                }
             }
         }
     }
@@ -266,46 +244,16 @@ fun ProgrammesScreen(
             },
         )
     }
-
-    // Deactivate Confirmation Dialog
-    if (showDeactivateConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeactivateConfirmDialog = false },
-            title = { Text("Deactivate Programme?") },
-            text = {
-                Column {
-                    Text(
-                        text = "Are you sure you want to deactivate this programme?",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "• Your progress will be saved\n• You can reactivate it later\n• You won't receive workout notifications",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+    
+    // Profile Update Prompt Dialog
+    if (uiState.showProfileUpdatePrompt && uiState.pendingProfileUpdates.isNotEmpty()) {
+        com.github.radupana.featherweight.ui.dialogs.ProfileUpdatePromptDialog(
+            updates = uiState.pendingProfileUpdates,
+            onConfirm = {
+                viewModel.confirmProfileUpdate(profileViewModel)
             },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.deactivateActiveProgramme()
-                        showDeactivateConfirmDialog = false
-                    },
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                        ),
-                ) {
-                    Text("Deactivate")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { showDeactivateConfirmDialog = false },
-                ) {
-                    Text("Cancel")
-                }
+            onDismiss = {
+                viewModel.dismissProfileUpdatePrompt()
             },
         )
     }
@@ -368,12 +316,12 @@ fun ProgrammesScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "To start a new programme, you must first deactivate your current one.",
+                        text = "To start a new programme, you must first delete your current one.",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Would you like to deactivate it and continue?",
+                        text = "Would you like to delete it and continue?",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                     )
@@ -382,11 +330,13 @@ fun ProgrammesScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.deactivateActiveProgramme()
+                        activeProgramme?.let { programme ->
+                            viewModel.deleteProgramme(programme)
+                        }
                         viewModel.confirmOverwriteProgramme()
                     },
                 ) {
-                    Text("Deactivate & Continue")
+                    Text("Delete & Continue")
                 }
             },
             dismissButton = {
@@ -404,7 +354,6 @@ fun ProgrammesScreen(
 private fun ActiveProgrammeCard(
     programme: Programme,
     progress: ProgrammeProgress?,
-    onDeactivate: () -> Unit,
     onDelete: () -> Unit,
     onNavigateToProgramme: (() -> Unit)? = null,
     isCompact: Boolean = false,
@@ -444,23 +393,13 @@ private fun ActiveProgrammeCard(
                     )
                 }
 
-                Row {
-                    // Deactivate button
-                    IconButton(onClick = onDeactivate) {
-                        Icon(
-                            Icons.Filled.Pause,
-                            contentDescription = "Deactivate programme",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    // Delete button
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            Icons.Filled.Delete,
-                            contentDescription = "Delete programme",
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                    }
+                // Delete button
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = "Delete programme",
+                        tint = MaterialTheme.colorScheme.error,
+                    )
                 }
             }
 
@@ -849,55 +788,3 @@ private fun EmptyStateCard() {
     }
 }
 
-@Composable
-private fun InactiveProgrammeCard(
-    programme: Programme,
-    onReactivate: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            ),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = programme.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    Text(
-                        text = "Inactive • ${programme.durationWeeks} weeks",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                Row {
-                    TextButton(
-                        onClick = onReactivate,
-                    ) {
-                        Text("Reactivate")
-                    }
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            Icons.Filled.Delete,
-                            contentDescription = "Delete programme",
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}

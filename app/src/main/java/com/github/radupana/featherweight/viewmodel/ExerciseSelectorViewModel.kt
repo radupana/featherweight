@@ -83,19 +83,10 @@ class ExerciseSelectorViewModel(
         category: ExerciseCategory?,
         muscleGroup: String?,
         equipmentFilter: Equipment?,
-    ): List<ExerciseWithDetails> =
-        exercises
+    ): List<ExerciseWithDetails> {
+        // First apply category, muscle group, and equipment filters
+        val filteredByAttributes = exercises
             .filter { exercise ->
-                // Text search filter
-                if (query.isNotEmpty()) {
-                    exercise.exercise.name.contains(query, ignoreCase = true) ||
-                        exercise.exercise.muscleGroup.contains(query, ignoreCase = true) ||
-                        exercise.exercise.category.name.replace('_', ' ')
-                            .contains(query, ignoreCase = true)
-                } else {
-                    true
-                }
-            }.filter { exercise ->
                 // Category filter
                 category?.let { exercise.exercise.category == it } ?: true
             }.filter { exercise ->
@@ -108,24 +99,94 @@ class ExerciseSelectorViewModel(
                 equipmentFilter?.let {
                     exercise.exercise.equipment == it
                 } ?: true
-            }.let { filteredList ->
-                if (query.isNotEmpty()) {
-                    // When searching, sort by search relevance first
-                    filteredList.sortedWith(
-                        compareBy<ExerciseWithDetails> {
-                            when {
-                                it.exercise.name.equals(query, ignoreCase = true) -> 0
-                                it.exercise.name.startsWith(query, ignoreCase = true) -> 1
-                                it.exercise.name.contains(query, ignoreCase = true) -> 2
-                                else -> 3
-                            }
-                        }.thenBy { it.exercise.name },
-                    )
+            }
+        
+        // Then apply text search with multi-word support
+        return if (query.isNotEmpty()) {
+            val searchWords = query.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
+            
+            // Score each exercise based on word matches
+            val scoredExercises = filteredByAttributes.mapNotNull { exerciseWithDetails ->
+                val exercise = exerciseWithDetails.exercise
+                val nameLower = exercise.name.lowercase()
+                val queryLower = query.lowercase()
+                
+                // Calculate score
+                var score = 0
+                
+                // Exact match gets highest score
+                if (nameLower == queryLower) {
+                    score = 1000
+                } else if (nameLower.contains(queryLower)) {
+                    // Full query as substring gets high score
+                    score = 800
+                    // Bonus if it starts with the query
+                    if (nameLower.startsWith(queryLower)) {
+                        score += 100
+                    }
                 } else {
-                    // When not searching, maintain the usage-based order from loadExercises()
-                    filteredList
+                    // Multi-word matching
+                    val nameWords = nameLower.split("\\s+".toRegex())
+                    var matchedWords = 0
+                    var positionBonus = 0
+                    
+                    searchWords.forEachIndexed { index, searchWord ->
+                        val searchWordLower = searchWord.lowercase()
+                        
+                        // Check if any word in the exercise name contains this search word
+                        if (nameWords.any { it.contains(searchWordLower) }) {
+                            matchedWords++
+                            // Bonus for words at the beginning
+                            if (index == 0 && nameWords.first().startsWith(searchWordLower)) {
+                                positionBonus += 50
+                            }
+                        }
+                    }
+                    
+                    // Only include if at least one word matches
+                    if (matchedWords > 0) {
+                        // Base score for partial matches
+                        score = 100 * matchedWords
+                        // Bonus for matching all search words
+                        if (matchedWords == searchWords.size) {
+                            score += 200
+                        }
+                        // Add position bonus
+                        score += positionBonus
+                        // Small bonus based on usage
+                        score += exercise.usageCount / 10
+                    }
+                }
+                
+                // Also check muscle group and category for matches
+                if (score == 0) {
+                    searchWords.forEach { searchWord ->
+                        if (exercise.muscleGroup.contains(searchWord, ignoreCase = true)) {
+                            score += 30
+                        }
+                        if (exercise.category.name.replace('_', ' ').contains(searchWord, ignoreCase = true)) {
+                            score += 20
+                        }
+                    }
+                }
+                
+                if (score > 0) {
+                    exerciseWithDetails to score
+                } else {
+                    null
                 }
             }
+            
+            // Sort by score (highest first), then by name
+            scoredExercises
+                .sortedWith(compareByDescending<Pair<ExerciseWithDetails, Int>> { it.second }
+                    .thenBy { it.first.exercise.name })
+                .map { it.first }
+        } else {
+            // When not searching, maintain the usage-based order
+            filteredByAttributes
+        }
+    }
 
     fun loadExercises() {
         viewModelScope.launch {

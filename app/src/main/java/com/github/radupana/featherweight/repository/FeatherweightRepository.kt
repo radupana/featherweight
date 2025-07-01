@@ -22,6 +22,7 @@ import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.data.profile.UserProfile
 import com.github.radupana.featherweight.data.programme.ExerciseStructure
 import com.github.radupana.featherweight.data.programme.ExerciseSubstitution
+import com.github.radupana.featherweight.data.programme.ExercisePerformanceData
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeDifficulty
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
@@ -31,9 +32,13 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser
 import com.github.radupana.featherweight.data.programme.RepsStructure
 import com.github.radupana.featherweight.data.programme.WorkoutStructure
+import com.github.radupana.featherweight.data.programme.ProgressionType
+import com.github.radupana.featherweight.data.programme.WeightBasis
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.ExerciseStats
 import com.github.radupana.featherweight.domain.SmartSuggestions
+import com.github.radupana.featherweight.validation.ExerciseValidator
+import com.github.radupana.featherweight.validation.ValidationResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -113,7 +118,7 @@ class FeatherweightRepository(
             android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: ExerciseAliasSeeder created")
         }
     private val programmeSeeder =
-        ProgrammeSeeder(programmeDao).also {
+        ProgrammeSeeder(programmeDao, exerciseDao).also {
             android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: ProgrammeSeeder created")
         }
 
@@ -1197,7 +1202,7 @@ class FeatherweightRepository(
                     val exerciseLogId = exerciseLogDao.insertExerciseLog(exerciseLog)
 
                     // Create sets for this exercise
-                    createSetsFromStructure(exerciseLogId, exerciseStructure, userMaxes)
+                    createSetsFromStructure(exerciseLogId, exerciseStructure, userMaxes, programme, weekNumber)
                 }
 
                 println("✅ Created programme workout: ${workoutStructure.name} (Actual Week $weekNumber, Day $dayNumber)")
@@ -1219,6 +1224,10 @@ class FeatherweightRepository(
         println("  - programmeId: $programmeId")
         println("  - weekNumber: $weekNumber")
         println("  - dayNumber: $dayNumber")
+
+        // Get the programme
+        val programme = programmeDao.getProgrammeById(programmeId)
+            ?: throw IllegalArgumentException("Programme not found")
 
         // Get the progress to find which workout to use
         val progress =
@@ -1294,7 +1303,7 @@ class FeatherweightRepository(
             val exerciseLogId = exerciseLogDao.insertExerciseLog(exerciseLog)
 
             // Create sets for this exercise
-            createSetsFromStructure(exerciseLogId, exerciseStructure, userMaxes)
+            createSetsFromStructure(exerciseLogId, exerciseStructure, userMaxes, programme, weekNumber)
         }
 
         println("✅ Created custom programme workout: ${workoutStructure.name}")
@@ -1345,6 +1354,8 @@ class FeatherweightRepository(
         exerciseLogId: Long,
         exerciseStructure: ExerciseStructure,
         userMaxes: Map<String, Float>,
+        programme: Programme? = null,
+        weekNumber: Int? = null
     ) {
         repeat(exerciseStructure.sets) { setIndex ->
             val reps =
@@ -1353,15 +1364,39 @@ class FeatherweightRepository(
                     setIndex,
                 )
 
-            val intensity =
+            var intensity =
                 exerciseStructure.intensity?.getOrNull(setIndex)
                     ?: exerciseStructure.intensity?.firstOrNull()
+
+            // Apply week-specific modifications for wave progression (e.g., Wendler 5/3/1)
+            if (programme != null && weekNumber != null && intensity != null) {
+                val progressionRules = programme.getProgressionRulesObject()
+                if (progressionRules?.type == ProgressionType.WAVE && progressionRules.weeklyPercentages != null) {
+                    // For wave progression, override intensity with week-specific percentage
+                    val cycleLength = progressionRules.cycleLength ?: 3
+                    val cycleWeek = ((weekNumber - 1) % cycleLength)
+                    
+                    // Get the percentages for this week of the cycle
+                    if (cycleWeek < progressionRules.weeklyPercentages.size) {
+                        val weekPercentages = progressionRules.weeklyPercentages[cycleWeek]
+                        
+                        // Override the intensity with the week-specific value
+                        if (setIndex < weekPercentages.size) {
+                            // Convert from decimal to percentage (0.65 -> 65)
+                            intensity = (weekPercentages[setIndex] * 100).toInt()
+                            println("🌊 Wave progression: Week $weekNumber (cycle week ${cycleWeek + 1}), Set ${setIndex + 1} -> ${intensity}%")
+                        }
+                    }
+                }
+            }
 
             val weight =
                 calculateIntelligentWeight(
                     exerciseStructure = exerciseStructure,
                     reps = reps,
                     userMaxes = userMaxes,
+                    intensity = intensity,
+                    programme = programme
                 )
 
             val setLog =
@@ -1487,9 +1522,19 @@ class FeatherweightRepository(
             }
 
             // Handle template-based programmes (existing logic)
+            // Use templateName if available (for custom-named programmes), otherwise use programme name
+            val templateNameToSearch = programme.templateName ?: programme.name
+            println("🔍 Looking for template with name: '$templateNameToSearch' (programme.name='${programme.name}', programme.templateName='${programme.templateName}')")
+            
+            val allTemplates = programmeDao.getAllTemplates()
+            println("📋 Available templates: ${allTemplates.map { it.name }}")
+            
             val template =
-                programmeDao.getAllTemplates().find { it.name == programme.name }
-                    ?: return@withContext null
+                allTemplates.find { it.name == templateNameToSearch }
+                    ?: run {
+                        println("❌ Template not found for name: '$templateNameToSearch'")
+                        return@withContext null
+                    }
 
             // Parse the JSON structure
             val structure =
@@ -1730,6 +1775,21 @@ class FeatherweightRepository(
             val template =
                 programmeDao.getTemplateById(templateId)
                     ?: throw IllegalArgumentException("Template not found")
+                    
+            // Validate all exercises in the template
+            val validator = ExerciseValidator(exerciseDao)
+            validator.initialize()
+            
+            val validationErrors = validator.validateProgrammeStructure(template.jsonStructure)
+            if (validationErrors.isNotEmpty()) {
+                val errorMessage = validationErrors.joinToString("\n") { error ->
+                    "- ${error.field}: ${error.value} - ${error.error}" +
+                    (error.suggestion?.let { " (Try: $it)" } ?: "")
+                }
+                throw IllegalArgumentException(
+                    "Cannot create programme from template '${template.name}':\n$errorMessage"
+                )
+            }
 
             val programme =
                 Programme(
@@ -1743,12 +1803,60 @@ class FeatherweightRepository(
                     benchMax = benchMax,
                     deadliftMax = deadliftMax,
                     ohpMax = ohpMax,
+                    weightCalculationRules = template.weightCalculationRules,
+                    progressionRules = template.progressionRules,
+                    templateName = template.name, // Always store the original template name
                 )
 
             val programmeId = programmeDao.insertProgramme(programme)
 
-            // TODO: Parse JSON structure and create weeks/workouts
-            // For now, just return the programme ID
+            // Parse JSON structure and create weeks/workouts
+            val structure = ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
+            if (structure != null) {
+                // For programmes with single week templates that repeat (like StrongLifts)
+                val templateWeeks = structure.weeks.size
+                val totalWeeks = template.durationWeeks
+                
+                // Create all weeks
+                for (weekNum in 1..totalWeeks) {
+                    val templateWeekIndex = ((weekNum - 1) % templateWeeks)
+                    val templateWeek = structure.weeks[templateWeekIndex]
+                    
+                    val week = ProgrammeWeek(
+                        programmeId = programmeId,
+                        weekNumber = weekNum,
+                        name = "Week $weekNum",
+                        description = templateWeek.name,
+                        focusAreas = null,
+                        intensityLevel = null,
+                        volumeLevel = null,
+                        isDeload = false,
+                        phase = null
+                    )
+                    
+                    val weekId = programmeDao.insertProgrammeWeek(week)
+                    
+                    // Create workouts for this week
+                    templateWeek.workouts.forEach { workoutStructure ->
+                        val workout = ProgrammeWorkout(
+                            weekId = weekId,
+                            dayNumber = workoutStructure.day,
+                            name = workoutStructure.name,
+                            description = null,
+                            estimatedDuration = workoutStructure.estimatedDuration,
+                            workoutStructure = kotlinx.serialization.json.Json.encodeToString(
+                                WorkoutStructure.serializer(),
+                                workoutStructure
+                            )
+                        )
+                        
+                        programmeDao.insertProgrammeWorkout(workout)
+                    }
+                }
+                
+                println("✅ Created programme structure: $totalWeeks weeks with ${structure.weeks[0].workouts.size} workouts per week")
+            }
+
             programmeId
         }
 
@@ -2040,7 +2148,7 @@ class FeatherweightRepository(
     }
 
     // Helper method to get exercise by name or alias
-    private suspend fun getExerciseByName(name: String): Exercise? {
+    suspend fun getExerciseByName(name: String): Exercise? {
         // First try exact name match
         val exactMatch = exerciseDao.findExerciseByExactName(name)
         if (exactMatch != null) return exactMatch
@@ -2049,388 +2157,6 @@ class FeatherweightRepository(
         return exerciseDao.findExerciseByAlias(name)
     }
 
-    // ===== REALISTIC 531 SEED DATA =====
-    private suspend fun seedRealistic531Data() {
-        // 531 program structure: 4 days per week
-        // Day 1: Squat + accessories
-        // Day 2: Bench + accessories
-        // Day 3: Deadlift + accessories
-        // Day 4: Overhead Press + accessories
-
-        val startDate = LocalDateTime.now().minusDays(365) // Past year
-        val endDate = LocalDateTime.now()
-
-        // Intermediate lifter starting maxes (kg)
-        val initialMaxes =
-            mapOf(
-                "Back Squat" to 140f,
-                "Bench Press" to 110f,
-                "Conventional Deadlift" to 170f,
-                "Overhead Press" to 75f,
-            )
-
-        // Progressive overload: 2.5kg squat/bench, 5kg deadlift per cycle (3 weeks)
-        val progressionRates =
-            mapOf(
-                "Back Squat" to 2.5f,
-                "Bench Press" to 2.5f,
-                "Conventional Deadlift" to 5f,
-                "Overhead Press" to 1.25f,
-            )
-
-        // 531 percentages for each week
-        val week1Percentages = listOf(0.65f, 0.75f, 0.85f) // Week 1: 65%, 75%, 85%
-        val week2Percentages = listOf(0.70f, 0.80f, 0.90f) // Week 2: 70%, 80%, 90%
-        val week3Percentages = listOf(0.75f, 0.85f, 0.95f) // Week 3: 75%, 85%, 95%
-
-        val weeklyPercentages = listOf(week1Percentages, week2Percentages, week3Percentages)
-
-        var currentDate = startDate
-        var cycleNumber = 0
-
-        while (currentDate.isBefore(endDate)) {
-            val weekInCycle = cycleNumber % 3
-            val cycleCompleted = cycleNumber / 3
-
-            // Update maxes every 3 weeks
-            val currentMaxes =
-                initialMaxes.mapValues { (exercise, initialMax) ->
-                    initialMax + (progressionRates[exercise] ?: 0f) * cycleCompleted
-                }
-
-            // Day 1: Squat Day (Monday)
-            if (currentDate.dayOfWeek.value == 1) {
-                createSquatWorkout(currentDate, currentMaxes, weeklyPercentages[weekInCycle])
-            }
-
-            // Day 2: Bench Day (Wednesday)
-            if (currentDate.dayOfWeek.value == 3) {
-                createBenchWorkout(currentDate, currentMaxes, weeklyPercentages[weekInCycle])
-            }
-
-            // Day 3: Deadlift Day (Friday)
-            if (currentDate.dayOfWeek.value == 5) {
-                createDeadliftWorkout(currentDate, currentMaxes, weeklyPercentages[weekInCycle])
-            }
-
-            // Day 4: OHP Day (Saturday)
-            if (currentDate.dayOfWeek.value == 6) {
-                createOHPWorkout(currentDate, currentMaxes, weeklyPercentages[weekInCycle])
-            }
-
-            currentDate = currentDate.plusDays(1)
-
-            // Increment cycle every 7 days
-            if (currentDate.dayOfWeek.value == 1) {
-                cycleNumber++
-            }
-        }
-    }
-
-    private suspend fun createSquatWorkout(
-        date: LocalDateTime,
-        maxes: Map<String, Float>,
-        percentages: List<Float>,
-    ) {
-        val workoutName = "Lower Body - Squat Focus"
-        val workout = Workout(date = date, notes = "$workoutName [COMPLETED]")
-        val workoutId = workoutDao.insertWorkout(workout)
-
-        // Main lift: Back Squat (531)
-        val squatMax = maxes["Back Squat"] ?: 140f
-        val squatExercise = searchExercises("Back Squat").firstOrNull()
-        val squatLog =
-            ExerciseLog(
-                workoutId = workoutId,
-                exerciseName = "Back Squat",
-                exerciseId = squatExercise?.id,
-                exerciseOrder = 0,
-            )
-        val squatLogId = exerciseLogDao.insertExerciseLog(squatLog)
-
-        // 531 sets
-        percentages.forEachIndexed { index, percentage ->
-            val weight =
-                (squatMax * percentage).let {
-                    // Round to nearest 2.5kg
-                    (it / 2.5f).toInt() * 2.5f
-                }
-            val reps =
-                when (index) {
-                    0 -> 5 // First set: 5 reps
-                    1 -> 3 // Second set: 3 reps
-                    2 -> (1..5).random() // AMRAP set
-                    else -> 1
-                }
-            val rpe =
-                when (index) {
-                    0 -> (6.0f..7.0f).random()
-                    1 -> (7.5f..8.5f).random()
-                    2 -> (8.5f..9.5f).random()
-                    else -> 8f
-                }
-
-            setLogDao.insertSetLog(
-                SetLog(
-                    exerciseLogId = squatLogId,
-                    setOrder = index,
-                    reps = reps,
-                    weight = weight,
-                    rpe = rpe,
-                    isCompleted = true,
-                    completedAt = date.toString(),
-                ),
-            )
-        }
-
-        // Accessories
-        createAccessoryExercise(workoutId, "Romanian Deadlift", 1, date, (80f..100f), (8..12), 3)
-        createAccessoryExercise(workoutId, "Bulgarian Split Squat", 2, date, (20f..30f), (8..12), 3)
-        createAccessoryExercise(workoutId, "Pull-up", 3, date, (0f..10f), (5..10), 3)
-    }
-
-    private suspend fun createBenchWorkout(
-        date: LocalDateTime,
-        maxes: Map<String, Float>,
-        percentages: List<Float>,
-    ) {
-        val workoutName = "Upper Body - Bench Focus"
-        val workout = Workout(date = date, notes = "$workoutName [COMPLETED]")
-        val workoutId = workoutDao.insertWorkout(workout)
-
-        // Main lift: Bench Press (531)
-        val benchMax = maxes["Bench Press"] ?: 110f
-        val benchExercise = searchExercises("Bench Press").firstOrNull()
-        val benchLog =
-            ExerciseLog(
-                workoutId = workoutId,
-                exerciseName = "Bench Press",
-                exerciseId = benchExercise?.id,
-                exerciseOrder = 0,
-            )
-        val benchLogId = exerciseLogDao.insertExerciseLog(benchLog)
-
-        // 531 sets
-        percentages.forEachIndexed { index, percentage ->
-            val weight =
-                (benchMax * percentage).let {
-                    (it / 2.5f).toInt() * 2.5f
-                }
-            val reps =
-                when (index) {
-                    0 -> 5
-                    1 -> 3
-                    2 -> (1..8).random() // AMRAP
-                    else -> 1
-                }
-            val rpe =
-                when (index) {
-                    0 -> (6.0f..7.0f).random()
-                    1 -> (7.5f..8.5f).random()
-                    2 -> (8.5f..9.5f).random()
-                    else -> 8f
-                }
-
-            setLogDao.insertSetLog(
-                SetLog(
-                    exerciseLogId = benchLogId,
-                    setOrder = index,
-                    reps = reps,
-                    weight = weight,
-                    rpe = rpe,
-                    isCompleted = true,
-                    completedAt = date.toString(),
-                ),
-            )
-        }
-
-        // Accessories
-        createAccessoryExercise(workoutId, "Incline Dumbbell Press", 1, date, (25f..35f), (8..12), 3)
-        createAccessoryExercise(workoutId, "Bent-Over Barbell Row", 2, date, (60f..80f), (8..12), 3)
-        createAccessoryExercise(workoutId, "Lateral Raise", 3, date, (8f..15f), (12..15), 4)
-    }
-
-    private suspend fun createDeadliftWorkout(
-        date: LocalDateTime,
-        maxes: Map<String, Float>,
-        percentages: List<Float>,
-    ) {
-        val workoutName = "Lower Body - Deadlift Focus"
-        val workout = Workout(date = date, notes = "$workoutName [COMPLETED]")
-        val workoutId = workoutDao.insertWorkout(workout)
-
-        // Main lift: Deadlift (531)
-        val deadliftMax = maxes["Conventional Deadlift"] ?: 170f
-        val deadliftExercise = searchExercises("Conventional Deadlift").firstOrNull()
-        val deadliftLog =
-            ExerciseLog(
-                workoutId = workoutId,
-                exerciseName = "Conventional Deadlift",
-                exerciseId = deadliftExercise?.id,
-                exerciseOrder = 0,
-            )
-        val deadliftLogId = exerciseLogDao.insertExerciseLog(deadliftLog)
-
-        // 531 sets
-        percentages.forEachIndexed { index, percentage ->
-            val weight =
-                (deadliftMax * percentage).let {
-                    (it / 2.5f).toInt() * 2.5f
-                }
-            val reps =
-                when (index) {
-                    0 -> 5
-                    1 -> 3
-                    2 -> (1..3).random() // AMRAP (deadlifts are harder)
-                    else -> 1
-                }
-            val rpe =
-                when (index) {
-                    0 -> (6.5f..7.5f).random()
-                    1 -> (8.0f..8.5f).random()
-                    2 -> (9.0f..9.5f).random()
-                    else -> 8f
-                }
-
-            setLogDao.insertSetLog(
-                SetLog(
-                    exerciseLogId = deadliftLogId,
-                    setOrder = index,
-                    reps = reps,
-                    weight = weight,
-                    rpe = rpe,
-                    isCompleted = true,
-                    completedAt = date.toString(),
-                ),
-            )
-        }
-
-        // Accessories
-        createAccessoryExercise(workoutId, "Front Squat", 1, date, (60f..80f), (6..8), 3)
-        createAccessoryExercise(workoutId, "Barbell Curl", 2, date, (25f..35f), (8..12), 3)
-        createAccessoryExercise(workoutId, "Hanging Leg Raise", 3, date, (0f..10f), (8..15), 3)
-    }
-
-    private suspend fun createOHPWorkout(
-        date: LocalDateTime,
-        maxes: Map<String, Float>,
-        percentages: List<Float>,
-    ) {
-        val workoutName = "Upper Body - Press Focus"
-        val workout = Workout(date = date, notes = "$workoutName [COMPLETED]")
-        val workoutId = workoutDao.insertWorkout(workout)
-
-        // Main lift: Overhead Press (531)
-        val ohpMax = maxes["Overhead Press"] ?: 75f
-        val ohpExercise = searchExercises("Overhead Press").firstOrNull()
-        val ohpLog =
-            ExerciseLog(
-                workoutId = workoutId,
-                exerciseName = "Overhead Press",
-                exerciseId = ohpExercise?.id,
-                exerciseOrder = 0,
-            )
-        val ohpLogId = exerciseLogDao.insertExerciseLog(ohpLog)
-
-        // 531 sets
-        percentages.forEachIndexed { index, percentage ->
-            val weight =
-                (ohpMax * percentage).let {
-                    (it / 1.25f).toInt() * 1.25f // Smaller increments for OHP
-                }
-            val reps =
-                when (index) {
-                    0 -> 5
-                    1 -> 3
-                    2 -> (1..6).random() // AMRAP
-                    else -> 1
-                }
-            val rpe =
-                when (index) {
-                    0 -> (6.5f..7.5f).random()
-                    1 -> (8.0f..8.5f).random()
-                    2 -> (9.0f..9.5f).random()
-                    else -> 8f
-                }
-
-            setLogDao.insertSetLog(
-                SetLog(
-                    exerciseLogId = ohpLogId,
-                    setOrder = index,
-                    reps = reps,
-                    weight = weight,
-                    rpe = rpe,
-                    isCompleted = true,
-                    completedAt = date.toString(),
-                ),
-            )
-        }
-
-        // Accessories
-        createAccessoryExercise(workoutId, "Incline Bench Press", 1, date, (60f..80f), (8..10), 3)
-        createAccessoryExercise(workoutId, "Cable Fly", 2, date, (15f..25f), (10..15), 3)
-        createAccessoryExercise(workoutId, "Dumbbell Curl", 3, date, (12f..20f), (10..15), 3)
-    }
-
-    private suspend fun createAccessoryExercise(
-        workoutId: Long,
-        exerciseName: String,
-        order: Int,
-        date: LocalDateTime,
-        weightRange: ClosedFloatingPointRange<Float>,
-        repRange: IntRange,
-        numSets: Int,
-    ) {
-        // Try to find exercise, if not found just use the name
-        val exercise =
-            try {
-                searchExercises(exerciseName).firstOrNull()
-            } catch (e: Exception) {
-                null
-            }
-
-        val exerciseLog =
-            ExerciseLog(
-                workoutId = workoutId,
-                exerciseName = exerciseName,
-                exerciseId = exercise?.id,
-                exerciseOrder = order,
-            )
-        val exerciseLogId = exerciseLogDao.insertExerciseLog(exerciseLog)
-
-        val baseWeight = weightRange.start + (weightRange.endInclusive - weightRange.start) * kotlin.random.Random.nextFloat()
-
-        repeat(numSets) { setIndex ->
-            val weight =
-                if (exerciseName.contains("Pull-up") || exerciseName.contains("Hanging")) {
-                    // Bodyweight exercises - use added weight
-                    listOf(0f, 2.5f, 5f, 7.5f, 10f).random()
-                } else {
-                    // Normal weight progression through sets
-                    baseWeight + (setIndex * 2.5f)
-                }
-
-            val reps = repRange.random()
-            val rpe = (6.5f..8.5f).random()
-
-            setLogDao.insertSetLog(
-                SetLog(
-                    exerciseLogId = exerciseLogId,
-                    setOrder = setIndex,
-                    reps = reps,
-                    weight = weight,
-                    rpe = rpe,
-                    isCompleted = true,
-                    completedAt = date.toString(),
-                ),
-            )
-        }
-    }
-
-    // Helper function for random float in range
-    private fun ClosedFloatingPointRange<Float>.random(): Float = start + (endInclusive - start) * kotlin.random.Random.nextFloat()
-
-    // ===== OLD SEED DATA (UNUSED) =====
     private suspend fun seedTestData() {
         // Create sample workouts from past dates
         val workout1 =
@@ -2675,6 +2401,11 @@ class FeatherweightRepository(
             db.profileDao().deleteExerciseMax(max)
         }
 
+    suspend fun deleteAllMaxesForExercise(exerciseId: Long) =
+        withContext(Dispatchers.IO) {
+            db.profileDao().deleteAllMaxesForExercise(getCurrentUserId(), exerciseId)
+        }
+
     // Calculate percentage of 1RM for a given weight
     fun calculatePercentageOf1RM(
         weight: Float,
@@ -2773,11 +2504,116 @@ class FeatherweightRepository(
             }
         }
 
-    private fun calculateIntelligentWeight(
+    private suspend fun calculateIntelligentWeight(
         exerciseStructure: ExerciseStructure,
         reps: Int,
         userMaxes: Map<String, Float>,
+        intensity: Int? = null,
+        programme: Programme? = null
     ): Float {
+        println("\n=== WEIGHT CALCULATION LOG ===")
+        println("Exercise: ${exerciseStructure.name}")
+        println("Reps: $reps")
+        println("Programme: ${programme?.name ?: "None"}")
+        println("Intensity: ${intensity ?: "None"}")
+        // First check if we have intensity-based calculation (e.g., Wendler 5/3/1)
+        if (intensity != null && programme != null) {
+            val weightCalcRules = programme.getWeightCalculationRulesObject()
+            if (weightCalcRules?.baseOn == WeightBasis.ONE_REP_MAX) {
+                // Get user's 1RM for this exercise
+                val user1RM = getUserMaxForExercise(exerciseStructure.name, userMaxes)
+                if (user1RM != null && user1RM > 0) {
+                    // Apply training max percentage if specified
+                    val trainingMax = user1RM * (weightCalcRules.trainingMaxPercentage ?: 1.0f)
+                    
+                    // Calculate weight based on intensity percentage
+                    val calculatedWeight = trainingMax * (intensity / 100f)
+                    
+                    // Round to increment
+                    val roundingIncrement = weightCalcRules.roundingIncrement ?: 2.5f
+                    val rounded = (calculatedWeight / roundingIncrement).toInt() * roundingIncrement
+                    
+                    // Ensure minimum bar weight
+                    val minimumWeight = weightCalcRules.minimumBarWeight ?: 20f
+                    
+                    println("Calculation Method: 1RM-based with intensity")
+                    println("User 1RM: $user1RM kg")
+                    println("Training Max (${(weightCalcRules.trainingMaxPercentage * 100).toInt()}%): $trainingMax kg")
+                    println("Calculated Weight (${intensity}% of TM): $calculatedWeight kg")
+                    println("Rounded to increment ($roundingIncrement kg): $rounded kg")
+                    println("Final Weight: ${rounded.coerceAtLeast(minimumWeight)} kg")
+                    println("==============================\n")
+                    return rounded.coerceAtLeast(minimumWeight)
+                }
+            }
+        }
+        
+        // Check for LAST_WORKOUT based calculation (e.g., StrongLifts)
+        if (programme != null) {
+            val weightCalcRules = programme.getWeightCalculationRulesObject()
+            if (weightCalcRules?.baseOn == WeightBasis.LAST_WORKOUT) {
+                println("Calculation Method: Last Workout + Progression")
+                
+                // Get last performance for this exercise
+                val lastPerformance = getLastPerformanceForExercise(exerciseStructure.name)
+                println("Last Performance: ${lastPerformance?.let { "${it.weight}kg x ${it.reps} reps" } ?: "None (first workout)"}")
+                
+                if (lastPerformance != null) {
+                    // Check if we should progress
+                    val progressionRules = programme.getProgressionRulesObject()
+                    val increment = progressionRules?.incrementRules?.get(exerciseStructure.name) ?: 2.5f
+                    
+                    // Check if last workout met success criteria
+                    val successCriteria = progressionRules?.successCriteria
+                    val wasSuccessful = if (successCriteria != null && lastPerformance.allSetsCompleted) {
+                        // For StrongLifts: 5 sets of 5 reps with up to 2 missed reps total
+                        val requiredSets = successCriteria.requiredSets ?: 5
+                        val requiredReps = successCriteria.requiredReps ?: 5
+                        
+                        // Simple check: did they complete all sets?
+                        // TODO: More sophisticated check for missed reps
+                        lastPerformance.sets >= requiredSets && lastPerformance.allSetsCompleted
+                    } else {
+                        // Default to not progressing if criteria not met
+                        false
+                    }
+                    
+                    val newWeight = if (wasSuccessful) {
+                        println("✅ Last workout successful - progressing weight")
+                        println("Progression: Adding $increment kg")
+                        lastPerformance.weight + increment
+                    } else {
+                        println("❌ Last workout not successful - repeating weight")
+                        println("Reason: ${if (!lastPerformance.allSetsCompleted) "Not all sets completed" else "Success criteria not met"}")
+                        lastPerformance.weight
+                    }
+                    
+                    println("New Weight: $newWeight kg")
+                    println("==============================\n")
+                    return newWeight
+                } else {
+                    // First workout - use 1RM if available or minimum weight
+                    val user1RM = getUserMaxForExercise(exerciseStructure.name, userMaxes)
+                    val startingWeight = if (user1RM != null) {
+                        // Start at 50% of 1RM for first workout
+                        val calculated = user1RM * 0.5f
+                        val rounded = (calculated / 2.5f).toInt() * 2.5f
+                        rounded.coerceAtLeast(20f)
+                    } else {
+                        // Start with empty bar
+                        20f
+                    }
+                    
+                    println("First Workout Starting Weight: $startingWeight kg")
+                    println("Based on: ${if (user1RM != null) "50% of 1RM ($user1RM kg)" else "Empty bar"}")
+                    println("==============================\n")
+                    return startingWeight
+                }
+            }
+        }
+        
+        // Fallback to existing intelligent weight calculation
+        println("Calculation Method: AI/Default calculation")
         val weightCalculator = WeightCalculator()
 
         // Parse rep range from the exercise structure
@@ -2810,9 +2646,58 @@ class FeatherweightRepository(
                 aiSuggestedWeight = exerciseStructure.suggestedWeight,
             )
 
+        println("Calculated Weight: ${weightCalculation.weight} kg")
+        println("Weight Source: ${weightCalculation.source}")
+        println("==============================\n")
+        
         return weightCalculation.weight
     }
 
+    private suspend fun getLastPerformanceForExercise(exerciseName: String): ExercisePerformanceData? =
+        withContext(Dispatchers.IO) {
+            println("🔍 Looking for last performance of: $exerciseName")
+            
+            // Get all completed workouts ordered by date (newest first)
+            val completedWorkouts = workoutDao.getAllWorkouts()
+                .filter { it.notes?.contains("[COMPLETED]") == true }
+                .sortedByDescending { it.date }
+            
+            // Search through workouts for this exercise
+            for (workout in completedWorkouts) {
+                val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                val matchingLog = exerciseLogs.find { it.exerciseName == exerciseName }
+                
+                if (matchingLog != null) {
+                    // Get sets for this exercise
+                    val sets = setLogDao.getSetLogsForExercise(matchingLog.id)
+                    if (sets.isNotEmpty()) {
+                        // Get the heaviest working set (assume all are working sets for now)
+                        val workingSets = sets
+                        val heaviestSet = workingSets.maxByOrNull { it.weight }
+                        
+                        if (heaviestSet != null) {
+                            val allCompleted = workingSets.all { it.isCompleted }
+                            
+                            println("✅ Found last performance: ${heaviestSet.weight}kg x ${heaviestSet.reps} " +
+                                    "on ${workout.date.toLocalDate()} (${if (allCompleted) "all sets completed" else "some sets missed"})")
+                            
+                            return@withContext ExercisePerformanceData(
+                                exerciseName = exerciseName,
+                                weight = heaviestSet.weight,
+                                reps = heaviestSet.reps,
+                                sets = workingSets.size,
+                                workoutDate = workout.date,
+                                allSetsCompleted = allCompleted
+                            )
+                        }
+                    }
+                }
+            }
+            
+            println("❌ No previous performance found for: $exerciseName")
+            null
+        }
+    
     private fun getUserMaxForExercise(
         exerciseName: String,
         userMaxes: Map<String, Float>,

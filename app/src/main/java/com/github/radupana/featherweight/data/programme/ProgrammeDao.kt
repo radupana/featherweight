@@ -132,7 +132,8 @@ interface ProgrammeDao {
 
     @Transaction
     suspend fun setActiveProgramme(programmeId: Long) {
-        deactivateAllProgrammes()
+        // No longer deactivating programmes, user must delete active programme first
+        // This should only be called when there's no active programme
         activateProgramme(programmeId)
     }
 

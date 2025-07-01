@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.ui.dialogs
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -49,10 +50,10 @@ fun ProgrammeSetupDialog(
             userMaxes.ohp == null
         ) {
             val currentMaxes = profileUiState.currentMaxes
-            val squatMax = currentMaxes.find { it.exerciseName == "Back Squat" }?.maxWeight
-            val benchMax = currentMaxes.find { it.exerciseName == "Bench Press" }?.maxWeight
-            val deadliftMax = currentMaxes.find { it.exerciseName == "Conventional Deadlift" }?.maxWeight
-            val ohpMax = currentMaxes.find { it.exerciseName == "Overhead Press" }?.maxWeight
+            val squatMax = currentMaxes.find { it.exerciseName == "Barbell Back Squat" }?.maxWeight
+            val benchMax = currentMaxes.find { it.exerciseName == "Barbell Bench Press" }?.maxWeight
+            val deadliftMax = currentMaxes.find { it.exerciseName == "Barbell Deadlift" }?.maxWeight
+            val ohpMax = currentMaxes.find { it.exerciseName == "Barbell Overhead Press" }?.maxWeight
 
             // Update all values at once to ensure proper validation
             viewModel.updateUserMaxes(
@@ -82,67 +83,82 @@ fun ProgrammeSetupDialog(
                     .fillMaxHeight(0.85f),
             elevation = CardDefaults.cardElevation(8.dp),
         ) {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .imePadding()
             ) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
                 ) {
-                    if (uiState.setupStep != SetupStep.MAXES_INPUT && template.requiresMaxes) {
-                        IconButton(onClick = { viewModel.previousSetupStep() }) {
-                            Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                    // Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (uiState.setupStep != SetupStep.MAXES_INPUT && template.requiresMaxes) {
+                            IconButton(onClick = { viewModel.previousSetupStep() }) {
+                                Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.width(48.dp))
                         }
-                    } else {
+
+                        Text(
+                            text = "Setup Programme",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(1f),
+                        )
+
                         Spacer(modifier = Modifier.width(48.dp))
                     }
 
-                    Text(
-                        text = "Setup Programme",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.weight(1f),
-                    )
-
-                    IconButton(onClick = { viewModel.dismissSetupDialog() }) {
-                        Icon(Icons.Filled.Check, contentDescription = "Close")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Progress indicator
-                if (template.requiresMaxes || template.allowsAccessoryCustomization) {
-                    SetupProgressIndicator(
-                        currentStep = uiState.setupStep,
-                        template = template,
-                    )
                     Spacer(modifier = Modifier.height(24.dp))
-                }
 
-                // Content based on setup step
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(bottom = 100.dp), // Add bottom padding for keyboard
-                ) {
-                    item {
-                        when (uiState.setupStep) {
-                            SetupStep.MAXES_INPUT -> {
-                                if (template.requiresMaxes) {
-                                    MaxesInputStep(
-                                        template = template,
-                                        userMaxes = userMaxes,
-                                        onMaxesUpdate = viewModel::updateUserMaxes,
-                                        profileMaxes = profileUiState.currentMaxes,
-                                    )
-                                } else {
+                    // Progress indicator
+                    if (template.requiresMaxes || template.allowsAccessoryCustomization) {
+                        SetupProgressIndicator(
+                            currentStep = uiState.setupStep,
+                            template = template,
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
+
+                    // Content based on setup step
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(bottom = 16.dp),
+                    ) {
+                        item {
+                            when (uiState.setupStep) {
+                                SetupStep.MAXES_INPUT -> {
+                                    if (template.requiresMaxes) {
+                                        MaxesInputStep(
+                                            template = template,
+                                            userMaxes = userMaxes,
+                                            onMaxesUpdate = viewModel::updateUserMaxes,
+                                            profileMaxes = profileUiState.currentMaxes,
+                                        )
+                                    } else {
+                                        ConfirmationStep(
+                                            template = template,
+                                            customName = customName,
+                                            onNameChange = { customName = it },
+                                            userMaxes = userMaxes,
+                                        )
+                                    }
+                                }
+                                SetupStep.ACCESSORY_SELECTION -> {
+                                    AccessorySelectionStep()
+                                }
+                                SetupStep.CONFIRMATION -> {
                                     ConfirmationStep(
                                         template = template,
                                         customName = customName,
@@ -151,28 +167,24 @@ fun ProgrammeSetupDialog(
                                     )
                                 }
                             }
-                            SetupStep.ACCESSORY_SELECTION -> {
-                                AccessorySelectionStep()
-                            }
-                            SetupStep.CONFIRMATION -> {
-                                ConfirmationStep(
-                                    template = template,
-                                    customName = customName,
-                                    onNameChange = { customName = it },
-                                    userMaxes = userMaxes,
-                                )
-                            }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Action buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                // Action buttons - positioned at bottom with background
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 8.dp,
                 ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
                     OutlinedButton(
                         onClick = { viewModel.dismissSetupDialog() },
                         modifier = Modifier.weight(1f),
@@ -188,6 +200,7 @@ fun ProgrammeSetupDialog(
                                     onSuccess = {
                                         onProgrammeCreated?.invoke()
                                     },
+                                    profileViewModel = profileViewModel,
                                 )
                             } else {
                                 viewModel.nextSetupStep()
@@ -199,14 +212,14 @@ fun ProgrammeSetupDialog(
                                     if (template.requiresMaxes) {
                                         val currentMaxes = profileUiState.currentMaxes
                                         val effectiveSquat =
-                                            userMaxes.squat ?: currentMaxes.find { it.exerciseName == "Back Squat" }?.maxWeight
+                                            userMaxes.squat ?: currentMaxes.find { it.exerciseName == "Barbell Back Squat" }?.maxWeight
                                         val effectiveBench =
-                                            userMaxes.bench ?: currentMaxes.find { it.exerciseName == "Bench Press" }?.maxWeight
+                                            userMaxes.bench ?: currentMaxes.find { it.exerciseName == "Barbell Bench Press" }?.maxWeight
                                         val effectiveDeadlift =
                                             userMaxes.deadlift
-                                                ?: currentMaxes.find { it.exerciseName == "Conventional Deadlift" }?.maxWeight
+                                                ?: currentMaxes.find { it.exerciseName == "Barbell Deadlift" }?.maxWeight
                                         val effectiveOhp =
-                                            userMaxes.ohp ?: currentMaxes.find { it.exerciseName == "Overhead Press" }?.maxWeight
+                                            userMaxes.ohp ?: currentMaxes.find { it.exerciseName == "Barbell Overhead Press" }?.maxWeight
 
                                         effectiveSquat != null &&
                                             effectiveSquat > 0 &&
@@ -236,6 +249,7 @@ fun ProgrammeSetupDialog(
                                 if (uiState.setupStep == SetupStep.CONFIRMATION) "Create" else "Next",
                             )
                         }
+                    }
                     }
                 }
             }
@@ -349,7 +363,7 @@ private fun MaxesInputStep(
         Spacer(modifier = Modifier.height(8.dp))
 
         // Squat 1RM with robust input handling
-        val squatProfileMax = profileMaxes.find { it.exerciseName == "Back Squat" }
+        val squatProfileMax = profileMaxes.find { it.exerciseName == "Barbell Back Squat" }
         val effectiveSquatValue = userMaxes.squat ?: squatProfileMax?.maxWeight
         WeightInputField(
             value = userMaxes.squat,
@@ -360,7 +374,7 @@ private fun MaxesInputStep(
         )
 
         // Bench 1RM with robust input handling
-        val benchProfileMax = profileMaxes.find { it.exerciseName == "Bench Press" }
+        val benchProfileMax = profileMaxes.find { it.exerciseName == "Barbell Bench Press" }
         val effectiveBenchValue = userMaxes.bench ?: benchProfileMax?.maxWeight
         WeightInputField(
             value = userMaxes.bench,
@@ -371,7 +385,7 @@ private fun MaxesInputStep(
         )
 
         // Deadlift 1RM with robust input handling
-        val deadliftProfileMax = profileMaxes.find { it.exerciseName == "Conventional Deadlift" }
+        val deadliftProfileMax = profileMaxes.find { it.exerciseName == "Barbell Deadlift" }
         val effectiveDeadliftValue = userMaxes.deadlift ?: deadliftProfileMax?.maxWeight
         WeightInputField(
             value = userMaxes.deadlift,
@@ -382,7 +396,7 @@ private fun MaxesInputStep(
         )
 
         // OHP 1RM with robust input handling
-        val ohpProfileMax = profileMaxes.find { it.exerciseName == "Overhead Press" }
+        val ohpProfileMax = profileMaxes.find { it.exerciseName == "Barbell Overhead Press" }
         val effectiveOhpValue = userMaxes.ohp ?: ohpProfileMax?.maxWeight
         WeightInputField(
             value = userMaxes.ohp,
@@ -695,5 +709,61 @@ private fun WeightInputField(
             } else {
                 null
             },
+    )
+}
+
+@Composable
+fun ProfileUpdatePromptDialog(
+    updates: List<Pair<String, Float>>,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Update Profile 1RMs?",
+                style = MaterialTheme.typography.headlineSmall,
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "Would you like to update your profile with these new 1RM values?",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                updates.forEach { (exerciseName, newMax) ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = exerciseName,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Text(
+                            text = "${if (newMax % 1 == 0f) newMax.toInt() else newMax}kg",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text("Update Profile")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("Skip")
+            }
+        },
     )
 }

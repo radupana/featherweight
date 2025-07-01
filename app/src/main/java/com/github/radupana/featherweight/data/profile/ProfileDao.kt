@@ -18,6 +18,9 @@ interface ProfileDao {
 
     @Query("SELECT * FROM user_profiles ORDER BY displayName ASC")
     suspend fun getAllUsers(): List<UserProfile>
+    
+    @Query("SELECT * FROM user_profiles LIMIT 1")
+    suspend fun getUserProfile(): UserProfile?
 
     // User Exercise Max operations
     @Insert
@@ -28,6 +31,9 @@ interface ProfileDao {
 
     @Delete
     suspend fun deleteExerciseMax(max: UserExerciseMax)
+    
+    @Query("DELETE FROM user_exercise_maxes WHERE userId = :userId AND exerciseId = :exerciseId")
+    suspend fun deleteAllMaxesForExercise(userId: Long, exerciseId: Long)
 
     @Query(
         """
@@ -93,13 +99,13 @@ interface ProfileDao {
     @Query(
         """
         SELECT e.* FROM exercises e
-        WHERE e.name IN ('Back Squat', 'Conventional Deadlift', 'Bench Press', 'Overhead Press')
+        WHERE e.name IN ('Barbell Back Squat', 'Barbell Deadlift', 'Barbell Bench Press', 'Barbell Overhead Press')
         ORDER BY 
             CASE e.name
-                WHEN 'Back Squat' THEN 1
-                WHEN 'Conventional Deadlift' THEN 2
-                WHEN 'Bench Press' THEN 3
-                WHEN 'Overhead Press' THEN 4
+                WHEN 'Barbell Back Squat' THEN 1
+                WHEN 'Barbell Deadlift' THEN 2
+                WHEN 'Barbell Bench Press' THEN 3
+                WHEN 'Barbell Overhead Press' THEN 4
             END
     """,
     )

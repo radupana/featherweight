@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -37,7 +38,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.CompactExerciseCard
-import com.github.radupana.featherweight.ui.components.ProgressCard
 import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
 import com.github.radupana.featherweight.ui.dialogs.SetEditingModal
 import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
@@ -46,6 +46,7 @@ import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutState
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -267,15 +268,6 @@ fun WorkoutScreen(
                     EditModeBanner()
                 }
 
-                // Programme progress card (if this is a programme workout)
-                if (workoutState.isProgrammeWorkout) {
-                    ProgrammeProgressCard(
-                        workoutState = workoutState,
-                        viewModel = viewModel,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
-                }
-
                 // Unified Timer Bar
                 UnifiedTimerBar(
                     workoutElapsed = elapsedWorkoutTime,
@@ -287,10 +279,12 @@ fun WorkoutScreen(
                     onRestTogglePause = { restTimerViewModel.togglePause() },
                 )
 
-                // Progress section
-                ProgressCard(
+                // Unified Progress Card
+                UnifiedProgressCard(
                     completedSets = completedSets,
                     totalSets = totalSets,
+                    workoutState = workoutState,
+                    viewModel = viewModel,
                     modifier = Modifier.padding(16.dp),
                 )
 
@@ -422,6 +416,7 @@ fun WorkoutScreen(
     if (showWorkoutMenuDialog && !isEditMode) {
         WorkoutMenuDialog(
             canEdit = canEdit,
+            canCompleteAllSets = viewModel.canCompleteAllSetsInWorkout(),
             onEditName = {
                 showWorkoutMenuDialog = false
                 showEditWorkoutNameDialog = true
@@ -429,6 +424,10 @@ fun WorkoutScreen(
             onDeleteWorkout = {
                 showWorkoutMenuDialog = false
                 showDeleteWorkoutDialog = true
+            },
+            onCompleteAllSets = {
+                showWorkoutMenuDialog = false
+                viewModel.completeAllSetsInWorkout()
             },
             onClose = { showWorkoutMenuDialog = false },
         )
@@ -669,8 +668,10 @@ private fun EditModeBanner() {
 @Composable
 private fun WorkoutMenuDialog(
     canEdit: Boolean,
+    canCompleteAllSets: Boolean,
     onEditName: () -> Unit,
     onDeleteWorkout: () -> Unit,
+    onCompleteAllSets: () -> Unit,
     onClose: () -> Unit,
 ) {
     AlertDialog(
@@ -678,6 +679,23 @@ private fun WorkoutMenuDialog(
         title = { Text("Workout Options") },
         text = {
             Column {
+                if (canEdit && canCompleteAllSets) {
+                    TextButton(
+                        onClick = onCompleteAllSets,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Icon(Icons.Filled.CheckCircle, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Mark all populated sets done")
+                        }
+                    }
+                }
+                
                 if (canEdit) {
                     TextButton(
                         onClick = onEditName,
@@ -1117,125 +1135,120 @@ private fun WorkoutActionButtons(
     }
 }
 
+
 @Composable
-private fun ProgrammeProgressCard(
+private fun UnifiedProgressCard(
+    completedSets: Int,
+    totalSets: Int,
     workoutState: WorkoutState,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
     var programmeProgress by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
-    // Load programme progress
+    // Load programme progress if this is a programme workout
     LaunchedEffect(workoutState.programmeId) {
-        if (workoutState.programmeId != null) {
+        if (workoutState.isProgrammeWorkout && workoutState.programmeId != null) {
             programmeProgress = viewModel.getProgrammeProgress()
         }
     }
 
+    val workoutProgress = if (totalSets > 0) completedSets.toFloat() / totalSets.toFloat() else 0f
+
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-            ),
-        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
         ) {
+            // Programme section (if applicable)
+            if (workoutState.isProgrammeWorkout) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = workoutState.programmeName ?: "Programme",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    
+                    programmeProgress?.let { (completed, total) ->
+                        if (total > 0) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(8.dp),
+                            ) {
+                                Text(
+                                    text = "$completed/$total workouts",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
+                    Text(
+                        text = "Week ${workoutState.weekNumber} • Day ${workoutState.dayNumber} • ${workoutState.programmeWorkoutName ?: "Workout"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            
+            // Workout section
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        Icons.Filled.Timeline,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Programme Progress",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-
-                // Programme completion progress
-                programmeProgress?.let { (completed, total) ->
-                    if (total > 0) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(8.dp),
-                        ) {
-                            Text(
-                                text = "$completed/$total workouts",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
-                    }
-                }
+                Text(
+                    if (workoutState.isProgrammeWorkout) "Workout Progress" else "Freestyle Workout",
+                    style = if (workoutState.isProgrammeWorkout) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
+                    fontWeight = if (workoutState.isProgrammeWorkout) FontWeight.Medium else FontWeight.SemiBold,
+                )
+                Text(
+                    "$completedSets / $totalSets sets",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Programme details
-            Row(
+            LinearProgressIndicator(
+                progress = { workoutProgress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                "${(workoutProgress * 100).roundToInt()}% completed",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column {
-                    Text(
-                        text = workoutState.programmeName ?: "Programme",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
-                        Text(
-                            text = "Week ${workoutState.weekNumber} • Day ${workoutState.dayNumber}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                        )
-                    }
-                }
-
-                // Progress bar
-                programmeProgress?.let { (completed, total) ->
-                    if (total > 0) {
-                        Column(
-                            horizontalAlignment = Alignment.End,
-                        ) {
-                            val progress = completed.toFloat() / total.toFloat()
-                            Text(
-                                text = "${(progress * 100).toInt()}%",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            LinearProgressIndicator(
-                                progress = { progress },
-                                modifier =
-                                    Modifier
-                                        .width(60.dp)
-                                        .height(6.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
-                            )
-                        }
-                    }
-                }
-            }
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
+

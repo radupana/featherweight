@@ -30,6 +30,7 @@ import com.github.radupana.featherweight.viewmodel.ExerciseSelectorViewModel
 fun ExerciseSelectorDialog(
     onExerciseSelected: (Exercise) -> Unit,
     onDismiss: () -> Unit,
+    excludeExerciseIds: Set<Long> = emptySet(),
     viewModel: ExerciseSelectorViewModel = viewModel(),
 ) {
     val filteredExercises by viewModel.filteredExercises.collectAsState()
@@ -121,7 +122,11 @@ fun ExerciseSelectorDialog(
                         ),
                         verticalArrangement = Arrangement.spacedBy(compactPadding / 2),
                     ) {
-                        items(filteredExercises) { exerciseWithDetails ->
+                        items(
+                            filteredExercises.filter { exerciseWithDetails ->
+                                exerciseWithDetails.exercise.id !in excludeExerciseIds
+                            }
+                        ) { exerciseWithDetails ->
                             ExerciseItem(
                                 exerciseWithDetails = exerciseWithDetails,
                                 onClick = {

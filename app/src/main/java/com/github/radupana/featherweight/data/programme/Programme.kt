@@ -3,6 +3,9 @@ package com.github.radupana.featherweight.data.programme
 import androidx.room.*
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import java.time.LocalDateTime
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
  * Programme entity represents a multi-week training program
@@ -26,7 +29,43 @@ data class Programme(
     val benchMax: Float? = null,
     val deadliftMax: Float? = null,
     val ohpMax: Float? = null,
-)
+    // Weight calculation and progression rules (stored as JSON)
+    val weightCalculationRules: String? = null, // JSON serialized WeightCalculationRules
+    val progressionRules: String? = null, // JSON serialized ProgressionRules
+    // Template name for template-based programmes (used when custom name is given)
+    val templateName: String? = null
+) {
+    // Helper methods to serialize/deserialize rules
+    fun getWeightCalculationRulesObject(): WeightCalculationRules? {
+        return weightCalculationRules?.let {
+            try {
+                Json.decodeFromString<WeightCalculationRules>(it)
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+    
+    fun getProgressionRulesObject(): ProgressionRules? {
+        return progressionRules?.let {
+            try {
+                Json.decodeFromString<ProgressionRules>(it)
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+    
+    companion object {
+        fun encodeWeightCalculationRules(rules: WeightCalculationRules): String {
+            return Json.encodeToString(rules)
+        }
+        
+        fun encodeProgressionRules(rules: ProgressionRules): String {
+            return Json.encodeToString(rules)
+        }
+    }
+}
 
 /**
  * Programme template for pre-defined programs
@@ -44,6 +83,8 @@ data class ProgrammeTemplate(
     val requiresMaxes: Boolean = false,
     val allowsAccessoryCustomization: Boolean = false,
     val jsonStructure: String, // JSON representation of the programme structure
+    val weightCalculationRules: String? = null, // JSON serialized WeightCalculationRules
+    val progressionRules: String? = null // JSON serialized ProgressionRules
 )
 
 /**

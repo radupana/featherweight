@@ -144,8 +144,67 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
+    
+    fun clearAllMaxesForExercise(exerciseId: Long) {
+        viewModelScope.launch {
+            try {
+                println("🗑️ ProfileViewModel: Clearing all 1RM records for exercise ID: $exerciseId")
+                repository.deleteAllMaxesForExercise(exerciseId)
+                println("✅ ProfileViewModel: Successfully cleared all 1RM records")
+            } catch (e: Exception) {
+                println("❌ ProfileViewModel: Failed to clear 1RM: ${e.message}")
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Failed to clear 1RM: ${e.message}",
+                    )
+            }
+        }
+    }
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+    
+    fun updateExerciseMax(exerciseName: String, maxWeight: Float) {
+        viewModelScope.launch {
+            try {
+                println("🔄 ProfileViewModel: Updating 1RM for $exerciseName to $maxWeight kg")
+                // Find the exercise by name
+                val exercise = repository.getExerciseByName(exerciseName)
+                if (exercise != null) {
+                    println("✅ ProfileViewModel: Found exercise ${exercise.name} with ID ${exercise.id}")
+                    repository.upsertExerciseMax(
+                        exerciseId = exercise.id,
+                        maxWeight = maxWeight,
+                        isEstimated = false,
+                        notes = "Updated from programme setup"
+                    )
+                    println("✅ ProfileViewModel: Successfully updated 1RM")
+                } else {
+                    println("❌ ProfileViewModel: Exercise not found for name: $exerciseName")
+                }
+            } catch (e: Exception) {
+                println("❌ ProfileViewModel: Error updating 1RM: ${e.message}")
+                e.printStackTrace()
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to update 1RM for $exerciseName: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    fun findAndSelectExercise(exerciseName: String) {
+        viewModelScope.launch {
+            try {
+                val exercise = repository.getExerciseByName(exerciseName)
+                if (exercise != null) {
+                    _uiState.value = _uiState.value.copy(selectedExercise = exercise)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to find exercise: ${e.message}"
+                )
+            }
+        }
     }
 }
