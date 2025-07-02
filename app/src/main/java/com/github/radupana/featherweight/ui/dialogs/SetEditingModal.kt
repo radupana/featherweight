@@ -283,7 +283,7 @@ fun SetEditingModal(
                                         .weight(1f)
                                         .fillMaxWidth(),
                                 state = listState,
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
                                 contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = 8.dp),
                             ) {
                                 // Always show action buttons first when there are no sets
@@ -801,7 +801,7 @@ fun CleanSetLayout(
                             modifier = Modifier
                                 .width(80.dp)  // Narrow width
                                 .fillMaxHeight()
-                                .padding(vertical = 4.dp),  // Minimal vertical padding
+                                .padding(vertical = 2.dp),  // Minimal vertical padding
                             color = MaterialTheme.colorScheme.error,
                             shape = RoundedCornerShape(8.dp),
                         ) {
@@ -813,7 +813,7 @@ fun CleanSetLayout(
                                     Icons.Filled.Delete,
                                     contentDescription = "Delete",
                                     tint = MaterialTheme.colorScheme.onError,
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(18.dp),
                                 )
                             }
                         }
@@ -827,7 +827,7 @@ fun CleanSetLayout(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+                .padding(horizontal = 16.dp, vertical = 2.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -845,7 +845,7 @@ fun CleanSetLayout(
             Box(
                 modifier = Modifier
                     .weight(0.8f)
-                    .height(56.dp)
+                    .height(48.dp)
                     .background(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                         shape = RoundedCornerShape(8.dp)
@@ -870,7 +870,7 @@ fun CleanSetLayout(
                 },
                 fieldType = InputFieldType.WEIGHT,
                 placeholder = "",  // No placeholder
-                modifier = Modifier.weight(0.8f).height(56.dp),
+                modifier = Modifier.weight(0.8f).height(48.dp),
                 imeAction = ImeAction.Next
             )
 
@@ -884,7 +884,7 @@ fun CleanSetLayout(
                 },
                 fieldType = InputFieldType.REPS,
                 placeholder = "",  // No placeholder
-                modifier = Modifier.weight(0.6f).height(56.dp),
+                modifier = Modifier.weight(0.6f).height(48.dp),
                 imeAction = ImeAction.Next
             )
 
@@ -898,14 +898,14 @@ fun CleanSetLayout(
                 },
                 fieldType = InputFieldType.RPE,
                 placeholder = "",  // No placeholder
-                modifier = Modifier.weight(0.6f).height(56.dp),
+                modifier = Modifier.weight(0.6f).height(48.dp),
                 imeAction = ImeAction.Done
             )
 
             // Completion checkbox
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(40.dp)
                     .clickable(
                         enabled = canMarkComplete || set.isCompleted,
                         onClick = {
