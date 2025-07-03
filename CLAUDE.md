@@ -94,7 +94,9 @@ that are transparent and explicit about reasoning. Always show WHY a weight was 
 
 ## Database Strategy
 
-- Using `fallbackToDestructiveMigration()` during development
+- **DESTRUCTIVE MIGRATIONS ALWAYS** - We use `fallbackToDestructiveMigration()` 
+- **NO BACKWARD COMPATIBILITY** - This is development. We nuke and rebuild as needed
+- **NO PRODUCTION CONCERNS** - Break whatever needs breaking. Database gets wiped on every schema change
 - Modify existing entities directly - no V2 classes or versioning
 - Progressive overload data stored in JSON fields for flexibility
 
@@ -129,7 +131,7 @@ Fixed critical UI/UX issues with set input fields that were causing major usabil
 - **Fixed Keyboard Type**: Used `KeyboardType.Number` for all fields to prevent auto-decimals
 
 **UI Improvements:**
-- **Elegant Swipe-to-Delete**: Narrow red stripe (80dp) only covers input area, excludes reference info
+- **Elegant Swipe-to-Delete**: Dynamic red stripe that grows with swipe distance
 - **Proper Text Selection**: Select-all works correctly on field focus
 - **Consistent Placeholders**: All placeholders center-aligned and disappear on focus
 

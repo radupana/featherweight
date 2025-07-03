@@ -62,12 +62,12 @@ class ExerciseSeeder(
                 Exercise(
                     id = 0, // Auto-generate
                     name = data.name,
-                    category = ExerciseCategory.valueOf(data.category),
-                    equipment = Equipment.valueOf(data.equipment),
+                    category = ExerciseCategory.valueOf(data.category.uppercase().replace(" ", "_")),
+                    equipment = parseEquipment(data.equipment),
                     muscleGroup = data.muscleGroup,
                     movementPattern = data.movementPattern,
-                    type = ExerciseType.valueOf(data.type),
-                    difficulty = ExerciseDifficulty.valueOf(data.difficulty),
+                    type = ExerciseType.valueOf(data.type.uppercase()),
+                    difficulty = ExerciseDifficulty.valueOf(data.difficulty.uppercase()),
                     requiresWeight = data.requiresWeight,
                     instructions = data.instructions,
                     usageCount = 0,
@@ -105,4 +105,13 @@ class ExerciseSeeder(
         }
     }
     
+    private fun parseEquipment(value: String): Equipment {
+        // Special cases that don't follow simple transformation rules
+        return when (value) {
+            "Pull Up Bar" -> Equipment.PULL_UP_BAR
+            "Ghd Machine" -> Equipment.GHD_MACHINE
+            "Trx" -> Equipment.TRX
+            else -> Equipment.valueOf(value.uppercase().replace(" ", "_"))
+        }
+    }
 }
