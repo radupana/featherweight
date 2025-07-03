@@ -291,8 +291,12 @@ fun ExerciseSelectorScreen(
                         ) {
                             // Show suggestions when in swap mode
                             if (isSwapMode) {
+                                // Filter suggestions based on search query
+                                val filteredPreviouslySwapped = filterSuggestions(previouslySwappedExercises, searchQuery)
+                                val filteredSwapSuggestions = filterSuggestions(swapSuggestions, searchQuery)
+                                
                                 // Previously swapped exercises section
-                                if (previouslySwappedExercises.isNotEmpty()) {
+                                if (filteredPreviouslySwapped.isNotEmpty()) {
                                     item {
                                         Text(
                                             text = "Previously Swapped",
@@ -302,7 +306,7 @@ fun ExerciseSelectorScreen(
                                             modifier = Modifier.padding(vertical = compactPadding / 2)
                                         )
                                     }
-                                    items(previouslySwappedExercises) { suggestion ->
+                                    items(filteredPreviouslySwapped) { suggestion ->
                                         SuggestionCard(
                                             suggestion = suggestion,
                                             onSelect = { onExerciseSelected(suggestion.exercise) },
@@ -312,7 +316,7 @@ fun ExerciseSelectorScreen(
                                 }
                                 
                                 // Smart suggestions section
-                                if (swapSuggestions.isNotEmpty()) {
+                                if (filteredSwapSuggestions.isNotEmpty()) {
                                     item {
                                         Text(
                                             text = "Suggested Alternatives",
@@ -322,7 +326,7 @@ fun ExerciseSelectorScreen(
                                             modifier = Modifier.padding(vertical = compactPadding / 2)
                                         )
                                     }
-                                    items(swapSuggestions) { suggestion ->
+                                    items(filteredSwapSuggestions) { suggestion ->
                                         SuggestionCard(
                                             suggestion = suggestion,
                                             onSelect = { onExerciseSelected(suggestion.exercise) },
@@ -332,7 +336,7 @@ fun ExerciseSelectorScreen(
                                 }
                                 
                                 // Divider before all exercises if we have suggestions
-                                if (previouslySwappedExercises.isNotEmpty() || swapSuggestions.isNotEmpty()) {
+                                if (filteredPreviouslySwapped.isNotEmpty() || filteredSwapSuggestions.isNotEmpty()) {
                                     item {
                                         Spacer(modifier = Modifier.height(compactPadding))
                                         Text(
@@ -371,6 +375,34 @@ fun ExerciseSelectorScreen(
                 // Success will be handled by LaunchedEffect above
             },
         )
+    }
+}
+
+private fun filterSuggestions(
+    suggestions: List<ExerciseSuggestion>,
+    searchQuery: String
+): List<ExerciseSuggestion> {
+    if (searchQuery.isEmpty()) return suggestions
+    
+    val searchWords = searchQuery.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
+    
+    return suggestions.filter { suggestion ->
+        val exercise = suggestion.exercise.exercise
+        val nameLower = exercise.name.lowercase()
+        val queryLower = searchQuery.lowercase()
+        
+        // Check for exact match or contains
+        if (nameLower.contains(queryLower)) {
+            return@filter true
+        }
+        
+        // Check individual words
+        searchWords.any { searchWord ->
+            val searchWordLower = searchWord.lowercase()
+            nameLower.contains(searchWordLower) ||
+            exercise.muscleGroup.contains(searchWordLower, ignoreCase = true) ||
+            exercise.category.name.replace('_', ' ').contains(searchWordLower, ignoreCase = true)
+        }
     }
 }
 
