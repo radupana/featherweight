@@ -419,125 +419,66 @@ private fun ExerciseCard(
         Column(
             modifier = Modifier.padding(cardPadding),
         ) {
-            // Top row: Exercise name and category
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = exercise.exercise.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    
-                    // Usage count indicator - only show if > 0
-                    if (exercise.exercise.usageCount > 0) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Text(
-                                text = "${exercise.exercise.usageCount}×",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                // Exercise name
+                Text(
+                    text = exercise.exercise.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                
+                // Usage count indicator - only show if > 0
+                if (exercise.exercise.usageCount > 0) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text(
+                            text = "${exercise.exercise.usageCount}×",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
-
-                Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(6.dp),
-                ) {
-                    Text(
-                        text = exercise.exercise.category.displayName,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
             }
-
-            // Bottom row: All metadata in one line
-            if (exercise.exercise.muscleGroup.isNotEmpty() || 
-                exercise.exercise.equipment != Equipment.BODYWEIGHT || 
-                exercise.exercise.difficulty != ExerciseDifficulty.BEGINNER) {
-                
+            
+            // Muscle group and equipment info
+            if (exercise.exercise.muscleGroup.isNotEmpty() || exercise.exercise.equipment != Equipment.BODYWEIGHT) {
                 Spacer(modifier = Modifier.height(4.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(16.dp),
                 ) {
-                    // Left side: Muscles and equipment
                     Row(
-                        modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.Start,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Primary muscles
                         if (exercise.exercise.muscleGroup.isNotEmpty()) {
                             Text(
                                 text = exercise.exercise.muscleGroup,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                        }
-                        
-                        // Equipment (if any)
-                        if (exercise.exercise.equipment != Equipment.BODYWEIGHT) {
-                            if (exercise.exercise.muscleGroup.isNotEmpty()) {
+                            if (exercise.exercise.equipment != Equipment.BODYWEIGHT) {
                                 Text(
                                     text = " • ",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
+                        }
+                        if (exercise.exercise.equipment != Equipment.BODYWEIGHT) {
                             Text(
-                                text = exercise.exercise.equipment.name.replace('_', ' '),
+                                text = exercise.exercise.equipment.displayName,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                    
-                    // Right side: Difficulty
-                    if (exercise.exercise.difficulty != ExerciseDifficulty.BEGINNER) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Surface(
-                            color = when (exercise.exercise.difficulty) {
-                                ExerciseDifficulty.NOVICE -> MaterialTheme.colorScheme.secondaryContainer
-                                ExerciseDifficulty.INTERMEDIATE -> MaterialTheme.colorScheme.surfaceVariant
-                                ExerciseDifficulty.ADVANCED -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-                                ExerciseDifficulty.EXPERT -> MaterialTheme.colorScheme.errorContainer
-                                else -> MaterialTheme.colorScheme.surfaceVariant
-                            },
-                            shape = RoundedCornerShape(6.dp),
-                        ) {
-                            Text(
-                                text = exercise.exercise.difficulty.displayName,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = when (exercise.exercise.difficulty) {
-                                    ExerciseDifficulty.ADVANCED, ExerciseDifficulty.EXPERT ->
-                                        MaterialTheme.colorScheme.onErrorContainer
-                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                },
                             )
                         }
                     }
@@ -853,102 +794,39 @@ private fun SuggestionCard(
                 }
             }
             
-            // Bottom row: Exercise details
-            if (suggestion.exercise.exercise.muscleGroup.isNotEmpty() || 
-                suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT) {
-                
+            // Muscle group and equipment info
+            if (suggestion.exercise.exercise.muscleGroup.isNotEmpty() || suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT) {
                 Spacer(modifier = Modifier.height(4.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start,
-                    verticalAlignment = Alignment.CenterVertically,
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(16.dp),
                 ) {
-                    // Primary muscles
-                    if (suggestion.exercise.exercise.muscleGroup.isNotEmpty()) {
-                        Text(
-                            text = suggestion.exercise.exercise.muscleGroup,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    
-                    // Equipment (if any)
-                    if (suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         if (suggestion.exercise.exercise.muscleGroup.isNotEmpty()) {
                             Text(
-                                text = " • ",
+                                text = suggestion.exercise.exercise.muscleGroup,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            if (suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT) {
+                                Text(
+                                    text = " • ",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        if (suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT) {
+                            Text(
+                                text = suggestion.exercise.exercise.equipment.displayName,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        Text(
-                            text = suggestion.exercise.exercise.equipment.name.replace('_', ' '),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
                     }
-                }
-            }
-            
-            // Show structured details for smart suggestions
-            if (suggestion.swapCount == 0) {
-                // This is a smart suggestion, show exercise details
-                Spacer(modifier = Modifier.height(2.dp))
-                
-                val details = buildString {
-                    // Muscle groups
-                    if (suggestion.exercise.exercise.muscleGroup.isNotEmpty()) {
-                        append(suggestion.exercise.exercise.muscleGroup)
-                    }
-                    
-                    // Equipment
-                    if (suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT) {
-                        if (isNotEmpty()) append(" • ")
-                        append(suggestion.exercise.exercise.equipment.name.replace('_', ' ').lowercase()
-                            .replaceFirstChar { it.uppercase() })
-                    }
-                    
-                    // Category/Movement type
-                    if (isNotEmpty()) append(" • ")
-                    append(when (suggestion.exercise.exercise.category) {
-                        ExerciseCategory.LEGS, ExerciseCategory.CHEST, 
-                        ExerciseCategory.BACK, ExerciseCategory.SHOULDERS -> "Compound"
-                        ExerciseCategory.ARMS, ExerciseCategory.CORE -> "Isolation"
-                        ExerciseCategory.CARDIO -> "Cardio"
-                        else -> suggestion.exercise.exercise.category.displayName
-                    })
-                    
-                    // Usage count
-                    if (suggestion.exercise.exercise.usageCount > 0) {
-                        append(" • Used ${suggestion.exercise.exercise.usageCount}x")
-                    }
-                }
-                
-                Text(
-                    text = details,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    fontWeight = FontWeight.Normal,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            } else {
-                // Previously swapped - keep the existing reason
-                if (suggestion.suggestionReason.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = suggestion.suggestionReason,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                        fontWeight = FontWeight.Normal,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
                 }
             }
         }
