@@ -2,26 +2,37 @@ package com.github.radupana.featherweight.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 enum class InputFieldType {
     WEIGHT,   // Max 7 chars: "1234.56" 
@@ -39,7 +50,12 @@ fun CenteredInputField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     imeAction: ImeAction = ImeAction.Next
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Track the last known focus state to detect transitions
+    var lastFocusState by remember { mutableStateOf(false) }
     
     // Use Number keyboard for ALL fields to prevent auto-decimal insertion
     // User can manually type "." for weight if needed
@@ -47,6 +63,27 @@ fun CenteredInputField(
     
     // Show placeholder only when not focused AND value is empty
     val showPlaceholder = !isFocused && value.text.isEmpty()
+    
+    // Debug logging for focus events
+    LaunchedEffect(isFocused) {
+        println("FOCUS Debug [${fieldType.name}] - Focus state: $isFocused, Text: '${value.text}', Selection: ${value.selection}")
+        
+        // Detect focus gain transition
+        if (isFocused && !lastFocusState && value.text.isNotEmpty()) {
+            println("FOCUS Debug [${fieldType.name}] - FOCUS GAINED! Selecting all text")
+            // Use coroutine to ensure the selection happens after the field is ready
+            coroutineScope.launch {
+                // Very small delay to ensure field is fully focused
+                delay(5) // 5ms delay - minimal but reliable
+                println("FOCUS Debug [${fieldType.name}] - Applying selection after delay")
+                onValueChange(
+                    value.copy(selection = TextRange(0, value.text.length))
+                )
+            }
+        }
+        
+        lastFocusState = isFocused
+    }
     
     OutlinedTextField(
         value = value,
@@ -128,18 +165,7 @@ fun CenteredInputField(
             imeAction = imeAction
         ),
         keyboardActions = keyboardActions,
-        modifier = modifier.onFocusChanged { focusState ->
-            val wasFocused = isFocused
-            isFocused = focusState.isFocused
-            
-            if (focusState.isFocused && !wasFocused && value.text.isNotEmpty()) {
-                // Select all text when field gains focus
-                onValueChange(
-                    value.copy(
-                        selection = TextRange(0, value.text.length)
-                    )
-                )
-            }
-        }
+        interactionSource = interactionSource,
+        modifier = modifier
     )
 }
