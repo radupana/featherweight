@@ -336,6 +336,9 @@ fun SetEditingModal(
                                                         false
                                                     }
                                                 },
+                                                positionalThreshold = { totalDistance ->
+                                                    totalDistance * 0.33f // Require 33% swipe distance
+                                                }
                                             )
 
                                         CleanSetLayout(
@@ -790,30 +793,58 @@ fun CleanSetLayout(
         SwipeToDismissBox(
             state = swipeToDismissState,
             backgroundContent = {
-                // Only show red background when actively dismissing
-                if (swipeToDismissState.targetValue != SwipeToDismissBoxValue.Settled) {
+                // Only show red background when actively swiping to delete
+                val progress = swipeToDismissState.progress
+                val targetValue = swipeToDismissState.targetValue
+                val currentValue = swipeToDismissState.currentValue
+                
+                // Show red only when:
+                // 1. We have swipe progress (item is displaced)
+                // 2. Target is delete direction (EndToStart)
+                // 3. Not already dismissed
+                // Use very small threshold to detect swipe immediately
+                if (progress > 0.01f && 
+                    targetValue == SwipeToDismissBoxValue.EndToStart && 
+                    currentValue != SwipeToDismissBoxValue.EndToStart) {
+                    
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.CenterEnd
                     ) {
-                        // Elegant narrow red stripe only on the right
+                        // Dynamic red stripe that grows with swipe
+                        // Start with minimum width for immediate visibility
+                        val minWidth = 40.dp
+                        val maxAdditionalWidth = 160.dp
+                        val currentWidth = minWidth + (maxAdditionalWidth.value * progress).dp
+                        
                         Surface(
                             modifier = Modifier
-                                .width(80.dp)  // Narrow width
+                                .width(currentWidth)
                                 .fillMaxHeight()
-                                .padding(vertical = 2.dp),  // Minimal vertical padding
-                            color = MaterialTheme.colorScheme.error,
-                            shape = RoundedCornerShape(8.dp),
+                                .padding(vertical = 2.dp),
+                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
+                            shape = RoundedCornerShape(
+                                topStart = 8.dp,
+                                bottomStart = 8.dp,
+                                topEnd = 0.dp,
+                                bottomEnd = 0.dp
+                            ),
                         ) {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
+                                // Icon that becomes more visible with progress
+                                val iconOffset = ((1 - progress) * 15).dp
                                 Icon(
                                     Icons.Filled.Delete,
                                     contentDescription = "Delete",
-                                    tint = MaterialTheme.colorScheme.onError,
-                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onError.copy(
+                                        alpha = 0.6f + (0.4f * progress)
+                                    ),
+                                    modifier = Modifier
+                                        .size((20 + (4 * progress)).dp)
+                                        .offset(x = iconOffset)
                                 )
                             }
                         }
