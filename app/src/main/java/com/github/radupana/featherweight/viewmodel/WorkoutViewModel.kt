@@ -946,6 +946,11 @@ class WorkoutViewModel(
         val currentId = _currentWorkoutId.value ?: return null
         return repository.getSmartSuggestions(exerciseName, currentId)
     }
+    
+    // Get intelligent suggestions with reasoning and alternatives
+    suspend fun getIntelligentSuggestions(exerciseName: String): SmartSuggestions {
+        return repository.getSmartSuggestionsEnhanced(exerciseName)
+    }
 
     fun loadSetsForExercise() {
         viewModelScope.launch {

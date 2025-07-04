@@ -48,14 +48,17 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
 import com.github.radupana.featherweight.ui.components.IntelligentSetInput
+import com.github.radupana.featherweight.ui.components.IntelligentSuggestionCard
 import com.github.radupana.featherweight.ui.components.CenteredInputField
 import com.github.radupana.featherweight.ui.components.InputFieldType
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
@@ -77,8 +80,16 @@ fun SetEditingModal(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
     val timerState by restTimerViewModel.timerState.collectAsState()
+    
+    // Intelligent suggestions state
+    var intelligentSuggestions by remember { mutableStateOf<SmartSuggestions?>(null) }
+    var showSuggestions by remember { mutableStateOf(false) }
+    
+    // Load intelligent suggestions when modal opens
+    LaunchedEffect(exercise.exerciseName) {
+        intelligentSuggestions = viewModel.getIntelligentSuggestions(exercise.exerciseName)
+    }
 
     // Workout timer state
     val workoutState by viewModel.workoutState.collectAsState()
@@ -87,9 +98,7 @@ fun SetEditingModal(
     // Scroll to newly added set
     LaunchedEffect(sets.size) {
         if (sets.isNotEmpty()) {
-            scope.launch {
-                listState.animateScrollToItem(sets.size) // Scroll to action buttons after last set
-            }
+            listState.animateScrollToItem(sets.size) // Scroll to action buttons after last set
         }
     }
 
@@ -191,6 +200,54 @@ fun SetEditingModal(
                     PreviousPerformanceCard(
                         exerciseName = exercise.exerciseName,
                         previousSets = previousSets,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+                
+                // Intelligent Suggestions Card (only for freestyle workouts)
+                if (!isProgrammeWorkout && intelligentSuggestions != null) {
+                    IntelligentSuggestionCard(
+                        suggestions = intelligentSuggestions,
+                        onSelectAlternative = { alternative ->
+                            if (sets.isEmpty()) {
+                                // No sets exist - create one and populate it after a short delay
+                                onAddSet()
+                                // Use LaunchedEffect to apply values after the new set is created
+                                viewModel.viewModelScope.launch {
+                                    delay(100) // Small delay to ensure set is created
+                                    val newSet = sets.firstOrNull()
+                                    newSet?.let { set ->
+                                        onUpdateSet(set.id, alternative.reps, alternative.weight, alternative.rpe)
+                                    }
+                                }
+                            } else {
+                                // Apply the alternative suggestion to the first uncompleted set
+                                val firstUncompletedSet = sets.firstOrNull { !it.isCompleted }
+                                firstUncompletedSet?.let { set ->
+                                    onUpdateSet(set.id, alternative.reps, alternative.weight, alternative.rpe)
+                                }
+                            }
+                        },
+                        onSelectSuggestion = { suggestion ->
+                            if (sets.isEmpty()) {
+                                // No sets exist - create one and populate it after a short delay
+                                onAddSet()
+                                // Use LaunchedEffect to apply values after the new set is created
+                                viewModel.viewModelScope.launch {
+                                    delay(100) // Small delay to ensure set is created
+                                    val newSet = sets.firstOrNull()
+                                    newSet?.let { set ->
+                                        onUpdateSet(set.id, suggestion.suggestedReps, suggestion.suggestedWeight, suggestion.suggestedRpe)
+                                    }
+                                }
+                            } else {
+                                // Apply the main suggestion to the first uncompleted set
+                                val firstUncompletedSet = sets.firstOrNull { !it.isCompleted }
+                                firstUncompletedSet?.let { set ->
+                                    onUpdateSet(set.id, suggestion.suggestedReps, suggestion.suggestedWeight, suggestion.suggestedRpe)
+                                }
+                            }
+                        },
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
@@ -771,16 +828,16 @@ fun CleanSetLayout(
     modifier: Modifier = Modifier,
 ) {
     // Input states - Store as TextFieldValue to preserve cursor position  
-    // ONLY use set.id as remember key to avoid recomposition on value changes
-    var weightInput by remember(set.id) {
+    // Use both set.id and the actual values as remember keys so UI updates when data changes
+    var weightInput by remember(set.id, set.actualWeight) {
         val text = if (set.actualWeight > 0) set.actualWeight.toString() else ""
         mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
-    var repsInput by remember(set.id) {
+    var repsInput by remember(set.id, set.actualReps) {
         val text = if (set.actualReps > 0) set.actualReps.toString() else ""
         mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
-    var rpeInput by remember(set.id) {
+    var rpeInput by remember(set.id, set.actualRpe) {
         val text = set.actualRpe?.let { if (it % 1.0f == 0.0f) it.toInt().toString() else it.toString() } ?: ""
         mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }

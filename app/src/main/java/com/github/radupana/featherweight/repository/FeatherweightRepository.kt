@@ -5,6 +5,7 @@ import com.github.radupana.featherweight.ai.ProgrammeType
 import com.github.radupana.featherweight.ai.WeightCalculator
 import com.github.radupana.featherweight.service.ProgressionService
 import com.github.radupana.featherweight.service.GlobalProgressTracker
+import com.github.radupana.featherweight.service.FreestyleIntelligenceService
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
 import com.github.radupana.featherweight.data.ProgressTrend
@@ -129,6 +130,7 @@ class FeatherweightRepository(
     
     // Initialize GlobalProgressTracker
     private val globalProgressTracker = GlobalProgressTracker(this, db)
+    private val freestyleIntelligenceService = FreestyleIntelligenceService(this, db.globalExerciseProgressDao())
     // StateFlow for pending 1RM updates
     private val _pendingOneRMUpdates = MutableStateFlow<List<PendingOneRMUpdate>>(emptyList())
     val pendingOneRMUpdates: StateFlow<List<PendingOneRMUpdate>> = _pendingOneRMUpdates.asStateFlow()
@@ -736,6 +738,7 @@ class FeatherweightRepository(
                     suggestedRpe = avgRpe,
                     lastWorkoutDate = history.lastWorkoutDate,
                     confidence = "Last workout",
+                    reasoning = "Based on your last workout performance"
                 )
             }
         }
@@ -749,10 +752,44 @@ class FeatherweightRepository(
                 suggestedRpe = stats.avgRpe,
                 lastWorkoutDate = null,
                 confidence = "Average from ${stats.totalSets} sets",
+                reasoning = "Historical average from your past ${stats.totalSets} sets"
             )
         }
 
         return null
+    }
+
+    
+    /**
+     * Enhanced smart suggestions using global progress tracking and RPE analysis
+     */
+    suspend fun getSmartSuggestionsEnhanced(
+        exerciseName: String,
+        targetReps: Int? = null
+    ): SmartSuggestions {
+        val userId = getCurrentUserId()
+        
+        // Use the freestyle intelligence service for advanced suggestions
+        return freestyleIntelligenceService.getIntelligentSuggestions(
+            exerciseName = exerciseName,
+            userId = userId,
+            targetReps = targetReps
+        )
+    }
+    
+    /**
+     * Get real-time suggestions as user types
+     */
+    fun getSmartSuggestionsFlow(
+        exerciseName: String,
+        repsFlow: kotlinx.coroutines.flow.Flow<Int>
+    ): kotlinx.coroutines.flow.Flow<SmartSuggestions> {
+        val userId = getCurrentUserId()
+        return freestyleIntelligenceService.getSuggestionsForReps(
+            exerciseName = exerciseName,
+            userId = userId,
+            repsFlow = repsFlow
+        )
     }
 
     suspend fun getWorkoutById(workoutId: Long): Workout? = workoutDao.getWorkoutById(workoutId)

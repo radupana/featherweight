@@ -640,7 +640,12 @@ private fun WeightInputField(
     LaunchedEffect(Unit) {
         val initialValue = value ?: profileValue
         if (initialValue != null && initialValue > 0) {
-            val initialText = if (initialValue % 1 == 0f) initialValue.toInt().toString() else initialValue.toString()
+            val initialText = if (initialValue % 1 == 0f) {
+                initialValue.toInt().toString()
+            } else {
+                // Format to max 2 decimal places, removing trailing zeros
+                "%.2f".format(initialValue).trimEnd('0').trimEnd('.')
+            }
             textFieldValue = TextFieldValue(initialText, TextRange(initialText.length))
             // If we're using profile value and current value is null, update the parent state
             if (value == null && profileValue != null) {
@@ -701,7 +706,13 @@ private fun WeightInputField(
             if (profileValue != null && profileValue > 0) {
                 {
                     Text(
-                        text = "From profile: ${if (profileValue % 1 == 0f) profileValue.toInt() else profileValue}kg",
+                        text = "From profile: ${
+                            if (profileValue % 1 == 0f) {
+                                profileValue.toInt()
+                            } else {
+                                "%.2f".format(profileValue).trimEnd('0').trimEnd('.')
+                            }
+                        }kg",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
