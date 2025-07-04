@@ -360,3 +360,49 @@ if (newAchievements.isNotEmpty()) {
 - **Progress visualization**: Clear category breakdown shows advancement areas
 - **Extensible system**: Easy to add new achievements without code changes
 - **Clean separation**: Detection logic separate from UI rendering logic
+
+## Phase 3.4: Insights Engine Implementation (2025-07-04)
+
+Completed data-driven insights system providing intelligent training analysis without misleading "AI" claims.
+
+### Key Components:
+- **ProgressInsight entity** with priority system and autoGenerate primary key
+- **InsightGenerationService** with 6 insight categories (Progress, Plateaus, Consistency, Volume, RPE, Recovery)
+- **Complete Insights tab** in Analytics with filtering and read/unread state
+- **Actionable insights** with specific recommendations (deload, reduce volume, etc.)
+
+### Critical Fixes Applied:
+- **Primary key constraint**: Added `autoGenerate = true` to prevent duplicate ID errors
+- **History refresh bug**: Fixed stale data by adding auto-refresh on navigation
+- **Database version**: Updated to v34 to reflect schema changes
+
+### Technical Lessons:
+- **No assumptions**: Don't invent problems (empty workouts) when user provides clear repro steps
+- **Simple solutions first**: History not updating was just missing refresh, not complex data issue
+- **Database versioning**: Always increment version when changing entity schemas
+
+## Next Milestone: Exercise-Specific Progress Tracking
+
+### Vision
+Transform the app into a comprehensive progress tracking powerhouse with individual exercise analytics that rival dedicated strength training apps.
+
+### Core Features to Build:
+1. **Exercise Detail Screens** - Deep analytics for each lift with multiple chart types
+2. **Intelligent Stall Detection** - Proactive plateau identification with context-aware suggestions  
+3. **Visual Excellence** - Interactive charts for weight progression, volume trends, RPE patterns
+4. **Smart Recommendations** - Exercise variations, deload timing, technique adjustments
+5. **Predictive Projections** - "At this rate, you'll hit 140kg by..." motivational insights
+
+### Integration Requirements:
+- Seamless navigation from Analytics → Exercise → Detailed Progress
+- Real-time progress context during workouts
+- Historical comparison overlays (this month vs last)
+- Exercise-specific filtering in History screen
+
+### Success Criteria:
+- Users check individual exercise progress weekly
+- Stall detection prevents plateaus before they happen
+- Visual charts become primary method for tracking progress
+- Recommendations lead to measurable performance improvements
+
+This next phase will establish Featherweight as the premier app for serious lifters who demand intelligent, data-driven training insights!
