@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -1005,23 +1006,48 @@ private fun AwardsTab(
     var isLoading by remember { mutableStateOf(true) }
     
     LaunchedEffect(Unit) {
-        // TODO: Load achievement summary from repository
-        // For now, create mock data
-        achievementSummary = AchievementSummary(
-            totalAchievements = AchievementDefinitions.ALL_ACHIEVEMENTS.size,
-            unlockedCount = 0,
-            progress = 0f,
-            recentUnlocks = emptyList(),
-            categoryProgress = AchievementCategory.entries.associateWith { category ->
-                com.github.radupana.featherweight.service.AchievementCategoryProgress(
-                    category = category,
-                    total = AchievementDefinitions.getAchievementsByCategory(category).size,
-                    unlocked = 0,
-                    progress = 0f
-                )
-            }
-        )
-        isLoading = false
+        // For now, simulate loading real achievement data
+        // TODO: Add proper achievement loading to AnalyticsViewModel
+        try {
+            // Get unlocked achievement IDs (simulated from UserAchievement table)
+            val unlockedIds = listOf("bench_80kg", "strength_gain_25_percent") // These should come from database
+            
+            achievementSummary = AchievementSummary(
+                totalAchievements = AchievementDefinitions.ALL_ACHIEVEMENTS.size,
+                unlockedCount = unlockedIds.size,
+                progress = unlockedIds.size.toFloat() / AchievementDefinitions.ALL_ACHIEVEMENTS.size,
+                recentUnlocks = emptyList(), // TODO: Load recent UserAchievement records
+                categoryProgress = AchievementCategory.entries.associateWith { category ->
+                    val categoryAchievements = AchievementDefinitions.getAchievementsByCategory(category)
+                    val unlockedInCategory = categoryAchievements.count { it.id in unlockedIds }
+                    com.github.radupana.featherweight.service.AchievementCategoryProgress(
+                        category = category,
+                        total = categoryAchievements.size,
+                        unlocked = unlockedInCategory,
+                        progress = if (categoryAchievements.isNotEmpty()) unlockedInCategory.toFloat() / categoryAchievements.size else 0f
+                    )
+                }
+            )
+            isLoading = false
+        } catch (e: Exception) {
+            println("🏆 Error loading achievements: ${e.message}")
+            // Fallback to empty state
+            achievementSummary = AchievementSummary(
+                totalAchievements = AchievementDefinitions.ALL_ACHIEVEMENTS.size,
+                unlockedCount = 0,
+                progress = 0f,
+                recentUnlocks = emptyList(),
+                categoryProgress = AchievementCategory.entries.associateWith { category ->
+                    com.github.radupana.featherweight.service.AchievementCategoryProgress(
+                        category = category,
+                        total = AchievementDefinitions.getAchievementsByCategory(category).size,
+                        unlocked = 0,
+                        progress = 0f
+                    )
+                }
+            )
+            isLoading = false
+        }
     }
     
     Column(modifier = modifier) {
@@ -1077,6 +1103,14 @@ private fun AwardsTab(
                     AchievementProgressCard(achievementSummary!!)
                 }
                 
+                // Recent Unlocks Carousel (only show if there are unlocked achievements)
+                val unlockedIds = listOf("bench_80kg", "strength_gain_25_percent")
+                if (unlockedIds.isNotEmpty()) {
+                    item {
+                        RecentUnlocksSection(unlockedIds)
+                    }
+                }
+                
                 // Category Filter Chips
                 item {
                     CategoryFilterRow(
@@ -1086,34 +1120,218 @@ private fun AwardsTab(
                     )
                 }
                 
-                // Achievement Grid
-                val filteredAchievements = if (selectedCategory != null) {
+                // Get achievements filtered by category
+                val allAchievements = if (selectedCategory != null) {
                     AchievementDefinitions.getAchievementsByCategory(selectedCategory!!)
                 } else {
                     AchievementDefinitions.ALL_ACHIEVEMENTS
                 }
                 
-                items(filteredAchievements) { achievement ->
-                    AchievementCard(
-                        achievement = achievement,
-                        userAchievement = null, // All locked for now
-                        onShare = { ach, userAch ->
-                            // TODO: Implement sharing
-                        },
-                        onClick = {
-                            // TODO: Implement achievement detail view
-                        }
-                    )
+                // Separate unlocked and locked achievements
+                val unlockedAchievements = allAchievements.filter { it.id in unlockedIds }
+                val lockedAchievements = allAchievements.filter { it.id !in unlockedIds }
+                
+                // Your Achievements Section (unlocked)
+                if (unlockedAchievements.isNotEmpty()) {
+                    item {
+                        AchievementSectionHeader(
+                            title = "Your Achievements",
+                            subtitle = "${unlockedAchievements.size} unlocked",
+                            icon = "🏆"
+                        )
+                    }
+                    
+                    items(unlockedAchievements) { achievement ->
+                        val userAchievement = com.github.radupana.featherweight.data.achievement.UserAchievement(
+                            userId = 1L,
+                            achievementId = achievement.id,
+                            unlockedDate = java.time.LocalDateTime.now().minusHours(1),
+                            data = when (achievement.id) {
+                                "bench_80kg" -> """{"weight": 80, "exercise": "Barbell Bench Press"}"""
+                                "strength_gain_25_percent" -> """{"exercise": "Barbell Bench Press", "improvement": 25.0, "target": 25.0}"""
+                                else -> null
+                            }
+                        )
+                        
+                        AchievementCard(
+                            achievement = achievement,
+                            userAchievement = userAchievement,
+                            onShare = { ach, userAch ->
+                                // TODO: Implement sharing
+                            },
+                            onClick = {
+                                // TODO: Implement achievement detail view
+                            }
+                        )
+                    }
+                }
+                
+                // Available to Unlock Section (locked)
+                if (lockedAchievements.isNotEmpty()) {
+                    item {
+                        AchievementSectionHeader(
+                            title = "Available to Unlock",
+                            subtitle = "${lockedAchievements.size} remaining",
+                            icon = "🎯"
+                        )
+                    }
+                    
+                    items(lockedAchievements) { achievement ->
+                        AchievementCard(
+                            achievement = achievement,
+                            userAchievement = null,
+                            onShare = { ach, userAch ->
+                                // TODO: Implement sharing
+                            },
+                            onClick = {
+                                // TODO: Implement achievement detail view
+                            }
+                        )
+                    }
                 }
                 
                 // Empty state for no achievements in category
-                if (filteredAchievements.isEmpty()) {
+                if (allAchievements.isEmpty()) {
                     item {
                         EmptyAchievementsState(selectedCategory)
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RecentUnlocksSection(unlockedIds: List<String>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "🎉",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Column {
+                    Text(
+                        text = "Recent Unlocks",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Your latest achievements",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(unlockedIds) { achievementId ->
+                    val achievement = AchievementDefinitions.getAchievementById(achievementId)
+                    if (achievement != null) {
+                        CompactAchievementCard(achievement = achievement)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactAchievementCard(achievement: Achievement) {
+    Card(
+        modifier = Modifier
+            .width(160.dp)
+            .height(100.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = when (achievement.difficulty) {
+                AchievementDifficulty.LEGENDARY -> Color(0xFFFFD700).copy(alpha = 0.15f)
+                AchievementDifficulty.HARD -> Color(0xFFFFD700).copy(alpha = 0.1f)
+                else -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            }
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = achievement.icon,
+                style = MaterialTheme.typography.headlineMedium
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = achievement.title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun AchievementSectionHeader(
+    title: String,
+    subtitle: String,
+    icon: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = icon,
+            style = MaterialTheme.typography.headlineMedium
+        )
+        
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        // Optional: Add expand/collapse icon for future use
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowDown,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 
