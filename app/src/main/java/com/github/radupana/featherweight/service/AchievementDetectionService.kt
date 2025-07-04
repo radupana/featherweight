@@ -85,8 +85,7 @@ class AchievementDetectionService(
                 }
                 
                 is AchievementCondition.BodyweightMultiple -> {
-                    // Skip bodyweight-based achievements for now since UserProfile doesn't have bodyWeight field yet
-                    // TODO: Add bodyWeight field to UserProfile and implement this
+                    // Skip bodyweight-based achievements since UserProfile doesn't have bodyWeight field
                     continue
                 }
                 else -> { /* Other conditions handled in different methods */ }
@@ -314,6 +313,7 @@ class AchievementDetectionService(
             unlockedCount = unlockedCount,
             progress = unlockedCount.toFloat() / totalAchievements,
             recentUnlocks = recentAchievements,
+            unlockedIds = unlockedIds,
             categoryProgress = progressByCategory
         )
     }
@@ -324,6 +324,7 @@ data class AchievementSummary(
     val unlockedCount: Int,
     val progress: Float,
     val recentUnlocks: List<UserAchievement>,
+    val unlockedIds: List<String>,
     val categoryProgress: Map<AchievementCategory, AchievementCategoryProgress>
 )
 

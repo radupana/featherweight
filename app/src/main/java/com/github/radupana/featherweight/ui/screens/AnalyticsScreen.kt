@@ -2,12 +2,14 @@ package com.github.radupana.featherweight.ui.screens
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -36,6 +38,9 @@ import com.github.radupana.featherweight.viewmodel.AnalyticsViewModel
 import com.github.radupana.featherweight.viewmodel.AnalyticsState
 import com.github.radupana.featherweight.viewmodel.ChartViewMode
 import com.github.radupana.featherweight.data.achievement.*
+import com.github.radupana.featherweight.data.ProgressInsight
+import com.github.radupana.featherweight.data.InsightType
+import com.github.radupana.featherweight.data.InsightPriority
 import com.github.radupana.featherweight.service.AchievementDetectionService
 import com.github.radupana.featherweight.service.AchievementSummary
 
@@ -78,7 +83,7 @@ fun AnalyticsScreen(
             0 -> OverviewTab(analyticsState, viewModel, Modifier.padding(16.dp))
             1 -> ExercisesTab(viewModel, Modifier.padding(16.dp))
             2 -> AwardsTab(viewModel, Modifier.padding(16.dp))
-            3 -> InsightsTab(Modifier.padding(16.dp))
+            3 -> InsightsTab(viewModel, Modifier.padding(16.dp))
         }
     }
 }
@@ -1000,55 +1005,8 @@ private fun AwardsTab(
     viewModel: AnalyticsViewModel,
     modifier: Modifier = Modifier
 ) {
-    // Mock data for testing - replace with real data from viewModel
-    var achievementSummary by remember { mutableStateOf<AchievementSummary?>(null) }
+    val analyticsState by viewModel.analyticsState.collectAsState()
     var selectedCategory by remember { mutableStateOf<AchievementCategory?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    
-    LaunchedEffect(Unit) {
-        // For now, simulate loading real achievement data
-        // TODO: Add proper achievement loading to AnalyticsViewModel
-        try {
-            // Get unlocked achievement IDs (simulated from UserAchievement table)
-            val unlockedIds = listOf("bench_80kg", "strength_gain_25_percent") // These should come from database
-            
-            achievementSummary = AchievementSummary(
-                totalAchievements = AchievementDefinitions.ALL_ACHIEVEMENTS.size,
-                unlockedCount = unlockedIds.size,
-                progress = unlockedIds.size.toFloat() / AchievementDefinitions.ALL_ACHIEVEMENTS.size,
-                recentUnlocks = emptyList(), // TODO: Load recent UserAchievement records
-                categoryProgress = AchievementCategory.entries.associateWith { category ->
-                    val categoryAchievements = AchievementDefinitions.getAchievementsByCategory(category)
-                    val unlockedInCategory = categoryAchievements.count { it.id in unlockedIds }
-                    com.github.radupana.featherweight.service.AchievementCategoryProgress(
-                        category = category,
-                        total = categoryAchievements.size,
-                        unlocked = unlockedInCategory,
-                        progress = if (categoryAchievements.isNotEmpty()) unlockedInCategory.toFloat() / categoryAchievements.size else 0f
-                    )
-                }
-            )
-            isLoading = false
-        } catch (e: Exception) {
-            println("🏆 Error loading achievements: ${e.message}")
-            // Fallback to empty state
-            achievementSummary = AchievementSummary(
-                totalAchievements = AchievementDefinitions.ALL_ACHIEVEMENTS.size,
-                unlockedCount = 0,
-                progress = 0f,
-                recentUnlocks = emptyList(),
-                categoryProgress = AchievementCategory.entries.associateWith { category ->
-                    com.github.radupana.featherweight.service.AchievementCategoryProgress(
-                        category = category,
-                        total = AchievementDefinitions.getAchievementsByCategory(category).size,
-                        unlocked = 0,
-                        progress = 0f
-                    )
-                }
-            )
-            isLoading = false
-        }
-    }
     
     Column(modifier = modifier) {
         // Header
@@ -1063,9 +1021,9 @@ private fun AwardsTab(
                 fontWeight = FontWeight.Bold
             )
             
-            if (!isLoading && achievementSummary != null) {
+            if (!analyticsState.isAchievementsLoading && analyticsState.achievementSummary != null) {
                 Text(
-                    text = "${achievementSummary!!.unlockedCount}/${achievementSummary!!.totalAchievements}",
+                    text = "${analyticsState.achievementSummary!!.unlockedCount}/${analyticsState.achievementSummary!!.totalAchievements}",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
@@ -1075,7 +1033,7 @@ private fun AwardsTab(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        if (isLoading) {
+        if (analyticsState.isAchievementsLoading) {
             // Loading state
             repeat(3) {
                 Card(
@@ -1094,20 +1052,22 @@ private fun AwardsTab(
                     )
                 }
             }
-        } else if (achievementSummary != null) {
+        } else if (analyticsState.achievementSummary != null) {
+            val achievementSummary = analyticsState.achievementSummary!!
+            val unlockedIds = achievementSummary.unlockedIds
+            
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Progress Overview Card
                 item {
-                    AchievementProgressCard(achievementSummary!!)
+                    AchievementProgressCard(achievementSummary)
                 }
                 
                 // Recent Unlocks Carousel (only show if there are unlocked achievements)
-                val unlockedIds = listOf("bench_80kg", "strength_gain_25_percent")
-                if (unlockedIds.isNotEmpty()) {
+                if (achievementSummary.recentUnlocks.isNotEmpty()) {
                     item {
-                        RecentUnlocksSection(unlockedIds)
+                        RecentUnlocksSection(achievementSummary.recentUnlocks.map { it.achievementId })
                     }
                 }
                 
@@ -1116,7 +1076,7 @@ private fun AwardsTab(
                     CategoryFilterRow(
                         selectedCategory = selectedCategory,
                         onCategorySelected = { selectedCategory = it },
-                        categoryProgress = achievementSummary!!.categoryProgress
+                        categoryProgress = achievementSummary.categoryProgress
                     )
                 }
                 
@@ -1142,16 +1102,7 @@ private fun AwardsTab(
                     }
                     
                     items(unlockedAchievements) { achievement ->
-                        val userAchievement = com.github.radupana.featherweight.data.achievement.UserAchievement(
-                            userId = 1L,
-                            achievementId = achievement.id,
-                            unlockedDate = java.time.LocalDateTime.now().minusHours(1),
-                            data = when (achievement.id) {
-                                "bench_80kg" -> """{"weight": 80, "exercise": "Barbell Bench Press"}"""
-                                "strength_gain_25_percent" -> """{"exercise": "Barbell Bench Press", "improvement": 25.0, "target": 25.0}"""
-                                else -> null
-                            }
-                        )
+                        val userAchievement = achievementSummary.recentUnlocks.find { it.achievementId == achievement.id }
                         
                         AchievementCard(
                             achievement = achievement,
@@ -1533,51 +1484,417 @@ private fun EmptyAchievementsState(category: AchievementCategory?) {
 }
 
 @Composable
-private fun InsightsTab(modifier: Modifier = Modifier) {
+private fun InsightsTab(
+    viewModel: AnalyticsViewModel,
+    modifier: Modifier = Modifier
+) {
+    val analyticsState by viewModel.analyticsState.collectAsState()
+    var selectedInsightType by remember { mutableStateOf<InsightType?>(null) }
+    
     Column(modifier = modifier) {
-        Text(
-            text = "Insights",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        
-        Card(
+        // Header with manual generation button
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            )
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Column {
+                Text(
+                    text = "AI Insights",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                if (analyticsState.unreadInsightsCount > 0) {
+                    Text(
+                        text = "${analyticsState.unreadInsightsCount} new insights",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            
+            IconButton(
+                onClick = { viewModel.generateNewInsights() }
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Psychology,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Text(
-                    text = "Coming Soon",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Text(
-                    text = "AI-powered insights will be available in Phase 3.4",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Generate new insights",
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        if (analyticsState.isInsightsLoading) {
+            // Loading state
+            repeat(3) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .padding(bottom = 12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .shimmerEffect()
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Actionable Insights Section
+                if (analyticsState.actionableInsights.isNotEmpty()) {
+                    item {
+                        InsightSectionHeader(
+                            title = "⚡ Action Required",
+                            subtitle = "${analyticsState.actionableInsights.size} insights need attention",
+                            isExpanded = true
+                        )
+                    }
+                    
+                    items(analyticsState.actionableInsights) { insight ->
+                        InsightCard(
+                            insight = insight,
+                            onMarkAsRead = { viewModel.markInsightAsRead(it) },
+                            onAction = { 
+                                // TODO: Implement specific actions based on actionType
+                            }
+                        )
+                    }
+                }
+                
+                // Insight Type Filter
+                item {
+                    InsightTypeFilterRow(
+                        selectedType = selectedInsightType,
+                        onTypeSelected = { selectedInsightType = it },
+                        insights = analyticsState.insights
+                    )
+                }
+                
+                // Recent Insights Section
+                val filteredInsights = if (selectedInsightType != null) {
+                    analyticsState.insights.filter { it.insightType == selectedInsightType }
+                } else {
+                    analyticsState.insights
+                }
+                
+                if (filteredInsights.isNotEmpty()) {
+                    item {
+                        InsightSectionHeader(
+                            title = "📊 Recent Insights",
+                            subtitle = "${filteredInsights.size} insights from your training data"
+                        )
+                    }
+                    
+                    items(filteredInsights) { insight ->
+                        InsightCard(
+                            insight = insight,
+                            onMarkAsRead = { viewModel.markInsightAsRead(it) },
+                            onAction = {
+                                // TODO: Implement specific actions based on actionType
+                            }
+                        )
+                    }
+                } else if (analyticsState.insights.isEmpty() && !analyticsState.isInsightsLoading) {
+                    item {
+                        EmptyInsightsState()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InsightSectionHeader(
+    title: String,
+    subtitle: String,
+    isExpanded: Boolean = false
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        
+        if (isExpanded) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun InsightCard(
+    insight: ProgressInsight,
+    onMarkAsRead: (Long) -> Unit,
+    onAction: () -> Unit
+) {
+    val priorityColor = when (insight.priority) {
+        InsightPriority.CRITICAL -> MaterialTheme.colorScheme.error
+        InsightPriority.HIGH -> Color(0xFFFF9800) // Orange
+        InsightPriority.MEDIUM -> MaterialTheme.colorScheme.primary
+        InsightPriority.LOW -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { if (!insight.isRead) onMarkAsRead(insight.id) },
+        colors = CardDefaults.cardColors(
+            containerColor = if (insight.isRead) {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            } else {
+                priorityColor.copy(alpha = 0.1f)
+            }
+        ),
+        border = if (!insight.isRead) {
+            BorderStroke(2.dp, priorityColor.copy(alpha = 0.3f))
+        } else null
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // Header with priority indicator and read status
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Priority indicator
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(
+                                color = priorityColor,
+                                shape = CircleShape
+                            )
+                    )
+                    
+                    // Insight type badge
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                    ) {
+                        Text(
+                            text = when (insight.insightType) {
+                                InsightType.STRENGTH_PROGRESS -> "💪 Progress"
+                                InsightType.PLATEAU_WARNING -> "⚠️ Plateau"
+                                InsightType.CONSISTENCY_PRAISE -> "🔥 Consistency"
+                                InsightType.AUTOREGULATION_FEEDBACK -> "🎯 RPE"
+                                InsightType.VOLUME_ANALYSIS -> "📊 Volume"
+                                InsightType.RECOVERY_INSIGHT -> "😴 Recovery"
+                                InsightType.TECHNIQUE_SUGGESTION -> "🎖️ Technique"
+                                InsightType.PROGRAM_RECOMMENDATION -> "📋 Program"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+                
+                // Timestamp and read indicator
+                Column(
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        text = formatInsightDate(insight.generatedDate),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (!insight.isRead) {
+                        Text(
+                            text = "NEW",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Title and message
+            Text(
+                text = insight.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = insight.message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            // Action button for actionable insights
+            if (insight.isActionable && insight.actionType != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                OutlinedButton(
+                    onClick = onAction,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = when (insight.actionType) {
+                            "deload" -> "Suggest Deload"
+                            "reduce_volume" -> "Reduce Volume"
+                            "monitor_recovery" -> "Monitor Recovery"
+                            "increase_intensity" -> "Increase Intensity"
+                            "monitor_fatigue" -> "Monitor Fatigue"
+                            "schedule_workout" -> "Schedule Workout"
+                            "adjust_schedule" -> "Adjust Schedule"
+                            else -> "Take Action"
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InsightTypeFilterRow(
+    selectedType: InsightType?,
+    onTypeSelected: (InsightType?) -> Unit,
+    insights: List<ProgressInsight>
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // All filter
+        item {
+            FilterChip(
+                onClick = { onTypeSelected(null) },
+                label = { Text("All") },
+                selected = selectedType == null
+            )
+        }
+        
+        // Individual type filters
+        val availableTypes = insights.map { it.insightType }.distinct()
+        items(availableTypes) { type ->
+            val typeName = when (type) {
+                InsightType.STRENGTH_PROGRESS -> "Progress"
+                InsightType.PLATEAU_WARNING -> "Plateaus"
+                InsightType.CONSISTENCY_PRAISE -> "Consistency"
+                InsightType.AUTOREGULATION_FEEDBACK -> "RPE"
+                InsightType.VOLUME_ANALYSIS -> "Volume"
+                InsightType.RECOVERY_INSIGHT -> "Recovery"
+                InsightType.TECHNIQUE_SUGGESTION -> "Technique"
+                InsightType.PROGRAM_RECOMMENDATION -> "Programs"
+            }
+            
+            val typeCount = insights.count { it.insightType == type }
+            
+            FilterChip(
+                onClick = { onTypeSelected(type) },
+                label = { 
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(typeName)
+                        if (typeCount > 0) {
+                            Text(
+                                text = "($typeCount)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                },
+                selected = selectedType == type
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyInsightsState() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Psychology,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text(
+                text = "No Insights Yet",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "Complete a few workouts and our AI will start generating personalized insights about your training progress.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+private fun formatInsightDate(date: LocalDateTime): String {
+    val now = LocalDateTime.now()
+    val hours = java.time.Duration.between(date, now).toHours()
+    
+    return when {
+        hours < 1 -> "Just now"
+        hours < 24 -> "${hours}h ago"
+        hours < 48 -> "Yesterday"
+        else -> {
+            val days = hours / 24
+            "${days}d ago"
         }
     }
 }

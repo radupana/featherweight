@@ -2846,4 +2846,71 @@ class FeatherweightRepository(
     suspend fun getUserAchievements(userId: Long): List<com.github.radupana.featherweight.data.achievement.UserAchievement> = withContext(Dispatchers.IO) {
         userAchievementDao.getRecentUserAchievements(userId, 100) // Get all achievements
     }
+
+    // ===== INSIGHTS SECTION =====
+    
+    private val insightGenerationServiceInsightGenerationService(db)
+    private val progressInsightDao = db.progressInsightDao()
+    
+    /**
+     * Generate fresh insights for a user
+     */
+    suspend fun generateInsightsForUser(userId: Long): List<ProgressInsight> = withContext(Dispatchers.IO) {
+        insightGenerationService.generateInsightsForUser(userId)
+    }
+    
+    /**
+     * Get insights for dashboard display
+     */
+    suspend fun getRecentInsights(userId: Long): List<ProgressInsight> = withContext(Dispatchers.IO) {
+        val oneWeekAgo = LocalDateTime.now().minusWeeks(1)
+        progressInsightDao.getRecentInsights(userId, oneWeekAgo, 10)
+    }
+    
+    /**
+     * Get actionable insights that require user attention
+     */
+    suspend fun getActionableInsights(userId: Long): List<ProgressInsight> = withContext(Dispatchers.IO) {
+        val oneWeekAgo = LocalDateTime.now().minusWeeks(1)
+        progressInsightDao.getActionableInsights(userId, oneWeekAgo)
+    }
+    
+    /**
+     * Get insights by category
+     */
+    suspend fun getInsightsByType(userId: Long, type: InsightType): List<ProgressInsight> = withContext(Dispatchers.IO) {
+        progressInsightDao.getInsightsByType(userId, type, 5)
+    }
+    
+    /**
+     * Mark insight as read
+     */
+    suspend fun markInsightAsRead(insightId: Long) = withContext(Dispatchers.IO) {
+        progressInsightDao.markAsRead(insightId)
+    }
+    
+    /**
+     * Get unread insights count
+     */
+    suspend fun getUnreadInsightsCount(userId: Long): Int = withContext(Dispatchers.IO) {
+        progressInsightDao.getUnreadInsightsCount(userId)
+    }
+    
+    /**
+     * Manual insight generation trigger
+     */
+    suspend fun triggerInsightGeneration(userId: Long): List<ProgressInsight> = withContext(Dispatchers.IO) {
+        val newInsights = insightGenerationService.generateInsightsForUser(userId)
+        if (newInsights.isNotEmpty()) {
+            progressInsightDao.insertInsights(newInsights)
+        }
+        newInsights
+    }
+    
+    /**
+     * Cleanup old insights to prevent database bloat
+     */
+    suspend fun cleanupOldInsights() = withContext(Dispatchers.IO) {
+        insightGenerationService.cleanupOldInsights()
+    }
 }

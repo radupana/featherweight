@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.service.AchievementSummary
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -62,10 +63,16 @@ data class AnalyticsState(
     val isVolumeLoading: Boolean = true,
     val isStrengthLoading: Boolean = true,
     val isPerformanceLoading: Boolean = true,
+    val isAchievementsLoading: Boolean = true,
+    val isInsightsLoading: Boolean = true,
     val volumeMetrics: VolumeMetrics = VolumeMetrics(),
     val strengthMetrics: StrengthMetrics = StrengthMetrics(),
     val performanceMetrics: PerformanceMetrics = PerformanceMetrics(),
     val quickStats: QuickStats = QuickStats(),
+    val achievementSummary: AchievementSummary? = null,
+    val insights: List<ProgressInsight> = emptyList(),
+    val actionableInsights: List<ProgressInsight> = emptyList(),
+    val unreadInsightsCount: Int = 0,
     val availableExercises: List<String> = listOf("Bench Press", "Back Squat", "Conventional Deadlift", "Overhead Press"),
     val selectedTimeframe: String = "1M", // 1W, 1M, 3M, 6M, 1Y
     val chartViewMode: ChartViewMode = ChartViewMode.ONE_RM,
@@ -193,6 +200,8 @@ class AnalyticsViewModel(
                 isVolumeLoading = true,
                 isStrengthLoading = true,
                 isPerformanceLoading = true,
+                isAchievementsLoading = true,
+                isInsightsLoading = true,
                 error = null,
             )
 
@@ -204,6 +213,8 @@ class AnalyticsViewModel(
             val volumeJob = viewModelScope.async { loadVolumeMetrics() }
             val strengthJob = viewModelScope.async { loadStrengthMetrics(_analyticsState.value.strengthMetrics.selectedExercise) }
             val performanceJob = viewModelScope.async { loadPerformanceMetrics() }
+            val achievementsJob = viewModelScope.async { loadAchievementSummary() }
+            val insightsJob = viewModelScope.async { loadInsights() }
 
             // Update as each section completes and cache results
             val quickStats = quickStatsJob.await()
@@ -228,6 +239,22 @@ class AnalyticsViewModel(
                 )
 
             val performanceMetrics = performanceJob.await()
+            
+            val achievementSummary = achievementsJob.await()
+            _analyticsState.value =
+                _analyticsState.value.copy(
+                    achievementSummary = achievementSummary,
+                    isAchievementsLoading = false,
+                )
+            
+            val insightsData = insightsJob.await()
+            _analyticsState.value =
+                _analyticsState.value.copy(
+                    insights = insightsData.first,
+                    actionableInsights = insightsData.second,
+                    unreadInsightsCount = insightsData.third,
+                    isInsightsLoading = false,
+                )
 
             // Cache all the fresh data
             val allWorkouts = repository.getWorkoutHistory()
@@ -256,6 +283,8 @@ class AnalyticsViewModel(
                     isVolumeLoading = false,
                     isStrengthLoading = false,
                     isPerformanceLoading = false,
+                    isAchievementsLoading = false,
+                    isInsightsLoading = false,
                     error = "Failed to load analytics: ${e.message}",
                 )
         }
@@ -421,5 +450,61 @@ class AnalyticsViewModel(
 
     fun refreshData() {
         loadAnalyticsData()
+    }
+    
+    private suspend fun loadAchievementSummary(): AchievementSummary {
+        return repository.getAchievementSummary(1L)
+    }
+
+    
+    private suspend fun loadInsights(): Triple<List<ProgressInsight>, List<ProgressInsight>, Int> {
+        val userId = 1L // TODO: Get actual userId
+        val insights = repository.getRecentInsights(userId)
+        val actionableInsights = repository.getActionableInsights(userId)
+        val unreadCount = repository.getUnreadInsightsCount(userId)
+        return Triple(insights, actionableInsights, unreadCount)
+    }
+    
+    /**
+     * Trigger manual insight generation
+     */
+    fun generateNewInsights() {
+        viewModelScope.launch {
+            try {
+                val userId = 1L // TODO: Get actual userId
+                val newInsights = repository.triggerInsightGeneration(userId)
+                if (newInsights.isNotEmpty()) {
+                    // Reload insights after generation
+                    val insightsData = loadInsights()
+                    _analyticsState.value = _analyticsState.value.copy(
+                        insights = insightsData.first,
+                        actionableInsights = insightsData.second,
+                        unreadInsightsCount = insightsData.third
+                    )
+                }
+            } catch (e: Exception) {
+                // Handle error silently or show to user
+                android.util.Log.e("AnalyticsViewModel", "Failed to generate insights", e)
+            }
+        }
+    }
+    
+    /**
+     * Mark insight as read
+     */
+    fun markInsightAsRead(insightId: Long) {
+        viewModelScope.launch {
+            try {
+                repository.markInsightAsRead(insightId)
+                // Update unread count
+                val userId = 1L // TODO: Get actual userId
+                val newUnreadCount = repository.getUnreadInsightsCount(userId)
+                _analyticsState.value = _analyticsState.value.copy(
+                    unreadInsightsCount = newUnreadCount
+                )
+            } catch (e: Exception) {
+                android.util.Log.e("AnalyticsViewModel", "Failed to mark insight as read", e)
+            }
+        }
     }
 }

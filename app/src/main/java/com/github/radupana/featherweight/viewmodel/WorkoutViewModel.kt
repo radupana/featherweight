@@ -479,7 +479,7 @@ class WorkoutViewModel(
             // Check for newly unlocked achievements after workout completion
             try {
                 println("🏆 Achievement Detection: Checking for new achievements after workout completion")
-                val newAchievements = repository.checkForNewAchievements(1L, currentId) // TODO: Get actual userId
+                val newAchievements = repository.checkForNewAchievements(1L, currentId)
                 
                 if (newAchievements.isNotEmpty()) {
                     println("🏆 Achievement Detection: Found ${newAchievements.size} new achievements!")
