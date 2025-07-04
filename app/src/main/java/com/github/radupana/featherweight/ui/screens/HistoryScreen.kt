@@ -34,6 +34,7 @@ data class WorkoutSummary(
     val totalWeight: Float,
     val duration: Long?, // minutes
     val status: com.github.radupana.featherweight.data.WorkoutStatus,
+    val prCount: Int = 0, // Number of PRs achieved in this workout
 )
 
 data class Quadruple<A, B, C, D>(
@@ -363,6 +364,34 @@ fun WorkoutHistoryCard(
                     isCompleted = workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED,
                     modifier = Modifier.weight(1f),
                 )
+            }
+
+            // PR Badge (if any PRs were achieved)
+            if (workout.prCount > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    color = Color(0xFFFFD700).copy(alpha = 0.2f), // Gold background
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "🏆",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (workout.prCount == 1) "1 Personal Record" else "${workout.prCount} Personal Records",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFFB8860B) // Dark goldenrod
+                        )
+                    }
+                }
             }
 
             // Duration (if available)

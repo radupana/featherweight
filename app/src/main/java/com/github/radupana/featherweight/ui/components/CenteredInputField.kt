@@ -57,8 +57,9 @@ fun CenteredInputField(
     // Track the last known focus state to detect transitions
     var lastFocusState by remember { mutableStateOf(false) }
     
-    // Use Number keyboard for ALL fields to prevent auto-decimal insertion
-    // User can manually type "." for weight if needed
+    // CRITICAL FIX: Force Number keyboard to prevent auto-decimal insertion
+    // Some keyboards (especially Gboard) auto-insert decimals with Decimal type
+    // Users can still manually type "." for weight fields
     val keyboardType = KeyboardType.Number
     
     // Show placeholder only when not focused AND value is empty

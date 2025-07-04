@@ -280,28 +280,29 @@ class GlobalProgressTracker(
         
         if (estimableSets.isEmpty()) return Pair(progress, null)
         
+        // Get current stored max from profile FIRST for confidence calculation
+        val exercise = database.exerciseDao().findExerciseByExactName(progress.exerciseName)
+        val currentUserMax = exercise?.let { database.profileDao().getCurrentMax(userId, it.id) }
+        val storedMaxWeight = currentUserMax?.maxWeight
+        
         // Find the best set for 1RM calculation with confidence scoring
         var bestEstimate: OneRMEstimate? = null
         
         for (set in estimableSets) {
-            val estimate = calculateOneRMWithConfidence(set)
+            val estimate = calculateOneRMWithConfidence(set, storedMaxWeight)
             if (estimate != null && (bestEstimate == null || estimate.confidence > bestEstimate.confidence)) {
                 bestEstimate = estimate
             }
         }
         
-        // Only proceed if we have a high-confidence estimate
-        if (bestEstimate == null || bestEstimate.confidence < 0.7f) {
-            println("⚠️ Low confidence 1RM estimate, skipping update")
+        // Only proceed if we have a reasonable confidence estimate (lowered for testing)
+        if (bestEstimate == null || bestEstimate.confidence < 0.5f) {
+            println("⚠️ Low confidence 1RM estimate: ${bestEstimate?.confidence?.let { (it * 100).roundToInt() }}% (need 50%), skipping update")
             return Pair(progress, null)
         }
         
         val estimated1RM = bestEstimate.estimatedMax
         println("💪 Estimated 1RM: ${estimated1RM.roundToInt()}kg (confidence: ${(bestEstimate.confidence * 100).roundToInt()}%)")
-        
-        // Get current stored max from profile
-        val exercise = database.exerciseDao().findExerciseByExactName(progress.exerciseName)
-        val currentUserMax = exercise?.let { database.profileDao().getCurrentMax(userId, it.id) }
         
         // Check if this is a Big 4 exercise
         val isBig4Exercise = progress.exerciseName in listOf(
@@ -310,6 +311,9 @@ class GlobalProgressTracker(
             "Barbell Bench Press", 
             "Barbell Overhead Press"
         )
+        
+        println("🔍 1RM Update Check: exercise=${progress.exerciseName}, isBig4=$isBig4Exercise")
+        println("🔍 1RM Update Check: currentUserMax=${currentUserMax?.maxWeight}, estimated1RM=${estimated1RM}")
         
         // Decision logic for prompting user
         val pendingUpdate = when {
@@ -343,7 +347,18 @@ class GlobalProgressTracker(
                 }
             }
             
-            else -> null
+            else -> {
+                println("🔍 1RM Update Check: No update triggered")
+                if (currentUserMax != null) {
+                    val improvement = if (currentUserMax.maxWeight > 0) {
+                        ((estimated1RM - currentUserMax.maxWeight) / currentUserMax.maxWeight) * 100
+                    } else 0f
+                    println("🔍 1RM Update Check: Has stored max, improvement = ${improvement}% (need 2%+)")
+                } else {
+                    println("🔍 1RM Update Check: No stored max, confidence = ${(bestEstimate.confidence * 100).roundToInt()}% (need 85%+)")
+                }
+                null
+            }
         }
         
         // Always update internal tracking
@@ -362,67 +377,68 @@ class GlobalProgressTracker(
         val source: String
     )
     
-    private fun calculateOneRMWithConfidence(set: SetLog): OneRMEstimate? {
+    // New approach: calculate confidence based on baseline comparison + set characteristics
+    private fun calculateOneRMWithConfidence(set: SetLog, currentStoredMax: Float? = null): OneRMEstimate? {
         val reps = set.actualReps
         val weight = set.actualWeight
         val rpe = set.actualRpe
         
-        // Special handling for singles
-        if (reps == 1) {
-            return when {
-                // High RPE single - very close to true max
-                rpe != null && rpe >= 9f -> OneRMEstimate(
-                    estimatedMax = weight * (1 + (10 - rpe) * 0.025f), // 2.5% per RPE point
-                    confidence = 0.95f,
-                    source = "Single @ RPE $rpe"
-                )
-                // Single with no RPE - could be anything
-                rpe == null -> null
-                // Low RPE single - less reliable
-                else -> OneRMEstimate(
-                    estimatedMax = weight * (1 + (10 - rpe) * 0.025f),
-                    confidence = 0.6f,
-                    source = "Single @ RPE $rpe"
-                )
+        println("🔍 1RM Confidence Calc: ${weight}kg x ${reps}, RPE = ${rpe ?: "null"}, stored = ${currentStoredMax ?: "none"}")
+        
+        // Calculate basic estimated 1RM using Brzycki formula
+        val estimated1RM = if (reps == 1) {
+            weight
+        } else {
+            weight / (1.0278f - 0.0278f * reps)
+        }
+        
+        // Base confidence on set characteristics
+        val baseConfidence = when {
+            reps == 1 -> 0.9f // Singles are very reliable
+            reps in 2..3 -> 0.85f // Low reps are quite reliable
+            reps in 4..6 -> 0.75f // Medium reps are decent
+            reps in 7..10 -> 0.6f // Higher reps less reliable
+            else -> 0.4f // Very high reps unreliable
+        }
+        
+        // Adjust confidence based on stored baseline comparison
+        val finalConfidence = if (currentStoredMax != null && currentStoredMax > 0) {
+            val improvement = (estimated1RM - currentStoredMax) / currentStoredMax
+            when {
+                improvement >= 0.05f -> Math.min(0.95f, baseConfidence + 0.2f) // 5%+ improvement = high confidence
+                improvement >= 0.02f -> Math.min(0.9f, baseConfidence + 0.1f)  // 2%+ improvement = good confidence
+                improvement >= -0.02f -> baseConfidence // Similar to stored = base confidence
+                else -> Math.max(0.3f, baseConfidence - 0.2f) // Worse than stored = lower confidence
+            }
+        } else {
+            // No stored baseline - use base confidence with RPE modifier
+            if (rpe != null && rpe >= 8f) {
+                Math.min(0.9f, baseConfidence + 0.1f) // High RPE bonus
+            } else {
+                baseConfidence
             }
         }
         
-        // For multiple reps, adjust for RPE
-        val effectiveReps = if (rpe != null) {
-            // Add reps in reserve based on RPE
-            reps + (10 - rpe).toInt()
+        // Apply RPE modifier for 1RM calculation
+        val adjustedEstimate = if (reps == 1 && rpe != null) {
+            weight * (1 + (10 - rpe) * 0.025f) // RPE adjustment for singles
         } else {
-            // No RPE - assume RPE 8 for conservative estimate
-            reps + 2
+            estimated1RM
         }
         
-        // Calculate confidence based on rep range and RPE availability
-        val confidence = when {
-            rpe == null -> 0.5f // Low confidence without RPE
-            reps in 2..5 && rpe >= 8 -> 0.9f // Sweet spot
-            reps in 2..5 && rpe >= 7 -> 0.8f
-            reps in 6..8 && rpe >= 8 -> 0.75f
-            reps in 9..12 && rpe >= 8 -> 0.65f
-            else -> 0.4f
-        }
+        val result = OneRMEstimate(
+            estimatedMax = adjustedEstimate,
+            confidence = finalConfidence,
+            source = when {
+                reps == 1 && rpe != null -> "Single @ RPE $rpe"
+                reps == 1 -> "Single (no RPE)"
+                rpe != null -> "${reps} reps @ RPE $rpe"
+                else -> "${reps} reps (no RPE)"
+            }
+        )
         
-        // Skip very low confidence estimates
-        if (confidence < 0.5f) return null
-        
-        // Use Epley formula with effective reps
-        val estimated1RM = if (effectiveReps >= 1) {
-            weight * (1 + effectiveReps / 30f)
-        } else {
-            weight // Already at max
-        }
-        
-        val source = if (rpe != null) {
-            "${reps}×${weight}kg @ RPE $rpe"
-        } else {
-            "${reps}×${weight}kg (no RPE)"
-        }
-        
-        return OneRMEstimate(estimated1RM, confidence, source)
+        println("🔍 1RM Confidence Result: ${result.estimatedMax.roundToInt()}kg, ${(result.confidence * 100).roundToInt()}% confidence")
+        return result
     }
     
     /**

@@ -39,6 +39,7 @@ import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.CompactExerciseCard
 import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
+import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
 import com.github.radupana.featherweight.ui.dialogs.SetEditingModal
 import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
 import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
@@ -98,6 +99,7 @@ fun WorkoutScreen(
     var showDeleteWorkoutDialog by remember { mutableStateOf(false) }
     var showOneRMUpdateDialog by remember { mutableStateOf(false) }
     var shouldNavigateAfterCompletion by remember { mutableStateOf(false) }
+    var showPRCelebration by remember { mutableStateOf(false) }
 
     var editingSet by remember { mutableStateOf<SetLog?>(null) }
     var editingExerciseName by remember { mutableStateOf<String?>(null) }
@@ -130,6 +132,13 @@ fun WorkoutScreen(
     LaunchedEffect(pendingOneRMUpdates, workoutState.status) {
         if (pendingOneRMUpdates.isNotEmpty() && workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
             showOneRMUpdateDialog = true
+        }
+    }
+    
+    // Show PR celebration when there are pending PRs
+    LaunchedEffect(workoutState.shouldShowPRCelebration) {
+        if (workoutState.shouldShowPRCelebration) {
+            showPRCelebration = true
         }
     }
     
@@ -625,6 +634,21 @@ fun WorkoutScreen(
                 if (shouldNavigateAfterCompletion) {
                     onBack()
                 }
+            }
+        )
+    }
+    
+    // PR Celebration Dialog
+    if (showPRCelebration && workoutState.pendingPRs.isNotEmpty()) {
+        PRCelebrationDialog(
+            personalRecords = workoutState.pendingPRs,
+            onShare = { pr ->
+                // TODO: Implement share functionality
+                println("Sharing PR: ${pr.exerciseName} - ${pr.weight}kg x ${pr.reps}")
+            },
+            onDismiss = {
+                showPRCelebration = false
+                viewModel.clearPendingPRs()
             }
         )
     }

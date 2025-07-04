@@ -8,6 +8,7 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
+import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.exercise.*
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.SmartSuggestions
@@ -43,6 +44,9 @@ data class WorkoutState(
     // Workout Timer
     val workoutTimerStartTime: Long? = null,
     val isWorkoutTimerActive: Boolean = false,
+    // PR Celebration
+    val pendingPRs: List<PersonalRecord> = emptyList(),
+    val shouldShowPRCelebration: Boolean = false,
 )
 
 data class InProgressWorkout(
@@ -66,6 +70,13 @@ class WorkoutViewModel(
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
     
+    init {
+        // Clear corrupted PersonalRecord data on startup (temporary fix)
+        viewModelScope.launch {
+            repository.clearAllPersonalRecords()
+        }
+    }
+    
     // Expose pending 1RM updates from repository
     val pendingOneRMUpdates = repository.pendingOneRMUpdates
     
@@ -79,6 +90,14 @@ class WorkoutViewModel(
     // Clear all pending updates
     fun clearPendingOneRMUpdates() {
         repository.clearPendingOneRMUpdates()
+    }
+    
+    // Clear pending PRs after celebration
+    fun clearPendingPRs() {
+        _workoutState.value = _workoutState.value.copy(
+            pendingPRs = emptyList(),
+            shouldShowPRCelebration = false
+        )
     }
 
     // Rest timer reference to manage its lifecycle
@@ -845,6 +864,7 @@ class WorkoutViewModel(
             if (set == null || !canMarkSetComplete(set)) {
                 return // Don't allow completion without valid data
             }
+            
         }
 
         val timestamp =
@@ -889,6 +909,52 @@ class WorkoutViewModel(
 
             // Then persist to database
             repository.markSetCompleted(setId, completed, timestamp)
+            
+            // Check for Personal Records AFTER database save (when completed)
+            if (completed) {
+                try {
+                    println("🏆 PR Detection: Starting PR check for setId=$setId AFTER database save")
+                    
+                    // Get the set data from local state (which now includes the completion)
+                    val completedSet = updatedSets.find { it.id == setId }
+                    
+                    // Get exercise name for this set
+                    val exerciseLog = _selectedWorkoutExercises.value.find { exerciseLog ->
+                        updatedSets.any { it.exerciseLogId == exerciseLog.id && it.id == setId }
+                    }
+                    
+                    if (exerciseLog != null && completedSet != null) {
+                        println("🏆 PR Detection: Found exercise=${exerciseLog.exerciseName} for completed set")
+                        println("🏆 PR Detection: Set data - weight=${completedSet.actualWeight}, reps=${completedSet.actualReps}")
+                        
+                        val allPRs = repository.checkForPR(completedSet, exerciseLog.exerciseName)
+                        // Filter to only show ESTIMATED_1RM PRs for now
+                        val estimatedMaxPRs = allPRs.filter { it.recordType == com.github.radupana.featherweight.data.PRType.ESTIMATED_1RM }
+                        
+                        println("🏆 PR Detection: Found ${allPRs.size} total PRs, ${estimatedMaxPRs.size} 1RM PRs")
+                        
+                        if (estimatedMaxPRs.isNotEmpty()) {
+                            estimatedMaxPRs.forEach { pr ->
+                                println("🏆 PR Detection: New ${pr.recordType} PR - ${pr.weight}kg x ${pr.reps}")
+                            }
+                            
+                            // Update state to show PR celebration
+                            _workoutState.value = _workoutState.value.copy(
+                                pendingPRs = _workoutState.value.pendingPRs + estimatedMaxPRs,
+                                shouldShowPRCelebration = true
+                            )
+                            println("🏆 PR Detection: Updated state with ${estimatedMaxPRs.size} 1RM PRs, shouldShow=true")
+                        }
+                    } else {
+                        println("🏆 PR Detection: Missing data - exerciseLog=${exerciseLog?.exerciseName}, completedSet=${completedSet?.id}")
+                    }
+                } catch (e: Exception) {
+                    // Log error but don't fail set completion
+                    println("🏆 PR Detection: ERROR - ${e.message}")
+                    android.util.Log.e("WorkoutViewModel", "PR detection failed", e)
+                }
+            }
+            
             loadInProgressWorkouts()
         }
     }
@@ -1453,6 +1519,68 @@ class WorkoutViewModel(
                 // Persist to database
                 repository.updateSetLog(updatedSet)
             }
+        }
+    }
+
+    // ===== PR CELEBRATION METHODS =====
+    
+    /**
+     * Dismiss the current PR celebration dialog
+     */
+    fun dismissPRCelebration() {
+        _workoutState.value = _workoutState.value.copy(
+            shouldShowPRCelebration = false
+        )
+    }
+    
+    /**
+     * Share a personal record achievement
+     */
+    fun sharePR(personalRecord: PersonalRecord) {
+        // Format PR for sharing
+        val prText = when (personalRecord.recordType) {
+            com.github.radupana.featherweight.data.PRType.WEIGHT -> 
+                "New Weight PR: ${personalRecord.exerciseName} - ${personalRecord.weight}kg × ${personalRecord.reps}!"
+            com.github.radupana.featherweight.data.PRType.REPS -> 
+                "New Reps PR: ${personalRecord.exerciseName} - ${personalRecord.reps} reps @ ${personalRecord.weight}kg!"
+            com.github.radupana.featherweight.data.PRType.VOLUME -> 
+                "New Volume PR: ${personalRecord.exerciseName} - ${personalRecord.volume.toInt()}kg total!"
+            com.github.radupana.featherweight.data.PRType.ESTIMATED_1RM -> 
+                "New 1RM PR: ${personalRecord.exerciseName} - ~${personalRecord.estimated1RM?.toInt() ?: 0}kg!"
+        }
+        
+        // Note: Actual sharing implementation would be handled by the UI layer
+        // This method primarily prepares the data for sharing
+        android.util.Log.d("WorkoutViewModel", "PR ready for sharing: $prText")
+    }
+    
+    /**
+     * Clear all pending PRs and hide celebration
+     */
+    fun clearAllPendingPRs() {
+        _workoutState.value = _workoutState.value.copy(
+            pendingPRs = emptyList(),
+            shouldShowPRCelebration = false
+        )
+    }
+    
+    /**
+     * Get formatted text for sharing a PR
+     */
+    fun getPRShareText(personalRecord: PersonalRecord): String {
+        val improvementText = if (personalRecord.improvementPercentage > 0) {
+            " (+${String.format("%.1f", personalRecord.improvementPercentage)}% improvement)"
+        } else ""
+        
+        return when (personalRecord.recordType) {
+            com.github.radupana.featherweight.data.PRType.WEIGHT -> 
+                "🏋️ New Weight PR: ${personalRecord.exerciseName}\n${personalRecord.weight}kg × ${personalRecord.reps}$improvementText"
+            com.github.radupana.featherweight.data.PRType.REPS -> 
+                "🔥 New Reps PR: ${personalRecord.exerciseName}\n${personalRecord.reps} reps @ ${personalRecord.weight}kg$improvementText"
+            com.github.radupana.featherweight.data.PRType.VOLUME -> 
+                "📈 New Volume PR: ${personalRecord.exerciseName}\n${personalRecord.volume.toInt()}kg total$improvementText"
+            com.github.radupana.featherweight.data.PRType.ESTIMATED_1RM -> 
+                "🏆 New 1RM PR: ${personalRecord.exerciseName}\nEstimated: ${personalRecord.estimated1RM?.toInt() ?: 0}kg$improvementText"
         }
     }
 

@@ -830,7 +830,14 @@ fun CleanSetLayout(
     // Input states - Store as TextFieldValue to preserve cursor position  
     // Use both set.id and the actual values as remember keys so UI updates when data changes
     var weightInput by remember(set.id, set.actualWeight) {
-        val text = if (set.actualWeight > 0) set.actualWeight.toString() else ""
+        val text = if (set.actualWeight > 0) {
+            // Format weight to avoid showing unnecessary decimals (1.0 -> "1", 1.5 -> "1.5")
+            if (set.actualWeight % 1.0f == 0.0f) {
+                set.actualWeight.toInt().toString()
+            } else {
+                set.actualWeight.toString()
+            }
+        } else ""
         mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
     var repsInput by remember(set.id, set.actualReps) {

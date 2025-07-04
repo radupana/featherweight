@@ -6,8 +6,10 @@ import com.github.radupana.featherweight.ai.WeightCalculator
 import com.github.radupana.featherweight.service.ProgressionService
 import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.service.FreestyleIntelligenceService
+import com.github.radupana.featherweight.service.PRDetectionService
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
+import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.ProgressTrend
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
@@ -79,6 +81,7 @@ data class WorkoutSummary(
     val programmeWorkoutName: String? = null,
     val weekNumber: Int? = null,
     val dayNumber: Int? = null,
+    val prCount: Int = 0, // Number of PRs achieved in this workout
 )
 
 class FeatherweightRepository(
@@ -127,10 +130,12 @@ class FeatherweightRepository(
     
     private val globalExerciseProgressDao = db.globalExerciseProgressDao()
     private val exerciseCorrelationDao = db.exerciseCorrelationDao()
+    private val personalRecordDao = db.personalRecordDao()
     
     // Initialize GlobalProgressTracker
     private val globalProgressTracker = GlobalProgressTracker(this, db)
     private val freestyleIntelligenceService = FreestyleIntelligenceService(this, db.globalExerciseProgressDao())
+    private val prDetectionService = PRDetectionService(personalRecordDao)
     // StateFlow for pending 1RM updates
     private val _pendingOneRMUpdates = MutableStateFlow<List<PendingOneRMUpdate>>(emptyList())
     val pendingOneRMUpdates: StateFlow<List<PendingOneRMUpdate>> = _pendingOneRMUpdates.asStateFlow()
@@ -632,6 +637,24 @@ class FeatherweightRepository(
                         null
                     }
 
+                // Calculate PR count for this workout
+                val prCount = try {
+                    val workoutDate = workout.date.toLocalDate()
+                    val startOfDay = workoutDate.atStartOfDay()
+                    val endOfDay = workoutDate.atTime(23, 59, 59)
+                    
+                    // Get PRs for the workout date
+                    personalRecordDao.getPRsSince(startOfDay.toString())
+                        .filter { pr -> 
+                            val prDate = pr.recordDate.toLocalDate()
+                            prDate == workoutDate
+                        }
+                        .size
+                } catch (e: Exception) {
+                    android.util.Log.w("FeatherweightRepository", "Failed to calculate PR count for workout ${workout.id}", e)
+                    0
+                }
+
                 WorkoutSummary(
                     id = workout.id,
                     date = workout.date,
@@ -648,6 +671,7 @@ class FeatherweightRepository(
                     programmeWorkoutName = workout.programmeWorkoutName,
                     weekNumber = workout.weekNumber,
                     dayNumber = workout.dayNumber,
+                    prCount = prCount,
                 )
             }
 
@@ -2766,5 +2790,35 @@ class FeatherweightRepository(
     suspend fun getPreviousMaxWeight(exerciseName: String, days: Int): Float? = withContext(Dispatchers.IO) {
         val cutoffDate = LocalDateTime.now().minusDays(days.toLong())
         setLogDao.getMaxWeightForExerciseBefore(exerciseName, cutoffDate.toString())
+    }
+    
+    /**
+     * Check if a completed set represents a personal record
+     * Returns list of PersonalRecord objects if PRs are detected
+     */
+    suspend fun checkForPR(setLog: SetLog, exerciseName: String): List<PersonalRecord> = withContext(Dispatchers.IO) {
+        prDetectionService.checkForPR(setLog, exerciseName)
+    }
+    
+    /**
+     * Get recent personal records for an exercise
+     */
+    suspend fun getRecentPRsForExercise(exerciseName: String, limit: Int = 5): List<PersonalRecord> = withContext(Dispatchers.IO) {
+        prDetectionService.getRecentPRsForExercise(exerciseName, limit)
+    }
+    
+    /**
+     * Get recent personal records across all exercises
+     */
+    suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord> = withContext(Dispatchers.IO) {
+        prDetectionService.getRecentPRs(limit)
+    }
+    
+    /**
+     * Clear all personal records (for debugging corrupted data)
+     */
+    suspend fun clearAllPersonalRecords() = withContext(Dispatchers.IO) {
+        println("🗑️ CLEARING ALL PERSONAL RECORDS")
+        personalRecordDao.clearAllPersonalRecords()
     }
 }
