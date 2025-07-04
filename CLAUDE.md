@@ -1,3 +1,13 @@
+## IMPORTANT: Always Read Serena Instructions First
+
+Before starting ANY work on code tasks, ALWAYS call the `mcp__serena__initial_instructions` tool first. This provides critical context about:
+- Available semantic coding tools
+- How to efficiently read and edit code
+- Project-specific memory files
+- Current operating modes
+
+You MUST do this at the start of every conversation involving code work.
+
 ## System prompts
 
 Apply critical thinking and give me your objective assessment of the viability of ideas. Play the

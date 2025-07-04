@@ -41,6 +41,7 @@ import com.github.radupana.featherweight.ui.components.CompactExerciseCard
 import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
 import com.github.radupana.featherweight.ui.dialogs.SetEditingModal
 import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
+import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
 import com.github.radupana.featherweight.ui.utils.NavigationContext
 import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
@@ -79,6 +80,7 @@ fun WorkoutScreen(
     }
     val sets by viewModel.selectedExerciseSets.collectAsState()
     val workoutState by viewModel.workoutState.collectAsState()
+    val pendingOneRMUpdates by viewModel.pendingOneRMUpdates.collectAsState()
 
     // Rest timer state
     val timerState by restTimerViewModel.timerState.collectAsState()
@@ -94,6 +96,8 @@ fun WorkoutScreen(
     var showEditModeDialog by remember { mutableStateOf(false) }
     var showSaveEditDialog by remember { mutableStateOf(false) }
     var showDeleteWorkoutDialog by remember { mutableStateOf(false) }
+    var showOneRMUpdateDialog by remember { mutableStateOf(false) }
+    var shouldNavigateAfterCompletion by remember { mutableStateOf(false) }
 
     var editingSet by remember { mutableStateOf<SetLog?>(null) }
     var editingExerciseName by remember { mutableStateOf<String?>(null) }
@@ -121,6 +125,20 @@ fun WorkoutScreen(
 
     val canEdit = viewModel.canEditWorkout()
     val isEditMode = workoutState.isInEditMode
+    
+    // Show 1RM update dialog when there are pending updates
+    LaunchedEffect(pendingOneRMUpdates, workoutState.status) {
+        if (pendingOneRMUpdates.isNotEmpty() && workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
+            showOneRMUpdateDialog = true
+        }
+    }
+    
+    // Navigate away after dealing with 1RM updates
+    LaunchedEffect(shouldNavigateAfterCompletion, pendingOneRMUpdates, showOneRMUpdateDialog) {
+        if (shouldNavigateAfterCompletion && pendingOneRMUpdates.isEmpty() && !showOneRMUpdateDialog) {
+            onBack()
+        }
+    }
 
     // Handle back press during edit mode
     val handleBack = {
@@ -489,7 +507,7 @@ fun WorkoutScreen(
                 viewModel.completeWorkout {
                     // Completion callback: let the workout completion finish before navigation
                     showCompleteWorkoutDialog = false
-                    onBack()
+                    shouldNavigateAfterCompletion = true
                 }
             },
             onDismiss = { showCompleteWorkoutDialog = false },
@@ -583,6 +601,31 @@ fun WorkoutScreen(
             viewModel = viewModel,
             restTimerViewModel = restTimerViewModel,
             isProgrammeWorkout = workoutState.isProgrammeWorkout,
+        )
+    }
+    
+    // 1RM Update Dialog
+    if (showOneRMUpdateDialog && pendingOneRMUpdates.isNotEmpty()) {
+        OneRMUpdateDialog(
+            pendingUpdates = pendingOneRMUpdates,
+            onApply = { update ->
+                viewModel.applyOneRMUpdate(update)
+            },
+            onDismiss = {
+                showOneRMUpdateDialog = false
+                // If we were waiting to navigate after completion, do it now
+                if (shouldNavigateAfterCompletion) {
+                    onBack()
+                }
+            },
+            onSkip = {
+                viewModel.clearPendingOneRMUpdates()
+                showOneRMUpdateDialog = false
+                // If we were waiting to navigate after completion, do it now
+                if (shouldNavigateAfterCompletion) {
+                    onBack()
+                }
+            }
         )
     }
 }

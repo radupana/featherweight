@@ -4,7 +4,13 @@ import android.app.Application
 import com.github.radupana.featherweight.ai.ProgrammeType
 import com.github.radupana.featherweight.ai.WeightCalculator
 import com.github.radupana.featherweight.service.ProgressionService
+import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.data.ExerciseLog
+import com.github.radupana.featherweight.data.GlobalExerciseProgress
+import com.github.radupana.featherweight.data.ProgressTrend
+import com.github.radupana.featherweight.data.exercise.MovementPattern
+import com.github.radupana.featherweight.data.PendingOneRMUpdate
+import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.data.ExerciseSwapHistory
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.GeneratedProgrammePreview
@@ -19,6 +25,7 @@ import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseAliasSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseSeeder
+import com.github.radupana.featherweight.data.exercise.ExerciseCorrelationSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.data.profile.UserProfile
@@ -43,6 +50,9 @@ import com.github.radupana.featherweight.validation.ExerciseValidator
 import com.github.radupana.featherweight.validation.ValidationResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDateTime
 import com.github.radupana.featherweight.data.programme.ProgrammeType as DataProgrammeType
 
@@ -113,6 +123,38 @@ class FeatherweightRepository(
         db.profileDao().also {
             android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: profileDao obtained")
         }
+    
+    private val globalExerciseProgressDao = db.globalExerciseProgressDao()
+    private val exerciseCorrelationDao = db.exerciseCorrelationDao()
+    
+    // Initialize GlobalProgressTracker
+    private val globalProgressTracker = GlobalProgressTracker(this, db)
+    // StateFlow for pending 1RM updates
+    private val _pendingOneRMUpdates = MutableStateFlow<List<PendingOneRMUpdate>>(emptyList())
+    val pendingOneRMUpdates: StateFlow<List<PendingOneRMUpdate>> = _pendingOneRMUpdates.asStateFlow()
+    
+    // Clear pending updates after user has seen them
+    fun clearPendingOneRMUpdates() {
+        _pendingOneRMUpdates.value = emptyList()
+    }
+
+    
+    // Apply a pending 1RM update by updating the user's max
+    suspend fun applyOneRMUpdate(update: PendingOneRMUpdate) {
+        val userId = getCurrentUserId()
+        profileDao.upsertExerciseMax(
+            userId = userId,
+            exerciseId = update.exerciseId,
+            maxWeight = update.suggestedMax,
+            isEstimated = false,
+            notes = "Updated from ${update.source}"
+        )
+        
+        // Remove this update from pending list
+        _pendingOneRMUpdates.value = _pendingOneRMUpdates.value.filter { 
+            it.exerciseId != update.exerciseId 
+        }
+    }
 
     private val exerciseSeeder =
         ExerciseSeeder(exerciseDao, application).also {
@@ -126,6 +168,8 @@ class FeatherweightRepository(
         ProgrammeSeeder(programmeDao, exerciseDao).also {
             android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: ProgrammeSeeder created")
         }
+    
+    private val exerciseCorrelationSeeder = ExerciseCorrelationSeeder(exerciseCorrelationDao)
 
     fun getCurrentUserId(): Long = userPreferences.getCurrentUserId()
 
@@ -150,6 +194,12 @@ class FeatherweightRepository(
             if (programmeTemplateCount == 0) {
                 programmeSeeder.seedPopularProgrammes()
                 println("Seeded ${programmeDao.getAllTemplates().size} programme templates")
+            }
+            
+            // Seed exercise correlations if none exist
+            if (exerciseCorrelationDao.getCount() == 0) {
+                exerciseCorrelationSeeder.seedExerciseCorrelations()
+                println("Seeded exercise correlations")
             }
         }
     }
@@ -297,6 +347,17 @@ class FeatherweightRepository(
         if (workout.isProgrammeWorkout && workout.programmeId != null) {
             println("📊 Recording performance data for programme workout...")
             recordWorkoutPerformanceData(workoutId, workout.programmeId)
+        }
+        
+        // Update global exercise progress for ALL workouts (programme or freestyle)
+        val userId = getCurrentUserId()
+        println("📈 Updating global exercise progress for user $userId...")
+        val pendingOneRMUpdates = globalProgressTracker.updateProgressAfterWorkout(workoutId, userId)
+        
+        // Store pending 1RM updates for later retrieval by UI
+        if (pendingOneRMUpdates.isNotEmpty()) {
+            println("💪 ${pendingOneRMUpdates.size} pending 1RM updates available")
+            _pendingOneRMUpdates.value = pendingOneRMUpdates
         }
         
         // Update programme progress if this is a programme workout
@@ -453,7 +514,9 @@ class FeatherweightRepository(
         return allWorkouts
             .mapNotNull { workout ->
                 val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                if (exercises.isEmpty()) return@mapNotNull null
+                
+                // Include completed workouts even if they have no exercises
+                if (workout.status != WorkoutStatus.COMPLETED && exercises.isEmpty()) return@mapNotNull null
 
                 val allSets = mutableListOf<SetLog>()
                 exercises.forEach { exercise ->
@@ -2611,5 +2674,41 @@ class FeatherweightRepository(
                 timestamp = setLog.completedAt ?: ""
             )
         }.sortedByDescending { it.timestamp }
+    }
+    
+    // Global Exercise Progress Methods
+    suspend fun getGlobalExerciseProgress(exerciseName: String): GlobalExerciseProgress? = withContext(Dispatchers.IO) {
+        globalExerciseProgressDao.getProgressForExercise(getCurrentUserId(), exerciseName)
+    }
+    
+    fun observeGlobalExerciseProgress(exerciseName: String) = 
+        globalExerciseProgressDao.observeProgressForExercise(getCurrentUserId(), exerciseName)
+    
+    fun observeAllGlobalProgress() = 
+        globalExerciseProgressDao.getAllProgressForUser(getCurrentUserId())
+    
+    suspend fun getStalledExercises(minStalls: Int = 3) = withContext(Dispatchers.IO) {
+        globalExerciseProgressDao.getStalledExercises(getCurrentUserId(), minStalls)
+    }
+    
+    suspend fun getExercisesByTrend(trend: ProgressTrend) = withContext(Dispatchers.IO) {
+        globalExerciseProgressDao.getExercisesByTrend(getCurrentUserId(), trend)
+    }
+    
+    suspend fun analyzeExerciseProgress(exerciseName: String) = withContext(Dispatchers.IO) {
+        globalProgressTracker.analyzeExerciseProgress(getCurrentUserId(), exerciseName)
+    }
+    
+    // Exercise Correlation Methods
+    suspend fun getExerciseCorrelations(exerciseName: String) = withContext(Dispatchers.IO) {
+        exerciseCorrelationDao.getCorrelationsForExercise(exerciseName)
+    }
+    
+    suspend fun getExercisesByMovementPattern(pattern: MovementPattern) = withContext(Dispatchers.IO) {
+        exerciseCorrelationDao.getExercisesByMovementPattern(pattern)
+    }
+    
+    suspend fun getExercisesByMuscleGroup(muscleGroup: MuscleGroup) = withContext(Dispatchers.IO) {
+        exerciseCorrelationDao.getExercisesByMuscleGroup(muscleGroup)
     }
 }

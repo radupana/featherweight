@@ -7,6 +7,7 @@ import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
+import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.exercise.*
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.SmartSuggestions
@@ -64,6 +65,21 @@ class WorkoutViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
+    
+    // Expose pending 1RM updates from repository
+    val pendingOneRMUpdates = repository.pendingOneRMUpdates
+    
+    // Apply a pending 1RM update
+    fun applyOneRMUpdate(update: PendingOneRMUpdate) {
+        viewModelScope.launch {
+            repository.applyOneRMUpdate(update)
+        }
+    }
+    
+    // Clear all pending updates
+    fun clearPendingOneRMUpdates() {
+        repository.clearPendingOneRMUpdates()
+    }
 
     // Rest timer reference to manage its lifecycle
     private var restTimerViewModel: RestTimerViewModel? = null
