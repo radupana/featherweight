@@ -131,11 +131,13 @@ class FeatherweightRepository(
     private val globalExerciseProgressDao = db.globalExerciseProgressDao()
     private val exerciseCorrelationDao = db.exerciseCorrelationDao()
     private val personalRecordDao = db.personalRecordDao()
+    private val userAchievementDao = db.userAchievementDao()
     
     // Initialize GlobalProgressTracker
     private val globalProgressTracker = GlobalProgressTracker(this, db)
     private val freestyleIntelligenceService = FreestyleIntelligenceService(this, db.globalExerciseProgressDao())
     private val prDetectionService = PRDetectionService(personalRecordDao)
+    private val achievementDetectionService = com.github.radupana.featherweight.service.AchievementDetectionService(db)
     // StateFlow for pending 1RM updates
     private val _pendingOneRMUpdates = MutableStateFlow<List<PendingOneRMUpdate>>(emptyList())
     val pendingOneRMUpdates: StateFlow<List<PendingOneRMUpdate>> = _pendingOneRMUpdates.asStateFlow()
@@ -2820,5 +2822,28 @@ class FeatherweightRepository(
     suspend fun clearAllPersonalRecords() = withContext(Dispatchers.IO) {
         println("🗑️ CLEARING ALL PERSONAL RECORDS")
         personalRecordDao.clearAllPersonalRecords()
+    }
+    
+    // ===== ACHIEVEMENT METHODS =====
+    
+    /**
+     * Check for newly unlocked achievements after a workout completion
+     */
+    suspend fun checkForNewAchievements(userId: Long, workoutId: Long): List<com.github.radupana.featherweight.data.achievement.UserAchievement> = withContext(Dispatchers.IO) {
+        achievementDetectionService.checkForNewAchievements(userId, workoutId)
+    }
+    
+    /**
+     * Get achievement summary for a user
+     */
+    suspend fun getAchievementSummary(userId: Long): com.github.radupana.featherweight.service.AchievementSummary = withContext(Dispatchers.IO) {
+        achievementDetectionService.getAchievementSummary(userId)
+    }
+    
+    /**
+     * Get user's unlocked achievements
+     */
+    suspend fun getUserAchievements(userId: Long): List<com.github.radupana.featherweight.data.achievement.UserAchievement> = withContext(Dispatchers.IO) {
+        userAchievementDao.getRecentUserAchievements(userId, 100) // Get all achievements
     }
 }

@@ -10,6 +10,7 @@ import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.exercise.*
+import com.github.radupana.featherweight.data.achievement.UserAchievement
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.repository.FeatherweightRepository
@@ -47,6 +48,9 @@ data class WorkoutState(
     // PR Celebration
     val pendingPRs: List<PersonalRecord> = emptyList(),
     val shouldShowPRCelebration: Boolean = false,
+    // Achievement Celebration
+    val pendingAchievements: List<UserAchievement> = emptyList(),
+    val shouldShowAchievementCelebration: Boolean = false,
 )
 
 data class InProgressWorkout(
@@ -97,6 +101,14 @@ class WorkoutViewModel(
         _workoutState.value = _workoutState.value.copy(
             pendingPRs = emptyList(),
             shouldShowPRCelebration = false
+        )
+    }
+    
+    // Clear pending achievements after celebration
+    fun clearPendingAchievements() {
+        _workoutState.value = _workoutState.value.copy(
+            pendingAchievements = emptyList(),
+            shouldShowAchievementCelebration = false
         )
     }
 
@@ -314,6 +326,11 @@ class WorkoutViewModel(
                         weekNumber = workout.weekNumber,
                         dayNumber = workout.dayNumber,
                         programmeWorkoutName = workout.programmeWorkoutName,
+                        // Clear any pending celebrations from previous sessions
+                        pendingPRs = emptyList(),
+                        shouldShowPRCelebration = false,
+                        pendingAchievements = emptyList(),
+                        shouldShowAchievementCelebration = false,
                     )
 
                 // Wait for exercises to load completely before UI renders
@@ -355,6 +372,11 @@ class WorkoutViewModel(
                         weekNumber = null,
                         dayNumber = null,
                         programmeWorkoutName = null,
+                        // Clear any pending celebrations from previous workouts
+                        pendingPRs = emptyList(),
+                        shouldShowPRCelebration = false,
+                        pendingAchievements = emptyList(),
+                        shouldShowAchievementCelebration = false,
                     )
 
                 loadExercisesForWorkout(workoutId)
@@ -453,6 +475,31 @@ class WorkoutViewModel(
             println("🏁 Calling repository.completeWorkout($currentId, $finalDuration)")
             repository.completeWorkout(currentId, finalDuration)
             println("🏁 Repository completeWorkout returned")
+
+            // Check for newly unlocked achievements after workout completion
+            try {
+                println("🏆 Achievement Detection: Checking for new achievements after workout completion")
+                val newAchievements = repository.checkForNewAchievements(1L, currentId) // TODO: Get actual userId
+                
+                if (newAchievements.isNotEmpty()) {
+                    println("🏆 Achievement Detection: Found ${newAchievements.size} new achievements!")
+                    newAchievements.forEach { achievement ->
+                        println("🏆 Achievement Detection: Unlocked - ${achievement.achievementId}")
+                    }
+                    
+                    // Update state to show achievement celebration
+                    _workoutState.value = _workoutState.value.copy(
+                        pendingAchievements = newAchievements,
+                        shouldShowAchievementCelebration = true
+                    )
+                } else {
+                    println("🏆 Achievement Detection: No new achievements unlocked")
+                }
+            } catch (e: Exception) {
+                // Log error but don't fail workout completion
+                println("🏆 Achievement Detection: ERROR - ${e.message}")
+                android.util.Log.e("WorkoutViewModel", "Achievement detection failed", e)
+            }
 
             // Stop workout timer
             stopWorkoutTimer()
@@ -1275,6 +1322,11 @@ class WorkoutViewModel(
                     programmeWorkoutName = workout.programmeWorkoutName,
                     // Ensure loading state is set
                     isLoadingExercises = true,
+                    // Clear any pending celebrations from previous workouts
+                    pendingPRs = emptyList(),
+                    shouldShowPRCelebration = false,
+                    pendingAchievements = emptyList(),
+                    shouldShowAchievementCelebration = false,
                 )
 
             // IMPORTANT: Wait for exercises to load completely before allowing navigation

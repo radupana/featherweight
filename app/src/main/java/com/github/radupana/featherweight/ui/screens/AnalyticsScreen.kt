@@ -29,10 +29,14 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.github.radupana.featherweight.ui.components.StrengthProgressionChart
 import com.github.radupana.featherweight.ui.components.VolumeBarChart
+import com.github.radupana.featherweight.ui.components.AchievementCard
 import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.viewmodel.AnalyticsViewModel
 import com.github.radupana.featherweight.viewmodel.AnalyticsState
 import com.github.radupana.featherweight.viewmodel.ChartViewMode
+import com.github.radupana.featherweight.data.achievement.*
+import com.github.radupana.featherweight.service.AchievementDetectionService
+import com.github.radupana.featherweight.service.AchievementSummary
 
 @Composable
 fun AnalyticsScreen(
@@ -72,7 +76,7 @@ fun AnalyticsScreen(
         when (selectedTab) {
             0 -> OverviewTab(analyticsState, viewModel, Modifier.padding(16.dp))
             1 -> ExercisesTab(viewModel, Modifier.padding(16.dp))
-            2 -> AwardsTab(Modifier.padding(16.dp))
+            2 -> AwardsTab(viewModel, Modifier.padding(16.dp))
             3 -> InsightsTab(Modifier.padding(16.dp))
         }
     }
@@ -991,51 +995,321 @@ private fun EmptyExercisesState() {
 }
 
 @Composable
-private fun AwardsTab(modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        Text(
-            text = "Awards",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
+private fun AwardsTab(
+    viewModel: AnalyticsViewModel,
+    modifier: Modifier = Modifier
+) {
+    // Mock data for testing - replace with real data from viewModel
+    var achievementSummary by remember { mutableStateOf<AchievementSummary?>(null) }
+    var selectedCategory by remember { mutableStateOf<AchievementCategory?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    
+    LaunchedEffect(Unit) {
+        // TODO: Load achievement summary from repository
+        // For now, create mock data
+        achievementSummary = AchievementSummary(
+            totalAchievements = AchievementDefinitions.ALL_ACHIEVEMENTS.size,
+            unlockedCount = 0,
+            progress = 0f,
+            recentUnlocks = emptyList(),
+            categoryProgress = AchievementCategory.entries.associateWith { category ->
+                com.github.radupana.featherweight.service.AchievementCategoryProgress(
+                    category = category,
+                    total = AchievementDefinitions.getAchievementsByCategory(category).size,
+                    unlocked = 0,
+                    progress = 0f
+                )
+            }
         )
-        
-        Card(
+        isLoading = false
+    }
+    
+    Column(modifier = modifier) {
+        // Header
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            )
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
+            Text(
+                text = "Awards",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            
+            if (!isLoading && achievementSummary != null) {
+                Text(
+                    text = "${achievementSummary!!.unlockedCount}/${achievementSummary!!.totalAchievements}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        if (isLoading) {
+            // Loading state
+            repeat(3) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .padding(bottom = 12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .shimmerEffect()
+                    )
+                }
+            }
+        } else if (achievementSummary != null) {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Progress Overview Card
+                item {
+                    AchievementProgressCard(achievementSummary!!)
+                }
+                
+                // Category Filter Chips
+                item {
+                    CategoryFilterRow(
+                        selectedCategory = selectedCategory,
+                        onCategorySelected = { selectedCategory = it },
+                        categoryProgress = achievementSummary!!.categoryProgress
+                    )
+                }
+                
+                // Achievement Grid
+                val filteredAchievements = if (selectedCategory != null) {
+                    AchievementDefinitions.getAchievementsByCategory(selectedCategory!!)
+                } else {
+                    AchievementDefinitions.ALL_ACHIEVEMENTS
+                }
+                
+                items(filteredAchievements) { achievement ->
+                    AchievementCard(
+                        achievement = achievement,
+                        userAchievement = null, // All locked for now
+                        onShare = { ach, userAch ->
+                            // TODO: Implement sharing
+                        },
+                        onClick = {
+                            // TODO: Implement achievement detail view
+                        }
+                    )
+                }
+                
+                // Empty state for no achievements in category
+                if (filteredAchievements.isEmpty()) {
+                    item {
+                        EmptyAchievementsState(selectedCategory)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AchievementProgressCard(summary: AchievementSummary) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Achievement Progress",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${summary.unlockedCount} of ${summary.totalAchievements} unlocked",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                Text(
+                    text = "${(summary.progress * 100).toInt()}%",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Progress Bar
+            LinearProgressIndicator(
+                progress = summary.progress,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.EmojiEvents,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+            
+            if (summary.recentUnlocks.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
-                    text = "Coming Soon",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "Recent Unlocks",
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
                 
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Text(
-                    text = "Achievement system will be available in Phase 3.3",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
+                // Show recent unlocks
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    items(summary.recentUnlocks.take(3)) { userAchievement ->
+                        val achievement = AchievementDefinitions.getAchievementById(userAchievement.achievementId)
+                        if (achievement != null) {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = achievement.icon,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Text(
+                                        text = achievement.title,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun CategoryFilterRow(
+    selectedCategory: AchievementCategory?,
+    onCategorySelected: (AchievementCategory?) -> Unit,
+    categoryProgress: Map<AchievementCategory, com.github.radupana.featherweight.service.AchievementCategoryProgress>
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // All category filter
+        item {
+            FilterChip(
+                onClick = { onCategorySelected(null) },
+                label = { Text("All") },
+                selected = selectedCategory == null
+            )
+        }
+        
+        // Individual category filters
+        items(AchievementCategory.entries) { category ->
+            val progress = categoryProgress[category]
+            val categoryName = when (category) {
+                AchievementCategory.STRENGTH_MILESTONES -> "Strength"
+                AchievementCategory.CONSISTENCY_STREAKS -> "Consistency"
+                AchievementCategory.VOLUME_RECORDS -> "Volume"
+                AchievementCategory.PROGRESS_MEDALS -> "Progress"
+            }
+            
+            FilterChip(
+                onClick = { onCategorySelected(category) },
+                label = { 
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(categoryName)
+                        if (progress != null && progress.unlocked > 0) {
+                            Text(
+                                text = "(${progress.unlocked})",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                },
+                selected = selectedCategory == category
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyAchievementsState(category: AchievementCategory?) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Filled.EmojiEvents,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text(
+                text = "Start Your Journey",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            val categoryText = category?.let { 
+                when (it) {
+                    AchievementCategory.STRENGTH_MILESTONES -> "strength milestones"
+                    AchievementCategory.CONSISTENCY_STREAKS -> "consistency achievements"
+                    AchievementCategory.VOLUME_RECORDS -> "volume records"
+                    AchievementCategory.PROGRESS_MEDALS -> "progress medals"
+                }
+            } ?: "achievements"
+            
+            Text(
+                text = "Complete workouts to unlock $categoryText",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

@@ -231,3 +231,73 @@ Fixed critical UI/UX issues with set input fields that were causing major usabil
 3. Don't make UI elements that aren't self-explanatory
 4. Always test with both weighted and bodyweight exercises
 5. Verify database saves are actually happening (check logs)
+
+## Phase 3.2: PR Detection & Celebration System Implementation (2025-07-04)
+
+Successfully implemented the complete PR detection and celebration system with real-time feedback during workouts.
+
+### Key Components Built:
+
+**PR Detection Infrastructure:**
+- **PersonalRecord entity** with support for multiple PR types (Weight, Reps, Volume, 1RM)
+- **PRDetectionService** using Brzycki formula for accurate 1RM calculations
+- **Real-time PR detection** integrated into `markSetCompleted` workflow
+- **Comprehensive logging** for debugging PR detection logic
+
+**Celebration & UI:**
+- **PRCelebrationDialog** with confetti animations and haptic feedback
+- **Streamlined UI** showing only 1RM PRs (filtered from 4 types)
+- **Single exit flow** with "Continue Workout" and "Share" buttons
+- **Removed duplicate exit options** (X button, outside-tap dismiss)
+
+**1RM Profile Integration:**
+- **Baseline-aware confidence calculation** for 1RM profile updates
+- **Context-driven logic** that considers stored 1RM for credibility assessment
+- **Reduced RPE dependency** - no RPE required when baseline exists
+- **Intelligent thresholds** based on improvement percentage vs stored max
+
+### Critical Bug Fixes:
+
+**Timing Issues:**
+- **PR detection timing**: Moved from before to after database save
+- **Weight comparison bug**: Removed `estimated1RM > weight` condition that broke 1-rep PRs
+- **Confidence calculation**: Fixed over-reliance on RPE, added baseline context
+
+**Data Issues:**
+- **Database cleanup**: Only save 1RM PRs to prevent "10 PRs everywhere" problem
+- **History PR loading**: Fixed missing `prCount` field in HistoryViewModel refresh
+- **Corrupted PR data**: Added startup cleanup for PersonalRecord table
+
+**UI/UX Issues:**
+- **Set input timing**: Fixed cursor position loss in weight input fields
+- **Dialog integration**: Properly connected PRCelebrationDialog to WorkoutScreen
+- **State management**: Fixed PR state clearing and celebration triggers
+
+### Architecture Patterns:
+
+**Dual Detection Systems:**
+- **PRDetectionService**: Handles celebration PRs (immediate feedback)
+- **GlobalProgressTracker**: Handles profile 1RM updates (workout completion)
+- **Clear separation**: Celebrations vs profile updates serve different purposes
+
+**Confidence-Based Logic:**
+```kotlin
+// New baseline-aware confidence calculation
+val baseConfidence = when {
+    reps == 1 -> 0.9f // Singles are very reliable
+    reps in 2..3 -> 0.85f // Low reps are quite reliable
+    reps in 4..6 -> 0.75f // Medium reps are decent
+    else -> 0.6f // Higher reps less reliable
+}
+
+// Boost confidence when improving over known baseline
+val finalConfidence = if (currentStoredMax != null && improvement >= 0.05f) {
+    Math.min(0.95f, baseConfidence + 0.2f) // 5%+ improvement = high confidence
+} else baseConfidence
+```
+
+**Key Technical Insights:**
+- **Context matters more than RPE**: A 105kg lift vs 100kg stored max is obviously credible
+- **Timing is critical**: PR detection must happen after database persistence
+- **User feedback separation**: Immediate celebrations vs profile management decisions
+- **Confidence should be additive**: Base confidence + context bonus + RPE bonus

@@ -38,6 +38,13 @@ interface GlobalExerciseProgressDao {
     
     @Query("""
         SELECT * FROM global_exercise_progress 
+        WHERE userId = :userId 
+        ORDER BY lastUpdated DESC
+    """)
+    suspend fun getAllProgress(userId: Long): List<GlobalExerciseProgress>
+    
+    @Query("""
+        SELECT * FROM global_exercise_progress 
         WHERE userId = :userId AND trend = :trend
         ORDER BY consecutiveStalls DESC
     """)
