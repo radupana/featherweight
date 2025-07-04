@@ -53,6 +53,7 @@ import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
 import com.github.radupana.featherweight.viewmodel.AnalyticsViewModel
+import com.github.radupana.featherweight.viewmodel.HistoryViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModelFactory
@@ -367,12 +368,19 @@ fun MainAppWithNavigation(
 
             Screen.HISTORY -> {
                 val workoutViewModel: WorkoutViewModel = viewModel()
+                val historyViewModel: HistoryViewModel = viewModel()
+                
+                // Refresh history data when returning to this screen
+                LaunchedEffect(currentScreen) {
+                    historyViewModel.refreshHistory()
+                }
+                
                 HistoryScreen(
                     onViewWorkout = { workoutId ->
                         workoutViewModel.resumeWorkout(workoutId)
                         onScreenChange(Screen.ACTIVE_WORKOUT)
                     },
-                    modifier = Modifier.padding(innerPadding),
+                    historyViewModel = historyViewModel,
                 )
             }
 

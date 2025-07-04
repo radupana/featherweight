@@ -8,7 +8,7 @@ import java.time.temporal.ChronoUnit
 import kotlin.math.abs
 
 /**
- * Service responsible for generating AI-powered insights about user's training progress
+ * Service responsible for generating data-driven insights about user's training progress
  */
 class InsightGenerationService(
     private val database: FeatherweightDatabase

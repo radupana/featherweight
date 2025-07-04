@@ -5,11 +5,11 @@ import androidx.room.PrimaryKey
 import java.time.LocalDateTime
 
 /**
- * Represents an AI-generated insight about user's training progress
+ * Represents a data-driven insight about user's training progress
  */
 @Entity(tableName = "progress_insights")
 data class ProgressInsight(
-    @PrimaryKey val id: Long = 0,
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val userId: Long,
     val insightType: InsightType,
     val title: String,

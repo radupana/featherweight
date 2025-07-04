@@ -47,7 +47,7 @@ import com.github.radupana.featherweight.data.achievement.UserAchievementDao
         UserAchievement::class,
         ProgressInsight::class,
     ],
-    version = 33,
+    version = 34,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)

@@ -7,10 +7,13 @@ import com.github.radupana.featherweight.service.ProgressionService
 import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.service.FreestyleIntelligenceService
 import com.github.radupana.featherweight.service.PRDetectionService
+import com.github.radupana.featherweight.service.InsightGenerationService
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.ProgressTrend
+import com.github.radupana.featherweight.data.ProgressInsight
+import com.github.radupana.featherweight.data.InsightType
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
@@ -2849,7 +2852,7 @@ class FeatherweightRepository(
 
     // ===== INSIGHTS SECTION =====
     
-    private val insightGenerationServiceInsightGenerationService(db)
+    private val insightGenerationService = InsightGenerationService(db)
     private val progressInsightDao = db.progressInsightDao()
     
     /**

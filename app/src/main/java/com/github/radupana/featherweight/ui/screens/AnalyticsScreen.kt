@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import java.time.LocalDateTime
 import com.github.radupana.featherweight.ui.components.StrengthProgressionChart
 import com.github.radupana.featherweight.ui.components.VolumeBarChart
 import com.github.radupana.featherweight.ui.components.AchievementCard
@@ -1500,7 +1501,7 @@ private fun InsightsTab(
         ) {
             Column {
                 Text(
-                    text = "AI Insights",
+                    text = "Training Insights",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -1875,7 +1876,7 @@ private fun EmptyInsightsState() {
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = "Complete a few workouts and our AI will start generating personalized insights about your training progress.",
+                text = "Complete a few workouts and the system will start generating personalized insights about your training progress.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
