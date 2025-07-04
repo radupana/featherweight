@@ -2,6 +2,7 @@ package com.github.radupana.featherweight.ui.screens
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -39,13 +40,51 @@ fun AnalyticsScreen(
     modifier: Modifier = Modifier,
 ) {
     val analyticsState by viewModel.analyticsState.collectAsState()
+    var selectedTab by remember { mutableStateOf(0) }
+    
+    val tabs = listOf("Overview", "Exercises", "Awards", "Insights")
+    
     Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .padding(16.dp),
+        modifier = modifier.fillMaxSize()
     ) {
+        // Tab Row
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTab == index,
+                    onClick = { selectedTab = index },
+                    text = {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1
+                        )
+                    }
+                )
+            }
+        }
+        
+        // Tab Content
+        when (selectedTab) {
+            0 -> OverviewTab(analyticsState, viewModel, Modifier.padding(16.dp))
+            1 -> ExercisesTab(viewModel, Modifier.padding(16.dp))
+            2 -> AwardsTab(Modifier.padding(16.dp))
+            3 -> InsightsTab(Modifier.padding(16.dp))
+        }
+    }
+}
 
+@Composable
+private fun OverviewTab(
+    analyticsState: AnalyticsState,
+    viewModel: AnalyticsViewModel,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
         // Quick Stats Cards
         if (analyticsState.isQuickStatsLoading) {
             QuickStatsLoadingSection()
@@ -779,3 +818,274 @@ private fun Modifier.shimmerEffect(): Modifier =
             size = Size(it.size.width.toFloat(), it.size.height.toFloat())
         }
     }
+
+@Composable
+private fun ExercisesTab(
+    viewModel: AnalyticsViewModel,
+    modifier: Modifier = Modifier
+) {
+    var exercisesSummary by remember { mutableStateOf<List<com.github.radupana.featherweight.service.ExerciseSummary>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    
+    LaunchedEffect(Unit) {
+        // TODO: Load exercises summary from repository
+        isLoading = false
+    }
+    
+    Column(modifier = modifier) {
+        Text(
+            text = "Exercise Progress",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        if (isLoading) {
+            repeat(5) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .padding(bottom = 12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .shimmerEffect()
+                    )
+                }
+            }
+        } else {
+            if (exercisesSummary.isEmpty()) {
+                EmptyExercisesState()
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(exercisesSummary) { exercise ->
+                        ExerciseCard(
+                            exercise = exercise,
+                            onClick = { 
+                                // TODO: Navigate to exercise detail
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExerciseCard(
+    exercise: com.github.radupana.featherweight.service.ExerciseSummary,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = exercise.exerciseName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Text(
+                    text = "Current Max: ${exercise.currentMax}kg",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                val progressColor = when {
+                    exercise.progressPercentage > 0 -> Color(0xFF4CAF50)
+                    exercise.progressPercentage < 0 -> Color(0xFFF44336)
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                
+                Text(
+                    text = "Progress: ${if (exercise.progressPercentage >= 0) "+" else ""}${String.format("%.1f", exercise.progressPercentage)}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = progressColor
+                )
+            }
+            
+            Column(
+                horizontalAlignment = Alignment.End
+            ) {
+                com.github.radupana.featherweight.ui.components.MiniProgressChart(
+                    data = exercise.miniChartData,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "${exercise.sessionCount} sessions",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyExercisesState() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Filled.TrendingUp,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text(
+                text = "No Exercise Data",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "Complete some workouts to see your progress here",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun AwardsTab(modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(
+            text = "Awards",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.EmojiEvents,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = "Coming Soon",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "Achievement system will be available in Phase 3.3",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun InsightsTab(modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(
+            text = "Insights",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Psychology,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = "Coming Soon",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "AI-powered insights will be available in Phase 3.4",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}

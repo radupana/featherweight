@@ -2748,4 +2748,23 @@ class FeatherweightRepository(
     suspend fun getExercisesByMuscleGroup(muscleGroup: MuscleGroup) = withContext(Dispatchers.IO) {
         exerciseCorrelationDao.getExercisesByMuscleGroup(muscleGroup)
     }
+    
+    // Progress Analytics Methods
+    suspend fun getSetsForExercise(exerciseName: String, days: Int): List<SetLog> = withContext(Dispatchers.IO) {
+        val cutoffDate = LocalDateTime.now().minusDays(days.toLong())
+        setLogDao.getSetsForExerciseSince(exerciseName, cutoffDate.toString())
+    }
+    
+    suspend fun getSetsForExerciseSince(exerciseName: String, since: LocalDateTime): List<SetLog> = withContext(Dispatchers.IO) {
+        setLogDao.getSetsForExerciseSince(exerciseName, since.toString())
+    }
+    
+    suspend fun getAllCompletedExercises(): List<String> = withContext(Dispatchers.IO) {
+        setLogDao.getAllCompletedExerciseNames()
+    }
+    
+    suspend fun getPreviousMaxWeight(exerciseName: String, days: Int): Float? = withContext(Dispatchers.IO) {
+        val cutoffDate = LocalDateTime.now().minusDays(days.toLong())
+        setLogDao.getMaxWeightForExerciseBefore(exerciseName, cutoffDate.toString())
+    }
 }

@@ -28,4 +28,35 @@ interface SetLogDao {
     
     @Query("DELETE FROM SetLog WHERE exerciseLogId = :exerciseLogId")
     suspend fun deleteAllSetsForExercise(exerciseLogId: Long)
+    
+    // Progress Analytics queries
+    @Query("""
+        SELECT s.* FROM SetLog s 
+        INNER JOIN ExerciseLog e ON s.exerciseLogId = e.id 
+        INNER JOIN Workout w ON e.workoutId = w.id
+        WHERE e.exerciseName = :exerciseName 
+        AND s.isCompleted = 1 
+        AND w.date >= :sinceDate 
+        ORDER BY w.date DESC
+    """)
+    suspend fun getSetsForExerciseSince(exerciseName: String, sinceDate: String): List<SetLog>
+    
+    @Query("""
+        SELECT DISTINCT e.exerciseName 
+        FROM ExerciseLog e 
+        INNER JOIN SetLog s ON e.id = s.exerciseLogId 
+        WHERE s.isCompleted = 1
+    """)
+    suspend fun getAllCompletedExerciseNames(): List<String>
+    
+    @Query("""
+        SELECT MAX(s.actualWeight) 
+        FROM SetLog s 
+        INNER JOIN ExerciseLog e ON s.exerciseLogId = e.id 
+        INNER JOIN Workout w ON e.workoutId = w.id
+        WHERE e.exerciseName = :exerciseName 
+        AND s.isCompleted = 1 
+        AND w.date < :beforeDate
+    """)
+    suspend fun getMaxWeightForExerciseBefore(exerciseName: String, beforeDate: String): Float?
 }
