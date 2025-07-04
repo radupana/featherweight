@@ -38,8 +38,9 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         UserProfile::class,
         UserExerciseMax::class,
         ExerciseSwapHistory::class,
+        ExercisePerformanceTracking::class,
     ],
-    version = 28,
+    version = 29,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -57,6 +58,8 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun profileDao(): ProfileDao
 
     abstract fun exerciseSwapHistoryDao(): ExerciseSwapHistoryDao
+
+    abstract fun exercisePerformanceTrackingDao(): ExercisePerformanceTrackingDao
 
     companion object {
         @Volatile

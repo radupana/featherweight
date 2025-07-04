@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.repository
 import android.app.Application
 import com.github.radupana.featherweight.ai.ProgrammeType
 import com.github.radupana.featherweight.ai.WeightCalculator
+import com.github.radupana.featherweight.service.ProgressionService
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.ExerciseSwapHistory
 import com.github.radupana.featherweight.data.FeatherweightDatabase
@@ -292,6 +293,12 @@ class FeatherweightRepository(
         val verifyWorkout = workoutDao.getAllWorkouts().find { it.id == workoutId }
         println("🔍 Verification - workout status after update: ${verifyWorkout?.status}")
 
+        // Record performance data for programme workouts before updating progress
+        if (workout.isProgrammeWorkout && workout.programmeId != null) {
+            println("📊 Recording performance data for programme workout...")
+            recordWorkoutPerformanceData(workoutId, workout.programmeId)
+        }
+        
         // Update programme progress if this is a programme workout
         if (workout.isProgrammeWorkout && workout.programmeId != null && workout.weekNumber != null && workout.dayNumber != null) {
             println("🔄 This is a programme workout, updating progress...")
@@ -2410,61 +2417,29 @@ class FeatherweightRepository(
             if (weightCalcRules?.baseOn == WeightBasis.LAST_WORKOUT) {
                 println("Calculation Method: Last Workout + Progression")
                 
-                // Get last performance for this exercise
-                val lastPerformance = getLastPerformanceForExercise(exerciseStructure.name)
-                println("Last Performance: ${lastPerformance?.let { "${it.weight}kg x ${it.reps} reps" } ?: "None (first workout)"}")
+                // Use ProgressionService for intelligent weight calculation with deload support
+                val progressionService = ProgressionService(
+                    performanceTrackingDao = db.exercisePerformanceTrackingDao(),
+                    exerciseRepository = exerciseRepository,
+                    programmeDao = programmeDao
+                )
                 
-                if (lastPerformance != null) {
-                    // Check if we should progress
-                    val progressionRules = programme.getProgressionRulesObject()
-                    val increment = progressionRules?.incrementRules?.get(exerciseStructure.name) ?: 2.5f
-                    
-                    // Check if last workout met success criteria
-                    val successCriteria = progressionRules?.successCriteria
-                    val wasSuccessful = if (successCriteria != null && lastPerformance.allSetsCompleted) {
-                        // For StrongLifts: 5 sets of 5 reps with up to 2 missed reps total
-                        val requiredSets = successCriteria.requiredSets ?: 5
-                        val requiredReps = successCriteria.requiredReps ?: 5
-                        
-                        // Simple check: did they complete all sets?
-                        // TODO: More sophisticated check for missed reps
-                        lastPerformance.sets >= requiredSets && lastPerformance.allSetsCompleted
-                    } else {
-                        // Default to not progressing if criteria not met
-                        false
-                    }
-                    
-                    val newWeight = if (wasSuccessful) {
-                        println("✅ Last workout successful - progressing weight")
-                        println("Progression: Adding $increment kg")
-                        lastPerformance.weight + increment
-                    } else {
-                        println("❌ Last workout not successful - repeating weight")
-                        println("Reason: ${if (!lastPerformance.allSetsCompleted) "Not all sets completed" else "Success criteria not met"}")
-                        lastPerformance.weight
-                    }
-                    
-                    println("New Weight: $newWeight kg")
-                    println("==============================\n")
-                    return newWeight
-                } else {
-                    // First workout - use 1RM if available or minimum weight
-                    val user1RM = getUserMaxForExercise(exerciseStructure.name, userMaxes)
-                    val startingWeight = if (user1RM != null) {
-                        // Start at 50% of 1RM for first workout
-                        val calculated = user1RM * 0.5f
-                        val rounded = (calculated / 2.5f).toInt() * 2.5f
-                        rounded.coerceAtLeast(20f)
-                    } else {
-                        // Start with empty bar
-                        20f
-                    }
-                    
-                    println("First Workout Starting Weight: $startingWeight kg")
-                    println("Based on: ${if (user1RM != null) "50% of 1RM ($user1RM kg)" else "Empty bar"}")
-                    println("==============================\n")
-                    return startingWeight
+                // Calculate the progression decision
+                val decision = progressionService.calculateProgressionWeight(
+                    exerciseName = exerciseStructure.name,
+                    programme = programme,
+                    currentWorkoutId = 0L // This is during workout creation, so we don't have an ID yet
+                )
+                
+                println("Progression Decision: ${decision.action}")
+                println("Weight: ${decision.weight} kg")
+                println("Reason: ${decision.reason}")
+                if (decision.isDeload) {
+                    println("⚠️ DELOAD WORKOUT")
                 }
+                println("==============================\n")
+                
+                return decision.weight
             }
         }
         
@@ -2510,6 +2485,34 @@ class FeatherweightRepository(
     }
 
     private suspend fun getLastPerformanceForExercise(exerciseName: String): ExercisePerformanceData? = exerciseRepository.getLastPerformanceForExercise(exerciseName)
+    
+    private suspend fun recordWorkoutPerformanceData(workoutId: Long, programmeId: Long) = withContext(Dispatchers.IO) {
+        println("📊 Recording performance data for workout $workoutId in programme $programmeId")
+        
+        val progressionService = ProgressionService(
+            performanceTrackingDao = db.exercisePerformanceTrackingDao(),
+            exerciseRepository = exerciseRepository,
+            programmeDao = programmeDao
+        )
+        
+        // Get all exercises and sets for this workout
+        val exercises = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
+        
+        for (exercise in exercises) {
+            val sets = setLogDao.getSetLogsForExercise(exercise.id)
+            if (sets.isNotEmpty()) {
+                progressionService.recordWorkoutPerformance(
+                    workoutId = workoutId,
+                    programmeId = programmeId,
+                    exerciseName = exercise.exerciseName,
+                    exerciseLogId = exercise.id,
+                    sets = sets
+                )
+            }
+        }
+        
+        println("✅ Performance data recorded for ${exercises.size} exercises")
+    }
     
     private fun getUserMaxForExercise(
         exerciseName: String,
