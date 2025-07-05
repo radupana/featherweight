@@ -176,6 +176,7 @@ fun WorkoutScreen(
                                         } else {
                                             viewModel.getWorkoutDisplayName()
                                         },
+                                    style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -1289,11 +1290,7 @@ private fun UnifiedProgressCard(
                     style = if (workoutState.isProgrammeWorkout) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
                     fontWeight = if (workoutState.isProgrammeWorkout) FontWeight.Medium else FontWeight.SemiBold,
                 )
-                Text(
-                    "$completedSets / $totalSets sets",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                
             }
 
             Spacer(modifier = Modifier.height(8.dp))

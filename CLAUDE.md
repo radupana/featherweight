@@ -95,6 +95,7 @@ that are transparent and explicit about reasoning. Always show WHY a weight was 
 - **Clean Code Maintenance**: Remove unused code, imports, and dead declarations
 - **No Half-Ass Implementations**: Complete features properly across ALL impacted components
 - **Transparent Logic**: Every weight calculation must be explainable to users
+- **No Phased Planning**: Provide minimal planning and code to fix the problem at hand completely. Never give "phase 1, phase 2" or "now and later" approaches. Solve it properly in one go.
 
 ## Common Commands
 

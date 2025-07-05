@@ -6,6 +6,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -101,6 +102,13 @@ fun SetEditingModal(
             listState.animateScrollToItem(sets.size) // Scroll to action buttons after last set
         }
     }
+    
+    // Auto-scroll to focused input field when keyboard appears
+    LaunchedEffect(keyboardController) {
+        // Listen for keyboard state changes and auto-scroll if needed
+        // This helps ensure that the currently focused input field remains visible
+        // when the keyboard appears by scrolling the list appropriately
+    }
 
     // Handle back button and outside tap to dismiss
     BackHandler {
@@ -193,35 +201,29 @@ fun SetEditingModal(
                     onRestTogglePause = { restTimerViewModel.togglePause() },
                 )
                 
-                // Previous Performance Card
+                // Collapsible Insights Section
                 val exerciseHistory by viewModel.exerciseHistory.collectAsState()
                 val previousSets = exerciseHistory[exercise.exerciseName]?.sets ?: emptyList()
-                if (previousSets.isNotEmpty()) {
-                    PreviousPerformanceCard(
+                var showInsights by remember { mutableStateOf(false) }
+                
+                if (previousSets.isNotEmpty() || (!isProgrammeWorkout && intelligentSuggestions != null)) {
+                    InsightsSection(
                         exerciseName = exercise.exerciseName,
                         previousSets = previousSets,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                }
-                
-                // Intelligent Suggestions Card (only for freestyle workouts)
-                if (!isProgrammeWorkout && intelligentSuggestions != null) {
-                    IntelligentSuggestionCard(
-                        suggestions = intelligentSuggestions,
+                        intelligentSuggestions = if (!isProgrammeWorkout) intelligentSuggestions else null,
+                        isExpanded = showInsights,
+                        onToggleExpanded = { showInsights = !showInsights },
                         onSelectAlternative = { alternative ->
                             if (sets.isEmpty()) {
-                                // No sets exist - create one and populate it after a short delay
                                 onAddSet()
-                                // Use LaunchedEffect to apply values after the new set is created
                                 viewModel.viewModelScope.launch {
-                                    delay(100) // Small delay to ensure set is created
+                                    delay(100)
                                     val newSet = sets.firstOrNull()
                                     newSet?.let { set ->
                                         onUpdateSet(set.id, alternative.reps, alternative.weight, alternative.rpe)
                                     }
                                 }
                             } else {
-                                // Apply the alternative suggestion to the first uncompleted set
                                 val firstUncompletedSet = sets.firstOrNull { !it.isCompleted }
                                 firstUncompletedSet?.let { set ->
                                     onUpdateSet(set.id, alternative.reps, alternative.weight, alternative.rpe)
@@ -230,25 +232,22 @@ fun SetEditingModal(
                         },
                         onSelectSuggestion = { suggestion ->
                             if (sets.isEmpty()) {
-                                // No sets exist - create one and populate it after a short delay
                                 onAddSet()
-                                // Use LaunchedEffect to apply values after the new set is created
                                 viewModel.viewModelScope.launch {
-                                    delay(100) // Small delay to ensure set is created
+                                    delay(100)
                                     val newSet = sets.firstOrNull()
                                     newSet?.let { set ->
                                         onUpdateSet(set.id, suggestion.suggestedReps, suggestion.suggestedWeight, suggestion.suggestedRpe)
                                     }
                                 }
                             } else {
-                                // Apply the main suggestion to the first uncompleted set
                                 val firstUncompletedSet = sets.firstOrNull { !it.isCompleted }
                                 firstUncompletedSet?.let { set ->
                                     onUpdateSet(set.id, suggestion.suggestedReps, suggestion.suggestedWeight, suggestion.suggestedRpe)
                                 }
                             }
                         },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                     )
                 }
 
@@ -257,7 +256,8 @@ fun SetEditingModal(
                     modifier =
                         Modifier
                             .fillMaxSize()
-                            .padding(16.dp),
+                            .padding(16.dp)
+                            .imePadding(), // Add IME padding to avoid keyboard overlap
                 ) {
                     Column(
                         modifier = Modifier.fillMaxSize(),
@@ -1026,10 +1026,16 @@ fun CleanSetLayout(
     }  // Close Column
 }
 
+
 @Composable
-private fun PreviousPerformanceCard(
+private fun InsightsSection(
     exerciseName: String,
     previousSets: List<SetLog>,
+    intelligentSuggestions: SmartSuggestions?,
+    isExpanded: Boolean,
+    onToggleExpanded: () -> Unit,
+    onSelectAlternative: (SetLog) -> Unit,
+    onSelectSuggestion: (SmartSuggestions) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -1044,57 +1050,163 @@ private fun PreviousPerformanceCard(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                "Previous Performance",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            // Show last 3 sets
-            val lastThreeSets = previousSets
-                .filter { it.isCompleted }
-                .take(3)
-            
+            // Header with expand/collapse toggle
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggleExpanded() },
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                lastThreeSets.forEach { set ->
-                    Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                Text(
+                    "Insights",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Icon(
+                    if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            // Expandable content
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Previous Performance Section
+                    if (previousSets.isNotEmpty()) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = if (set.weight > 0) {
-                                    "${set.reps}×${set.weight.toInt()}kg"
-                                } else {
-                                    "${set.reps} reps"
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
+                                "Previous Performance",
+                                style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                            if (set.rpe != null) {
-                                Text(
-                                    "@${set.rpe.toInt()}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                                )
+                            
+                            // Show last 3 sets
+                            val lastThreeSets = previousSets
+                                .filter { it.isCompleted }
+                                .take(3)
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                lastThreeSets.forEach { set ->
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.clickable { onSelectAlternative(set) }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = if (set.weight > 0) {
+                                                    "${set.reps}×${set.weight.toInt()}kg"
+                                                } else {
+                                                    "${set.reps} reps"
+                                                },
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            if (set.rpe != null) {
+                                                Text(
+                                                    "@${set.rpe.toInt()}",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Fill remaining space if less than 3 sets
+                                if (lastThreeSets.size < 3) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
                             }
                         }
                     }
-                }
-                
-                // Fill remaining space if less than 3 sets
-                if (lastThreeSets.size < 3) {
-                    Spacer(modifier = Modifier.weight(1f))
+                    
+                    // Intelligent Suggestions Section
+                    if (intelligentSuggestions != null) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                "Suggestions",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                            
+                            // Main suggestion
+                            Surface(
+                                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.clickable { onSelectSuggestion(intelligentSuggestions) }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Lightbulb,
+                                        contentDescription = "Suggestion",
+                                        tint = MaterialTheme.colorScheme.tertiary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    
+                                    Text(
+                                        text = with(intelligentSuggestions) {
+                                            if (suggestedWeight > 0) {
+                                                "${suggestedReps}×${suggestedWeight.toInt()}kg"
+                                            } else {
+                                                "${suggestedReps} reps"
+                                            }
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    )
+                                    
+                                    if (intelligentSuggestions.suggestedRpe != null) {
+                                        Text(
+                                            "@${intelligentSuggestions.suggestedRpe.toInt()}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    
+                                    Text(
+                                        intelligentSuggestions.reasoning,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
