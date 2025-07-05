@@ -10,7 +10,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -37,6 +42,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -305,6 +312,9 @@ fun MainAppWithNavigation(
                     onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
                     onStartProgrammeWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
                     onGenerateAIProgramme = { onScreenChange(Screen.PROGRAMME_GENERATOR) },
+                    onNavigateToHistory = { onScreenChange(Screen.HISTORY) },
+                    onNavigateToAnalytics = { onScreenChange(Screen.ANALYTICS) },
+                    onNavigateToProfile = { onScreenChange(Screen.PROFILE) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
