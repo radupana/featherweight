@@ -11,90 +11,129 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.R
 import kotlinx.coroutines.delay
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 
 @Composable
 fun SplashScreen(onSplashFinished: () -> Unit) {
+    val context = LocalContext.current
+    
     // Animation states
     var startAnimation by remember { mutableStateOf(false) }
-
-    // Logo animation
-    val logoScale by animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0.3f,
-        animationSpec =
-            tween(
-                durationMillis = 800,
-                easing = FastOutSlowInEasing,
-            ),
-        label = "logoScale",
+    var impactOccurred by remember { mutableStateOf(false) }
+    
+    // Weight drop animation with physics
+    val logoTranslationY by animateFloatAsState(
+        targetValue = if (startAnimation) 0f else -800f,
+        animationSpec = spring(
+            dampingRatio = 0.35f, // Low damping for bounce effect
+            stiffness = Spring.StiffnessLow // Realistic weight drop
+        ),
+        finishedListener = {
+            if (!impactOccurred) {
+                impactOccurred = true
+                // Trigger haptic feedback on impact
+                triggerHapticFeedback(context)
+            }
+        },
+        label = "logoTranslationY"
     )
-
+    
+    // Logo fade in slightly delayed
     val logoAlpha by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
-        animationSpec =
-            tween(
-                durationMillis = 800,
-                delayMillis = 200,
-                easing = FastOutSlowInEasing,
-            ),
-        label = "logoAlpha",
+        animationSpec = tween(
+            durationMillis = 400,
+            delayMillis = 100,
+            easing = LinearEasing
+        ),
+        label = "logoAlpha"
+    )
+    
+    // Screen shake effect on impact
+    val screenShakeX by animateFloatAsState(
+        targetValue = if (impactOccurred) 0f else 0f,
+        animationSpec = if (impactOccurred) {
+            // Create a damped oscillation for shake
+            spring(
+                dampingRatio = 0.2f,
+                stiffness = Spring.StiffnessHigh
+            )
+        } else {
+            tween(0)
+        },
+        label = "screenShakeX"
+    )
+    
+    // Small scale pulse after landing
+    val scalePulse by animateFloatAsState(
+        targetValue = if (impactOccurred) 1f else 0.95f,
+        animationSpec = if (impactOccurred) {
+            spring(
+                dampingRatio = 0.5f,
+                stiffness = Spring.StiffnessMedium
+            )
+        } else {
+            tween(0)
+        },
+        label = "scalePulse"
     )
 
-    // Solid dark background to match logo
-    val backgroundColor = Color(0xFF1A1A1A) // Dark background matching your logo
+    // Background color
+    val backgroundColor = Color(0xFF1A1A1A)
 
     LaunchedEffect(Unit) {
+        // Start animation immediately
         startAnimation = true
-        delay(2500) // Total splash duration
+        // Total duration: ~1.6 seconds (drop + settle time)
+        delay(1600)
         onSplashFinished()
     }
 
     Box(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(backgroundColor),
-        // Use solid dark background
-        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundColor)
+            .graphicsLayer {
+                // Apply subtle screen shake
+                translationX = screenShakeX * 5f // 5 pixel max shake
+            },
+        contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            // Large app logo taking up most of the screen
-            Image(
-                painter = painterResource(id = R.drawable.featherweight_logo_black),
-                contentDescription = "Featherweight Logo",
-                modifier =
-                    Modifier
-                        .fillMaxWidth(0.8f) // Takes up 80% of screen width
-                        .aspectRatio(1f) // Keep it square
-                        .scale(logoScale)
-                        .alpha(logoAlpha),
-            )
-        }
+        // Logo that drops like a weight
+        Image(
+            painter = painterResource(id = R.drawable.featherweight_logo_black),
+            contentDescription = "Featherweight Logo",
+            modifier = Modifier
+                .fillMaxWidth(0.8f)
+                .aspectRatio(1f)
+                .scale(scalePulse)
+                .alpha(logoAlpha)
+                .graphicsLayer {
+                    translationY = logoTranslationY
+                }
+        )
+    }
+}
 
-        // Loading indicator at bottom
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(bottom = 64.dp),
-            contentAlignment = Alignment.BottomCenter,
-        ) {
-            if (startAnimation) {
-                CircularProgressIndicator(
-                    modifier =
-                        Modifier
-                            .size(32.dp)
-                            .alpha(logoAlpha),
-                    color = Color.White, // White spinner on dark background
-                    strokeWidth = 3.dp,
-                )
-            }
+private fun triggerHapticFeedback(context: Context) {
+    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+    vibrator?.let {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Modern haptic feedback - short sharp impact
+            it.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            // Legacy vibration
+            @Suppress("DEPRECATION")
+            it.vibrate(50)
         }
     }
 }

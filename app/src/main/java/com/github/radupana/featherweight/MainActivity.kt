@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -134,8 +135,8 @@ class MainActivity : ComponentActivity() {
                 android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Inside setContent")
                 FeatherweightTheme {
                 android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Inside FeatherweightTheme")
-                var currentScreen by remember { mutableStateOf(Screen.SPLASH) }
                 val userPreferences = remember { UserPreferences(application) }
+                var currentScreen by rememberSaveable { mutableStateOf(Screen.SPLASH) }
                 
                 // App-level ViewModels for persistence across screens
                 android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Creating RestTimerViewModel")
@@ -423,6 +424,8 @@ fun MainAppWithNavigation(
                     modifier = Modifier.padding(innerPadding),
                 )
             }
+
+
 
             Screen.SPLASH -> {
                 // Should not reach here
