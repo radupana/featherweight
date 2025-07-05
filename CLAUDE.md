@@ -123,69 +123,38 @@ that are transparent and explicit about reasoning. Always show WHY a weight was 
 
 **Key Principle**: Perfect one programme completely before expanding to others.
 
-## Latest Session: Set Input UI Overhaul (2025-07-01)
+## Latest Session: Home Screen UI Revamp (2025-07-05)
 
-Fixed critical UI/UX issues with set input fields that were causing major usability problems:
+**Major Change**: Replaced traditional card-based HomeScreen with innovative circular wheel navigation
 
-**Problems Solved:**
-- **Text Reversal Bug**: Typing "123" resulted in "321" due to cursor position loss
-- **Auto-Decimal Insertion**: Keyboard was inserting unwanted decimals ("1.02" instead of "123")
-- **Placeholder Misalignment**: Placeholder text was left-aligned while input was center-aligned
-- **Missing Text Selection**: Select-all on focus was completely broken
-- **Input Length Limits**: No enforcement of max character limits per field type
+**Key Components:**
+- **CircularWheelMenu.kt** - Custom wheel component with 6 colored segments
+- **Static Design** - Removed spinning feature after user feedback (too complicated)
+- **Profile at Center** - User is literally at the center of the app
+- **Direct Navigation** - Each segment navigates to main app sections
 
-**Technical Fixes:**
-- **Fixed Cursor Position**: Changed `CleanSetLayout` to store `TextFieldValue` instead of `String`
-- **Removed Recomposition Triggers**: Fixed `remember` keys that caused input resets on every keystroke
-- **Implemented Hard Input Limits**: Weight (7 chars max), Reps (2 chars), RPE (2 chars with >10 clamping)
-- **Created CenteredInputField**: Universal component with proper validation and center alignment
-- **Fixed Keyboard Type**: Used `KeyboardType.Number` for all fields to prevent auto-decimals
+**Critical Lessons Learned:**
+- **Image Padding Issues**: Banner images with excessive whitespace don't scale well in constrained spaces
+- **TopAppBar Constraints**: Limited vertical space makes logo placement challenging
+- **Simple Text Works**: Sometimes text is better than struggling with image scaling
+- **User Feedback First**: Removed spinning when user said it was too complicated
 
-**UI Improvements:**
-- **Elegant Swipe-to-Delete**: Dynamic red stripe that grows with swipe distance
-- **Proper Text Selection**: Select-all works correctly on field focus
-- **Consistent Placeholders**: All placeholders center-aligned and disappear on focus
+**Technical Implementation:**
+- Canvas for visual wheel drawing
+- Overlay Boxes for click detection (Canvas can't handle clicks)
+- Trigonometric calculations for proper icon/text positioning
+- Proper angle calculations: `(index * segmentAngle) - 90f + (segmentAngle / 2f)`
 
-**Key Files Modified:**
-- `CenteredInputField.kt` - New universal input component with validation
-- `SetEditingModal.kt` - Fixed state management and swipe behavior
-- Deleted `SelectAllOnFocusTextField.kt` - Replaced with working solution
+## Critical Architecture Lessons
 
-**Critical Lesson**: Always store `TextFieldValue` for cursor preservation, never convert to/from `String` in input flows.
+### Database Field Usage
+- **ALWAYS** verify which fields the UI is updating vs validation checking
+- `actualReps`/`actualWeight` = what user did (UI updates these)
+- `targetReps`/`targetWeight` = what programme prescribed
+- `reps`/`weight` = legacy fields, being phased out
+- 157/500 exercises have `requiresWeight=false` (all bodyweight exercises)
 
-## Critical Bug Fixes & Architecture Lessons (2025-07-01 Continued)
-
-### 1. **SetLog Field Mismatch Bug**
-**Problem**: Checkbox wouldn't become clickable even with valid data entered
-**Root Cause**: UI was updating `actualReps`/`actualWeight` fields, but validation was checking legacy `reps`/`weight` fields
-**Fix**: Updated `canMarkSetComplete` to check actual fields: `set.actualReps > 0 && set.actualWeight > 0`
-**Lesson**: Always verify which fields the UI is actually updating vs what validation is checking
-
-### 2. **Exercise Weight Requirements**
-**Problem**: "Complete All" functionality didn't respect that some exercises (pull-ups) don't require weight
-**Solution**: Use existing `exercise.requiresWeight` flag in validation logic
-**Database**: 157/500 exercises correctly marked as `requiresWeight=false` (all bodyweight exercises)
-
-### 3. **History Not Showing Completed Workouts**
-**Problem**: Completed workouts weren't appearing in history
-**Fix**: Modified history query to include completed workouts even without exercises
-**Code**: Changed filter from `exercises.isNotEmpty()` to `workout.status == COMPLETED || exercises.isNotEmpty()`
-
-### 4. **Previous Performance Data**
-**Problem**: "Previous: -" shown on every set row, never loading actual data
-**Fix**: 
-- Call `loadExerciseHistoryForName()` when opening set modal
-- Filter to only completed workouts/sets
-- Display in dedicated card instead of per-row
-
-### 5. **UI Information Architecture Overhaul**
-
-**Removed Confusing Features:**
-- Weight suggestions (lightbulb) - unclear what it represented
-- Hide/Show Previous toggle - unnecessary complexity
-- Per-row previous display - redundant
-
-**New Clean Architecture:**
+### Set Input UI Architecture
 ```
 [Exercise Name Header]
 [Previous Performance Card] ← Shows last workout: "3 × 5×100kg @8"
@@ -196,35 +165,18 @@ Fixed critical UI/UX issues with set input fields that were causing major usabil
   |        |   [ ]  | [ ]  | [ ] | □ |  ← Freestyle workout
 ```
 
-**Benefits:**
-- Clear separation of intent (Target) vs execution (actual values)
-- Consistent UI for both programme and freestyle workouts
-- No placeholder text - headers are sufficient
-- Target column shows it's read-only with subtle background
+### Key Validation Patterns
+- Check `sets.any { !it.isCompleted && it.actualReps > 0 }` for "Complete All" visibility
+- Always store `TextFieldValue` for cursor preservation in inputs
+- Cache async validation results in `_setCompletionValidation`
+- History query must include: `workout.status == COMPLETED || exercises.isNotEmpty()`
 
-### 6. **Missing "Complete All" Button**
-**Problem**: Feature was accidentally removed during UI refactoring
-**Fix**: Re-added icon button in header, only shows when uncompleted sets have reps
-**Implementation**: Check `sets.any { !it.isCompleted && it.actualReps > 0 }`
-
-## Key Development Principles
-
-### Database Field Usage
-- **ALWAYS** check which fields the UI is updating
-- `actualReps`/`actualWeight` = what user did
-- `targetReps`/`targetWeight` = what programme prescribed
-- `reps`/`weight` = legacy fields, being phased out
-
-### UI/UX Guidelines
+### UI/UX Principles
 - **Remove before adding**: Question every UI element's purpose
 - **Consistent layouts**: Same structure for all contexts (programme/freestyle)
 - **Clear visual hierarchy**: Read-only data looks different from editable
 - **No redundant information**: Show data once in the right place
-
-### Validation Logic
-- **Respect exercise requirements**: Not all exercises need weight
-- **Cache validation results**: Async validation in `_setCompletionValidation`
-- **Check actual values**: Validate what the UI actually updates
+- **Image constraints**: Logos with padding don't scale well in TopAppBar
 
 ### Common Pitfalls to Avoid
 1. Don't add features without clear user benefit
@@ -232,155 +184,29 @@ Fixed critical UI/UX issues with set input fields that were causing major usabil
 3. Don't make UI elements that aren't self-explanatory
 4. Always test with both weighted and bodyweight exercises
 5. Verify database saves are actually happening (check logs)
+6. Canvas elements can't handle clicks - use overlay components
 
-## Phase 3.2: PR Detection & Celebration System Implementation (2025-07-04)
+## Recent Feature Implementations
 
-Successfully implemented the complete PR detection and celebration system with real-time feedback during workouts.
-
-### Key Components Built:
-
-**PR Detection Infrastructure:**
-- **PersonalRecord entity** with support for multiple PR types (Weight, Reps, Volume, 1RM)
-- **PRDetectionService** using Brzycki formula for accurate 1RM calculations
-- **Real-time PR detection** integrated into `markSetCompleted` workflow
-- **Comprehensive logging** for debugging PR detection logic
-
-**Celebration & UI:**
+### PR Detection & Celebration System (Phase 3.2)
+- **PRDetectionService** with Brzycki formula for 1RM calculations
 - **PRCelebrationDialog** with confetti animations and haptic feedback
-- **Streamlined UI** showing only 1RM PRs (filtered from 4 types)
-- **Single exit flow** with "Continue Workout" and "Share" buttons
-- **Removed duplicate exit options** (X button, outside-tap dismiss)
+- Only save 1RM PRs to prevent database pollution
+- PR detection must happen AFTER database save (timing critical)
+- Baseline-aware confidence: 5%+ improvement over stored max = high confidence
+- Dual systems: PRDetectionService (celebrations) vs GlobalProgressTracker (profile updates)
 
-**1RM Profile Integration:**
-- **Baseline-aware confidence calculation** for 1RM profile updates
-- **Context-driven logic** that considers stored 1RM for credibility assessment
-- **Reduced RPE dependency** - no RPE required when baseline exists
-- **Intelligent thresholds** based on improvement percentage vs stored max
+### Achievements System (Phase 3.3)
+- 37 achievements across 4 categories (Strength, Consistency, Volume, Progress)
+- **AchievementDetectionService** runs after workout completion
+- Awards tab in Analytics with Recent Unlocks carousel
+- Achievement state tracked in UserAchievement entity with context data
 
-### Critical Bug Fixes:
-
-**Timing Issues:**
-- **PR detection timing**: Moved from before to after database save
-- **Weight comparison bug**: Removed `estimated1RM > weight` condition that broke 1-rep PRs
-- **Confidence calculation**: Fixed over-reliance on RPE, added baseline context
-
-**Data Issues:**
-- **Database cleanup**: Only save 1RM PRs to prevent "10 PRs everywhere" problem
-- **History PR loading**: Fixed missing `prCount` field in HistoryViewModel refresh
-- **Corrupted PR data**: Added startup cleanup for PersonalRecord table
-
-**UI/UX Issues:**
-- **Set input timing**: Fixed cursor position loss in weight input fields
-- **Dialog integration**: Properly connected PRCelebrationDialog to WorkoutScreen
-- **State management**: Fixed PR state clearing and celebration triggers
-
-### Architecture Patterns:
-
-**Dual Detection Systems:**
-- **PRDetectionService**: Handles celebration PRs (immediate feedback)
-- **GlobalProgressTracker**: Handles profile 1RM updates (workout completion)
-- **Clear separation**: Celebrations vs profile updates serve different purposes
-
-**Confidence-Based Logic:**
-```kotlin
-// New baseline-aware confidence calculation
-val baseConfidence = when {
-    reps == 1 -> 0.9f // Singles are very reliable
-    reps in 2..3 -> 0.85f // Low reps are quite reliable
-    reps in 4..6 -> 0.75f // Medium reps are decent
-    else -> 0.6f // Higher reps less reliable
-}
-
-// Boost confidence when improving over known baseline
-val finalConfidence = if (currentStoredMax != null && improvement >= 0.05f) {
-    Math.min(0.95f, baseConfidence + 0.2f) // 5%+ improvement = high confidence
-} else baseConfidence
-```
-
-**Key Technical Insights:**
-- **Context matters more than RPE**: A 105kg lift vs 100kg stored max is obviously credible
-- **Timing is critical**: PR detection must happen after database persistence
-- **User feedback separation**: Immediate celebrations vs profile management decisions
-- **Confidence should be additive**: Base confidence + context bonus + RPE bonus
-
-## Phase 3.3: Achievements System Implementation (2025-07-04)
-
-Successfully implemented the complete achievements system with 37 achievements across 4 categories and real-time detection.
-
-### Key Components Built:
-
-**Achievement Infrastructure:**
-- **Achievement Definitions** - 37 achievements across Strength, Consistency, Volume, and Progress categories
-- **UserAchievement entity** with context data storage and timestamp tracking
-- **AchievementDetectionService** with intelligent condition checking and duplicate prevention
-- **Real-time achievement detection** integrated into workout completion workflow
-
-**Awards UI System:**
-- **Complete Awards tab** in Analytics screen with progress overview
-- **Recent Unlocks carousel** highlighting latest achievements
-- **Category filtering** with achievement counts per category
-- **Separated sections** for unlocked ("Your Achievements") vs locked ("Available to Unlock")
-- **Achievement cards** with unlock state visualization
-
-**Data Integration:**
-- **AchievementSummary** with complete progress tracking and category breakdown
-- **AnalyticsViewModel** integration for real-time achievement data loading
-- **Repository pattern** with proper service delegation
-- **Database queries** optimized for achievement state management
-
-### Achievement Categories:
-
-**Strength Milestones:** 9 achievements (100kg Squat, 2x Bodyweight Deadlift, 80kg Bench, etc.)
-**Consistency Streaks:** 7 achievements (7-day, 30-day, 90-day workout streaks)
-**Volume Records:** 11 achievements (10-Ton Club, Century Sets, High Volume Training)
-**Progress Medals:** 10 achievements (25% Strength Gain, Plateau Breaker, Linear Progression)
-
-### Technical Implementation:
-
-**Real-time Detection:**
-```kotlin
-// Runs after every workout completion
-val newAchievements = repository.checkForNewAchievements(userId, workoutId)
-if (newAchievements.isNotEmpty()) {
-    // Update UI state for celebration
-    _workoutState.value = state.copy(
-        pendingAchievements = newAchievements,
-        shouldShowAchievementCelebration = true
-    )
-}
-```
-
-**Efficient Data Loading:**
-- Achievement summary with all unlocked IDs and recent unlocks
-- Category-based progress tracking with counts
-- Lazy loading of achievement data in Analytics tab
-- Cache-friendly data structure for responsive UI
-
-### Architecture Benefits:
-- **Motivational feedback**: Immediate achievement detection provides workout completion rewards
-- **Progress visualization**: Clear category breakdown shows advancement areas
-- **Extensible system**: Easy to add new achievements without code changes
-- **Clean separation**: Detection logic separate from UI rendering logic
-
-## Phase 3.4: Insights Engine Implementation (2025-07-04)
-
-Completed data-driven insights system providing intelligent training analysis without misleading "AI" claims.
-
-### Key Components:
-- **ProgressInsight entity** with priority system and autoGenerate primary key
-- **InsightGenerationService** with 6 insight categories (Progress, Plateaus, Consistency, Volume, RPE, Recovery)
-- **Complete Insights tab** in Analytics with filtering and read/unread state
-- **Actionable insights** with specific recommendations (deload, reduce volume, etc.)
-
-### Critical Fixes Applied:
-- **Primary key constraint**: Added `autoGenerate = true` to prevent duplicate ID errors
-- **History refresh bug**: Fixed stale data by adding auto-refresh on navigation
-- **Database version**: Updated to v34 to reflect schema changes
-
-### Technical Lessons:
-- **No assumptions**: Don't invent problems (empty workouts) when user provides clear repro steps
-- **Simple solutions first**: History not updating was just missing refresh, not complex data issue
-- **Database versioning**: Always increment version when changing entity schemas
+### Insights Engine (Phase 3.4)
+- **InsightGenerationService** with 6 categories (Progress, Plateaus, Consistency, etc.)
+- ProgressInsight entity with `autoGenerate = true` for primary key
+- Insights tab with filtering and read/unread state
+- Always increment database version when changing entity schemas
 
 ## Next Milestone: Exercise-Specific Progress Tracking
 
