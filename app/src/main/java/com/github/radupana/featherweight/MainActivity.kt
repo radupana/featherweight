@@ -381,6 +381,7 @@ fun MainAppWithNavigation(
                         onScreenChange(Screen.ACTIVE_WORKOUT)
                     },
                     historyViewModel = historyViewModel,
+                    modifier = Modifier.padding(innerPadding),
                 )
             }
 

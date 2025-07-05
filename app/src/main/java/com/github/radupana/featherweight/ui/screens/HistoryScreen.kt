@@ -49,6 +49,7 @@ data class Quadruple<A, B, C, D>(
 fun HistoryScreen(
     onViewWorkout: (Long) -> Unit = {},
     historyViewModel: HistoryViewModel = viewModel(),
+    modifier: Modifier = Modifier,
 ) {
     val historyState by historyViewModel.historyState.collectAsState()
     val isRefreshing by historyViewModel.isRefreshing.collectAsState()
@@ -75,7 +76,7 @@ fun HistoryScreen(
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = { historyViewModel.refreshHistory() },
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
     ) {
         Column(
             modifier =
