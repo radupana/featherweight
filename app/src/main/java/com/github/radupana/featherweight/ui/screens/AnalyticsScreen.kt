@@ -48,6 +48,7 @@ import com.github.radupana.featherweight.service.AchievementSummary
 @Composable
 fun AnalyticsScreen(
     viewModel: AnalyticsViewModel,
+    onNavigateToExercise: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val analyticsState by viewModel.analyticsState.collectAsState()
@@ -82,7 +83,7 @@ fun AnalyticsScreen(
         // Tab Content
         when (selectedTab) {
             0 -> OverviewTab(analyticsState, viewModel, Modifier.padding(16.dp))
-            1 -> ExercisesTab(viewModel, Modifier.padding(16.dp))
+            1 -> ExercisesTab(viewModel, onNavigateToExercise, Modifier.padding(16.dp))
             2 -> AwardsTab(viewModel, Modifier.padding(16.dp))
             3 -> InsightsTab(viewModel, Modifier.padding(16.dp))
         }
@@ -833,13 +834,14 @@ private fun Modifier.shimmerEffect(): Modifier =
 @Composable
 private fun ExercisesTab(
     viewModel: AnalyticsViewModel,
+    onNavigateToExercise: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var exercisesSummary by remember { mutableStateOf<List<com.github.radupana.featherweight.service.ExerciseSummary>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     
     LaunchedEffect(Unit) {
-        // TODO: Load exercises summary from repository
+        exercisesSummary = viewModel.getExercisesSummary()
         isLoading = false
     }
     
@@ -880,7 +882,7 @@ private fun ExercisesTab(
                         ExerciseCard(
                             exercise = exercise,
                             onClick = { 
-                                // TODO: Navigate to exercise detail
+                                onNavigateToExercise(exercise.exerciseName)
                             }
                         )
                     }
@@ -944,7 +946,8 @@ private fun ExerciseCard(
             ) {
                 com.github.radupana.featherweight.ui.components.MiniProgressChart(
                     data = exercise.miniChartData,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(60.dp, 40.dp)
                 )
                 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -1547,66 +1550,95 @@ private fun InsightsTab(
                 }
             }
         } else {
+            // Apply filtering to ALL insights first
+            val allInsights = analyticsState.insights + analyticsState.actionableInsights
+            val filteredInsights = if (selectedInsightType != null) {
+                allInsights.filter { it.insightType == selectedInsightType }
+            } else {
+                allInsights
+            }
+            
+            // Separate filtered insights into actionable and regular
+            val filteredActionable = filteredInsights.filter { it.isActionable }
+            val filteredRegular = filteredInsights.filter { !it.isActionable }
+            
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Actionable Insights Section
-                if (analyticsState.actionableInsights.isNotEmpty()) {
-                    item {
-                        InsightSectionHeader(
-                            title = "⚡ Action Required",
-                            subtitle = "${analyticsState.actionableInsights.size} insights need attention",
-                            isExpanded = true
-                        )
-                    }
-                    
-                    items(analyticsState.actionableInsights) { insight ->
-                        InsightCard(
-                            insight = insight,
-                            onMarkAsRead = { viewModel.markInsightAsRead(it) },
-                            onAction = { 
-                                // TODO: Implement specific actions based on actionType
-                            }
-                        )
-                    }
-                }
-                
-                // Insight Type Filter
+                // Insight Type Filter - Always show at top
                 item {
                     InsightTypeFilterRow(
                         selectedType = selectedInsightType,
                         onTypeSelected = { selectedInsightType = it },
-                        insights = analyticsState.insights
+                        insights = allInsights
                     )
                 }
                 
-                // Recent Insights Section
-                val filteredInsights = if (selectedInsightType != null) {
-                    analyticsState.insights.filter { it.insightType == selectedInsightType }
-                } else {
-                    analyticsState.insights
-                }
-                
-                if (filteredInsights.isNotEmpty()) {
+                // Actionable Insights Section (filtered)
+                if (filteredActionable.isNotEmpty()) {
                     item {
                         InsightSectionHeader(
-                            title = "📊 Recent Insights",
-                            subtitle = "${filteredInsights.size} insights from your training data"
+                            title = "⚡ Action Required",
+                            subtitle = "${filteredActionable.size} insights need attention",
+                            isExpanded = true
                         )
                     }
                     
-                    items(filteredInsights) { insight ->
+                    items(filteredActionable) { insight ->
                         InsightCard(
                             insight = insight,
                             onMarkAsRead = { viewModel.markInsightAsRead(it) },
-                            onAction = {
-                                // TODO: Implement specific actions based on actionType
-                            }
+                            onAction = { }
                         )
                     }
-                } else if (analyticsState.insights.isEmpty() && !analyticsState.isInsightsLoading) {
+                }
+                
+                // Recent Insights Section (filtered)
+                if (filteredRegular.isNotEmpty()) {
                     item {
-                        EmptyInsightsState()
+                        InsightSectionHeader(
+                            title = "📊 Recent Insights",
+                            subtitle = "${filteredRegular.size} insights from your training data"
+                        )
+                    }
+                    
+                    items(filteredRegular) { insight ->
+                        InsightCard(
+                            insight = insight,
+                            onMarkAsRead = { viewModel.markInsightAsRead(it) },
+                            onAction = { }
+                        )
+                    }
+                } 
+                
+                // Show empty state only if NO insights exist at all
+                if (filteredInsights.isEmpty() && !analyticsState.isInsightsLoading) {
+                    item {
+                        if (allInsights.isEmpty()) {
+                            // No insights exist at all
+                            EmptyInsightsState()
+                        } else {
+                            // Insights exist but filtered out
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "No insights match this filter",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1761,28 +1793,7 @@ private fun InsightCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
-            // Action button for actionable insights
-            if (insight.isActionable && insight.actionType != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                OutlinedButton(
-                    onClick = onAction,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = when (insight.actionType) {
-                            "deload" -> "Suggest Deload"
-                            "reduce_volume" -> "Reduce Volume"
-                            "monitor_recovery" -> "Monitor Recovery"
-                            "increase_intensity" -> "Increase Intensity"
-                            "monitor_fatigue" -> "Monitor Fatigue"
-                            "schedule_workout" -> "Schedule Workout"
-                            "adjust_schedule" -> "Adjust Schedule"
-                            else -> "Take Action"
-                        }
-                    )
-                }
-            }
+            // Remove action buttons since they don't do anything yet
         }
     }
 }

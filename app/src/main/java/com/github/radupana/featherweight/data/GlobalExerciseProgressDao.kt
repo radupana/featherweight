@@ -122,4 +122,7 @@ interface GlobalExerciseProgressDao {
         val exerciseName: String,
         val totalVolumeLast30Days: Float
     )
+    
+    @Query("DELETE FROM global_exercise_progress")
+    suspend fun deleteAllGlobalProgress()
 }

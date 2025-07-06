@@ -57,6 +57,7 @@ import com.github.radupana.featherweight.ui.components.CenteredInputField
 import com.github.radupana.featherweight.ui.components.InputFieldType
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import com.github.radupana.featherweight.util.WeightFormatter
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -831,12 +832,7 @@ fun CleanSetLayout(
     // Use both set.id and the actual values as remember keys so UI updates when data changes
     var weightInput by remember(set.id, set.actualWeight) {
         val text = if (set.actualWeight > 0) {
-            // Format weight to avoid showing unnecessary decimals (1.0 -> "1", 1.5 -> "1.5")
-            if (set.actualWeight % 1.0f == 0.0f) {
-                set.actualWeight.toInt().toString()
-            } else {
-                set.actualWeight.toString()
-            }
+            WeightFormatter.formatWeight(set.actualWeight)
         } else ""
         mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
@@ -845,7 +841,7 @@ fun CleanSetLayout(
         mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
     var rpeInput by remember(set.id, set.actualRpe) {
-        val text = set.actualRpe?.let { if (it % 1.0f == 0.0f) it.toInt().toString() else it.toString() } ?: ""
+        val text = set.actualRpe?.let { WeightFormatter.formatDecimal(it, 1) } ?: ""
         mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
 
@@ -929,7 +925,7 @@ fun CleanSetLayout(
             // Target column - read-only
             val targetDisplay = if (isProgrammeWorkout && set.targetReps > 0) {
                 if (set.targetWeight != null && set.targetWeight > 0) {
-                    "${set.targetReps}×${set.targetWeight.toInt()}"
+                    "${set.targetReps}×${WeightFormatter.formatWeight(set.targetWeight)}"
                 } else {
                     "${set.targetReps}"
                 }
@@ -1116,7 +1112,7 @@ private fun InsightsSection(
                                         ) {
                                             Text(
                                                 text = if (set.weight > 0) {
-                                                    "${set.reps}×${set.weight.toInt()}kg"
+                                                    "${set.reps}×${WeightFormatter.formatWeightWithUnit(set.weight)}"
                                                 } else {
                                                     "${set.reps} reps"
                                                 },
@@ -1126,7 +1122,7 @@ private fun InsightsSection(
                                             )
                                             if (set.rpe != null) {
                                                 Text(
-                                                    "@${set.rpe.toInt()}",
+                                                    "@${WeightFormatter.formatDecimal(set.rpe, 1)}",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                                                 )
@@ -1178,7 +1174,7 @@ private fun InsightsSection(
                                     Text(
                                         text = with(intelligentSuggestions) {
                                             if (suggestedWeight > 0) {
-                                                "${suggestedReps}×${suggestedWeight.toInt()}kg"
+                                                "${suggestedReps}×${WeightFormatter.formatWeightWithUnit(suggestedWeight)}"
                                             } else {
                                                 "${suggestedReps} reps"
                                             }
@@ -1190,7 +1186,7 @@ private fun InsightsSection(
                                     
                                     if (intelligentSuggestions.suggestedRpe != null) {
                                         Text(
-                                            "@${intelligentSuggestions.suggestedRpe.toInt()}",
+                                            "@${WeightFormatter.formatDecimal(intelligentSuggestions.suggestedRpe, 1)}",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f)
                                         )

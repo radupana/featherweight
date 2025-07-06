@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.github.radupana.featherweight.service.WeightSuggestion
 import com.github.radupana.featherweight.service.RepsSuggestion
+import com.github.radupana.featherweight.util.WeightFormatter
 import kotlin.math.roundToInt
 
 @Composable
@@ -56,7 +57,7 @@ fun IntelligentSetInput(
             // Target section
             if (targetWeight != null) {
                 Text(
-                    text = "Target: $targetReps reps @ ${targetWeight}kg",
+                    text = "Target: $targetReps reps @ ${WeightFormatter.formatWeightWithUnit(targetWeight)}",
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
@@ -153,7 +154,7 @@ fun IntelligentSetInput(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Suggested: ${weightSuggestion.weight}kg",
+                            text = "Suggested: ${WeightFormatter.formatWeightWithUnit(weightSuggestion.weight)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -260,7 +261,7 @@ private fun WeightSuggestionModal(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "${suggestion.weight}kg",
+                            text = WeightFormatter.formatWeightWithUnit(suggestion.weight),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -314,7 +315,7 @@ private fun WeightSuggestionModal(
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Text(
-                                        text = "${reps}→${weight}kg",
+                                        text = "${reps}→${WeightFormatter.formatWeightWithUnit(weight)}",
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
@@ -332,14 +333,14 @@ private fun WeightSuggestionModal(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Keep ${currentWeight}kg")
+                        Text("Keep ${WeightFormatter.formatWeightWithUnit(currentWeight)}")
                     }
                     
                     Button(
                         onClick = { onUseWeight(suggestion.weight) },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Use ${suggestion.weight}kg")
+                        Text("Use ${WeightFormatter.formatWeightWithUnit(suggestion.weight)}")
                     }
                 }
             }

@@ -59,4 +59,7 @@ interface SetLogDao {
         AND w.date < :beforeDate
     """)
     suspend fun getMaxWeightForExerciseBefore(exerciseName: String, beforeDate: String): Float?
+    
+    @Query("DELETE FROM SetLog")
+    suspend fun deleteAllSetLogs()
 }

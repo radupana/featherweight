@@ -10,6 +10,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import java.time.LocalDateTime
 
 data class VolumeMetrics(
@@ -505,6 +507,17 @@ class AnalyticsViewModel(
                 )
             } catch (e: Exception) {
                 android.util.Log.e("AnalyticsViewModel", "Failed to mark insight as read", e)
+            }
+        }
+    }
+
+    suspend fun getExercisesSummary(): List<com.github.radupana.featherweight.service.ExerciseSummary> {
+        return withContext(Dispatchers.IO) {
+            try {
+                repository.getExercisesSummary()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                emptyList()
             }
         }
     }

@@ -57,6 +57,17 @@ interface PersonalRecordDao {
     @Query("DELETE FROM PersonalRecord WHERE id = :id")
     suspend fun deletePersonalRecord(id: Long)
     
+    @Query("""
+        SELECT * FROM PersonalRecord 
+        WHERE exerciseName = :exerciseName 
+        ORDER BY weight DESC, recordDate DESC 
+        LIMIT 1
+    """)
+    suspend fun getLatestRecordForExercise(exerciseName: String): PersonalRecord?
+
     @Query("DELETE FROM PersonalRecord")
     suspend fun clearAllPersonalRecords()
+    
+    @Query("DELETE FROM PersonalRecord")
+    suspend fun deleteAllPersonalRecords()
 }

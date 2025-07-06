@@ -43,6 +43,21 @@ that are transparent and explicit about reasoning. Always show WHY a weight was 
 - **Navigation**: Single-Activity with enum-based routing
 - **Async**: Coroutines and Flow with Dispatchers.IO
 
+## Documentation Strategy
+
+**ALWAYS** use Context7 for the latest documentation and APIs for:
+- Kotlin language features and standard library
+- Jetpack Compose components and Material Design 3
+- Android SDK and framework APIs
+- Room database and SQLite
+- Coroutines and Flow
+- Any third-party libraries in our tech stack
+
+Context7 provides up-to-date, accurate documentation that supersedes any knowledge cutoff limitations. When implementing features or debugging issues, always:
+1. Call `mcp__context7__resolve-library-id` to find the correct library ID
+2. Use `mcp__context7__get-library-docs` to fetch current documentation
+3. Implement according to the latest APIs and best practices from Context7
+
 ## Current Implementation Status
 
 ### Core Features ✅

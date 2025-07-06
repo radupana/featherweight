@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.profile.ExerciseMaxWithName
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
+import com.github.radupana.featherweight.data.seeding.WorkoutSeedConfig
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.service.WorkoutSeedingService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,10 +21,12 @@ data class ProfileUiState(
     val showAddExerciseDialog: Boolean = false,
     val selectedExercise: Exercise? = null,
     val error: String? = null,
+    val successMessage: String? = null,
 )
 
 class ProfileViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
+    private val seedingService = WorkoutSeedingService(repository)
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -165,6 +169,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         _uiState.value = _uiState.value.copy(error = null)
     }
     
+    fun clearSuccessMessage() {
+        _uiState.value = _uiState.value.copy(successMessage = null)
+    }
+    
     fun updateExerciseMax(exerciseName: String, maxWeight: Float) {
         viewModelScope.launch {
             try {
@@ -203,6 +211,40 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = "Failed to find exercise: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    fun seedWorkouts(config: WorkoutSeedConfig) {
+        viewModelScope.launch {
+            try {
+                println("🌱 ProfileViewModel: Starting workout seeding with config: $config")
+                val generatedCount = seedingService.seedWorkouts(config)
+                println("✅ ProfileViewModel: Workout seeding completed successfully")
+                _uiState.value = _uiState.value.copy(
+                    successMessage = "Successfully generated $generatedCount workouts"
+                )
+            } catch (e: Exception) {
+                println("❌ ProfileViewModel: Failed to seed workouts: ${e.message}")
+                e.printStackTrace()
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to seed workouts: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    fun clearAllWorkouts() {
+        viewModelScope.launch {
+            try {
+                println("🗑️ ProfileViewModel: Clearing all workouts")
+                repository.deleteAllWorkouts()
+                println("✅ ProfileViewModel: All workouts cleared successfully")
+            } catch (e: Exception) {
+                println("❌ ProfileViewModel: Failed to clear workouts: ${e.message}")
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to clear workouts: ${e.message}"
                 )
             }
         }

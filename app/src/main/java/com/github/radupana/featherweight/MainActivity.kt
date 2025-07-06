@@ -81,6 +81,7 @@ enum class Screen {
     PROGRAMME_GENERATOR,
     PROGRAMME_PREVIEW,
     PROFILE,
+    EXERCISE_PROGRESS,
 }
 
 data class NavigationItem(
@@ -144,6 +145,7 @@ class MainActivity : ComponentActivity() {
                 android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Inside FeatherweightTheme")
                 val userPreferences = remember { UserPreferences(application) }
                 var currentScreen by rememberSaveable { mutableStateOf(Screen.SPLASH) }
+                var selectedExerciseName by rememberSaveable { mutableStateOf("") }
                 
                 // App-level ViewModels for persistence across screens
                 android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Creating RestTimerViewModel")
@@ -194,6 +196,8 @@ class MainActivity : ComponentActivity() {
                             currentScreen = currentScreen,
                             onScreenChange = { screen -> currentScreen = screen },
                             restTimerViewModel = restTimerViewModel,
+                            selectedExerciseName = selectedExerciseName,
+                            onSelectedExerciseNameChange = { exerciseName -> selectedExerciseName = exerciseName },
                         )
                     }
                 }
@@ -212,6 +216,8 @@ fun MainAppWithNavigation(
     currentScreen: Screen,
     onScreenChange: (Screen) -> Unit,
     restTimerViewModel: RestTimerViewModel,
+    selectedExerciseName: String,
+    onSelectedExerciseNameChange: (String) -> Unit,
 ) {
     // Track previous screen for proper back navigation
     var previousScreen by remember { mutableStateOf<Screen?>(null) }
@@ -391,6 +397,10 @@ fun MainAppWithNavigation(
                         workoutViewModel.resumeWorkout(workoutId)
                         onScreenChange(Screen.ACTIVE_WORKOUT)
                     },
+                    onNavigateToExercise = { exerciseName ->
+                        onSelectedExerciseNameChange(exerciseName)
+                        onScreenChange(Screen.EXERCISE_PROGRESS)
+                    },
                     historyViewModel = historyViewModel,
                     modifier = Modifier.padding(innerPadding),
                 )
@@ -400,6 +410,10 @@ fun MainAppWithNavigation(
                 val analyticsViewModel: AnalyticsViewModel = viewModel()
                 AnalyticsScreen(
                     viewModel = analyticsViewModel,
+                    onNavigateToExercise = { exerciseName ->
+                        onSelectedExerciseNameChange(exerciseName)
+                        onScreenChange(Screen.EXERCISE_PROGRESS)
+                    },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -464,6 +478,14 @@ fun MainAppWithNavigation(
             Screen.PROFILE -> {
                 com.github.radupana.featherweight.ui.screens.ProfileScreen(
                     onBack = { onScreenChange(Screen.HOME) },
+                    modifier = Modifier.padding(innerPadding),
+                )
+            }
+            
+            Screen.EXERCISE_PROGRESS -> {
+                com.github.radupana.featherweight.ui.screens.ExerciseProgressScreen(
+                    exerciseName = selectedExerciseName,
+                    onBack = { onScreenChange(previousScreen ?: Screen.ANALYTICS) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }

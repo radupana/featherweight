@@ -643,10 +643,6 @@ fun WorkoutScreen(
     if (showPRCelebration && workoutState.pendingPRs.isNotEmpty()) {
         PRCelebrationDialog(
             personalRecords = workoutState.pendingPRs,
-            onShare = { pr ->
-                // TODO: Implement share functionality
-                println("Sharing PR: ${pr.exerciseName} - ${pr.weight}kg x ${pr.reps}")
-            },
             onDismiss = {
                 showPRCelebration = false
                 viewModel.clearPendingPRs()

@@ -17,6 +17,7 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.theme.FeatherweightColors
 import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.ui.theme.GradientProgressIndicator
+import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -251,30 +252,21 @@ fun ExerciseCard(
             ) {
                 MetricCard(
                     icon = "📊",
-                    value = if (totalVolume > 0) "${totalVolume.toInt()}kg" else "—",
+                    value = if (totalVolume > 0) WeightFormatter.formatVolume(totalVolume) else "—",
                     label = "Volume",
                     modifier = Modifier.weight(1f),
                 )
 
                 MetricCard(
                     icon = "💪",
-                    value = if (bestSet != null) "${bestSet.reps}×${bestSet.weight}kg" else "—",
+                    value = if (bestSet != null) "${bestSet.reps}×${WeightFormatter.formatWeightWithUnit(bestSet.weight)}" else "—",
                     label = "Best Set",
                     modifier = Modifier.weight(1f),
                 )
 
                 MetricCard(
                     icon = "⚡",
-                    value =
-                        if (avgRpe != null) {
-                            if (avgRpe == avgRpe.toInt().toFloat()) {
-                                avgRpe.toInt().toString()
-                            } else {
-                                String.format("%.1f", avgRpe)
-                            }
-                        } else {
-                            "—"
-                        },
+                    value = if (avgRpe != null) WeightFormatter.formatDecimal(avgRpe, 1) else "—",
                     label = "Avg RPE",
                     modifier = Modifier.weight(1f),
                 )

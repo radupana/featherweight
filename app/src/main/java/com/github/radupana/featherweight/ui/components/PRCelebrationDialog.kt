@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +25,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.PRType
+import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.format.DateTimeFormatter
 import kotlin.math.cos
 import kotlin.math.sin
@@ -34,7 +34,6 @@ import kotlin.random.Random
 @Composable
 fun PRCelebrationDialog(
     personalRecords: List<PersonalRecord>,
-    onShare: (PersonalRecord) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -124,41 +123,18 @@ fun PRCelebrationDialog(
                     personalRecords.forEach { pr ->
                         PRDetailCard(
                             personalRecord = pr,
-                            onShare = { onShare(pr) },
                             modifier = Modifier.padding(vertical = 4.dp)
                         )
                     }
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    // Action buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    // Action button
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        OutlinedButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Continue Workout")
-                        }
-                        
-                        Button(
-                            onClick = { 
-                                if (personalRecords.isNotEmpty()) {
-                                    onShare(personalRecords.first())
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Share")
-                        }
+                        Text("Continue Workout")
                     }
                 }
             }
@@ -169,7 +145,6 @@ fun PRCelebrationDialog(
 @Composable
 private fun PRDetailCard(
     personalRecord: PersonalRecord,
-    onShare: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -228,7 +203,7 @@ private fun PRDetailCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Text(
-                    text = "Previous: ${personalRecord.previousWeight}kg × ${personalRecord.previousReps ?: 0}",
+                    text = "Previous: ${WeightFormatter.formatWeightWithUnit(personalRecord.previousWeight)} × ${personalRecord.previousReps ?: 0}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -242,7 +217,7 @@ private fun PRDetailCard(
                 // Improvement percentage
                 if (personalRecord.improvementPercentage > 0) {
                     Text(
-                        text = "+${String.format("%.1f", personalRecord.improvementPercentage)}% improvement",
+                        text = "+${WeightFormatter.formatDecimal(personalRecord.improvementPercentage, 1)}% improvement",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF4CAF50)
@@ -255,10 +230,10 @@ private fun PRDetailCard(
 
 private fun formatPRText(pr: PersonalRecord): String {
     return when (pr.recordType) {
-        PRType.WEIGHT -> "${pr.weight}kg × ${pr.reps}"
-        PRType.REPS -> "${pr.reps} reps @ ${pr.weight}kg"
-        PRType.VOLUME -> "${pr.volume.toInt()}kg total"
-        PRType.ESTIMATED_1RM -> "~${pr.estimated1RM?.toInt() ?: 0}kg 1RM"
+        PRType.WEIGHT -> "${WeightFormatter.formatWeightWithUnit(pr.weight)} × ${pr.reps}"
+        PRType.REPS -> "${pr.reps} reps @ ${WeightFormatter.formatWeightWithUnit(pr.weight)}"
+        PRType.VOLUME -> "${WeightFormatter.formatWeight(pr.volume)}kg total"
+        PRType.ESTIMATED_1RM -> "~${pr.estimated1RM?.let { WeightFormatter.formatWeightWithUnit(it) } ?: "0kg"} 1RM"
     }
 }
 

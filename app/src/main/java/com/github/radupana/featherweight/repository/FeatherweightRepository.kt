@@ -59,6 +59,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.time.LocalDate
 import java.time.LocalDateTime
 import com.github.radupana.featherweight.data.programme.ProgrammeType as DataProgrammeType
 
@@ -2747,6 +2748,10 @@ class FeatherweightRepository(
         globalExerciseProgressDao.getProgressForExercise(getCurrentUserId(), exerciseName)
     }
     
+    suspend fun getGlobalExerciseProgress(userId: Long, exerciseName: String): GlobalExerciseProgress? = withContext(Dispatchers.IO) {
+        globalExerciseProgressDao.getProgressForExercise(userId, exerciseName)
+    }
+    
     fun observeGlobalExerciseProgress(exerciseName: String) = 
         globalExerciseProgressDao.observeProgressForExercise(getCurrentUserId(), exerciseName)
     
@@ -2915,5 +2920,119 @@ class FeatherweightRepository(
      */
     suspend fun cleanupOldInsights() = withContext(Dispatchers.IO) {
         insightGenerationService.cleanupOldInsights()
+    }
+    
+    // Exercise Progress Analytics Methods
+    data class ExerciseWorkoutSummary(
+        val exerciseLogId: Long,
+        val workoutId: Long,
+        val workoutDate: LocalDateTime,
+        val actualWeight: Float,
+        val actualReps: Int,
+        val sets: Int,
+        val totalVolume: Float
+    )
+    
+    suspend fun getExerciseWorkoutsInDateRange(
+        userId: Long,
+        exerciseName: String,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<ExerciseWorkoutSummary> = withContext(Dispatchers.IO) {
+        val startDateTime = startDate.atStartOfDay()
+        val endDateTime = endDate.atTime(23, 59, 59)
+        val exerciseLogs = exerciseLogDao.getExerciseLogsInDateRange(exerciseName, startDateTime, endDateTime)
+        
+        exerciseLogs.map { exerciseLog ->
+            val sets = setLogDao.getSetLogsForExercise(exerciseLog.id)
+            val maxWeight = sets.filter { it.isCompleted }.maxOfOrNull { it.actualWeight } ?: 0f
+            val maxReps = sets.filter { it.isCompleted && it.actualWeight == maxWeight }.maxOfOrNull { it.actualReps } ?: 0
+            val totalSets = sets.count { it.isCompleted }
+            val totalVolume = sets.filter { it.isCompleted }.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
+            
+            val workout = workoutDao.getWorkoutById(exerciseLog.workoutId)
+            
+            ExerciseWorkoutSummary(
+                exerciseLogId = exerciseLog.id,
+                workoutId = exerciseLog.workoutId,
+                workoutDate = workout?.date ?: LocalDateTime.now(),
+                actualWeight = maxWeight,
+                actualReps = maxReps,
+                sets = totalSets,
+                totalVolume = totalVolume
+            )
+        }
+    }
+    
+    suspend fun getPersonalRecordForExercise(userId: Long, exerciseName: String): PersonalRecord? = withContext(Dispatchers.IO) {
+        personalRecordDao.getLatestRecordForExercise(exerciseName)
+    }
+    
+    suspend fun getTotalSessionsForExercise(userId: Long, exerciseName: String): Int = withContext(Dispatchers.IO) {
+        exerciseLogDao.getTotalSessionsForExercise(exerciseName)
+    }
+    
+    suspend fun getExercisesSummary(): List<com.github.radupana.featherweight.service.ExerciseSummary> = withContext(Dispatchers.IO) {
+        val userId = userPreferences.getCurrentUserId()
+        if (userId == -1L) return@withContext emptyList()
+        
+        // Get all unique exercises from completed workouts
+        val allExercises = exerciseLogDao.getAllUniqueExercises()
+        
+        allExercises.mapNotNull { exerciseName ->
+            val globalProgress = getGlobalExerciseProgress(userId, exerciseName)
+            if (globalProgress != null) {
+                // Get recent workout data for mini chart
+                val recentWorkouts = getExerciseWorkoutsInDateRange(
+                    userId = userId,
+                    exerciseName = exerciseName,
+                    startDate = java.time.LocalDate.now().minusDays(90),
+                    endDate = java.time.LocalDate.now()
+                )
+                
+                // Calculate progress percentage (last 30 days)
+                val thirtyDaysAgo = java.time.LocalDate.now().minusDays(30)
+                val monthlyWorkouts = recentWorkouts.filter { 
+                    it.workoutDate.toLocalDate().isAfter(thirtyDaysAgo)
+                }
+                
+                var progressPercentage = 0f
+                if (monthlyWorkouts.size >= 2) {
+                    val oldestWeight = monthlyWorkouts.lastOrNull()?.actualWeight ?: 0f
+                    val newestWeight = monthlyWorkouts.firstOrNull()?.actualWeight ?: 0f
+                    if (oldestWeight > 0) {
+                        progressPercentage = ((newestWeight - oldestWeight) / oldestWeight) * 100
+                    }
+                }
+                
+                // Create mini chart data (last 8 data points)
+                val miniChartData = recentWorkouts
+                    .take(8)
+                    .map { log ->
+                        // Calculate estimated 1RM for each workout
+                        log.actualWeight * (1 + 0.0333f * log.actualReps)
+                    }
+                    .reversed() // Oldest to newest for chart
+                
+                com.github.radupana.featherweight.service.ExerciseSummary(
+                    exerciseName = exerciseName,
+                    currentMax = globalProgress.estimatedMax,
+                    progressPercentage = progressPercentage,
+                    lastWorkout = globalProgress.lastUpdated,
+                    sessionCount = getTotalSessionsForExercise(userId, exerciseName),
+                    miniChartData = miniChartData
+                )
+            } else null
+        }.sortedByDescending { it.currentMax }
+    }
+    
+    suspend fun deleteAllWorkouts() {
+        db.workoutDao().deleteAllWorkouts()
+        db.exerciseLogDao().deleteAllExerciseLogs()
+        db.setLogDao().deleteAllSetLogs()
+        db.personalRecordDao().deleteAllPersonalRecords()
+        db.progressInsightDao().deleteAllInsights()
+        db.globalExerciseProgressDao().deleteAllGlobalProgress()
+        println("🗑️ Repository: Deleted all workout-related data")
     }
 }

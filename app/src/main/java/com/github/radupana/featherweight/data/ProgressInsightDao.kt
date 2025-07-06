@@ -129,4 +129,7 @@ interface ProgressInsightDao {
         exerciseName: String?, 
         sinceDate: LocalDateTime
     ): Int
+    
+    @Query("DELETE FROM progress_insights")
+    suspend fun deleteAllInsights()
 }

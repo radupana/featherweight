@@ -27,4 +27,38 @@ interface ExerciseLogDao {
     
     @Query("SELECT * FROM ExerciseLog WHERE id = :id")
     suspend fun getExerciseLogById(id: Long): ExerciseLog?
+    
+    @Query("""
+        SELECT el.* FROM ExerciseLog el
+        INNER JOIN Workout w ON el.workoutId = w.id
+        WHERE el.exerciseName = :exerciseName
+        AND w.date >= :startDate
+        AND w.date <= :endDate
+        AND w.status = 'COMPLETED'
+        ORDER BY w.date DESC
+    """)
+    suspend fun getExerciseLogsInDateRange(
+        exerciseName: String,
+        startDate: java.time.LocalDateTime,
+        endDate: java.time.LocalDateTime
+    ): List<ExerciseLog>
+    
+    @Query("""
+        SELECT COUNT(DISTINCT w.id) FROM ExerciseLog el
+        INNER JOIN Workout w ON el.workoutId = w.id
+        WHERE el.exerciseName = :exerciseName
+        AND w.status = 'COMPLETED'
+    """)
+    suspend fun getTotalSessionsForExercise(exerciseName: String): Int
+    
+    @Query("""
+        SELECT DISTINCT el.exerciseName FROM ExerciseLog el
+        INNER JOIN Workout w ON el.workoutId = w.id
+        WHERE w.status = 'COMPLETED'
+        ORDER BY el.exerciseName
+    """)
+    suspend fun getAllUniqueExercises(): List<String>
+    
+    @Query("DELETE FROM ExerciseLog")
+    suspend fun deleteAllExerciseLogs()
 }

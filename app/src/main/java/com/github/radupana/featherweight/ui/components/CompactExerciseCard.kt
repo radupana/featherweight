@@ -17,6 +17,7 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.theme.FeatherweightColors
 import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.ui.utils.DragHandle
+import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
 @Composable
@@ -134,7 +135,7 @@ fun CompactExerciseCard(
                         if (totalVolume > 0) {
                             CompactMetric(
                                 icon = Icons.Filled.FitnessCenter,
-                                value = "${totalVolume.toInt()}kg",
+                                value = WeightFormatter.formatWeightWithUnit(totalVolume),
                                 contentDescription = "Total volume"
                             )
                             Spacer(modifier = Modifier.width(16.dp))
@@ -144,7 +145,7 @@ fun CompactExerciseCard(
                         if (bestSet != null) {
                             CompactMetric(
                                 icon = Icons.Filled.Star,
-                                value = "${bestSet.reps}×${bestSet.weight.toInt()}",
+                                value = "${bestSet.reps}×${WeightFormatter.formatWeight(bestSet.weight)}",
                                 contentDescription = "Best set"
                             )
                             Spacer(modifier = Modifier.width(16.dp))

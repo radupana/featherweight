@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.util.WeightFormatter
 
 @Composable
 fun SetRow(
@@ -136,7 +137,7 @@ fun SetRow(
                             modifier = Modifier.fillMaxSize(),
                         ) {
                             Text(
-                                if (set.weight > 0) "${set.weight}kg" else "—",
+                                if (set.weight > 0) WeightFormatter.formatWeightWithUnit(set.weight) else "—",
                                 style = MaterialTheme.typography.bodyMedium,
                                 textAlign = TextAlign.Center,
                             )
@@ -173,11 +174,7 @@ fun SetRow(
                         ) {
                             Text(
                                 set.rpe?.let { rpe ->
-                                    if (rpe == rpe.toInt().toFloat()) {
-                                        rpe.toInt().toString()
-                                    } else {
-                                        rpe.toString()
-                                    }
+                                    WeightFormatter.formatDecimal(rpe, 1)
                                 } ?: "—",
                                 style = MaterialTheme.typography.bodyMedium,
                                 textAlign = TextAlign.Center,

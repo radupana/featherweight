@@ -48,6 +48,7 @@ data class Quadruple<A, B, C, D>(
 @Composable
 fun HistoryScreen(
     onViewWorkout: (Long) -> Unit = {},
+    onNavigateToExercise: (String) -> Unit = {},
     historyViewModel: HistoryViewModel = viewModel(),
     modifier: Modifier = Modifier,
 ) {

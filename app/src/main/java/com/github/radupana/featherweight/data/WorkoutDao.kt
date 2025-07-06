@@ -127,4 +127,7 @@ interface WorkoutDao {
         minWeight: Float, 
         maxWeight: Float
     ): List<SetLog>
+    
+    @Query("DELETE FROM Workout")
+    suspend fun deleteAllWorkouts()
 }
