@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -234,10 +235,9 @@ fun MainAppWithNavigation(
 
     val navigationItems =
         listOf(
-            NavigationItem(Screen.HOME, "Home", Icons.Filled.FitnessCenter),
-            NavigationItem(Screen.PROGRAMMES, "Programmes", Icons.Filled.Schedule),
-            NavigationItem(Screen.HISTORY, "History", Icons.Filled.History),
-            NavigationItem(Screen.ANALYTICS, "Analytics", Icons.Filled.Analytics),
+            NavigationItem(Screen.HOME, "Home", Icons.Filled.Home),
+            NavigationItem(Screen.HISTORY, "Workouts", Icons.Filled.FitnessCenter),
+            NavigationItem(Screen.ANALYTICS, "Insights", Icons.Filled.Analytics),
         )
 
     // Determine if we should show the top bar with profile icon

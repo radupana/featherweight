@@ -21,11 +21,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.ui.components.PrimaryGradientCard
 import com.github.radupana.featherweight.ui.components.WheelHomeScreen
+import com.github.radupana.featherweight.ui.components.LastWorkoutInfo
 import com.github.radupana.featherweight.viewmodel.InProgressWorkout
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -45,13 +49,72 @@ fun HomeScreen(
     val inProgressWorkouts by workoutViewModel.inProgressWorkouts.collectAsState()
     val activeProgramme by programmeViewModel.activeProgramme.collectAsState()
     val programmeProgress by programmeViewModel.programmeProgress.collectAsState()
+    val lastCompletedWorkout by workoutViewModel.lastCompletedWorkout.collectAsState()
+    val lastCompletedWorkoutExercises by workoutViewModel.lastCompletedWorkoutExercises.collectAsState()
     val scope = rememberCoroutineScope()
     var showWorkoutDialog by remember { mutableStateOf(false) }
     var pendingWorkout by remember { mutableStateOf<InProgressWorkout?>(null) }
     
+    // Determine if there's ANY in-progress workout (most recent will be used)
+    val hasAnyInProgressWorkout = inProgressWorkouts.isNotEmpty()
+    val mostRecentInProgressWorkout = inProgressWorkouts
+        .sortedByDescending { it.startDate }
+        .firstOrNull()
+    
+    // Build detailed workout label for the wheel
+    val activeWorkoutLabel = mostRecentInProgressWorkout?.let { workout ->
+        when {
+            workout.isProgrammeWorkout && workout.programmeName != null -> {
+                val workoutDetail = workout.programmeWorkoutName ?: "Week ${workout.weekNumber ?: ""} Day ${workout.dayNumber ?: ""}"
+                "${workout.programmeName} $workoutDetail"
+            }
+            workout.name != null -> workout.name
+            else -> "Freestyle Workout"
+        }
+    }
+    
+    // Determine next workout info - needs to be done in LaunchedEffect
+    var nextWorkoutInfo by remember { mutableStateOf<NextProgrammeWorkoutInfo?>(null) }
+    var nextWorkoutLabel by remember { mutableStateOf<String?>(null) }
+    
+    LaunchedEffect(activeProgramme, programmeProgress) {
+        val programme = activeProgramme
+        if (programme != null && programmeProgress != null) {
+            nextWorkoutInfo = workoutViewModel.getNextProgrammeWorkout()
+            nextWorkoutInfo?.let { info ->
+                val workoutDetail = info.workoutStructure.name
+                nextWorkoutLabel = "${programme.name} $workoutDetail"
+            }
+        }
+    }
+    
+    // Format last workout info
+    var lastWorkoutInfo by remember { mutableStateOf<LastWorkoutInfo?>(null) }
+    
+    LaunchedEffect(lastCompletedWorkout, lastCompletedWorkoutExercises) {
+        lastCompletedWorkout?.let { workout ->
+            val daysAgo = ChronoUnit.DAYS.between(workout.date, LocalDateTime.now()).toInt()
+            val daysAgoText = when(daysAgo) {
+                0 -> "today"
+                1 -> "yesterday"
+                else -> "$daysAgo days ago"
+            }
+            
+            val exerciseNames = lastCompletedWorkoutExercises.take(3).joinToString(", ") { it.exerciseName } +
+                if (lastCompletedWorkoutExercises.size > 3) " +${lastCompletedWorkoutExercises.size - 3} more" else ""
+            
+            lastWorkoutInfo = LastWorkoutInfo(
+                name = workout.programmeWorkoutName ?: "Freestyle Workout",
+                daysAgo = daysAgoText,
+                exercises = exerciseNames
+            )
+        }
+    }
+    
     // Load data when screen appears
     LaunchedEffect(Unit) {
         workoutViewModel.loadInProgressWorkouts()
+        workoutViewModel.loadLastCompletedWorkout()
         programmeViewModel.refreshData()
     }
     
@@ -73,13 +136,13 @@ fun HomeScreen(
         onNavigateToActiveProgramme = onNavigateToActiveProgramme,
         onStartProgrammeWorkout = {
             scope.launch {
-                val nextWorkoutInfo = workoutViewModel.getNextProgrammeWorkout()
                 val programme = activeProgramme
-                if (nextWorkoutInfo != null && programme != null) {
+                val workoutInfo = nextWorkoutInfo
+                if (workoutInfo != null && programme != null) {
                     workoutViewModel.startProgrammeWorkout(
                         programmeId = programme.id,
-                        weekNumber = nextWorkoutInfo.actualWeekNumber,
-                        dayNumber = nextWorkoutInfo.workoutStructure.day,
+                        weekNumber = workoutInfo.actualWeekNumber,
+                        dayNumber = workoutInfo.workoutStructure.day,
                         userMaxes = mapOf(
                             "squat" to (programme.squatMax ?: 100f),
                             "bench" to (programme.benchMax ?: 80f),
@@ -97,6 +160,16 @@ fun HomeScreen(
         onViewHistory = onNavigateToHistory,
         onViewAnalytics = onNavigateToAnalytics,
         onProfileClick = onNavigateToProfile,
+        onContinueWorkout = if (mostRecentInProgressWorkout != null) {
+            {
+                workoutViewModel.resumeWorkout(mostRecentInProgressWorkout.id)
+                onStartFreestyle()
+            }
+        } else null,
+        activeWorkout = activeWorkoutLabel,
+        activeProgrammeName = activeProgramme?.name,
+        nextWorkoutName = nextWorkoutLabel,
+        lastWorkoutInfo = lastWorkoutInfo,
         modifier = modifier
     )
     

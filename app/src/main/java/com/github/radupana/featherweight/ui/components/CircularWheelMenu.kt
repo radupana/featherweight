@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.res.painterResource
 import com.github.radupana.featherweight.R
+import androidx.compose.material.icons.filled.SportsGymnastics
 
 data class WheelSegment(
     val id: String,
@@ -192,60 +194,89 @@ fun WheelHomeScreen(
     onViewHistory: () -> Unit,
     onViewAnalytics: () -> Unit,
     onProfileClick: () -> Unit = {},
+    onContinueWorkout: (() -> Unit)? = null,
+    activeWorkout: String? = null,
+    activeProgrammeName: String? = null,
+    nextWorkoutName: String? = null,
+    lastWorkoutInfo: LastWorkoutInfo? = null,
     modifier: Modifier = Modifier
 ) {
-    val segments = remember {
-        listOf(
-            WheelSegment(
-                id = "workout",
-                label = "Start\nWorkout",
-                icon = Icons.Filled.PlayArrow,
-                color = Color(0xFF4ECDC4),
-                onClick = onStartFreestyle
-            ),
-            WheelSegment(
-                id = "programmes",
-                label = "Programmes",
-                icon = Icons.Filled.Schedule,
-                color = Color(0xFF7C4DFF),
-                onClick = onBrowseProgrammes
-            ),
-            WheelSegment(
-                id = "ai",
-                label = "AI Coach",
-                icon = Icons.Default.AutoAwesome,
-                color = Color(0xFF00E676),
-                onClick = onGenerateAIProgramme
-            ),
-            WheelSegment(
-                id = "analytics",
-                label = "Analytics",
-                icon = Icons.Filled.Analytics,
-                color = Color(0xFFFF6F00),
-                onClick = onViewAnalytics
-            ),
-            WheelSegment(
-                id = "history",
-                label = "History",
-                icon = Icons.Filled.History,
-                color = Color(0xFFE53935),
-                onClick = onViewHistory
-            ),
-            WheelSegment(
-                id = "achievements",
-                label = "Achievements",
-                icon = Icons.Filled.EmojiEvents,
-                color = Color(0xFF2196F3),
-                onClick = onViewAnalytics // Navigate to Analytics (Awards tab)
+    // Dynamic segments based on current state
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val hasAnyInProgressWorkout = activeWorkout != null
+    
+    val segments = remember(hasAnyInProgressWorkout, activeProgrammeName, nextWorkoutName, primaryColor) {
+        buildList {
+            // Primary action always at top
+            when {
+                hasAnyInProgressWorkout -> {
+                    // Continue ANY active workout - will route to most recent
+                    add(
+                        WheelSegment(
+                            id = "continue",
+                            label = "Continue\n$activeWorkout",
+                            icon = Icons.Filled.PlayArrow,
+                            color = primaryColor,
+                            onClick = onContinueWorkout ?: {}
+                        )
+                    )
+                }
+                nextWorkoutName != null && activeProgrammeName != null -> {
+                    // Next programme workout
+                    add(
+                        WheelSegment(
+                            id = "next",
+                            label = "Start\n$nextWorkoutName",
+                            icon = Icons.Filled.FitnessCenter,
+                            color = primaryColor,
+                            onClick = onStartProgrammeWorkout
+                        )
+                    )
+                }
+                else -> {
+                    // Generic start workout (freestyle)
+                    add(
+                        WheelSegment(
+                            id = "start",
+                            label = "Start\nWorkout",
+                            icon = Icons.Filled.PlayArrow,
+                            color = primaryColor,
+                            onClick = onStartFreestyle
+                        )
+                    )
+                }
+            }
+            
+            // Second segment - left side - ALWAYS Programmes
+            add(
+                WheelSegment(
+                    id = "programmes",
+                    label = "Programmes",
+                    icon = Icons.Filled.Schedule,
+                    color = Color(0xFF7C4DFF),
+                    onClick = onBrowseProgrammes
+                )
             )
-        )
+            
+            // Third segment - right side - ALWAYS Workouts
+            add(
+                WheelSegment(
+                    id = "workouts",
+                    label = "Workouts",
+                    icon = Icons.Filled.FitnessCenter,
+                    color = Color(0xFFE53935),
+                    onClick = onViewHistory
+                )
+            )
+        }
     }
     
-    Box(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.Center
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         CircularWheelMenu(
             segments = segments,
@@ -254,5 +285,39 @@ fun WheelHomeScreen(
             userStats = "7 day streak",
             onProfileClick = onProfileClick
         )
+        
+        // Last workout summary card
+        lastWorkoutInfo?.let { info ->
+            Spacer(modifier = Modifier.height(24.dp))
+            Card(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxWidth(0.9f),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Last: ${info.name} (${info.daysAgo})",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = info.exercises,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 }
+
+data class LastWorkoutInfo(
+    val name: String,
+    val daysAgo: String,
+    val exercises: String
+)

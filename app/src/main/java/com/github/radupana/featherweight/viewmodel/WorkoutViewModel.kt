@@ -143,6 +143,14 @@ class WorkoutViewModel(
     // In-progress workouts for home screen
     private val _inProgressWorkouts = MutableStateFlow<List<InProgressWorkout>>(emptyList())
     val inProgressWorkouts: StateFlow<List<InProgressWorkout>> = _inProgressWorkouts
+    
+    // Last completed workout
+    private val _lastCompletedWorkout = MutableStateFlow<Workout?>(null)
+    val lastCompletedWorkout: StateFlow<Workout?> = _lastCompletedWorkout
+    
+    // Last completed workout exercises
+    private val _lastCompletedWorkoutExercises = MutableStateFlow<List<ExerciseLog>>(emptyList())
+    val lastCompletedWorkoutExercises: StateFlow<List<ExerciseLog>> = _lastCompletedWorkoutExercises
 
     // Workout timer state
     private val _elapsedWorkoutTime = MutableStateFlow(0L)
@@ -254,6 +262,25 @@ class WorkoutViewModel(
                         )
                     }
             _inProgressWorkouts.value = inProgress
+        }
+    }
+    
+    fun loadLastCompletedWorkout() {
+        viewModelScope.launch {
+            val workoutHistory = repository.getWorkoutHistory()
+            val lastCompleted = workoutHistory
+                .filter { it.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED }
+                .sortedByDescending { it.date }
+                .firstOrNull()
+            
+            if (lastCompleted != null) {
+                val workout = repository.getWorkoutById(lastCompleted.id)
+                _lastCompletedWorkout.value = workout
+                
+                // Also load the exercises
+                val exercises = repository.getExercisesForWorkout(lastCompleted.id)
+                _lastCompletedWorkoutExercises.value = exercises
+            }
         }
     }
 
