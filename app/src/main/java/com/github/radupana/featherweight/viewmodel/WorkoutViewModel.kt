@@ -135,6 +135,7 @@ class WorkoutViewModel(
 
     // Cache validation state for sets
     private val _setCompletionValidation = MutableStateFlow<Map<Long, Boolean>>(emptyMap())
+    val setCompletionValidation: StateFlow<Map<Long, Boolean>> = _setCompletionValidation
 
     private val _exerciseHistory = MutableStateFlow<Map<String, ExerciseHistory>>(emptyMap())
     val exerciseHistory: StateFlow<Map<String, ExerciseHistory>> = _exerciseHistory
@@ -553,16 +554,29 @@ class WorkoutViewModel(
 
     // Public synchronous function for UI
     fun canMarkSetComplete(set: SetLog): Boolean {
-        // Use cached validation result if available, otherwise fallback to basic check
+        // Use cached validation result if available
         val cachedResult = _setCompletionValidation.value[set.id]
-        val result = if (cachedResult != null) {
-            cachedResult
-        } else {
-            // Fallback: assume weight is required if we don't have cached info
-            set.actualReps > 0 && set.actualWeight > 0
+        if (cachedResult != null) {
+            println("🔍 canMarkSetComplete: setId=${set.id}, actualReps=${set.actualReps}, actualWeight=${set.actualWeight}, cached=$cachedResult, result=$cachedResult")
+            return cachedResult
         }
-        println("🔍 canMarkSetComplete: setId=${set.id}, actualReps=${set.actualReps}, actualWeight=${set.actualWeight}, cached=$cachedResult, result=$result")
-        return result
+        
+        // If no cached result, trigger async validation and use conservative default
+        viewModelScope.launch {
+            val validationResult = canMarkSetCompleteInternal(set)
+            val validationMap = _setCompletionValidation.value.toMutableMap()
+            validationMap[set.id] = validationResult
+            _setCompletionValidation.value = validationMap
+        }
+        
+        // Conservative default: for now assume weight is required
+        val fallbackResult = set.actualReps > 0 && set.actualWeight > 0
+        println("🔍 canMarkSetComplete: setId=${set.id}, actualReps=${set.actualReps}, actualWeight=${set.actualWeight}, cached=null (triggering validation), fallback=$fallbackResult")
+        
+        // Also print current cache state for debugging
+        println("📊 Current validation cache: ${_setCompletionValidation.value}")
+        
+        return fallbackResult
     }
 
     // Internal suspend function for validation logic
@@ -815,6 +829,7 @@ class WorkoutViewModel(
         weight: Float = 0f,
         reps: Int = 0,
         rpe: Float? = null,
+        onSetCreated: (Long) -> Unit = {}
     ) {
         if (!canEditWorkout()) return
 
@@ -837,9 +852,19 @@ class WorkoutViewModel(
                     isCompleted = false,
                     completedAt = null,
                 )
-            repository.insertSetLog(setLog)
+            val newSetId = repository.insertSetLog(setLog)
+            
+            // Immediately update validation cache for the new set with actual values
+            val newSet = setLog.copy(id = newSetId)
+            val validationResult = canMarkSetCompleteInternal(newSet)
+            val validationMap = _setCompletionValidation.value.toMutableMap()
+            validationMap[newSetId] = validationResult
+            _setCompletionValidation.value = validationMap
+            println("🎯 Created set with id=$newSetId, actualReps=$reps, actualWeight=$weight, validation=$validationResult")
+            
             loadAllSetsForCurrentExercises()
             loadInProgressWorkouts()
+            onSetCreated(newSetId)
         }
     }
 
@@ -871,12 +896,11 @@ class WorkoutViewModel(
                     }
                 _selectedExerciseSets.value = updatedSets
 
-                // Update validation cache for this set - must be done in coroutine scope
-                viewModelScope.launch {
-                    val validationMap = _setCompletionValidation.value.toMutableMap()
-                    validationMap[setId] = canMarkSetCompleteInternal(updatedSet)
-                    _setCompletionValidation.value = validationMap
-                }
+                // Update validation cache for this set immediately within the same coroutine
+                val validationResult = canMarkSetCompleteInternal(updatedSet)
+                val validationMap = _setCompletionValidation.value.toMutableMap()
+                validationMap[setId] = validationResult
+                _setCompletionValidation.value = validationMap
 
                 // Then persist to database
                 repository.updateSetLog(updatedSet)

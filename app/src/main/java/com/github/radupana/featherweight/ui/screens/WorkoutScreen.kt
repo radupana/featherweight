@@ -561,8 +561,8 @@ fun WorkoutScreen(
             onUpdateSet = { setId, reps, weight, rpe ->
                 viewModel.updateSet(setId, reps, weight, rpe)
             },
-            onAddSet = {
-                viewModel.addSetToExercise(setEditingExercise!!.id)
+            onAddSet = { onSetCreated ->
+                viewModel.addSetToExercise(setEditingExercise!!.id, onSetCreated = onSetCreated)
             },
             onCopyLastSet = {
                 val lastSet =

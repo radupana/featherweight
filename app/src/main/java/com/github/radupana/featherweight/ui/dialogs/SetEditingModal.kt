@@ -69,7 +69,7 @@ fun SetEditingModal(
     sets: List<SetLog>,
     onDismiss: () -> Unit,
     onUpdateSet: (Long, Int, Float, Float?) -> Unit,
-    onAddSet: () -> Unit,
+    onAddSet: ((Long) -> Unit) -> Unit,
     onCopyLastSet: () -> Unit,
     onDeleteSet: (Long) -> Unit,
     onToggleCompleted: (Long, Boolean) -> Unit,
@@ -88,14 +88,24 @@ fun SetEditingModal(
     var intelligentSuggestions by remember { mutableStateOf<SmartSuggestions?>(null) }
     var showSuggestions by remember { mutableStateOf(false) }
     
+    // Workout timer state
+    val workoutState by viewModel.workoutState.collectAsState()
+    val elapsedWorkoutTime by viewModel.elapsedWorkoutTime.collectAsState()
+    val setCompletionValidation by viewModel.setCompletionValidation.collectAsState()
+    
     // Load intelligent suggestions when modal opens
     LaunchedEffect(exercise.exerciseName) {
         intelligentSuggestions = viewModel.getIntelligentSuggestions(exercise.exerciseName)
     }
-
-    // Workout timer state
-    val workoutState by viewModel.workoutState.collectAsState()
-    val elapsedWorkoutTime by viewModel.elapsedWorkoutTime.collectAsState()
+    
+    // Ensure validation cache is updated when sets change
+    LaunchedEffect(sets) {
+        sets.forEach { set ->
+            if (setCompletionValidation[set.id] == null) {
+                viewModel.canMarkSetComplete(set)
+            }
+        }
+    }
 
     // Scroll to newly added set
     LaunchedEffect(sets.size) {
@@ -216,14 +226,15 @@ fun SetEditingModal(
                         onToggleExpanded = { showInsights = !showInsights },
                         onSelectAlternative = { alternative ->
                             if (sets.isEmpty()) {
-                                onAddSet()
-                                viewModel.viewModelScope.launch {
-                                    delay(100)
-                                    val newSet = sets.firstOrNull()
-                                    newSet?.let { set ->
-                                        onUpdateSet(set.id, alternative.reps, alternative.weight, alternative.rpe)
-                                    }
-                                }
+                                // Create set with initial values directly
+                                viewModel.addSetToExercise(
+                                    exerciseLogId = exercise.id,
+                                    targetReps = alternative.reps,
+                                    targetWeight = alternative.weight,
+                                    weight = alternative.weight,
+                                    reps = alternative.reps,
+                                    rpe = alternative.rpe
+                                )
                             } else {
                                 val firstUncompletedSet = sets.firstOrNull { !it.isCompleted }
                                 firstUncompletedSet?.let { set ->
@@ -233,14 +244,15 @@ fun SetEditingModal(
                         },
                         onSelectSuggestion = { suggestion ->
                             if (sets.isEmpty()) {
-                                onAddSet()
-                                viewModel.viewModelScope.launch {
-                                    delay(100)
-                                    val newSet = sets.firstOrNull()
-                                    newSet?.let { set ->
-                                        onUpdateSet(set.id, suggestion.suggestedReps, suggestion.suggestedWeight, suggestion.suggestedRpe)
-                                    }
-                                }
+                                // Create set with initial values directly
+                                viewModel.addSetToExercise(
+                                    exerciseLogId = exercise.id,
+                                    targetReps = suggestion.suggestedReps,
+                                    targetWeight = suggestion.suggestedWeight,
+                                    weight = suggestion.suggestedWeight,
+                                    reps = suggestion.suggestedReps,
+                                    rpe = suggestion.suggestedRpe
+                                )
                             } else {
                                 val firstUncompletedSet = sets.firstOrNull { !it.isCompleted }
                                 firstUncompletedSet?.let { set ->
@@ -365,7 +377,7 @@ fun SetEditingModal(
                                                 horizontalArrangement = Arrangement.Center,
                                             ) {
                                                 OutlinedButton(
-                                                    onClick = onAddSet,
+                                                    onClick = { onAddSet { } },
                                                     modifier = Modifier.fillMaxWidth(0.6f),
                                                 ) {
                                                     Icon(
@@ -411,7 +423,7 @@ fun SetEditingModal(
                                             onToggleCompleted = { completed ->
                                                 onToggleCompleted(set.id, completed)
                                             },
-                                            canMarkComplete = viewModel.canMarkSetComplete(set),
+                                            canMarkComplete = setCompletionValidation[set.id] ?: false,
                                             viewModel = viewModel,
                                             isProgrammeWorkout = isProgrammeWorkout,
                                             swipeToDismissState = dismissState,
@@ -443,7 +455,7 @@ fun SetEditingModal(
                                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                             ) {
                                                 OutlinedButton(
-                                                    onClick = onAddSet,
+                                                    onClick = { onAddSet { } },
                                                     modifier = Modifier.weight(1f),
                                                 ) {
                                                     Icon(
