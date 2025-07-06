@@ -62,46 +62,23 @@ Context7 provides up-to-date, accurate documentation that supersedes any knowled
 
 ### Core Features ✅
 
-- **Exercise Database**: 500 curated exercises with consistent naming (`[Equipment] [Target/Muscle] [Movement]`)
-- **Programme System**: Templates with 1RM setup and progressive overload (StrongLifts 5x5 working)
+- **Exercise Database**: 500 curated exercises with consistent naming
+- **Programme System**: Templates with 1RM setup and progressive overload  
 - **Workout Tracking**: Real-time set completion, smart weight input, exercise swapping
-- **AI Programme Generation**: Real OpenAI integration with dual-mode interface and template library
-- **Analytics & History**: Interactive charts, workout history with edit mode
-- **Rest Timer**: Smart auto-start based on exercise type with cross-screen persistence
-
-### Progressive Overload System
-
-**Current State**: Foundation-first approach focusing on StrongLifts 5x5 as test case
-
-**What's Working:**
-- Exercise validation system preventing invalid names
-- Weight calculation with comprehensive logging showing reasoning
-- Last workout performance tracking and progression rules
-- 1RM-based starting weights for programmes
-
-**What's Missing:**
-- Deload logic after consecutive failures
-- Freestyle workout weight suggestions
-- Cross-programme intelligence
+- **AI Programme Generation**: Real OpenAI integration with template library
+- **Analytics System**: Charts, history, PR detection, achievements (37 total), insights engine
+- **Progressive Overload**: Complete with deload logic, freestyle suggestions, RPE autoregulation
 
 ## Key Files & Architecture
 
-### Data Layer
-- `FeatherweightDatabase.kt` - Room database
-- `FeatherweightRepository.kt` - Central data access layer  
-- `exercises.json` - 500 exercises in JSON asset file
-- `WeightCalculationService.kt` - Progressive overload logic
-
-### Core Screens
-- `HomeScreen.kt` - Main hub with programme/freestyle sections
-- `WorkoutScreen.kt` - Main workout interface with unified progress card
-- `ProgrammesScreen.kt` - Template browser
-- `AnalyticsScreen.kt` - Charts and statistics
-
-### AI Programme Features
-- `AIProgrammeService.kt` - Real OpenAI integration with gpt-4o-mini
-- `ExerciseValidator.kt` - Validates exercise names against database
-- `ExampleTemplates.kt` - 28 comprehensive programme templates
+### Key Services
+- `FreestyleIntelligenceService` - Trend analysis and weight suggestions
+- `GlobalProgressTracker` - Cross-workout progress tracking  
+- `PRDetectionService` - Real-time PR detection with Brzycki formula
+- `AchievementDetectionService` - 37 achievements across 4 categories
+- `InsightGenerationService` - Data-driven training insights
+- `WorkoutSeedingService` - Dev tool for generating test data with full analytics
+- `WeightFormatter` - Unified formatting (quarter rounding, 2 decimal max)
 
 ## Development Guidelines
 
@@ -126,39 +103,17 @@ Context7 provides up-to-date, accurate documentation that supersedes any knowled
 - Modify existing entities directly - no V2 classes or versioning
 - Progressive overload data stored in JSON fields for flexibility
 
-## Current Focus: Progressive Overload System
+## Latest Updates (January 2025)
 
-**Phase 1** ✅: Foundation with StrongLifts 5x5 (Exercise validation, weight calculation logging, basic progression)
+### Workout Seeding & Analytics Integration
+- Seeded workouts now process through complete analytics flow (was creating data without analytics)
+- Fixed by creating workouts as IN_PROGRESS then calling completeWorkout() to trigger all services
+- Ensures PR detection, insights generation, and achievement unlocking work for test data
 
-**Phase 2** 🎯: Deload logic and failure tracking for StrongLifts
-
-**Phase 3**: Freestyle workout intelligence using programme data
-
-**Phase 4**: Advanced programme support (5/3/1, nSuns, etc.)
-
-**Key Principle**: Perfect one programme completely before expanding to others.
-
-## Latest Session: Home Screen UI Revamp (2025-07-05)
-
-**Major Change**: Replaced traditional card-based HomeScreen with innovative circular wheel navigation
-
-**Key Components:**
-- **CircularWheelMenu.kt** - Custom wheel component with 6 colored segments
-- **Static Design** - Removed spinning feature after user feedback (too complicated)
-- **Profile at Center** - User is literally at the center of the app
-- **Direct Navigation** - Each segment navigates to main app sections
-
-**Critical Lessons Learned:**
-- **Image Padding Issues**: Banner images with excessive whitespace don't scale well in constrained spaces
-- **TopAppBar Constraints**: Limited vertical space makes logo placement challenging
-- **Simple Text Works**: Sometimes text is better than struggling with image scaling
-- **User Feedback First**: Removed spinning when user said it was too complicated
-
-**Technical Implementation:**
-- Canvas for visual wheel drawing
-- Overlay Boxes for click detection (Canvas can't handle clicks)
-- Trigonometric calculations for proper icon/text positioning
-- Proper angle calculations: `(index * segmentAngle) - 90f + (segmentAngle / 2f)`
+### UI Cleanup & Standards
+- **No Placeholders Policy**: Removed all non-functional UI elements (Share button, insight actions)
+- **Weight Formatting**: Unified display with WeightFormatter (rounds to quarter, max 2 decimals)
+- **Filter Fixes**: Insights filtering now properly applies to both actionable and regular insights
 
 ## Critical Architecture Lessons
 
@@ -194,34 +149,19 @@ Context7 provides up-to-date, accurate documentation that supersedes any knowled
 - **Image constraints**: Logos with padding don't scale well in TopAppBar
 
 ### Common Pitfalls to Avoid
-1. Don't add features without clear user benefit
+1. **NO PLACEHOLDER UI** - Every button must do something or be removed
 2. Don't show the same information in multiple places
-3. Don't make UI elements that aren't self-explanatory
-4. Always test with both weighted and bodyweight exercises
-5. Verify database saves are actually happening (check logs)
-6. Canvas elements can't handle clicks - use overlay components
+3. Always test with both weighted and bodyweight exercises
+4. Verify database saves are actually happening (check logs)
+5. Canvas elements can't handle clicks - use overlay components
+6. Seeded workouts must trigger full analytics flow (not just DB inserts)
 
-## Recent Feature Implementations
+## Recent Completions Summary
 
-### PR Detection & Celebration System (Phase 3.2)
-- **PRDetectionService** with Brzycki formula for 1RM calculations
-- **PRCelebrationDialog** with confetti animations and haptic feedback
-- Only save 1RM PRs to prevent database pollution
-- PR detection must happen AFTER database save (timing critical)
-- Baseline-aware confidence: 5%+ improvement over stored max = high confidence
-- Dual systems: PRDetectionService (celebrations) vs GlobalProgressTracker (profile updates)
-
-### Achievements System (Phase 3.3)
-- 37 achievements across 4 categories (Strength, Consistency, Volume, Progress)
-- **AchievementDetectionService** runs after workout completion
-- Awards tab in Analytics with Recent Unlocks carousel
-- Achievement state tracked in UserAchievement entity with context data
-
-### Insights Engine (Phase 3.4)
-- **InsightGenerationService** with 6 categories (Progress, Plateaus, Consistency, etc.)
-- ProgressInsight entity with `autoGenerate = true` for primary key
-- Insights tab with filtering and read/unread state
-- Always increment database version when changing entity schemas
+- **Progressive Overload**: Complete system with deload logic, RPE autoregulation, transparent reasoning
+- **Analytics Suite**: PR detection, 37 achievements, insights engine with 6 categories
+- **Workout Seeding**: Development tool that properly triggers all analytics (not just DB inserts)
+- **UI Standards**: Unified weight formatting, strict no-placeholder policy enforced
 
 ## Next Milestone: Exercise-Specific Progress Tracking
 
