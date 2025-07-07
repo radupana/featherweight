@@ -68,7 +68,7 @@ class AIProgrammeService(private val context: android.content.Context) {
         private val OPENAI_API_KEY = BuildConfig.OPENAI_API_KEY
         private const val BASE_URL = "https://api.openai.com/"
         private const val MODEL = "gpt-4.1-mini" // NOTE: This is correct - new model name
-        private const val MAX_TOKENS = 32768
+        private const val MAX_TOKENS = 16384 // Reduced for mini model to avoid truncation
         private const val TEMPERATURE = 0.7
     }
 
@@ -138,20 +138,45 @@ class AIProgrammeService(private val context: android.content.Context) {
         EXERCISE DATABASE LIMITATION:
         Our database contains approximately 500 well-known exercises covering all major movement patterns and equipment types (barbells, dumbbells, cables, bodyweight, machines). Please focus your workout recommendations on commonly used and well-established exercises rather than obscure or highly specialized movements. This ensures all exercises in your programme can be properly tracked and executed.
 
-        EXERCISE NAMING RULES (CRITICAL - FOLLOW EXACTLY):
-        - Always use long form names: "Barbell Back Squat" not "Squat" or "Back Squat"
-        - Equipment first: "Dumbbell Chest Press" not "Chest Press with Dumbbells"
-        - Standard equipment names: Barbell, Dumbbell, Cable, Machine, Bodyweight
-        - Use these muscle names: Chest, Back, Bicep, Tricep, Quad, Hamstring, Glute, Calf, Shoulder, Core
+        EXERCISE NAMING STRUCTURE (FOLLOW EXACTLY):
+        Pattern: [Equipment] + [Modifier] + [Movement]
         
-        NAMING PATTERNS:
-        - [Equipment] [Target] [Movement]: "Barbell Bicep Curl"
-        - [Equipment] [Angle] [Movement]: "Dumbbell Incline Press"  
-        - [Equipment] [Variation] [Movement]: "Barbell Romanian Deadlift"
+        Equipment (ALWAYS first):
+        - Barbell, Dumbbell, Cable, Machine, Bodyweight, Band, Kettlebell, Smith Machine
         
-        EXAMPLES:
-        ✅ Correct: "Barbell Back Squat", "Dumbbell Chest Press", "Cable Lateral Raise"
-        ❌ Wrong: "Squats", "DB Press", "Lateral Raises"
+        Common Modifiers (optional, between equipment and movement):
+        - Position: Seated, Standing, Lying, Kneeling
+        - Angle: Incline, Decline, Flat
+        - Grip: Close Grip, Wide Grip, Neutral Grip
+        - Direction: Front, Back, Overhead, Reverse
+        - Unilateral: Single Arm, Single Leg
+        
+        Movements (base patterns):
+        - Press movements: Press, Bench Press, Overhead Press
+        - Pull movements: Row, Pulldown, Pull Up, Curl
+        - Leg movements: Squat, Deadlift, Lunge, Step Up
+        
+        CRITICAL RULES:
+        ✅ "Dumbbell Step Up" (NOT "Dumbbell Step-Up")
+        ✅ "Barbell Row" (NOT "Barbell Bent-Over Row")
+        ✅ "Dumbbell Row" (NOT "Dumbbell One-Arm Row")
+        ✅ "Bodyweight Push Up" (NOT "Push-Up" or "Pushup")
+        ✅ Each word capitalized: "Barbell Bench Press"
+        ✅ SINGULAR forms for exercises: "Curl" NOT "Curls", "Row" NOT "Rows", "Raise" NOT "Raises"
+        ✅ When muscle names are part of exercise names, use SINGULAR: "Tricep" NOT "Triceps", "Bicep" NOT "Biceps"
+        ✅ Examples: "Cable Tricep Pushdown", "Barbell Bicep Curl" (singular in exercise names)
+        
+        EXAMPLES FROM OUR DATABASE (use these exact names):
+        1. "Barbell Back Squat" - [Equipment] + [Modifier] + [Movement]
+        2. "Dumbbell Chest Press" - [Equipment] + [Target] + [Movement]
+        3. "Cable Lat Pulldown" - [Equipment] + [Target] + [Movement]
+        4. "Barbell Romanian Deadlift" - [Equipment] + [Variation] + [Movement]
+        5. "Dumbbell Lateral Raise" - [Equipment] + [Direction] + [Movement]
+        6. "Machine Leg Press" - [Equipment] + [Target] + [Movement]
+        7. "Cable Tricep Pushdown" - [Equipment] + [Muscle] + [Movement] (note: "Tricep" not "Triceps")
+        8. "Barbell Bicep Curl" - [Equipment] + [Muscle] + [Movement] (note: "Bicep" not "Biceps", "Curl" not "Curls")
+        9. "Dumbbell Single Leg Deadlift" - [Equipment] + [Unilateral] + [Movement]
+        10. "Cable Face Pull" - [Equipment] + [Target] + [Movement]
 
         PROGRAMME DESIGN PRINCIPLES:
         1. Safety First: Ensure proper exercise selection based on experience level
@@ -166,6 +191,19 @@ class AIProgrammeService(private val context: android.content.Context) {
         - intensityLevel options: "low", "moderate", "high", "very_high"
         - volumeLevel options: "low", "moderate", "high", "very_high"
 
+        AVAILABLE EXERCISE SUMMARY:
+        - Total exercises: 500
+        - Barbell exercises: 89 (Squat, Deadlift, Row, Press variations)
+        - Dumbbell exercises: 124 (all major movements)
+        - Cable exercises: 67 (pulldowns, rows, crossovers)
+        - Machine exercises: 45 (leg press, hack squat, chest press)
+        - Bodyweight exercises: 95 (push up, pull up, dip, plank)
+        
+        EQUIPMENT NOT IN DATABASE:
+        - TRX, Bosu Ball, Battle Ropes, Sled
+        - Specialized powerlifting equipment
+        - Uncommon machine brands
+        
         EXERCISE SELECTION GUIDELINES:
         - Compound movements first (Squat, Deadlift, Bench Press, Row)
         - Include unilateral work for balance
@@ -199,6 +237,7 @@ class AIProgrammeService(private val context: android.content.Context) {
         - WeightSource options: "user_specified", "user_1rm", "average_estimate"
 
         OUTPUT FORMAT:
+        CRITICAL: Keep responses CONCISE to avoid truncation. Limit descriptions to 1 sentence max.
         Return a JSON object with this EXACT hierarchical structure:
         {
             "name": "Programme name (engaging and descriptive)",
@@ -208,25 +247,25 @@ class AIProgrammeService(private val context: android.content.Context) {
             "weeks": [
                 {
                     "weekNumber": 1,
-                    "name": "Foundation Phase",
-                    "description": "Establishing baseline strength and movement patterns",
+                    "name": "Week 1",
+                    "description": "Foundation",
                     "intensityLevel": "moderate",
                     "volumeLevel": "moderate",
-                    "focus": ["technique", "adaptation"],
+                    "focus": ["technique"],
                     "isDeload": false,
                     "workouts": [
                         {
                             "dayNumber": 1,
-                            "name": "Lower Power",
+                            "name": "Day 1",
                             "exercises": [
                                 {
-                                    "exerciseName": "Back Squat",
+                                    "exerciseName": "Barbell Back Squat",
                                     "sets": 5,
                                     "repsMin": 5,
                                     "repsMax": 5,
                                     "rpe": 7.0,
-                                    "restSeconds": 240,
-                                    "notes": "Focus on depth and control",
+                                    "restSeconds": 180,
+                                    "notes": null,
                                     "suggestedWeight": 80.0,
                                     "weightSource": "user_1rm"
                                 }
@@ -247,6 +286,8 @@ class AIProgrammeService(private val context: android.content.Context) {
         - Include variety while maintaining focus on the primary goal
         - Provide actionable notes for each exercise when beneficial
         - Create a logical weekly structure that promotes adaptation
+        - KEEP OUTPUT CONCISE: Use short names/descriptions to avoid truncation
+        - For 8-week programmes, ensure all weeks fit in response
 
         Remember: You're creating a programme that could change someone's life. Make it excellent.
         """.trimIndent()
@@ -297,6 +338,7 @@ class AIProgrammeService(private val context: android.content.Context) {
                 val body = response.body()
                 if (body?.choices?.isNotEmpty() == true) {
                     val responseContent = body.choices[0].message.content
+                    val finishReason = body.choices[0].finishReason
 
                     // Log the complete response
                     println("✅ OpenAI Response [${java.time.LocalDateTime.now()}]:")
@@ -306,8 +348,13 @@ class AIProgrammeService(private val context: android.content.Context) {
                     println("💰 Estimated cost: ~$${((body.usage?.totalTokens ?: 0) * 0.00015f / 1000f)}")
                     println("📄 Response content (${responseContent.length} chars):")
                     println("   ${responseContent.take(500)}...")
-                    println("🔍 Full Response JSON:")
-                    println("   ${kotlinx.serialization.json.Json.encodeToString(OpenAIResponse.serializer(), body)}")
+                    println("🏁 Finish reason: $finishReason")
+                    
+                    // Check if response was truncated
+                    if (finishReason == "length") {
+                        println("⚠️ WARNING: Response was truncated due to token limit!")
+                        throw Exception("Programme generation incomplete - response was truncated. Please try a shorter programme duration.")
+                    }
 
                     responseContent
                 } else {

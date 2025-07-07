@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.*
 import com.github.radupana.featherweight.ui.components.preview.*
+import com.github.radupana.featherweight.ui.dialogs.UnmatchedExerciseDialog
 import com.github.radupana.featherweight.viewmodel.GeneratedProgrammeHolder
 import com.github.radupana.featherweight.viewmodel.ProgrammePreviewViewModel
 
@@ -30,12 +31,17 @@ fun ProgrammePreviewScreen(
     val previewState by viewModel.previewState.collectAsState()
     val selectedWeek by viewModel.selectedWeek.collectAsState()
     val editStates by viewModel.editStates.collectAsState()
+    val unmatchedExercises by viewModel.unmatchedExercises.collectAsState()
+    val showUnmatchedDialog by viewModel.showUnmatchedDialog.collectAsState()
+    val currentUnmatchedExercise by viewModel.currentUnmatchedExercise.collectAsState()
+    val allExercises by viewModel.allExercises.collectAsState()
 
     // Auto-load generated programme when screen appears
     LaunchedEffect(Unit) {
         val generatedResponse = GeneratedProgrammeHolder.getGeneratedProgramme()
+        val validationResult = GeneratedProgrammeHolder.getValidationResult()
         if (generatedResponse != null) {
-            viewModel.loadGeneratedProgramme(generatedResponse)
+            viewModel.loadGeneratedProgramme(generatedResponse, validationResult)
             // Clear after loading to prevent re-loading on configuration changes
             GeneratedProgrammeHolder.clearGeneratedProgramme()
         }
@@ -71,28 +77,52 @@ fun ProgrammePreviewScreen(
             }
 
             is PreviewState.Success -> {
-                SuccessPreviewContent(
-                    preview = state.preview,
-                    editStates = editStates,
-                    isActivating = false,
-                    onExerciseResolved = viewModel::resolveExercise,
-                    onExerciseSwapped = viewModel::swapExercise,
-                    onExerciseUpdated = viewModel::updateExercise,
-                    onToggleEdit = viewModel::toggleExerciseEdit,
-                    onShowAlternatives = viewModel::showExerciseAlternatives,
-                    onShowResolution = viewModel::showExerciseResolution,
-                    onProgrammeNameChanged = viewModel::updateProgrammeName,
-                    onRegenerate = { viewModel.regenerate() },
-                    onActivate = {
-                        viewModel.activateProgramme(
-                            onSuccess = onActivated,
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                        // Show unmatched exercises banner if any
+                        if (unmatchedExercises.isNotEmpty()) {
+                            UnmatchedExercisesBanner(
+                                count = unmatchedExercises.size,
+                                onFixExercises = {
+                                    // Show first unmatched exercise
+                                    unmatchedExercises.firstOrNull()?.let {
+                                        viewModel.showUnmatchedExerciseDialog(it)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
+                        
+                        SuccessPreviewContent(
+                            preview = state.preview,
+                            editStates = editStates,
+                            isActivating = false,
+                            onExerciseResolved = viewModel::resolveExercise,
+                            onExerciseSwapped = viewModel::swapExercise,
+                            onExerciseUpdated = viewModel::updateExercise,
+                            onToggleEdit = viewModel::toggleExerciseEdit,
+                            onShowAlternatives = viewModel::showExerciseAlternatives,
+                            onShowResolution = viewModel::showExerciseResolution,
+                            onProgrammeNameChanged = viewModel::updateProgrammeName,
+                            onRegenerate = { viewModel.regenerate() },
+                            onActivate = {
+                                if (unmatchedExercises.isEmpty()) {
+                                    viewModel.activateProgramme(
+                                        onSuccess = onActivated,
+                                    )
+                                } else {
+                                    // Show first unmatched exercise
+                                    unmatchedExercises.firstOrNull()?.let {
+                                        viewModel.showUnmatchedExerciseDialog(it)
+                                    }
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
                         )
-                    },
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues),
-                )
+                    }
+                }
             }
 
             is PreviewState.Activating -> {
@@ -130,6 +160,76 @@ fun ProgrammePreviewScreen(
                             .fillMaxSize()
                             .padding(paddingValues),
                 )
+            }
+        }
+        
+        // Show unmatched exercise dialog
+        currentUnmatchedExercise?.let { unmatchedExercise ->
+            if (showUnmatchedDialog) {
+                UnmatchedExerciseDialog(
+                    unmatchedExercise = unmatchedExercise,
+                    allExercises = allExercises,
+                    onExerciseSelected = { exercise ->
+                        viewModel.selectExerciseForUnmatched(unmatchedExercise, exercise)
+                        
+                        // Check if there are more unmatched exercises
+                        val remainingUnmatched = unmatchedExercises.filter { it != unmatchedExercise }
+                        if (remainingUnmatched.isNotEmpty()) {
+                            // Show next unmatched exercise
+                            viewModel.showUnmatchedExerciseDialog(remainingUnmatched.first())
+                        }
+                    },
+                    onDismiss = { viewModel.hideUnmatchedExerciseDialog() }
+                )
+            }
+        }
+    }
+    
+    // Load exercises for the dialog
+    LaunchedEffect(Unit) {
+        viewModel.loadExercises()
+    }
+}
+
+@Composable
+private fun UnmatchedExercisesBanner(
+    count: Int,
+    onFixExercises: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "$count exercises need selection",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+                Text(
+                    text = "AI suggested exercises not found in database",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+            
+            Button(
+                onClick = onFixExercises,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("Fix Now")
             }
         }
     }

@@ -88,6 +88,9 @@ Context7 provides up-to-date, accurate documentation that supersedes any knowled
 - **No Half-Ass Implementations**: Complete features properly across ALL impacted components
 - **Transparent Logic**: Every weight calculation must be explainable to users
 - **No Phased Planning**: Provide minimal planning and code to fix the problem at hand completely. Never give "phase 1, phase 2" or "now and later" approaches. Solve it properly in one go.
+- **No Week-Based Timelines**: We don't do "Week 1, Week 2" planning. We implement everything as quickly as possible, ideally in a day.
+- **No Future Enhancements Sections**: Focus only on the immediate task at hand. Don't add "Future Enhancements" or "Later Improvements" sections unless explicitly requested.
+- **ALWAYS Compile Before Completion**: Never say "Implementation Complete" or "Done" without first compiling the code. Run `./gradlew assembleDebug` to ensure everything builds successfully.
 
 ## Common Commands
 
@@ -102,6 +105,43 @@ Context7 provides up-to-date, accurate documentation that supersedes any knowled
 - **NO PRODUCTION CONCERNS** - Break whatever needs breaking. Database gets wiped on every schema change
 - Modify existing entities directly - no V2 classes or versioning
 - Progressive overload data stored in JSON fields for flexibility
+
+## Exercise Naming Standards (CRITICAL)
+
+Our database has 500 exercises with the following strict naming conventions:
+
+### Exercise Names
+- **Equipment First**: Always start with equipment (Barbell, Dumbbell, Cable, Machine, Bodyweight)
+- **Proper Case**: Each word capitalized (e.g., "Barbell Bench Press")
+- **No Hyphens**: Use spaces not hyphens (e.g., "Step Up" NOT "Step-Up")
+- **SINGULAR Forms**: When muscle names appear in exercise names, use SINGULAR:
+  - ✅ "Cable Tricep Pushdown" (NOT "Cable Triceps Pushdown")
+  - ✅ "Barbell Bicep Curl" (NOT "Barbell Biceps Curl")
+  - ✅ "Dumbbell Calf Raise" (NOT "Dumbbell Calves Raise")
+- **SINGULAR Movements**: Always singular form for movements:
+  - ✅ "Curl" NOT "Curls"
+  - ✅ "Row" NOT "Rows"
+  - ✅ "Raise" NOT "Raises"
+
+### Muscle Group Metadata
+- **PLURAL Forms**: The `muscleGroup` field uses PLURAL forms:
+  - ✅ muscleGroup: "Triceps" (NOT "Tricep")
+  - ✅ muscleGroup: "Biceps" (NOT "Bicep")
+  - ✅ muscleGroup: "Quadriceps", "Hamstrings", "Glutes", "Calves"
+
+### Examples from Database
+```
+Exercise Name: "Cable Tricep Pushdown"
+Muscle Group: "Triceps"
+
+Exercise Name: "Barbell Bicep Curl"
+Muscle Group: "Biceps"
+
+Exercise Name: "Dumbbell Calf Raise"
+Muscle Group: "Calves"
+```
+
+This convention is consistent across all 500 exercises. When AI generates exercise names, it must follow these exact patterns.
 
 ## Latest Updates (January 2025)
 

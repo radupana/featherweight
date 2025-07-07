@@ -12,6 +12,7 @@ import com.github.radupana.featherweight.service.AIProgrammeRequest
 import com.github.radupana.featherweight.service.AIProgrammeResponse
 import com.github.radupana.featherweight.service.AIProgrammeService
 import com.github.radupana.featherweight.service.InputAnalyzer
+import com.github.radupana.featherweight.service.ExerciseMatchingService
 import com.github.radupana.featherweight.service.PlaceholderGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +26,7 @@ class ProgrammeGeneratorViewModel(
     private val aiService = AIProgrammeService(application)
     private val quotaManager = AIProgrammeQuotaManager(application)
     private val inputAnalyzer = InputAnalyzer()
+    private val exerciseMatchingService = ExerciseMatchingService()
     private val placeholderGenerator = PlaceholderGenerator()
     private val weightExtractor = WeightExtractionService()
 
@@ -262,14 +264,19 @@ Or paste existing programmes from ChatGPT, other AI tools, or coaches."""
                 val response = aiService.generateProgramme(request)
 
                 if (response.success) {
-                    // Validate that all exercises in the response exist in our database
-                    val validationResult = validateExercisesInProgramme(response, exerciseNames)
+                    // Get exercises and aliases for matching
+                    val exercises = repository.getAllExercises()
+                    val aliases = repository.getAllExerciseAliases()
+                    
+                    // Validate and match exercises in the programme
+                    val validationResult = validateAndMatchExercises(response, exercises.map { it.exercise }, aliases)
 
-                    if (validationResult.isValid) {
+                    if (validationResult.canProceedWithPartial && validationResult.matchPercentage >= 0.8f) {
                         // Increment quota usage
                         if (quotaManager.incrementUsage()) {
-                            // Store the response for the preview screen
+                            // Store the response and validation result for the preview screen
                             GeneratedProgrammeHolder.setGeneratedProgramme(response)
+                            GeneratedProgrammeHolder.setValidationResult(validationResult)
 
                             // Update UI state
                             val quotaStatus = quotaManager.getQuotaStatus()
@@ -288,16 +295,21 @@ Or paste existing programmes from ChatGPT, other AI tools, or coaches."""
                                     errorMessage = "Daily generation limit reached. Please try again tomorrow.",
                                 )
                         }
-                    } else {
-                        // Exercise validation failed - show error to user
-                        println("⚠️ Exercise validation failed: ${validationResult.invalidExercises}")
+                    } else if (validationResult.matchPercentage < 0.5f) {
+                        // Too many unmatched exercises
+                        println("⚠️ Too many unmatched exercises: ${validationResult.unmatchedExercises.size}/${validationResult.totalCount}")
                         _uiState.value =
                             _uiState.value.copy(
                                 isLoading = false,
-                                errorMessage = "Generated programme contains unsupported exercises: ${validationResult.invalidExercises.joinToString(
-                                    ", ",
-                                )}. Please try again with different requirements or use Browse Templates for proven programmes.",
+                                errorMessage = "Generated programme contains too many unsupported exercises. Please try again with different requirements or use Browse Templates for proven programmes.",
                             )
+                    } else {
+                        // Some unmatched but can proceed with fixing
+                        GeneratedProgrammeHolder.setGeneratedProgramme(response)
+                        GeneratedProgrammeHolder.setValidationResult(validationResult)
+                        
+                        // Navigate to preview with unmatched exercises
+                        onNavigateToPreview?.invoke()
                     }
                 } else {
                     _uiState.value =
@@ -400,36 +412,78 @@ Or paste existing programmes from ChatGPT, other AI tools, or coaches."""
         return parts.joinToString("\n\n")
     }
 
-    private fun validateExercisesInProgramme(
+    private suspend fun validateAndMatchExercises(
         response: AIProgrammeResponse,
-        validExerciseNames: List<String>,
-    ): ExerciseValidationResult {
+        exercises: List<com.github.radupana.featherweight.data.exercise.Exercise>,
+        aliases: List<com.github.radupana.featherweight.data.exercise.ExerciseAlias>,
+    ): ProgrammeValidationResult {
         if (!response.success || response.programme == null) {
-            return ExerciseValidationResult(false, emptyList())
+            return ProgrammeValidationResult(
+                isValid = false,
+                validatedExercises = emptyMap(),
+                unmatchedExercises = emptyList(),
+                validationScore = 0f,
+                canProceedWithPartial = false,
+                errors = listOf("Invalid programme response")
+            )
         }
 
-        val validExerciseSet = validExerciseNames.toSet()
-        val invalidExercises = mutableListOf<String>()
+        val validatedExercises = mutableMapOf<String, com.github.radupana.featherweight.data.exercise.Exercise>()
+        val unmatchedExercises = mutableListOf<ExerciseMatchingService.UnmatchedExercise>()
 
-        // Check all exercises in all workouts across all weeks
-        response.programme.weeks.forEach { week ->
-            week.workouts.forEach { workout ->
-                workout.exercises.forEach { exercise ->
-                    if (exercise.exerciseName !in validExerciseSet) {
-                        invalidExercises.add(exercise.exerciseName)
+        // Process all exercises in the programme
+        response.programme.weeks.forEachIndexed { weekIndex, week ->
+            week.workouts.forEachIndexed { workoutIndex, workout ->
+                workout.exercises.forEachIndexed { exerciseIndex, exercise ->
+                    val match = exerciseMatchingService.findExerciseMatch(
+                        aiName = exercise.exerciseName,
+                        exercises = exercises,
+                        aliases = aliases,
+                        minConfidence = 0.7f
+                    )
+                    
+                    if (match != null) {
+                        validatedExercises[exercise.exerciseName] = match.exercise
+                    } else {
+                        // Find best matches for UI
+                        val bestMatches = exerciseMatchingService.findBestMatches(
+                            aiName = exercise.exerciseName,
+                            exercises = exercises,
+                            aliases = aliases,
+                            limit = 5
+                        )
+                        
+                        val searchHints = exerciseMatchingService.extractSearchHints(exercise.exerciseName)
+                        
+                        unmatchedExercises.add(
+                            ExerciseMatchingService.UnmatchedExercise(
+                                aiSuggested = exercise.exerciseName,
+                                weekNumber = weekIndex + 1,
+                                workoutNumber = workoutIndex + 1,
+                                exerciseIndex = exerciseIndex,
+                                bestMatches = bestMatches,
+                                searchHints = searchHints
+                            )
+                        )
                     }
                 }
             }
         }
 
-        return ExerciseValidationResult(
-            isValid = invalidExercises.isEmpty(),
-            invalidExercises = invalidExercises.distinct(),
+        val totalExercises = validatedExercises.size + unmatchedExercises.size
+        val validationScore = if (totalExercises > 0) {
+            validatedExercises.size.toFloat() / totalExercises
+        } else 0f
+
+        return ProgrammeValidationResult(
+            isValid = unmatchedExercises.isEmpty(),
+            validatedExercises = validatedExercises,
+            unmatchedExercises = unmatchedExercises,
+            validationScore = validationScore,
+            canProceedWithPartial = validationScore >= 0.5f,
+            warnings = if (unmatchedExercises.isNotEmpty()) {
+                listOf("${unmatchedExercises.size} exercises need to be manually selected")
+            } else emptyList()
         )
     }
-
-    data class ExerciseValidationResult(
-        val isValid: Boolean,
-        val invalidExercises: List<String>,
-    )
 }

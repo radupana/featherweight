@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
+import com.github.radupana.featherweight.data.ProgrammeValidationResult
 import com.github.radupana.featherweight.service.AIProgrammeResponse
 
 /**
@@ -10,6 +11,7 @@ import com.github.radupana.featherweight.service.AIProgrammeResponse
  */
 object GeneratedProgrammeHolder {
     private var _currentResponse: AIProgrammeResponse? = null
+    private var _validationResult: ProgrammeValidationResult? = null
     
     fun setGeneratedProgramme(response: AIProgrammeResponse) {
         _currentResponse = response
@@ -19,7 +21,16 @@ object GeneratedProgrammeHolder {
         return _currentResponse
     }
     
+    fun setValidationResult(result: ProgrammeValidationResult) {
+        _validationResult = result
+    }
+    
+    fun getValidationResult(): ProgrammeValidationResult? {
+        return _validationResult
+    }
+    
     fun clearGeneratedProgramme() {
         _currentResponse = null
+        _validationResult = null
     }
 }

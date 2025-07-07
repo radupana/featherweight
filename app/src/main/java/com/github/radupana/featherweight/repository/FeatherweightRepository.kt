@@ -266,6 +266,8 @@ class FeatherweightRepository(
     suspend fun getExercisesByMuscleGroup(muscleGroup: String): List<Exercise> = exerciseRepository.getExercisesByMuscleGroup(muscleGroup)
 
     suspend fun getExercisesByEquipment(equipment: Equipment): List<Exercise> = exerciseRepository.getExercisesByEquipment(equipment)
+    
+    suspend fun getAllExerciseAliases() = exerciseRepository.getAllExerciseAliases()
 
     // ===== EXISTING WORKOUT METHODS (Updated to work with new Exercise system) =====
 

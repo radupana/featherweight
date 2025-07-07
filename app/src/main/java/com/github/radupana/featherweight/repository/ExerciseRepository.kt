@@ -47,6 +47,18 @@ class ExerciseRepository(
 
             allNames.distinct().sorted()
         }
+    
+    suspend fun getAllExerciseAliases() = withContext(Dispatchers.IO) {
+        val exercises = exerciseDao.getAllExercisesWithDetails()
+        val allAliases = mutableListOf<com.github.radupana.featherweight.data.exercise.ExerciseAlias>()
+        
+        exercises.forEach { exercise ->
+            val aliases = exerciseDao.getAliasesForExercise(exercise.exercise.id)
+            allAliases.addAll(aliases)
+        }
+        
+        allAliases
+    }
 
     suspend fun getAllExercisesWithUsageStats(): List<Pair<ExerciseWithDetails, Int>> =
         withContext(Dispatchers.IO) {
