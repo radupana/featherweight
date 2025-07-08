@@ -1,13 +1,3 @@
-## IMPORTANT: Always Read Serena Instructions First
-
-Before starting ANY work on code tasks, ALWAYS call the `mcp__serena__initial_instructions` tool first. This provides critical context about:
-- Available semantic coding tools
-- How to efficiently read and edit code
-- Project-specific memory files
-- Current operating modes
-
-You MUST do this at the start of every conversation involving code work.
-
 ## System prompts
 
 Apply critical thinking and give me your objective assessment of the viability of ideas. Play the
@@ -195,36 +185,3 @@ This convention is consistent across all 500 exercises. When AI generates exerci
 4. Verify database saves are actually happening (check logs)
 5. Canvas elements can't handle clicks - use overlay components
 6. Seeded workouts must trigger full analytics flow (not just DB inserts)
-
-## Recent Completions Summary
-
-- **Progressive Overload**: Complete system with deload logic, RPE autoregulation, transparent reasoning
-- **Analytics Suite**: PR detection, 37 achievements, insights engine with 6 categories
-- **Workout Seeding**: Development tool that properly triggers all analytics (not just DB inserts)
-- **UI Standards**: Unified weight formatting, strict no-placeholder policy enforced
-
-## Next Milestone: Exercise-Specific Progress Tracking
-
-### Vision
-Transform the app into a comprehensive progress tracking powerhouse with individual exercise analytics that rival dedicated strength training apps.
-
-### Core Features to Build:
-1. **Exercise Detail Screens** - Deep analytics for each lift with multiple chart types
-2. **Intelligent Stall Detection** - Proactive plateau identification with context-aware suggestions  
-3. **Visual Excellence** - Interactive charts for weight progression, volume trends, RPE patterns
-4. **Smart Recommendations** - Exercise variations, deload timing, technique adjustments
-5. **Predictive Projections** - "At this rate, you'll hit 140kg by..." motivational insights
-
-### Integration Requirements:
-- Seamless navigation from Analytics → Exercise → Detailed Progress
-- Real-time progress context during workouts
-- Historical comparison overlays (this month vs last)
-- Exercise-specific filtering in History screen
-
-### Success Criteria:
-- Users check individual exercise progress weekly
-- Stall detection prevents plateaus before they happen
-- Visual charts become primary method for tracking progress
-- Recommendations lead to measurable performance improvements
-
-This next phase will establish Featherweight as the premier app for serious lifters who demand intelligent, data-driven training insights!

@@ -13,7 +13,6 @@ import com.github.radupana.featherweight.service.AIProgrammeResponse
 import com.github.radupana.featherweight.service.AIProgrammeService
 import com.github.radupana.featherweight.service.InputAnalyzer
 import com.github.radupana.featherweight.service.ExerciseMatchingService
-import com.github.radupana.featherweight.service.PlaceholderGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -27,7 +26,6 @@ class ProgrammeGeneratorViewModel(
     private val quotaManager = AIProgrammeQuotaManager(application)
     private val inputAnalyzer = InputAnalyzer()
     private val exerciseMatchingService = ExerciseMatchingService()
-    private val placeholderGenerator = PlaceholderGenerator()
     private val weightExtractor = WeightExtractionService()
 
     private val _uiState = MutableStateFlow(GuidedInputState())
@@ -43,19 +41,12 @@ class ProgrammeGeneratorViewModel(
                 currentState.selectedFrequency != null,
                 text.length,
             )
-        val contextualChips =
-            inputAnalyzer.getContextualChips(
-                currentState.selectedGoal,
-                detectedElements,
-                currentState.usedChips,
-            )
 
         _uiState.value =
             currentState.copy(
                 inputText = text,
                 detectedElements = detectedElements,
                 inputCompleteness = completeness,
-                availableChips = contextualChips,
                 errorMessage = null,
             )
     }
@@ -67,8 +58,7 @@ class ProgrammeGeneratorViewModel(
                 generationMode = mode,
                 // Clear text when switching modes
                 inputText = "",
-                // Reset chips and analysis for fresh start
-                usedChips = emptySet(),
+                // Reset analysis for fresh start
                 detectedElements = emptySet(),
                 inputCompleteness = 0f,
             )
@@ -83,8 +73,6 @@ class ProgrammeGeneratorViewModel(
         // Re-analyze input with new goal
         if (currentState.inputText.isNotEmpty()) {
             updateInputText(currentState.inputText)
-        } else {
-            updateContextualChips()
         }
     }
 
@@ -97,8 +85,6 @@ class ProgrammeGeneratorViewModel(
         // Re-analyze input with new frequency
         if (currentState.inputText.isNotEmpty()) {
             updateInputText(currentState.inputText)
-        } else {
-            updateContextualChips()
         }
     }
 
@@ -107,38 +93,22 @@ class ProgrammeGeneratorViewModel(
         // Toggle selection - if already selected, deselect it
         val newDuration = if (currentState.selectedDuration == duration) null else duration
         _uiState.value = currentState.copy(selectedDuration = newDuration)
-
-        // Update contextual chips
-        updateContextualChips()
     }
 
-    fun addChipText(chipText: String) {
+    fun selectExperienceLevel(experience: ExperienceLevel) {
         val currentState = _uiState.value
-        val newText =
-            if (currentState.inputText.isEmpty()) {
-                chipText
-            } else {
-                "${currentState.inputText}. $chipText"
-            }
-
-        // Find the full chip info to get the actual text to append
-        val chip = currentState.availableChips.find { it.text == chipText }
-        val textToAppend = chip?.appendText ?: chipText
-
-        val finalText =
-            if (currentState.inputText.isEmpty()) {
-                textToAppend
-            } else {
-                "${currentState.inputText}. $textToAppend"
-            }
-
-        // Add chip to used chips and update text
-        _uiState.value =
-            currentState.copy(
-                usedChips = currentState.usedChips + chipText,
-            )
-        updateInputText(finalText)
+        // Toggle selection - if already selected, deselect it
+        val newExperience = if (currentState.selectedExperience == experience) null else experience
+        _uiState.value = currentState.copy(selectedExperience = newExperience)
     }
+
+    fun selectEquipment(equipment: EquipmentAvailability) {
+        val currentState = _uiState.value
+        // Toggle selection - if already selected, deselect it
+        val newEquipment = if (currentState.selectedEquipment == equipment) null else equipment
+        _uiState.value = currentState.copy(selectedEquipment = newEquipment)
+    }
+
 
     fun toggleExamples() {
         _uiState.value = _uiState.value.copy(showExamples = !_uiState.value.showExamples)
@@ -155,28 +125,6 @@ class ProgrammeGeneratorViewModel(
         updateInputText(template.exampleText)
     }
 
-    fun getPlaceholderText(): String {
-        val currentState = _uiState.value
-        return when (currentState.generationMode) {
-            GenerationMode.SIMPLIFIED ->
-                placeholderGenerator.generatePlaceholder(
-                    currentState.selectedGoal,
-                    currentState.selectedFrequency,
-                    currentState.selectedDuration,
-                )
-            GenerationMode.ADVANCED ->
-                """Paste your complete programme description here...
-
-For example:
-"I want a 12-week strength programme, 4 days per week, focusing on powerlifting. 
-Week 1-4: Build base strength with compound movements
-Week 5-8: Intensify with heavier loads
-Week 9-12: Peak for competition
-Include squat, bench press, deadlift as main lifts with assistance work..."
-
-Or paste existing programmes from ChatGPT, other AI tools, or coaches."""
-        }
-    }
 
     fun getSuggestions(): List<String> = inputAnalyzer.generateSuggestions(_uiState.value.detectedElements)
 
@@ -202,29 +150,6 @@ Or paste existing programmes from ChatGPT, other AI tools, or coaches."""
             .take(4)
     }
 
-    private fun updateContextualChips() {
-        val currentState = _uiState.value
-        val contextualChips =
-            inputAnalyzer.getContextualChips(
-                currentState.selectedGoal,
-                currentState.detectedElements,
-                currentState.usedChips,
-            )
-
-        val completeness =
-            inputAnalyzer.calculateCompleteness(
-                currentState.detectedElements,
-                currentState.selectedGoal != null,
-                currentState.selectedFrequency != null,
-                currentState.inputText.length,
-            )
-
-        _uiState.value =
-            currentState.copy(
-                availableChips = contextualChips,
-                inputCompleteness = completeness,
-            )
-    }
 
     fun generateProgramme(onNavigateToPreview: (() -> Unit)? = null) {
         val currentState = _uiState.value
@@ -362,6 +287,29 @@ Or paste existing programmes from ChatGPT, other AI tools, or coaches."""
                     SessionDuration.LONG -> "Session duration: 75-90 minutes (long sessions)"
                 }
             parts.add(durationText)
+        }
+
+        if (state.selectedExperience != null) {
+            val experienceText =
+                when (state.selectedExperience) {
+                    ExperienceLevel.BEGINNER -> "Experience level: Beginner (less than 1 year of training)"
+                    ExperienceLevel.INTERMEDIATE -> "Experience level: Intermediate (1-3 years of training)"
+                    ExperienceLevel.ADVANCED -> "Experience level: Advanced (3-5 years of training)"
+                    ExperienceLevel.ELITE -> "Experience level: Elite (5+ years, competitive)"
+                }
+            parts.add(experienceText)
+        }
+
+        if (state.selectedEquipment != null) {
+            val equipmentText =
+                when (state.selectedEquipment) {
+                    EquipmentAvailability.BARBELL_AND_RACK -> "Equipment available: Barbell and rack (home gym setup)"
+                    EquipmentAvailability.FULL_GYM -> "Equipment available: Full commercial gym with all equipment"
+                    EquipmentAvailability.DUMBBELLS_ONLY -> "Equipment available: Dumbbells only"
+                    EquipmentAvailability.BODYWEIGHT -> "Equipment available: Bodyweight only, no equipment"
+                    EquipmentAvailability.LIMITED -> "Equipment available: Limited equipment (mix of basics)"
+                }
+            parts.add(equipmentText)
         }
 
         // Add information about detected elements

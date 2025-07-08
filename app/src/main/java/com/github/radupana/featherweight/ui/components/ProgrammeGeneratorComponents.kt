@@ -104,6 +104,50 @@ fun DurationChip(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExperienceChip(
+    experience: ExperienceLevel,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    FilterChip(
+        onClick = onClick,
+        label = {
+            Text(
+                text = experience.displayName,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+            )
+        },
+        selected = isSelected,
+        modifier = modifier
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EquipmentChip(
+    equipment: EquipmentAvailability,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    FilterChip(
+        onClick = onClick,
+        label = {
+            Text(
+                text = equipment.displayName,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+            )
+        },
+        selected = isSelected,
+        modifier = modifier
+    )
+}
+
 @Composable
 fun InputFeedbackSection(
     detectedElements: Set<DetectedElement>,

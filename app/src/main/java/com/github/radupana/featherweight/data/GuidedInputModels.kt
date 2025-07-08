@@ -15,6 +15,21 @@ enum class SessionDuration(val displayName: String, val minutesRange: String) {
     LONG("Long", "90+ min")
 }
 
+enum class ExperienceLevel(val displayName: String) {
+    BEGINNER("Beginner"),
+    INTERMEDIATE("Intermediate"),
+    ADVANCED("Advanced"),
+    ELITE("Elite")
+}
+
+enum class EquipmentAvailability(val displayName: String) {
+    BARBELL_AND_RACK("Barbell & Rack"),
+    FULL_GYM("Full Commercial Gym"),
+    DUMBBELLS_ONLY("Dumbbells Only"),
+    BODYWEIGHT("Bodyweight Only"),
+    LIMITED("Limited Equipment")
+}
+
 enum class GenerationMode(val displayName: String, val description: String) {
     SIMPLIFIED("Simplified", "Guided options with quick prompts"),
     ADVANCED("Advanced", "Paste full programme descriptions")
@@ -57,6 +72,8 @@ data class GuidedInputState(
     val selectedGoal: ProgrammeGoal? = null,
     val selectedFrequency: Int? = null,
     val selectedDuration: SessionDuration? = null,
+    val selectedExperience: ExperienceLevel? = null,
+    val selectedEquipment: EquipmentAvailability? = null,
     val inputText: String = "",
     val detectedElements: Set<DetectedElement> = emptySet(),
     val inputCompleteness: Float = 0f,
