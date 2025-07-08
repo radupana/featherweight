@@ -30,9 +30,14 @@ enum class EquipmentAvailability(val displayName: String) {
     LIMITED("Limited Equipment")
 }
 
-enum class GenerationMode(val displayName: String, val description: String) {
-    SIMPLIFIED("Simplified", "Guided options with quick prompts"),
-    ADVANCED("Advanced", "Paste full programme descriptions")
+// GenerationMode removed - only using simplified approach
+
+enum class TrainingFrequency(val displayName: String, val daysPerWeek: Int) {
+    TWO_DAYS("2x per week", 2),
+    THREE_DAYS("3x per week", 3),
+    FOUR_DAYS("4x per week", 4),
+    FIVE_DAYS("5x per week", 5),
+    SIX_DAYS("6x per week", 6)
 }
 
 enum class DetectedElement {
@@ -58,6 +63,12 @@ enum class ChipCategory {
     TRAINING_STYLE
 }
 
+enum class WizardStep {
+    QUICK_SETUP,    // Goal, Frequency, Duration
+    ABOUT_YOU,      // Experience, Equipment
+    CUSTOMIZE       // Custom Instructions
+}
+
 data class ExampleTemplate(
     val title: String,
     val goal: ProgrammeGoal,
@@ -68,17 +79,27 @@ data class ExampleTemplate(
 )
 
 data class GuidedInputState(
-    val generationMode: GenerationMode = GenerationMode.SIMPLIFIED,
+    val currentStep: WizardStep = WizardStep.QUICK_SETUP,
     val selectedGoal: ProgrammeGoal? = null,
-    val selectedFrequency: Int? = null,
+    val selectedFrequency: TrainingFrequency? = null,
     val selectedDuration: SessionDuration? = null,
     val selectedExperience: ExperienceLevel? = null,
     val selectedEquipment: EquipmentAvailability? = null,
-    val inputText: String = "",
-    val detectedElements: Set<DetectedElement> = emptySet(),
-    val inputCompleteness: Float = 0f,
-    val availableChips: List<QuickAddChip> = emptyList(),
-    val usedChips: Set<String> = emptySet(),
+    val customInstructions: String = "",
     val isLoading: Boolean = false,
-    val errorMessage: String? = null,
-)
+    val loadingMessage: String = "Preparing your personalized programme...",
+    val errorMessage: String? = null
+) {
+    fun isStepComplete(step: WizardStep): Boolean {
+        return when (step) {
+            WizardStep.QUICK_SETUP -> selectedGoal != null && selectedFrequency != null && selectedDuration != null
+            WizardStep.ABOUT_YOU -> selectedExperience != null && selectedEquipment != null
+            WizardStep.CUSTOMIZE -> true
+        }
+    }
+    
+    fun canGenerate(): Boolean {
+        return selectedGoal != null && selectedFrequency != null && selectedDuration != null && 
+               selectedExperience != null && selectedEquipment != null
+    }
+}

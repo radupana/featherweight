@@ -2058,14 +2058,23 @@ class FeatherweightRepository(
 
     suspend fun deleteProgramme(programme: Programme) =
         withContext(Dispatchers.IO) {
+            println("🗑️ Repository: Starting deletion of programme ${programme.name} (ID: ${programme.id})")
+            
             // First deactivate the programme if it's active
             if (programme.isActive) {
+                println("🔄 Programme is active, deactivating all programmes first")
                 programmeDao.deactivateAllProgrammes()
             }
+            
             // Delete all workouts associated with this programme to prevent orphaned workouts
-            workoutDao.deleteWorkoutsByProgramme(programme.id)
+            println("🗑️ Deleting workouts associated with programme ${programme.id}")
+            val deletedWorkouts = workoutDao.deleteWorkoutsByProgramme(programme.id)
+            println("✅ Deleted $deletedWorkouts workouts")
+            
             // Then delete the programme (will cascade delete progress and related data)
+            println("🗑️ Deleting programme from database")
             programmeDao.deleteProgramme(programme)
+            println("✅ Programme ${programme.name} deleted successfully")
         }
 
     suspend fun getInProgressWorkoutCountByProgramme(programmeId: Long): Int =

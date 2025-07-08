@@ -6,8 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.*
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.repository.AIProgrammeRepository
 import com.github.radupana.featherweight.service.*
 import com.github.radupana.featherweight.ui.dialogs.UnmatchedExerciseDialog
+import com.github.radupana.featherweight.data.FeatherweightDatabase
+import androidx.work.WorkManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -17,6 +20,11 @@ class ProgrammePreviewViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
+    private val database = FeatherweightDatabase.getDatabase(application)
+    private val aiProgrammeRepository = AIProgrammeRepository(
+        database.aiProgrammeRequestDao(),
+        WorkManager.getInstance(application)
+    )
     private val validator = ProgrammeValidator()
     private val exerciseMatcher = ExerciseNameMatcher()
     private val aiService = AIProgrammeService(application)
@@ -451,10 +459,25 @@ class ProgrammePreviewViewModel(
 
                 // Create the programme in the database
                 val programmeId = repository.createAIGeneratedProgramme(currentPreview)
+                println("✅ AI programme created and activated with ID: $programmeId")
+
+                // Delete the AI request to prevent it from showing up as "Ready to preview"
+                val aiRequestId = GeneratedProgrammeHolder.getAIRequestId()
+                if (aiRequestId != null) {
+                    println("🗑️ Deleting AI request: $aiRequestId")
+                    aiProgrammeRepository.deleteRequest(aiRequestId)
+                    println("✅ AI request deleted successfully")
+                } else {
+                    println("⚠️ No AI request ID found to delete")
+                }
+
+                // Clear the generated programme holder
+                GeneratedProgrammeHolder.clearGeneratedProgramme()
 
                 // Navigate immediately to home screen
                 onSuccess()
             } catch (e: Exception) {
+                println("❌ Failed to activate programme: ${e.message}")
                 val currentPreview = _currentPreview.value
                 // If activation fails, go back to Success state
                 if (currentPreview != null) {

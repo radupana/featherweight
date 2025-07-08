@@ -222,14 +222,19 @@ fun MainAppWithNavigation(
 ) {
     // Track previous screen for proper back navigation
     var previousScreen by remember { mutableStateOf<Screen?>(null) }
+    var lastScreen by remember { mutableStateOf(currentScreen) }
 
     // Update previous screen when screen changes
     LaunchedEffect(currentScreen) {
-        if (currentScreen == Screen.ACTIVE_WORKOUT || currentScreen == Screen.EXERCISE_SELECTOR) {
-            // Don't update previousScreen when navigating to workout or exercise selector
-            // Keep the previous value to maintain proper back navigation
-        } else {
-            previousScreen = currentScreen
+        if (currentScreen != lastScreen) {
+            // Save the last screen as previous before updating
+            if (currentScreen == Screen.ACTIVE_WORKOUT || currentScreen == Screen.EXERCISE_SELECTOR || currentScreen == Screen.PROGRAMME_PREVIEW) {
+                // For these screens, keep the previousScreen from before navigation
+                // This ensures proper back navigation
+            } else {
+                previousScreen = lastScreen
+            }
+            lastScreen = currentScreen
         }
     }
 
@@ -424,6 +429,7 @@ fun MainAppWithNavigation(
                     profileViewModel = profileViewModel,
                     onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
                     onNavigateToAIGenerator = { onScreenChange(Screen.PROGRAMME_GENERATOR) },
+                    onNavigateToAIProgrammePreview = { onScreenChange(Screen.PROGRAMME_PREVIEW) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -469,7 +475,7 @@ fun MainAppWithNavigation(
 
             Screen.PROGRAMME_PREVIEW -> {
                 com.github.radupana.featherweight.ui.screens.ProgrammePreviewScreen(
-                    onBack = { onScreenChange(Screen.PROGRAMME_GENERATOR) },
+                    onBack = { onScreenChange(previousScreen ?: Screen.PROGRAMMES) },
                     onActivated = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
                     modifier = Modifier.padding(innerPadding),
                 )

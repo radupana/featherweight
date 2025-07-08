@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -29,6 +31,19 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.delay
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -41,6 +56,11 @@ fun ProgrammeGeneratorScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showInfoDialog by remember { mutableStateOf(false) }
     
+    // Focus management for text input
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    
     // Block navigation when loading
     BackHandler(enabled = uiState.isLoading) {
         // Do nothing - prevent back navigation during loading
@@ -48,466 +68,80 @@ fun ProgrammeGeneratorScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "Generate Programme",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
+            Column {
+                TopAppBar(
+                    title = {
+                        Text(
+                            "Generate Programme",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                )
+                // Progress indicator
+                WizardProgressIndicator(
+                    currentStep = uiState.currentStep,
+                    onStepClick = { step ->
+                        if (viewModel.isStepCompleted(step)) {
+                            viewModel.navigateToStep(step)
+                        }
+                    },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
         },
         modifier = modifier,
     ) { paddingValues ->
-        LazyColumn(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 16.dp),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
         ) {
-            // Mode Selection
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        ),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                    ) {
-                        Text(
-                            text = "Generation Mode",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(bottom = 12.dp),
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            GenerationMode.values().forEach { mode ->
-                                val isSelected = uiState.generationMode == mode
-                                if (isSelected) {
-                                    Button(
-                                        onClick = { viewModel.selectGenerationMode(mode) },
-                                        modifier = Modifier.weight(1f),
-                                        colors =
-                                            ButtonDefaults.buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.primary,
-                                            ),
-                                    ) {
-                                        Text(
-                                            text = mode.displayName,
-                                            style = MaterialTheme.typography.labelLarge,
-                                        )
-                                    }
-                                } else {
-                                    OutlinedButton(
-                                        onClick = { viewModel.selectGenerationMode(mode) },
-                                        modifier = Modifier.weight(1f),
-                                    ) {
-                                        Text(
-                                            text = mode.displayName,
-                                            style = MaterialTheme.typography.labelLarge,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        Text(
-                            text = uiState.generationMode.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                    }
-                }
-            }
-
-            // Goal Selection (only for Simplified mode)
-            if (uiState.generationMode == GenerationMode.SIMPLIFIED) {
-                item {
-                    Text(
-                        text = "What's your main goal?",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp),
-                    ) {
-                        items(ProgrammeGoal.values()) { goal ->
-                            GoalChip(
-                                goal = goal,
-                                isSelected = uiState.selectedGoal == goal,
-                                onClick = { viewModel.selectGoal(goal) },
-                            )
-                        }
-                    }
-                }
-
-                // Frequency Selection
-                item {
-                    AnimatedVisibility(
-                        visible = uiState.selectedGoal != null,
-                        enter = slideInVertically() + fadeIn(),
-                        exit = slideOutVertically() + fadeOut(),
-                    ) {
-                        Column {
-                            Text(
-                                text = "How many days can you train?",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(bottom = 8.dp),
-                            )
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp),
-                            ) {
-                                items((2..7).toList()) { frequency ->
-                                    FrequencyChip(
-                                        frequency = frequency,
-                                        isSelected = uiState.selectedFrequency == frequency,
-                                        onClick = { viewModel.selectFrequency(frequency) },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Duration Selection
-                item {
-                    AnimatedVisibility(
-                        visible = uiState.selectedFrequency != null,
-                        enter = slideInVertically() + fadeIn(),
-                        exit = slideOutVertically() + fadeOut(),
-                    ) {
-                        Column {
-                            Text(
-                                text = "How long are your sessions?",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(bottom = 8.dp),
-                            )
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp),
-                            ) {
-                                items(SessionDuration.values()) { duration ->
-                                    DurationChip(
-                                        duration = duration,
-                                        isSelected = uiState.selectedDuration == duration,
-                                        onClick = { viewModel.selectDuration(duration) },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Experience Level Selection
-                item {
-                    AnimatedVisibility(
-                        visible = uiState.selectedDuration != null,
-                        enter = slideInVertically() + fadeIn(),
-                        exit = slideOutVertically() + fadeOut(),
-                    ) {
-                        Column {
-                            Text(
-                                text = "What's your experience level?",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(bottom = 8.dp),
-                            )
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp),
-                            ) {
-                                items(ExperienceLevel.values()) { experience ->
-                                    ExperienceChip(
-                                        experience = experience,
-                                        isSelected = uiState.selectedExperience == experience,
-                                        onClick = { viewModel.selectExperienceLevel(experience) },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Equipment Selection
-                item {
-                    AnimatedVisibility(
-                        visible = uiState.selectedExperience != null,
-                        enter = slideInVertically() + fadeIn(),
-                        exit = slideOutVertically() + fadeOut(),
-                    ) {
-                        Column {
-                            Text(
-                                text = "What equipment do you have?",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(bottom = 8.dp),
-                            )
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp),
-                            ) {
-                                items(EquipmentAvailability.values()) { equipment ->
-                                    EquipmentChip(
-                                        equipment = equipment,
-                                        isSelected = uiState.selectedEquipment == equipment,
-                                        onClick = { viewModel.selectEquipment(equipment) },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            } // End Simplified mode if statement
-
-            // Text Input Area
-            item {
-                Column {
-                    // Custom Instructions label for Simplified mode
-                    if (uiState.generationMode == GenerationMode.SIMPLIFIED) {
-                        Row(
-                            modifier = Modifier.padding(bottom = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = "Custom Instructions",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            IconButton(
-                                onClick = { showInfoDialog = true },
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Info,
-                                    contentDescription = "Info",
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-                        }
-                    }
-                    
-                    val inputHeight =
-                        when (uiState.generationMode) {
-                            GenerationMode.SIMPLIFIED -> 200.dp
-                            GenerationMode.ADVANCED -> 400.dp
-                        }
-                    Card(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .height(inputHeight),
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                            ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    ) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                        ) {
-                            OutlinedTextField(
-                                value = uiState.inputText,
-                                onValueChange = { newText ->
-                                    val maxLength =
-                                        when (uiState.generationMode) {
-                                            GenerationMode.SIMPLIFIED -> 500
-                                            GenerationMode.ADVANCED -> 5000
-                                        }
-                                    if (newText.length <= maxLength) {
-                                        viewModel.updateInputText(newText)
-                                    }
-                                },
-                                modifier = Modifier.fillMaxSize(),
-                                textStyle =
-                                    TextStyle(
-                                        fontSize = 16.sp,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                    ),
-                                placeholder = if (uiState.generationMode == GenerationMode.ADVANCED) {
-                                    {
-                                        Text(
-                                            text = "Paste your full programme description here...",
-                                            style =
-                                                TextStyle(
-                                                    fontSize = 16.sp,
-                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                                ),
-                                        )
-                                    }
-                                } else null,
-                                colors =
-                                    OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = Color.Transparent,
-                                        unfocusedBorderColor = Color.Transparent,
-                                        focusedContainerColor = Color.Transparent,
-                                        unfocusedContainerColor = Color.Transparent,
-                                    ),
-                                // Enable multiline for better text input
-                                singleLine = false,
-                                maxLines = if (uiState.generationMode == GenerationMode.ADVANCED) 20 else 8,
-                            )
-
-                            // Character count - only show for Simplified mode
-                            if (uiState.generationMode == GenerationMode.SIMPLIFIED) {
-                                Text(
-                                    text = "${uiState.inputText.length}/500",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color =
-                                        if (uiState.inputText.length > 450) {
-                                            MaterialTheme.colorScheme.error
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                        },
-                                    modifier = Modifier.align(Alignment.BottomEnd),
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-
-
-            // Character count for Advanced mode
-            if (uiState.generationMode == GenerationMode.ADVANCED) {
-                item {
-                    val maxLength = 5000
-                    val currentLength = uiState.inputText.length
-                    val color =
-                        when {
-                            currentLength > maxLength - 500 -> MaterialTheme.colorScheme.error
-                            currentLength > maxLength - 1000 -> MaterialTheme.colorScheme.primary
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 4.dp),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text =
-                                if (currentLength < 500) {
-                                    "Need at least 500 characters for Advanced mode"
-                                } else {
-                                    "Good! Programme description looks comprehensive"
-                                },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = color,
-                        )
-                        Text(
-                            text = "$currentLength / $maxLength",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-
-
-            // Generate Button
-            item {
-                Button(
-                    onClick = { viewModel.generateProgramme(onBack) },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                    enabled =
-                        when (uiState.generationMode) {
-                            GenerationMode.SIMPLIFIED -> {
-                                // Simplified mode: all 5 selections required, custom text optional
-                                uiState.selectedGoal != null &&
-                                    uiState.selectedFrequency != null &&
-                                    uiState.selectedDuration != null &&
-                                    uiState.selectedExperience != null &&
-                                    uiState.selectedEquipment != null &&
-                                    !uiState.isLoading
-                            }
-                            GenerationMode.ADVANCED -> {
-                                // Advanced mode: requires substantial text (500+ chars)
-                                uiState.inputText.length >= 500 && !uiState.isLoading
-                            }
-                        },
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                        ),
-                ) {
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
+            // Wizard steps
+            AnimatedContent(
+                targetState = uiState.currentStep,
+                transitionSpec = {
+                    if (targetState.ordinal > initialState.ordinal) {
+                        slideInHorizontally { width -> width } + fadeIn() togetherWith
+                        slideOutHorizontally { width -> -width } + fadeOut()
                     } else {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(
-                                Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Text(
-                                "Generate Programme",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
+                        slideInHorizontally { width -> -width } + fadeIn() togetherWith
+                        slideOutHorizontally { width -> width } + fadeOut()
                     }
+                },
+                label = "wizard step animation"
+            ) { step ->
+                when (step) {
+                    WizardStep.QUICK_SETUP -> QuickSetupStep(
+                        uiState = uiState,
+                        viewModel = viewModel,
+                        onNext = { viewModel.navigateToNextStep() }
+                    )
+                    WizardStep.ABOUT_YOU -> AboutYouStep(
+                        uiState = uiState,
+                        viewModel = viewModel,
+                        onNext = { viewModel.navigateToNextStep() },
+                        onBack = { viewModel.navigateToPreviousStep() }
+                    )
+                    WizardStep.CUSTOMIZE -> CustomizeStep(
+                        uiState = uiState,
+                        viewModel = viewModel,
+                        onBack = { viewModel.navigateToPreviousStep() },
+                        onGenerate = { viewModel.generateProgramme(onBack) },
+                        focusRequester = focusRequester,
+                        modifier = Modifier.imePadding()
+                    )
                 }
             }
-
-            // Error message
-            uiState.errorMessage?.let { error ->
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                            ),
-                    ) {
-                        Text(
-                            text = error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(16.dp),
-                        )
-                    }
-                }
-            }
+            // Mode selector removed - only using simplified approach
         }
     }
+
 
 
     // Custom Instructions Info Dialog
@@ -652,7 +286,7 @@ fun ProgrammeGeneratorScreen(
                         AnimatedContent(
                             targetState = loadingMessage,
                             transitionSpec = {
-                                slideInVertically { height -> height } + fadeIn() with
+                                slideInVertically { height -> height } + fadeIn() togetherWith
                                 slideOutVertically { height -> -height } + fadeOut()
                             },
                             label = "loading message animation"
@@ -687,3 +321,395 @@ fun ProgrammeGeneratorScreen(
         }
     }
 }
+
+@Composable
+fun WizardProgressIndicator(
+    currentStep: WizardStep,
+    onStepClick: (WizardStep) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        WizardStep.values().forEach { step ->
+            val isCompleted = step.ordinal < currentStep.ordinal
+            val isCurrent = step == currentStep
+            
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = isCompleted) {
+                        onStepClick(step)
+                    }
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(
+                            color = when {
+                                isCompleted -> MaterialTheme.colorScheme.primary
+                                isCurrent -> MaterialTheme.colorScheme.primaryContainer
+                                else -> MaterialTheme.colorScheme.surfaceVariant
+                            },
+                            shape = CircleShape
+                        )
+                ) {
+                    if (isCompleted) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    } else {
+                        Text(
+                            text = "${step.ordinal + 1}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isCurrent) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                }
+                Text(
+                    text = when (step) {
+                        WizardStep.QUICK_SETUP -> "Setup"
+                        WizardStep.ABOUT_YOU -> "About You"
+                        WizardStep.CUSTOMIZE -> "Customize"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            
+            if (step != WizardStep.values().last()) {
+                HorizontalDivider(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp)
+                        .align(Alignment.CenterVertically),
+                    thickness = 2.dp,
+                    color = if (isCompleted) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun QuickSetupStep(
+    uiState: GuidedInputState,
+    viewModel: ProgrammeGeneratorViewModel,
+    onNext: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        // Goal selection
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "What's your primary goal?",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(ProgrammeGoal.values()) { goal ->
+                    FilterChip(
+                        selected = uiState.selectedGoal == goal,
+                        onClick = { viewModel.selectGoal(goal) },
+                        label = {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(goal.emoji)
+                                Text(goal.displayName)
+                            }
+                        }
+                    )
+                }
+            }
+        }
+        
+        // Frequency selection
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "How often can you train?",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(TrainingFrequency.values()) { frequency ->
+                    FilterChip(
+                        selected = uiState.selectedFrequency == frequency,
+                        onClick = { viewModel.selectFrequency(frequency) },
+                        label = { Text(frequency.displayName) }
+                    )
+                }
+            }
+        }
+        
+        // Duration selection
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "How long are your sessions?",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(SessionDuration.values()) { duration ->
+                    FilterChip(
+                        selected = uiState.selectedDuration == duration,
+                        onClick = { viewModel.selectDuration(duration) },
+                        label = {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(duration.displayName)
+                                Text(
+                                    duration.minutesRange,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        // Next button
+        Button(
+            onClick = onNext,
+            enabled = viewModel.canProceedToNextStep(),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Next")
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun AboutYouStep(
+    uiState: GuidedInputState,
+    viewModel: ProgrammeGeneratorViewModel,
+    onNext: () -> Unit,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        // Experience level selection
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "What's your experience level?",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(ExperienceLevel.values()) { experience ->
+                    FilterChip(
+                        selected = uiState.selectedExperience == experience,
+                        onClick = { viewModel.selectExperienceLevel(experience) },
+                        label = { Text(experience.displayName) }
+                    )
+                }
+            }
+        }
+        
+        // Equipment selection
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "What equipment do you have access to?",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(EquipmentAvailability.values()) { equipment ->
+                    FilterChip(
+                        selected = uiState.selectedEquipment == equipment,
+                        onClick = { viewModel.selectEquipment(equipment) },
+                        label = { Text(equipment.displayName) }
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        // Navigation buttons
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Text("Back")
+            }
+            Button(
+                onClick = onNext,
+                enabled = viewModel.canProceedToNextStep(),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Next")
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CustomizeStep(
+    uiState: GuidedInputState,
+    viewModel: ProgrammeGeneratorViewModel,
+    onBack: () -> Unit,
+    onGenerate: () -> Unit,
+    focusRequester: FocusRequester,
+    modifier: Modifier = Modifier
+) {
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+    
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Header
+        Text(
+            "Add custom instructions (optional)",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Text input area (takes up all available space)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            OutlinedTextField(
+                value = uiState.customInstructions,
+                onValueChange = { viewModel.updateCustomInstructions(it) },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .focusRequester(focusRequester),
+                placeholder = {
+                    Text(
+                        "Add any additional information about your training goals, injuries, preferences, etc.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                },
+                textStyle = MaterialTheme.typography.bodyLarge,
+                singleLine = false,
+                supportingText = {
+                    Text(
+                        "${uiState.customInstructions.length} / 1000 characters",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.End
+                    )
+                }
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Navigation buttons
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Text("Back")
+            }
+            Button(
+                onClick = onGenerate,
+                enabled = uiState.canGenerate() && !uiState.isLoading,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Text("Generate")
+            }
+        }
+        
+        // Error message
+        uiState.errorMessage?.let { error ->
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    error,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+

@@ -81,6 +81,12 @@ Context7 provides up-to-date, accurate documentation that supersedes any knowled
 - **No Week-Based Timelines**: We don't do "Week 1, Week 2" planning. We implement everything as quickly as possible, ideally in a day.
 - **No Future Enhancements Sections**: Focus only on the immediate task at hand. Don't add "Future Enhancements" or "Later Improvements" sections unless explicitly requested.
 - **ALWAYS Compile Before Completion**: Never say "Implementation Complete" or "Done" without first compiling the code. Run `./gradlew assembleDebug` to ensure everything builds successfully.
+- **NO UNREQUESTED FEATURES**: NEVER add features, UI elements, or functionality that wasn't explicitly requested. This includes:
+  - No example prompts or suggestions unless asked
+  - No pre-filled text in input fields
+  - No additional helper text or hints beyond what's requested
+  - No "nice to have" additions
+  - If the user didn't ask for it, DON'T ADD IT
 
 ## Common Commands
 

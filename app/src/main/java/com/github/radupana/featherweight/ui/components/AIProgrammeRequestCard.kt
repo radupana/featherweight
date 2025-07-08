@@ -14,6 +14,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.AIProgrammeRequest
 import com.github.radupana.featherweight.data.GenerationStatus
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -36,6 +39,21 @@ fun AIProgrammeRequestCard(
             minutes < 60 -> "$minutes min ago"
             minutes < 1440 -> "${minutes / 60} hours ago"
             else -> "${minutes / 1440} days ago"
+        }
+    }
+    
+    // Extract programme name if available
+    val programmeName = remember(request.generatedProgrammeJson) {
+        if (request.status == GenerationStatus.COMPLETED && !request.generatedProgrammeJson.isNullOrEmpty()) {
+            try {
+                val json = Json { ignoreUnknownKeys = true }
+                val programmeData = json.parseToJsonElement(request.generatedProgrammeJson)
+                programmeData.jsonObject["name"]?.jsonPrimitive?.content
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
         }
     }
     
@@ -109,7 +127,7 @@ fun AIProgrammeRequestCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = "AI Programme",
+                        text = programmeName ?: "AI Programme",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )

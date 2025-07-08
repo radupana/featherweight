@@ -39,38 +39,14 @@ class ProgrammeGeneratorViewModel(
     private val _uiState = MutableStateFlow(GuidedInputState())
     val uiState = _uiState.asStateFlow()
 
-    fun updateInputText(text: String) {
-        val currentState = _uiState.value
-        val detectedElements = inputAnalyzer.analyzeInput(text, currentState.selectedGoal)
-        val completeness =
-            inputAnalyzer.calculateCompleteness(
-                detectedElements,
-                currentState.selectedGoal != null,
-                currentState.selectedFrequency != null,
-                text.length,
-            )
-
-        _uiState.value =
-            currentState.copy(
-                inputText = text,
-                detectedElements = detectedElements,
-                inputCompleteness = completeness,
-                errorMessage = null,
-            )
+    fun updateCustomInstructions(text: String) {
+        _uiState.value = _uiState.value.copy(
+            customInstructions = text,
+            errorMessage = null
+        )
     }
 
-    fun selectGenerationMode(mode: GenerationMode) {
-        val currentState = _uiState.value
-        _uiState.value =
-            currentState.copy(
-                generationMode = mode,
-                // Clear text when switching modes
-                inputText = "",
-                // Reset analysis for fresh start
-                detectedElements = emptySet(),
-                inputCompleteness = 0f,
-            )
-    }
+    // GenerationMode selection removed - only using simplified approach
 
     fun selectGoal(goal: ProgrammeGoal) {
         val currentState = _uiState.value
@@ -78,22 +54,14 @@ class ProgrammeGeneratorViewModel(
         val newGoal = if (currentState.selectedGoal == goal) null else goal
         _uiState.value = currentState.copy(selectedGoal = newGoal)
 
-        // Re-analyze input with new goal
-        if (currentState.inputText.isNotEmpty()) {
-            updateInputText(currentState.inputText)
-        }
+        // Goal selection is now simpler without input analysis
     }
 
-    fun selectFrequency(frequency: Int) {
+    fun selectFrequency(frequency: TrainingFrequency) {
         val currentState = _uiState.value
         // Toggle selection - if already selected, deselect it
         val newFrequency = if (currentState.selectedFrequency == frequency) null else frequency
         _uiState.value = currentState.copy(selectedFrequency = newFrequency)
-
-        // Re-analyze input with new frequency
-        if (currentState.inputText.isNotEmpty()) {
-            updateInputText(currentState.inputText)
-        }
     }
 
     fun selectDuration(duration: SessionDuration) {
@@ -116,11 +84,180 @@ class ProgrammeGeneratorViewModel(
         val newEquipment = if (currentState.selectedEquipment == equipment) null else equipment
         _uiState.value = currentState.copy(selectedEquipment = newEquipment)
     }
+    
+    // Wizard navigation functions
+    fun navigateToNextStep() {
+        val currentState = _uiState.value
+        when (currentState.currentStep) {
+            WizardStep.QUICK_SETUP -> {
+                // Only proceed if required fields are filled
+                if (currentState.selectedGoal != null && 
+                    currentState.selectedFrequency != null && 
+                    currentState.selectedDuration != null) {
+                    _uiState.value = currentState.copy(currentStep = WizardStep.ABOUT_YOU)
+                }
+            }
+            WizardStep.ABOUT_YOU -> {
+                // Only proceed if required fields are filled
+                if (currentState.selectedExperience != null && 
+                    currentState.selectedEquipment != null) {
+                    _uiState.value = currentState.copy(currentStep = WizardStep.CUSTOMIZE)
+                }
+            }
+            WizardStep.CUSTOMIZE -> {
+                // This is the last step, don't navigate further
+            }
+        }
+    }
+    
+    fun navigateToPreviousStep() {
+        val currentState = _uiState.value
+        when (currentState.currentStep) {
+            WizardStep.QUICK_SETUP -> {
+                // This is the first step, can't go back
+            }
+            WizardStep.ABOUT_YOU -> {
+                _uiState.value = currentState.copy(currentStep = WizardStep.QUICK_SETUP)
+            }
+            WizardStep.CUSTOMIZE -> {
+                _uiState.value = currentState.copy(currentStep = WizardStep.ABOUT_YOU)
+            }
+        }
+    }
+    
+    fun navigateToStep(step: WizardStep) {
+        _uiState.value = _uiState.value.copy(currentStep = step)
+    }
+    
+    // Advanced options toggle removed - only using simplified approach
+    
+    fun canProceedToNextStep(): Boolean {
+        val state = _uiState.value
+        return when (state.currentStep) {
+            WizardStep.QUICK_SETUP -> {
+                state.selectedGoal != null && 
+                state.selectedFrequency != null && 
+                state.selectedDuration != null
+            }
+            WizardStep.ABOUT_YOU -> {
+                state.selectedExperience != null && 
+                state.selectedEquipment != null
+            }
+            WizardStep.CUSTOMIZE -> true // Can always generate from customize step
+        }
+    }
+    
+    fun isStepCompleted(step: WizardStep): Boolean {
+        val state = _uiState.value
+        return when (step) {
+            WizardStep.QUICK_SETUP -> {
+                state.selectedGoal != null && 
+                state.selectedFrequency != null && 
+                state.selectedDuration != null
+            }
+            WizardStep.ABOUT_YOU -> {
+                state.selectedExperience != null && 
+                state.selectedEquipment != null
+            }
+            WizardStep.CUSTOMIZE -> state.customInstructions.isNotEmpty()
+        }
+    }
 
 
 
 
-    fun getSuggestions(): List<String> = inputAnalyzer.generateSuggestions(_uiState.value.detectedElements)
+    // Input analyzer removed - using simplified approach
+    
+    // Get contextual hints based on current selections
+    fun getContextualHints(): List<String> {
+        val state = _uiState.value
+        val hints = mutableListOf<String>()
+        
+        when (state.currentStep) {
+            WizardStep.CUSTOMIZE -> {
+                // Add hints based on what user has selected
+                state.selectedGoal?.let { goal ->
+                    when (goal) {
+                        ProgrammeGoal.BUILD_STRENGTH -> {
+                            hints.add("Consider mentioning your current 1RM numbers")
+                            hints.add("Specify if you prefer powerlifting or Olympic lifting")
+                        }
+                        ProgrammeGoal.BUILD_MUSCLE -> {
+                            hints.add("Mention any muscle groups you want to prioritize")
+                            hints.add("Include your preferred training split if you have one")
+                        }
+                        ProgrammeGoal.LOSE_FAT -> {
+                            hints.add("Note if you're doing any cardio alongside weight training")
+                            hints.add("Mention if you have any dietary restrictions")
+                        }
+                        ProgrammeGoal.ATHLETIC_PERFORMANCE -> {
+                            hints.add("Specify which sport or activity you're training for")
+                            hints.add("Include any speed/agility work requirements")
+                        }
+                        ProgrammeGoal.CUSTOM -> {
+                            hints.add("Be specific about your unique training goals")
+                        }
+                    }
+                }
+                
+                // Add equipment-specific hints
+                state.selectedEquipment?.let { equipment ->
+                    when (equipment) {
+                        EquipmentAvailability.LIMITED -> {
+                            hints.add("List the specific equipment you have available")
+                        }
+                        EquipmentAvailability.BODYWEIGHT -> {
+                            hints.add("Mention if you have access to pull-up bars or dip stations")
+                        }
+                        else -> {}
+                    }
+                }
+                
+                // Generic helpful hints
+                hints.add("Mention any injuries or areas to work around")
+                hints.add("Note your schedule preferences or time constraints")
+            }
+            else -> {}
+        }
+        
+        return hints
+    }
+    
+    // Get example prompts for custom instructions
+    fun getExamplePrompts(): List<String> {
+        val state = _uiState.value
+        val examples = mutableListOf<String>()
+        
+        when (state.selectedGoal) {
+            ProgrammeGoal.BUILD_STRENGTH -> {
+                examples.add("I've been stuck at a 315lb squat for months and want to break through")
+                examples.add("My deadlift is weak compared to my squat, need to bring it up")
+                examples.add("Want to compete in powerlifting next year")
+            }
+            ProgrammeGoal.BUILD_MUSCLE -> {
+                examples.add("My chest is lagging, want extra volume there")
+                examples.add("Prefer higher rep ranges (8-12) for hypertrophy")
+                examples.add("Want to focus on arms and shoulders this cycle")
+            }
+            ProgrammeGoal.LOSE_FAT -> {
+                examples.add("Need to maintain strength while cutting 20 pounds")
+                examples.add("Prefer circuit-style training to keep heart rate up")
+                examples.add("Limited to 45 minutes per session due to schedule")
+            }
+            ProgrammeGoal.ATHLETIC_PERFORMANCE -> {
+                examples.add("Training for basketball season, need explosive power")
+                examples.add("Rugby player needing strength and conditioning")
+                examples.add("Want to improve my 40-yard dash time")
+            }
+            else -> {
+                examples.add("Recovering from shoulder injury, need modifications")
+                examples.add("Want to focus on functional fitness and mobility")
+                examples.add("Training for a specific event or competition")
+            }
+        }
+        
+        return examples
+    }
 
 
     fun generateProgramme(onNavigateToProgrammes: (() -> Unit)? = null) {
@@ -142,13 +279,13 @@ class ProgrammeGeneratorViewModel(
             try {
                 // Create generation request
                 val requestId = aiProgrammeRepository.createGenerationRequest(
-                    userInput = currentState.inputText,
+                    userInput = buildFullUserInput(currentState),
                     selectedGoal = currentState.selectedGoal?.name,
-                    selectedFrequency = currentState.selectedFrequency,
+                    selectedFrequency = currentState.selectedFrequency?.daysPerWeek,
                     selectedDuration = currentState.selectedDuration?.name,
                     selectedExperience = currentState.selectedExperience?.name,
                     selectedEquipment = currentState.selectedEquipment?.name,
-                    generationMode = currentState.generationMode.name
+                    generationMode = "SIMPLIFIED"
                 )
                 
                 // Increment quota usage
@@ -172,12 +309,16 @@ class ProgrammeGeneratorViewModel(
         }
     }
 
+    private fun buildFullUserInput(state: GuidedInputState): String {
+        return buildEnhancedUserInput(state)
+    }
+    
     private fun buildEnhancedUserInput(state: GuidedInputState): String {
         val parts = mutableListOf<String>()
 
-        // Add user's raw input
-        if (state.inputText.isNotBlank()) {
-            parts.add(state.inputText.trim())
+        // Add user's custom instructions
+        if (state.customInstructions.isNotBlank()) {
+            parts.add(state.customInstructions.trim())
         }
 
         // Add structured selections
@@ -194,7 +335,7 @@ class ProgrammeGeneratorViewModel(
         }
 
         if (state.selectedFrequency != null) {
-            parts.add("Training frequency: ${state.selectedFrequency} days per week")
+            parts.add("Training frequency: ${state.selectedFrequency.daysPerWeek} days per week")
         }
 
         if (state.selectedDuration != null) {
@@ -231,22 +372,7 @@ class ProgrammeGeneratorViewModel(
             parts.add(equipmentText)
         }
 
-        // Add information about detected elements
-        if (state.detectedElements.contains(DetectedElement.EXPERIENCE_LEVEL)) {
-            parts.add("Note: User has indicated their experience level")
-        }
-
-        if (state.detectedElements.contains(DetectedElement.EQUIPMENT)) {
-            parts.add("Note: User has mentioned equipment preferences")
-        }
-
-        if (state.detectedElements.contains(DetectedElement.INJURIES)) {
-            parts.add("Note: User has mentioned injuries or limitations - please accommodate")
-        }
-
-        if (state.detectedElements.contains(DetectedElement.SCHEDULE)) {
-            parts.add("Note: User has mentioned schedule constraints")
-        }
+        // Simplified approach - no element detection needed
 
         // No need to extract weights - let AI handle it directly
 

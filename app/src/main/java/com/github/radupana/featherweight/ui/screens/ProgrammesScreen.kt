@@ -43,6 +43,7 @@ fun ProgrammesScreen(
     profileViewModel: ProfileViewModel = viewModel(),
     onNavigateToActiveProgramme: (() -> Unit)? = null,
     onNavigateToAIGenerator: (() -> Unit)? = null,
+    onNavigateToAIProgrammePreview: (() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val activeProgramme by viewModel.activeProgramme.collectAsState()
@@ -178,7 +179,11 @@ fun ProgrammesScreen(
                         AIProgrammeRequestCard(
                             request = request,
                             onPreview = {
-                                // TODO: Navigate to preview with the generated programme
+                                viewModel.previewAIProgramme(request.id) { success ->
+                                    if (success) {
+                                        onNavigateToAIProgrammePreview?.invoke()
+                                    }
+                                }
                             },
                             onRetry = {
                                 viewModel.retryAIGeneration(request.id)
@@ -197,7 +202,7 @@ fun ProgrammesScreen(
                         text = if (activeProgramme != null && !isKeyboardVisible) 
                             "Browse Other Programmes" 
                         else 
-                            "Choose a Programme",
+                            "Predefined Programmes",
                         style = if (isKeyboardVisible) 
                             MaterialTheme.typography.titleMedium 
                         else 

@@ -4,6 +4,7 @@ import com.github.radupana.featherweight.BuildConfig
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -26,6 +27,7 @@ data class AIProgrammeResponse(
     val error: String? = null,
 )
 
+@Serializable
 data class GeneratedProgramme(
     val name: String,
     val description: String,
@@ -34,6 +36,7 @@ data class GeneratedProgramme(
     val weeks: List<GeneratedWeek>,
 )
 
+@Serializable
 data class GeneratedWeek(
     val weekNumber: Int,
     val name: String,
@@ -45,12 +48,14 @@ data class GeneratedWeek(
     val workouts: List<GeneratedWorkout>,
 )
 
+@Serializable
 data class GeneratedWorkout(
     val dayNumber: Int,
     val name: String,
     val exercises: List<GeneratedExercise>,
 )
 
+@Serializable
 data class GeneratedExercise(
     val exerciseName: String,
     val sets: Int,
@@ -386,6 +391,10 @@ class AIProgrammeService(
             e.printStackTrace()
             throw Exception("AI service is temporarily unavailable. Please try again later or use a template programme.")
         }
+    }
+
+    fun parseAIProgrammeResponse(jsonResponse: String): AIProgrammeResponse {
+        return parseAIResponse(jsonResponse)
     }
 
     private fun parseAIResponse(response: String): AIProgrammeResponse {

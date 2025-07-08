@@ -381,11 +381,14 @@ class ProgrammeViewModel(
     fun deleteProgramme(programme: Programme) {
         viewModelScope.launch {
             try {
+                println("🗑️ Deleting programme: ${programme.name} (ID: ${programme.id})")
                 repository.deleteProgramme(programme)
+                println("✅ Programme deleted successfully")
                 // Programme deleted successfully - no notification needed
                 // Refresh data to update the UI
                 loadProgrammeData()
             } catch (e: Exception) {
+                println("❌ Failed to delete programme: ${e.message}")
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to delete programme: ${e.message}",
@@ -535,6 +538,42 @@ class ProgrammeViewModel(
     fun deleteAIRequest(requestId: String) {
         viewModelScope.launch {
             aiProgrammeRepository.deleteRequest(requestId)
+        }
+    }
+
+    fun previewAIProgramme(requestId: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val request = aiProgrammeRepository.getRequestById(requestId)
+                if (request != null && request.generatedProgrammeJson != null) {
+                    // Parse the generated programme JSON
+                    val aiService = com.github.radupana.featherweight.service.AIProgrammeService(getApplication())
+                    val response = aiService.parseAIProgrammeResponse(request.generatedProgrammeJson)
+                    
+                    if (response.programme != null) {
+                        // Store in holder for preview screen with request ID
+                        GeneratedProgrammeHolder.setGeneratedProgramme(response, requestId)
+                        
+                        // Validation will be done in ProgrammePreviewViewModel
+                        onResult(true)
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            error = "Failed to parse programme data"
+                        )
+                        onResult(false)
+                    }
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Programme not found or still generating"
+                    )
+                    onResult(false)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Error loading programme: ${e.message}"
+                )
+                onResult(false)
+            }
         }
     }
 }
