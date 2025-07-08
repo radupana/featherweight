@@ -67,6 +67,13 @@ class ProgrammePreviewViewModel(
                     // Process and validate the programme
                     val preview = processGeneratedProgramme(generatedProgramme, allExercises, validationResult)
 
+                    // Debug logging to understand week count
+                    println("🔍 ProgrammePreviewViewModel: Generated programme has ${generatedProgramme.weeks.size} weeks")
+                    println("🔍 ProgrammePreviewViewModel: Preview has ${preview.weeks.size} weeks")
+                    preview.weeks.forEach { week ->
+                        println("  - Week ${week.weekNumber}: ${week.workouts.size} workouts, ${week.weeklyVolume.totalSets} sets")
+                    }
+
                     _currentPreview.value = preview
                     _previewState.value = PreviewState.Success(preview)
                 } ?: run {

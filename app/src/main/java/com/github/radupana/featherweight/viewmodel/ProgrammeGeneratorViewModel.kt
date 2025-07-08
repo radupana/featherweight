@@ -1,11 +1,14 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.WorkManager
 import com.github.radupana.featherweight.ai.WeightExtractionService
 import com.github.radupana.featherweight.data.*
 import com.github.radupana.featherweight.data.profile.ExerciseMaxWithName
+import com.github.radupana.featherweight.repository.AIProgrammeRepository
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.AIProgrammeQuotaManager
 import com.github.radupana.featherweight.service.AIProgrammeRequest
@@ -22,6 +25,11 @@ class ProgrammeGeneratorViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
+    private val database = FeatherweightDatabase.getDatabase(application)
+    private val aiProgrammeRepository = AIProgrammeRepository(
+        database.aiProgrammeRequestDao(),
+        WorkManager.getInstance(application)
+    )
     private val aiService = AIProgrammeService(application)
     private val quotaManager = AIProgrammeQuotaManager(application)
     private val inputAnalyzer = InputAnalyzer()
@@ -110,48 +118,12 @@ class ProgrammeGeneratorViewModel(
     }
 
 
-    fun toggleExamples() {
-        _uiState.value = _uiState.value.copy(showExamples = !_uiState.value.showExamples)
-    }
-
-    fun loadTemplate(template: ExampleTemplate) {
-        _uiState.value =
-            _uiState.value.copy(
-                selectedGoal = template.goal,
-                selectedFrequency = template.frequency,
-                selectedDuration = template.duration,
-                showExamples = false,
-            )
-        updateInputText(template.exampleText)
-    }
 
 
     fun getSuggestions(): List<String> = inputAnalyzer.generateSuggestions(_uiState.value.detectedElements)
 
-    fun getFilteredTemplates(): List<ExampleTemplate> {
-        val currentState = _uiState.value
 
-        // If no selections made, show all templates
-        if (currentState.selectedGoal == null && currentState.selectedFrequency == null && currentState.selectedDuration == null) {
-            return ExampleTemplates.templates.take(4)
-        }
-
-        // Show templates that match any selected criteria, prioritizing more matches
-        return ExampleTemplates.templates
-            .map { template ->
-                var score = 0
-                if (currentState.selectedGoal == template.goal) score += 3
-                if (currentState.selectedFrequency == template.frequency) score += 2
-                if (currentState.selectedDuration == template.duration) score += 1
-                template to score
-            }.filter { it.second > 0 } // At least one match
-            .sortedByDescending { it.second } // Best matches first
-            .map { it.first }
-            .take(4)
-    }
-
-
-    fun generateProgramme(onNavigateToPreview: (() -> Unit)? = null) {
+    fun generateProgramme(onNavigateToProgrammes: (() -> Unit)? = null) {
         val currentState = _uiState.value
 
         // Check quota before attempting generation
@@ -165,90 +137,37 @@ class ProgrammeGeneratorViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.value = currentState.copy(isLoading = true, errorMessage = null)
-
+            _uiState.value = currentState.copy(isLoading = false) // Don't show loading anymore
+            
             try {
-                // Get exercise database for AI context (including aliases)
-                println("🔍 Fetching exercise database for validation...")
-                val exerciseNames = repository.getAllExerciseNamesIncludingAliases()
-                println("📊 Exercise validation database ready: ${exerciseNames.size} names/aliases")
-
-                // Get user's 1RMs for context
-                val user1RMs = repository.getAllCurrentMaxes().first()
-
-                // Create AI request
-                val request =
-                    AIProgrammeRequest(
-                        userInput = buildEnhancedUserInputWithWeights(currentState, user1RMs),
-                        exerciseDatabase = exerciseNames,
-                        maxDays = 7,
-                        maxWeeks = 16,
-                    )
-
-                // Call real AI service (with fallback to mock if API key not configured)
-                val response = aiService.generateProgramme(request)
-
-                if (response.success) {
-                    // Get exercises and aliases for matching
-                    val exercises = repository.getAllExercises()
-                    val aliases = repository.getAllExerciseAliases()
-                    
-                    // Validate and match exercises in the programme
-                    val validationResult = validateAndMatchExercises(response, exercises.map { it.exercise }, aliases)
-
-                    if (validationResult.canProceedWithPartial && validationResult.matchPercentage >= 0.8f) {
-                        // Increment quota usage
-                        if (quotaManager.incrementUsage()) {
-                            // Store the response and validation result for the preview screen
-                            GeneratedProgrammeHolder.setGeneratedProgramme(response)
-                            GeneratedProgrammeHolder.setValidationResult(validationResult)
-
-                            // Update UI state
-                            val quotaStatus = quotaManager.getQuotaStatus()
-                            _uiState.value =
-                                _uiState.value.copy(
-                                    generationCount = quotaStatus.totalQuota - quotaStatus.remainingGenerations,
-                                    isLoading = false,
-                                )
-
-                            // Navigate to preview
-                            onNavigateToPreview?.invoke()
-                        } else {
-                            _uiState.value =
-                                _uiState.value.copy(
-                                    isLoading = false,
-                                    errorMessage = "Daily generation limit reached. Please try again tomorrow.",
-                                )
-                        }
-                    } else if (validationResult.matchPercentage < 0.5f) {
-                        // Too many unmatched exercises
-                        println("⚠️ Too many unmatched exercises: ${validationResult.unmatchedExercises.size}/${validationResult.totalCount}")
-                        _uiState.value =
-                            _uiState.value.copy(
-                                isLoading = false,
-                                errorMessage = "Generated programme contains too many unsupported exercises. Please try again with different requirements or use Browse Templates for proven programmes.",
-                            )
-                    } else {
-                        // Some unmatched but can proceed with fixing
-                        GeneratedProgrammeHolder.setGeneratedProgramme(response)
-                        GeneratedProgrammeHolder.setValidationResult(validationResult)
-                        
-                        // Navigate to preview with unmatched exercises
-                        onNavigateToPreview?.invoke()
-                    }
-                } else {
-                    _uiState.value =
-                        _uiState.value.copy(
-                            isLoading = false,
-                            errorMessage = response.error ?: response.clarificationNeeded ?: "Unknown error",
-                        )
-                }
+                // Create generation request
+                val requestId = aiProgrammeRepository.createGenerationRequest(
+                    userInput = currentState.inputText,
+                    selectedGoal = currentState.selectedGoal?.name,
+                    selectedFrequency = currentState.selectedFrequency,
+                    selectedDuration = currentState.selectedDuration?.name,
+                    selectedExperience = currentState.selectedExperience?.name,
+                    selectedEquipment = currentState.selectedEquipment?.name,
+                    generationMode = currentState.generationMode.name
+                )
+                
+                // Increment quota usage
+                quotaManager.incrementUsage()
+                
+                // Show toast message
+                Toast.makeText(
+                    getApplication(),
+                    "Your programme is being created! Check the Programmes section",
+                    Toast.LENGTH_LONG
+                ).show()
+                
+                // Navigate to programmes screen
+                onNavigateToProgrammes?.invoke()
+                
             } catch (e: Exception) {
-                _uiState.value =
-                    _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = "Failed to generate programme: ${e.message}",
-                    )
+                _uiState.value = currentState.copy(
+                    errorMessage = "Failed to start programme generation: ${e.message}"
+                )
             }
         }
     }

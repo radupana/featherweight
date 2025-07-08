@@ -91,4 +91,7 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
+    
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 }

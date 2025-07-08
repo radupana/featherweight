@@ -77,51 +77,48 @@ fun ProgrammePreviewScreen(
             }
 
             is PreviewState.Success -> {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                        // Show unmatched exercises banner if any
-                        if (unmatchedExercises.isNotEmpty()) {
-                            UnmatchedExercisesBanner(
-                                count = unmatchedExercises.size,
-                                onFixExercises = {
-                                    // Show first unmatched exercise
-                                    unmatchedExercises.firstOrNull()?.let {
-                                        viewModel.showUnmatchedExerciseDialog(it)
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        }
-                        
-                        SuccessPreviewContent(
-                            preview = state.preview,
-                            editStates = editStates,
-                            isActivating = false,
-                            onExerciseResolved = viewModel::resolveExercise,
-                            onExerciseSwapped = viewModel::swapExercise,
-                            onExerciseUpdated = viewModel::updateExercise,
-                            onToggleEdit = viewModel::toggleExerciseEdit,
-                            onShowAlternatives = viewModel::showExerciseAlternatives,
-                            onShowResolution = viewModel::showExerciseResolution,
-                            onProgrammeNameChanged = viewModel::updateProgrammeName,
-                            onRegenerate = { viewModel.regenerate() },
-                            onActivate = {
-                                if (unmatchedExercises.isEmpty()) {
-                                    viewModel.activateProgramme(
-                                        onSuccess = onActivated,
-                                    )
-                                } else {
-                                    // Show first unmatched exercise
-                                    unmatchedExercises.firstOrNull()?.let {
-                                        viewModel.showUnmatchedExerciseDialog(it)
-                                    }
+                Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                    // Show unmatched exercises banner if any
+                    if (unmatchedExercises.isNotEmpty()) {
+                        UnmatchedExercisesBanner(
+                            count = unmatchedExercises.size,
+                            onFixExercises = {
+                                // Show first unmatched exercise
+                                unmatchedExercises.firstOrNull()?.let {
+                                    viewModel.showUnmatchedExerciseDialog(it)
                                 }
                             },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
+                    
+                    SuccessPreviewContent(
+                        preview = state.preview,
+                        editStates = editStates,
+                        isActivating = false,
+                        onExerciseResolved = viewModel::resolveExercise,
+                        onExerciseSwapped = viewModel::swapExercise,
+                        onExerciseUpdated = viewModel::updateExercise,
+                        onToggleEdit = viewModel::toggleExerciseEdit,
+                        onShowAlternatives = viewModel::showExerciseAlternatives,
+                        onShowResolution = viewModel::showExerciseResolution,
+                        onProgrammeNameChanged = viewModel::updateProgrammeName,
+                        onActivate = {
+                            if (unmatchedExercises.isEmpty()) {
+                                viewModel.activateProgramme(
+                                    onSuccess = onActivated,
+                                )
+                            } else {
+                                // Show first unmatched exercise
+                                unmatchedExercises.firstOrNull()?.let {
+                                    viewModel.showUnmatchedExerciseDialog(it)
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
 
@@ -275,11 +272,9 @@ private fun SuccessPreviewContent(
     onShowAlternatives: (String, Boolean) -> Unit,
     onShowResolution: (String, Boolean) -> Unit,
     onProgrammeNameChanged: (String) -> Unit,
-    onRegenerate: (RegenerationMode) -> Unit,
     onActivate: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showRegenerateDialog by remember { mutableStateOf(false) }
     var expandedWeeks by remember { mutableStateOf(setOf(1)) } // Start with week 1 expanded
 
     LazyColumn(
@@ -301,6 +296,11 @@ private fun SuccessPreviewContent(
         }
 
         // Validation Results removed for simpler UX
+
+        // Debug log to check weeks count
+        item {
+            println("🔍 ProgrammePreviewScreen: Displaying ${preview.weeks.size} weeks in UI")
+        }
 
         // All Weeks with Collapsible UI
         items(preview.weeks) { week ->
@@ -330,21 +330,9 @@ private fun SuccessPreviewContent(
         item {
             ActionButtonsCard(
                 isActivating = isActivating,
-                onRegenerate = { showRegenerateDialog = true },
                 onActivate = onActivate,
             )
         }
-    }
-
-    // Regenerate Dialog
-    if (showRegenerateDialog) {
-        RegenerateDialog(
-            onDismiss = { showRegenerateDialog = false },
-            onRegenerate = { mode ->
-                showRegenerateDialog = false
-                onRegenerate(mode)
-            },
-        )
     }
 }
 
@@ -427,7 +415,6 @@ private fun ErrorPreviewContent(
 @Composable
 private fun RegenerateDialog(
     onDismiss: () -> Unit,
-    onRegenerate: (RegenerationMode) -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -443,7 +430,7 @@ private fun RegenerateDialog(
                         modifier =
                             Modifier
                                 .fillMaxWidth(),
-                        onClick = { onRegenerate(mode) },
+                        onClick = { /* Regenerate not implemented */ },
                     ) {
                         Column(
                             modifier = Modifier.padding(12.dp),

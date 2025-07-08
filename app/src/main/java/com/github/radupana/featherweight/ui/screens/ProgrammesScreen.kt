@@ -22,7 +22,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.radupana.featherweight.data.AIProgrammeRequest
+import com.github.radupana.featherweight.data.GenerationStatus
 import com.github.radupana.featherweight.data.programme.*
+import com.github.radupana.featherweight.ui.components.AIProgrammeRequestCard
 import com.github.radupana.featherweight.ui.dialogs.ProgrammeSetupDialog
 import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.ui.utils.NavigationContext
@@ -30,6 +33,8 @@ import com.github.radupana.featherweight.ui.utils.rememberKeyboardState
 import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.ProfileViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
 fun ProgrammesScreen(
@@ -43,6 +48,7 @@ fun ProgrammesScreen(
     val activeProgramme by viewModel.activeProgramme.collectAsState()
     val programmeProgress by viewModel.programmeProgress.collectAsState()
     val allProgrammes by viewModel.allProgrammes.collectAsState()
+    val aiProgrammeRequests by viewModel.aiProgrammeRequests.collectAsState(initial = emptyList())
     val isKeyboardVisible by rememberKeyboardState()
     val compactPadding = if (isKeyboardVisible) 8.dp else 16.dp
 
@@ -106,89 +112,82 @@ fun ProgrammesScreen(
                     .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
                 contentPadding = PaddingValues(bottom = compactPadding),
             ) {
-                // Active Programme Section - collapse when keyboard visible
-                activeProgramme?.let { programme ->
-                    item {
-                        AnimatedVisibility(
-                            visible = !isKeyboardVisible,
-                            enter = slideInVertically() + fadeIn(),
-                            exit = slideOutVertically() + fadeOut()
+                // AI Programme Generation Button - Always at the top
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = compactPadding / 2)
+                            .clickable { 
+                                onNavigateToAIGenerator?.invoke()
+                            },
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(compactPadding),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            ActiveProgrammeCard(
-                                programme = programme,
-                                progress = programmeProgress,
-                                onDelete = { showDeleteConfirmDialog = true },
-                                onNavigateToProgramme = onNavigateToActiveProgramme,
-                                isCompact = isKeyboardVisible
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = "AI Generate",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Generate Custom Programme with AI",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
                 }
 
-                // Search Section
-                item {
-                    SearchSection(
-                        searchText = uiState.searchText,
-                        onSearchTextChange = viewModel::updateSearchText,
-                    )
-                }
-
-                // Filter Section - hide when keyboard visible
-                item {
-                    AnimatedVisibility(
-                        visible = !isKeyboardVisible,
-                        enter = slideInVertically() + fadeIn(),
-                        exit = slideOutVertically() + fadeOut()
-                    ) {
-                        FilterSection(
-                            onDifficultyFilter = viewModel::filterByDifficulty,
-                            onTypeFilter = viewModel::filterByType,
-                            onClearFilters = viewModel::clearFilters,
-                            hasActiveFilters = uiState.searchText.isNotEmpty(),
+                // Active Programme Section
+                activeProgramme?.let { programme ->
+                    item {
+                        ActiveProgrammeCard(
+                            programme = programme,
+                            progress = programmeProgress,
+                            onDelete = { showDeleteConfirmDialog = true },
+                            onNavigateToProgramme = onNavigateToActiveProgramme,
+                            isCompact = isKeyboardVisible
                         )
                     }
                 }
+
                 
-                // AI Programme Generation Button
-                item {
-                    AnimatedVisibility(
-                        visible = !isKeyboardVisible,
-                        enter = slideInVertically() + fadeIn(),
-                        exit = slideOutVertically() + fadeOut()
-                    ) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = compactPadding / 2)
-                                .clickable { 
-                                    onNavigateToAIGenerator?.invoke()
-                                },
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(compactPadding),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = "AI Generate",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Generate Custom Programme with AI",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
+                // AI Programme Requests Section
+                if (aiProgrammeRequests.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "AI Generated Programmes",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(vertical = compactPadding / 2),
+                        )
+                    }
+                    
+                    items(aiProgrammeRequests) { request ->
+                        AIProgrammeRequestCard(
+                            request = request,
+                            onPreview = {
+                                // TODO: Navigate to preview with the generated programme
+                            },
+                            onRetry = {
+                                viewModel.retryAIGeneration(request.id)
+                            },
+                            onDelete = {
+                                viewModel.deleteAIRequest(request.id)
+                            },
+                            isCompact = isKeyboardVisible
+                        )
                     }
                 }
 
@@ -497,123 +496,6 @@ private fun ProgressMetric(
     }
 }
 
-@Composable
-private fun SearchSection(
-    searchText: String,
-    onSearchTextChange: (String) -> Unit,
-) {
-    OutlinedTextField(
-        value = searchText,
-        onValueChange = onSearchTextChange,
-        label = { Text("Search programmes") },
-        leadingIcon = {
-            Icon(
-                Icons.Filled.Search,
-                contentDescription = "Search",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        },
-        trailingIcon = {
-            if (searchText.isNotEmpty()) {
-                IconButton(onClick = { onSearchTextChange("") }) {
-                    Icon(
-                        Icons.Filled.Clear,
-                        contentDescription = "Clear search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-    )
-}
-
-@Composable
-private fun FilterSection(
-    onDifficultyFilter: (ProgrammeDifficulty?) -> Unit,
-    onTypeFilter: (ProgrammeType?) -> Unit,
-    onClearFilters: () -> Unit,
-    hasActiveFilters: Boolean = false,
-) {
-    var selectedDifficulty by remember { mutableStateOf<ProgrammeDifficulty?>(null) }
-    var selectedType by remember { mutableStateOf<ProgrammeType?>(null) }
-
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Filters",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-            )
-
-            if (selectedDifficulty != null || selectedType != null || hasActiveFilters) {
-                TextButton(
-                    onClick = {
-                        selectedDifficulty = null
-                        selectedType = null
-                        onClearFilters()
-                    },
-                ) {
-                    Text("Clear All")
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Difficulty filter section
-        Text(
-            text = "Difficulty",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 4.dp),
-        )
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items(ProgrammeDifficulty.values()) { difficulty ->
-                FilterChip(
-                    selected = selectedDifficulty == difficulty,
-                    onClick = {
-                        selectedDifficulty = if (selectedDifficulty == difficulty) null else difficulty
-                        onDifficultyFilter(selectedDifficulty)
-                    },
-                    label = { Text(formatEnumName(difficulty.name)) },
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Type filter section
-        Text(
-            text = "Type",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 4.dp),
-        )
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items(ProgrammeType.values()) { type ->
-                FilterChip(
-                    selected = selectedType == type,
-                    onClick = {
-                        selectedType = if (selectedType == type) null else type
-                        onTypeFilter(selectedType)
-                    },
-                    label = { Text(formatEnumName(type.name)) },
-                )
-            }
-        }
-    }
-}
 
 // Helper function to format enum names properly
 private fun formatEnumName(enumName: String): String {

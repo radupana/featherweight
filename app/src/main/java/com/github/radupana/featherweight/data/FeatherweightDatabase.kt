@@ -46,8 +46,9 @@ import com.github.radupana.featherweight.data.achievement.UserAchievementDao
         PersonalRecord::class,
         UserAchievement::class,
         ProgressInsight::class,
+        AIProgrammeRequest::class,
     ],
-    version = 34,
+    version = 35,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -77,6 +78,8 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun userAchievementDao(): UserAchievementDao
 
     abstract fun progressInsightDao(): ProgressInsightDao
+
+    abstract fun aiProgrammeRequestDao(): AIProgrammeRequestDao
 
     companion object {
         @Volatile

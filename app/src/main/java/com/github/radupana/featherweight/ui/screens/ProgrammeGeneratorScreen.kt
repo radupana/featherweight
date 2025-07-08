@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,7 +21,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.*
 import com.github.radupana.featherweight.ui.components.*
-import com.github.radupana.featherweight.ui.dialogs.TemplateSelectionDialog
 import com.github.radupana.featherweight.viewmodel.ProgrammeGeneratorViewModel
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.draw.blur
@@ -41,7 +39,6 @@ fun ProgrammeGeneratorScreen(
     viewModel: ProgrammeGeneratorViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var showTemplateDialog by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
     
     // Block navigation when loading
@@ -282,39 +279,6 @@ fun ProgrammeGeneratorScreen(
                 }
             } // End Simplified mode if statement
 
-            // Browse Templates Button (only for Simplified mode)
-            if (uiState.generationMode == GenerationMode.SIMPLIFIED) {
-                item {
-                    OutlinedButton(
-                        onClick = { showTemplateDialog = true },
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                        colors =
-                            ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.primary,
-                            ),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.LibraryBooks,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Text(
-                                "Browse Templates",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
-                    }
-                }
-            }
-
             // Text Input Area
             item {
                 Column {
@@ -472,7 +436,7 @@ fun ProgrammeGeneratorScreen(
             // Generate Button
             item {
                 Button(
-                    onClick = { viewModel.generateProgramme(onNavigateToPreview) },
+                    onClick = { viewModel.generateProgramme(onBack) },
                     modifier =
                         Modifier
                             .fillMaxWidth()
@@ -518,13 +482,6 @@ fun ProgrammeGeneratorScreen(
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                             )
-                            if (uiState.generationCount < uiState.maxDailyGenerations) {
-                                Text(
-                                    "${uiState.maxDailyGenerations - uiState.generationCount} left today",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
-                                )
-                            }
                         }
                     }
                 }
@@ -552,15 +509,6 @@ fun ProgrammeGeneratorScreen(
         }
     }
 
-    // Template Selection Dialog
-    if (showTemplateDialog) {
-        TemplateSelectionDialog(
-            onTemplateSelected = { template ->
-                viewModel.loadTemplate(template)
-            },
-            onDismiss = { showTemplateDialog = false },
-        )
-    }
 
     // Custom Instructions Info Dialog
     if (showInfoDialog) {

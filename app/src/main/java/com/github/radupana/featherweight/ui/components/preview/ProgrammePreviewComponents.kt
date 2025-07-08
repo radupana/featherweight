@@ -452,36 +452,22 @@ private fun WeekTab(
 @Composable
 fun ActionButtonsCard(
     isActivating: Boolean = false,
-    onRegenerate: () -> Unit,
     onActivate: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier.fillMaxWidth()
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            contentAlignment = Alignment.Center
         ) {
-            OutlinedButton(
-                onClick = onRegenerate,
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    Icons.Default.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Regenerate")
-            }
-            
             Button(
                 onClick = onActivate,
                 enabled = !isActivating,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(0.6f),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )

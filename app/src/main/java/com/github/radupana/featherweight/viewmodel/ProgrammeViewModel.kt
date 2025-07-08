@@ -3,7 +3,10 @@ package com.github.radupana.featherweight.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.WorkManager
+import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.programme.*
+import com.github.radupana.featherweight.repository.AIProgrammeRepository
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +19,11 @@ class ProgrammeViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
+    private val database = FeatherweightDatabase.getDatabase(application)
+    private val aiProgrammeRepository = AIProgrammeRepository(
+        database.aiProgrammeRequestDao(),
+        WorkManager.getInstance(application)
+    )
 
     // UI State
     private val _uiState = MutableStateFlow(ProgrammeUiState())
@@ -36,6 +44,9 @@ class ProgrammeViewModel(
     // All user programmes (including inactive)
     private val _allProgrammes = MutableStateFlow<List<Programme>>(emptyList())
     val allProgrammes: StateFlow<List<Programme>> = _allProgrammes
+    
+    // AI programme requests
+    val aiProgrammeRequests = aiProgrammeRepository.getAllRequests()
 
     // Track if initial load is complete to avoid flashing on refresh
     private var hasLoadedInitialData = false
@@ -44,10 +55,6 @@ class ProgrammeViewModel(
     private val _userMaxes = MutableStateFlow(UserMaxes())
     val userMaxes: StateFlow<UserMaxes> = _userMaxes
 
-    // Filter state
-    private val _selectedDifficulty = MutableStateFlow<ProgrammeDifficulty?>(null)
-    private val _selectedType = MutableStateFlow<ProgrammeType?>(null)
-    private val _searchText = MutableStateFlow("")
 
     init {
         println("🔄 ProgrammeViewModel: Initializing...")
@@ -66,25 +73,20 @@ class ProgrammeViewModel(
                     )
             }
         }
-
-        // Combine filter states to update filtered templates
+        
+        // Cleanup stale AI requests on startup
         viewModelScope.launch {
-            combine(
-                _allTemplates,
-                _selectedDifficulty,
-                _selectedType,
-                _searchText,
-            ) { templates, difficulty, type, searchText ->
-                println("🔄 ProgrammeViewModel: Combine flow triggered with ${templates.size} templates")
-                filterTemplates(templates, difficulty, type, searchText)
-            }.collect { filtered ->
-                println("✅ ProgrammeViewModel: Combine flow collected ${filtered.size} filtered templates")
-                _filteredTemplates.value = filtered
-                // Only update templates, don't manage loading state here
+            aiProgrammeRepository.cleanupStaleRequests()
+        }
+
+        // Update templates directly without filtering
+        viewModelScope.launch {
+            _allTemplates.collect { templates ->
+                println("🔄 ProgrammeViewModel: Templates flow triggered with ${templates.size} templates")
+                _filteredTemplates.value = templates
                 _uiState.value =
                     _uiState.value.copy(
-                        templates = filtered,
-                        searchText = _searchText.value,
+                        templates = templates,
                     )
                 println("✅ ProgrammeViewModel: Templates updated in UI state")
             }
@@ -107,23 +109,6 @@ class ProgrammeViewModel(
         }
     }
 
-    private fun filterTemplates(
-        templates: List<ProgrammeTemplate>,
-        difficulty: ProgrammeDifficulty?,
-        type: ProgrammeType?,
-        searchText: String,
-    ): List<ProgrammeTemplate> =
-        templates.filter { template ->
-            val matchesDifficulty = difficulty == null || template.difficulty == difficulty
-            val matchesType = type == null || template.programmeType == type
-            val matchesSearch =
-                searchText.isBlank() ||
-                    template.name.contains(searchText, ignoreCase = true) ||
-                    template.description.contains(searchText, ignoreCase = true) ||
-                    template.author.contains(searchText, ignoreCase = true)
-
-            matchesDifficulty && matchesType && matchesSearch
-        }
 
     private fun loadProgrammeData(showLoading: Boolean = true) {
         viewModelScope.launch {
@@ -170,14 +155,13 @@ class ProgrammeViewModel(
                 println("✅ ProgrammeViewModel: Data loading complete")
 
                 // Force update the UI state to ensure loading is false and templates are shown
-                val filteredTemplates = filterTemplates(templates, null, null, "")
                 _uiState.value =
                     _uiState.value.copy(
-                        templates = filteredTemplates,
+                        templates = templates,
                         isLoading = false,
                     )
                 hasLoadedInitialData = true
-                println("✅ ProgrammeViewModel: UI state updated with ${filteredTemplates.size} templates, isLoading=false")
+                println("✅ ProgrammeViewModel: UI state updated with ${templates.size} templates, isLoading=false")
             } catch (e: Exception) {
                 println("❌ ProgrammeViewModel: Error loading data: ${e.message}")
                 e.printStackTrace()
@@ -190,23 +174,6 @@ class ProgrammeViewModel(
         }
     }
 
-    fun filterByDifficulty(difficulty: ProgrammeDifficulty?) {
-        _selectedDifficulty.value = difficulty
-    }
-
-    fun filterByType(type: ProgrammeType?) {
-        _selectedType.value = type
-    }
-
-    fun clearFilters() {
-        _selectedDifficulty.value = null
-        _selectedType.value = null
-        _searchText.value = ""
-    }
-
-    fun updateSearchText(text: String) {
-        _searchText.value = text
-    }
 
     fun selectTemplate(template: ProgrammeTemplate) {
         // Check if there's an active programme
@@ -557,6 +524,19 @@ class ProgrammeViewModel(
         
         callback?.invoke()
     }
+
+    // Public methods for AI programme management
+    fun retryAIGeneration(requestId: String) {
+        viewModelScope.launch {
+            aiProgrammeRepository.retryGeneration(requestId)
+        }
+    }
+
+    fun deleteAIRequest(requestId: String) {
+        viewModelScope.launch {
+            aiProgrammeRepository.deleteRequest(requestId)
+        }
+    }
 }
 
 // Data classes for UI state
@@ -569,7 +549,6 @@ data class ProgrammeUiState(
     val isCreating: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
-    val searchText: String = "",
     val showOverwriteWarning: Boolean = false,
     val pendingTemplate: ProgrammeTemplate? = null,
     val showProfileUpdatePrompt: Boolean = false,

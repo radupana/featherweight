@@ -352,9 +352,15 @@ class AIProgrammeService(
                         "📊 Usage: ${body.usage?.totalTokens ?: "unknown"} tokens (prompt: ${body.usage?.promptTokens}, completion: ${body.usage?.completionTokens})",
                     )
                     println("💰 Estimated cost: ~$${((body.usage?.totalTokens ?: 0) * 0.00015f / 1000f)}")
-                    println("📄 Response content (${responseContent.length} chars):")
-                    println("   ${responseContent.take(500)}...")
+                    println("📄 Response content length: ${responseContent.length} chars")
                     println("🏁 Finish reason: $finishReason")
+                    
+                    // Log the FULL response for debugging truncation
+                    println("\n" + "=".repeat(70))
+                    println("📜 COMPLETE AI RESPONSE")
+                    println("=".repeat(70))
+                    println(responseContent)
+                    println("=".repeat(70) + "\n")
 
                     // Check if response was truncated
                     if (finishReason == "length") {
