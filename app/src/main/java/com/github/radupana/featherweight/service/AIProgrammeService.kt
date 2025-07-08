@@ -63,7 +63,9 @@ data class GeneratedExercise(
     val weightSource: String? = null,
 )
 
-class AIProgrammeService(private val context: android.content.Context) {
+class AIProgrammeService(
+    private val context: android.content.Context,
+) {
     companion object {
         private val OPENAI_API_KEY = BuildConfig.OPENAI_API_KEY
         private const val BASE_URL = "https://api.openai.com/"
@@ -101,7 +103,6 @@ class AIProgrammeService(private val context: android.content.Context) {
 
     private val api = retrofit.create(OpenAIApi::class.java)
 
-
     suspend fun generateProgramme(request: AIProgrammeRequest): AIProgrammeResponse =
         withContext(Dispatchers.IO) {
             try {
@@ -130,9 +131,8 @@ class AIProgrammeService(private val context: android.content.Context) {
             }
         }
 
-    private fun buildSystemPrompt(request: AIProgrammeRequest): String {
-        
-        return """
+    private fun buildSystemPrompt(request: AIProgrammeRequest): String =
+        """
         You are an elite strength and conditioning coach with 20+ years of experience creating personalized training programmes. Your goal is to create safe, effective, and engaging programmes tailored to each individual.
 
         EXERCISE DATABASE LIMITATION:
@@ -291,7 +291,6 @@ class AIProgrammeService(private val context: android.content.Context) {
 
         Remember: You're creating a programme that could change someone's life. Make it excellent.
         """.trimIndent()
-    }
 
     private suspend fun callOpenAI(
         systemPrompt: String,
@@ -299,7 +298,9 @@ class AIProgrammeService(private val context: android.content.Context) {
     ): String {
         if (OPENAI_API_KEY == "YOUR_API_KEY_HERE" || OPENAI_API_KEY.isBlank()) {
             println("❌ FATAL: OpenAI API key not configured")
-            throw IllegalStateException("AI service is not configured. Please configure your OpenAI API key to use AI programme generation.")
+            throw IllegalStateException(
+                "AI service is not configured. Please configure your OpenAI API key to use AI programme generation.",
+            )
         }
 
         return try {
@@ -321,12 +322,17 @@ class AIProgrammeService(private val context: android.content.Context) {
             println("📝 Model: $MODEL")
             println("🎯 Temperature: $TEMPERATURE")
             println("📏 Max Tokens: $MAX_TOKENS")
-            println("📋 System Prompt (${systemPrompt.length} chars):")
-            println("   ${systemPrompt.take(200)}...")
-            println("💬 User Prompt (${userPrompt.length} chars):")
-            println("   $userPrompt")
-            println("🔧 Request JSON:")
-            println("   ${kotlinx.serialization.json.Json.encodeToString(OpenAIRequest.serializer(), request)}")
+            // Log the complete prompt in human-readable format (not JSON)
+            println("\n" + "=".repeat(70))
+            println("📜 COMPLETE LLM PROMPT (HUMAN READABLE)")
+            println("=".repeat(70))
+            println("\n🎯 SYSTEM PROMPT:")
+            println("-".repeat(70))
+            println(systemPrompt)
+            println("\n💬 USER PROMPT:")
+            println("-".repeat(70))
+            println(userPrompt)
+            println("\n" + "=".repeat(70) + "\n")
 
             val response =
                 api.createChatCompletion(
@@ -349,11 +355,13 @@ class AIProgrammeService(private val context: android.content.Context) {
                     println("📄 Response content (${responseContent.length} chars):")
                     println("   ${responseContent.take(500)}...")
                     println("🏁 Finish reason: $finishReason")
-                    
+
                     // Check if response was truncated
                     if (finishReason == "length") {
                         println("⚠️ WARNING: Response was truncated due to token limit!")
-                        throw Exception("Programme generation incomplete - response was truncated. Please try a shorter programme duration.")
+                        throw Exception(
+                            "Programme generation incomplete - response was truncated. Please try a shorter programme duration.",
+                        )
                     }
 
                     responseContent
