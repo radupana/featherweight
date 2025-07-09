@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.repository
 
+import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.ExerciseSwapHistory
 import com.github.radupana.featherweight.data.SetLog
@@ -207,7 +208,8 @@ class ExerciseRepository(
             val allWorkouts = db.workoutDao().getAllWorkouts()
             val allSetsForExercise = mutableListOf<SetLog>()
 
-            for (workout in allWorkouts) {
+            // Only consider COMPLETED workouts for exercise stats
+            for (workout in allWorkouts.filter { it.status == WorkoutStatus.COMPLETED }) {
                 val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
                 val matchingExercise = exercises.find { it.exerciseName == exerciseName }
                 if (matchingExercise != null) {
@@ -219,21 +221,21 @@ class ExerciseRepository(
             if (allSetsForExercise.isEmpty()) return@withContext null
 
             val completedSets = allSetsForExercise.filter { 
-                it.isCompleted && it.weight > 0 && it.reps > 0 
+                it.isCompleted && it.actualWeight > 0 && it.actualReps > 0 
             }
             
             if (completedSets.isEmpty()) return@withContext null
 
             ExerciseStats(
                 exerciseName = exerciseName,
-                avgWeight = completedSets.map { it.weight }.average().toFloat(),
-                avgReps = completedSets.map { it.reps }.average().toInt(),
+                avgWeight = completedSets.map { it.actualWeight }.average().toFloat(),
+                avgReps = completedSets.map { it.actualReps }.average().toInt(),
                 avgRpe = completedSets
-                    .mapNotNull { it.rpe }
+                    .mapNotNull { it.actualRpe }
                     .takeIf { it.isNotEmpty() }
                     ?.average()
                     ?.toFloat(),
-                maxWeight = completedSets.maxOf { it.weight },
+                maxWeight = completedSets.maxOf { it.actualWeight },
                 totalSets = completedSets.size
             )
         }
@@ -257,15 +259,15 @@ class ExerciseRepository(
                     if (sets.isNotEmpty()) {
                         // Get the heaviest working set
                         val workingSets = sets
-                        val heaviestSet = workingSets.maxByOrNull { it.weight }
+                        val heaviestSet = workingSets.maxByOrNull { it.actualWeight }
                         
                         if (heaviestSet != null) {
                             val allCompleted = workingSets.all { it.isCompleted }
                             
                             return@withContext ExercisePerformanceData(
                                 exerciseName = exerciseName,
-                                weight = heaviestSet.weight,
-                                reps = heaviestSet.reps,
+                                weight = heaviestSet.actualWeight,
+                                reps = heaviestSet.actualReps,
                                 sets = workingSets.size,
                                 workoutDate = workout.date,
                                 allSetsCompleted = allCompleted
@@ -292,49 +294,91 @@ class ExerciseRepository(
 
     suspend fun getEstimated1RM(exerciseName: String): Float? =
         withContext(Dispatchers.IO) {
+            Log.d("Analytics", "=== getEstimated1RM for $exerciseName ===")
             val allWorkouts = db.workoutDao().getAllWorkouts()
             var bestEstimate = 0f
 
-            allWorkouts.forEach { workout ->
+            // Only consider COMPLETED workouts for 1RM estimation
+            val completedWorkouts = allWorkouts.filter { it.status == WorkoutStatus.COMPLETED }
+            Log.d("Analytics", "Found ${completedWorkouts.size} completed workouts out of ${allWorkouts.size} total")
+            
+            completedWorkouts.forEach { workout ->
                 val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
                 val matchingExercise = exercises.find { it.exerciseName == exerciseName }
 
                 if (matchingExercise != null) {
                     val sets = setLogDao.getSetLogsForExercise(matchingExercise.id)
-                    sets.filter { it.isCompleted && it.reps > 0 && it.weight > 0 }.forEach { set ->
+                    Log.d("Analytics", "Processing ${sets.size} sets for $exerciseName in workout ${workout.id}")
+                    
+                    // FIXED: Using actualReps and actualWeight instead of legacy fields
+                    sets.filter { it.isCompleted && it.actualReps > 0 && it.actualWeight > 0 }.forEach { set ->
+                        Log.d("Analytics", "  Set: actualReps=${set.actualReps}, actualWeight=${set.actualWeight}")
+                        
                         // Brzycki formula: 1RM = weight / (1.0278 - 0.0278 * reps)
-                        val estimated1RM = set.weight / (1.0278f - 0.0278f * set.reps)
+                        val estimated1RM = set.actualWeight / (1.0278f - 0.0278f * set.actualReps)
+                        Log.d("Analytics", "  Calculated 1RM: ${set.actualWeight}kg x ${set.actualReps} = ${estimated1RM}kg")
+                        
                         if (estimated1RM > bestEstimate) {
                             bestEstimate = estimated1RM
+                            Log.d("Analytics", "  New best 1RM: ${estimated1RM}kg")
                         }
                     }
                 }
             }
+            
+            Log.d("Analytics", "Final best 1RM for $exerciseName: ${if (bestEstimate > 0) bestEstimate else "none"}")
             if (bestEstimate > 0) bestEstimate else null
         }
 
     suspend fun getPersonalRecords(exerciseName: String): List<Pair<Float, LocalDateTime>> =
         withContext(Dispatchers.IO) {
+            println("🔵 ExerciseRepository.getPersonalRecords called for: $exerciseName")
+            Log.d("Analytics", "=== getPersonalRecords for $exerciseName ===")
             val allWorkouts = db.workoutDao().getAllWorkouts()
+            println("🔵 ExerciseRepository: Total workouts found: ${allWorkouts.size}")
+            Log.d("Analytics", "Total workouts found: ${allWorkouts.size}")
+            
             val records = mutableListOf<Pair<Float, LocalDateTime>>()
             var currentMaxWeight = 0f
 
             // Sort workouts by date to track progression over time
-            allWorkouts.sortedBy { it.date }.forEach { workout ->
-                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                val matchingExercise = exercises.find { it.exerciseName == exerciseName }
+            // IMPORTANT: Only consider COMPLETED workouts for PR tracking
+            val completedWorkouts = allWorkouts.filter { it.status == WorkoutStatus.COMPLETED }
+            Log.d("Analytics", "Completed workouts: ${completedWorkouts.size}")
+            
+            completedWorkouts
+                .sortedBy { it.date }
+                .forEach { workout ->
+                    val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                    val matchingExercise = exercises.find { it.exerciseName == exerciseName }
 
-                if (matchingExercise != null) {
-                    val sets = setLogDao.getSetLogsForExercise(matchingExercise.id)
-                    val maxWeightInWorkout = sets
-                        .filter { it.isCompleted && it.reps > 0 }
-                        .maxOfOrNull { it.weight } ?: 0f
+                    if (matchingExercise != null) {
+                        val sets = setLogDao.getSetLogsForExercise(matchingExercise.id)
+                        Log.d("Analytics", "Found ${sets.size} sets for $exerciseName in workout ${workout.id}")
+                        
+                        // Log detailed set info
+                        sets.forEach { set ->
+                            Log.d("Analytics", "  Set: targetReps=${set.targetReps}, targetWeight=${set.targetWeight}, actualReps=${set.actualReps}, actualWeight=${set.actualWeight}, isCompleted=${set.isCompleted}")
+                        }
+                        
+                        val maxWeightInWorkout = sets
+                            .filter { it.isCompleted && it.actualReps > 0 }
+                            .maxOfOrNull { it.actualWeight } ?: 0f
 
-                    if (maxWeightInWorkout > currentMaxWeight) {
-                        currentMaxWeight = maxWeightInWorkout
-                        records.add(Pair(maxWeightInWorkout, workout.date))
+                        Log.d("Analytics", "Max weight in workout: $maxWeightInWorkout (current max: $currentMaxWeight)")
+
+                        if (maxWeightInWorkout > currentMaxWeight) {
+                            currentMaxWeight = maxWeightInWorkout
+                            records.add(Pair(maxWeightInWorkout, workout.date))
+                            Log.d("Analytics", "New PR found: ${maxWeightInWorkout}kg on ${workout.date}")
+                        }
                     }
                 }
+            
+            println("🔵 ExerciseRepository: Total PR records found for $exerciseName: ${records.size}")
+            Log.d("Analytics", "Total PR records found: ${records.size}")
+            records.forEach { (weight, date) ->
+                println("🔵   PR: ${weight}kg on $date")
             }
             records
         }

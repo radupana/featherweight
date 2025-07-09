@@ -44,6 +44,19 @@ fun AnalyticsScreen(
     val analyticsState by viewModel.analyticsState.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
     
+    LaunchedEffect(Unit) {
+        println("🔵 AnalyticsScreen: Composable launched")
+        println("🔵 AnalyticsScreen: Initial analytics state: $analyticsState")
+    }
+    
+    LaunchedEffect(analyticsState) {
+        println("🔵 AnalyticsScreen: Analytics state changed:")
+        println("🔵   - isLoading: ${analyticsState.isLoading}")
+        println("🔵   - quickStats: ${analyticsState.quickStats}")
+        println("🔵   - volumeMetrics: ${analyticsState.volumeMetrics}")
+        println("🔵   - error: ${analyticsState.error}")
+    }
+    
     val tabs = listOf("Overview", "Exercises")
     
     Column(
@@ -84,11 +97,15 @@ private fun OverviewTab(
     viewModel: AnalyticsViewModel,
     modifier: Modifier = Modifier
 ) {
+    println("🔵 OverviewTab: Rendering with state: isQuickStatsLoading=${analyticsState.isQuickStatsLoading}")
+    
     Column(modifier = modifier) {
         // Quick Stats Cards
         if (analyticsState.isQuickStatsLoading) {
+            println("🔵 OverviewTab: Showing loading state")
             QuickStatsLoadingSection()
         } else {
+            println("🔵 OverviewTab: Showing quick stats: ${analyticsState.quickStats}")
             QuickStatsSection(analyticsState)
         }
 
@@ -164,10 +181,10 @@ private fun QuickStatsSection(analyticsState: AnalyticsState) {
                         recentPR?.let {
                             // Shorten exercise names for better display
                             when (it.first) {
-                                "Conventional Deadlift" -> "Deadlift"
-                                "Back Squat" -> "Squat"
-                                "Bench Press" -> "Bench"
-                                "Overhead Press" -> "OHP"
+                                "Barbell Deadlift" -> "Deadlift"
+                                "Barbell Back Squat" -> "Squat"
+                                "Barbell Bench Press" -> "Bench"
+                                "Barbell Overhead Press" -> "OHP"
                                 else -> it.first
                             }
                         } ?: "Set a record!",

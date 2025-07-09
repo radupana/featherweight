@@ -19,14 +19,14 @@ data class SetLog(
     val exerciseLogId: Long,
     val setOrder: Int,
     
-    // Legacy fields - maintain original order and defaults for compatibility
-    val reps: Int,
-    val weight: Float,
-    val rpe: Float? = null,
+    // Target (what programme says to do) - nullable for freestyle workouts
+    val targetReps: Int = 0,
+    val targetWeight: Float? = null,
     
-    // Target (from programme or user intent) - new fields with defaults
-    val targetReps: Int = reps, // Default to same as actual
-    val targetWeight: Float? = if (weight > 0) weight else null, // Default to same as actual
+    // Actual performance (what user actually did) - THE SOURCE OF TRUTH
+    val actualReps: Int = 0,
+    val actualWeight: Float = 0f,
+    val actualRpe: Float? = null,
     
     // Intelligent suggestions with explanations
     val suggestedWeight: Float? = null,
@@ -35,10 +35,7 @@ data class SetLog(
     val suggestionConfidence: Float? = null, // 0.0-1.0
     val calculationDetails: String? = null, // JSON explaining the math
     
-    // Actual performance (what user actually did) - new fields with defaults
-    val actualReps: Int = reps, // Default to same as legacy
-    val actualWeight: Float = weight, // Default to same as legacy
-    val actualRpe: Float? = rpe, // Default to same as legacy
+    // Metadata
     val tag: String? = null,
     val notes: String? = null,
     val isCompleted: Boolean = false,

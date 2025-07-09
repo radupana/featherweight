@@ -71,9 +71,20 @@ class WorkoutViewModel(
     private val repository = FeatherweightRepository(application)
     
     init {
-        // Clear corrupted PersonalRecord data on startup (temporary fix)
+        println("🚀 WorkoutViewModel: Initializing...")
+        loadInProgressWorkouts()
+        
+        // Debug: Check PersonalRecord database
         viewModelScope.launch {
-            repository.clearAllPersonalRecords()
+            try {
+                val allPRs = repository.getAllPersonalRecordsFromDB()
+                println("🏆 DEBUG WorkoutVM: PersonalRecord database contains ${allPRs.size} records")
+                allPRs.take(5).forEach { pr ->
+                    println("🏆 DEBUG WorkoutVM: ${pr.exerciseName} - ${pr.weight}kg x ${pr.reps} = ${pr.estimated1RM}kg 1RM")
+                }
+            } catch (e: Exception) {
+                println("🏆 DEBUG WorkoutVM ERROR: Failed to query PersonalRecords - ${e.message}")
+            }
         }
     }
     
@@ -832,9 +843,6 @@ class WorkoutViewModel(
                     actualReps = reps,
                     actualWeight = weight,
                     actualRpe = rpe,
-                    reps = reps, // Legacy field
-                    weight = weight, // Legacy field
-                    rpe = rpe, // Legacy field
                     tag = null,
                     notes = null,
                     isCompleted = false,
@@ -871,10 +879,7 @@ class WorkoutViewModel(
                 val updatedSet = currentSet.copy(
                     actualReps = reps,
                     actualWeight = weight,
-                    actualRpe = rpe,
-                    reps = reps, // Legacy field
-                    weight = weight, // Legacy field
-                    rpe = rpe // Legacy field
+                    actualRpe = rpe
                 )
 
                 // Update the set in the local state immediately to prevent UI flicker
@@ -987,22 +992,20 @@ class WorkoutViewModel(
                         println("🏆 PR Detection: Set data - weight=${completedSet.actualWeight}, reps=${completedSet.actualReps}")
                         
                         val allPRs = repository.checkForPR(completedSet, exerciseLog.exerciseName)
-                        // Filter to only show ESTIMATED_1RM PRs for now
-                        val estimatedMaxPRs = allPRs.filter { it.recordType == com.github.radupana.featherweight.data.PRType.ESTIMATED_1RM }
                         
-                        println("🏆 PR Detection: Found ${allPRs.size} total PRs, ${estimatedMaxPRs.size} 1RM PRs")
+                        println("🏆 PR Detection: Found ${allPRs.size} total PRs")
                         
-                        if (estimatedMaxPRs.isNotEmpty()) {
-                            estimatedMaxPRs.forEach { pr ->
+                        if (allPRs.isNotEmpty()) {
+                            allPRs.forEach { pr ->
                                 println("🏆 PR Detection: New ${pr.recordType} PR - ${pr.weight}kg x ${pr.reps}")
                             }
                             
                             // Update state to show PR celebration
                             _workoutState.value = _workoutState.value.copy(
-                                pendingPRs = _workoutState.value.pendingPRs + estimatedMaxPRs,
+                                pendingPRs = _workoutState.value.pendingPRs + allPRs,
                                 shouldShowPRCelebration = true
                             )
-                            println("🏆 PR Detection: Updated state with ${estimatedMaxPRs.size} 1RM PRs, shouldShow=true")
+                            println("🏆 PR Detection: Updated state with ${allPRs.size} PRs, shouldShow=true")
                         }
                     } else {
                         println("🏆 PR Detection: Missing data - exerciseLog=${exerciseLog?.exerciseName}, completedSet=${completedSet?.id}")
@@ -1529,9 +1532,6 @@ class WorkoutViewModel(
                     actualReps = actualReps,
                     actualWeight = actualWeight,
                     actualRpe = actualRpe,
-                    reps = actualReps, // Legacy field
-                    weight = actualWeight, // Legacy field
-                    rpe = actualRpe // Legacy field
                 )
 
                 // Update the set in the local state immediately

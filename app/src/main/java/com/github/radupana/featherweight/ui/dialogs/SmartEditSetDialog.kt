@@ -40,9 +40,9 @@ fun SmartEditSetDialog(
     onSave: (reps: Int, weight: Float, rpe: Float?) -> Unit,
     viewModel: WorkoutViewModel,
 ) {
-    var reps by remember { mutableStateOf(set?.reps?.toString() ?: "") }
-    var weight by remember { mutableStateOf(set?.weight?.toString() ?: "") }
-    var rpe by remember { mutableStateOf(set?.rpe?.toString() ?: "") }
+    var reps by remember { mutableStateOf(set?.actualReps?.toString() ?: "") }
+    var weight by remember { mutableStateOf(set?.actualWeight?.toString() ?: "") }
+    var rpe by remember { mutableStateOf(set?.actualRpe?.toString() ?: "") }
     var smartSuggestions by remember { mutableStateOf<SmartSuggestions?>(null) }
     var showSuggestions by remember { mutableStateOf(set == null) }
 

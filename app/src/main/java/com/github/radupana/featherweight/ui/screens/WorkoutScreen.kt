@@ -570,7 +570,7 @@ fun WorkoutScreen(
                         .filter { it.exerciseLogId == setEditingExercise!!.id }
                         .maxByOrNull { it.setOrder }
                 if (lastSet != null) {
-                    viewModel.addSetToExercise(setEditingExercise!!.id, lastSet.reps, lastSet.weight, lastSet.weight, lastSet.reps, lastSet.rpe)
+                    viewModel.addSetToExercise(setEditingExercise!!.id, lastSet.actualReps, lastSet.actualWeight, lastSet.actualWeight, lastSet.actualReps, lastSet.actualRpe)
                 } else {
                     viewModel.addSetToExercise(setEditingExercise!!.id)
                 }
@@ -586,8 +586,8 @@ fun WorkoutScreen(
                     restTimerViewModel.startSmartTimer(
                         exerciseName = setEditingExercise!!.exerciseName,
                         exercise = null, // TODO: Add exercise entity lookup
-                        reps = completedSet?.reps,
-                        weight = completedSet?.weight,
+                        reps = completedSet?.actualReps,
+                        weight = completedSet?.actualWeight,
                     )
                 }
             },
@@ -603,8 +603,8 @@ fun WorkoutScreen(
                     restTimerViewModel.startSmartTimer(
                         exerciseName = setEditingExercise!!.exerciseName,
                         exercise = null, // TODO: Add exercise entity lookup
-                        reps = mostRecentSet?.reps,
-                        weight = mostRecentSet?.weight,
+                        reps = mostRecentSet?.actualReps,
+                        weight = mostRecentSet?.actualWeight,
                     )
                 }
             },

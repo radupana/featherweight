@@ -34,9 +34,9 @@ fun ExerciseCard(
 
     // Calculate summary metrics
     val completedSets = sets.count { it.isCompleted }
-    val totalVolume = sets.filter { it.isCompleted }.sumOf { (it.reps * it.weight).toDouble() }.toFloat()
-    val bestSet = sets.filter { it.isCompleted }.maxByOrNull { it.reps * it.weight }
-    val avgRpe = sets.filter { it.isCompleted && it.rpe != null }.map { it.rpe!! }.average().takeIf { !it.isNaN() }?.toFloat()
+    val totalVolume = sets.filter { it.isCompleted }.sumOf { (it.actualReps * it.actualWeight).toDouble() }.toFloat()
+    val bestSet = sets.filter { it.isCompleted }.maxByOrNull { it.actualReps * it.actualWeight }
+    val avgRpe = sets.filter { it.isCompleted && it.actualRpe != null }.map { it.actualRpe!! }.average().takeIf { !it.isNaN() }?.toFloat()
 
     GlassCard(
         modifier = modifier.fillMaxWidth(),
@@ -259,7 +259,7 @@ fun ExerciseCard(
 
                 MetricCard(
                     icon = "💪",
-                    value = if (bestSet != null) "${bestSet.reps}×${WeightFormatter.formatWeightWithUnit(bestSet.weight)}" else "—",
+                    value = if (bestSet != null) "${bestSet.actualReps}×${WeightFormatter.formatWeightWithUnit(bestSet.actualWeight)}" else "—",
                     label = "Best Set",
                     modifier = Modifier.weight(1f),
                 )

@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
+import android.util.Log
 import com.github.radupana.featherweight.ai.ProgrammeType
 import com.github.radupana.featherweight.ai.WeightCalculator
 import com.github.radupana.featherweight.service.ProgressionService
@@ -520,7 +521,9 @@ class FeatherweightRepository(
 
     // History functionality
     suspend fun getWorkoutHistory(): List<WorkoutSummary> {
+        println("🔵 Repository.getWorkoutHistory called")
         val allWorkouts = workoutDao.getAllWorkouts()
+        println("🔵 Repository: Found ${allWorkouts.size} total workouts in database")
         return allWorkouts
             .mapNotNull { workout ->
                 val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
@@ -534,7 +537,7 @@ class FeatherweightRepository(
                 }
 
                 val completedSets = allSets.filter { it.isCompleted }
-                val totalWeight = completedSets.sumOf { (it.weight * it.reps).toDouble() }.toFloat()
+                val totalWeight = completedSets.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
 
                 val isCompleted = workout.status == WorkoutStatus.COMPLETED
                 val displayName =
@@ -615,7 +618,7 @@ class FeatherweightRepository(
                 }
 
                 val completedSets = allSets.filter { it.isCompleted }
-                val totalWeight = completedSets.sumOf { (it.weight * it.reps).toDouble() }.toFloat()
+                val totalWeight = completedSets.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
 
                 val isCompleted = workout.status == WorkoutStatus.COMPLETED
                 val displayName =
@@ -744,17 +747,17 @@ class FeatherweightRepository(
             if (lastCompletedSets.isNotEmpty()) {
                 val mostCommonWeight =
                     lastCompletedSets
-                        .groupBy { it.weight }
+                        .groupBy { it.actualWeight }
                         .maxByOrNull { it.value.size }
                         ?.key ?: 0f
                 val mostCommonReps =
                     lastCompletedSets
-                        .groupBy { it.reps }
+                        .groupBy { it.actualReps }
                         .maxByOrNull { it.value.size }
                         ?.key ?: 0
                 val avgRpe =
                     lastCompletedSets
-                        .mapNotNull { it.rpe }
+                        .mapNotNull { it.actualRpe }
                         .average()
                         .takeIf { !it.isNaN() }
                         ?.toFloat()
@@ -820,6 +823,10 @@ class FeatherweightRepository(
     }
 
     suspend fun getWorkoutById(workoutId: Long): Workout? = workoutDao.getWorkoutById(workoutId)
+    
+    suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
+    
+    suspend fun getSetLogsForExercise(exerciseLogId: Long): List<SetLog> = setLogDao.getSetLogsForExercise(exerciseLogId)
 
     // Delete an exercise log (will cascade delete all its sets due to foreign key)
     suspend fun deleteExerciseLog(exerciseLogId: Long) = exerciseRepository.deleteExerciseLog(exerciseLogId)
@@ -872,11 +879,15 @@ class FeatherweightRepository(
     // Volume analytics
     suspend fun getWeeklyVolumeTotal(startDate: LocalDateTime): Float =
         withContext(Dispatchers.IO) {
+            println("🔵 Repository.getWeeklyVolumeTotal called with startDate: $startDate")
             val endDate = startDate.plusDays(7)
+            val allWorkouts = workoutDao.getAllWorkouts()
+            println("🔵 Repository: Total workouts in DB: ${allWorkouts.size}")
             val workouts =
-                workoutDao.getAllWorkouts().filter {
-                    it.date >= startDate && it.date < endDate
+                allWorkouts.filter {
+                    it.date >= startDate && it.date < endDate && it.status == WorkoutStatus.COMPLETED
                 }
+            println("🔵 Repository: Filtered to ${workouts.size} workouts in date range")
 
             var totalVolume = 0f
             workouts.forEach { workout ->
@@ -884,20 +895,24 @@ class FeatherweightRepository(
                 exercises.forEach { exercise ->
                     val sets = setLogDao.getSetLogsForExercise(exercise.id)
                     sets.filter { it.isCompleted }.forEach { set ->
-                        totalVolume += set.weight * set.reps
+                        totalVolume += set.actualWeight * set.actualReps
                     }
                 }
             }
+            println("🔵 Repository: Weekly volume total: $totalVolume kg")
             totalVolume
         }
 
     suspend fun getMonthlyVolumeTotal(startDate: LocalDateTime): Float =
         withContext(Dispatchers.IO) {
+            println("🔵 Repository.getMonthlyVolumeTotal called with startDate: $startDate")
             val endDate = startDate.plusMonths(1)
+            val allWorkouts = workoutDao.getAllWorkouts()
             val workouts =
-                workoutDao.getAllWorkouts().filter {
-                    it.date >= startDate && it.date < endDate
+                allWorkouts.filter {
+                    it.date >= startDate && it.date < endDate && it.status == WorkoutStatus.COMPLETED
                 }
+            println("🔵 Repository: Filtered to ${workouts.size} workouts in month range")
 
             var totalVolume = 0f
             workouts.forEach { workout ->
@@ -905,15 +920,29 @@ class FeatherweightRepository(
                 exercises.forEach { exercise ->
                     val sets = setLogDao.getSetLogsForExercise(exercise.id)
                     sets.filter { it.isCompleted }.forEach { set ->
-                        totalVolume += set.weight * set.reps
+                        totalVolume += set.actualWeight * set.actualReps
                     }
                 }
             }
+            println("🔵 Repository: Weekly volume total: $totalVolume kg")
             totalVolume
         }
 
     // Strength progression analytics
-    suspend fun getPersonalRecords(exerciseName: String): List<Pair<Float, LocalDateTime>> = exerciseRepository.getPersonalRecords(exerciseName)
+    suspend fun getPersonalRecords(exerciseName: String): List<Pair<Float, LocalDateTime>> = withContext(Dispatchers.IO) {
+        println("🔵 Repository.getPersonalRecords called for $exerciseName - NOW USING PersonalRecord TABLE")
+        
+        // Get PRs from PersonalRecord table
+        val prs = personalRecordDao.getRecentPRsForExercise(exerciseName, 100) // Get up to 100 PRs
+        
+        // Convert to the expected format: List of (estimated1RM, date) pairs
+        val records = prs.map { pr ->
+            Pair(pr.estimated1RM ?: pr.weight, pr.recordDate)
+        }.sortedBy { it.second } // Sort by date ascending
+        
+        println("🔵 Found ${records.size} PRs for $exerciseName from PersonalRecord table")
+        records
+    }
 
     suspend fun getEstimated1RM(exerciseName: String): Float? = exerciseRepository.getEstimated1RM(exerciseName)
 
@@ -950,8 +979,8 @@ class FeatherweightRepository(
 
                 targetExercises.forEach { exercise ->
                     val sets = setLogDao.getSetLogsForExercise(exercise.id)
-                    sets.filter { it.isCompleted && it.rpe != null }.forEach { set ->
-                        set.rpe?.let { allRPEs.add(it) }
+                    sets.filter { it.isCompleted && it.actualRpe != null }.forEach { set ->
+                        set.actualRpe?.let { allRPEs.add(it) }
                     }
                 }
             }
@@ -961,11 +990,13 @@ class FeatherweightRepository(
 
     suspend fun getTrainingStreak(): Int =
         withContext(Dispatchers.IO) {
+            println("🔵 Repository.getTrainingStreak called")
             val allWorkouts =
                 workoutDao
                     .getAllWorkouts()
                     .filter { it.status == WorkoutStatus.COMPLETED }
                     .sortedByDescending { it.date }
+            println("🔵 Repository: Found ${allWorkouts.size} completed workouts for streak calculation")
 
             if (allWorkouts.isEmpty()) return@withContext 0
 
@@ -1002,20 +1033,47 @@ class FeatherweightRepository(
     // Quick stats for dashboard
     suspend fun getRecentPR(): Pair<String, Float>? =
         withContext(Dispatchers.IO) {
-            val exerciseNames = listOf("Bench Press", "Back Squat", "Conventional Deadlift", "Overhead Press")
+            println("🔵 Repository.getRecentPR called - NOW USING PersonalRecord TABLE")
+            Log.d("Analytics", "=== getRecentPR called - USING PersonalRecord TABLE ===")
+            
+            // Get the most recent PR from the PersonalRecord table
+            val recentPRs = personalRecordDao.getRecentPRs(1)
+            
+            if (recentPRs.isNotEmpty()) {
+                val mostRecentPR = recentPRs.first()
+                Log.d("Analytics", "Most recent PR from DB: ${mostRecentPR.exerciseName} - ${mostRecentPR.weight}kg x ${mostRecentPR.reps} = ${mostRecentPR.estimated1RM}kg 1RM")
+                
+                // Return exercise name and the 1RM value (not the actual weight lifted)
+                return@withContext Pair(mostRecentPR.exerciseName, mostRecentPR.estimated1RM ?: mostRecentPR.weight)
+            }
+            
+            Log.d("Analytics", "No PRs found in PersonalRecord table")
+            return@withContext null
+            
+            /* OLD CODE - keeping for reference
+            println("🔵 Repository.getRecentPR called")
+            Log.d("Analytics", "=== getRecentPR called ===")
+            val exerciseNames = listOf("Barbell Bench Press", "Barbell Back Squat", "Barbell Deadlift", "Barbell Overhead Press")
             var mostRecentPR: Triple<String, Float, LocalDateTime>? = null
 
             exerciseNames.forEach { exerciseName ->
                 val records = getPersonalRecords(exerciseName)
+                Log.d("Analytics", "Found ${records.size} PR records for $exerciseName")
+                
                 if (records.isNotEmpty()) {
                     val latestRecord = records.last()
+                    Log.d("Analytics", "Latest PR for $exerciseName: ${latestRecord.first}kg on ${latestRecord.second}")
+                    
                     if (mostRecentPR == null || latestRecord.second > mostRecentPR!!.third) {
                         mostRecentPR = Triple(exerciseName, latestRecord.first, latestRecord.second)
                     }
                 }
             }
 
-            mostRecentPR?.let { Pair(it.first, it.second) }
+            val result = mostRecentPR?.let { Pair(it.first, it.second) }
+            Log.d("Analytics", "Most recent PR: ${result?.first ?: "None"} - ${result?.second ?: 0}kg")
+            result
+            */
         }
 
     suspend fun getAverageTrainingDaysPerWeek(): Float =
@@ -1048,8 +1106,9 @@ class FeatherweightRepository(
 
     suspend fun getProgressPercentage(daysSince: Int = 30): Float? =
         withContext(Dispatchers.IO) {
+            println("🔵 Repository.getProgressPercentage called with daysSince: $daysSince")
             val cutoffDate = LocalDateTime.now().minusDays(daysSince.toLong())
-            val exerciseNames = listOf("Bench Press", "Back Squat", "Conventional Deadlift", "Overhead Press")
+            val exerciseNames = listOf("Barbell Bench Press", "Barbell Back Squat", "Barbell Deadlift", "Barbell Overhead Press")
             val improvements = mutableListOf<Float>()
 
             exerciseNames.forEach { exerciseName ->
@@ -1068,7 +1127,9 @@ class FeatherweightRepository(
                 }
             }
 
-            if (improvements.isNotEmpty()) improvements.average().toFloat() else null
+            val result = if (improvements.isNotEmpty()) improvements.average().toFloat() else null
+            println("🔵 Repository: Progress percentage calculated: $result%")
+            result
         }
 
     // Historical volume data for charts
@@ -1385,10 +1446,11 @@ class FeatherweightRepository(
                 SetLog(
                     exerciseLogId = exerciseLogId,
                     setOrder = setIndex,
-                    reps = reps,
-                    weight = weight,
-                    // User will fill this in
-                    rpe = null,
+                    targetReps = reps,
+                    targetWeight = weight,
+                    actualReps = 0,
+                    actualWeight = 0f,
+                    actualRpe = null,
                     isCompleted = false,
                     completedAt = null,
                 )
@@ -2193,9 +2255,11 @@ class FeatherweightRepository(
             SetLog(
                 exerciseLogId = benchPressId,
                 setOrder = 0,
-                reps = 8,
-                weight = 80f,
-                rpe = 7f,
+                targetReps = 8,
+                targetWeight = 80f,
+                actualReps = 8,
+                actualWeight = 80f,
+                actualRpe = 7f,
                 isCompleted = true,
                 completedAt = LocalDateTime.now().minusDays(3).toString(),
             ),
@@ -2204,9 +2268,11 @@ class FeatherweightRepository(
             SetLog(
                 exerciseLogId = benchPressId,
                 setOrder = 1,
-                reps = 8,
-                weight = 82.5f,
-                rpe = 8f,
+                targetReps = 8,
+                targetWeight = 82.5f,
+                actualReps = 8,
+                actualWeight = 82.5f,
+                actualRpe = 8f,
                 isCompleted = true,
                 completedAt = LocalDateTime.now().minusDays(3).toString(),
             ),
@@ -2215,9 +2281,11 @@ class FeatherweightRepository(
             SetLog(
                 exerciseLogId = benchPressId,
                 setOrder = 2,
-                reps = 6,
-                weight = 85f,
-                rpe = 9f,
+                targetReps = 6,
+                targetWeight = 85f,
+                actualReps = 6,
+                actualWeight = 85f,
+                actualRpe = 9f,
                 isCompleted = true,
                 completedAt = LocalDateTime.now().minusDays(3).toString(),
             ),
@@ -2228,9 +2296,11 @@ class FeatherweightRepository(
             SetLog(
                 exerciseLogId = overheadPressId,
                 setOrder = 0,
-                reps = 10,
-                weight = 50f,
-                rpe = 6f,
+                targetReps = 10,
+                targetWeight = 50f,
+                actualReps = 10,
+                actualWeight = 50f,
+                actualRpe = 6f,
                 isCompleted = true,
                 completedAt = LocalDateTime.now().minusDays(3).toString(),
             ),
@@ -2239,9 +2309,11 @@ class FeatherweightRepository(
             SetLog(
                 exerciseLogId = overheadPressId,
                 setOrder = 1,
-                reps = 8,
-                weight = 52.5f,
-                rpe = 7f,
+                targetReps = 8,
+                targetWeight = 52.5f,
+                actualReps = 8,
+                actualWeight = 52.5f,
+                actualRpe = 7f,
                 isCompleted = true,
                 completedAt = LocalDateTime.now().minusDays(3).toString(),
             ),
@@ -2284,9 +2356,11 @@ class FeatherweightRepository(
             SetLog(
                 exerciseLogId = squatId,
                 setOrder = 0,
-                reps = 5,
-                weight = 100f,
-                rpe = 7f,
+                targetReps = 5,
+                targetWeight = 100f,
+                actualReps = 5,
+                actualWeight = 100f,
+                actualRpe = 7f,
                 isCompleted = true,
                 completedAt = LocalDateTime.now().minusDays(1).toString(),
             ),
@@ -2295,9 +2369,11 @@ class FeatherweightRepository(
             SetLog(
                 exerciseLogId = squatId,
                 setOrder = 1,
-                reps = 5,
-                weight = 105f,
-                rpe = 8f,
+                targetReps = 5,
+                targetWeight = 105f,
+                actualReps = 5,
+                actualWeight = 105f,
+                actualRpe = 8f,
                 isCompleted = true,
                 completedAt = LocalDateTime.now().minusDays(1).toString(),
             ),
@@ -2308,9 +2384,11 @@ class FeatherweightRepository(
             SetLog(
                 exerciseLogId = deadliftId,
                 setOrder = 0,
-                reps = 3,
-                weight = 120f,
-                rpe = 8f,
+                targetReps = 3,
+                targetWeight = 120f,
+                actualReps = 3,
+                actualWeight = 120f,
+                actualRpe = 8f,
                 isCompleted = true,
                 completedAt = LocalDateTime.now().minusDays(1).toString(),
             ),
@@ -2319,9 +2397,11 @@ class FeatherweightRepository(
             SetLog(
                 exerciseLogId = deadliftId,
                 setOrder = 1,
-                reps = 3,
-                weight = 125f,
-                rpe = 9f,
+                targetReps = 3,
+                targetWeight = 125f,
+                actualReps = 3,
+                actualWeight = 125f,
+                actualRpe = 9f,
                 isCompleted = true,
                 completedAt = LocalDateTime.now().minusDays(1).toString(),
             ),
@@ -2828,6 +2908,13 @@ class FeatherweightRepository(
      */
     suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord> = withContext(Dispatchers.IO) {
         prDetectionService.getRecentPRs(limit)
+    }
+    
+    /**
+     * Get all personal records from database for debugging
+     */
+    suspend fun getAllPersonalRecordsFromDB(): List<PersonalRecord> = withContext(Dispatchers.IO) {
+        personalRecordDao.getAllPersonalRecords()
     }
     
     /**

@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.radupana.featherweight.ui.theme.ChartTheme
 import com.github.radupana.featherweight.service.ProgressDataPoint
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
@@ -57,7 +58,7 @@ fun ProgressChart(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = ChartTheme.chartBackgroundColor()
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -108,8 +109,8 @@ fun ProgressChart(
                 )
                 
                 val progressColor = when {
-                    progressPercentage > 0 -> Color(0xFF4CAF50)
-                    progressPercentage < 0 -> Color(0xFFF44336)
+                    progressPercentage > 0 -> ChartTheme.positiveChangeColor()
+                    progressPercentage < 0 -> ChartTheme.negativeChangeColor()
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
                 
@@ -133,7 +134,7 @@ private fun EmptyChartState(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            containerColor = ChartTheme.chartBackgroundColor()
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -209,7 +210,7 @@ private fun DrawScope.drawLineChart(data: ChartData, density: Float) {
         val isPR = data.showPRmarkers && (isFirst || isLast || 
             points[index].weight > points.getOrNull(index - 1)?.weight ?: 0f)
         
-        val pointColor = if (isPR) Color(0xFFFFD700) else data.primaryColor
+        val pointColor = if (isPR) ChartTheme.prMarkerColor else data.primaryColor
         val pointRadius = if (isPR) 6.dp.toPx() else 4.dp.toPx()
         
         drawCircle(

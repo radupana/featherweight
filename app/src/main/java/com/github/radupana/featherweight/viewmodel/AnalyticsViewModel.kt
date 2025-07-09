@@ -22,7 +22,7 @@ data class VolumeMetrics(
 )
 
 data class StrengthMetrics(
-    val selectedExercise: String = "Bench Press",
+    val selectedExercise: String = "Barbell Back Squat",
     val currentMax: Float? = null,
     val estimated1RM: Float? = null,
     val personalRecords: List<Pair<Float, LocalDateTime>> = emptyList(),
@@ -68,7 +68,7 @@ data class AnalyticsState(
     val strengthMetrics: StrengthMetrics = StrengthMetrics(),
     val performanceMetrics: PerformanceMetrics = PerformanceMetrics(),
     val quickStats: QuickStats = QuickStats(),
-    val availableExercises: List<String> = listOf("Bench Press", "Back Squat", "Conventional Deadlift", "Overhead Press"),
+    val availableExercises: List<String> = listOf("Barbell Bench Press", "Barbell Back Squat", "Barbell Deadlift", "Barbell Overhead Press"),
     val selectedTimeframe: String = "1M", // 1W, 1M, 3M, 6M, 1Y
     val chartViewMode: ChartViewMode = ChartViewMode.ONE_RM,
     val cachedData: CachedAnalyticsData = CachedAnalyticsData(),
@@ -85,27 +85,48 @@ class AnalyticsViewModel(
     val analyticsState: StateFlow<AnalyticsState> = _analyticsState
 
     init {
+        println("🔵 AnalyticsViewModel: Initializing...")
+        
+        // Debug: Check PersonalRecord database
+        viewModelScope.launch {
+            try {
+                val allPRs = repository.getAllPersonalRecordsFromDB()
+                println("🏆 DEBUG: PersonalRecord database contains ${allPRs.size} records")
+                allPRs.forEach { pr ->
+                    println("🏆 DEBUG: ${pr.exerciseName} - ${pr.weight}kg x ${pr.reps} = ${pr.estimated1RM}kg 1RM on ${pr.recordDate}")
+                }
+            } catch (e: Exception) {
+                println("🏆 DEBUG ERROR: Failed to query PersonalRecords - ${e.message}")
+            }
+        }
+        
         loadAnalyticsData()
     }
 
     fun loadAnalyticsData(forceRefresh: Boolean = false) {
+        println("🔵 AnalyticsViewModel: loadAnalyticsData called with forceRefresh=$forceRefresh")
         viewModelScope.launch {
             val currentState = _analyticsState.value
             val cachedData = currentState.cachedData
             val now = System.currentTimeMillis()
             val cacheAge = now - cachedData.lastUpdated
             val cacheValidDuration = 5 * 60 * 1000L // 5 minutes
+            
+            println("🔵 AnalyticsViewModel: Cache age: ${cacheAge}ms, Valid duration: ${cacheValidDuration}ms")
+            println("🔵 AnalyticsViewModel: Cache last updated: ${cachedData.lastUpdated}")
 
             // Use cache-then-update strategy
             val shouldUseCache = !forceRefresh && cacheAge < cacheValidDuration && cachedData.lastUpdated > 0
 
             if (shouldUseCache) {
+                println("🔵 AnalyticsViewModel: Using cached data")
                 // Hydrate immediately from cache
                 hydrateFromCache(cachedData)
 
                 // Background refresh to check for new data
                 backgroundRefresh()
             } else {
+                println("🔵 AnalyticsViewModel: Performing full refresh")
                 // Full refresh
                 fullRefresh()
             }
@@ -188,6 +209,7 @@ class AnalyticsViewModel(
     }
 
     private suspend fun fullRefresh() {
+        println("🔵 AnalyticsViewModel: Starting full refresh...")
         _analyticsState.value =
             _analyticsState.value.copy(
                 isLoading = true,
@@ -199,6 +221,7 @@ class AnalyticsViewModel(
             )
 
         try {
+            println("🔵 AnalyticsViewModel: Checking if database needs seeding...")
             repository.seedDatabaseIfEmpty()
 
             // Load data sections in parallel
@@ -209,6 +232,7 @@ class AnalyticsViewModel(
 
             // Update as each section completes and cache results
             val quickStats = quickStatsJob.await()
+            println("🔵 AnalyticsViewModel: Quick stats loaded: $quickStats")
             _analyticsState.value =
                 _analyticsState.value.copy(
                     quickStats = quickStats,
@@ -216,6 +240,7 @@ class AnalyticsViewModel(
                 )
 
             val volumeMetrics = volumeJob.await()
+            println("🔵 AnalyticsViewModel: Volume metrics loaded: $volumeMetrics")
             _analyticsState.value =
                 _analyticsState.value.copy(
                     volumeMetrics = volumeMetrics,
@@ -223,6 +248,7 @@ class AnalyticsViewModel(
                 )
 
             val strengthMetrics = strengthJob.await()
+            println("🔵 AnalyticsViewModel: Strength metrics loaded: $strengthMetrics")
             _analyticsState.value =
                 _analyticsState.value.copy(
                     strengthMetrics = strengthMetrics,
@@ -230,9 +256,11 @@ class AnalyticsViewModel(
                 )
 
             val performanceMetrics = performanceJob.await()
+            println("🔵 AnalyticsViewModel: Performance metrics loaded: $performanceMetrics")
 
             // Cache all the fresh data
             val allWorkouts = repository.getWorkoutHistory()
+            println("🔵 AnalyticsViewModel: All workouts count: ${allWorkouts.size}")
             val newCachedData =
                 CachedAnalyticsData(
                     quickStats = quickStats,
@@ -251,6 +279,8 @@ class AnalyticsViewModel(
                     cachedData = newCachedData,
                 )
         } catch (e: Exception) {
+            println("🔴 AnalyticsViewModel: Error loading analytics: ${e.message}")
+            e.printStackTrace()
             _analyticsState.value =
                 _analyticsState.value.copy(
                     isLoading = false,

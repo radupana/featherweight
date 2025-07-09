@@ -121,13 +121,13 @@ class ProgressionService(
     ) = withContext(Dispatchers.IO) {
         val targetSets = sets.size
         val completedSets = sets.count { it.isCompleted }
-        val targetReps = sets.firstOrNull()?.reps ?: 0
+        val targetReps = sets.firstOrNull()?.actualReps ?: 0
         val totalTargetReps = targetSets * targetReps
         val achievedReps = sets.sumOf { if (it.isCompleted) it.actualReps else 0 }
         val missedReps = totalTargetReps - achievedReps
         
         // Get the target weight (should be consistent across sets for linear progression)
-        val targetWeight = sets.firstOrNull()?.weight ?: 0f
+        val targetWeight = sets.firstOrNull()?.actualWeight ?: 0f
         val achievedWeight = sets.filter { it.isCompleted }.maxOfOrNull { it.actualWeight } ?: 0f
         
         // Calculate average RPE if available

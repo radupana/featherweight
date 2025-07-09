@@ -101,7 +101,7 @@ fun SetRow(
                             modifier = Modifier.fillMaxSize(),
                         ) {
                             Text(
-                                if (set.reps > 0) "${set.reps}" else "—",
+                                if (set.actualReps > 0) "${set.actualReps}" else "—",
                                 style = MaterialTheme.typography.bodyMedium,
                                 textAlign = TextAlign.Center,
                             )
@@ -137,7 +137,7 @@ fun SetRow(
                             modifier = Modifier.fillMaxSize(),
                         ) {
                             Text(
-                                if (set.weight > 0) WeightFormatter.formatWeightWithUnit(set.weight) else "—",
+                                if (set.actualWeight > 0) WeightFormatter.formatWeightWithUnit(set.actualWeight) else "—",
                                 style = MaterialTheme.typography.bodyMedium,
                                 textAlign = TextAlign.Center,
                             )
@@ -173,7 +173,7 @@ fun SetRow(
                             modifier = Modifier.fillMaxSize(),
                         ) {
                             Text(
-                                set.rpe?.let { rpe ->
+                                set.actualRpe?.let { rpe ->
                                     WeightFormatter.formatDecimal(rpe, 1)
                                 } ?: "—",
                                 style = MaterialTheme.typography.bodyMedium,

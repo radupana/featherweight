@@ -229,16 +229,16 @@ fun SetEditingModal(
                                 // Create set with initial values directly
                                 viewModel.addSetToExercise(
                                     exerciseLogId = exercise.id,
-                                    targetReps = alternative.reps,
-                                    targetWeight = alternative.weight,
-                                    weight = alternative.weight,
-                                    reps = alternative.reps,
-                                    rpe = alternative.rpe
+                                    targetReps = alternative.actualReps,
+                                    targetWeight = alternative.actualWeight,
+                                    weight = alternative.actualWeight,
+                                    reps = alternative.actualReps,
+                                    rpe = alternative.actualRpe
                                 )
                             } else {
                                 val firstUncompletedSet = sets.firstOrNull { !it.isCompleted }
                                 firstUncompletedSet?.let { set ->
-                                    onUpdateSet(set.id, alternative.reps, alternative.weight, alternative.rpe)
+                                    onUpdateSet(set.id, alternative.actualReps, alternative.actualWeight, alternative.actualRpe)
                                 }
                             }
                         },
@@ -435,7 +435,7 @@ fun SetEditingModal(
                                 if (sets.isNotEmpty()) {
                                     item {
                                         val lastSet = sets.maxByOrNull { it.setOrder }
-                                        val canCopyLast = lastSet != null && lastSet.reps > 0
+                                        val canCopyLast = lastSet != null && lastSet.actualReps > 0
 
                                         Card(
                                             modifier =
@@ -508,15 +508,15 @@ private fun ExpandedSetRow(
 
     // Text field states - start with no selection to avoid auto-select on copy
     var repsValue by remember(set.id) {
-        val text = if (set.reps > 0) set.reps.toString() else ""
+        val text = if (set.actualReps > 0) set.actualReps.toString() else ""
         mutableStateOf(TextFieldValue(text, TextRange.Zero))
     }
     var weightValue by remember(set.id) {
-        val text = if (set.weight > 0) set.weight.toString() else ""
+        val text = if (set.actualWeight > 0) set.actualWeight.toString() else ""
         mutableStateOf(TextFieldValue(text, TextRange.Zero))
     }
     var rpeValue by remember(set.id) {
-        val text = set.rpe?.toString() ?: ""
+        val text = set.actualRpe?.toString() ?: ""
         mutableStateOf(TextFieldValue(text, TextRange.Zero))
     }
 
@@ -531,27 +531,27 @@ private fun ExpandedSetRow(
     var rpeFieldHasFocus by remember { mutableStateOf(false) }
 
     // Update fields only when not focused (to avoid interfering with user input)
-    LaunchedEffect(set.reps) {
+    LaunchedEffect(set.actualReps) {
         if (!repsFieldHasFocus) {
-            val repsText = if (set.reps > 0) set.reps.toString() else ""
+            val repsText = if (set.actualReps > 0) set.actualReps.toString() else ""
             if (repsValue.text != repsText) {
                 repsValue = TextFieldValue(repsText, TextRange.Zero)
             }
         }
     }
 
-    LaunchedEffect(set.weight) {
+    LaunchedEffect(set.actualWeight) {
         if (!weightFieldHasFocus) {
-            val weightText = if (set.weight > 0) set.weight.toString() else ""
+            val weightText = if (set.actualWeight > 0) set.actualWeight.toString() else ""
             if (weightValue.text != weightText) {
                 weightValue = TextFieldValue(weightText, TextRange.Zero)
             }
         }
     }
 
-    LaunchedEffect(set.rpe) {
+    LaunchedEffect(set.actualRpe) {
         if (!rpeFieldHasFocus) {
-            val rpeText = set.rpe?.toString() ?: ""
+            val rpeText = set.actualRpe?.toString() ?: ""
             if (rpeValue.text != rpeText) {
                 rpeValue = TextFieldValue(rpeText, TextRange.Zero)
             }
@@ -786,7 +786,7 @@ private fun ExpandedSetRow(
                 }
 
                 // Only show validation message if user tried to complete without data
-                if (!canMarkComplete && (set.reps == 0 || set.weight == 0f) && showDeleteConfirmation) {
+                if (!canMarkComplete && (set.actualReps == 0 || set.actualWeight == 0f) && showDeleteConfirmation) {
                     Text(
                         "Add reps & weight to complete",
                         style = MaterialTheme.typography.labelSmall,
@@ -1123,18 +1123,18 @@ private fun InsightsSection(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                text = if (set.weight > 0) {
-                                                    "${set.reps}×${WeightFormatter.formatWeightWithUnit(set.weight)}"
+                                                text = if (set.actualWeight > 0) {
+                                                    "${set.actualReps}×${WeightFormatter.formatWeightWithUnit(set.actualWeight)}"
                                                 } else {
-                                                    "${set.reps} reps"
+                                                    "${set.actualReps} reps"
                                                 },
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 fontWeight = FontWeight.Medium,
                                                 color = MaterialTheme.colorScheme.primary
                                             )
-                                            if (set.rpe != null) {
+                                            if (set.actualRpe != null) {
                                                 Text(
-                                                    "@${WeightFormatter.formatDecimal(set.rpe, 1)}",
+                                                    "@${WeightFormatter.formatDecimal(set.actualRpe, 1)}",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                                                 )

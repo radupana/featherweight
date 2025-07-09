@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import kotlin.random.Random
 
 class WorkoutSeedingService(
@@ -259,14 +260,14 @@ class WorkoutSeedingService(
             val setLog = SetLog(
                 exerciseLogId = exerciseLogId,
                 setOrder = index + 1,
-                reps = targetReps,
-                weight = weight,
+                targetReps = targetReps,
+                targetWeight = weight,
                 actualReps = actualReps,
                 actualWeight = weight,
                 isCompleted = true,
-                rpe = Random.nextInt(6, 10).toFloat(),
+                actualRpe = Random.nextInt(6, 10).toFloat(),
                 notes = null,
-                completedAt = null
+                completedAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             )
             
             repository.insertSetLog(setLog)
@@ -295,12 +296,12 @@ class WorkoutSeedingService(
             val setLog = SetLog(
                 exerciseLogId = exerciseLogId,
                 setOrder = index + 1,
-                reps = 5,
-                weight = weight,
+                targetReps = 5,
+                targetWeight = weight,
                 actualReps = actualReps,
                 actualWeight = weight,
                 isCompleted = true,
-                rpe = Random.nextInt(6, 9).toFloat(),
+                actualRpe = Random.nextInt(6, 9).toFloat(),
                 notes = null,
                 completedAt = null
             )
@@ -341,14 +342,14 @@ class WorkoutSeedingService(
             val setLog = SetLog(
                 exerciseLogId = exerciseLogId,
                 setOrder = index + 1,
-                reps = targetReps,
-                weight = weight,
+                targetReps = targetReps,
+                targetWeight = weight,
                 actualReps = actualReps,
                 actualWeight = weight,
                 isCompleted = true,
-                rpe = Random.nextInt(6, 10).toFloat(),
+                actualRpe = Random.nextInt(6, 10).toFloat(),
                 notes = null,
-                completedAt = null
+                completedAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             )
             
             repository.insertSetLog(setLog)
@@ -372,8 +373,27 @@ class WorkoutSeedingService(
                 println("📊 Completing workout $workoutId to trigger all analytics")
                 repository.completeWorkout(workoutId, (90 * 60).toLong())
                 
-                // 2. PRs are detected during completeWorkout
-                println("🏆 PR detection completed during workout completion")
+                // 2. Manually trigger PR detection for seeded workouts
+                // Since seeded sets don't go through markSetCompleted, we need to check PRs manually
+                println("🏆 Manually checking for PRs in seeded workout...")
+                val workout = repository.getWorkoutById(workoutId)
+                if (workout != null) {
+                    val exerciseLogs = repository.getExerciseLogsForWorkout(workoutId)
+                    exerciseLogs.forEach { exerciseLog ->
+                        val sets = repository.getSetLogsForExercise(exerciseLog.id)
+                        sets.filter { it.isCompleted }.forEach { set ->
+                            try {
+                                val prs = repository.checkForPR(set, exerciseLog.exerciseName)
+                                if (prs.isNotEmpty()) {
+                                    println("🏆 Found ${prs.size} PRs for ${exerciseLog.exerciseName}")
+                                }
+                            } catch (e: Exception) {
+                                println("❌ Error checking PR: ${e.message}")
+                            }
+                        }
+                    }
+                }
+                println("🏆 PR detection completed for workout $workoutId")
                 
                 
             } catch (e: Exception) {
@@ -384,5 +404,19 @@ class WorkoutSeedingService(
         
         
         println("✅ Analytics processing complete!")
+        
+        // Verify PR data was saved
+        val allPRs = repository.getAllPersonalRecordsFromDB()
+        println("📊 Personal Records in database after seeding: ${allPRs.size}")
+        allPRs.forEach { pr ->
+            println("  🏆 ${pr.exerciseName}: ${pr.weight}kg (${pr.recordType}) on ${pr.recordDate}")
+        }
+        
+        // Verify exercise-specific PRs
+        val exercisesToCheck = listOf("Barbell Back Squat", "Barbell Bench Press", "Barbell Deadlift", "Barbell Overhead Press")
+        exercisesToCheck.forEach { exercise ->
+            val prs = repository.getPersonalRecords(exercise)
+            println("📊 PRs for $exercise: ${prs.size} records")
+        }
     }
 }

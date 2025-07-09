@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.service
 
+import android.util.Log
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.PersonalRecordDao
 import com.github.radupana.featherweight.data.PRType
@@ -21,9 +22,14 @@ class PRDetectionService(
      * Returns the PersonalRecord if a PR was detected, null otherwise
      */
     suspend fun checkForPR(setLog: SetLog, exerciseName: String): List<PersonalRecord> = withContext(Dispatchers.IO) {
+        Log.d("PRDetection", "=== PR Detection Started ===")
+        Log.d("PRDetection", "Exercise: $exerciseName")
+        Log.d("PRDetection", "SetLog: isCompleted=${setLog.isCompleted}, actualReps=${setLog.actualReps}, actualWeight=${setLog.actualWeight}")
+        
         val newPRs = mutableListOf<PersonalRecord>()
         
         if (!setLog.isCompleted || setLog.actualReps <= 0 || setLog.actualWeight <= 0) {
+            Log.d("PRDetection", "Skipping PR check - invalid data or not completed")
             return@withContext newPRs
         }
         
@@ -48,15 +54,14 @@ class PRDetectionService(
         val oneRMPR = checkEstimated1RMPR(exerciseName, currentWeight, currentReps, currentDate)
         oneRMPR?.let { newPRs.add(it) }
         
-        // For now, only save ESTIMATED_1RM PRs to avoid database clutter
-        val estimatedMaxPRs = newPRs.filter { it.recordType == PRType.ESTIMATED_1RM }
-        println("🏆 PRDetectionService: Detected ${newPRs.size} total PRs, saving ${estimatedMaxPRs.size} 1RM PRs")
-        estimatedMaxPRs.forEach { pr ->
-            println("🏆 PRDetectionService: Saving 1RM PR: ${pr.exerciseName} - ${pr.estimated1RM}kg")
+        // Save all detected PRs
+        Log.d("PRDetection", "🏆 Detected ${newPRs.size} total PRs")
+        newPRs.forEach { pr ->
+            Log.d("PRDetection", "🏆 Saving ${pr.recordType} PR: ${pr.exerciseName} - ${pr.weight}kg x ${pr.reps}")
             personalRecordDao.insertPersonalRecord(pr)
         }
         
-        // Return all detected PRs for potential future use, but only 1RM is saved
+        // Return all detected PRs
         newPRs
     }
     
@@ -66,15 +71,22 @@ class PRDetectionService(
         reps: Int, 
         date: LocalDateTime
     ): PersonalRecord? {
-        val currentMaxWeight = personalRecordDao.getMaxWeightForExercise(exerciseName) ?: 0f
+        val currentMaxWeight = personalRecordDao.getMaxWeightForExercise(exerciseName)
         
-        if (weight > currentMaxWeight) {
+        // Create PR if this is the first record OR if it beats the existing record
+        if (currentMaxWeight == null || weight > currentMaxWeight) {
             // Get previous weight PR for context
             val previousPR = personalRecordDao.getLatestPRForExerciseAndType(exerciseName, PRType.WEIGHT)
             
-            val improvementPercentage = if (currentMaxWeight > 0) {
+            val improvementPercentage = if (currentMaxWeight != null && currentMaxWeight > 0) {
                 ((weight - currentMaxWeight) / currentMaxWeight) * 100
             } else 100f
+            
+            val notes = if (currentMaxWeight == null) {
+                "First weight record: ${weight}kg × ${reps}"
+            } else {
+                "New weight PR: ${weight}kg × ${reps}"
+            }
             
             return PersonalRecord(
                 exerciseName = exerciseName,
@@ -88,7 +100,7 @@ class PRDetectionService(
                 recordType = PRType.WEIGHT,
                 volume = weight * reps,
                 estimated1RM = calculateEstimated1RM(weight, reps),
-                notes = "New weight PR: ${weight}kg × ${reps}"
+                notes = notes
             )
         }
         
@@ -110,6 +122,12 @@ class PRDetectionService(
                 ((reps - bestRepsAtWeight.reps).toFloat() / bestRepsAtWeight.reps) * 100
             } else 100f
             
+            val notes = if (bestRepsAtWeight == null) {
+                "First reps record: ${reps} reps at ${weight}kg"
+            } else {
+                "New reps PR: ${reps} reps at ${weight}kg"
+            }
+            
             return PersonalRecord(
                 exerciseName = exerciseName,
                 weight = weight,
@@ -122,7 +140,7 @@ class PRDetectionService(
                 recordType = PRType.REPS,
                 volume = weight * reps,
                 estimated1RM = calculateEstimated1RM(weight, reps),
-                notes = "New reps PR: ${reps} reps at ${weight}kg"
+                notes = notes
             )
         }
         
@@ -136,14 +154,21 @@ class PRDetectionService(
         reps: Int,
         date: LocalDateTime
     ): PersonalRecord? {
-        val currentMaxVolume = personalRecordDao.getMaxVolumeForExercise(exerciseName) ?: 0f
+        val currentMaxVolume = personalRecordDao.getMaxVolumeForExercise(exerciseName)
         
-        if (volume > currentMaxVolume) {
+        // Create PR if this is the first record OR if it beats the existing record
+        if (currentMaxVolume == null || volume > currentMaxVolume) {
             val previousPR = personalRecordDao.getLatestPRForExerciseAndType(exerciseName, PRType.VOLUME)
             
-            val improvementPercentage = if (currentMaxVolume > 0) {
+            val improvementPercentage = if (currentMaxVolume != null && currentMaxVolume > 0) {
                 ((volume - currentMaxVolume) / currentMaxVolume) * 100
             } else 100f
+            
+            val notes = if (currentMaxVolume == null) {
+                "First volume record: ${volume.toInt()}kg total (${weight}kg × ${reps})"
+            } else {
+                "New volume PR: ${volume.toInt()}kg total (${weight}kg × ${reps})"
+            }
             
             return PersonalRecord(
                 exerciseName = exerciseName,
@@ -157,7 +182,7 @@ class PRDetectionService(
                 recordType = PRType.VOLUME,
                 volume = volume,
                 estimated1RM = calculateEstimated1RM(weight, reps),
-                notes = "New volume PR: ${volume.toInt()}kg total (${weight}kg × ${reps})"
+                notes = notes
             )
         }
         
@@ -171,43 +196,45 @@ class PRDetectionService(
         date: LocalDateTime
     ): PersonalRecord? {
         val estimated1RM = calculateEstimated1RM(weight, reps)
-        println("🏆 1RM Check: ${exerciseName} - ${weight}kg x ${reps} = ${estimated1RM}kg estimated 1RM")
+        Log.d("PRDetection", "🏆 1RM Check: ${exerciseName} - ${weight}kg x ${reps} = ${estimated1RM}kg estimated 1RM")
         
         // Get the best estimated 1RM from all previous PRs
         val allPRs = personalRecordDao.getRecentPRsForExercise(exerciseName, 50)
-        val bestEstimated1RM = allPRs.mapNotNull { it.estimated1RM }.maxOrNull() ?: 0f
-        println("🏆 1RM Check: Previous best 1RM = ${bestEstimated1RM}kg from ${allPRs.size} previous PRs")
+        val bestEstimated1RM = allPRs.mapNotNull { it.estimated1RM }.maxOrNull()
+        Log.d("PRDetection", "🏆 1RM Check: Previous best 1RM = ${bestEstimated1RM ?: "none"}kg from ${allPRs.size} previous PRs")
         
-        if (estimated1RM > bestEstimated1RM) { // Remove the stupid weight comparison that breaks 1-rep PRs
-            val improvementPercentage = if (bestEstimated1RM > 0) {
+        // Create PR if this is the first record OR if it beats the existing record
+        if (bestEstimated1RM == null || estimated1RM > bestEstimated1RM) {
+            val improvementPercentage = if (bestEstimated1RM != null && bestEstimated1RM > 0) {
                 ((estimated1RM - bestEstimated1RM) / bestEstimated1RM) * 100
             } else 100f
             
-            println("🏆 1RM Check: ${estimated1RM}kg > ${bestEstimated1RM}kg, improvement = ${improvementPercentage}%")
+            Log.d("PRDetection", "🏆 1RM Check: Creating PR - improvement = ${improvementPercentage}%")
             
-            // Temporarily lower threshold for testing (was 2.0f)
-            if (improvementPercentage >= 0.1f) {
-                val previousBest = allPRs.find { it.estimated1RM == bestEstimated1RM }
-                
-                return PersonalRecord(
-                    exerciseName = exerciseName,
-                    weight = weight,
-                    reps = reps,
-                    recordDate = date,
-                    previousWeight = previousBest?.weight,
-                    previousReps = previousBest?.reps,
-                    previousDate = previousBest?.recordDate,
-                    improvementPercentage = improvementPercentage,
-                    recordType = PRType.ESTIMATED_1RM,
-                    volume = weight * reps,
-                    estimated1RM = estimated1RM,
-                    notes = "New estimated 1RM: ${estimated1RM.toInt()}kg (from ${weight}kg × ${reps})"
-                )
+            val previousBest = allPRs.find { it.estimated1RM == bestEstimated1RM }
+            
+            val notes = if (bestEstimated1RM == null) {
+                "First estimated 1RM: ${estimated1RM.toInt()}kg (from ${weight}kg × ${reps})"
             } else {
-                println("🏆 1RM Check: FAILED - improvement ${improvementPercentage}% < 0.1% threshold")
+                "New estimated 1RM: ${estimated1RM.toInt()}kg (from ${weight}kg × ${reps})"
             }
+            
+            return PersonalRecord(
+                exerciseName = exerciseName,
+                weight = weight,
+                reps = reps,
+                recordDate = date,
+                previousWeight = previousBest?.weight,
+                previousReps = previousBest?.reps,
+                previousDate = previousBest?.recordDate,
+                improvementPercentage = improvementPercentage,
+                recordType = PRType.ESTIMATED_1RM,
+                volume = weight * reps,
+                estimated1RM = estimated1RM,
+                notes = notes
+            )
         } else {
-            println("🏆 1RM Check: FAILED - estimated1RM=${estimated1RM}kg <= bestEstimated1RM=${bestEstimated1RM}kg")
+            Log.d("PRDetection", "🏆 1RM Check: Not a PR - estimated1RM=${estimated1RM}kg <= bestEstimated1RM=${bestEstimated1RM}kg")
         }
         
         return null

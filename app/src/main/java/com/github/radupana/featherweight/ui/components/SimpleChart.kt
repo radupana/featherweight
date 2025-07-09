@@ -2,6 +2,7 @@ package com.github.radupana.featherweight.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,6 +16,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.github.radupana.featherweight.ui.theme.ChartTheme
 import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -42,6 +44,7 @@ fun StrengthProgressionChart(
     }
 
     var selectedDataPoint by remember { mutableStateOf<Int?>(null) }
+    val gridColor = ChartTheme.gridLineColor()
 
     Column(modifier = modifier) {
         // Chart title with current max
@@ -66,18 +69,27 @@ fun StrengthProgressionChart(
                 Card(
                     colors =
                         CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            containerColor = ChartTheme.tooltipBackgroundColor(),
                         ),
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .padding(bottom = 8.dp),
+                    elevation = CardDefaults.cardElevation(
+                        defaultElevation = ChartTheme.tooltipElevation.dp
+                    ),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = ChartTheme.tooltipBorderColor()
+                    )
                 ) {
                     Text(
                         text = "${WeightFormatter.formatWeightWithUnit(weight)} on ${date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}",
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        color = ChartTheme.tooltipContentColor(),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                         textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -121,7 +133,7 @@ fun StrengthProgressionChart(
                         }
                     },
         ) {
-            drawStrengthChart(data, lineColor, selectedDataPoint)
+            drawStrengthChart(data, lineColor, gridColor, selectedDataPoint)
         }
 
         // X-axis labels (simplified)
@@ -191,18 +203,27 @@ fun VolumeBarChart(
                 Card(
                     colors =
                         CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            containerColor = ChartTheme.tooltipBackgroundColor(),
                         ),
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .padding(bottom = 8.dp),
+                    elevation = CardDefaults.cardElevation(
+                        defaultElevation = ChartTheme.tooltipElevation.dp
+                    ),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = ChartTheme.tooltipBorderColor()
+                    )
                 ) {
                     Text(
                         text = "$label: ${WeightFormatter.formatVolume(volume)}",
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        color = ChartTheme.tooltipContentColor(),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                         textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -258,6 +279,7 @@ fun VolumeBarChart(
 private fun DrawScope.drawStrengthChart(
     data: List<Pair<Float, LocalDateTime>>,
     lineColor: Color,
+    gridColor: Color,
     selectedDataPoint: Int? = null,
 ) {
     if (data.size < 2) return
@@ -282,7 +304,6 @@ private fun DrawScope.drawStrengthChart(
         }
 
     // Draw grid lines (horizontal)
-    val gridColor = Color.Gray.copy(alpha = 0.3f)
     repeat(5) { i ->
         val y = padding + (i / 4f) * chartHeight
         drawLine(
@@ -290,6 +311,7 @@ private fun DrawScope.drawStrengthChart(
             start = Offset(padding, y),
             end = Offset(size.width - padding, y),
             strokeWidth = 1.dp.toPx(),
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 5f))
         )
     }
 

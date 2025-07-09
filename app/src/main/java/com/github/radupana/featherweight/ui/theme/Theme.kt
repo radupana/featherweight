@@ -94,18 +94,18 @@ private val DarkColors =
         // Primary colors
         primary = PrimaryLight,
         onPrimary = Color(0xFF000051),
-        primaryContainer = Primary,
-        onPrimaryContainer = Color(0xFFBBC5FF),
+        primaryContainer = PrimaryDark.copy(alpha = 0.3f),
+        onPrimaryContainer = PrimaryLight,
         // Secondary colors (neutral teal-based)
         secondary = Color(0xFF6DB6B2),
         onSecondary = Color(0xFF003735),
-        secondaryContainer = Color(0xFF1A4E4B),
-        onSecondaryContainer = Color(0xFFB2CFCE),
+        secondaryContainer = Color(0xFF003735).copy(alpha = 0.5f),
+        onSecondaryContainer = Color(0xFF6DB6B2),
         // Tertiary colors (success green)
         tertiary = SuccessLight,
         onTertiary = Color(0xFF00402A),
-        tertiaryContainer = Success,
-        onTertiaryContainer = Color(0xFFBBF0D1),
+        tertiaryContainer = SuccessDark.copy(alpha = 0.3f),
+        onTertiaryContainer = SuccessLight,
         // Error colors
         error = Color(0xFFFF6B6B),
         onError = Color(0xFF690005),

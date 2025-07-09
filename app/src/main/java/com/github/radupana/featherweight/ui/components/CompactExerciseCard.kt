@@ -39,8 +39,8 @@ fun CompactExerciseCard(
     
     // Calculate metrics
     val completedSets = sets.count { it.isCompleted }
-    val totalVolume = sets.filter { it.isCompleted }.sumOf { (it.reps * it.weight).toDouble() }.toFloat()
-    val bestSet = sets.filter { it.isCompleted }.maxByOrNull { it.reps * it.weight }
+    val totalVolume = sets.filter { it.isCompleted }.sumOf { (it.actualReps * it.actualWeight).toDouble() }.toFloat()
+    val bestSet = sets.filter { it.isCompleted }.maxByOrNull { it.actualReps * it.actualWeight }
     
     GlassCard(
         modifier = modifier
@@ -145,7 +145,7 @@ fun CompactExerciseCard(
                         if (bestSet != null) {
                             CompactMetric(
                                 icon = Icons.Filled.Star,
-                                value = "${bestSet.reps}×${WeightFormatter.formatWeight(bestSet.weight)}",
+                                value = "${bestSet.actualReps}×${WeightFormatter.formatWeight(bestSet.actualWeight)}",
                                 contentDescription = "Best set"
                             )
                             Spacer(modifier = Modifier.width(16.dp))

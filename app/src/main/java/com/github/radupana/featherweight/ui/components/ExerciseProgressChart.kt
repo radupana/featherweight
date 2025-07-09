@@ -2,6 +2,7 @@ package com.github.radupana.featherweight.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.radupana.featherweight.ui.theme.ChartTheme
 import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -179,10 +181,10 @@ private fun ChartCanvas(
 ) {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
-    val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
-    val prColor = Color(0xFFFFD700)
+    val primaryColor = ChartTheme.primaryChartColor()
+    val onSurfaceColor = ChartTheme.axisLabelColor()
+    val surfaceVariantColor = ChartTheme.gridLineColor()
+    val prColor = ChartTheme.prMarkerColor
     
     val animationProgress = remember { Animatable(0f) }
     LaunchedEffect(dataPoints) {
@@ -192,15 +194,19 @@ private fun ChartCanvas(
     Canvas(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(start = 0.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) { /* Handle clicks in onDraw */ }
     ) {
-        val chartWidth = size.width
-        val chartHeight = size.height - 40.dp.toPx() // Leave space for labels
-        val padding = 40.dp.toPx()
+        val leftPadding = 50.dp.toPx() // Space for Y-axis labels
+        val rightPadding = 8.dp.toPx()
+        val topPadding = 8.dp.toPx()
+        val bottomPadding = 40.dp.toPx() // Space for X-axis labels
+        
+        val chartWidth = size.width - leftPadding - rightPadding
+        val chartHeight = size.height - topPadding - bottomPadding
         
         if (dataPoints.isEmpty()) return@Canvas
 
@@ -212,16 +218,16 @@ private fun ChartCanvas(
         // Draw grid lines
         val gridLines = 5
         for (i in 0..gridLines) {
-            val y = chartHeight - (i.toFloat() / gridLines * chartHeight)
+            val y = topPadding + chartHeight - (i.toFloat() / gridLines * chartHeight)
             val weight = minWeight + (i.toFloat() / gridLines * weightRange)
             
             // Grid line
             drawLine(
                 color = surfaceVariantColor,
-                start = Offset(0f, y),
-                end = Offset(chartWidth, y),
+                start = Offset(leftPadding, y),
+                end = Offset(size.width - rightPadding, y),
                 strokeWidth = 1.dp.toPx(),
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 5f))
             )
             
             // Weight label
@@ -230,19 +236,19 @@ private fun ChartCanvas(
                 text = weightText,
                 style = TextStyle(
                     fontSize = 10.sp,
-                    color = onSurfaceColor.copy(alpha = 0.6f)
+                    color = onSurfaceColor
                 )
             )
             drawText(
                 textLayoutResult = textLayoutResult,
-                topLeft = Offset(-textLayoutResult.size.width - 8.dp.toPx(), y - textLayoutResult.size.height / 2)
+                topLeft = Offset(leftPadding - textLayoutResult.size.width - 8.dp.toPx(), y - textLayoutResult.size.height / 2)
             )
         }
 
         // Calculate point positions
         val points = dataPoints.mapIndexed { index, dataPoint ->
-            val x = (index.toFloat() / (dataPoints.size - 1).coerceAtLeast(1)) * chartWidth
-            val y = chartHeight - ((dataPoint.weight - minWeight) / weightRange * chartHeight)
+            val x = leftPadding + (index.toFloat() / (dataPoints.size - 1).coerceAtLeast(1)) * chartWidth
+            val y = topPadding + chartHeight - ((dataPoint.weight - minWeight) / weightRange * chartHeight)
             Triple(x, y, dataPoint)
         }
 
@@ -266,8 +272,8 @@ private fun ChartCanvas(
         // Draw gradient fill under the line
         val fillPath = Path()
         fillPath.addPath(path)
-        fillPath.lineTo(chartWidth, chartHeight)
-        fillPath.lineTo(0f, chartHeight)
+        fillPath.lineTo(size.width - rightPadding, topPadding + chartHeight)
+        fillPath.lineTo(leftPadding, topPadding + chartHeight)
         fillPath.close()
         
         drawPath(
@@ -277,8 +283,8 @@ private fun ChartCanvas(
                     primaryColor.copy(alpha = 0.3f * animationProgress.value),
                     primaryColor.copy(alpha = 0f)
                 ),
-                startY = 0f,
-                endY = chartHeight
+                startY = topPadding,
+                endY = topPadding + chartHeight
             )
         )
 
