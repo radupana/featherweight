@@ -375,12 +375,6 @@ class WorkoutSeedingService(
                 // 2. PRs are detected during completeWorkout
                 println("🏆 PR detection completed during workout completion")
                 
-                // 3. Detect achievements after workout
-                println("🎆 Checking for achievements after workout $workoutId")
-                val achievements = repository.checkForNewAchievements(userId, workoutId)
-                if (achievements.isNotEmpty()) {
-                    println("🏅 Unlocked ${achievements.size} achievement(s)")
-                }
                 
             } catch (e: Exception) {
                 println("❌ Error processing workout $workoutId: ${e.message}")
@@ -388,15 +382,6 @@ class WorkoutSeedingService(
             }
         }
         
-        // 4. Generate insights after all workouts are processed
-        println("💡 Generating insights for user $userId")
-        try {
-            val insights = repository.triggerInsightGeneration(userId)
-            println("✅ Generated ${insights.size} insights successfully")
-        } catch (e: Exception) {
-            println("❌ Error generating insights: ${e.message}")
-            e.printStackTrace()
-        }
         
         println("✅ Analytics processing complete!")
     }

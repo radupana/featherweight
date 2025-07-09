@@ -21,8 +21,6 @@ import com.github.radupana.featherweight.data.programme.ProgrammeProgress
 import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
 import com.github.radupana.featherweight.data.programme.ProgrammeWeek
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
-import com.github.radupana.featherweight.data.achievement.UserAchievement
-import com.github.radupana.featherweight.data.achievement.UserAchievementDao
 
 @Database(
     entities = [
@@ -44,11 +42,9 @@ import com.github.radupana.featherweight.data.achievement.UserAchievementDao
         GlobalExerciseProgress::class,
         ExerciseCorrelation::class,
         PersonalRecord::class,
-        UserAchievement::class,
-        ProgressInsight::class,
         AIProgrammeRequest::class,
     ],
-    version = 35,
+    version = 37,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -74,10 +70,6 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun exerciseCorrelationDao(): ExerciseCorrelationDao
 
     abstract fun personalRecordDao(): PersonalRecordDao
-
-    abstract fun userAchievementDao(): UserAchievementDao
-
-    abstract fun progressInsightDao(): ProgressInsightDao
 
     abstract fun aiProgrammeRequestDao(): AIProgrammeRequestDao
 

@@ -7,13 +7,10 @@ import com.github.radupana.featherweight.service.ProgressionService
 import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.service.FreestyleIntelligenceService
 import com.github.radupana.featherweight.service.PRDetectionService
-import com.github.radupana.featherweight.service.InsightGenerationService
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.ProgressTrend
-import com.github.radupana.featherweight.data.ProgressInsight
-import com.github.radupana.featherweight.data.InsightType
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
@@ -135,13 +132,11 @@ class FeatherweightRepository(
     private val globalExerciseProgressDao = db.globalExerciseProgressDao()
     private val exerciseCorrelationDao = db.exerciseCorrelationDao()
     private val personalRecordDao = db.personalRecordDao()
-    private val userAchievementDao = db.userAchievementDao()
     
     // Initialize GlobalProgressTracker
     private val globalProgressTracker = GlobalProgressTracker(this, db)
     private val freestyleIntelligenceService = FreestyleIntelligenceService(this, db.globalExerciseProgressDao())
     private val prDetectionService = PRDetectionService(personalRecordDao)
-    private val achievementDetectionService = com.github.radupana.featherweight.service.AchievementDetectionService(db)
     // StateFlow for pending 1RM updates
     private val _pendingOneRMUpdates = MutableStateFlow<List<PendingOneRMUpdate>>(emptyList())
     val pendingOneRMUpdates: StateFlow<List<PendingOneRMUpdate>> = _pendingOneRMUpdates.asStateFlow()
@@ -2845,93 +2840,8 @@ class FeatherweightRepository(
     
     // ===== ACHIEVEMENT METHODS =====
     
-    /**
-     * Check for newly unlocked achievements after a workout completion
-     */
-    suspend fun checkForNewAchievements(userId: Long, workoutId: Long): List<com.github.radupana.featherweight.data.achievement.UserAchievement> = withContext(Dispatchers.IO) {
-        achievementDetectionService.checkForNewAchievements(userId, workoutId)
-    }
-    
-    /**
-     * Get achievement summary for a user
-     */
-    suspend fun getAchievementSummary(userId: Long): com.github.radupana.featherweight.service.AchievementSummary = withContext(Dispatchers.IO) {
-        achievementDetectionService.getAchievementSummary(userId)
-    }
-    
-    /**
-     * Get user's unlocked achievements
-     */
-    suspend fun getUserAchievements(userId: Long): List<com.github.radupana.featherweight.data.achievement.UserAchievement> = withContext(Dispatchers.IO) {
-        userAchievementDao.getRecentUserAchievements(userId, 100) // Get all achievements
-    }
 
     // ===== INSIGHTS SECTION =====
-    
-    private val insightGenerationService = InsightGenerationService(db)
-    private val progressInsightDao = db.progressInsightDao()
-    
-    /**
-     * Generate fresh insights for a user
-     */
-    suspend fun generateInsightsForUser(userId: Long): List<ProgressInsight> = withContext(Dispatchers.IO) {
-        insightGenerationService.generateInsightsForUser(userId)
-    }
-    
-    /**
-     * Get insights for dashboard display
-     */
-    suspend fun getRecentInsights(userId: Long): List<ProgressInsight> = withContext(Dispatchers.IO) {
-        val oneWeekAgo = LocalDateTime.now().minusWeeks(1)
-        progressInsightDao.getRecentInsights(userId, oneWeekAgo, 10)
-    }
-    
-    /**
-     * Get actionable insights that require user attention
-     */
-    suspend fun getActionableInsights(userId: Long): List<ProgressInsight> = withContext(Dispatchers.IO) {
-        val oneWeekAgo = LocalDateTime.now().minusWeeks(1)
-        progressInsightDao.getActionableInsights(userId, oneWeekAgo)
-    }
-    
-    /**
-     * Get insights by category
-     */
-    suspend fun getInsightsByType(userId: Long, type: InsightType): List<ProgressInsight> = withContext(Dispatchers.IO) {
-        progressInsightDao.getInsightsByType(userId, type, 5)
-    }
-    
-    /**
-     * Mark insight as read
-     */
-    suspend fun markInsightAsRead(insightId: Long) = withContext(Dispatchers.IO) {
-        progressInsightDao.markAsRead(insightId)
-    }
-    
-    /**
-     * Get unread insights count
-     */
-    suspend fun getUnreadInsightsCount(userId: Long): Int = withContext(Dispatchers.IO) {
-        progressInsightDao.getUnreadInsightsCount(userId)
-    }
-    
-    /**
-     * Manual insight generation trigger
-     */
-    suspend fun triggerInsightGeneration(userId: Long): List<ProgressInsight> = withContext(Dispatchers.IO) {
-        val newInsights = insightGenerationService.generateInsightsForUser(userId)
-        if (newInsights.isNotEmpty()) {
-            progressInsightDao.insertInsights(newInsights)
-        }
-        newInsights
-    }
-    
-    /**
-     * Cleanup old insights to prevent database bloat
-     */
-    suspend fun cleanupOldInsights() = withContext(Dispatchers.IO) {
-        insightGenerationService.cleanupOldInsights()
-    }
     
     // Exercise Progress Analytics Methods
     data class ExerciseWorkoutSummary(
@@ -3042,7 +2952,6 @@ class FeatherweightRepository(
         db.exerciseLogDao().deleteAllExerciseLogs()
         db.setLogDao().deleteAllSetLogs()
         db.personalRecordDao().deleteAllPersonalRecords()
-        db.progressInsightDao().deleteAllInsights()
         db.globalExerciseProgressDao().deleteAllGlobalProgress()
         println("🗑️ Repository: Deleted all workout-related data")
     }
