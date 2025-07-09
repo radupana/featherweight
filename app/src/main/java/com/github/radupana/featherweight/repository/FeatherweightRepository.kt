@@ -2980,6 +2980,46 @@ class FeatherweightRepository(
         exerciseLogDao.getTotalSessionsForExercise(exerciseName)
     }
     
+    suspend fun getMaxWeightForExerciseInDateRange(
+        userId: Long,
+        exerciseName: String,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): Float? = withContext(Dispatchers.IO) {
+        val startDateTime = startDate.atStartOfDay()
+        val endDateTime = endDate.atTime(23, 59, 59)
+        setLogDao.getMaxWeightForExerciseInDateRange(
+            exerciseName, 
+            startDateTime.toString(), 
+            endDateTime.toString()
+        )
+    }
+    
+    suspend fun getDistinctWorkoutDatesForExercise(
+        userId: Long,
+        exerciseName: String,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): List<LocalDate> = withContext(Dispatchers.IO) {
+        val startDateTime = startDate.atStartOfDay()
+        val endDateTime = endDate.atTime(23, 59, 59)
+        exerciseLogDao.getDistinctWorkoutDatesForExercise(exerciseName, startDateTime, endDateTime)
+            .map { it.toLocalDate() }
+            .distinct()
+    }
+    
+    suspend fun getDateOfMaxWeightForExercise(
+        userId: Long,
+        exerciseName: String,
+        weight: Float,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): LocalDate? = withContext(Dispatchers.IO) {
+        // For now, just return null - proper implementation would query for the specific date
+        // This is a simplified implementation for the MVP
+        null
+    }
+    
     suspend fun getExercisesSummary(): List<com.github.radupana.featherweight.service.ExerciseSummary> = withContext(Dispatchers.IO) {
         val userId = userPreferences.getCurrentUserId()
         if (userId == -1L) return@withContext emptyList()

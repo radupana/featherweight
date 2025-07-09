@@ -62,4 +62,21 @@ interface SetLogDao {
     
     @Query("DELETE FROM SetLog")
     suspend fun deleteAllSetLogs()
+    
+    @Query("""
+        SELECT MAX(s.actualWeight) 
+        FROM SetLog s 
+        INNER JOIN ExerciseLog e ON s.exerciseLogId = e.id 
+        INNER JOIN Workout w ON e.workoutId = w.id
+        WHERE e.exerciseName = :exerciseName 
+        AND s.isCompleted = 1 
+        AND s.actualWeight > 0
+        AND w.date >= :startDate
+        AND w.date <= :endDate
+    """)
+    suspend fun getMaxWeightForExerciseInDateRange(
+        exerciseName: String, 
+        startDate: String, 
+        endDate: String
+    ): Float?
 }

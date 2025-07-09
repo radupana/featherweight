@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.data.UserPreferences
+import com.github.radupana.featherweight.data.ProgressTrend
+import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,16 +28,26 @@ class ExerciseProgressViewModel(application: Application) : AndroidViewModel(app
     
     data class ExerciseProgressData(
         val exerciseName: String,
-        val currentMax: Float,
         val allTimePR: Float,
-        val monthlyProgress: Float,
+        val allTimePRDate: LocalDate?,
+        val recentBest: Float,
+        val recentBestDate: LocalDate? = null,
+        val recentBestPercentOfPR: Int,
         val weeklyFrequency: Float,
+        val frequencyTrend: FrequencyTrend,
         val lastPerformed: LocalDate?,
-        val totalSessions: Int,
-        val totalVolume: Float,
-        val avgSessionVolume: Float,
-        val currentTrend: String // "IMPROVING", "STALLING", "DECLINING"
+        val progressStatus: ProgressStatus,
+        val progressStatusDetail: String,
+        val plateauWeeks: Int = 0
     )
+    
+    enum class FrequencyTrend {
+        UP, DOWN, STABLE
+    }
+    
+    enum class ProgressStatus {
+        MAKING_GAINS, STEADY_PROGRESS, PLATEAU, EXTENDED_BREAK, WORKING_LIGHTER
+    }
     
     private val _state = MutableStateFlow<ExerciseProgressState>(ExerciseProgressState.Loading)
     val state: StateFlow<ExerciseProgressState> = _state.asStateFlow()
@@ -62,50 +74,126 @@ class ExerciseProgressViewModel(application: Application) : AndroidViewModel(app
                     return@launch
                 }
                 
-                // Calculate monthly progress
-                val thirtyDaysAgo = LocalDate.now().minusDays(30)
-                val monthlyWorkouts = repository.getExerciseWorkoutsInDateRange(
+                // Get all-time PR (NO FALLBACK TO ESTIMATED MAX!)
+                val prRecord = repository.getPersonalRecordForExercise(userId, exerciseName)
+                val allTimePR = prRecord?.weight ?: 0f
+                val allTimePRDate = prRecord?.recordDate?.toLocalDate()
+                
+                // Calculate Recent Best (30 days, extend to 60 if needed)
+                val now = LocalDate.now()
+                val thirtyDaysAgo = now.minusDays(30)
+                var recentBestDate: LocalDate? = null
+                val recentBest = repository.getMaxWeightForExerciseInDateRange(
                     userId = userId,
                     exerciseName = exerciseName,
                     startDate = thirtyDaysAgo,
-                    endDate = LocalDate.now()
-                )
+                    endDate = now
+                )?.also {
+                    // Get the date when this recent best was achieved
+                    recentBestDate = repository.getDateOfMaxWeightForExercise(
+                        userId = userId,
+                        exerciseName = exerciseName,
+                        weight = it,
+                        startDate = thirtyDaysAgo,
+                        endDate = now
+                    )
+                } ?: repository.getMaxWeightForExerciseInDateRange(
+                    userId = userId,
+                    exerciseName = exerciseName,
+                    startDate = now.minusDays(60),
+                    endDate = now
+                )?.also {
+                    recentBestDate = repository.getDateOfMaxWeightForExercise(
+                        userId = userId,
+                        exerciseName = exerciseName,
+                        weight = it,
+                        startDate = now.minusDays(60),
+                        endDate = now
+                    )
+                } ?: 0f
                 
-                var monthlyProgress = 0f
-                if (monthlyWorkouts.isNotEmpty()) {
-                    val oldestWeight = monthlyWorkouts.lastOrNull()?.actualWeight ?: 0f
-                    val newestWeight = monthlyWorkouts.firstOrNull()?.actualWeight ?: 0f
-                    if (oldestWeight > 0) {
-                        monthlyProgress = ((newestWeight - oldestWeight) / oldestWeight) * 100
+                val recentBestPercentOfPR = if (allTimePR > 0) {
+                    ((recentBest / allTimePR) * 100).toInt()
+                } else 0
+                
+                // Calculate frequency (8-week window)
+                val eightWeeksAgo = now.minusWeeks(8)
+                val fourWeeksAgo = now.minusWeeks(4)
+                
+                val sessionCountLast8Weeks = repository.getDistinctWorkoutDatesForExercise(
+                    userId = userId,
+                    exerciseName = exerciseName,
+                    startDate = eightWeeksAgo,
+                    endDate = now
+                ).size
+                
+                val sessionCountLast4Weeks = repository.getDistinctWorkoutDatesForExercise(
+                    userId = userId,
+                    exerciseName = exerciseName,
+                    startDate = fourWeeksAgo,
+                    endDate = now
+                ).size
+                
+                val sessionCountPrevious4Weeks = repository.getDistinctWorkoutDatesForExercise(
+                    userId = userId,
+                    exerciseName = exerciseName,
+                    startDate = eightWeeksAgo,
+                    endDate = fourWeeksAgo
+                ).size
+                
+                val weeklyFrequency = sessionCountLast8Weeks / 8.0f
+                
+                // Determine frequency trend
+                val frequencyTrend = when {
+                    sessionCountLast4Weeks > sessionCountPrevious4Weeks * 1.2 -> FrequencyTrend.UP
+                    sessionCountLast4Weeks < sessionCountPrevious4Weeks * 0.8 -> FrequencyTrend.DOWN
+                    else -> FrequencyTrend.STABLE
+                }
+                
+                // Determine progress status
+                val daysSinceLastWorkout = if (globalProgress.lastUpdated != null) {
+                    ChronoUnit.DAYS.between(globalProgress.lastUpdated.toLocalDate(), now)
+                } else Long.MAX_VALUE
+                
+                val (progressStatus, progressStatusDetail, plateauWeeks) = when {
+                    daysSinceLastWorkout >= 14 -> {
+                        Triple(ProgressStatus.EXTENDED_BREAK, "Last session ${daysSinceLastWorkout} days ago", 0)
+                    }
+                    recentBest < globalProgress.estimatedMax * 0.9 -> {
+                        Triple(ProgressStatus.WORKING_LIGHTER, "${WeightFormatter.formatWeightWithUnit(recentBest)} vs ${WeightFormatter.formatWeightWithUnit(globalProgress.estimatedMax)} recent best", 0)
+                    }
+                    globalProgress.trend == ProgressTrend.STALLING -> {
+                        val weeks = globalProgress.weeksAtCurrentWeight
+                        Triple(ProgressStatus.PLATEAU, "$weeks weeks at ${WeightFormatter.formatWeightWithUnit(globalProgress.currentWorkingWeight)}", weeks)
+                    }
+                    globalProgress.trend == ProgressTrend.IMPROVING -> {
+                        val lastProgressDate = globalProgress.lastProgressionDate?.toLocalDate() ?: globalProgress.lastUpdated.toLocalDate()
+                        val daysSinceProgress = ChronoUnit.DAYS.between(lastProgressDate, now)
+                        val progressAmount = recentBest - (globalProgress.lastPrWeight ?: recentBest)
+                        if (progressAmount > 0 && daysSinceProgress <= 30) {
+                            Triple(ProgressStatus.MAKING_GAINS, "+${WeightFormatter.formatWeight(progressAmount)}kg this month", 0)
+                        } else {
+                            Triple(ProgressStatus.MAKING_GAINS, "Weight increasing", 0)
+                        }
+                    }
+                    else -> {
+                        Triple(ProgressStatus.STEADY_PROGRESS, "Consistent training", 0)
                     }
                 }
                 
-                // Calculate weekly frequency
-                val totalDays = if (globalProgress.lastUpdated != null) {
-                    ChronoUnit.DAYS.between(
-                        monthlyWorkouts.lastOrNull()?.workoutDate?.toLocalDate() ?: LocalDate.now().minusDays(30),
-                        LocalDate.now()
-                    ).toFloat()
-                } else 0f
-                
-                val weeklyFrequency = if (totalDays > 0) {
-                    (monthlyWorkouts.size / (totalDays / 7f))
-                } else 0f
-                
-                // Get all-time PR
-                val allTimePR = repository.getPersonalRecordForExercise(userId, exerciseName)?.weight ?: globalProgress.estimatedMax
-                
                 val data = ExerciseProgressData(
                     exerciseName = exerciseName,
-                    currentMax = globalProgress.estimatedMax,
                     allTimePR = allTimePR,
-                    monthlyProgress = monthlyProgress,
+                    allTimePRDate = allTimePRDate,
+                    recentBest = recentBest,
+                    recentBestDate = recentBestDate ?: globalProgress.lastUpdated.toLocalDate(),
+                    recentBestPercentOfPR = recentBestPercentOfPR,
                     weeklyFrequency = weeklyFrequency,
+                    frequencyTrend = frequencyTrend,
                     lastPerformed = globalProgress.lastUpdated.toLocalDate(),
-                    totalSessions = repository.getTotalSessionsForExercise(userId, exerciseName),
-                    totalVolume = globalProgress.totalVolumeLast30Days,
-                    avgSessionVolume = globalProgress.avgSessionVolume ?: 0f,
-                    currentTrend = globalProgress.trend.name
+                    progressStatus = progressStatus,
+                    progressStatusDetail = progressStatusDetail,
+                    plateauWeeks = plateauWeeks
                 )
                 
                 _state.value = ExerciseProgressState.Success(data)

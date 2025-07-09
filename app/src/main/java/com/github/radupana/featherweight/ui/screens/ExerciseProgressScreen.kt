@@ -5,6 +5,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,9 +20,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.viewmodel.ExerciseProgressViewModel
 import com.github.radupana.featherweight.ui.components.ExerciseProgressChart
 import com.github.radupana.featherweight.ui.components.ExerciseDataPoint
-import com.github.radupana.featherweight.service.StallDetectionService
+import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +36,6 @@ fun ExerciseProgressScreen(
     val state by viewModel.state.collectAsState()
     val chartData by viewModel.chartData.collectAsState()
     val scope = rememberCoroutineScope()
-    var selectedTab by remember { mutableStateOf(0) }
 
     LaunchedEffect(exerciseName) {
         viewModel.loadExerciseData(exerciseName)
@@ -74,41 +76,13 @@ fun ExerciseProgressScreen(
 
             is ExerciseProgressViewModel.ExerciseProgressState.Success -> {
                 val successState = state as ExerciseProgressViewModel.ExerciseProgressState.Success
-                Column(
+                ExerciseInsightsContent(
+                    data = successState.data,
+                    chartData = chartData,
                     modifier = modifier
                         .fillMaxSize()
                         .padding(paddingValues)
-                ) {
-                    // Tab Row
-                    TabRow(
-                        selectedTabIndex = selectedTab,
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ) {
-                        Tab(
-                            selected = selectedTab == 0,
-                            onClick = { selectedTab = 0 },
-                            text = { Text("Performance") }
-                        )
-                        Tab(
-                            selected = selectedTab == 1,
-                            onClick = { selectedTab = 1 },
-                            text = { Text("Records") }
-                        )
-                        Tab(
-                            selected = selectedTab == 2,
-                            onClick = { selectedTab = 2 },
-                            text = { Text("Insights") }
-                        )
-                    }
-                    
-                    // Tab Content
-                    when (selectedTab) {
-                        0 -> PerformanceTab(successState.data, chartData, viewModel)
-                        1 -> RecordsTab(successState.data, viewModel)
-                        2 -> InsightsTab(successState.data, viewModel)
-                    }
-                }
+                )
             }
 
             is ExerciseProgressViewModel.ExerciseProgressState.Error -> {
@@ -137,14 +111,13 @@ fun ExerciseProgressScreen(
 }
 
 @Composable
-private fun PerformanceTab(
+private fun ExerciseInsightsContent(
     data: ExerciseProgressViewModel.ExerciseProgressData?,
     chartData: List<ExerciseDataPoint>,
-    viewModel: ExerciseProgressViewModel
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = modifier
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -164,55 +137,233 @@ private fun PerformanceTab(
                 )
             }
         } else {
-            // Overview Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+            // Last Performed info
+            data.lastPerformed?.let { lastDate ->
+                val daysSince = ChronoUnit.DAYS.between(lastDate, java.time.LocalDate.now())
+                Text(
+                    text = when {
+                        daysSince == 0L -> "Last performed: Today"
+                        daysSince == 1L -> "Last performed: Yesterday"
+                        daysSince < 7 -> "Last performed: $daysSince days ago"
+                        else -> "Last performed: ${lastDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
+            }
+            
+            // 2x2 Metrics Grid
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Performance Overview",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                // All-Time PR Card
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
                     )
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        MetricItem(
-                            label = "Current Max",
-                            value = "${data.currentMax}kg",
-                            icon = Icons.Default.TrendingUp
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Star,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = Color(0xFFFFD700)
+                            )
+                            Text(
+                                text = "All-Time PR",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                        Text(
+                            text = if (data.allTimePR > 0) {
+                                WeightFormatter.formatWeightWithUnit(data.allTimePR)
+                            } else "No PR yet",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
-                        MetricItem(
-                            label = "All-Time PR",
-                            value = "${data.allTimePR}kg",
-                            icon = Icons.Default.Star,
-                            tint = Color(0xFFFFD700)
+                        data.allTimePRDate?.let { date ->
+                            Text(
+                                text = date.format(DateTimeFormatter.ofPattern("MMM d, yyyy")),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+                
+                // Recent Best Card
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.FitnessCenter,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "Recent Best",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                        Text(
+                            text = if (data.recentBest > 0) {
+                                WeightFormatter.formatWeightWithUnit(data.recentBest)
+                            } else "No recent lifts",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        if (data.recentBest > 0) {
+                            if (data.allTimePR > 0) {
+                                Text(
+                                    text = "${data.recentBestPercentOfPR}% of PR",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                )
+                            }
+                            // Add date when recent best was achieved
+                            val recentBestDate = data.recentBestDate
+                            if (recentBestDate != null) {
+                                val daysSince = ChronoUnit.DAYS.between(recentBestDate, java.time.LocalDate.now())
+                                Text(
+                                    text = when {
+                                        daysSince == 0L -> "Today"
+                                        daysSince == 1L -> "Yesterday"
+                                        daysSince < 7 -> "$daysSince days ago"
+                                        else -> recentBestDate.format(DateTimeFormatter.ofPattern("MMM d"))
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Frequency Card
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                            Text(
+                                text = "Frequency",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                        Text(
+                            text = "${WeightFormatter.formatDecimal(data.weeklyFrequency, 1)}x/week",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            text = "8 week avg",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                         )
                     }
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                }
+                
+                // Status Card
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(
+                        containerColor = when (data.progressStatus) {
+                            ExerciseProgressViewModel.ProgressStatus.MAKING_GAINS -> Color(0xFF4CAF50).copy(alpha = 0.2f)
+                            ExerciseProgressViewModel.ProgressStatus.STEADY_PROGRESS -> MaterialTheme.colorScheme.primaryContainer
+                            ExerciseProgressViewModel.ProgressStatus.PLATEAU -> Color(0xFFFF9800).copy(alpha = 0.2f)
+                            ExerciseProgressViewModel.ProgressStatus.EXTENDED_BREAK -> Color(0xFFFF5722).copy(alpha = 0.2f)
+                            ExerciseProgressViewModel.ProgressStatus.WORKING_LIGHTER -> MaterialTheme.colorScheme.surfaceVariant
+                        }
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        MetricItem(
-                            label = "Monthly Progress",
-                            value = "${if (data.monthlyProgress >= 0) "+" else ""}${String.format("%.1f", data.monthlyProgress)}%",
-                            icon = if (data.monthlyProgress >= 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
-                            tint = if (data.monthlyProgress >= 0) Color(0xFF4CAF50) else Color(0xFFF44336)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Analytics,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = when (data.progressStatus) {
+                                    ExerciseProgressViewModel.ProgressStatus.MAKING_GAINS -> Color(0xFF4CAF50)
+                                    ExerciseProgressViewModel.ProgressStatus.STEADY_PROGRESS -> MaterialTheme.colorScheme.primary
+                                    ExerciseProgressViewModel.ProgressStatus.PLATEAU -> Color(0xFFFF9800)
+                                    ExerciseProgressViewModel.ProgressStatus.EXTENDED_BREAK -> Color(0xFFFF5722)
+                                    ExerciseProgressViewModel.ProgressStatus.WORKING_LIGHTER -> MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            )
+                            Text(
+                                text = "Status",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                        Text(
+                            text = when (data.progressStatus) {
+                                ExerciseProgressViewModel.ProgressStatus.MAKING_GAINS -> "Making Gains"
+                                ExerciseProgressViewModel.ProgressStatus.STEADY_PROGRESS -> "Steady Progress"
+                                ExerciseProgressViewModel.ProgressStatus.PLATEAU -> "Plateau"
+                                ExerciseProgressViewModel.ProgressStatus.EXTENDED_BREAK -> "Extended Break"
+                                ExerciseProgressViewModel.ProgressStatus.WORKING_LIGHTER -> "Working Lighter"
+                            },
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
                         )
-                        MetricItem(
-                            label = "Weekly Frequency",
-                            value = "${String.format("%.1f", data.weeklyFrequency)}x",
-                            icon = Icons.Default.CalendarMonth
+                        Text(
+                            text = data.progressStatusDetail,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                     }
                 }
@@ -239,336 +390,59 @@ private fun PerformanceTab(
                 }
             }
             
-            // Volume Stats
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "Volume Analysis",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+            // Plateau Intervention Card (only if plateau detected)
+            if (data.progressStatus == ExerciseProgressViewModel.ProgressStatus.PLATEAU && data.plateauWeeks >= 3) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFFF9800).copy(alpha = 0.1f)
                     )
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = "Total Sessions",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "${data.totalSessions}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Last 30 Days Volume",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "${data.totalVolume.toInt()}kg",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Avg Session Volume",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "${data.avgSessionVolume.toInt()}kg",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecordsTab(
-    data: ExerciseProgressViewModel.ExerciseProgressData?,
-    viewModel: ExerciseProgressViewModel
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        if (data == null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Text(
-                    text = "No records available",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center
-                )
-            }
-        } else {
-            // PR Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Star,
-                            contentDescription = null,
-                            tint = Color(0xFFFFD700)
-                        )
-                        Text(
-                            text = "Personal Record",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    
-                    Text(
-                        text = "${data.allTimePR}kg",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    
-                    data.lastPerformed?.let { date ->
-                        Text(
-                            text = "Last performed: ${date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            }
-            
-            // Best Sets Timeline (placeholder)
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = "Best Sets Timeline",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    
-                    Text(
-                        text = "Coming soon...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun InsightsTab(
-    data: ExerciseProgressViewModel.ExerciseProgressData?,
-    viewModel: ExerciseProgressViewModel
-) {
-    val scope = rememberCoroutineScope()
-    var stallAnalysis by remember { mutableStateOf<StallDetectionService.StallAnalysis?>(null) }
-    
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        if (data == null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Text(
-                    text = "No insights available",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center
-                )
-            }
-        } else {
-            // Current Trend Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = when (data.currentTrend) {
-                        "IMPROVING" -> Color(0xFF4CAF50).copy(alpha = 0.1f)
-                        "STALLING" -> Color(0xFFFF9800).copy(alpha = 0.1f)
-                        else -> Color(0xFFF44336).copy(alpha = 0.1f)
-                    }
-                )
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        when (data.currentTrend) {
-                            "IMPROVING" -> Icons.Default.TrendingUp
-                            "STALLING" -> Icons.Default.Remove
-                            else -> Icons.Default.TrendingDown
-                        },
-                        contentDescription = null,
-                        tint = when (data.currentTrend) {
-                            "IMPROVING" -> Color(0xFF4CAF50)
-                            "STALLING" -> Color(0xFFFF9800)
-                            else -> Color(0xFFF44336)
-                        }
-                    )
-                    
-                    Column {
-                        Text(
-                            text = "Current Trend",
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        Text(
-                            text = when (data.currentTrend) {
-                                "IMPROVING" -> "Steady Progress"
-                                "STALLING" -> "Plateau Detected"
-                                else -> "Performance Declining"
-                            },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-            
-            // Stall Detection Card (placeholder for now)
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "Training Recommendations",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    
-                    when (data.currentTrend) {
-                        "IMPROVING" -> {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFFF9800)
+                            )
                             Text(
-                                text = "Keep up the great work! Your current training approach is working well.",
-                                style = MaterialTheme.typography.bodyMedium
+                                text = "Plateau Detected",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
                             )
                         }
-                        "STALLING" -> {
-                            Text(
-                                text = "Consider implementing one of these strategies:",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            listOf(
-                                "• Take a deload week (reduce weight by 10-15%)",
-                                "• Switch to a different rep range temporarily",
-                                "• Add exercise variations for new stimulus",
-                                "• Ensure adequate recovery between sessions"
-                            ).forEach { tip ->
-                                Text(
-                                    text = tip,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
+                        
+                        Text(
+                            text = data.progressStatusDetail,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { /* TODO: Implement deload suggestion */ },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Take Deload Week")
                             }
-                        }
-                        else -> {
-                            Text(
-                                text = "Review your training frequency and recovery. Consider:",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            listOf(
-                                "• Reducing training frequency for this exercise",
-                                "• Focusing on form with lighter weights",
-                                "• Improving sleep and nutrition",
-                                "• Taking a full rest week if needed"
-                            ).forEach { tip ->
-                                Text(
-                                    text = tip,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
+                            OutlinedButton(
+                                onClick = { /* TODO: Implement rep range suggestion */ },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Switch Rep Range")
                             }
                         }
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun MetricItem(
-    label: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    tint: Color = MaterialTheme.colorScheme.primary
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(24.dp)
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }

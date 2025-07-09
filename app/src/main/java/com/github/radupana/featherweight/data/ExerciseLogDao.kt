@@ -61,4 +61,19 @@ interface ExerciseLogDao {
     
     @Query("DELETE FROM ExerciseLog")
     suspend fun deleteAllExerciseLogs()
+    
+    @Query("""
+        SELECT DISTINCT w.date FROM ExerciseLog el
+        INNER JOIN Workout w ON el.workoutId = w.id
+        WHERE el.exerciseName = :exerciseName
+        AND w.status = 'COMPLETED'
+        AND w.date >= :startDate
+        AND w.date <= :endDate
+        ORDER BY w.date DESC
+    """)
+    suspend fun getDistinctWorkoutDatesForExercise(
+        exerciseName: String,
+        startDate: java.time.LocalDateTime,
+        endDate: java.time.LocalDateTime
+    ): List<java.time.LocalDateTime>
 }
