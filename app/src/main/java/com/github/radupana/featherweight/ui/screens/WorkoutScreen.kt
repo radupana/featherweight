@@ -550,7 +550,7 @@ fun WorkoutScreen(
     }
 
     // Set Editing Modal
-    if (showSetEditingModal && setEditingExercise != null && canEdit) {
+    if (showSetEditingModal && setEditingExercise != null) {
         SetEditingModal(
             exercise = setEditingExercise!!,
             sets = sets.filter { it.exerciseLogId == setEditingExercise!!.id },
@@ -558,59 +558,67 @@ fun WorkoutScreen(
                 showSetEditingModal = false
                 setEditingExercise = null
             },
+            onNavigateBack = if (!canEdit) onBack else null,
             onUpdateSet = { setId, reps, weight, rpe ->
-                viewModel.updateSet(setId, reps, weight, rpe)
+                if (canEdit) viewModel.updateSet(setId, reps, weight, rpe)
             },
             onAddSet = { onSetCreated ->
-                viewModel.addSetToExercise(setEditingExercise!!.id, onSetCreated = onSetCreated)
+                if (canEdit) viewModel.addSetToExercise(setEditingExercise!!.id, onSetCreated = onSetCreated)
             },
             onCopyLastSet = {
-                val lastSet =
-                    sets
-                        .filter { it.exerciseLogId == setEditingExercise!!.id }
-                        .maxByOrNull { it.setOrder }
-                if (lastSet != null) {
-                    viewModel.addSetToExercise(setEditingExercise!!.id, lastSet.actualReps, lastSet.actualWeight, lastSet.actualWeight, lastSet.actualReps, lastSet.actualRpe)
-                } else {
-                    viewModel.addSetToExercise(setEditingExercise!!.id)
-                }
-            },
-            onDeleteSet = { setId ->
-                viewModel.deleteSet(setId)
-            },
-            onToggleCompleted = { setId, completed ->
-                viewModel.markSetCompleted(setId, completed)
-                // Auto-start smart rest timer when completing a set
-                if (completed && setEditingExercise != null) {
-                    val completedSet = sets.find { it.id == setId }
-                    restTimerViewModel.startSmartTimer(
-                        exerciseName = setEditingExercise!!.exerciseName,
-                        exercise = null, // TODO: Add exercise entity lookup
-                        reps = completedSet?.actualReps,
-                        weight = completedSet?.actualWeight,
-                    )
-                }
-            },
-            onCompleteAllSets = {
-                viewModel.completeAllSetsInExercise(setEditingExercise!!.id)
-                // Auto-start smart rest timer when completing all sets
-                if (setEditingExercise != null) {
-                    // Use the most recent set's data for timer calculation
-                    val mostRecentSet =
+                if (canEdit) {
+                    val lastSet =
                         sets
                             .filter { it.exerciseLogId == setEditingExercise!!.id }
                             .maxByOrNull { it.setOrder }
-                    restTimerViewModel.startSmartTimer(
-                        exerciseName = setEditingExercise!!.exerciseName,
-                        exercise = null, // TODO: Add exercise entity lookup
-                        reps = mostRecentSet?.actualReps,
-                        weight = mostRecentSet?.actualWeight,
-                    )
+                    if (lastSet != null) {
+                        viewModel.addSetToExercise(setEditingExercise!!.id, lastSet.actualReps, lastSet.actualWeight, lastSet.actualWeight, lastSet.actualReps, lastSet.actualRpe)
+                    } else {
+                        viewModel.addSetToExercise(setEditingExercise!!.id)
+                    }
+                }
+            },
+            onDeleteSet = { setId ->
+                if (canEdit) viewModel.deleteSet(setId)
+            },
+            onToggleCompleted = { setId, completed ->
+                if (canEdit) {
+                    viewModel.markSetCompleted(setId, completed)
+                    // Auto-start smart rest timer when completing a set
+                    if (completed && setEditingExercise != null) {
+                        val completedSet = sets.find { it.id == setId }
+                        restTimerViewModel.startSmartTimer(
+                            exerciseName = setEditingExercise!!.exerciseName,
+                            exercise = null, // TODO: Add exercise entity lookup
+                            reps = completedSet?.actualReps,
+                            weight = completedSet?.actualWeight,
+                        )
+                    }
+                }
+            },
+            onCompleteAllSets = {
+                if (canEdit) {
+                    viewModel.completeAllSetsInExercise(setEditingExercise!!.id)
+                    // Auto-start smart rest timer when completing all sets
+                    if (setEditingExercise != null) {
+                        // Use the most recent set's data for timer calculation
+                        val mostRecentSet =
+                            sets
+                                .filter { it.exerciseLogId == setEditingExercise!!.id }
+                                .maxByOrNull { it.setOrder }
+                        restTimerViewModel.startSmartTimer(
+                            exerciseName = setEditingExercise!!.exerciseName,
+                            exercise = null, // TODO: Add exercise entity lookup
+                            reps = mostRecentSet?.actualReps,
+                            weight = mostRecentSet?.actualWeight,
+                        )
+                    }
                 }
             },
             viewModel = viewModel,
             restTimerViewModel = restTimerViewModel,
             isProgrammeWorkout = workoutState.isProgrammeWorkout,
+            readOnly = !canEdit,
         )
     }
     

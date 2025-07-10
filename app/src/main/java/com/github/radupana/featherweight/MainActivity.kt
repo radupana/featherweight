@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -52,7 +52,7 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.UserPreferences
 import com.github.radupana.featherweight.repository.FeatherweightRepository
-import com.github.radupana.featherweight.ui.screens.AnalyticsScreen
+import com.github.radupana.featherweight.ui.screens.InsightsScreen
 import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
 import com.github.radupana.featherweight.ui.screens.HistoryScreen
 import com.github.radupana.featherweight.ui.screens.HomeScreen
@@ -61,7 +61,7 @@ import com.github.radupana.featherweight.ui.screens.UserSelectionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
-import com.github.radupana.featherweight.viewmodel.AnalyticsViewModel
+import com.github.radupana.featherweight.viewmodel.InsightsViewModel
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
@@ -76,7 +76,7 @@ enum class Screen {
     ACTIVE_WORKOUT,
     EXERCISE_SELECTOR,
     HISTORY,
-    ANALYTICS,
+    INSIGHTS,
     PROGRAMMES,
     ACTIVE_PROGRAMME,
     PROGRAMME_GENERATOR,
@@ -242,7 +242,7 @@ fun MainAppWithNavigation(
         listOf(
             NavigationItem(Screen.HOME, "Home", Icons.Filled.Home),
             NavigationItem(Screen.HISTORY, "Workouts", Icons.Filled.FitnessCenter),
-            NavigationItem(Screen.ANALYTICS, "Insights", Icons.Filled.Analytics),
+            NavigationItem(Screen.INSIGHTS, "Insights", Icons.Filled.Insights),
         )
 
     // Determine if we should show the top bar with profile icon
@@ -252,7 +252,7 @@ fun MainAppWithNavigation(
                 Screen.HOME,
                 Screen.PROGRAMMES,
                 Screen.HISTORY,
-                Screen.ANALYTICS,
+                Screen.INSIGHTS,
             )
 
     val screenTitle =
@@ -260,7 +260,7 @@ fun MainAppWithNavigation(
             Screen.HOME -> "Featherweight"
             Screen.PROGRAMMES -> "Programmes"
             Screen.HISTORY -> "History"
-            Screen.ANALYTICS -> "Analytics"
+            Screen.INSIGHTS -> "Insights"
             else -> ""
         }
 
@@ -324,7 +324,7 @@ fun MainAppWithNavigation(
                     onStartProgrammeWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
                     onGenerateAIProgramme = { onScreenChange(Screen.PROGRAMME_GENERATOR) },
                     onNavigateToHistory = { onScreenChange(Screen.HISTORY) },
-                    onNavigateToAnalytics = { onScreenChange(Screen.ANALYTICS) },
+                    onNavigateToAnalytics = { onScreenChange(Screen.INSIGHTS) },
                     onNavigateToProfile = { onScreenChange(Screen.PROFILE) },
                     modifier = Modifier.padding(innerPadding),
                 )
@@ -411,10 +411,10 @@ fun MainAppWithNavigation(
                 )
             }
 
-            Screen.ANALYTICS -> {
-                val analyticsViewModel: AnalyticsViewModel = viewModel()
-                AnalyticsScreen(
-                    viewModel = analyticsViewModel,
+            Screen.INSIGHTS -> {
+                val insightsViewModel: InsightsViewModel = viewModel()
+                InsightsScreen(
+                    viewModel = insightsViewModel,
                     onNavigateToExercise = { exerciseName ->
                         onSelectedExerciseNameChange(exerciseName)
                         onScreenChange(Screen.EXERCISE_PROGRESS)
@@ -491,7 +491,7 @@ fun MainAppWithNavigation(
             Screen.EXERCISE_PROGRESS -> {
                 com.github.radupana.featherweight.ui.screens.ExerciseProgressScreen(
                     exerciseName = selectedExerciseName,
-                    onBack = { onScreenChange(previousScreen ?: Screen.ANALYTICS) },
+                    onBack = { onScreenChange(previousScreen ?: Screen.HISTORY) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }

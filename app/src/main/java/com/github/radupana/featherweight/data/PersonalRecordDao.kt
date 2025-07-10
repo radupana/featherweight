@@ -17,7 +17,18 @@ interface PersonalRecordDao {
     @Query("SELECT * FROM PersonalRecord WHERE exerciseName = :exerciseName ORDER BY recordDate DESC LIMIT :limit")
     suspend fun getRecentPRsForExercise(exerciseName: String, limit: Int = 5): List<PersonalRecord>
     
-    @Query("SELECT * FROM PersonalRecord ORDER BY recordDate DESC LIMIT :limit")
+    @Query("""
+        WITH RankedPRs AS (
+            SELECT *,
+                   ROW_NUMBER() OVER (PARTITION BY exerciseName ORDER BY estimated1RM DESC, recordDate DESC) as rn
+            FROM PersonalRecord
+            WHERE recordDate >= date('now', '-30 days')
+        )
+        SELECT * FROM RankedPRs 
+        WHERE rn = 1 
+        ORDER BY recordDate DESC 
+        LIMIT :limit
+    """)
     suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord>
     
     @Query("SELECT * FROM PersonalRecord WHERE recordDate >= :sinceDate ORDER BY recordDate DESC")

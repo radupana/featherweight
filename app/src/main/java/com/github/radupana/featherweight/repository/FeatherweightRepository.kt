@@ -137,7 +137,7 @@ class FeatherweightRepository(
     // Initialize GlobalProgressTracker
     private val globalProgressTracker = GlobalProgressTracker(this, db)
     private val freestyleIntelligenceService = FreestyleIntelligenceService(this, db.globalExerciseProgressDao())
-    private val prDetectionService = PRDetectionService(personalRecordDao)
+    private val prDetectionService = PRDetectionService(personalRecordDao, setLogDao)
     // StateFlow for pending 1RM updates
     private val _pendingOneRMUpdates = MutableStateFlow<List<PendingOneRMUpdate>>(emptyList())
     val pendingOneRMUpdates: StateFlow<List<PendingOneRMUpdate>> = _pendingOneRMUpdates.asStateFlow()
@@ -3015,9 +3015,19 @@ class FeatherweightRepository(
         startDate: LocalDate,
         endDate: LocalDate
     ): LocalDate? = withContext(Dispatchers.IO) {
-        // For now, just return null - proper implementation would query for the specific date
-        // This is a simplified implementation for the MVP
-        null
+        // Get the actual workout date when this weight was achieved
+        val startDateTime = startDate.atStartOfDay()
+        val endDateTime = endDate.plusDays(1).atStartOfDay()
+        
+        android.util.Log.d("Repository", "🔍 getDateOfMaxWeightForExercise DEBUG:")
+        android.util.Log.d("Repository", "  - Exercise: $exerciseName")
+        android.util.Log.d("Repository", "  - Weight: $weight")
+        android.util.Log.d("Repository", "  - Date range: $startDate to $endDate")
+        
+        val workoutDate = workoutDao.getWorkoutDateForMaxWeight(exerciseName, weight, startDateTime, endDateTime)
+        android.util.Log.d("Repository", "  - Found workout date: $workoutDate")
+        
+        workoutDate?.toLocalDate()
     }
     
     suspend fun getExercisesSummary(): List<com.github.radupana.featherweight.service.ExerciseSummary> = withContext(Dispatchers.IO) {
@@ -3030,6 +3040,10 @@ class FeatherweightRepository(
         allExercises.mapNotNull { exerciseName ->
             val globalProgress = getGlobalExerciseProgress(userId, exerciseName)
             if (globalProgress != null) {
+                // Get actual PR for this exercise (not estimated)
+                val personalRecord = getPersonalRecordForExercise(userId, exerciseName)
+                val actualMaxWeight = personalRecord?.weight ?: globalProgress.currentWorkingWeight
+                
                 // Get recent workout data for mini chart
                 val recentWorkouts = getExerciseWorkoutsInDateRange(
                     userId = userId,
@@ -3057,14 +3071,14 @@ class FeatherweightRepository(
                 val miniChartData = recentWorkouts
                     .take(8)
                     .map { log ->
-                        // Calculate estimated 1RM for each workout
-                        log.actualWeight * (1 + 0.0333f * log.actualReps)
+                        // Show actual weight, not estimated 1RM
+                        log.actualWeight
                     }
                     .reversed() // Oldest to newest for chart
                 
                 com.github.radupana.featherweight.service.ExerciseSummary(
                     exerciseName = exerciseName,
-                    currentMax = globalProgress.estimatedMax,
+                    currentMax = actualMaxWeight, // Show actual PR weight
                     progressPercentage = progressPercentage,
                     lastWorkout = globalProgress.lastUpdated,
                     sessionCount = getTotalSessionsForExercise(userId, exerciseName),
@@ -3081,5 +3095,42 @@ class FeatherweightRepository(
         db.personalRecordDao().deleteAllPersonalRecords()
         db.globalExerciseProgressDao().deleteAllGlobalProgress()
         println("🗑️ Repository: Deleted all workout-related data")
+    }
+    
+    suspend fun getCompletedWorkoutCountSince(since: LocalDateTime): Int = withContext(Dispatchers.IO) {
+        val workouts = db.workoutDao().getAllWorkouts()
+        workouts.count { workout ->
+            workout.status == WorkoutStatus.COMPLETED &&
+            workout.date.isAfter(since)
+        }
+    }
+    
+    suspend fun getWeeklyStreak(): Int = withContext(Dispatchers.IO) {
+        val workouts = db.workoutDao().getAllWorkouts()
+            .filter { it.status == WorkoutStatus.COMPLETED }
+            .sortedByDescending { it.date }
+        
+        if (workouts.isEmpty()) return@withContext 0
+        
+        var streak = 0
+        var currentWeek = LocalDate.now().with(java.time.DayOfWeek.MONDAY)
+        
+        while (true) {
+            val weekStart = currentWeek.atStartOfDay()
+            val weekEnd = currentWeek.plusDays(6).atTime(23, 59, 59)
+            
+            val workoutsInWeek = workouts.count { workout ->
+                workout.date.isAfter(weekStart) && workout.date.isBefore(weekEnd)
+            }
+            
+            if (workoutsInWeek >= 1) {
+                streak++
+                currentWeek = currentWeek.minusWeeks(1)
+            } else {
+                break
+            }
+        }
+        
+        streak
     }
 }

@@ -46,7 +46,7 @@ fun CompactExerciseCard(
         modifier = modifier
             .fillMaxWidth()
             .animateContentSize(),
-        onClick = if (viewModel.canEditWorkout()) {{ onEditSets() }} else null,
+        onClick = { onEditSets() },
         elevation = 4.dp
     ) {
         Row(

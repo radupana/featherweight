@@ -145,7 +145,7 @@ private fun ExerciseInsightsContent(
                         daysSince == 0L -> "Last performed: Today"
                         daysSince == 1L -> "Last performed: Yesterday"
                         daysSince < 7 -> "Last performed: $daysSince days ago"
-                        else -> "Last performed: ${lastDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}"
+                        else -> "Last performed: ${lastDate.format(DateTimeFormatter.ofPattern("MMM d"))}"
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
@@ -160,7 +160,9 @@ private fun ExerciseInsightsContent(
             ) {
                 // All-Time PR Card
                 Card(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(120.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer
                     )
@@ -205,7 +207,9 @@ private fun ExerciseInsightsContent(
                 
                 // Recent Best Card
                 Card(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(120.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
@@ -272,7 +276,9 @@ private fun ExerciseInsightsContent(
             ) {
                 // Frequency Card
                 Card(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(120.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     )
@@ -313,7 +319,9 @@ private fun ExerciseInsightsContent(
                 
                 // Status Card
                 Card(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(120.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = when (data.progressStatus) {
                             ExerciseProgressViewModel.ProgressStatus.MAKING_GAINS -> Color(0xFF4CAF50).copy(alpha = 0.2f)
@@ -373,16 +381,9 @@ private fun ExerciseInsightsContent(
             Card(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(
+                Box(
                     modifier = Modifier.padding(16.dp)
                 ) {
-                    Text(
-                        text = "Weight Progression",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    
                     ExerciseProgressChart(
                         dataPoints = chartData,
                         modifier = Modifier.fillMaxWidth()

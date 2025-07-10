@@ -5,16 +5,19 @@ import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.PersonalRecordDao
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.data.SetLogDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 
 /**
  * Service responsible for detecting personal records and creating PR entries
  */
 class PRDetectionService(
-    private val personalRecordDao: PersonalRecordDao
+    private val personalRecordDao: PersonalRecordDao,
+    private val setLogDao: SetLogDao
 ) {
     
     /**
@@ -36,7 +39,20 @@ class PRDetectionService(
         val currentWeight = setLog.actualWeight
         val currentReps = setLog.actualReps
         val currentVolume = currentWeight * currentReps
-        val currentDate = LocalDateTime.now()
+        
+        // Get the actual workout date instead of using current date
+        val workoutDateString = setLogDao.getWorkoutDateForSetLog(setLog.id)
+        val currentDate = if (workoutDateString != null) {
+            try {
+                LocalDateTime.parse(workoutDateString, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            } catch (e: Exception) {
+                Log.w("PRDetection", "Failed to parse workout date: $workoutDateString, using current date")
+                LocalDateTime.now()
+            }
+        } else {
+            Log.w("PRDetection", "No workout date found for setLog ${setLog.id}, using current date")
+            LocalDateTime.now()
+        }
         
         // Check for weight PR (higher weight for same or more reps)
         val weightPR = checkWeightPR(exerciseName, currentWeight, currentReps, currentDate)

@@ -149,6 +149,19 @@ class WorkoutSeedingService(
         config: WorkoutSeedConfig,
         exerciseIds: Map<String, Long>
     ) {
+        // Calculate progression - which cycle and week we're in
+        val cycleNumber = workoutIndex / 16 // 16 workouts per cycle (4 weeks x 4 workouts/week)
+        val weekInCycle = (workoutIndex % 16) / 4 + 1 // Which week (1-4) in current cycle
+        
+        // Calculate progressive 1RMs based on cycle
+        val progressedSquatRM = config.squatRM + (cycleNumber * 5f) // +5kg per cycle for squats
+        val progressedBenchRM = config.benchRM + (cycleNumber * 2.5f) // +2.5kg per cycle for bench
+        val progressedDeadliftRM = config.deadliftRM + (cycleNumber * 5f) // +5kg per cycle for deadlifts
+        val progressedOhpRM = config.ohpRM + (cycleNumber * 2.5f) // +2.5kg per cycle for OHP
+        
+        println("🏋️ Workout ${workoutIndex + 1}: Cycle $cycleNumber, Week $weekInCycle")
+        println("   Progressed RMs: Squat ${progressedSquatRM}kg, Bench ${progressedBenchRM}kg, Deadlift ${progressedDeadliftRM}kg, OHP ${progressedOhpRM}kg")
+        
         // Determine workout type based on index
         val workoutType = when (workoutIndex % 4) {
             0 -> "squat_bench" // Squat + Bench focus
@@ -167,36 +180,36 @@ class WorkoutSeedingService(
                 exerciseOrder["bench"] = order++
                 exerciseOrder["row"] = order++
                 
-                generateExercise(workoutId, exerciseOrder["squat"]!!, "squat", config.squatRM, config, exerciseIds)
-                generateExercise(workoutId, exerciseOrder["bench"]!!, "bench", config.benchRM, config, exerciseIds)
-                generateExercise(workoutId, exerciseOrder["row"]!!, "row", config.squatRM * 0.8f, config, exerciseIds)
+                generateExercise(workoutId, exerciseOrder["squat"]!!, "squat", progressedSquatRM, config, exerciseIds, weekInCycle)
+                generateExercise(workoutId, exerciseOrder["bench"]!!, "bench", progressedBenchRM, config, exerciseIds, weekInCycle)
+                generateExercise(workoutId, exerciseOrder["row"]!!, "row", progressedSquatRM * 0.8f, config, exerciseIds, weekInCycle)
             }
             "deadlift_row" -> {
                 exerciseOrder["deadlift"] = order++
                 exerciseOrder["row"] = order++
                 exerciseOrder["curl"] = order++
                 
-                generateExercise(workoutId, exerciseOrder["deadlift"]!!, "deadlift", config.deadliftRM, config, exerciseIds)
-                generateExercise(workoutId, exerciseOrder["row"]!!, "row", config.deadliftRM * 0.6f, config, exerciseIds)
-                generateExercise(workoutId, exerciseOrder["curl"]!!, "curl", config.benchRM * 0.5f, config, exerciseIds)
+                generateExercise(workoutId, exerciseOrder["deadlift"]!!, "deadlift", progressedDeadliftRM, config, exerciseIds, weekInCycle)
+                generateExercise(workoutId, exerciseOrder["row"]!!, "row", progressedDeadliftRM * 0.6f, config, exerciseIds, weekInCycle)
+                generateExercise(workoutId, exerciseOrder["curl"]!!, "curl", progressedBenchRM * 0.5f, config, exerciseIds, weekInCycle)
             }
             "squat_ohp" -> {
                 exerciseOrder["squat"] = order++
                 exerciseOrder["ohp"] = order++
                 exerciseOrder["incline"] = order++
                 
-                generateExercise(workoutId, exerciseOrder["squat"]!!, "squat", config.squatRM, config, exerciseIds)
-                generateExercise(workoutId, exerciseOrder["ohp"]!!, "ohp", config.ohpRM, config, exerciseIds)
-                generateExercise(workoutId, exerciseOrder["incline"]!!, "incline", config.benchRM * 0.7f, config, exerciseIds)
+                generateExercise(workoutId, exerciseOrder["squat"]!!, "squat", progressedSquatRM, config, exerciseIds, weekInCycle)
+                generateExercise(workoutId, exerciseOrder["ohp"]!!, "ohp", progressedOhpRM, config, exerciseIds, weekInCycle)
+                generateExercise(workoutId, exerciseOrder["incline"]!!, "incline", progressedBenchRM * 0.7f, config, exerciseIds, weekInCycle)
             }
             "bench_accessories" -> {
                 exerciseOrder["bench"] = order++
                 exerciseOrder["incline"] = order++
                 exerciseOrder["curl"] = order++
                 
-                generateExercise(workoutId, exerciseOrder["bench"]!!, "bench", config.benchRM, config, exerciseIds)
-                generateExercise(workoutId, exerciseOrder["incline"]!!, "incline", config.benchRM * 0.7f, config, exerciseIds)
-                generateExercise(workoutId, exerciseOrder["curl"]!!, "curl", config.benchRM * 0.5f, config, exerciseIds)
+                generateExercise(workoutId, exerciseOrder["bench"]!!, "bench", progressedBenchRM, config, exerciseIds, weekInCycle)
+                generateExercise(workoutId, exerciseOrder["incline"]!!, "incline", progressedBenchRM * 0.7f, config, exerciseIds, weekInCycle)
+                generateExercise(workoutId, exerciseOrder["curl"]!!, "curl", progressedBenchRM * 0.5f, config, exerciseIds, weekInCycle)
             }
         }
     }
@@ -207,7 +220,8 @@ class WorkoutSeedingService(
         exerciseKey: String,
         baseRM: Float,
         config: WorkoutSeedConfig,
-        exerciseIds: Map<String, Long>
+        exerciseIds: Map<String, Long>,
+        weekInCycle: Int
     ) {
         val exerciseId = exerciseIds[exerciseKey] ?: return
         val exerciseName = exerciseNames[exerciseKey] ?: return
@@ -225,23 +239,31 @@ class WorkoutSeedingService(
         
         // Generate sets based on program style
         when (config.programStyle) {
-            "5/3/1" -> generate531Sets(exerciseLogId, baseRM, config)
-            "Linear" -> generateLinearSets(exerciseLogId, baseRM, config)
+            "5/3/1" -> generate531Sets(exerciseLogId, baseRM, config, weekInCycle)
+            "Linear" -> generateLinearSets(exerciseLogId, baseRM, config, weekInCycle)
             "Random" -> generateRandomSets(exerciseLogId, baseRM, config)
-            else -> generate531Sets(exerciseLogId, baseRM, config)
+            else -> generate531Sets(exerciseLogId, baseRM, config, weekInCycle)
         }
     }
     
     private suspend fun generate531Sets(
         exerciseLogId: Long,
         baseRM: Float,
-        config: WorkoutSeedConfig
+        config: WorkoutSeedConfig,
+        weekInCycle: Int
     ) {
         val trainingMax = baseRM * 0.9f // 5/3/1 uses 90% of 1RM
         
-        // Week 1: 5/5/5+
-        val percentages = listOf(0.65f, 0.75f, 0.85f)
-        val reps = listOf(5, 5, 5)
+        // Proper 5/3/1 week cycling
+        val (percentages, reps, weekName) = when (weekInCycle) {
+            1 -> Triple(listOf(0.65f, 0.75f, 0.85f), listOf(5, 5, 5), "Week 1 (5/5/5+)")
+            2 -> Triple(listOf(0.70f, 0.80f, 0.90f), listOf(3, 3, 3), "Week 2 (3/3/3+)")
+            3 -> Triple(listOf(0.75f, 0.85f, 0.95f), listOf(5, 3, 1), "Week 3 (5/3/1+)")
+            4 -> Triple(listOf(0.40f, 0.50f, 0.60f), listOf(5, 5, 5), "Week 4 (Deload)")
+            else -> Triple(listOf(0.65f, 0.75f, 0.85f), listOf(5, 5, 5), "Week 1 (5/5/5+)")
+        }
+        
+        println("     ${weekName} - Training Max: ${trainingMax}kg")
         
         percentages.zip(reps).forEachIndexed { index, (percentage, targetReps) ->
             val weight = (trainingMax * percentage).let { w ->
@@ -253,8 +275,16 @@ class WorkoutSeedingService(
             val actualReps = if (config.includeFailures && Random.nextFloat() < 0.05f) {
                 maxOf(1, targetReps - Random.nextInt(3))
             } else {
-                if (index == 2) targetReps + Random.nextInt(3) // AMRAP set
-                else targetReps
+                // AMRAP set (last set gets bonus reps, except on deload week)
+                if (index == 2 && weekInCycle != 4) {
+                    val bonusReps = when (weekInCycle) {
+                        1 -> Random.nextInt(2, 6) // 5+ set: 2-5 bonus reps
+                        2 -> Random.nextInt(1, 4) // 3+ set: 1-3 bonus reps  
+                        3 -> Random.nextInt(1, 3) // 1+ set: 1-2 bonus reps
+                        else -> 0
+                    }
+                    targetReps + bonusReps
+                } else targetReps
             }
             
             val setLog = SetLog(
@@ -265,11 +295,18 @@ class WorkoutSeedingService(
                 actualReps = actualReps,
                 actualWeight = weight,
                 isCompleted = true,
-                actualRpe = Random.nextInt(6, 10).toFloat(),
-                notes = null,
+                actualRpe = when (weekInCycle) {
+                    1 -> Random.nextInt(6, 8).toFloat() // Week 1: moderate intensity
+                    2 -> Random.nextInt(7, 9).toFloat() // Week 2: higher intensity
+                    3 -> Random.nextInt(8, 10).toFloat() // Week 3: highest intensity
+                    4 -> Random.nextInt(4, 6).toFloat() // Week 4: deload, easy
+                    else -> Random.nextInt(6, 8).toFloat()
+                },
+                notes = if (index == 2 && weekInCycle != 4) "AMRAP set" else null,
                 completedAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             )
             
+            println("       Set ${index + 1}: ${weight.toInt()}kg x $actualReps @ RPE ${setLog.actualRpe}")
             repository.insertSetLog(setLog)
         }
     }
@@ -277,9 +314,18 @@ class WorkoutSeedingService(
     private suspend fun generateLinearSets(
         exerciseLogId: Long,
         baseRM: Float,
-        config: WorkoutSeedConfig
+        config: WorkoutSeedConfig,
+        weekInCycle: Int
     ) {
-        val workingWeight = baseRM * 0.8f // 80% of 1RM
+        // Linear progression - deload every 4th week, otherwise steady increase
+        val workingWeight = if (weekInCycle == 4) {
+            baseRM * 0.7f // Deload week: 70% of 1RM
+        } else {
+            baseRM * 0.8f // Normal weeks: 80% of 1RM
+        }
+        
+        val weekName = if (weekInCycle == 4) "Deload" else "Working"
+        println("     Linear ${weekName} - Working Weight: ${workingWeight.toInt()}kg")
         
         // 3 sets of 5 reps
         repeat(3) { index ->
@@ -301,11 +347,12 @@ class WorkoutSeedingService(
                 actualReps = actualReps,
                 actualWeight = weight,
                 isCompleted = true,
-                actualRpe = Random.nextInt(6, 9).toFloat(),
-                notes = null,
+                actualRpe = if (weekInCycle == 4) Random.nextInt(4, 6).toFloat() else Random.nextInt(6, 9).toFloat(),
+                notes = if (weekInCycle == 4) "Deload week" else null,
                 completedAt = null
             )
             
+            println("       Set ${index + 1}: ${weight.toInt()}kg x $actualReps @ RPE ${setLog.actualRpe}")
             repository.insertSetLog(setLog)
         }
     }

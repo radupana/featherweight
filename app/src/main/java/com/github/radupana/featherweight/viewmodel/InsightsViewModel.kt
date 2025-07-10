@@ -76,7 +76,7 @@ data class AnalyticsState(
     val error: String? = null,
 )
 
-class AnalyticsViewModel(
+class InsightsViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
@@ -100,11 +100,11 @@ class AnalyticsViewModel(
             }
         }
         
-        loadAnalyticsData()
+        loadInsightsData()
     }
 
-    fun loadAnalyticsData(forceRefresh: Boolean = false) {
-        println("🔵 AnalyticsViewModel: loadAnalyticsData called with forceRefresh=$forceRefresh")
+    fun loadInsightsData(forceRefresh: Boolean = false) {
+        println("🔵 InsightsViewModel: loadInsightsData called with forceRefresh=$forceRefresh")
         viewModelScope.launch {
             val currentState = _analyticsState.value
             val cachedData = currentState.cachedData
@@ -334,7 +334,7 @@ class AnalyticsViewModel(
     fun selectTimeframe(timeframe: String) {
         viewModelScope.launch {
             _analyticsState.value = _analyticsState.value.copy(selectedTimeframe = timeframe)
-            loadAnalyticsData() // Reload with new timeframe
+            loadInsightsData() // Reload with new timeframe
         }
     }
 
@@ -452,7 +452,7 @@ class AnalyticsViewModel(
     }
 
     fun refreshData() {
-        loadAnalyticsData()
+        loadInsightsData()
     }
 
 
@@ -463,6 +463,41 @@ class AnalyticsViewModel(
             } catch (e: Exception) {
                 e.printStackTrace()
                 emptyList()
+            }
+        }
+    }
+    
+    fun loadHighlightsData(
+        onComplete: (
+            recentPRs: List<com.github.radupana.featherweight.data.PersonalRecord>,
+            weeklyWorkoutCount: Int,
+            currentStreak: Int
+        ) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                // Get recent PRs (last 30 days)
+                val recentPRs = withContext(Dispatchers.IO) {
+                    repository.getRecentPRs(limit = 5)
+                }
+                
+                // Get workouts from this week
+                val now = LocalDateTime.now()
+                // Start from Sunday 23:59:59 to include all of Monday onwards
+                val weekStart = now.with(java.time.DayOfWeek.MONDAY).toLocalDate().atStartOfDay().minusSeconds(1)
+                val weeklyWorkoutCount = withContext(Dispatchers.IO) {
+                    repository.getCompletedWorkoutCountSince(weekStart)
+                }
+                
+                // Get current streak (weeks with 3+ workouts)
+                val currentStreak = withContext(Dispatchers.IO) {
+                    repository.getWeeklyStreak()
+                }
+                
+                onComplete(recentPRs, weeklyWorkoutCount, currentStreak)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                onComplete(emptyList(), 0, 0)
             }
         }
     }

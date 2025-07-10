@@ -79,6 +79,12 @@ class ExerciseProgressViewModel(application: Application) : AndroidViewModel(app
                 val allTimePR = prRecord?.weight ?: 0f
                 val allTimePRDate = prRecord?.recordDate?.toLocalDate()
                 
+                // DEBUG: Log PR record details
+                android.util.Log.d("ExerciseProgress", "🔍 PR RECORD DEBUG for $exerciseName:")
+                android.util.Log.d("ExerciseProgress", "  - PR Weight: $allTimePR")
+                android.util.Log.d("ExerciseProgress", "  - PR Date from DB: ${prRecord?.recordDate}")
+                android.util.Log.d("ExerciseProgress", "  - PR Date converted: $allTimePRDate")
+                
                 // Calculate Recent Best (30 days, extend to 60 if needed)
                 val now = LocalDate.now()
                 val thirtyDaysAgo = now.minusDays(30)
@@ -97,6 +103,9 @@ class ExerciseProgressViewModel(application: Application) : AndroidViewModel(app
                         startDate = thirtyDaysAgo,
                         endDate = now
                     )
+                    android.util.Log.d("ExerciseProgress", "🔍 RECENT BEST DEBUG (30 days) for $exerciseName:")
+                    android.util.Log.d("ExerciseProgress", "  - Recent Best Weight: $it")
+                    android.util.Log.d("ExerciseProgress", "  - Recent Best Date: $recentBestDate")
                 } ?: repository.getMaxWeightForExerciseInDateRange(
                     userId = userId,
                     exerciseName = exerciseName,
@@ -110,6 +119,9 @@ class ExerciseProgressViewModel(application: Application) : AndroidViewModel(app
                         startDate = now.minusDays(60),
                         endDate = now
                     )
+                    android.util.Log.d("ExerciseProgress", "🔍 RECENT BEST DEBUG (60 days) for $exerciseName:")
+                    android.util.Log.d("ExerciseProgress", "  - Recent Best Weight: $it")
+                    android.util.Log.d("ExerciseProgress", "  - Recent Best Date: $recentBestDate")
                 } ?: 0f
                 
                 val recentBestPercentOfPR = if (allTimePR > 0) {
@@ -160,7 +172,7 @@ class ExerciseProgressViewModel(application: Application) : AndroidViewModel(app
                         Triple(ProgressStatus.EXTENDED_BREAK, "Last session ${daysSinceLastWorkout} days ago", 0)
                     }
                     recentBest < globalProgress.estimatedMax * 0.9 -> {
-                        Triple(ProgressStatus.WORKING_LIGHTER, "${WeightFormatter.formatWeightWithUnit(recentBest)} vs ${WeightFormatter.formatWeightWithUnit(globalProgress.estimatedMax)} recent best", 0)
+                        Triple(ProgressStatus.WORKING_LIGHTER, "Working: ${WeightFormatter.formatWeightWithUnit(recentBest)} | Est. Max: ${WeightFormatter.formatWeightWithUnit(globalProgress.estimatedMax)}", 0)
                     }
                     globalProgress.trend == ProgressTrend.STALLING -> {
                         val weeks = globalProgress.weeksAtCurrentWeight
@@ -222,16 +234,12 @@ class ExerciseProgressViewModel(application: Application) : AndroidViewModel(app
                 val chartPoints = allWorkouts
                     .groupBy { it.workoutDate.toLocalDate() }
                     .map { (date, logs) ->
-                        val bestLog = logs.maxByOrNull { 
-                            // Calculate estimated 1RM for comparison
-                            it.actualWeight * (1 + 0.0333f * it.actualReps)
-                        }!!
-                        
-                        val estimated1RM = bestLog.actualWeight * (1 + 0.0333f * bestLog.actualReps)
+                        // Get the best actual weight lifted that day
+                        val bestLog = logs.maxByOrNull { it.actualWeight }!!
                         
                         ExerciseDataPoint(
                             date = date,
-                            weight = estimated1RM,
+                            weight = bestLog.actualWeight, // Show actual weight, not estimated
                             reps = bestLog.actualReps,
                             isPR = false // Will be calculated separately
                         )

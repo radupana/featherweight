@@ -68,6 +68,7 @@ fun SetEditingModal(
     exercise: ExerciseLog,
     sets: List<SetLog>,
     onDismiss: () -> Unit,
+    onNavigateBack: (() -> Unit)? = null,
     onUpdateSet: (Long, Int, Float, Float?) -> Unit,
     onAddSet: ((Long) -> Unit) -> Unit,
     onCopyLastSet: () -> Unit,
@@ -77,6 +78,7 @@ fun SetEditingModal(
     viewModel: WorkoutViewModel,
     restTimerViewModel: RestTimerViewModel,
     isProgrammeWorkout: Boolean = false,
+    readOnly: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -126,6 +128,11 @@ fun SetEditingModal(
         keyboardController?.hide()
         focusManager.clearFocus()
         onDismiss()
+        // In read-only mode, also trigger navigation back since this is a full-screen modal
+        // and users expect the back button to leave the screen entirely
+        if (readOnly && onNavigateBack != null) {
+            onNavigateBack()
+        }
     }
 
     Dialog(
@@ -376,17 +383,25 @@ fun SetEditingModal(
                                                         .padding(16.dp),
                                                 horizontalArrangement = Arrangement.Center,
                                             ) {
-                                                OutlinedButton(
-                                                    onClick = { onAddSet { } },
-                                                    modifier = Modifier.fillMaxWidth(0.6f),
-                                                ) {
-                                                    Icon(
-                                                        Icons.Filled.Add,
-                                                        contentDescription = "Add Set",
-                                                        modifier = Modifier.size(18.dp),
+                                                if (!readOnly) {
+                                                    OutlinedButton(
+                                                        onClick = { onAddSet { } },
+                                                        modifier = Modifier.fillMaxWidth(0.6f),
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.Add,
+                                                            contentDescription = "Add Set",
+                                                            modifier = Modifier.size(18.dp),
+                                                        )
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Text("Add Set")
+                                                    }
+                                                } else {
+                                                    Text(
+                                                        "No sets recorded",
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    Text("Add Set")
                                                 }
                                             }
                                         }
@@ -399,7 +414,7 @@ fun SetEditingModal(
                                         val dismissState =
                                             rememberSwipeToDismissBoxState(
                                                 confirmValueChange = { dismissDirection ->
-                                                    if (dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                                                    if (!readOnly && dismissDirection == SwipeToDismissBoxValue.EndToStart) {
                                                         onDeleteSet(set.id)
                                                         true
                                                     } else {
@@ -427,12 +442,13 @@ fun SetEditingModal(
                                             viewModel = viewModel,
                                             isProgrammeWorkout = isProgrammeWorkout,
                                             swipeToDismissState = dismissState,
+                                            readOnly = readOnly,
                                         )
                                     }
                                 }
 
                                 // Action buttons after sets (only when there are sets)
-                                if (sets.isNotEmpty()) {
+                                if (sets.isNotEmpty() && !readOnly) {
                                     item {
                                         val lastSet = sets.maxByOrNull { it.setOrder }
                                         val canCopyLast = lastSet != null && lastSet.actualReps > 0
@@ -838,6 +854,7 @@ fun CleanSetLayout(
     viewModel: WorkoutViewModel,
     isProgrammeWorkout: Boolean,
     swipeToDismissState: SwipeToDismissBoxState,
+    readOnly: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     // Input states - Store as TextFieldValue to preserve cursor position  
@@ -967,9 +984,11 @@ fun CleanSetLayout(
             CenteredInputField(
                 value = weightInput,
                 onValueChange = { textFieldValue ->
-                    weightInput = textFieldValue
-                    val weight = textFieldValue.text.toFloatOrNull() ?: 0f
-                    onUpdateSet(set.actualReps, weight, set.actualRpe)
+                    if (!readOnly) {
+                        weightInput = textFieldValue
+                        val weight = textFieldValue.text.toFloatOrNull() ?: 0f
+                        onUpdateSet(set.actualReps, weight, set.actualRpe)
+                    }
                 },
                 fieldType = InputFieldType.WEIGHT,
                 placeholder = "",  // No placeholder
@@ -981,9 +1000,11 @@ fun CleanSetLayout(
             CenteredInputField(
                 value = repsInput,
                 onValueChange = { textFieldValue ->
-                    repsInput = textFieldValue
-                    val reps = textFieldValue.text.toIntOrNull() ?: 0
-                    onUpdateSet(reps, set.actualWeight, set.actualRpe)
+                    if (!readOnly) {
+                        repsInput = textFieldValue
+                        val reps = textFieldValue.text.toIntOrNull() ?: 0
+                        onUpdateSet(reps, set.actualWeight, set.actualRpe)
+                    }
                 },
                 fieldType = InputFieldType.REPS,
                 placeholder = "",  // No placeholder
@@ -995,9 +1016,11 @@ fun CleanSetLayout(
             CenteredInputField(
                 value = rpeInput,
                 onValueChange = { textFieldValue ->
-                    rpeInput = textFieldValue
-                    val rpe = textFieldValue.text.toIntOrNull()?.toFloat()
-                    onUpdateSet(set.actualReps, set.actualWeight, rpe)
+                    if (!readOnly) {
+                        rpeInput = textFieldValue
+                        val rpe = textFieldValue.text.toIntOrNull()?.toFloat()
+                        onUpdateSet(set.actualReps, set.actualWeight, rpe)
+                    }
                 },
                 fieldType = InputFieldType.RPE,
                 placeholder = "",  // No placeholder
@@ -1010,7 +1033,7 @@ fun CleanSetLayout(
                 modifier = Modifier
                     .size(40.dp)
                     .clickable(
-                        enabled = canMarkComplete || set.isCompleted,
+                        enabled = !readOnly && (canMarkComplete || set.isCompleted),
                         onClick = {
                             val newChecked = !set.isCompleted
                             if (!newChecked || canMarkComplete) {
@@ -1023,7 +1046,7 @@ fun CleanSetLayout(
                 Checkbox(
                     checked = set.isCompleted,
                     onCheckedChange = null, // Handle clicks on the Box instead
-                    enabled = canMarkComplete || set.isCompleted,
+                    enabled = !readOnly && (canMarkComplete || set.isCompleted),
                     colors = CheckboxDefaults.colors(
                         checkedColor = MaterialTheme.colorScheme.primary,
                     ),

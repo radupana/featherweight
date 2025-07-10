@@ -130,4 +130,23 @@ interface WorkoutDao {
     
     @Query("DELETE FROM Workout")
     suspend fun deleteAllWorkouts()
+    
+    // Get the workout date when a specific weight was achieved for an exercise
+    @Query("""
+        SELECT w.date FROM Workout w
+        INNER JOIN ExerciseLog el ON el.workoutId = w.id
+        INNER JOIN SetLog sl ON sl.exerciseLogId = el.id
+        WHERE el.exerciseName = :exerciseName
+        AND sl.actualWeight = :weight
+        AND sl.isCompleted = 1
+        AND w.date BETWEEN :startDateTime AND :endDateTime
+        ORDER BY w.date DESC
+        LIMIT 1
+    """)
+    suspend fun getWorkoutDateForMaxWeight(
+        exerciseName: String,
+        weight: Float,
+        startDateTime: java.time.LocalDateTime,
+        endDateTime: java.time.LocalDateTime
+    ): java.time.LocalDateTime?
 }

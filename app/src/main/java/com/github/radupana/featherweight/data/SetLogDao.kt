@@ -50,6 +50,15 @@ interface SetLogDao {
     suspend fun getAllCompletedExerciseNames(): List<String>
     
     @Query("""
+        SELECT w.date 
+        FROM Workout w 
+        INNER JOIN ExerciseLog e ON w.id = e.workoutId 
+        INNER JOIN SetLog s ON e.id = s.exerciseLogId 
+        WHERE s.id = :setLogId
+    """)
+    suspend fun getWorkoutDateForSetLog(setLogId: Long): String?
+    
+    @Query("""
         SELECT MAX(s.actualWeight) 
         FROM SetLog s 
         INNER JOIN ExerciseLog e ON s.exerciseLogId = e.id 
