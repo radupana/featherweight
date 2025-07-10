@@ -53,13 +53,15 @@ fun ExerciseSelectorDialog(
             ),
     ) {
         Card(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(compactPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(compactPadding),
             shape = RoundedCornerShape(if (isKeyboardVisible) 16.dp else 24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -69,10 +71,12 @@ fun ExerciseSelectorDialog(
                     title = {
                         Text(
                             "Select Exercise",
-                            style = if (isKeyboardVisible) 
-                                MaterialTheme.typography.titleMedium 
-                            else 
-                                MaterialTheme.typography.titleLarge,
+                            style =
+                                if (isKeyboardVisible) {
+                                    MaterialTheme.typography.titleMedium
+                                } else {
+                                    MaterialTheme.typography.titleLarge
+                                },
                             fontWeight = FontWeight.Bold,
                         )
                     },
@@ -81,19 +85,21 @@ fun ExerciseSelectorDialog(
                             Icon(Icons.Filled.Close, contentDescription = "Close")
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                    ),
+                    colors =
+                        TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                        ),
                 )
 
                 // Search Bar
                 CompactSearchField(
                     query = searchQuery,
                     onQueryChange = viewModel::updateSearchQuery,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = compactPadding),
-                    placeholder = "Search exercises"
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = compactPadding),
+                    placeholder = "Search exercises",
                 )
 
                 if (!isKeyboardVisible) {
@@ -103,29 +109,32 @@ fun ExerciseSelectorDialog(
                 // Exercise List
                 if (isLoading) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
                         contentAlignment = Alignment.Center,
                     ) {
                         CircularProgressIndicator()
                     }
                 } else {
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .systemBarsPadding(NavigationContext.DIALOG),
-                        contentPadding = PaddingValues(
-                            horizontal = compactPadding, 
-                            vertical = compactPadding / 2
-                        ),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .systemBarsPadding(NavigationContext.DIALOG),
+                        contentPadding =
+                            PaddingValues(
+                                horizontal = compactPadding,
+                                vertical = compactPadding / 2,
+                            ),
                         verticalArrangement = Arrangement.spacedBy(compactPadding / 2),
                     ) {
                         items(
                             filteredExercises.filter { exerciseWithDetails ->
                                 exerciseWithDetails.exercise.id !in excludeExerciseIds
-                            }
+                            },
                         ) { exerciseWithDetails ->
                             ExerciseItem(
                                 exerciseWithDetails = exerciseWithDetails,
@@ -133,7 +142,7 @@ fun ExerciseSelectorDialog(
                                     onExerciseSelected(exerciseWithDetails.exercise)
                                     onDismiss()
                                 },
-                                isCompact = isKeyboardVisible
+                                isCompact = isKeyboardVisible,
                             )
                         }
                     }
@@ -168,9 +177,10 @@ private fun ExerciseItem(
             ),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(itemPadding),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(itemPadding),
         ) {
             Text(
                 text = exercise.name,

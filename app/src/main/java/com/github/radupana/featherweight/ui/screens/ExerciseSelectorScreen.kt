@@ -2,36 +2,32 @@ package com.github.radupana.featherweight.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.radupana.featherweight.data.exercise.*
 import com.github.radupana.featherweight.data.ExerciseLog
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBars
-import com.github.radupana.featherweight.ui.utils.NavigationContext
+import com.github.radupana.featherweight.data.exercise.*
 import com.github.radupana.featherweight.ui.utils.rememberKeyboardState
-import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import com.github.radupana.featherweight.viewmodel.ExerciseSelectorViewModel
 import com.github.radupana.featherweight.viewmodel.ExerciseSuggestion
-import androidx.compose.material.icons.filled.SwapHoriz
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,7 +67,7 @@ fun ExerciseSelectorScreen(
     LaunchedEffect(Unit) {
         viewModel.loadExercises()
     }
-    
+
     // Load swap suggestions when in swap mode
     LaunchedEffect(isSwapMode, currentExercise) {
         if (isSwapMode && currentExercise != null && currentExercise.exerciseId != null) {
@@ -109,64 +105,69 @@ fun ExerciseSelectorScreen(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
         ) {
             // Show current exercise when in swap mode
             if (isSwapMode && currentExercise != null) {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(compactPadding),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(compactPadding),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        ),
                 ) {
                     Column(
-                        modifier = Modifier.padding(compactPadding)
+                        modifier = Modifier.padding(compactPadding),
                     ) {
                         Text(
                             text = "Currently selected:",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                         Text(
                             text = currentExercise.exerciseName,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Icon(
                                 Icons.Filled.Info,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(16.dp),
                             )
                             Text(
                                 text = "All sets will be cleared when you swap",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
                             )
                         }
                     }
                 }
             }
-            
+
             // Error handling at the top
             errorMessage?.let { error ->
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(compactPadding),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                    ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(compactPadding),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                        ),
                 ) {
                     Row(
                         modifier = Modifier.padding(compactPadding),
@@ -188,14 +189,14 @@ fun ExerciseSelectorScreen(
                     }
                 }
             }
-            
+
             // Search Bar - always visible
             SearchBar(
                 query = searchQuery,
                 onQueryChange = viewModel::updateSearchQuery,
                 modifier = Modifier.padding(compactPadding),
             )
-            
+
             // Filter Chips - hide when keyboard is visible to save space
             if (!isKeyboardVisible) {
                 LazyRow(
@@ -243,7 +244,7 @@ fun ExerciseSelectorScreen(
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(compactPadding)
+                                modifier = Modifier.padding(compactPadding),
                             ) {
                                 Text(
                                     "No exercises found",
@@ -281,12 +282,13 @@ fun ExerciseSelectorScreen(
                     else -> {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(
-                                start = compactPadding,
-                                end = compactPadding,
-                                top = compactPadding,
-                                bottom = compactPadding + navigationBarPadding.calculateBottomPadding()
-                            ),
+                            contentPadding =
+                                PaddingValues(
+                                    start = compactPadding,
+                                    end = compactPadding,
+                                    top = compactPadding,
+                                    bottom = compactPadding + navigationBarPadding.calculateBottomPadding(),
+                                ),
                             verticalArrangement = Arrangement.spacedBy(compactPadding / 2),
                         ) {
                             // Show suggestions when in swap mode
@@ -294,7 +296,7 @@ fun ExerciseSelectorScreen(
                                 // Filter suggestions based on search query
                                 val filteredPreviouslySwapped = filterSuggestions(previouslySwappedExercises, searchQuery)
                                 val filteredSwapSuggestions = filterSuggestions(swapSuggestions, searchQuery)
-                                
+
                                 // Previously swapped exercises section
                                 if (filteredPreviouslySwapped.isNotEmpty()) {
                                     item {
@@ -303,18 +305,18 @@ fun ExerciseSelectorScreen(
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.padding(vertical = compactPadding / 2)
+                                            modifier = Modifier.padding(vertical = compactPadding / 2),
                                         )
                                     }
                                     items(filteredPreviouslySwapped) { suggestion ->
                                         SuggestionCard(
                                             suggestion = suggestion,
                                             onSelect = { onExerciseSelected(suggestion.exercise) },
-                                            isCompact = isKeyboardVisible
+                                            isCompact = isKeyboardVisible,
                                         )
                                     }
                                 }
-                                
+
                                 // Smart suggestions section
                                 if (filteredSwapSuggestions.isNotEmpty()) {
                                     item {
@@ -323,18 +325,18 @@ fun ExerciseSelectorScreen(
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.padding(vertical = compactPadding / 2)
+                                            modifier = Modifier.padding(vertical = compactPadding / 2),
                                         )
                                     }
                                     items(filteredSwapSuggestions) { suggestion ->
                                         SuggestionCard(
                                             suggestion = suggestion,
                                             onSelect = { onExerciseSelected(suggestion.exercise) },
-                                            isCompact = isKeyboardVisible
+                                            isCompact = isKeyboardVisible,
                                         )
                                     }
                                 }
-                                
+
                                 // Divider before all exercises if we have suggestions
                                 if (filteredPreviouslySwapped.isNotEmpty() || filteredSwapSuggestions.isNotEmpty()) {
                                     item {
@@ -344,17 +346,17 @@ fun ExerciseSelectorScreen(
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.padding(vertical = compactPadding / 2)
+                                            modifier = Modifier.padding(vertical = compactPadding / 2),
                                         )
                                     }
                                 }
                             }
-                            
+
                             items(exercises) { exercise ->
                                 ExerciseCard(
                                     exercise = exercise,
                                     onSelect = { onExerciseSelected(exercise) },
-                                    isCompact = isKeyboardVisible
+                                    isCompact = isKeyboardVisible,
                                 )
                             }
                         }
@@ -380,28 +382,28 @@ fun ExerciseSelectorScreen(
 
 private fun filterSuggestions(
     suggestions: List<ExerciseSuggestion>,
-    searchQuery: String
+    searchQuery: String,
 ): List<ExerciseSuggestion> {
     if (searchQuery.isEmpty()) return suggestions
-    
+
     val searchWords = searchQuery.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-    
+
     return suggestions.filter { suggestion ->
         val exercise = suggestion.exercise.exercise
         val nameLower = exercise.name.lowercase()
         val queryLower = searchQuery.lowercase()
-        
+
         // Check for exact match or contains
         if (nameLower.contains(queryLower)) {
             return@filter true
         }
-        
+
         // Check individual words
         searchWords.any { searchWord ->
             val searchWordLower = searchWord.lowercase()
             nameLower.contains(searchWordLower) ||
-            exercise.muscleGroup.contains(searchWordLower, ignoreCase = true) ||
-            exercise.category.name.replace('_', ' ').contains(searchWordLower, ignoreCase = true)
+                exercise.muscleGroup.contains(searchWordLower, ignoreCase = true) ||
+                exercise.category.name.replace('_', ' ').contains(searchWordLower, ignoreCase = true)
         }
     }
 }
@@ -420,18 +422,20 @@ private fun SearchBar(
         leadingIcon = {
             Icon(Icons.Filled.Search, contentDescription = "Search")
         },
-        trailingIcon = if (query.isNotEmpty()) {
-            {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Filled.Clear, contentDescription = "Clear")
+        trailingIcon =
+            if (query.isNotEmpty()) {
+                {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(Icons.Filled.Clear, contentDescription = "Clear")
+                    }
                 }
-            }
-        } else null,
+            } else {
+                null
+            },
         singleLine = true,
         shape = RoundedCornerShape(12.dp),
     )
 }
-
 
 @Composable
 private fun ExerciseCard(
@@ -442,9 +446,10 @@ private fun ExerciseCard(
 ) {
     val cardPadding = if (isCompact) 10.dp else 12.dp
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onSelect() },
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clickable { onSelect() },
         elevation = CardDefaults.cardElevation(2.dp),
         shape = RoundedCornerShape(12.dp),
     ) {
@@ -463,7 +468,7 @@ private fun ExerciseCard(
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                
+
                 // Usage count indicator - only show if > 0
                 if (exercise.exercise.usageCount > 0) {
                     Surface(
@@ -480,7 +485,7 @@ private fun ExerciseCard(
                     }
                 }
             }
-            
+
             // Muscle group and equipment info
             if (exercise.exercise.muscleGroup.isNotEmpty() || exercise.exercise.equipment != Equipment.BODYWEIGHT) {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -754,78 +759,80 @@ private fun SuggestionCard(
 ) {
     val cardPadding = if (isCompact) 10.dp else 12.dp
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onSelect() },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onSelect() },
         elevation = CardDefaults.cardElevation(2.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+            ),
     ) {
         Column(
-            modifier = Modifier.padding(cardPadding)
+            modifier = Modifier.padding(cardPadding),
         ) {
             // Top row: Exercise name and swap count badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
                         text = suggestion.exercise.exercise.name,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f, fill = false)
+                        modifier = Modifier.weight(1f, fill = false),
                     )
-                    
+
                     // Swap count badge for previously swapped exercises
                     if (suggestion.swapCount > 0) {
                         Surface(
                             color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
                                 Icon(
                                     Icons.Filled.SwapHoriz,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(12.dp)
+                                    modifier = Modifier.size(12.dp),
                                 )
                                 Text(
                                     text = "${suggestion.swapCount}",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onPrimary
+                                    color = MaterialTheme.colorScheme.onPrimary,
                                 )
                             }
                         }
                     }
                 }
-                
+
                 // Category badge
                 Surface(
                     color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(6.dp)
+                    shape = RoundedCornerShape(6.dp),
                 ) {
                     Text(
                         text = suggestion.exercise.exercise.category.displayName,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
             }
-            
+
             // Muscle group and equipment info
             if (suggestion.exercise.exercise.muscleGroup.isNotEmpty() || suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT) {
                 Spacer(modifier = Modifier.height(4.dp))

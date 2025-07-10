@@ -2,10 +2,9 @@ package com.github.radupana.featherweight.data.programme
 
 import androidx.room.*
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
-import java.time.LocalDateTime
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.time.LocalDateTime
 
 /**
  * Programme entity represents a multi-week training program
@@ -33,7 +32,7 @@ data class Programme(
     val weightCalculationRules: String? = null, // JSON serialized WeightCalculationRules
     val progressionRules: String? = null, // JSON serialized ProgressionRules
     // Template name for template-based programmes (used when custom name is given)
-    val templateName: String? = null
+    val templateName: String? = null,
 ) {
     // Helper methods to serialize/deserialize rules
     fun getWeightCalculationRulesObject(): WeightCalculationRules? {
@@ -45,7 +44,7 @@ data class Programme(
             }
         }
     }
-    
+
     fun getProgressionRulesObject(): ProgressionRules? {
         return progressionRules?.let {
             try {
@@ -55,12 +54,12 @@ data class Programme(
             }
         }
     }
-    
+
     companion object {
         fun encodeWeightCalculationRules(rules: WeightCalculationRules): String {
             return Json.encodeToString(rules)
         }
-        
+
         fun encodeProgressionRules(rules: ProgressionRules): String {
             return Json.encodeToString(rules)
         }
@@ -84,7 +83,7 @@ data class ProgrammeTemplate(
     val allowsAccessoryCustomization: Boolean = false,
     val jsonStructure: String, // JSON representation of the programme structure
     val weightCalculationRules: String? = null, // JSON serialized WeightCalculationRules
-    val progressionRules: String? = null // JSON serialized ProgressionRules
+    val progressionRules: String? = null, // JSON serialized ProgressionRules
 )
 
 /**
@@ -113,7 +112,7 @@ data class ProgrammeWeek(
     val intensityLevel: String? = null, // "low", "moderate", "high", "very_high"
     val volumeLevel: String? = null, // "low", "moderate", "high", "very_high"
     val isDeload: Boolean = false,
-    val phase: String? = null // e.g., "Foundation", "Accumulation", "Peak"
+    val phase: String? = null, // e.g., "Foundation", "Accumulation", "Peak"
 )
 
 /**

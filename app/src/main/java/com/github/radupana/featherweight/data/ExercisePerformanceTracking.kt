@@ -12,11 +12,9 @@ import java.time.LocalDateTime
 data class ExercisePerformanceTracking(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    
     // Programme context
     val programmeId: Long,
     val exerciseName: String,
-    
     // Performance metrics
     val targetWeight: Float,
     val achievedWeight: Float,
@@ -24,20 +22,17 @@ data class ExercisePerformanceTracking(
     val completedSets: Int,
     val targetReps: Int,
     val achievedReps: Int, // Total across all sets
-    val missedReps: Int,   // Total missed reps
-    
+    val missedReps: Int, // Total missed reps
     // Success/Failure tracking
     val wasSuccessful: Boolean,
     val workoutDate: LocalDateTime,
     val workoutId: Long,
-    
     // Deload tracking
     val isDeloadWorkout: Boolean = false,
     val deloadReason: String? = null,
-    
     // Additional context
     val averageRpe: Float? = null,
-    val notes: String? = null
+    val notes: String? = null,
 )
 
 /**
@@ -51,13 +46,13 @@ data class ExerciseProgressionStatus(
     val lastDeloadDate: LocalDateTime?,
     val totalDeloads: Int,
     val isInDeloadCycle: Boolean,
-    val suggestedAction: ProgressionAction
+    val suggestedAction: ProgressionAction,
 )
 
 enum class ProgressionAction {
-    PROGRESS,      // Increase weight as planned
-    MAINTAIN,      // Keep same weight
-    DELOAD,        // Reduce weight
-    RESET,         // Major reset needed
-    TEST_1RM       // Time to test new max
+    PROGRESS, // Increase weight as planned
+    MAINTAIN, // Keep same weight
+    DELOAD, // Reduce weight
+    RESET, // Major reset needed
+    TEST_1RM, // Time to test new max
 }

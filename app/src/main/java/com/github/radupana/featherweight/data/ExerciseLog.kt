@@ -12,7 +12,6 @@ import androidx.room.PrimaryKey
             childColumns = ["workoutId"],
             onDelete = ForeignKey.CASCADE,
         ),
-        // Optional foreign key to Exercise - can be null for backward compatibility
         ForeignKey(
             entity = com.github.radupana.featherweight.data.exercise.Exercise::class,
             parentColumns = ["id"],
@@ -24,8 +23,8 @@ import androidx.room.PrimaryKey
 data class ExerciseLog(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val workoutId: Long,
-    val exerciseName: String, // Keep for backward compatibility
-    val exerciseId: Long? = null, // Add optional reference to Exercise
+    val exerciseName: String,
+    val exerciseId: Long? = null,
     val exerciseOrder: Int,
     val supersetGroup: Int? = null,
     val notes: String? = null,

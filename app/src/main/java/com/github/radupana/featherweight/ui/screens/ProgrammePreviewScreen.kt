@@ -42,8 +42,8 @@ fun ProgrammePreviewScreen(
         val validationResult = GeneratedProgrammeHolder.getValidationResult()
         if (generatedResponse != null) {
             viewModel.loadGeneratedProgramme(generatedResponse, validationResult)
-            // Clear after loading to prevent re-loading on configuration changes
-            GeneratedProgrammeHolder.clearGeneratedProgramme()
+            // Note: We do NOT clear GeneratedProgrammeHolder here anymore
+            // It will be cleared in ProgrammePreviewViewModel.activateProgramme() after successful activation
         }
     }
 
@@ -88,12 +88,13 @@ fun ProgrammePreviewScreen(
                                     viewModel.showUnmatchedExerciseDialog(it)
                                 }
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
                         )
                     }
-                    
+
                     SuccessPreviewContent(
                         preview = state.preview,
                         editStates = editStates,
@@ -117,7 +118,17 @@ fun ProgrammePreviewScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxSize()
+                        onDiscard =
+                            if (GeneratedProgrammeHolder.getAIRequestId() != null) {
+                                {
+                                    viewModel.discardProgramme(
+                                        onSuccess = onBack,
+                                    )
+                                }
+                            } else {
+                                null
+                            },
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
             }
@@ -159,7 +170,7 @@ fun ProgrammePreviewScreen(
                 )
             }
         }
-        
+
         // Show unmatched exercise dialog
         currentUnmatchedExercise?.let { unmatchedExercise ->
             if (showUnmatchedDialog) {
@@ -168,7 +179,7 @@ fun ProgrammePreviewScreen(
                     allExercises = allExercises,
                     onExerciseSelected = { exercise ->
                         viewModel.selectExerciseForUnmatched(unmatchedExercise, exercise)
-                        
+
                         // Check if there are more unmatched exercises
                         val remainingUnmatched = unmatchedExercises.filter { it != unmatchedExercise }
                         if (remainingUnmatched.isNotEmpty()) {
@@ -176,12 +187,12 @@ fun ProgrammePreviewScreen(
                             viewModel.showUnmatchedExerciseDialog(remainingUnmatched.first())
                         }
                     },
-                    onDismiss = { viewModel.hideUnmatchedExerciseDialog() }
+                    onDismiss = { viewModel.hideUnmatchedExerciseDialog() },
                 )
             }
         }
     }
-    
+
     // Load exercises for the dialog
     LaunchedEffect(Unit) {
         viewModel.loadExercises()
@@ -192,39 +203,42 @@ fun ProgrammePreviewScreen(
 private fun UnmatchedExercisesBanner(
     count: Int,
     onFixExercises: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+            ),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "$count exercises need selection",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onErrorContainer
+                    color = MaterialTheme.colorScheme.onErrorContainer,
                 )
                 Text(
                     text = "AI suggested exercises not found in database",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onErrorContainer
+                    color = MaterialTheme.colorScheme.onErrorContainer,
                 )
             }
-            
+
             Button(
                 onClick = onFixExercises,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
-                )
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
             ) {
                 Text("Fix Now")
             }
@@ -273,6 +287,7 @@ private fun SuccessPreviewContent(
     onShowResolution: (String, Boolean) -> Unit,
     onProgrammeNameChanged: (String) -> Unit,
     onActivate: () -> Unit,
+    onDiscard: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var expandedWeeks by remember { mutableStateOf(setOf(1)) } // Start with week 1 expanded
@@ -331,6 +346,7 @@ private fun SuccessPreviewContent(
             ActionButtonsCard(
                 isActivating = isActivating,
                 onActivate = onActivate,
+                onDiscard = onDiscard,
             )
         }
     }
@@ -413,9 +429,7 @@ private fun ErrorPreviewContent(
 }
 
 @Composable
-private fun RegenerateDialog(
-    onDismiss: () -> Unit,
-) {
+private fun RegenerateDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -460,26 +474,9 @@ private fun RegenerateDialog(
 }
 
 private fun getWeekProgressInfo(week: WeekPreview): String {
-    val progressionNotes = week.progressionNotes ?: ""
-    val intensityText =
-        when (week.intensityLevel) {
-            "low" -> "Low Intensity"
-            "moderate" -> "Moderate Intensity"
-            "high" -> "High Intensity"
-            "very_high" -> "Very High Intensity"
-            else -> ""
-        }
-    val volumeText =
-        when (week.volumeLevel) {
-            "low" -> "Low Volume"
-            "moderate" -> "Moderate Volume"
-            "high" -> "High Volume"
-            "very_high" -> "Very High Volume"
-            else -> ""
-        }
-    val deloadText = if (week.isDeload) " (Deload)" else ""
+    // Simple progress info based on actual data we have
+    val totalExercises = week.workouts.sumOf { it.exercises.size }
+    val totalSets = week.weeklyVolume.totalSets
 
-    return listOf(progressionNotes, intensityText, volumeText)
-        .filter { it.isNotEmpty() }
-        .joinToString(" • ") + deloadText
+    return "$totalExercises exercises • $totalSets total sets"
 }

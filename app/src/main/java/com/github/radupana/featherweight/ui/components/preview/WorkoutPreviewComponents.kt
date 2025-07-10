@@ -50,7 +50,7 @@ fun WorkoutPreviewCard(
                         fontWeight = FontWeight.SemiBold,
                     )
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Row(
@@ -71,12 +71,35 @@ fun WorkoutPreviewCard(
                         }
 
                         Text(
+                            text = "•",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        )
+
+                        Text(
                             text = "${workout.exercises.size} exercises",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         )
 
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        )
+
+                        Text(
+                            text = "${workout.exercises.sumOf { it.sets }} sets",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        )
+
                         workout.targetRPE?.let { rpe ->
+                            Text(
+                                text = "•",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            )
                             Text(
                                 text = "RPE $rpe",
                                 style = MaterialTheme.typography.bodySmall,
@@ -84,19 +107,6 @@ fun WorkoutPreviewCard(
                             )
                         }
                     }
-                }
-
-                // Workout Volume Summary
-                Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(8.dp),
-                ) {
-                    Text(
-                        text = "${workout.exercises.sumOf { it.sets }} sets",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    )
                 }
             }
 

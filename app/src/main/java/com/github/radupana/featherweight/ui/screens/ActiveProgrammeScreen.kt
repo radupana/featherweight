@@ -5,7 +5,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.*
@@ -47,17 +46,18 @@ fun ActiveProgrammeScreen(
         programmeViewModel.refreshProgrammeProgress()
         workoutViewModel.loadInProgressWorkouts()
     }
-    
+
     // Check for existing in-progress programme workout
     LaunchedEffect(inProgressWorkouts, activeProgramme, nextWorkout, nextWorkoutWeek) {
         activeProgramme?.let { programme ->
             // Find workout that matches the current programme AND the specific week/day
-            existingWorkout = inProgressWorkouts.find { 
-                it.isProgrammeWorkout && 
-                it.programmeId == programme.id &&
-                it.weekNumber == nextWorkoutWeek &&
-                it.dayNumber == nextWorkout?.day
-            }
+            existingWorkout =
+                inProgressWorkouts.find {
+                    it.isProgrammeWorkout &&
+                        it.programmeId == programme.id &&
+                        it.weekNumber == nextWorkoutWeek &&
+                        it.dayNumber == nextWorkout?.day
+                }
         }
     }
 
@@ -116,14 +116,15 @@ fun ActiveProgrammeScreen(
             activeProgramme?.let { programme ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        ),
                     shape = RoundedCornerShape(16.dp),
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         // Programme Header
                         Row(
@@ -138,7 +139,7 @@ fun ActiveProgrammeScreen(
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
-                                
+
                                 programmeProgress?.let { progress ->
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
@@ -171,12 +172,12 @@ fun ActiveProgrammeScreen(
                                 } else {
                                     0f
                                 }
-                            
+
                             Column {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Text(
                                         text = "${progress.completedWorkouts}/${progress.totalWorkouts} workouts",
@@ -193,33 +194,35 @@ fun ActiveProgrammeScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
                                 LinearProgressIndicator(
                                     progress = { overallProgress },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(6.dp),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(6.dp),
                                     color = MaterialTheme.colorScheme.primary,
                                     trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                                     strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
                                 )
                             }
                         }
-                        
+
                         HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         )
-                        
+
                         // Next Workout Section
                         if (isLoading) {
                             Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 20.dp),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 20.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 CircularProgressIndicator()
                             }
                         } else if (nextWorkout != null) {
                             Column(
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -238,36 +241,38 @@ fun ActiveProgrammeScreen(
                                         color = MaterialTheme.colorScheme.onSurface,
                                     )
                                 }
-                                
+
                                 Text(
                                     text = nextWorkout!!.name,
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
-                                
+
                                 val workout = existingWorkout
                                 Text(
-                                    text = if (workout != null) {
-                                        "Week $nextWorkoutWeek • Day ${nextWorkout!!.day} • ${workout.completedSets}/${workout.setCount} sets"
-                                    } else {
-                                        "Week $nextWorkoutWeek • Day ${nextWorkout!!.day}"
-                                    },
+                                    text =
+                                        if (workout != null) {
+                                            "Week $nextWorkoutWeek • Day ${nextWorkout!!.day} • ${workout.completedSets}/${workout.setCount} sets"
+                                        } else {
+                                            "Week $nextWorkoutWeek • Day ${nextWorkout!!.day}"
+                                        },
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                
+
                                 // Exercise preview (compact)
                                 if (nextWorkout!!.exercises.isNotEmpty()) {
                                     Card(
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = MaterialTheme.colorScheme.surface
-                                        ),
-                                        modifier = Modifier.fillMaxWidth()
+                                        colors =
+                                            CardDefaults.cardColors(
+                                                containerColor = MaterialTheme.colorScheme.surface,
+                                            ),
+                                        modifier = Modifier.fillMaxWidth(),
                                     ) {
                                         Column(
                                             modifier = Modifier.padding(12.dp),
-                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            verticalArrangement = Arrangement.spacedBy(4.dp),
                                         ) {
                                             nextWorkout!!.exercises.take(3).forEach { exercise ->
                                                 Text(
@@ -286,9 +291,9 @@ fun ActiveProgrammeScreen(
                                         }
                                     }
                                 }
-                                
+
                                 Spacer(modifier = Modifier.height(4.dp))
-                                
+
                                 // Start workout button
                                 Button(
                                     onClick = {
@@ -328,9 +333,10 @@ fun ActiveProgrammeScreen(
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                    ),
+                                    colors =
+                                        ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                        ),
                                     shape = RoundedCornerShape(12.dp),
                                 ) {
                                     Icon(
@@ -350,7 +356,7 @@ fun ActiveProgrammeScreen(
                             // Programme completed
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(
                                     text = "🎉",

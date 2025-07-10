@@ -41,7 +41,7 @@ data class Quadruple<A, B, C, D>(
     val first: A,
     val second: B,
     val third: C,
-    val fourth: D
+    val fourth: D,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -250,32 +250,33 @@ fun WorkoutHistoryCard(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     // Improved color scheme based on workout status
-    val (containerColor, statusColor, statusTextColor, statusText) = when (workout.status) {
-        com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED -> {
-            Quadruple(
-                MaterialTheme.colorScheme.surface,
-                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
-                MaterialTheme.colorScheme.tertiary,
-                "Completed"
-            )
+    val (containerColor, statusColor, statusTextColor, statusText) =
+        when (workout.status) {
+            com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED -> {
+                Quadruple(
+                    MaterialTheme.colorScheme.surface,
+                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
+                    MaterialTheme.colorScheme.tertiary,
+                    "Completed",
+                )
+            }
+            com.github.radupana.featherweight.data.WorkoutStatus.IN_PROGRESS -> {
+                Quadruple(
+                    Color(0xFFFFFBE6), // Very light yellow background for in-progress
+                    Color(0xFFFFF3C4).copy(alpha = 0.8f), // Light yellow for status
+                    Color(0xFF8B5A2B), // Warm brown for text
+                    "In Progress",
+                )
+            }
+            com.github.radupana.featherweight.data.WorkoutStatus.NOT_STARTED -> {
+                Quadruple(
+                    Color(0xFFF5F5F5), // Light gray background for not started
+                    Color(0xFFE0E0E0).copy(alpha = 0.8f), // Light gray for status
+                    Color(0xFF616161), // Dark gray for text
+                    "Not Started",
+                )
+            }
         }
-        com.github.radupana.featherweight.data.WorkoutStatus.IN_PROGRESS -> {
-            Quadruple(
-                Color(0xFFFFFBE6), // Very light yellow background for in-progress
-                Color(0xFFFFF3C4).copy(alpha = 0.8f), // Light yellow for status
-                Color(0xFF8B5A2B), // Warm brown for text
-                "In Progress"
-            )
-        }
-        com.github.radupana.featherweight.data.WorkoutStatus.NOT_STARTED -> {
-            Quadruple(
-                Color(0xFFF5F5F5), // Light gray background for not started
-                Color(0xFFE0E0E0).copy(alpha = 0.8f), // Light gray for status
-                Color(0xFF616161), // Dark gray for text
-                "Not Started"
-            )
-        }
-    }
 
     Card(
         modifier =
@@ -309,20 +310,34 @@ fun WorkoutHistoryCard(
                             ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = when (workout.status) {
-                            com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED -> MaterialTheme.colorScheme.onSurface
-                            com.github.radupana.featherweight.data.WorkoutStatus.IN_PROGRESS -> Color(0xFF5D4037) // Darker brown for in-progress
-                            com.github.radupana.featherweight.data.WorkoutStatus.NOT_STARTED -> Color(0xFF757575) // Gray for not started
-                        },
+                        color =
+                            when (workout.status) {
+                                com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED -> MaterialTheme.colorScheme.onSurface
+                                com.github.radupana.featherweight.data.WorkoutStatus.IN_PROGRESS ->
+                                    Color(
+                                        0xFF5D4037,
+                                    ) // Darker brown for in-progress
+                                com.github.radupana.featherweight.data.WorkoutStatus.NOT_STARTED ->
+                                    Color(
+                                        0xFF757575,
+                                    ) // Gray for not started
+                            },
                     )
                     Text(
                         text = workout.date.format(DateTimeFormatter.ofPattern("EEEE, MMM dd, yyyy")),
                         style = MaterialTheme.typography.bodySmall,
-                        color = when (workout.status) {
-                            com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED -> MaterialTheme.colorScheme.onSurfaceVariant
-                            com.github.radupana.featherweight.data.WorkoutStatus.IN_PROGRESS -> Color(0xFF8D6E63) // Medium brown for in-progress
-                            com.github.radupana.featherweight.data.WorkoutStatus.NOT_STARTED -> Color(0xFF9E9E9E) // Light gray for not started
-                        },
+                        color =
+                            when (workout.status) {
+                                com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED -> MaterialTheme.colorScheme.onSurfaceVariant
+                                com.github.radupana.featherweight.data.WorkoutStatus.IN_PROGRESS ->
+                                    Color(
+                                        0xFF8D6E63,
+                                    ) // Medium brown for in-progress
+                                com.github.radupana.featherweight.data.WorkoutStatus.NOT_STARTED ->
+                                    Color(
+                                        0xFF9E9E9E,
+                                    ) // Light gray for not started
+                            },
                     )
                 }
 
@@ -374,23 +389,23 @@ fun WorkoutHistoryCard(
                 Surface(
                     color = Color(0xFFFFD700).copy(alpha = 0.2f), // Gold background
                     shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.Center,
                     ) {
                         Text(
                             text = "🏆",
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = if (workout.prCount == 1) "1 Personal Record" else "${workout.prCount} Personal Records",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
-                            color = Color(0xFFB8860B) // Dark goldenrod
+                            color = Color(0xFFB8860B), // Dark goldenrod
                         )
                     }
                 }

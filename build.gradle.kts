@@ -5,3 +5,11 @@ plugins {
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.ktlint) apply true
 }
+
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    filter {
+        exclude("**/build/**")
+        exclude("**/*.gradle.kts")
+        exclude("**/buildSrc/**")
+    }
+}

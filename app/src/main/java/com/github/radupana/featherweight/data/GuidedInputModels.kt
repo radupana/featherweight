@@ -5,21 +5,20 @@ enum class ProgrammeGoal(val displayName: String, val emoji: String) {
     BUILD_MUSCLE("Build Muscle", "🏋️"),
     LOSE_FAT("Lose Fat", "🔥"),
     ATHLETIC_PERFORMANCE("Athletic Performance", "⚡"),
-    CUSTOM("Custom", "🎯")
 }
 
 enum class SessionDuration(val displayName: String, val minutesRange: String) {
     QUICK("Quick", "30-45 min"),
     STANDARD("Standard", "45-60 min"),
     EXTENDED("Extended", "60-90 min"),
-    LONG("Long", "90+ min")
+    LONG("Long", "90+ min"),
 }
 
 enum class ExperienceLevel(val displayName: String) {
     BEGINNER("Beginner"),
     INTERMEDIATE("Intermediate"),
     ADVANCED("Advanced"),
-    ELITE("Elite")
+    ELITE("Elite"),
 }
 
 enum class EquipmentAvailability(val displayName: String) {
@@ -27,7 +26,7 @@ enum class EquipmentAvailability(val displayName: String) {
     FULL_GYM("Full Commercial Gym"),
     DUMBBELLS_ONLY("Dumbbells Only"),
     BODYWEIGHT("Bodyweight Only"),
-    LIMITED("Limited Equipment")
+    LIMITED("Limited Equipment"),
 }
 
 // GenerationMode removed - only using simplified approach
@@ -37,7 +36,7 @@ enum class TrainingFrequency(val displayName: String, val daysPerWeek: Int) {
     THREE_DAYS("3x per week", 3),
     FOUR_DAYS("4x per week", 4),
     FIVE_DAYS("5x per week", 5),
-    SIX_DAYS("6x per week", 6)
+    SIX_DAYS("6x per week", 6),
 }
 
 enum class DetectedElement {
@@ -47,26 +46,26 @@ enum class DetectedElement {
     SCHEDULE,
     EQUIPMENT,
     INJURIES,
-    PREFERENCES
+    PREFERENCES,
 }
 
 data class QuickAddChip(
     val text: String,
     val category: ChipCategory,
-    val appendText: String
+    val appendText: String,
 )
 
 enum class ChipCategory {
     EXPERIENCE,
     EQUIPMENT,
     PROGRAMME_TYPE,
-    TRAINING_STYLE
+    TRAINING_STYLE,
 }
 
 enum class WizardStep {
-    QUICK_SETUP,    // Goal, Frequency, Duration
-    ABOUT_YOU,      // Experience, Equipment
-    CUSTOMIZE       // Custom Instructions
+    QUICK_SETUP, // Goal, Frequency, Duration
+    ABOUT_YOU, // Experience, Equipment
+    CUSTOMIZE, // Custom Instructions
 }
 
 data class ExampleTemplate(
@@ -75,7 +74,7 @@ data class ExampleTemplate(
     val frequency: Int,
     val duration: SessionDuration,
     val exampleText: String,
-    val tags: List<String>
+    val tags: List<String>,
 )
 
 data class GuidedInputState(
@@ -88,18 +87,18 @@ data class GuidedInputState(
     val customInstructions: String = "",
     val isLoading: Boolean = false,
     val loadingMessage: String = "Preparing your personalized programme...",
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
 ) {
     fun isStepComplete(step: WizardStep): Boolean {
         return when (step) {
             WizardStep.QUICK_SETUP -> selectedGoal != null && selectedFrequency != null && selectedDuration != null
             WizardStep.ABOUT_YOU -> selectedExperience != null && selectedEquipment != null
-            WizardStep.CUSTOMIZE -> true
+            WizardStep.CUSTOMIZE -> false // Customize step is optional and never shows as complete
         }
     }
-    
+
     fun canGenerate(): Boolean {
-        return selectedGoal != null && selectedFrequency != null && selectedDuration != null && 
-               selectedExperience != null && selectedEquipment != null
+        return selectedGoal != null && selectedFrequency != null && selectedDuration != null &&
+            selectedExperience != null && selectedEquipment != null
     }
 }

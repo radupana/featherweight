@@ -65,12 +65,14 @@ interface ProgrammeDao {
     @Query("SELECT * FROM programme_workouts WHERE id = :workoutId")
     suspend fun getWorkoutById(workoutId: Long): ProgrammeWorkout?
 
-    @Query("""
+    @Query(
+        """
         SELECT pw.* FROM programme_workouts pw
         INNER JOIN programme_weeks weeks ON pw.weekId = weeks.id
         WHERE weeks.programmeId = :programmeId
         ORDER BY weeks.weekNumber ASC, pw.dayNumber ASC
-    """)
+    """,
+    )
     suspend fun getAllWorkoutsForProgramme(programmeId: Long): List<ProgrammeWorkout>
 
     // Exercise Substitutions

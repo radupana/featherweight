@@ -9,18 +9,18 @@ data class OpenAIRequest(
     val messages: List<OpenAIMessage>,
     @SerialName("max_tokens") val maxTokens: Int,
     val temperature: Double,
-    @SerialName("response_format") val responseFormat: ResponseFormat? = null
+    @SerialName("response_format") val responseFormat: ResponseFormat? = null,
 )
 
 @Serializable
 data class OpenAIMessage(
     val role: String, // "system", "user", "assistant"
-    val content: String
+    val content: String,
 )
 
 @Serializable
 data class ResponseFormat(
-    val type: String = "json_object"
+    val type: String = "json_object",
 )
 
 @Serializable
@@ -30,31 +30,31 @@ data class OpenAIResponse(
     val created: Long,
     val model: String,
     val choices: List<Choice>,
-    val usage: Usage?
+    val usage: Usage?,
 )
 
 @Serializable
 data class Choice(
     val index: Int,
     val message: OpenAIMessage,
-    @SerialName("finish_reason") val finishReason: String?
+    @SerialName("finish_reason") val finishReason: String?,
 )
 
 @Serializable
 data class Usage(
     @SerialName("prompt_tokens") val promptTokens: Int,
     @SerialName("completion_tokens") val completionTokens: Int,
-    @SerialName("total_tokens") val totalTokens: Int
+    @SerialName("total_tokens") val totalTokens: Int,
 )
 
 @Serializable
 data class OpenAIError(
-    val error: ErrorDetails
+    val error: ErrorDetails,
 )
 
 @Serializable
 data class ErrorDetails(
     val message: String,
     val type: String,
-    val code: String?
+    val code: String?,
 )

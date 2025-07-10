@@ -23,7 +23,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
 import com.github.radupana.featherweight.viewmodel.InProgressWorkout
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
-import com.github.radupana.featherweight.ui.screens.WorkoutSummary
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 

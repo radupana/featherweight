@@ -148,7 +148,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
-    
+
     fun clearAllMaxesForExercise(exerciseId: Long) {
         viewModelScope.launch {
             try {
@@ -168,12 +168,15 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
-    
+
     fun clearSuccessMessage() {
         _uiState.value = _uiState.value.copy(successMessage = null)
     }
-    
-    fun updateExerciseMax(exerciseName: String, maxWeight: Float) {
+
+    fun updateExerciseMax(
+        exerciseName: String,
+        maxWeight: Float,
+    ) {
         viewModelScope.launch {
             try {
                 println("🔄 ProfileViewModel: Updating 1RM for $exerciseName to $maxWeight kg")
@@ -185,7 +188,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                         exerciseId = exercise.id,
                         maxWeight = maxWeight,
                         isEstimated = false,
-                        notes = "Updated from programme setup"
+                        notes = "Updated from programme setup",
                     )
                     println("✅ ProfileViewModel: Successfully updated 1RM")
                 } else {
@@ -194,13 +197,14 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             } catch (e: Exception) {
                 println("❌ ProfileViewModel: Error updating 1RM: ${e.message}")
                 e.printStackTrace()
-                _uiState.value = _uiState.value.copy(
-                    error = "Failed to update 1RM for $exerciseName: ${e.message}"
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Failed to update 1RM for $exerciseName: ${e.message}",
+                    )
             }
         }
     }
-    
+
     fun findAndSelectExercise(exerciseName: String) {
         viewModelScope.launch {
             try {
@@ -209,32 +213,35 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     _uiState.value = _uiState.value.copy(selectedExercise = exercise)
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Failed to find exercise: ${e.message}"
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Failed to find exercise: ${e.message}",
+                    )
             }
         }
     }
-    
+
     fun seedWorkouts(config: WorkoutSeedConfig) {
         viewModelScope.launch {
             try {
                 println("🌱 ProfileViewModel: Starting workout seeding with config: $config")
                 val generatedCount = seedingService.seedWorkouts(config)
                 println("✅ ProfileViewModel: Workout seeding completed successfully")
-                _uiState.value = _uiState.value.copy(
-                    successMessage = "Successfully generated $generatedCount workouts"
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        successMessage = "Successfully generated $generatedCount workouts",
+                    )
             } catch (e: Exception) {
                 println("❌ ProfileViewModel: Failed to seed workouts: ${e.message}")
                 e.printStackTrace()
-                _uiState.value = _uiState.value.copy(
-                    error = "Failed to seed workouts: ${e.message}"
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Failed to seed workouts: ${e.message}",
+                    )
             }
         }
     }
-    
+
     fun clearAllWorkouts() {
         viewModelScope.launch {
             try {
@@ -243,9 +250,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 println("✅ ProfileViewModel: All workouts cleared successfully")
             } catch (e: Exception) {
                 println("❌ ProfileViewModel: Failed to clear workouts: ${e.message}")
-                _uiState.value = _uiState.value.copy(
-                    error = "Failed to clear workouts: ${e.message}"
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Failed to clear workouts: ${e.message}",
+                    )
             }
         }
     }

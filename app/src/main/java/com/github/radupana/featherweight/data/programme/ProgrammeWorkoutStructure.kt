@@ -187,12 +187,14 @@ object IncrementSerializer : KSerializer<IncrementStructure> {
         encoder: Encoder,
         value: IncrementStructure,
     ) {
-        val jsonElement = when (value) {
-            is IncrementStructure.Single -> JsonPrimitive(value.value)
-            is IncrementStructure.PerExercise -> JsonObject(
-                value.values.mapValues { JsonPrimitive(it.value) }
-            )
-        }
+        val jsonElement =
+            when (value) {
+                is IncrementStructure.Single -> JsonPrimitive(value.value)
+                is IncrementStructure.PerExercise ->
+                    JsonObject(
+                        value.values.mapValues { JsonPrimitive(it.value) },
+                    )
+            }
         encoder.encodeSerializableValue(JsonElement.serializer(), jsonElement)
     }
 
@@ -224,12 +226,13 @@ object RepsSerializer : KSerializer<RepsStructure> {
         encoder: Encoder,
         value: RepsStructure,
     ) {
-        val jsonElement = when (value) {
-            is RepsStructure.Single -> JsonPrimitive(value.value)
-            is RepsStructure.Range -> JsonPrimitive("${value.min}-${value.max}")
-            is RepsStructure.RangeString -> JsonPrimitive(value.value)
-            is RepsStructure.PerSet -> JsonArray(value.values.map { JsonPrimitive(it) })
-        }
+        val jsonElement =
+            when (value) {
+                is RepsStructure.Single -> JsonPrimitive(value.value)
+                is RepsStructure.Range -> JsonPrimitive("${value.min}-${value.max}")
+                is RepsStructure.RangeString -> JsonPrimitive(value.value)
+                is RepsStructure.PerSet -> JsonArray(value.values.map { JsonPrimitive(it) })
+            }
         encoder.encodeSerializableValue(JsonElement.serializer(), jsonElement)
     }
 

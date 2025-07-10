@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.ui.components
 
 import androidx.compose.animation.*
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -11,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.ExerciseProgressionStatus
@@ -24,57 +22,60 @@ import com.github.radupana.featherweight.data.ProgressionAction
 fun DeloadNotificationCard(
     progressionStatus: ExerciseProgressionStatus,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     if (progressionStatus.suggestedAction != ProgressionAction.DELOAD) return
-    
+
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer
-        ),
-        shape = RoundedCornerShape(12.dp)
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+            ),
+        shape = RoundedCornerShape(12.dp),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
                 Icons.Default.TrendingDown,
                 contentDescription = "Deload",
                 tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(32.dp),
             )
-            
+
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             ) {
                 Text(
                     text = "Deload Required",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onErrorContainer
+                    color = MaterialTheme.colorScheme.onErrorContainer,
                 )
                 Text(
                     text = "${progressionStatus.exerciseName}: ${progressionStatus.consecutiveFailures} consecutive failures",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onErrorContainer
+                    color = MaterialTheme.colorScheme.onErrorContainer,
                 )
                 Text(
                     text = "Weight will be reduced by 15% this workout",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
                 )
             }
-            
+
             TextButton(
                 onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer
-                )
+                colors =
+                    ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    ),
             ) {
                 Text("Got it")
             }
@@ -88,34 +89,34 @@ fun DeloadNotificationCard(
 @Composable
 fun DeloadIndicator(
     isDeload: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
         visible = isDeload,
         enter = fadeIn() + expandHorizontally(),
-        exit = fadeOut() + shrinkHorizontally()
+        exit = fadeOut() + shrinkHorizontally(),
     ) {
         Surface(
             modifier = modifier,
             color = MaterialTheme.colorScheme.errorContainer,
-            shape = RoundedCornerShape(6.dp)
+            shape = RoundedCornerShape(6.dp),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Icon(
                     Icons.Default.TrendingDown,
                     contentDescription = "Deload",
                     tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(12.dp)
+                    modifier = Modifier.size(12.dp),
                 )
                 Text(
                     text = "DELOAD",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.error
+                    color = MaterialTheme.colorScheme.error,
                 )
             }
         }
@@ -128,104 +129,107 @@ fun DeloadIndicator(
 @Composable
 fun ProgressionStatusCard(
     status: ExerciseProgressionStatus,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = when (status.suggestedAction) {
-                ProgressionAction.DELOAD -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-                ProgressionAction.PROGRESS -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            }
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    when (status.suggestedAction) {
+                        ProgressionAction.DELOAD -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                        ProgressionAction.PROGRESS -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    },
+            ),
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = status.exerciseName,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
                 )
-                
+
                 DeloadIndicator(isDeload = status.isInDeloadCycle)
             }
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column {
                     Text(
                         text = "Current Weight",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = "${status.currentWeight}kg",
                         style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
                     )
                 }
-                
+
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = "Failures",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = "${status.consecutiveFailures}/3",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
-                        color = when (status.consecutiveFailures) {
-                            0 -> MaterialTheme.colorScheme.primary
-                            1 -> MaterialTheme.colorScheme.onSurface
-                            2 -> MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
-                            else -> MaterialTheme.colorScheme.error
-                        }
+                        color =
+                            when (status.consecutiveFailures) {
+                                0 -> MaterialTheme.colorScheme.primary
+                                1 -> MaterialTheme.colorScheme.onSurface
+                                2 -> MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                                else -> MaterialTheme.colorScheme.error
+                            },
                     )
                 }
-                
+
                 if (status.totalDeloads > 0) {
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
                             text = "Total Deloads",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
                             text = status.totalDeloads.toString(),
                             style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
                         )
                     }
                 }
             }
-            
+
             when (status.suggestedAction) {
                 ProgressionAction.DELOAD -> {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Icon(
                             Icons.Default.Warning,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(16.dp),
                         )
                         Text(
                             text = "Deload required - weight will be reduced by 15%",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
+                            color = MaterialTheme.colorScheme.error,
                         )
                     }
                 }
@@ -233,14 +237,14 @@ fun ProgressionStatusCard(
                     Text(
                         text = "Ready to progress! Weight will increase next workout",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
                 ProgressionAction.MAINTAIN -> {
                     Text(
                         text = "Maintain current weight",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 else -> {}

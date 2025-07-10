@@ -1,5 +1,9 @@
 package com.github.radupana.featherweight.ui.screens
 
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -14,29 +18,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.R
 import kotlinx.coroutines.delay
-import android.content.Context
-import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
 
 @Composable
 fun SplashScreen(onSplashFinished: () -> Unit) {
     val context = LocalContext.current
-    
+
     // Animation states
     var startAnimation by remember { mutableStateOf(false) }
     var impactOccurred by remember { mutableStateOf(false) }
-    
+
     // Weight drop animation with physics
     val logoTranslationY by animateFloatAsState(
         targetValue = if (startAnimation) 0f else -800f,
-        animationSpec = spring(
-            dampingRatio = 0.35f, // Low damping for bounce effect
-            stiffness = Spring.StiffnessLow // Realistic weight drop
-        ),
+        animationSpec =
+            spring(
+                dampingRatio = 0.35f, // Low damping for bounce effect
+                stiffness = Spring.StiffnessLow, // Realistic weight drop
+            ),
         finishedListener = {
             if (!impactOccurred) {
                 impactOccurred = true
@@ -44,47 +44,50 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
                 triggerHapticFeedback(context)
             }
         },
-        label = "logoTranslationY"
+        label = "logoTranslationY",
     )
-    
+
     // Logo fade in slightly delayed
     val logoAlpha by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = 400,
-            delayMillis = 100,
-            easing = LinearEasing
-        ),
-        label = "logoAlpha"
+        animationSpec =
+            tween(
+                durationMillis = 400,
+                delayMillis = 100,
+                easing = LinearEasing,
+            ),
+        label = "logoAlpha",
     )
-    
+
     // Screen shake effect on impact
     val screenShakeX by animateFloatAsState(
         targetValue = if (impactOccurred) 0f else 0f,
-        animationSpec = if (impactOccurred) {
-            // Create a damped oscillation for shake
-            spring(
-                dampingRatio = 0.2f,
-                stiffness = Spring.StiffnessHigh
-            )
-        } else {
-            tween(0)
-        },
-        label = "screenShakeX"
+        animationSpec =
+            if (impactOccurred) {
+                // Create a damped oscillation for shake
+                spring(
+                    dampingRatio = 0.2f,
+                    stiffness = Spring.StiffnessHigh,
+                )
+            } else {
+                tween(0)
+            },
+        label = "screenShakeX",
     )
-    
+
     // Small scale pulse after landing
     val scalePulse by animateFloatAsState(
         targetValue = if (impactOccurred) 1f else 0.95f,
-        animationSpec = if (impactOccurred) {
-            spring(
-                dampingRatio = 0.5f,
-                stiffness = Spring.StiffnessMedium
-            )
-        } else {
-            tween(0)
-        },
-        label = "scalePulse"
+        animationSpec =
+            if (impactOccurred) {
+                spring(
+                    dampingRatio = 0.5f,
+                    stiffness = Spring.StiffnessMedium,
+                )
+            } else {
+                tween(0)
+            },
+        label = "scalePulse",
     )
 
     // Background color
@@ -99,27 +102,29 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(backgroundColor)
-            .graphicsLayer {
-                // Apply subtle screen shake
-                translationX = screenShakeX * 5f // 5 pixel max shake
-            },
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(backgroundColor)
+                .graphicsLayer {
+                    // Apply subtle screen shake
+                    translationX = screenShakeX * 5f // 5 pixel max shake
+                },
+        contentAlignment = Alignment.Center,
     ) {
         // Logo that drops like a weight
         Image(
             painter = painterResource(id = R.drawable.featherweight_logo_black),
             contentDescription = "Featherweight Logo",
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .aspectRatio(1f)
-                .scale(scalePulse)
-                .alpha(logoAlpha)
-                .graphicsLayer {
-                    translationY = logoTranslationY
-                }
+            modifier =
+                Modifier
+                    .fillMaxWidth(0.8f)
+                    .aspectRatio(1f)
+                    .scale(scalePulse)
+                    .alpha(logoAlpha)
+                    .graphicsLayer {
+                        translationY = logoTranslationY
+                    },
         )
     }
 }

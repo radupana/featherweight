@@ -10,8 +10,8 @@ import androidx.compose.ui.platform.LocalDensity
 
 enum class NavigationContext {
     BOTTOM_NAVIGATION, // Screen is inside bottom navigation
-    FULL_SCREEN,      // Screen is full-screen (modal/standalone)
-    DIALOG            // Screen is a dialog
+    FULL_SCREEN, // Screen is full-screen (modal/standalone)
+    DIALOG, // Screen is a dialog
 }
 
 @Composable
@@ -43,7 +43,7 @@ fun rememberKeyboardHeight(): State<Int> {
  */
 fun Modifier.systemBarsPadding(
     navigationContext: NavigationContext = NavigationContext.BOTTOM_NAVIGATION,
-    includeIme: Boolean = true
+    includeIme: Boolean = true,
 ): Modifier {
     return when (navigationContext) {
         NavigationContext.BOTTOM_NAVIGATION -> {
@@ -76,5 +76,4 @@ fun Modifier.keyboardHandling(): Modifier =
 /**
  * Simple keyboard-only padding for cases where you're sure navigation bars are handled elsewhere.
  */
-fun Modifier.keyboardPadding(): Modifier =
-    this.imePadding()
+fun Modifier.keyboardPadding(): Modifier = this.imePadding()

@@ -11,11 +11,11 @@ import java.time.LocalDateTime
 data class Exercise(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val name: String,  // Canonical name following our naming convention
+    val name: String, // Canonical name following our naming convention
     val category: ExerciseCategory,
     val equipment: Equipment,
-    val muscleGroup: String,  // Primary muscle group
-    val movementPattern: String,  // e.g., "Squat", "Press", "Row"
+    val muscleGroup: String, // Primary muscle group
+    val movementPattern: String, // e.g., "Squat", "Press", "Row"
     val type: ExerciseType = ExerciseType.STRENGTH,
     val difficulty: ExerciseDifficulty = ExerciseDifficulty.BEGINNER,
     val requiresWeight: Boolean = true,
@@ -55,6 +55,5 @@ data class ExerciseAlias(
     // Whether this alias should be exact match only
     val exactMatchOnly: Boolean = false,
     // Source of the alias (e.g., "common", "ai", "user")
-    val source: String = "common"
+    val source: String = "common",
 )
-

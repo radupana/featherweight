@@ -43,7 +43,7 @@ private val DarkSurfaceVariant = Color(0xFF2A2A2A) // Higher elevation
 private val DarkSurfaceTint = Color(0xFF242424) // Subtle tint
 
 private val DarkOnBackground = Color(0xFFE1E3E6) // Off-white
-private val DarkOnSurface = Color(0xFFE1E3E6) // Off-white  
+private val DarkOnSurface = Color(0xFFE1E3E6) // Off-white
 private val DarkOnSurfaceVariant = Color(0xFF9AA0A6) // Medium light gray
 
 // Light Color Scheme
@@ -251,18 +251,20 @@ object FeatherweightColors {
 
     @Composable
     fun shimmerHighlight() = MaterialTheme.colorScheme.surface
-    
+
     @Composable
-    fun primaryGradientColors() = listOf(
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-    )
-    
+    fun primaryGradientColors() =
+        listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+        )
+
     @Composable
-    fun cardGlassGradient() = listOf(
-        Color.White.copy(alpha = 0.05f),
-        Color.White.copy(alpha = 0.02f)
-    )
+    fun cardGlassGradient() =
+        listOf(
+            Color.White.copy(alpha = 0.05f),
+            Color.White.copy(alpha = 0.02f),
+        )
 }
 
 @Composable

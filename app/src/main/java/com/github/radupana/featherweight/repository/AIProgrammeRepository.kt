@@ -7,9 +7,9 @@ import com.github.radupana.featherweight.data.AIProgrammeRequestDao
 import com.github.radupana.featherweight.data.GenerationStatus
 import com.github.radupana.featherweight.worker.ProgrammeGenerationWorker
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.Serializable
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -21,15 +21,15 @@ data class SimpleRequest(
     val selectedDuration: String? = null,
     val selectedExperience: String? = null,
     val selectedEquipment: String? = null,
-    val generationMode: String
+    val generationMode: String,
 )
 
 class AIProgrammeRepository(
     private val dao: AIProgrammeRequestDao,
-    private val workManager: WorkManager
+    private val workManager: WorkManager,
 ) {
     private val json = Json { encodeDefaults = true }
-    
+
     suspend fun createGenerationRequest(
         userInput: String,
         selectedGoal: String? = null,
@@ -37,129 +37,141 @@ class AIProgrammeRepository(
         selectedDuration: String? = null,
         selectedExperience: String? = null,
         selectedEquipment: String? = null,
-        generationMode: String
+        generationMode: String,
     ): String {
         // Create request payload
-        val simpleRequest = SimpleRequest(
-            userInput = userInput,
-            selectedGoal = selectedGoal,
-            selectedFrequency = selectedFrequency,
-            selectedDuration = selectedDuration,
-            selectedExperience = selectedExperience,
-            selectedEquipment = selectedEquipment,
-            generationMode = generationMode
-        )
-        
+        val simpleRequest =
+            SimpleRequest(
+                userInput = userInput,
+                selectedGoal = selectedGoal,
+                selectedFrequency = selectedFrequency,
+                selectedDuration = selectedDuration,
+                selectedExperience = selectedExperience,
+                selectedEquipment = selectedEquipment,
+                generationMode = generationMode,
+            )
+
         val requestPayload = json.encodeToString(simpleRequest)
-        
+
         // Create database entry
-        val request = AIProgrammeRequest(
-            requestPayload = requestPayload
-        )
+        val request =
+            AIProgrammeRequest(
+                requestPayload = requestPayload,
+            )
         dao.insert(request)
-        
+
         // Create and enqueue work
         val workRequest = ProgrammeGenerationWorker.createWorkRequest(request.id, requestPayload)
         workManager.enqueue(workRequest)
-        
+
         // Update with WorkManager ID
         dao.updateWorkManagerId(request.id, workRequest.id.toString())
-        
+
         return request.id
     }
-    
+
     fun getAllRequests(): Flow<List<AIProgrammeRequest>> = dao.getAllRequests()
-    
+
     suspend fun getRequestById(id: String): AIProgrammeRequest? = dao.getRequestById(id)
-    
+
     suspend fun retryGeneration(requestId: String) {
         val request = dao.getRequestById(requestId) ?: return
-        
+
         // Reset status to processing
         dao.updateStatus(requestId, GenerationStatus.PROCESSING)
-        
+
         // Create new work request
         val workRequest = ProgrammeGenerationWorker.createWorkRequest(requestId, request.requestPayload)
         workManager.enqueue(workRequest)
-        
+
         // Update WorkManager ID
         dao.updateWorkManagerId(requestId, workRequest.id.toString())
     }
-    
+
     suspend fun deleteRequest(id: String) {
         dao.delete(id)
     }
-    
-    suspend fun submitClarification(requestId: String, clarificationResponse: String) {
+
+    suspend fun submitClarification(
+        requestId: String,
+        clarificationResponse: String,
+    ) {
         val request = dao.getRequestById(requestId) ?: return
-        
+
         // Parse the original request payload
         val originalRequest = json.decodeFromString<SimpleRequest>(request.requestPayload)
-        
+
         // Create a new request combining original context + clarification response
         val combinedInput = "${originalRequest.userInput}\n\nClarification: $clarificationResponse"
-        
-        val newRequest = SimpleRequest(
-            userInput = combinedInput,
-            selectedGoal = originalRequest.selectedGoal,
-            selectedFrequency = originalRequest.selectedFrequency,
-            selectedDuration = originalRequest.selectedDuration,
-            selectedExperience = originalRequest.selectedExperience,
-            selectedEquipment = originalRequest.selectedEquipment,
-            generationMode = originalRequest.generationMode
-        )
-        
+
+        val newRequest =
+            SimpleRequest(
+                userInput = combinedInput,
+                selectedGoal = originalRequest.selectedGoal,
+                selectedFrequency = originalRequest.selectedFrequency,
+                selectedDuration = originalRequest.selectedDuration,
+                selectedExperience = originalRequest.selectedExperience,
+                selectedEquipment = originalRequest.selectedEquipment,
+                generationMode = originalRequest.generationMode,
+            )
+
         val newRequestPayload = json.encodeToString(newRequest)
-        
+
         // Update the request with new payload and reset status
         dao.updateStatus(requestId, GenerationStatus.PROCESSING)
-        
+
         // Store original payload if not already stored
         if (request.originalRequestPayload == null) {
-            dao.update(request.copy(
-                requestPayload = newRequestPayload,
-                originalRequestPayload = request.requestPayload,
-                clarificationMessage = null
-            ))
+            dao.update(
+                request.copy(
+                    requestPayload = newRequestPayload,
+                    originalRequestPayload = request.requestPayload,
+                    clarificationMessage = null,
+                ),
+            )
         } else {
-            dao.update(request.copy(
-                requestPayload = newRequestPayload,
-                clarificationMessage = null
-            ))
+            dao.update(
+                request.copy(
+                    requestPayload = newRequestPayload,
+                    clarificationMessage = null,
+                ),
+            )
         }
-        
+
         // Create new work request
         val workRequest = ProgrammeGenerationWorker.createWorkRequest(requestId, newRequestPayload)
         workManager.enqueue(workRequest)
-        
+
         // Update WorkManager ID
         dao.updateWorkManagerId(requestId, workRequest.id.toString())
     }
-    
+
     suspend fun getClarificationMessage(requestId: String): String? {
         return dao.getClarificationMessage(requestId)
     }
-    
+
     suspend fun cleanupStaleRequests() {
         // Get requests older than 1 hour that are still processing
-        val staleRequests = dao.getRequestsOlderThan(
-            GenerationStatus.PROCESSING,
-            System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1)
-        )
-        
+        val staleRequests =
+            dao.getRequestsOlderThan(
+                GenerationStatus.PROCESSING,
+                System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1),
+            )
+
         for (request in staleRequests) {
             if (request.workManagerId != null) {
                 try {
                     // Check WorkManager status
                     val workInfo = workManager.getWorkInfoById(UUID.fromString(request.workManagerId)).get()
-                    
+
                     if (workInfo?.state?.isFinished == true) {
                         // Work finished but DB wasn't updated
-                        val errorMessage = when (workInfo.state) {
-                            WorkInfo.State.FAILED -> "Generation failed"
-                            WorkInfo.State.CANCELLED -> "Generation was cancelled"
-                            else -> "Generation timed out"
-                        }
+                        val errorMessage =
+                            when (workInfo.state) {
+                                WorkInfo.State.FAILED -> "Generation failed"
+                                WorkInfo.State.CANCELLED -> "Generation was cancelled"
+                                else -> "Generation timed out"
+                            }
                         dao.updateStatus(request.id, GenerationStatus.FAILED, errorMessage)
                     }
                 } catch (e: Exception) {

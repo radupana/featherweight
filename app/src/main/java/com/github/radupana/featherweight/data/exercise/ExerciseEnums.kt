@@ -107,7 +107,6 @@ enum class Equipment(
 
     // Machines
     CABLE("Cable Machine"),
-    CABLE_MACHINE("Cable Machine"), // Keep for backward compatibility
     MACHINE("Machine"),
     SMITH_MACHINE("Smith Machine"),
     LEG_PRESS("Leg Press"),

@@ -19,110 +19,113 @@ fun OneRMUpdateDialog(
     pendingUpdates: List<PendingOneRMUpdate>,
     onApply: (PendingOneRMUpdate) -> Unit,
     onDismiss: () -> Unit,
-    onSkip: () -> Unit
+    onSkip: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
             Icon(
                 imageVector = Icons.Default.TrendingUp,
-                contentDescription = "Progress"
+                contentDescription = "Progress",
             )
         },
-        title = { 
+        title = {
             Text(
                 "New Personal Records Detected!",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
             )
         },
         text = {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(pendingUpdates) { update ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            ),
                     ) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
                         ) {
                             Text(
                                 text = update.exerciseName,
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
                             )
-                            
+
                             Spacer(modifier = Modifier.height(8.dp))
-                            
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Column {
                                     Text(
                                         text = "Current 1RM",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     Text(
-                                        text = if (update.currentMax != null) {
-                                            "${update.currentMax.roundToInt()}kg"
-                                        } else {
-                                            "Not set"
-                                        },
-                                        style = MaterialTheme.typography.bodyLarge
+                                        text =
+                                            if (update.currentMax != null) {
+                                                "${update.currentMax.roundToInt()}kg"
+                                            } else {
+                                                "Not set"
+                                            },
+                                        style = MaterialTheme.typography.bodyLarge,
                                     )
                                 }
-                                
+
                                 Icon(
                                     imageVector = Icons.Default.TrendingUp,
                                     contentDescription = "Increase",
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.align(Alignment.CenterVertically)
+                                    modifier = Modifier.align(Alignment.CenterVertically),
                                 )
-                                
+
                                 Column(
-                                    horizontalAlignment = Alignment.End
+                                    horizontalAlignment = Alignment.End,
                                 ) {
                                     Text(
                                         text = "New 1RM",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                     Text(
                                         text = "${update.suggestedMax.roundToInt()}kg",
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                             }
-                            
+
                             Spacer(modifier = Modifier.height(8.dp))
-                            
+
                             Text(
                                 text = "Based on: ${update.source}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            
+
                             Text(
                                 text = "Confidence: ${(update.confidence * 100).roundToInt()}%",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            
+
                             Spacer(modifier = Modifier.height(12.dp))
-                            
+
                             FilledTonalButton(
                                 onClick = { onApply(update) },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text("Update ${update.exerciseName} 1RM")
                             }
@@ -140,6 +143,6 @@ fun OneRMUpdateDialog(
             TextButton(onClick = onDismiss) {
                 Text("Close")
             }
-        }
+        },
     )
 }

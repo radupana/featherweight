@@ -9,6 +9,14 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    filter {
+        exclude("**/build/**")
+        exclude("**/*.gradle.kts")
+        exclude("**/buildSrc/**")
+    }
+}
+
 android {
     namespace = "com.github.radupana.featherweight"
     compileSdk = 35
@@ -21,14 +29,14 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
+
         // Read API key from local.properties (git-ignored file)
         val localProperties = Properties()
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
             localProperties.load(localPropertiesFile.inputStream())
         }
-        
+
         buildConfigField("String", "OPENAI_API_KEY", "\"${localProperties.getProperty("OPENAI_API_KEY", "YOUR_API_KEY_HERE")}\"")
     }
 
@@ -85,13 +93,13 @@ dependencies {
 
     // Serialization
     implementation(libs.kotlinx.serialization.json)
-    
+
     // HTTP Client
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
-    
+
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 }

@@ -1,8 +1,8 @@
 package com.github.radupana.featherweight.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -75,21 +75,25 @@ fun StrengthProgressionChart(
                         Modifier
                             .fillMaxWidth()
                             .padding(bottom = 8.dp),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = ChartTheme.tooltipElevation.dp
-                    ),
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = ChartTheme.tooltipBorderColor()
-                    )
+                    elevation =
+                        CardDefaults.cardElevation(
+                            defaultElevation = ChartTheme.tooltipElevation.dp,
+                        ),
+                    border =
+                        BorderStroke(
+                            width = 1.dp,
+                            color = ChartTheme.tooltipBorderColor(),
+                        ),
                 ) {
                     Text(
-                        text = "${WeightFormatter.formatWeightWithUnit(weight)} on ${date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}",
+                        text = "${WeightFormatter.formatWeightWithUnit(
+                            weight,
+                        )} on ${date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = ChartTheme.tooltipContentColor(),
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                         textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
                     )
                 }
             }
@@ -209,13 +213,15 @@ fun VolumeBarChart(
                         Modifier
                             .fillMaxWidth()
                             .padding(bottom = 8.dp),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = ChartTheme.tooltipElevation.dp
-                    ),
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = ChartTheme.tooltipBorderColor()
-                    )
+                    elevation =
+                        CardDefaults.cardElevation(
+                            defaultElevation = ChartTheme.tooltipElevation.dp,
+                        ),
+                    border =
+                        BorderStroke(
+                            width = 1.dp,
+                            color = ChartTheme.tooltipBorderColor(),
+                        ),
                 ) {
                     Text(
                         text = "$label: ${WeightFormatter.formatVolume(volume)}",
@@ -223,7 +229,7 @@ fun VolumeBarChart(
                         color = ChartTheme.tooltipContentColor(),
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                         textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
                     )
                 }
             }
@@ -311,7 +317,7 @@ private fun DrawScope.drawStrengthChart(
             start = Offset(padding, y),
             end = Offset(size.width - padding, y),
             strokeWidth = 1.dp.toPx(),
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 5f))
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 5f)),
         )
     }
 

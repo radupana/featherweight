@@ -8,6 +8,6 @@ interface OpenAIApi {
     @Headers("Content-Type: application/json")
     suspend fun createChatCompletion(
         @Header("Authorization") authorization: String,
-        @Body request: OpenAIRequest
+        @Body request: OpenAIRequest,
     ): Response<OpenAIResponse>
 }

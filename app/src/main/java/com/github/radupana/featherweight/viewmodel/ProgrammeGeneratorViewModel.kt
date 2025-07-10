@@ -11,14 +11,12 @@ import com.github.radupana.featherweight.data.profile.ExerciseMaxWithName
 import com.github.radupana.featherweight.repository.AIProgrammeRepository
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.AIProgrammeQuotaManager
-import com.github.radupana.featherweight.service.AIProgrammeRequest
 import com.github.radupana.featherweight.service.AIProgrammeResponse
 import com.github.radupana.featherweight.service.AIProgrammeService
-import com.github.radupana.featherweight.service.InputAnalyzer
 import com.github.radupana.featherweight.service.ExerciseMatchingService
+import com.github.radupana.featherweight.service.InputAnalyzer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class ProgrammeGeneratorViewModel(
@@ -26,10 +24,11 @@ class ProgrammeGeneratorViewModel(
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
     private val database = FeatherweightDatabase.getDatabase(application)
-    private val aiProgrammeRepository = AIProgrammeRepository(
-        database.aiProgrammeRequestDao(),
-        WorkManager.getInstance(application)
-    )
+    private val aiProgrammeRepository =
+        AIProgrammeRepository(
+            database.aiProgrammeRequestDao(),
+            WorkManager.getInstance(application),
+        )
     private val aiService = AIProgrammeService(application)
     private val quotaManager = AIProgrammeQuotaManager(application)
     private val inputAnalyzer = InputAnalyzer()
@@ -39,11 +38,16 @@ class ProgrammeGeneratorViewModel(
     private val _uiState = MutableStateFlow(GuidedInputState())
     val uiState = _uiState.asStateFlow()
 
+    fun resetState() {
+        _uiState.value = GuidedInputState()
+    }
+
     fun updateCustomInstructions(text: String) {
-        _uiState.value = _uiState.value.copy(
-            customInstructions = text,
-            errorMessage = null
-        )
+        _uiState.value =
+            _uiState.value.copy(
+                customInstructions = text,
+                errorMessage = null,
+            )
     }
 
     // GenerationMode selection removed - only using simplified approach
@@ -84,23 +88,25 @@ class ProgrammeGeneratorViewModel(
         val newEquipment = if (currentState.selectedEquipment == equipment) null else equipment
         _uiState.value = currentState.copy(selectedEquipment = newEquipment)
     }
-    
+
     // Wizard navigation functions
     fun navigateToNextStep() {
         val currentState = _uiState.value
         when (currentState.currentStep) {
             WizardStep.QUICK_SETUP -> {
                 // Only proceed if required fields are filled
-                if (currentState.selectedGoal != null && 
-                    currentState.selectedFrequency != null && 
-                    currentState.selectedDuration != null) {
+                if (currentState.selectedGoal != null &&
+                    currentState.selectedFrequency != null &&
+                    currentState.selectedDuration != null
+                ) {
                     _uiState.value = currentState.copy(currentStep = WizardStep.ABOUT_YOU)
                 }
             }
             WizardStep.ABOUT_YOU -> {
                 // Only proceed if required fields are filled
-                if (currentState.selectedExperience != null && 
-                    currentState.selectedEquipment != null) {
+                if (currentState.selectedExperience != null &&
+                    currentState.selectedEquipment != null
+                ) {
                     _uiState.value = currentState.copy(currentStep = WizardStep.CUSTOMIZE)
                 }
             }
@@ -109,7 +115,7 @@ class ProgrammeGeneratorViewModel(
             }
         }
     }
-    
+
     fun navigateToPreviousStep() {
         val currentState = _uiState.value
         when (currentState.currentStep) {
@@ -124,55 +130,52 @@ class ProgrammeGeneratorViewModel(
             }
         }
     }
-    
+
     fun navigateToStep(step: WizardStep) {
         _uiState.value = _uiState.value.copy(currentStep = step)
     }
-    
+
     // Advanced options toggle removed - only using simplified approach
-    
+
     fun canProceedToNextStep(): Boolean {
         val state = _uiState.value
         return when (state.currentStep) {
             WizardStep.QUICK_SETUP -> {
-                state.selectedGoal != null && 
-                state.selectedFrequency != null && 
-                state.selectedDuration != null
+                state.selectedGoal != null &&
+                    state.selectedFrequency != null &&
+                    state.selectedDuration != null
             }
             WizardStep.ABOUT_YOU -> {
-                state.selectedExperience != null && 
-                state.selectedEquipment != null
+                state.selectedExperience != null &&
+                    state.selectedEquipment != null
             }
             WizardStep.CUSTOMIZE -> true // Can always generate from customize step
         }
     }
-    
+
     fun isStepCompleted(step: WizardStep): Boolean {
         val state = _uiState.value
         return when (step) {
             WizardStep.QUICK_SETUP -> {
-                state.selectedGoal != null && 
-                state.selectedFrequency != null && 
-                state.selectedDuration != null
+                state.selectedGoal != null &&
+                    state.selectedFrequency != null &&
+                    state.selectedDuration != null
             }
             WizardStep.ABOUT_YOU -> {
-                state.selectedExperience != null && 
-                state.selectedEquipment != null
+                state.selectedExperience != null &&
+                    state.selectedEquipment != null
             }
             WizardStep.CUSTOMIZE -> state.customInstructions.isNotEmpty()
         }
     }
 
-
-
-
     // Input analyzer removed - using simplified approach
-    
+
     // Get contextual hints based on current selections
     fun getContextualHints(): List<String> {
         val state = _uiState.value
         val hints = mutableListOf<String>()
-        
+
         when (state.currentStep) {
             WizardStep.CUSTOMIZE -> {
                 // Add hints based on what user has selected
@@ -194,12 +197,9 @@ class ProgrammeGeneratorViewModel(
                             hints.add("Specify which sport or activity you're training for")
                             hints.add("Include any speed/agility work requirements")
                         }
-                        ProgrammeGoal.CUSTOM -> {
-                            hints.add("Be specific about your unique training goals")
-                        }
                     }
                 }
-                
+
                 // Add equipment-specific hints
                 state.selectedEquipment?.let { equipment ->
                     when (equipment) {
@@ -212,22 +212,22 @@ class ProgrammeGeneratorViewModel(
                         else -> {}
                     }
                 }
-                
+
                 // Generic helpful hints
                 hints.add("Mention any injuries or areas to work around")
                 hints.add("Note your schedule preferences or time constraints")
             }
             else -> {}
         }
-        
+
         return hints
     }
-    
+
     // Get example prompts for custom instructions
     fun getExamplePrompts(): List<String> {
         val state = _uiState.value
         val examples = mutableListOf<String>()
-        
+
         when (state.selectedGoal) {
             ProgrammeGoal.BUILD_STRENGTH -> {
                 examples.add("I've been stuck at a 315lb squat for months and want to break through")
@@ -255,10 +255,9 @@ class ProgrammeGeneratorViewModel(
                 examples.add("Training for a specific event or competition")
             }
         }
-        
+
         return examples
     }
-
 
     fun generateProgramme(onNavigateToProgrammes: (() -> Unit)? = null) {
         val currentState = _uiState.value
@@ -274,37 +273,47 @@ class ProgrammeGeneratorViewModel(
         }
 
         viewModelScope.launch {
+            // Check if there's already an active programme
+            val activeProgramme = repository.getActiveProgramme()
+            if (activeProgramme != null) {
+                _uiState.value =
+                    currentState.copy(
+                        errorMessage = "You already have an active programme: ${activeProgramme.name}. Please delete it before generating a new one.",
+                    )
+                return@launch
+            }
             _uiState.value = currentState.copy(isLoading = false) // Don't show loading anymore
-            
+
             try {
                 // Create generation request
-                val requestId = aiProgrammeRepository.createGenerationRequest(
-                    userInput = buildFullUserInput(currentState),
-                    selectedGoal = currentState.selectedGoal?.name,
-                    selectedFrequency = currentState.selectedFrequency?.daysPerWeek,
-                    selectedDuration = currentState.selectedDuration?.name,
-                    selectedExperience = currentState.selectedExperience?.name,
-                    selectedEquipment = currentState.selectedEquipment?.name,
-                    generationMode = "SIMPLIFIED"
-                )
-                
+                val requestId =
+                    aiProgrammeRepository.createGenerationRequest(
+                        userInput = buildFullUserInput(currentState),
+                        selectedGoal = currentState.selectedGoal?.name,
+                        selectedFrequency = currentState.selectedFrequency?.daysPerWeek,
+                        selectedDuration = currentState.selectedDuration?.name,
+                        selectedExperience = currentState.selectedExperience?.name,
+                        selectedEquipment = currentState.selectedEquipment?.name,
+                        generationMode = "SIMPLIFIED",
+                    )
+
                 // Increment quota usage
                 quotaManager.incrementUsage()
-                
+
                 // Show toast message
                 Toast.makeText(
                     getApplication(),
                     "Your programme is being created! Check the Programmes section",
-                    Toast.LENGTH_LONG
+                    Toast.LENGTH_LONG,
                 ).show()
-                
+
                 // Navigate to programmes screen
                 onNavigateToProgrammes?.invoke()
-                
             } catch (e: Exception) {
-                _uiState.value = currentState.copy(
-                    errorMessage = "Failed to start programme generation: ${e.message}"
-                )
+                _uiState.value =
+                    currentState.copy(
+                        errorMessage = "Failed to start programme generation: ${e.message}",
+                    )
             }
         }
     }
@@ -312,7 +321,7 @@ class ProgrammeGeneratorViewModel(
     private fun buildFullUserInput(state: GuidedInputState): String {
         return buildEnhancedUserInput(state)
     }
-    
+
     private fun buildEnhancedUserInput(state: GuidedInputState): String {
         val parts = mutableListOf<String>()
 
@@ -329,7 +338,6 @@ class ProgrammeGeneratorViewModel(
                     ProgrammeGoal.BUILD_MUSCLE -> "Primary goal: Build muscle mass and size"
                     ProgrammeGoal.LOSE_FAT -> "Primary goal: Lose fat while maintaining muscle"
                     ProgrammeGoal.ATHLETIC_PERFORMANCE -> "Primary goal: Improve athletic performance"
-                    ProgrammeGoal.CUSTOM -> "Primary goal: General fitness and health"
                 }
             parts.add(goalText)
         }
@@ -417,7 +425,7 @@ class ProgrammeGeneratorViewModel(
                 unmatchedExercises = emptyList(),
                 validationScore = 0f,
                 canProceedWithPartial = false,
-                errors = listOf("Invalid programme response")
+                errors = listOf("Invalid programme response"),
             )
         }
 
@@ -428,26 +436,28 @@ class ProgrammeGeneratorViewModel(
         response.programme.weeks.forEachIndexed { weekIndex, week ->
             week.workouts.forEachIndexed { workoutIndex, workout ->
                 workout.exercises.forEachIndexed { exerciseIndex, exercise ->
-                    val match = exerciseMatchingService.findExerciseMatch(
-                        aiName = exercise.exerciseName,
-                        exercises = exercises,
-                        aliases = aliases,
-                        minConfidence = 0.7f
-                    )
-                    
+                    val match =
+                        exerciseMatchingService.findExerciseMatch(
+                            aiName = exercise.exerciseName,
+                            exercises = exercises,
+                            aliases = aliases,
+                            minConfidence = 0.7f,
+                        )
+
                     if (match != null) {
                         validatedExercises[exercise.exerciseName] = match.exercise
                     } else {
                         // Find best matches for UI
-                        val bestMatches = exerciseMatchingService.findBestMatches(
-                            aiName = exercise.exerciseName,
-                            exercises = exercises,
-                            aliases = aliases,
-                            limit = 5
-                        )
-                        
+                        val bestMatches =
+                            exerciseMatchingService.findBestMatches(
+                                aiName = exercise.exerciseName,
+                                exercises = exercises,
+                                aliases = aliases,
+                                limit = 5,
+                            )
+
                         val searchHints = exerciseMatchingService.extractSearchHints(exercise.exerciseName)
-                        
+
                         unmatchedExercises.add(
                             ExerciseMatchingService.UnmatchedExercise(
                                 aiSuggested = exercise.exerciseName,
@@ -455,8 +465,8 @@ class ProgrammeGeneratorViewModel(
                                 workoutNumber = workoutIndex + 1,
                                 exerciseIndex = exerciseIndex,
                                 bestMatches = bestMatches,
-                                searchHints = searchHints
-                            )
+                                searchHints = searchHints,
+                            ),
                         )
                     }
                 }
@@ -464,9 +474,12 @@ class ProgrammeGeneratorViewModel(
         }
 
         val totalExercises = validatedExercises.size + unmatchedExercises.size
-        val validationScore = if (totalExercises > 0) {
-            validatedExercises.size.toFloat() / totalExercises
-        } else 0f
+        val validationScore =
+            if (totalExercises > 0) {
+                validatedExercises.size.toFloat() / totalExercises
+            } else {
+                0f
+            }
 
         return ProgrammeValidationResult(
             isValid = unmatchedExercises.isEmpty(),
@@ -474,9 +487,12 @@ class ProgrammeGeneratorViewModel(
             unmatchedExercises = unmatchedExercises,
             validationScore = validationScore,
             canProceedWithPartial = validationScore >= 0.5f,
-            warnings = if (unmatchedExercises.isNotEmpty()) {
-                listOf("${unmatchedExercises.size} exercises need to be manually selected")
-            } else emptyList()
+            warnings =
+                if (unmatchedExercises.isNotEmpty()) {
+                    listOf("${unmatchedExercises.size} exercises need to be manually selected")
+                } else {
+                    emptyList()
+                },
         )
     }
 }

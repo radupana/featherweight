@@ -4,12 +4,12 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
 import java.time.LocalDateTime
 
 data class VolumeMetrics(
@@ -68,7 +68,8 @@ data class AnalyticsState(
     val strengthMetrics: StrengthMetrics = StrengthMetrics(),
     val performanceMetrics: PerformanceMetrics = PerformanceMetrics(),
     val quickStats: QuickStats = QuickStats(),
-    val availableExercises: List<String> = listOf("Barbell Bench Press", "Barbell Back Squat", "Barbell Deadlift", "Barbell Overhead Press"),
+    val availableExercises: List<String> =
+        listOf("Barbell Bench Press", "Barbell Back Squat", "Barbell Deadlift", "Barbell Overhead Press"),
     val selectedTimeframe: String = "1M", // 1W, 1M, 3M, 6M, 1Y
     val chartViewMode: ChartViewMode = ChartViewMode.ONE_RM,
     val cachedData: CachedAnalyticsData = CachedAnalyticsData(),
@@ -86,7 +87,7 @@ class InsightsViewModel(
 
     init {
         println("🔵 AnalyticsViewModel: Initializing...")
-        
+
         // Debug: Check PersonalRecord database
         viewModelScope.launch {
             try {
@@ -99,7 +100,7 @@ class InsightsViewModel(
                 println("🏆 DEBUG ERROR: Failed to query PersonalRecords - ${e.message}")
             }
         }
-        
+
         loadInsightsData()
     }
 
@@ -111,7 +112,7 @@ class InsightsViewModel(
             val now = System.currentTimeMillis()
             val cacheAge = now - cachedData.lastUpdated
             val cacheValidDuration = 5 * 60 * 1000L // 5 minutes
-            
+
             println("🔵 AnalyticsViewModel: Cache age: ${cacheAge}ms, Valid duration: ${cacheValidDuration}ms")
             println("🔵 AnalyticsViewModel: Cache last updated: ${cachedData.lastUpdated}")
 
@@ -455,7 +456,6 @@ class InsightsViewModel(
         loadInsightsData()
     }
 
-
     suspend fun getExercisesSummary(): List<com.github.radupana.featherweight.service.ExerciseSummary> {
         return withContext(Dispatchers.IO) {
             try {
@@ -466,34 +466,37 @@ class InsightsViewModel(
             }
         }
     }
-    
+
     fun loadHighlightsData(
         onComplete: (
             recentPRs: List<com.github.radupana.featherweight.data.PersonalRecord>,
             weeklyWorkoutCount: Int,
-            currentStreak: Int
-        ) -> Unit
+            currentStreak: Int,
+        ) -> Unit,
     ) {
         viewModelScope.launch {
             try {
                 // Get recent PRs (last 30 days)
-                val recentPRs = withContext(Dispatchers.IO) {
-                    repository.getRecentPRs(limit = 5)
-                }
-                
+                val recentPRs =
+                    withContext(Dispatchers.IO) {
+                        repository.getRecentPRs(limit = 5)
+                    }
+
                 // Get workouts from this week
                 val now = LocalDateTime.now()
                 // Start from Sunday 23:59:59 to include all of Monday onwards
                 val weekStart = now.with(java.time.DayOfWeek.MONDAY).toLocalDate().atStartOfDay().minusSeconds(1)
-                val weeklyWorkoutCount = withContext(Dispatchers.IO) {
-                    repository.getCompletedWorkoutCountSince(weekStart)
-                }
-                
+                val weeklyWorkoutCount =
+                    withContext(Dispatchers.IO) {
+                        repository.getCompletedWorkoutCountSince(weekStart)
+                    }
+
                 // Get current streak (weeks with 3+ workouts)
-                val currentStreak = withContext(Dispatchers.IO) {
-                    repository.getWeeklyStreak()
-                }
-                
+                val currentStreak =
+                    withContext(Dispatchers.IO) {
+                        repository.getWeeklyStreak()
+                    }
+
                 onComplete(recentPRs, weeklyWorkoutCount, currentStreak)
             } catch (e: Exception) {
                 e.printStackTrace()

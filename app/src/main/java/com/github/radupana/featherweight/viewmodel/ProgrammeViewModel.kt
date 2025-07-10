@@ -8,22 +8,22 @@ import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.programme.*
 import com.github.radupana.featherweight.repository.AIProgrammeRepository
 import com.github.radupana.featherweight.repository.FeatherweightRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 class ProgrammeViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
     private val database = FeatherweightDatabase.getDatabase(application)
-    private val aiProgrammeRepository = AIProgrammeRepository(
-        database.aiProgrammeRequestDao(),
-        WorkManager.getInstance(application)
-    )
+    private val aiProgrammeRepository =
+        AIProgrammeRepository(
+            database.aiProgrammeRequestDao(),
+            WorkManager.getInstance(application),
+        )
 
     // UI State
     private val _uiState = MutableStateFlow(ProgrammeUiState())
@@ -44,7 +44,7 @@ class ProgrammeViewModel(
     // All user programmes (including inactive)
     private val _allProgrammes = MutableStateFlow<List<Programme>>(emptyList())
     val allProgrammes: StateFlow<List<Programme>> = _allProgrammes
-    
+
     // AI programme requests
     val aiProgrammeRequests = aiProgrammeRepository.getAllRequests()
 
@@ -54,7 +54,6 @@ class ProgrammeViewModel(
     // User's 1RM values for setup
     private val _userMaxes = MutableStateFlow(UserMaxes())
     val userMaxes: StateFlow<UserMaxes> = _userMaxes
-
 
     init {
         println("🔄 ProgrammeViewModel: Initializing...")
@@ -73,10 +72,20 @@ class ProgrammeViewModel(
                     )
             }
         }
-        
+
         // Cleanup stale AI requests on startup
         viewModelScope.launch {
             aiProgrammeRepository.cleanupStaleRequests()
+        }
+
+        // Monitor AI programme requests flow for debugging
+        viewModelScope.launch {
+            aiProgrammeRequests.collect { requests ->
+                println("📊 ProgrammeViewModel: AI requests updated, count: ${requests.size}")
+                requests.forEach { request ->
+                    println("  - ${request.id}: ${request.status}")
+                }
+            }
         }
 
         // Update templates directly without filtering
@@ -108,7 +117,6 @@ class ProgrammeViewModel(
             }
         }
     }
-
 
     private fun loadProgrammeData(showLoading: Boolean = true) {
         viewModelScope.launch {
@@ -173,7 +181,6 @@ class ProgrammeViewModel(
             }
         }
     }
-
 
     fun selectTemplate(template: ProgrammeTemplate) {
         // Check if there's an active programme
@@ -351,13 +358,14 @@ class ProgrammeViewModel(
                     val hasUpdates = checkAndPromptForProfileUpdate(maxes, profileViewModel)
                     if (hasUpdates) {
                         // Store the success callback to execute after profile update
-                        _uiState.value = _uiState.value.copy(
-                            pendingNavigationCallback = onSuccess
-                        )
+                        _uiState.value =
+                            _uiState.value.copy(
+                                pendingNavigationCallback = onSuccess,
+                            )
                         return@launch // Don't navigate yet
                     }
                 }
-                
+
                 // No profile updates needed, navigate immediately
                 onSuccess?.invoke()
             } catch (e: Exception) {
@@ -412,14 +420,23 @@ class ProgrammeViewModel(
             loadProgrammeData(showLoading = false)
         }
     }
-    
+
+    fun forceRefreshAIRequests() {
+        // Force refresh AI requests when returning from preview
+        viewModelScope.launch {
+            println("🔄 ProgrammeViewModel: Force refreshing AI requests")
+            // This will trigger the Flow to re-emit
+            aiProgrammeRepository.cleanupStaleRequests()
+        }
+    }
+
     private suspend fun checkAndPromptForProfileUpdate(
         enteredMaxes: UserMaxes,
-        profileViewModel: ProfileViewModel
+        profileViewModel: ProfileViewModel,
     ): Boolean {
         val currentMaxes = profileViewModel.uiState.value.currentMaxes
         val updates = mutableListOf<Pair<String, Float>>()
-        
+
         // Check Squat - compare against actual value, not just null
         enteredMaxes.squat?.let { newSquat ->
             val currentSquat = currentMaxes.find { it.exerciseName == "Barbell Back Squat" }?.maxWeight
@@ -427,7 +444,7 @@ class ProgrammeViewModel(
                 updates.add("Barbell Back Squat" to newSquat)
             }
         }
-        
+
         // Check Bench - compare against actual value, not just null
         enteredMaxes.bench?.let { newBench ->
             val currentBench = currentMaxes.find { it.exerciseName == "Barbell Bench Press" }?.maxWeight
@@ -435,7 +452,7 @@ class ProgrammeViewModel(
                 updates.add("Barbell Bench Press" to newBench)
             }
         }
-        
+
         // Check Deadlift - compare against actual value, not just null
         enteredMaxes.deadlift?.let { newDeadlift ->
             val currentDeadlift = currentMaxes.find { it.exerciseName == "Barbell Deadlift" }?.maxWeight
@@ -443,7 +460,7 @@ class ProgrammeViewModel(
                 updates.add("Barbell Deadlift" to newDeadlift)
             }
         }
-        
+
         // Check OHP - compare against actual value, not just null
         enteredMaxes.ohp?.let { newOhp ->
             val currentOhp = currentMaxes.find { it.exerciseName == "Barbell Overhead Press" }?.maxWeight
@@ -451,48 +468,50 @@ class ProgrammeViewModel(
                 updates.add("Barbell Overhead Press" to newOhp)
             }
         }
-        
+
         // If there are updates, show prompt
         if (updates.isNotEmpty()) {
-            _uiState.value = _uiState.value.copy(
-                showProfileUpdatePrompt = true,
-                pendingProfileUpdates = updates
-            )
+            _uiState.value =
+                _uiState.value.copy(
+                    showProfileUpdatePrompt = true,
+                    pendingProfileUpdates = updates,
+                )
             return true
         }
         return false
     }
-    
+
     fun confirmProfileUpdate(profileViewModel: ProfileViewModel) {
         viewModelScope.launch {
             println("🔄 ProgrammeViewModel: Starting profile update")
             val updates = _uiState.value.pendingProfileUpdates
             println("📊 ProgrammeViewModel: Updating ${updates.size} exercises")
-            
+
             // Wait for all updates to complete
-            val updateJobs = updates.map { (exerciseName, newMax) ->
-                async {
-                    println("🔄 ProgrammeViewModel: Updating $exerciseName to $newMax kg")
-                    // Call the suspend function directly instead of launching another coroutine
-                    updateExerciseMaxDirectly(profileViewModel, exerciseName, newMax)
+            val updateJobs =
+                updates.map { (exerciseName, newMax) ->
+                    async {
+                        println("🔄 ProgrammeViewModel: Updating $exerciseName to $newMax kg")
+                        // Call the suspend function directly instead of launching another coroutine
+                        updateExerciseMaxDirectly(profileViewModel, exerciseName, newMax)
+                    }
                 }
-            }
-            
+
             // Wait for all updates to complete
             updateJobs.awaitAll()
             println("✅ ProgrammeViewModel: All profile updates completed")
-            
+
             // Execute pending navigation if any
             val callback = _uiState.value.pendingNavigationCallback
             dismissProfileUpdatePrompt()
             callback?.invoke()
         }
     }
-    
+
     private suspend fun updateExerciseMaxDirectly(
         profileViewModel: ProfileViewModel,
         exerciseName: String,
-        maxWeight: Float
+        maxWeight: Float,
     ) {
         try {
             println("🔄 Updating 1RM for $exerciseName to $maxWeight kg")
@@ -503,7 +522,7 @@ class ProgrammeViewModel(
                     exerciseId = exercise.id,
                     maxWeight = maxWeight,
                     isEstimated = false,
-                    notes = "Updated from programme setup"
+                    notes = "Updated from programme setup",
                 )
                 println("✅ Successfully updated 1RM for $exerciseName")
             } else {
@@ -514,17 +533,18 @@ class ProgrammeViewModel(
             e.printStackTrace()
         }
     }
-    
+
     fun dismissProfileUpdatePrompt() {
         // Execute pending navigation even if user skips update
         val callback = _uiState.value.pendingNavigationCallback
-        
-        _uiState.value = _uiState.value.copy(
-            showProfileUpdatePrompt = false,
-            pendingProfileUpdates = emptyList(),
-            pendingNavigationCallback = null
-        )
-        
+
+        _uiState.value =
+            _uiState.value.copy(
+                showProfileUpdatePrompt = false,
+                pendingProfileUpdates = emptyList(),
+                pendingNavigationCallback = null,
+            )
+
         callback?.invoke()
     }
 
@@ -541,7 +561,10 @@ class ProgrammeViewModel(
         }
     }
 
-    fun previewAIProgramme(requestId: String, onResult: (Boolean) -> Unit) {
+    fun previewAIProgramme(
+        requestId: String,
+        onResult: (Boolean) -> Unit,
+    ) {
         viewModelScope.launch {
             try {
                 val request = aiProgrammeRepository.getRequestById(requestId)
@@ -549,42 +572,49 @@ class ProgrammeViewModel(
                     // Parse the generated programme JSON
                     val aiService = com.github.radupana.featherweight.service.AIProgrammeService(getApplication())
                     val response = aiService.parseAIProgrammeResponse(request.generatedProgrammeJson)
-                    
+
                     if (response.programme != null) {
                         // Store in holder for preview screen with request ID
                         GeneratedProgrammeHolder.setGeneratedProgramme(response, requestId)
-                        
+
                         // Validation will be done in ProgrammePreviewViewModel
                         onResult(true)
                     } else {
-                        _uiState.value = _uiState.value.copy(
-                            error = "Failed to parse programme data"
-                        )
+                        _uiState.value =
+                            _uiState.value.copy(
+                                error = "Failed to parse programme data",
+                            )
                         onResult(false)
                     }
                 } else {
-                    _uiState.value = _uiState.value.copy(
-                        error = "Programme not found or still generating"
-                    )
+                    _uiState.value =
+                        _uiState.value.copy(
+                            error = "Programme not found or still generating",
+                        )
                     onResult(false)
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Error loading programme: ${e.message}"
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Error loading programme: ${e.message}",
+                    )
                 onResult(false)
             }
         }
     }
 
-    fun submitClarification(requestId: String, clarificationText: String) {
+    fun submitClarification(
+        requestId: String,
+        clarificationText: String,
+    ) {
         viewModelScope.launch {
             try {
                 aiProgrammeRepository.submitClarification(requestId, clarificationText)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Failed to submit clarification: ${e.message}"
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Failed to submit clarification: ${e.message}",
+                    )
             }
         }
     }

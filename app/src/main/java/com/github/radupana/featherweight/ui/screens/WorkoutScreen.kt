@@ -21,16 +21,15 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -38,11 +37,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.CompactExerciseCard
-import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
 import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
+import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
+import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
 import com.github.radupana.featherweight.ui.dialogs.SetEditingModal
 import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
-import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
 import com.github.radupana.featherweight.ui.utils.NavigationContext
 import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
@@ -72,8 +71,8 @@ fun WorkoutScreen(
         Log.d(
             "DragReorder",
             "WorkoutScreen recomposed with exercises: ${exercises.mapIndexed {
-                idx,
-                ex,
+                    idx,
+                    ex,
                 ->
                 "$idx:${ex.exerciseName}"
             }.joinToString()}",
@@ -127,21 +126,21 @@ fun WorkoutScreen(
 
     val canEdit = viewModel.canEditWorkout()
     val isEditMode = workoutState.isInEditMode
-    
+
     // Show 1RM update dialog when there are pending updates
     LaunchedEffect(pendingOneRMUpdates, workoutState.status) {
         if (pendingOneRMUpdates.isNotEmpty() && workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
             showOneRMUpdateDialog = true
         }
     }
-    
+
     // Show PR celebration when there are pending PRs
     LaunchedEffect(workoutState.shouldShowPRCelebration) {
         if (workoutState.shouldShowPRCelebration) {
             showPRCelebration = true
         }
     }
-    
+
     // Navigate away after dealing with 1RM updates
     LaunchedEffect(shouldNavigateAfterCompletion, pendingOneRMUpdates, showOneRMUpdateDialog) {
         if (shouldNavigateAfterCompletion && pendingOneRMUpdates.isEmpty() && !showOneRMUpdateDialog) {
@@ -572,7 +571,14 @@ fun WorkoutScreen(
                             .filter { it.exerciseLogId == setEditingExercise!!.id }
                             .maxByOrNull { it.setOrder }
                     if (lastSet != null) {
-                        viewModel.addSetToExercise(setEditingExercise!!.id, lastSet.actualReps, lastSet.actualWeight, lastSet.actualWeight, lastSet.actualReps, lastSet.actualRpe)
+                        viewModel.addSetToExercise(
+                            setEditingExercise!!.id,
+                            lastSet.actualReps,
+                            lastSet.actualWeight,
+                            lastSet.actualWeight,
+                            lastSet.actualReps,
+                            lastSet.actualRpe,
+                        )
                     } else {
                         viewModel.addSetToExercise(setEditingExercise!!.id)
                     }
@@ -621,7 +627,7 @@ fun WorkoutScreen(
             readOnly = !canEdit,
         )
     }
-    
+
     // 1RM Update Dialog
     if (showOneRMUpdateDialog && pendingOneRMUpdates.isNotEmpty()) {
         OneRMUpdateDialog(
@@ -643,10 +649,10 @@ fun WorkoutScreen(
                 if (shouldNavigateAfterCompletion) {
                     onBack()
                 }
-            }
+            },
         )
     }
-    
+
     // PR Celebration Dialog
     if (showPRCelebration && workoutState.pendingPRs.isNotEmpty()) {
         PRCelebrationDialog(
@@ -654,7 +660,7 @@ fun WorkoutScreen(
             onDismiss = {
                 showPRCelebration = false
                 viewModel.clearPendingPRs()
-            }
+            },
         )
     }
 }
@@ -769,7 +775,7 @@ private fun WorkoutMenuDialog(
                         }
                     }
                 }
-                
+
                 if (canEdit) {
                     TextButton(
                         onClick = onEditName,
@@ -1209,7 +1215,6 @@ private fun WorkoutActionButtons(
     }
 }
 
-
 @Composable
 private fun UnifiedProgressCard(
     completedSets: Int,
@@ -1232,10 +1237,11 @@ private fun UnifiedProgressCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-        ),
-        shape = RoundedCornerShape(12.dp)
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+            ),
+        shape = RoundedCornerShape(12.dp),
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -1252,7 +1258,7 @@ private fun UnifiedProgressCard(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    
+
                     programmeProgress?.let { (completed, total) ->
                         if (total > 0) {
                             Surface(
@@ -1270,19 +1276,19 @@ private fun UnifiedProgressCard(
                         }
                     }
                 }
-                
+
                 if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
                     Text(
                         text = "Week ${workoutState.weekNumber} • Day ${workoutState.dayNumber} • ${workoutState.programmeWorkoutName ?: "Workout"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp)
+                        modifier = Modifier.padding(top = 2.dp),
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(12.dp))
             }
-            
+
             // Workout section
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1294,17 +1300,17 @@ private fun UnifiedProgressCard(
                     style = if (workoutState.isProgrammeWorkout) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
                     fontWeight = if (workoutState.isProgrammeWorkout) FontWeight.Medium else FontWeight.SemiBold,
                 )
-                
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
             LinearProgressIndicator(
                 progress = { workoutProgress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
             )
@@ -1321,4 +1327,3 @@ private fun UnifiedProgressCard(
         }
     }
 }
-

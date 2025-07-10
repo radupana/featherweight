@@ -13,7 +13,7 @@ data class ProgrammeValidationResult(
     val validationScore: Float, // 0.0 to 1.0
     val canProceedWithPartial: Boolean,
     val warnings: List<String> = emptyList(),
-    val errors: List<String> = emptyList()
+    val errors: List<String> = emptyList(),
 ) {
     val matchedCount: Int get() = validatedExercises.size
     val totalCount: Int get() = validatedExercises.size + unmatchedExercises.size
@@ -24,10 +24,10 @@ data class ProgrammeValidationResult(
  * Options for handling validation results.
  */
 enum class ValidationAction {
-    PROCEED_WITH_ALL,      // All exercises matched
-    FIX_UNMATCHED,        // User needs to select replacements
-    REGENERATE,           // Request new programme from AI
-    CANCEL                // Cancel programme creation
+    PROCEED_WITH_ALL, // All exercises matched
+    FIX_UNMATCHED, // User needs to select replacements
+    REGENERATE, // Request new programme from AI
+    CANCEL, // Cancel programme creation
 }
 
 /**
@@ -35,5 +35,5 @@ enum class ValidationAction {
  */
 data class ExerciseReplacement(
     val unmatchedExercise: UnmatchedExercise,
-    val selectedExercise: Exercise
+    val selectedExercise: Exercise,
 )

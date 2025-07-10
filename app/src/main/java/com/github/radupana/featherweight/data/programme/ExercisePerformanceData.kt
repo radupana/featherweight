@@ -9,5 +9,5 @@ data class ExercisePerformanceData(
     val reps: Int,
     val sets: Int,
     val workoutDate: java.time.LocalDateTime,
-    val allSetsCompleted: Boolean
+    val allSetsCompleted: Boolean,
 )

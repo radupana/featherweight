@@ -10,12 +10,10 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.ui.utils.NavigationContext
@@ -37,9 +35,9 @@ fun AdaptiveSearchLayout(
     val isKeyboardVisible by rememberKeyboardState()
     val focusRequester = remember { FocusRequester() }
     var isSearchFocused by remember { mutableStateOf(false) }
-    
+
     val isCompactMode = isKeyboardVisible || isSearchFocused
-    
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -51,24 +49,25 @@ fun AdaptiveSearchLayout(
                 isCompact = isCompactMode,
                 focusRequester = focusRequester,
                 onSearchFocusChanged = { isSearchFocused = it },
-                actions = actions
+                actions = actions,
             )
-        }
+        },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .systemBarsPadding(NavigationContext.FULL_SCREEN)
+            modifier =
+                Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+                    .systemBarsPadding(NavigationContext.FULL_SCREEN),
         ) {
             AnimatedVisibility(
                 visible = !isCompactMode,
                 enter = slideInVertically() + fadeIn(),
-                exit = slideOutVertically() + fadeOut()
+                exit = slideOutVertically() + fadeOut(),
             ) {
                 filters()
             }
-            
+
             content()
         }
     }
@@ -92,9 +91,9 @@ private fun AdaptiveTopBar(
                 targetState = isCompact,
                 transitionSpec = {
                     slideInHorizontally { -it } + fadeIn() togetherWith
-                            slideOutHorizontally { it } + fadeOut()
+                        slideOutHorizontally { it } + fadeOut()
                 },
-                label = "title_search_transition"
+                label = "title_search_transition",
             ) { compact ->
                 if (compact) {
                     CompactSearchBar(
@@ -102,7 +101,7 @@ private fun AdaptiveTopBar(
                         onQueryChange = onSearchChange,
                         focusRequester = focusRequester,
                         onFocusChanged = onSearchFocusChanged,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
                     Text(
@@ -121,13 +120,13 @@ private fun AdaptiveTopBar(
             AnimatedVisibility(
                 visible = !isCompact,
                 enter = scaleIn() + fadeIn(),
-                exit = scaleOut() + fadeOut()
+                exit = scaleOut() + fadeOut(),
             ) {
                 Row {
                     actions()
                 }
             }
-        }
+        },
     )
 }
 
@@ -142,27 +141,32 @@ private fun CompactSearchBar(
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        modifier = modifier
-            .focusRequester(focusRequester)
-            .onFocusChanged { focusState ->
-                onFocusChanged(focusState.isFocused)
-            },
+        modifier =
+            modifier
+                .focusRequester(focusRequester)
+                .onFocusChanged { focusState ->
+                    onFocusChanged(focusState.isFocused)
+                },
         placeholder = { Text("Search...") },
         leadingIcon = {
             Icon(Icons.Filled.Search, contentDescription = "Search")
         },
-        trailingIcon = if (query.isNotEmpty()) {
-            {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Filled.Clear, contentDescription = "Clear")
+        trailingIcon =
+            if (query.isNotEmpty()) {
+                {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(Icons.Filled.Clear, contentDescription = "Clear")
+                    }
                 }
-            }
-        } else null,
+            } else {
+                null
+            },
         singleLine = true,
         shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-        )
+        colors =
+            OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+            ),
     )
 }
 
@@ -181,13 +185,16 @@ fun CompactSearchField(
         leadingIcon = {
             Icon(Icons.Filled.Search, contentDescription = "Search")
         },
-        trailingIcon = if (query.isNotEmpty()) {
-            {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Filled.Clear, contentDescription = "Clear")
+        trailingIcon =
+            if (query.isNotEmpty()) {
+                {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(Icons.Filled.Clear, contentDescription = "Clear")
+                    }
                 }
-            }
-        } else null,
+            } else {
+                null
+            },
         singleLine = true,
         shape = RoundedCornerShape(12.dp),
     )

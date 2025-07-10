@@ -5,14 +5,13 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -42,7 +41,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -50,17 +48,12 @@ import androidx.compose.ui.window.DialogProperties
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.domain.SmartSuggestions
-import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
-import com.github.radupana.featherweight.ui.components.IntelligentSetInput
-import com.github.radupana.featherweight.ui.components.IntelligentSuggestionCard
 import com.github.radupana.featherweight.ui.components.CenteredInputField
 import com.github.radupana.featherweight.ui.components.InputFieldType
+import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
+import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
-import com.github.radupana.featherweight.util.WeightFormatter
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
@@ -85,21 +78,21 @@ fun SetEditingModal(
     val focusManager = LocalFocusManager.current
     val listState = rememberLazyListState()
     val timerState by restTimerViewModel.timerState.collectAsState()
-    
+
     // Intelligent suggestions state
     var intelligentSuggestions by remember { mutableStateOf<SmartSuggestions?>(null) }
     var showSuggestions by remember { mutableStateOf(false) }
-    
+
     // Workout timer state
     val workoutState by viewModel.workoutState.collectAsState()
     val elapsedWorkoutTime by viewModel.elapsedWorkoutTime.collectAsState()
     val setCompletionValidation by viewModel.setCompletionValidation.collectAsState()
-    
+
     // Load intelligent suggestions when modal opens
     LaunchedEffect(exercise.exerciseName) {
         intelligentSuggestions = viewModel.getIntelligentSuggestions(exercise.exerciseName)
     }
-    
+
     // Ensure validation cache is updated when sets change
     LaunchedEffect(sets) {
         sets.forEach { set ->
@@ -115,7 +108,7 @@ fun SetEditingModal(
             listState.animateScrollToItem(sets.size) // Scroll to action buttons after last set
         }
     }
-    
+
     // Auto-scroll to focused input field when keyboard appears
     LaunchedEffect(keyboardController) {
         // Listen for keyboard state changes and auto-scroll if needed
@@ -218,12 +211,12 @@ fun SetEditingModal(
                     onRestSkip = { restTimerViewModel.stopTimer() },
                     onRestTogglePause = { restTimerViewModel.togglePause() },
                 )
-                
+
                 // Collapsible Insights Section
                 val exerciseHistory by viewModel.exerciseHistory.collectAsState()
                 val previousSets = exerciseHistory[exercise.exerciseName]?.sets ?: emptyList()
                 var showInsights by remember { mutableStateOf(false) }
-                
+
                 if (previousSets.isNotEmpty() || (!isProgrammeWorkout && intelligentSuggestions != null)) {
                     InsightsSection(
                         exerciseName = exercise.exerciseName,
@@ -240,7 +233,7 @@ fun SetEditingModal(
                                     targetWeight = alternative.actualWeight,
                                     weight = alternative.actualWeight,
                                     reps = alternative.actualReps,
-                                    rpe = alternative.actualRpe
+                                    rpe = alternative.actualRpe,
                                 )
                             } else {
                                 val firstUncompletedSet = sets.firstOrNull { !it.isCompleted }
@@ -258,7 +251,7 @@ fun SetEditingModal(
                                     targetWeight = suggestion.suggestedWeight,
                                     weight = suggestion.suggestedWeight,
                                     reps = suggestion.suggestedReps,
-                                    rpe = suggestion.suggestedRpe
+                                    rpe = suggestion.suggestedRpe,
                                 )
                             } else {
                                 val firstUncompletedSet = sets.firstOrNull { !it.isCompleted }
@@ -267,7 +260,7 @@ fun SetEditingModal(
                                 }
                             }
                         },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
                 }
 
@@ -286,11 +279,12 @@ fun SetEditingModal(
                         if (sets.isNotEmpty()) {
                             // Modal header for input fields
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
                                     "Target",
@@ -331,13 +325,13 @@ fun SetEditingModal(
                                 if (hasPopulatedSets) {
                                     IconButton(
                                         onClick = onCompleteAllSets,
-                                        modifier = Modifier.size(48.dp)
+                                        modifier = Modifier.size(48.dp),
                                     ) {
                                         Icon(
                                             Icons.Filled.CheckCircle,
                                             contentDescription = "Complete all",
                                             tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(24.dp),
                                         )
                                     }
                                 } else {
@@ -400,14 +394,13 @@ fun SetEditingModal(
                                                     Text(
                                                         "No sets recorded",
                                                         style = MaterialTheme.typography.bodyMedium,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     )
                                                 }
                                             }
                                         }
                                     }
                                 }
-
 
                                 items(sets) { set ->
                                     key(set.id) {
@@ -423,7 +416,7 @@ fun SetEditingModal(
                                                 },
                                                 positionalThreshold = { totalDistance ->
                                                     totalDistance * 0.33f // Require 33% swipe distance
-                                                }
+                                                },
                                             )
 
                                         CleanSetLayout(
@@ -857,12 +850,15 @@ fun CleanSetLayout(
     readOnly: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    // Input states - Store as TextFieldValue to preserve cursor position  
+    // Input states - Store as TextFieldValue to preserve cursor position
     // Use both set.id and the actual values as remember keys so UI updates when data changes
     var weightInput by remember(set.id, set.actualWeight) {
-        val text = if (set.actualWeight > 0) {
-            WeightFormatter.formatWeight(set.actualWeight)
-        } else ""
+        val text =
+            if (set.actualWeight > 0) {
+                WeightFormatter.formatWeight(set.actualWeight)
+            } else {
+                ""
+            }
         mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
     var repsInput by remember(set.id, set.actualReps) {
@@ -876,7 +872,7 @@ fun CleanSetLayout(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         // Swipeable Input Area - ONLY this part can be swiped to delete
         SwipeToDismissBox(
@@ -886,54 +882,58 @@ fun CleanSetLayout(
                 val progress = swipeToDismissState.progress
                 val targetValue = swipeToDismissState.targetValue
                 val currentValue = swipeToDismissState.currentValue
-                
+
                 // Show red only when:
                 // 1. We have swipe progress (item is displaced)
                 // 2. Target is delete direction (EndToStart)
                 // 3. Not already dismissed
                 // Use very small threshold to detect swipe immediately
-                if (progress > 0.01f && 
-                    targetValue == SwipeToDismissBoxValue.EndToStart && 
-                    currentValue != SwipeToDismissBoxValue.EndToStart) {
-                    
+                if (progress > 0.01f &&
+                    targetValue == SwipeToDismissBoxValue.EndToStart &&
+                    currentValue != SwipeToDismissBoxValue.EndToStart
+                ) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.CenterEnd
+                        contentAlignment = Alignment.CenterEnd,
                     ) {
                         // Dynamic red stripe that grows with swipe
                         // Start with minimum width for immediate visibility
                         val minWidth = 40.dp
                         val maxAdditionalWidth = 160.dp
                         val currentWidth = minWidth + (maxAdditionalWidth.value * progress).dp
-                        
+
                         Surface(
-                            modifier = Modifier
-                                .width(currentWidth)
-                                .fillMaxHeight()
-                                .padding(vertical = 2.dp),
+                            modifier =
+                                Modifier
+                                    .width(currentWidth)
+                                    .fillMaxHeight()
+                                    .padding(vertical = 2.dp),
                             color = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
-                            shape = RoundedCornerShape(
-                                topStart = 8.dp,
-                                bottomStart = 8.dp,
-                                topEnd = 0.dp,
-                                bottomEnd = 0.dp
-                            ),
+                            shape =
+                                RoundedCornerShape(
+                                    topStart = 8.dp,
+                                    bottomStart = 8.dp,
+                                    topEnd = 0.dp,
+                                    bottomEnd = 0.dp,
+                                ),
                         ) {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
+                                contentAlignment = Alignment.Center,
                             ) {
                                 // Icon that becomes more visible with progress
                                 val iconOffset = ((1 - progress) * 15).dp
                                 Icon(
                                     Icons.Filled.Delete,
                                     contentDescription = "Delete",
-                                    tint = MaterialTheme.colorScheme.onError.copy(
-                                        alpha = 0.6f + (0.4f * progress)
-                                    ),
-                                    modifier = Modifier
-                                        .size((20 + (4 * progress)).dp)
-                                        .offset(x = iconOffset)
+                                    tint =
+                                        MaterialTheme.colorScheme.onError.copy(
+                                            alpha = 0.6f + (0.4f * progress),
+                                        ),
+                                    modifier =
+                                        Modifier
+                                            .size((20 + (4 * progress)).dp)
+                                            .offset(x = iconOffset),
                                 )
                             }
                         }
@@ -944,119 +944,123 @@ fun CleanSetLayout(
             enableDismissFromEndToStart = true,
         ) {
             // Clean Input Row - Only this gets swiped
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Target column - read-only
-            val targetDisplay = if (isProgrammeWorkout && set.targetReps > 0) {
-                if (set.targetWeight != null && set.targetWeight > 0) {
-                    "${set.targetReps}×${WeightFormatter.formatWeight(set.targetWeight)}"
-                } else {
-                    "${set.targetReps}"
-                }
-            } else {
-                ""
-            }
-            
-            Box(
-                modifier = Modifier
-                    .weight(0.8f)
-                    .height(48.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        shape = RoundedCornerShape(8.dp)
-                    ),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = targetDisplay,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = if (targetDisplay.isNotEmpty()) FontWeight.Medium else FontWeight.Normal
-                )
-            }
-
-            // Weight input
-            CenteredInputField(
-                value = weightInput,
-                onValueChange = { textFieldValue ->
-                    if (!readOnly) {
-                        weightInput = textFieldValue
-                        val weight = textFieldValue.text.toFloatOrNull() ?: 0f
-                        onUpdateSet(set.actualReps, weight, set.actualRpe)
-                    }
-                },
-                fieldType = InputFieldType.WEIGHT,
-                placeholder = "",  // No placeholder
-                modifier = Modifier.weight(0.8f).height(48.dp),
-                imeAction = ImeAction.Next
-            )
-
-            // Reps input
-            CenteredInputField(
-                value = repsInput,
-                onValueChange = { textFieldValue ->
-                    if (!readOnly) {
-                        repsInput = textFieldValue
-                        val reps = textFieldValue.text.toIntOrNull() ?: 0
-                        onUpdateSet(reps, set.actualWeight, set.actualRpe)
-                    }
-                },
-                fieldType = InputFieldType.REPS,
-                placeholder = "",  // No placeholder
-                modifier = Modifier.weight(0.6f).height(48.dp),
-                imeAction = ImeAction.Next
-            )
-
-            // RPE input
-            CenteredInputField(
-                value = rpeInput,
-                onValueChange = { textFieldValue ->
-                    if (!readOnly) {
-                        rpeInput = textFieldValue
-                        val rpe = textFieldValue.text.toIntOrNull()?.toFloat()
-                        onUpdateSet(set.actualReps, set.actualWeight, rpe)
-                    }
-                },
-                fieldType = InputFieldType.RPE,
-                placeholder = "",  // No placeholder
-                modifier = Modifier.weight(0.6f).height(48.dp),
-                imeAction = ImeAction.Done
-            )
-
-            // Completion checkbox
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clickable(
-                        enabled = !readOnly && (canMarkComplete || set.isCompleted),
-                        onClick = {
-                            val newChecked = !set.isCompleted
-                            if (!newChecked || canMarkComplete) {
-                                onToggleCompleted(newChecked)
-                            }
+                // Target column - read-only
+                val targetDisplay =
+                    if (isProgrammeWorkout && set.targetReps > 0) {
+                        if (set.targetWeight != null && set.targetWeight > 0) {
+                            "${set.targetReps}×${WeightFormatter.formatWeight(set.targetWeight)}"
+                        } else {
+                            "${set.targetReps}"
                         }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Checkbox(
-                    checked = set.isCompleted,
-                    onCheckedChange = null, // Handle clicks on the Box instead
-                    enabled = !readOnly && (canMarkComplete || set.isCompleted),
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = MaterialTheme.colorScheme.primary,
-                    ),
-                )
-            }
-        }
-        }  // Close SwipeToDismissBox
-    }  // Close Column
-}
+                    } else {
+                        ""
+                    }
 
+                Box(
+                    modifier =
+                        Modifier
+                            .weight(0.8f)
+                            .height(48.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(8.dp),
+                            ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = targetDisplay,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (targetDisplay.isNotEmpty()) FontWeight.Medium else FontWeight.Normal,
+                    )
+                }
+
+                // Weight input
+                CenteredInputField(
+                    value = weightInput,
+                    onValueChange = { textFieldValue ->
+                        if (!readOnly) {
+                            weightInput = textFieldValue
+                            val weight = textFieldValue.text.toFloatOrNull() ?: 0f
+                            onUpdateSet(set.actualReps, weight, set.actualRpe)
+                        }
+                    },
+                    fieldType = InputFieldType.WEIGHT,
+                    placeholder = "", // No placeholder
+                    modifier = Modifier.weight(0.8f).height(48.dp),
+                    imeAction = ImeAction.Next,
+                )
+
+                // Reps input
+                CenteredInputField(
+                    value = repsInput,
+                    onValueChange = { textFieldValue ->
+                        if (!readOnly) {
+                            repsInput = textFieldValue
+                            val reps = textFieldValue.text.toIntOrNull() ?: 0
+                            onUpdateSet(reps, set.actualWeight, set.actualRpe)
+                        }
+                    },
+                    fieldType = InputFieldType.REPS,
+                    placeholder = "", // No placeholder
+                    modifier = Modifier.weight(0.6f).height(48.dp),
+                    imeAction = ImeAction.Next,
+                )
+
+                // RPE input
+                CenteredInputField(
+                    value = rpeInput,
+                    onValueChange = { textFieldValue ->
+                        if (!readOnly) {
+                            rpeInput = textFieldValue
+                            val rpe = textFieldValue.text.toIntOrNull()?.toFloat()
+                            onUpdateSet(set.actualReps, set.actualWeight, rpe)
+                        }
+                    },
+                    fieldType = InputFieldType.RPE,
+                    placeholder = "", // No placeholder
+                    modifier = Modifier.weight(0.6f).height(48.dp),
+                    imeAction = ImeAction.Done,
+                )
+
+                // Completion checkbox
+                Box(
+                    modifier =
+                        Modifier
+                            .size(40.dp)
+                            .clickable(
+                                enabled = !readOnly && (canMarkComplete || set.isCompleted),
+                                onClick = {
+                                    val newChecked = !set.isCompleted
+                                    if (!newChecked || canMarkComplete) {
+                                        onToggleCompleted(newChecked)
+                                    }
+                                },
+                            ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Checkbox(
+                        checked = set.isCompleted,
+                        onCheckedChange = null, // Handle clicks on the Box instead
+                        enabled = !readOnly && (canMarkComplete || set.isCompleted),
+                        colors =
+                            CheckboxDefaults.colors(
+                                checkedColor = MaterialTheme.colorScheme.primary,
+                            ),
+                    )
+                }
+            }
+        } // Close SwipeToDismissBox
+    } // Close Column
+}
 
 @Composable
 private fun InsightsSection(
@@ -1067,105 +1071,109 @@ private fun InsightsSection(
     onToggleExpanded: () -> Unit,
     onSelectAlternative: (SetLog) -> Unit,
     onSelectSuggestion: (SmartSuggestions) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // Header with expand/collapse toggle
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onToggleExpanded() },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onToggleExpanded() },
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     "Insights",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                
+
                 Icon(
                     if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                     contentDescription = if (isExpanded) "Collapse" else "Expand",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            
+
             // Expandable content
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = expandVertically(),
-                exit = shrinkVertically()
+                exit = shrinkVertically(),
             ) {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     // Previous Performance Section
                     if (previousSets.isNotEmpty()) {
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
                                 "Previous Performance",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
                             )
-                            
+
                             // Show last 3 sets
-                            val lastThreeSets = previousSets
-                                .filter { it.isCompleted }
-                                .take(3)
-                            
+                            val lastThreeSets =
+                                previousSets
+                                    .filter { it.isCompleted }
+                                    .take(3)
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 lastThreeSets.forEach { set ->
                                     Surface(
                                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                         shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.clickable { onSelectAlternative(set) }
+                                        modifier = Modifier.clickable { onSelectAlternative(set) },
                                     ) {
                                         Row(
                                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                             horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                                            verticalAlignment = Alignment.CenterVertically,
                                         ) {
                                             Text(
-                                                text = if (set.actualWeight > 0) {
-                                                    "${set.actualReps}×${WeightFormatter.formatWeightWithUnit(set.actualWeight)}"
-                                                } else {
-                                                    "${set.actualReps} reps"
-                                                },
+                                                text =
+                                                    if (set.actualWeight > 0) {
+                                                        "${set.actualReps}×${WeightFormatter.formatWeightWithUnit(set.actualWeight)}"
+                                                    } else {
+                                                        "${set.actualReps} reps"
+                                                    },
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 fontWeight = FontWeight.Medium,
-                                                color = MaterialTheme.colorScheme.primary
+                                                color = MaterialTheme.colorScheme.primary,
                                             )
                                             if (set.actualRpe != null) {
                                                 Text(
                                                     "@${WeightFormatter.formatDecimal(set.actualRpe, 1)}",
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                                                 )
                                             }
                                         }
                                     }
                                 }
-                                
+
                                 // Fill remaining space if less than 3 sets
                                 if (lastThreeSets.size < 3) {
                                     Spacer(modifier = Modifier.weight(1f))
@@ -1173,66 +1181,68 @@ private fun InsightsSection(
                             }
                         }
                     }
-                    
+
                     // Intelligent Suggestions Section
                     if (intelligentSuggestions != null) {
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
                                 "Suggestions",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.tertiary
+                                color = MaterialTheme.colorScheme.tertiary,
                             )
-                            
+
                             // Main suggestion
                             Surface(
                                 color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
                                 shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.clickable { onSelectSuggestion(intelligentSuggestions) }
+                                modifier = Modifier.clickable { onSelectSuggestion(intelligentSuggestions) },
                             ) {
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Icon(
                                         Icons.Filled.Lightbulb,
                                         contentDescription = "Suggestion",
                                         tint = MaterialTheme.colorScheme.tertiary,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(16.dp),
                                     )
-                                    
+
                                     Text(
-                                        text = with(intelligentSuggestions) {
-                                            if (suggestedWeight > 0) {
-                                                "${suggestedReps}×${WeightFormatter.formatWeightWithUnit(suggestedWeight)}"
-                                            } else {
-                                                "${suggestedReps} reps"
-                                            }
-                                        },
+                                        text =
+                                            with(intelligentSuggestions) {
+                                                if (suggestedWeight > 0) {
+                                                    "$suggestedReps×${WeightFormatter.formatWeightWithUnit(suggestedWeight)}"
+                                                } else {
+                                                    "$suggestedReps reps"
+                                                }
+                                            },
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.tertiary
+                                        color = MaterialTheme.colorScheme.tertiary,
                                     )
-                                    
+
                                     if (intelligentSuggestions.suggestedRpe != null) {
                                         Text(
                                             "@${WeightFormatter.formatDecimal(intelligentSuggestions.suggestedRpe, 1)}",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f)
+                                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f),
                                         )
                                     }
-                                    
+
                                     Spacer(modifier = Modifier.weight(1f))
-                                    
+
                                     Text(
                                         intelligentSuggestions.reasoning,
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
@@ -1243,4 +1253,3 @@ private fun InsightsSection(
         }
     }
 }
-

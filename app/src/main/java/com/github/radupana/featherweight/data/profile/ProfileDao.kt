@@ -18,7 +18,7 @@ interface ProfileDao {
 
     @Query("SELECT * FROM user_profiles ORDER BY displayName ASC")
     suspend fun getAllUsers(): List<UserProfile>
-    
+
     @Query("SELECT * FROM user_profiles LIMIT 1")
     suspend fun getUserProfile(): UserProfile?
 
@@ -31,9 +31,12 @@ interface ProfileDao {
 
     @Delete
     suspend fun deleteExerciseMax(max: UserExerciseMax)
-    
+
     @Query("DELETE FROM user_exercise_maxes WHERE userId = :userId AND exerciseId = :exerciseId")
-    suspend fun deleteAllMaxesForExercise(userId: Long, exerciseId: Long)
+    suspend fun deleteAllMaxesForExercise(
+        userId: Long,
+        exerciseId: Long,
+    )
 
     @Query(
         """

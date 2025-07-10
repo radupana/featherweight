@@ -4,10 +4,8 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
@@ -15,9 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -32,9 +28,8 @@ import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.ui.utils.NavigationContext
 import com.github.radupana.featherweight.ui.utils.rememberKeyboardState
 import com.github.radupana.featherweight.ui.utils.systemBarsPadding
-import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.ProfileViewModel
-import java.text.SimpleDateFormat
+import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import java.util.*
 
 @Composable
@@ -58,6 +53,12 @@ fun ProgrammesScreen(
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var showClarificationDialog by remember { mutableStateOf(false) }
     var clarificationRequest by remember { mutableStateOf<AIProgrammeRequest?>(null) }
+    var showAIGenerationBlockedDialog by remember { mutableStateOf(false) }
+
+    // Force refresh AI requests when screen becomes visible
+    LaunchedEffect(Unit) {
+        viewModel.forceRefreshAIRequests()
+    }
 
     // Handle error messages
     LaunchedEffect(uiState.error) {
@@ -84,21 +85,24 @@ fun ProgrammesScreen(
         }
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = compactPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = compactPadding),
         ) {
             // Header - outside the scrollable area
 
             // Error/Success Messages
             uiState.error?.let { error ->
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = compactPadding),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                    ),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = compactPadding),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                        ),
                 ) {
                     Text(
                         text = error,
@@ -108,46 +112,54 @@ fun ProgrammesScreen(
                 }
             }
 
-
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(compactPadding),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
                 contentPadding = PaddingValues(bottom = compactPadding),
             ) {
                 // AI Programme Generation Button - Always at the top
                 item {
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = compactPadding / 2)
-                            .clickable { 
-                                onNavigateToAIGenerator?.invoke()
-                            },
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        )
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = compactPadding / 2)
+                                .clickable {
+                                    if (activeProgramme != null) {
+                                        // Show dialog that user must delete active programme first
+                                        showAIGenerationBlockedDialog = true
+                                    } else {
+                                        onNavigateToAIGenerator?.invoke()
+                                    }
+                                },
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                            ),
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(compactPadding),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(compactPadding),
                             horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
                                 contentDescription = "AI Generate",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(24.dp),
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Generate Custom Programme with AI",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
                             )
                         }
                     }
@@ -161,12 +173,11 @@ fun ProgrammesScreen(
                             progress = programmeProgress,
                             onDelete = { showDeleteConfirmDialog = true },
                             onNavigateToProgramme = onNavigateToActiveProgramme,
-                            isCompact = isKeyboardVisible
+                            isCompact = isKeyboardVisible,
                         )
                     }
                 }
 
-                
                 // AI Programme Requests Section
                 if (aiProgrammeRequests.isNotEmpty()) {
                     item {
@@ -177,7 +188,7 @@ fun ProgrammesScreen(
                             modifier = Modifier.padding(vertical = compactPadding / 2),
                         )
                     }
-                    
+
                     items(aiProgrammeRequests) { request ->
                         AIProgrammeRequestCard(
                             request = request,
@@ -199,7 +210,7 @@ fun ProgrammesScreen(
                             onDelete = {
                                 viewModel.deleteAIRequest(request.id)
                             },
-                            isCompact = isKeyboardVisible
+                            isCompact = isKeyboardVisible,
                         )
                     }
                 }
@@ -207,14 +218,18 @@ fun ProgrammesScreen(
                 // Templates Section header - show even when keyboard visible
                 item {
                     Text(
-                        text = if (activeProgramme != null && !isKeyboardVisible) 
-                            "Browse Other Programmes" 
-                        else 
-                            "Predefined Programmes",
-                        style = if (isKeyboardVisible) 
-                            MaterialTheme.typography.titleMedium 
-                        else 
-                            MaterialTheme.typography.titleLarge,
+                        text =
+                            if (activeProgramme != null && !isKeyboardVisible) {
+                                "Browse Other Programmes"
+                            } else {
+                                "Predefined Programmes"
+                            },
+                        style =
+                            if (isKeyboardVisible) {
+                                MaterialTheme.typography.titleMedium
+                            } else {
+                                MaterialTheme.typography.titleLarge
+                            },
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(vertical = compactPadding / 2),
                     )
@@ -229,7 +244,7 @@ fun ProgrammesScreen(
                                 viewModel.selectTemplate(template)
                             }
                         },
-                        isCompact = isKeyboardVisible
+                        isCompact = isKeyboardVisible,
                     )
                 }
 
@@ -238,7 +253,6 @@ fun ProgrammesScreen(
                         EmptyStateCard()
                     }
                 }
-
             }
         }
     }
@@ -256,7 +270,7 @@ fun ProgrammesScreen(
             },
         )
     }
-    
+
     // Profile Update Prompt Dialog
     if (uiState.showProfileUpdatePrompt && uiState.pendingProfileUpdates.isNotEmpty()) {
         com.github.radupana.featherweight.ui.dialogs.ProfileUpdatePromptDialog(
@@ -273,7 +287,7 @@ fun ProgrammesScreen(
     // Delete Confirmation Dialog
     if (showDeleteConfirmDialog) {
         var inProgressWorkoutCount by remember { mutableStateOf(0) }
-        
+
         // Check for in-progress workouts when dialog opens
         LaunchedEffect(showDeleteConfirmDialog) {
             if (showDeleteConfirmDialog) {
@@ -282,7 +296,7 @@ fun ProgrammesScreen(
                 }
             }
         }
-        
+
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false },
             title = { Text("Delete Programme?") },
@@ -293,16 +307,19 @@ fun ProgrammesScreen(
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    
-                    val warningText = buildString {
-                        append("⚠️ This action cannot be undone!\n")
-                        append("• All progress will be lost\n")
-                        append("• All workout history will be deleted")
-                        if (inProgressWorkoutCount > 0) {
-                            append("\n• $inProgressWorkoutCount in-progress workout${if (inProgressWorkoutCount > 1) "s" else ""} will be deleted")
+
+                    val warningText =
+                        buildString {
+                            append("⚠️ This action cannot be undone!\n")
+                            append("• All progress will be lost\n")
+                            append("• All workout history will be deleted")
+                            if (inProgressWorkoutCount > 0) {
+                                append(
+                                    "\n• $inProgressWorkoutCount in-progress workout${if (inProgressWorkoutCount > 1) "s" else ""} will be deleted",
+                                )
+                            }
                         }
-                    }
-                    
+
                     Text(
                         text = warningText,
                         style = MaterialTheme.typography.bodySmall,
@@ -381,7 +398,7 @@ fun ProgrammesScreen(
             },
         )
     }
-    
+
     // Clarification Dialog
     if (showClarificationDialog && clarificationRequest != null) {
         ClarificationDialog(
@@ -394,7 +411,41 @@ fun ProgrammesScreen(
             onDismiss = {
                 showClarificationDialog = false
                 clarificationRequest = null
-            }
+            },
+        )
+    }
+
+    // AI Generation Blocked Dialog
+    if (showAIGenerationBlockedDialog) {
+        AlertDialog(
+            onDismissRequest = { showAIGenerationBlockedDialog = false },
+            title = { Text("Active Programme Detected") },
+            text = {
+                Column {
+                    Text(
+                        text = "You already have an active programme: ${activeProgramme?.name}",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "To generate a new AI programme, you must first delete your current programme.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "This ensures you can focus on one programme at a time for optimal results.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showAIGenerationBlockedDialog = false },
+                ) {
+                    Text("OK")
+                }
+            },
         )
     }
 }
@@ -417,14 +468,15 @@ private fun ActiveProgrammeCard(
             },
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(cardPadding),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(cardPadding),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -440,6 +492,16 @@ private fun ActiveProgrammeCard(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
+
+                    // Move progress info here, below the programme name
+                    progress?.let { prog ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "${prog.completedWorkouts}/${prog.totalWorkouts} workouts",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
 
                 // Delete button
@@ -452,10 +514,10 @@ private fun ActiveProgrammeCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Progress indicators
             progress?.let { prog ->
+                Spacer(modifier = Modifier.height(12.dp))
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -463,11 +525,6 @@ private fun ActiveProgrammeCard(
                     ProgressMetric(
                         label = "Week",
                         value = "${prog.currentWeek}/${programme.durationWeeks}",
-                        modifier = Modifier.weight(1f),
-                    )
-                    ProgressMetric(
-                        label = "Workouts",
-                        value = "${prog.completedWorkouts}/${if (prog.totalWorkouts > 0) prog.totalWorkouts else "0"}",
                         modifier = Modifier.weight(1f),
                     )
                     ProgressMetric(
@@ -524,7 +581,6 @@ private fun ProgressMetric(
         )
     }
 }
-
 
 // Helper function to format enum names properly
 private fun formatEnumName(enumName: String): String {
@@ -719,4 +775,3 @@ private fun EmptyStateCard() {
         }
     }
 }
-

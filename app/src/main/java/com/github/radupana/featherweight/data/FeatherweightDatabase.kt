@@ -5,8 +5,6 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseAlias
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
@@ -76,7 +74,6 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: FeatherweightDatabase? = null
-
 
         fun getDatabase(context: Context): FeatherweightDatabase =
             INSTANCE ?: synchronized(this) {

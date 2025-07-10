@@ -39,12 +39,6 @@ data class GeneratedProgramme(
 @Serializable
 data class GeneratedWeek(
     val weekNumber: Int,
-    val name: String,
-    val description: String,
-    val intensityLevel: String,
-    val volumeLevel: String,
-    val focus: List<String>,
-    val isDeload: Boolean = false,
     val workouts: List<GeneratedWorkout>,
 )
 
@@ -75,7 +69,7 @@ class AIProgrammeService(
         private val OPENAI_API_KEY = BuildConfig.OPENAI_API_KEY
         private const val BASE_URL = "https://api.openai.com/"
         private const val MODEL = "gpt-4.1-mini" // NOTE: This is correct - new model name
-        private const val MAX_TOKENS = 16384 // Reduced for mini model to avoid truncation
+        private const val MAX_TOKENS = 32768 // Increased to support 8-week programmes
         private const val TEMPERATURE = 0.7
     }
 
@@ -192,9 +186,8 @@ class AIProgrammeService(
 
         CONSTRAINTS:
         - Maximum ${request.maxDays} training days per week
-        - Programme duration: 4-${request.maxWeeks} weeks
-        - intensityLevel options: "low", "moderate", "high", "very_high"
-        - volumeLevel options: "low", "moderate", "high", "very_high"
+        - Programme duration: EXACTLY 8 weeks (no more, no less)
+        - Progressive overload must be built into the 8-week structure
 
         AVAILABLE EXERCISE SUMMARY:
         - Total exercises: 500
@@ -242,8 +235,8 @@ class AIProgrammeService(
         - WeightSource options: "user_specified", "user_1rm", "average_estimate"
 
         OUTPUT FORMAT:
-        CRITICAL: Keep responses CONCISE to avoid truncation. Limit descriptions to 1 sentence max.
-        Return a JSON object with this EXACT hierarchical structure:
+        CRITICAL: Generate ONLY the fields shown below. DO NOT include week descriptions, intensity levels, volume levels, focus areas, or deload indicators.
+        Return a JSON object with this EXACT structure:
         {
             "name": "Programme name (engaging and descriptive)",
             "description": "2-3 sentence description explaining the programme's focus and benefits",
@@ -252,16 +245,10 @@ class AIProgrammeService(
             "weeks": [
                 {
                     "weekNumber": 1,
-                    "name": "Week 1",
-                    "description": "Foundation",
-                    "intensityLevel": "moderate",
-                    "volumeLevel": "moderate",
-                    "focus": ["technique"],
-                    "isDeload": false,
                     "workouts": [
                         {
                             "dayNumber": 1,
-                            "name": "Day 1",
+                            "name": "Upper Body Power",
                             "exercises": [
                                 {
                                     "exerciseName": "Barbell Back Squat",
@@ -270,7 +257,6 @@ class AIProgrammeService(
                                     "repsMax": 5,
                                     "rpe": 7.0,
                                     "restSeconds": 180,
-                                    "notes": null,
                                     "suggestedWeight": 80.0,
                                     "weightSource": "user_1rm"
                                 }
@@ -280,6 +266,11 @@ class AIProgrammeService(
                 }
             ]
         }
+        
+        CRITICAL FIELD RESTRICTIONS:
+        - weeks: ONLY include "weekNumber" and "workouts" (NO name, description, intensityLevel, volumeLevel, focus, isDeload)
+        - workouts: Include "dayNumber", "name", and "exercises" (name should be descriptive, e.g., "Upper Body Power", "Lower Body Hypertrophy")
+        - exercises: Include all fields shown above. Notes field is OPTIONAL - only add if critical for safety/form
 
         If you need clarification before creating a programme, return:
         {
@@ -287,12 +278,13 @@ class AIProgrammeService(
         }
 
         CRITICAL REQUIREMENTS:
+        - Always generate EXACTLY 8 weeks of programming
         - Programme must be appropriate for the user's stated experience level
         - Include variety while maintaining focus on the primary goal
-        - Provide actionable notes for each exercise when beneficial
-        - Create a logical weekly structure that promotes adaptation
-        - KEEP OUTPUT CONCISE: Use short names/descriptions to avoid truncation
-        - For 8-week programmes, ensure all weeks fit in response
+        - Exercise notes are OPTIONAL - only include for critical safety/form cues
+        - Create progressive overload through the 8 weeks
+        - DO NOT include week names, descriptions, intensity/volume levels, or focus areas
+        - Keep programme name and description concise (save tokens for exercises)
 
         Remember: You're creating a programme that could change someone's life. Make it excellent.
         """.trimIndent()
@@ -359,7 +351,7 @@ class AIProgrammeService(
                     println("💰 Estimated cost: ~$${((body.usage?.totalTokens ?: 0) * 0.00015f / 1000f)}")
                     println("📄 Response content length: ${responseContent.length} chars")
                     println("🏁 Finish reason: $finishReason")
-                    
+
                     // Log the FULL response for debugging truncation
                     println("\n" + "=".repeat(70))
                     println("📜 COMPLETE AI RESPONSE")
@@ -473,24 +465,9 @@ class AIProgrammeService(
             try {
                 val weekJson = weeksArray.getJSONObject(i)
 
-                // Parse focus as list of strings
-                val focusList = mutableListOf<String>()
-                if (weekJson.has("focus")) {
-                    val focusArray = weekJson.getJSONArray("focus")
-                    for (j in 0 until focusArray.length()) {
-                        focusList.add(focusArray.getString(j))
-                    }
-                }
-
                 val week =
                     GeneratedWeek(
                         weekNumber = weekJson.optInt("weekNumber", i + 1),
-                        name = weekJson.optString("name", "Week ${i + 1}"),
-                        description = weekJson.optString("description", ""),
-                        intensityLevel = weekJson.optString("intensityLevel", "moderate"),
-                        volumeLevel = weekJson.optString("volumeLevel", "moderate"),
-                        focus = focusList,
-                        isDeload = weekJson.optBoolean("isDeload", false),
                         workouts = parseWorkouts(weekJson.getJSONArray("workouts")),
                     )
                 weeks.add(week)
@@ -545,6 +522,13 @@ class AIProgrammeService(
                                     },
                                 restSeconds = exerciseJson.optInt("restSeconds", 180).coerceIn(30, 600),
                                 notes = exerciseJson.optString("notes", "").takeIf { it.isNotBlank() },
+                                suggestedWeight =
+                                    if (exerciseJson.has("suggestedWeight")) {
+                                        exerciseJson.getDouble("suggestedWeight").toFloat()
+                                    } else {
+                                        null
+                                    },
+                                weightSource = exerciseJson.optString("weightSource", "").takeIf { it.isNotBlank() },
                             ),
                         )
                     } catch (e: Exception) {
@@ -557,7 +541,7 @@ class AIProgrammeService(
                     workouts.add(
                         GeneratedWorkout(
                             dayNumber = workoutJson.optInt("dayNumber", i + 1),
-                            name = workoutJson.optString("name", "Day ${i + 1}"),
+                            name = workoutJson.getString("name"),
                             exercises = exercises,
                         ),
                     )

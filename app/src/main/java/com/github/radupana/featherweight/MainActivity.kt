@@ -9,22 +9,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,33 +28,32 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.UserPreferences
 import com.github.radupana.featherweight.repository.FeatherweightRepository
-import com.github.radupana.featherweight.ui.screens.InsightsScreen
 import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
 import com.github.radupana.featherweight.ui.screens.HistoryScreen
 import com.github.radupana.featherweight.ui.screens.HomeScreen
+import com.github.radupana.featherweight.ui.screens.InsightsScreen
 import com.github.radupana.featherweight.ui.screens.SplashScreen
 import com.github.radupana.featherweight.ui.screens.UserSelectionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
-import com.github.radupana.featherweight.viewmodel.InsightsViewModel
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
+import com.github.radupana.featherweight.viewmodel.InsightsViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
 import com.github.radupana.featherweight.viewmodel.RestTimerViewModelFactory
@@ -92,23 +83,23 @@ data class NavigationItem(
 )
 
 class MainActivity : ComponentActivity() {
-    
     companion object {
         init {
             android.util.Log.e("FeatherweightDebug", "MainActivity: Companion object initialized")
         }
     }
-    
+
     init {
         android.util.Log.e("FeatherweightDebug", "MainActivity: Class initialized")
     }
-    
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        // Permission result handled
-    }
-    
+
+    private val requestPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { isGranted: Boolean ->
+            // Permission result handled
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install splash screen (Android 12+ native splash)
         android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: Starting")
@@ -117,13 +108,13 @@ class MainActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
         android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: super.onCreate completed")
-        
+
         // Request notification permission for Android 13+
         android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: Checking notification permission")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     this,
-                    Manifest.permission.POST_NOTIFICATIONS
+                    Manifest.permission.POST_NOTIFICATIONS,
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -143,67 +134,68 @@ class MainActivity : ComponentActivity() {
             setContent {
                 android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Inside setContent")
                 FeatherweightTheme {
-                android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Inside FeatherweightTheme")
-                val userPreferences = remember { UserPreferences(application) }
-                var currentScreen by rememberSaveable { mutableStateOf(Screen.SPLASH) }
-                var selectedExerciseName by rememberSaveable { mutableStateOf("") }
-                
-                // App-level ViewModels for persistence across screens
-                android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Creating RestTimerViewModel")
-                val restTimerViewModel: RestTimerViewModel = viewModel(
-                    factory = RestTimerViewModelFactory(this@MainActivity)
-                )
-                android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: RestTimerViewModel created")
+                    android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Inside FeatherweightTheme")
+                    val userPreferences = remember { UserPreferences(application) }
+                    var currentScreen by rememberSaveable { mutableStateOf(Screen.SPLASH) }
+                    var selectedExerciseName by rememberSaveable { mutableStateOf("") }
 
-                // Seed database early
-                LaunchedEffect(Unit) {
-                    try {
-                        android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Creating repository")
-                        val repository = FeatherweightRepository(application)
-                        android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Repository created, seeding database")
-                        repository.seedDatabaseIfEmpty()
-                        android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Database seeded, seeding test users")
-                        repository.seedTestUsers()
-                        android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Test users seeded")
-                    } catch (e: Exception) {
-                        android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Exception caught!", e)
-                        e.printStackTrace()
+                    // App-level ViewModels for persistence across screens
+                    android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Creating RestTimerViewModel")
+                    val restTimerViewModel: RestTimerViewModel =
+                        viewModel(
+                            factory = RestTimerViewModelFactory(this@MainActivity),
+                        )
+                    android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: RestTimerViewModel created")
+
+                    // Seed database early
+                    LaunchedEffect(Unit) {
+                        try {
+                            android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Creating repository")
+                            val repository = FeatherweightRepository(application)
+                            android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Repository created, seeding database")
+                            repository.seedDatabaseIfEmpty()
+                            android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Database seeded, seeding test users")
+                            repository.seedTestUsers()
+                            android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Test users seeded")
+                        } catch (e: Exception) {
+                            android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Exception caught!", e)
+                            e.printStackTrace()
+                        }
                     }
-                }
 
-                when (currentScreen) {
-                    Screen.SPLASH ->
-                        SplashScreen(
-                            onSplashFinished = {
-                                currentScreen =
-                                    if (userPreferences.hasSelectedUser()) {
-                                        Screen.HOME
-                                    } else {
-                                        Screen.USER_SELECTION
-                                    }
-                            },
-                        )
+                    when (currentScreen) {
+                        Screen.SPLASH ->
+                            SplashScreen(
+                                onSplashFinished = {
+                                    currentScreen =
+                                        if (userPreferences.hasSelectedUser()) {
+                                            Screen.HOME
+                                        } else {
+                                            Screen.USER_SELECTION
+                                        }
+                                },
+                            )
 
-                    Screen.USER_SELECTION ->
-                        UserSelectionScreen(
-                            onUserSelected = {
-                                currentScreen = Screen.HOME
-                            },
-                        )
+                        Screen.USER_SELECTION ->
+                            UserSelectionScreen(
+                                onUserSelected = {
+                                    currentScreen = Screen.HOME
+                                },
+                            )
 
-                    else -> {
-                        // Main app with bottom navigation
-                        MainAppWithNavigation(
-                            currentScreen = currentScreen,
-                            onScreenChange = { screen -> currentScreen = screen },
-                            restTimerViewModel = restTimerViewModel,
-                            selectedExerciseName = selectedExerciseName,
-                            onSelectedExerciseNameChange = { exerciseName -> selectedExerciseName = exerciseName },
-                        )
+                        else -> {
+                            // Main app with bottom navigation
+                            MainAppWithNavigation(
+                                currentScreen = currentScreen,
+                                onScreenChange = { screen -> currentScreen = screen },
+                                restTimerViewModel = restTimerViewModel,
+                                selectedExerciseName = selectedExerciseName,
+                                onSelectedExerciseNameChange = { exerciseName -> selectedExerciseName = exerciseName },
+                            )
+                        }
                     }
                 }
             }
-        }
         } catch (e: Exception) {
             android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: Exception in setContent!", e)
             e.printStackTrace()
@@ -362,7 +354,7 @@ fun MainAppWithNavigation(
             Screen.EXERCISE_SELECTOR -> {
                 val workoutViewModel: WorkoutViewModel = viewModel()
                 val swappingExercise by workoutViewModel.swappingExercise.collectAsState()
-                
+
                 ExerciseSelectorScreen(
                     onExerciseSelected = { exercise ->
                         if (swappingExercise != null) {
@@ -378,9 +370,9 @@ fun MainAppWithNavigation(
                         workoutViewModel.addExerciseToCurrentWorkout(name)
                         onScreenChange(Screen.ACTIVE_WORKOUT)
                     },
-                    onBack = { 
+                    onBack = {
                         workoutViewModel.cancelExerciseSwap()
-                        onScreenChange(Screen.ACTIVE_WORKOUT) 
+                        onScreenChange(Screen.ACTIVE_WORKOUT)
                     },
                     isSwapMode = swappingExercise != null,
                     currentExercise = swappingExercise,
@@ -391,12 +383,12 @@ fun MainAppWithNavigation(
             Screen.HISTORY -> {
                 val workoutViewModel: WorkoutViewModel = viewModel()
                 val historyViewModel: HistoryViewModel = viewModel()
-                
+
                 // Refresh history data when returning to this screen
                 LaunchedEffect(currentScreen) {
                     historyViewModel.refreshHistory()
                 }
-                
+
                 HistoryScreen(
                     onViewWorkout = { workoutId ->
                         workoutViewModel.resumeWorkout(workoutId)
@@ -425,8 +417,18 @@ fun MainAppWithNavigation(
 
             Screen.PROGRAMMES -> {
                 val profileViewModel: com.github.radupana.featherweight.viewmodel.ProfileViewModel = viewModel()
+                val programmeViewModel: ProgrammeViewModel = viewModel()
+
+                // Force refresh AI requests when returning from preview screen
+                LaunchedEffect(currentScreen) {
+                    if (currentScreen == Screen.PROGRAMMES && previousScreen == Screen.PROGRAMME_PREVIEW) {
+                        programmeViewModel.forceRefreshAIRequests()
+                    }
+                }
+
                 com.github.radupana.featherweight.ui.screens.ProgrammesScreen(
                     profileViewModel = profileViewModel,
+                    viewModel = programmeViewModel,
                     onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
                     onNavigateToAIGenerator = { onScreenChange(Screen.PROGRAMME_GENERATOR) },
                     onNavigateToAIProgrammePreview = { onScreenChange(Screen.PROGRAMME_PREVIEW) },
@@ -455,8 +457,6 @@ fun MainAppWithNavigation(
                 )
             }
 
-
-
             Screen.SPLASH -> {
                 // Should not reach here
             }
@@ -466,17 +466,20 @@ fun MainAppWithNavigation(
             }
 
             Screen.PROGRAMME_GENERATOR -> {
+                val programmeViewModel: ProgrammeViewModel = viewModel()
                 com.github.radupana.featherweight.ui.screens.ProgrammeGeneratorScreen(
-                    onBack = { onScreenChange(Screen.PROGRAMMES) },
-                    onNavigateToPreview = { onScreenChange(Screen.PROGRAMME_PREVIEW) },
-                    modifier = Modifier.padding(innerPadding),
+                    onNavigateBack = { onScreenChange(Screen.PROGRAMMES) },
+                    programmeViewModel = programmeViewModel,
                 )
             }
 
             Screen.PROGRAMME_PREVIEW -> {
                 com.github.radupana.featherweight.ui.screens.ProgrammePreviewScreen(
-                    onBack = { onScreenChange(previousScreen ?: Screen.PROGRAMMES) },
-                    onActivated = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
+                    onBack = { onScreenChange(Screen.PROGRAMMES) },
+                    onActivated = {
+                        // Navigate to active programme after successful activation
+                        onScreenChange(Screen.ACTIVE_PROGRAMME)
+                    },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -487,7 +490,7 @@ fun MainAppWithNavigation(
                     modifier = Modifier.padding(innerPadding),
                 )
             }
-            
+
             Screen.EXERCISE_PROGRESS -> {
                 com.github.radupana.featherweight.ui.screens.ExerciseProgressScreen(
                     exerciseName = selectedExerciseName,
@@ -498,7 +501,6 @@ fun MainAppWithNavigation(
         }
     }
 }
-
 
 @Composable
 fun WorkoutHubScreen(

@@ -39,6 +39,12 @@ Building a weightlifting Super App that combines the best features from apps lik
 - **Lint**: `./gradlew lint`
 - **Install**: `./gradlew installDebug`
 - **Clean**: `./gradlew clean`
+- **Format**: `./gradlew ktlintFormat`
+
+## Git Policy
+
+- **NEVER COMMIT**: Do NOT run git commit commands. The user will handle all commits.
+- **Stage Only**: You may use `git add` to stage changes, but NEVER commit them.
 
 ## Database Strategy
 
@@ -46,6 +52,7 @@ Building a weightlifting Super App that combines the best features from apps lik
 - **No Backward Compatibility**: This is development - break whatever needs breaking
 - **Direct Entity Changes**: Modify existing entities directly, no V2 classes
 - **JSON Fields**: Use JSON for flexible data (progressive overload rules)
+- **NO LEGACY CODE**: Never write code for backward compatibility or legacy data handling
 
 ## Exercise Naming Standards
 

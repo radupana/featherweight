@@ -35,47 +35,51 @@ interface ExerciseDao {
     // Update operations
     @Update
     suspend fun updateExercise(exercise: Exercise)
-    
+
     @Query("UPDATE exercises SET usageCount = usageCount + 1 WHERE id = :exerciseId")
     suspend fun incrementUsageCount(exerciseId: Long)
 
-    
     // Alias operations
     @Insert
     suspend fun insertAliases(aliases: List<ExerciseAlias>)
-    
+
     @Query("SELECT * FROM exercise_aliases WHERE exerciseId = :exerciseId")
     suspend fun getAliasesForExercise(exerciseId: Long): List<ExerciseAlias>
-    
+
     @Query("SELECT * FROM exercise_aliases WHERE alias = :alias")
     suspend fun getExerciseByAlias(alias: String): ExerciseAlias?
-    
-    @Query("""
+
+    @Query(
+        """
         SELECT e.* FROM exercises e
         INNER JOIN exercise_aliases ea ON e.id = ea.exerciseId
         WHERE LOWER(ea.alias) = LOWER(:alias)
         LIMIT 1
-    """)
+    """,
+    )
     suspend fun findExerciseByAlias(alias: String): Exercise?
-    
-    @Query("""
+
+    @Query(
+        """
         SELECT e.* FROM exercises e
         WHERE LOWER(e.name) = LOWER(:name)
         LIMIT 1
-    """)
+    """,
+    )
     suspend fun findExerciseByExactName(name: String): Exercise?
-    
-    @Query("""
+
+    @Query(
+        """
         SELECT e.* FROM exercises e
         LEFT JOIN exercise_aliases ea ON e.id = ea.exerciseId
         WHERE LOWER(e.name) = LOWER(:searchTerm) OR LOWER(ea.alias) = LOWER(:searchTerm)
         LIMIT 1
-    """)
+    """,
+    )
     suspend fun findExerciseByNameOrAlias(searchTerm: String): Exercise?
-    
+
     @Query("SELECT * FROM exercises WHERE id = :id")
     suspend fun getExerciseById(id: Long): Exercise?
-    
 }
 
 // Type converters for Room

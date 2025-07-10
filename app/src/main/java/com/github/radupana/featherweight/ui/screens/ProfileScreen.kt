@@ -1,10 +1,7 @@
 package com.github.radupana.featherweight.ui.screens
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -19,9 +16,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.*
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -95,44 +92,50 @@ fun ProfileScreen(
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = 24.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(top = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     // 1RM Menu Item
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = ripple(bounded = false),
-                                onClick = { currentTab = "1RM" }
-                            )
-                            .padding(vertical = 12.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = ripple(bounded = false),
+                                    onClick = { currentTab = "1RM" },
+                                )
+                                .padding(vertical = 12.dp),
                     ) {
                         Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(
-                                    if (currentTab == "1RM")
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.surfaceVariant,
-                                    RoundedCornerShape(12.dp)
-                                ),
-                            contentAlignment = Alignment.Center
+                            modifier =
+                                Modifier
+                                    .size(48.dp)
+                                    .background(
+                                        if (currentTab == "1RM") {
+                                            MaterialTheme.colorScheme.primaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        },
+                                        RoundedCornerShape(12.dp),
+                                    ),
+                            contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 Icons.Filled.FitnessCenter,
                                 contentDescription = "1 Rep Max",
-                                tint = if (currentTab == "1RM")
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                else
-                                    MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(24.dp)
+                                tint =
+                                    if (currentTab == "1RM") {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                modifier = Modifier.size(24.dp),
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
@@ -140,48 +143,55 @@ fun ProfileScreen(
                             "1RM",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
-                            color = if (currentTab == "1RM")
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant,
+                            color =
+                                if (currentTab == "1RM") {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Developer Tools Menu Item
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = ripple(bounded = false),
-                                onClick = { currentTab = "Developer" }
-                            )
-                            .padding(vertical = 12.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = ripple(bounded = false),
+                                    onClick = { currentTab = "Developer" },
+                                )
+                                .padding(vertical = 12.dp),
                     ) {
                         Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(
-                                    if (currentTab == "Developer") 
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    else 
-                                        MaterialTheme.colorScheme.surfaceVariant,
-                                    RoundedCornerShape(12.dp)
-                                ),
-                            contentAlignment = Alignment.Center
+                            modifier =
+                                Modifier
+                                    .size(48.dp)
+                                    .background(
+                                        if (currentTab == "Developer") {
+                                            MaterialTheme.colorScheme.primaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        },
+                                        RoundedCornerShape(12.dp),
+                                    ),
+                            contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 Icons.Filled.Code,
                                 contentDescription = "Developer Tools",
-                                tint = if (currentTab == "Developer")
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                else
-                                    MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(24.dp)
+                                tint =
+                                    if (currentTab == "Developer") {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                modifier = Modifier.size(24.dp),
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
@@ -189,10 +199,12 @@ fun ProfileScreen(
                             "Dev",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
-                            color = if (currentTab == "Developer")
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant,
+                            color =
+                                if (currentTab == "Developer") {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                         )
                     }
                 }
@@ -245,12 +257,13 @@ fun ProfileScreen(
                                 )
 
                                 // Define Big 4 exercises with their expected names (matching database)
-                                val big4Names = listOf(
-                                    "Barbell Back Squat",
-                                    "Barbell Bench Press", 
-                                    "Barbell Deadlift",
-                                    "Barbell Overhead Press"
-                                )
+                                val big4Names =
+                                    listOf(
+                                        "Barbell Back Squat",
+                                        "Barbell Bench Press",
+                                        "Barbell Deadlift",
+                                        "Barbell Overhead Press",
+                                    )
 
                                 // Compact 2x2 Grid
                                 LazyVerticalGrid(
@@ -262,20 +275,21 @@ fun ProfileScreen(
                                 ) {
                                     items(big4Names) { exerciseName ->
                                         val exercise = uiState.big4Exercises.find { it.name == exerciseName }
-                                        val currentMax = if (exercise != null) {
-                                            uiState.currentMaxes.find { it.exerciseId == exercise.id }
-                                        } else {
-                                            uiState.currentMaxes.find { it.exerciseName == exerciseName }
-                                        }
-                                        
+                                        val currentMax =
+                                            if (exercise != null) {
+                                                uiState.currentMaxes.find { it.exerciseId == exercise.id }
+                                            } else {
+                                                uiState.currentMaxes.find { it.exerciseName == exerciseName }
+                                            }
+
                                         if (exercise != null) {
                                             Compact1RMCard(
                                                 exercise = exercise,
                                                 currentMax = currentMax,
                                                 onEdit = { exerciseToEdit = exercise },
-                                                onClear = { 
+                                                onClear = {
                                                     viewModel.clearAllMaxesForExercise(exercise.id)
-                                                }
+                                                },
                                             )
                                         } else {
                                             // Show placeholder card for missing exercise
@@ -285,7 +299,7 @@ fun ProfileScreen(
                                                     // Try to find the exercise in the database
                                                     viewModel.findAndSelectExercise(exerciseName)
                                                     showAdd1RMDialog = true
-                                                }
+                                                },
                                             )
                                         }
                                     }
@@ -342,7 +356,7 @@ fun ProfileScreen(
                             Text("Add 1RM")
                         }
                     }
-                    
+
                     "Developer" -> {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
@@ -371,18 +385,20 @@ fun ProfileScreen(
                                     )
                                 }
                             }
-                            
+
                             // Developer tools content
                             item {
                                 Card(
-                                    modifier = Modifier.fillMaxWidth()
-                                        .clickable {
-                                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            showDeveloperDialog = true
-                                        },
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                    ),
+                                    modifier =
+                                        Modifier.fillMaxWidth()
+                                            .clickable {
+                                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                showDeveloperDialog = true
+                                            },
+                                    colors =
+                                        CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                        ),
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(16.dp),
@@ -412,18 +428,20 @@ fun ProfileScreen(
                                     }
                                 }
                             }
-                            
+
                             // Clear data option
                             item {
                                 Card(
-                                    modifier = Modifier.fillMaxWidth()
-                                        .clickable {
-                                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            showClearConfirmDialog = true
-                                        },
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
-                                    ),
+                                    modifier =
+                                        Modifier.fillMaxWidth()
+                                            .clickable {
+                                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                showClearConfirmDialog = true
+                                            },
+                                    colors =
+                                        CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                                        ),
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(16.dp),
@@ -465,19 +483,20 @@ fun ProfileScreen(
     if (showAdd1RMDialog || exerciseToEdit != null || editingMax != null) {
         // Capture editingMax in a local variable to avoid smart cast issues
         val currentEditingMax = editingMax
-        
+
         // Determine which exercise is currently selected
         // selectedExerciseForDialog takes priority when set (user changed selection)
         val displayExerciseId = selectedExerciseForDialog?.id ?: exerciseToEdit?.id ?: currentEditingMax?.exerciseId
         val displayExerciseName = selectedExerciseForDialog?.name ?: exerciseToEdit?.name ?: currentEditingMax?.exerciseName
-        
+
         // For weight, only use editingMax weight if we haven't changed the exercise
-        val displayWeight = if (selectedExerciseForDialog == null && currentEditingMax != null) {
-            currentEditingMax.maxWeight
-        } else {
-            uiState.currentMaxes.find { it.exerciseId == displayExerciseId }?.maxWeight
-        }
-        
+        val displayWeight =
+            if (selectedExerciseForDialog == null && currentEditingMax != null) {
+                currentEditingMax.maxWeight
+            } else {
+                uiState.currentMaxes.find { it.exerciseId == displayExerciseId }?.maxWeight
+            }
+
         Add1RMBottomSheet(
             exerciseId = displayExerciseId,
             exerciseName = displayExerciseName,
@@ -515,7 +534,7 @@ fun ProfileScreen(
             onDismiss = {
                 showExerciseSelector = false
             },
-            excludeExerciseIds = uiState.currentMaxes.map { it.exerciseId }.toSet()
+            excludeExerciseIds = uiState.currentMaxes.map { it.exerciseId }.toSet(),
         )
     }
 
@@ -526,7 +545,7 @@ fun ProfileScreen(
             viewModel.clearError()
         }
     }
-    
+
     // Developer Workout Seeder Dialog
     if (showDeveloperDialog) {
         WorkoutSeederDialog(
@@ -534,29 +553,31 @@ fun ProfileScreen(
             onConfirm = { config ->
                 viewModel.seedWorkouts(config)
                 showDeveloperDialog = false
-            }
+            },
         )
     }
-    
+
     // Clear All Workouts Confirmation Dialog
     if (showClearConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showClearConfirmDialog = false },
-            title = { 
+            title = {
                 Text(
                     text = "Clear All Workouts?",
-                    style = MaterialTheme.typography.headlineSmall
-                ) 
+                    style = MaterialTheme.typography.headlineSmall,
+                )
             },
-            text = { 
-                Text("This will permanently delete all workout history, exercise logs, personal records, and progress data. This action cannot be undone.") 
+            text = {
+                Text(
+                    "This will permanently delete all workout history, exercise logs, personal records, and progress data. This action cannot be undone.",
+                )
             },
             confirmButton = {
                 TextButton(
                     onClick = {
                         viewModel.clearAllWorkouts()
                         showClearConfirmDialog = false
-                    }
+                    },
                 ) {
                     Text("Delete All", color = MaterialTheme.colorScheme.error)
                 }
@@ -565,27 +586,27 @@ fun ProfileScreen(
                 TextButton(onClick = { showClearConfirmDialog = false }) {
                     Text("Cancel")
                 }
-            }
+            },
         )
     }
-    
+
     // Error handling
     uiState.error?.let { error ->
         LaunchedEffect(error) {
             snackbarHostState.showSnackbar(
                 message = error,
-                duration = SnackbarDuration.Short
+                duration = SnackbarDuration.Short,
             )
             viewModel.clearError()
         }
     }
-    
+
     // Success message handling
     uiState.successMessage?.let { message ->
         LaunchedEffect(message) {
             snackbarHostState.showSnackbar(
                 message = message,
-                duration = SnackbarDuration.Short
+                duration = SnackbarDuration.Short,
             )
             viewModel.clearSuccessMessage()
         }
@@ -678,12 +699,15 @@ private fun Compact1RMCard(
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         onEdit()
                     },
-                    onLongClick = if (currentMax != null) {
-                        {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            showClearDialog = true
-                        }
-                    } else null
+                    onLongClick =
+                        if (currentMax != null) {
+                            {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                showClearDialog = true
+                            }
+                        } else {
+                            null
+                        },
                 ),
         colors =
             CardDefaults.cardColors(
@@ -745,33 +769,34 @@ private fun Compact1RMCard(
             }
         }
     }
-    
+
     // Clear confirmation dialog
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
-            title = { 
+            title = {
                 Text(
                     text = "Clear 1RM?",
-                    style = MaterialTheme.typography.headlineSmall
-                ) 
+                    style = MaterialTheme.typography.headlineSmall,
+                )
             },
-            text = { 
-                val exerciseDisplayName = when (exercise.name) {
-                    "Barbell Back Squat" -> "Squat"
-                    "Barbell Bench Press" -> "Bench"
-                    "Barbell Deadlift" -> "Deadlift"
-                    "Barbell Overhead Press" -> "OHP"
-                    else -> exercise.name
-                }
-                Text("Clear your ${exerciseDisplayName} 1RM?")
+            text = {
+                val exerciseDisplayName =
+                    when (exercise.name) {
+                        "Barbell Back Squat" -> "Squat"
+                        "Barbell Bench Press" -> "Bench"
+                        "Barbell Deadlift" -> "Deadlift"
+                        "Barbell Overhead Press" -> "OHP"
+                        else -> exercise.name
+                    }
+                Text("Clear your $exerciseDisplayName 1RM?")
             },
             confirmButton = {
                 TextButton(
                     onClick = {
                         onClear()
                         showClearDialog = false
-                    }
+                    },
                 ) {
                     Text("Clear", color = MaterialTheme.colorScheme.error)
                 }
@@ -780,7 +805,7 @@ private fun Compact1RMCard(
                 TextButton(onClick = { showClearDialog = false }) {
                     Text("Cancel")
                 }
-            }
+            },
         )
     }
 }
@@ -792,32 +817,32 @@ private fun ExerciseMaxCardWrapper(
     onDelete: () -> Unit,
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
-    
+
     OtherExerciseMaxCard(
         max = max,
         onEdit = onEdit,
-        onDelete = { showDeleteDialog = true }
+        onDelete = { showDeleteDialog = true },
     )
-    
+
     // Delete confirmation dialog
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { 
+            title = {
                 Text(
                     text = "Delete 1RM?",
-                    style = MaterialTheme.typography.headlineSmall
-                ) 
+                    style = MaterialTheme.typography.headlineSmall,
+                )
             },
-            text = { 
-                Text("Delete ${max.exerciseName} - ${max.maxWeight.toInt()}kg?") 
+            text = {
+                Text("Delete ${max.exerciseName} - ${max.maxWeight.toInt()}kg?")
             },
             confirmButton = {
                 TextButton(
                     onClick = {
                         onDelete()
                         showDeleteDialog = false
-                    }
+                    },
                 ) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
@@ -826,7 +851,7 @@ private fun ExerciseMaxCardWrapper(
                 TextButton(onClick = { showDeleteDialog = false }) {
                     Text("Cancel")
                 }
-            }
+            },
         )
     }
 }
@@ -851,7 +876,7 @@ private fun OtherExerciseMaxCard(
                     onClick = {
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         onEdit()
-                    }
+                    },
                 ),
         shape = RoundedCornerShape(12.dp),
         colors =
@@ -904,7 +929,7 @@ private fun OtherExerciseMaxCard(
             Box {
                 IconButton(
                     onClick = { showMenu = true },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
                         Icons.Default.MoreVert,
@@ -913,10 +938,10 @@ private fun OtherExerciseMaxCard(
                         modifier = Modifier.size(20.dp),
                     )
                 }
-                
+
                 DropdownMenu(
                     expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
+                    onDismissRequest = { showMenu = false },
                 ) {
                     DropdownMenuItem(
                         text = { Text("Edit") },
@@ -928,9 +953,9 @@ private fun OtherExerciseMaxCard(
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = null,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(20.dp),
                             )
-                        }
+                        },
                     )
                     DropdownMenuItem(
                         text = { Text("Delete") },
@@ -943,9 +968,9 @@ private fun OtherExerciseMaxCard(
                                 Icons.Default.Delete,
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.error
+                                tint = MaterialTheme.colorScheme.error,
                             )
-                        }
+                        },
                     )
                 }
             }
@@ -994,21 +1019,23 @@ private fun Add1RMBottomSheet(
             // Exercise Selection
             if (exerciseName != null) {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onSelectExercise()
-                        },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onSelectExercise()
+                            },
                     colors =
                         CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
                         ),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {

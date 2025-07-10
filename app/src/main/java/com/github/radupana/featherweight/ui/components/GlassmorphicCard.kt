@@ -16,31 +16,34 @@ import com.github.radupana.featherweight.ui.theme.FeatherweightColors
 @Composable
 fun GlassmorphicCard(
     modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(FeatherweightColors.cardGlassBackground())
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(FeatherweightColors.cardGlassBackground()),
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.Transparent
-            ),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = Color.Transparent,
+                ),
             border = BorderStroke(1.dp, FeatherweightColors.cardGlassBorder()),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = FeatherweightColors.cardGlassGradient()
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = FeatherweightColors.cardGlassGradient(),
+                            ),
                         )
-                    )
-                    .padding(12.dp),
-                content = content
+                        .padding(12.dp),
+                content = content,
             )
         }
     }
@@ -49,26 +52,28 @@ fun GlassmorphicCard(
 @Composable
 fun PrimaryGradientCard(
     modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = Color.Transparent,
+            ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = FeatherweightColors.primaryGradientColors()
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = FeatherweightColors.primaryGradientColors(),
+                        ),
                     )
-                )
-                .padding(12.dp),
-            content = content
+                    .padding(12.dp),
+            content = content,
         )
     }
 }

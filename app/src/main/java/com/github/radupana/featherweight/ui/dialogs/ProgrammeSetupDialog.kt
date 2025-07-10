@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -84,9 +83,10 @@ fun ProgrammeSetupDialog(
             elevation = CardDefaults.cardElevation(8.dp),
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .imePadding()
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .imePadding(),
             ) {
                 Column(
                     modifier =
@@ -173,83 +173,85 @@ fun ProgrammeSetupDialog(
 
                 // Action buttons - positioned at bottom with background
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter),
                     color = MaterialTheme.colorScheme.surface,
                     shadowElevation = 8.dp,
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                    OutlinedButton(
-                        onClick = { viewModel.dismissSetupDialog() },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text("Cancel")
-                    }
+                        OutlinedButton(
+                            onClick = { viewModel.dismissSetupDialog() },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text("Cancel")
+                        }
 
-                    Button(
-                        onClick = {
-                            if (uiState.setupStep == SetupStep.CONFIRMATION) {
-                                viewModel.createProgrammeFromTemplate(
-                                    customName = customName.takeIf { it.isNotBlank() },
-                                    onSuccess = {
-                                        onProgrammeCreated?.invoke()
-                                    },
-                                    profileViewModel = profileViewModel,
+                        Button(
+                            onClick = {
+                                if (uiState.setupStep == SetupStep.CONFIRMATION) {
+                                    viewModel.createProgrammeFromTemplate(
+                                        customName = customName.takeIf { it.isNotBlank() },
+                                        onSuccess = {
+                                            onProgrammeCreated?.invoke()
+                                        },
+                                        profileViewModel = profileViewModel,
+                                    )
+                                } else {
+                                    viewModel.nextSetupStep()
+                                }
+                            },
+                            enabled =
+                                when (uiState.setupStep) {
+                                    SetupStep.MAXES_INPUT -> {
+                                        if (template.requiresMaxes) {
+                                            val currentMaxes = profileUiState.currentMaxes
+                                            val effectiveSquat =
+                                                userMaxes.squat ?: currentMaxes.find { it.exerciseName == "Barbell Back Squat" }?.maxWeight
+                                            val effectiveBench =
+                                                userMaxes.bench ?: currentMaxes.find { it.exerciseName == "Barbell Bench Press" }?.maxWeight
+                                            val effectiveDeadlift =
+                                                userMaxes.deadlift
+                                                    ?: currentMaxes.find { it.exerciseName == "Barbell Deadlift" }?.maxWeight
+                                            val effectiveOhp =
+                                                userMaxes.ohp ?: currentMaxes.find { it.exerciseName == "Barbell Overhead Press" }?.maxWeight
+
+                                            effectiveSquat != null &&
+                                                effectiveSquat > 0 &&
+                                                effectiveBench != null &&
+                                                effectiveBench > 0 &&
+                                                effectiveDeadlift != null &&
+                                                effectiveDeadlift > 0 &&
+                                                effectiveOhp != null &&
+                                                effectiveOhp > 0
+                                        } else {
+                                            true
+                                        }
+                                    }
+                                    else -> true
+                                } &&
+                                    !uiState.isCreating,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            if (uiState.isCreating) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary,
                                 )
                             } else {
-                                viewModel.nextSetupStep()
+                                Text(
+                                    if (uiState.setupStep == SetupStep.CONFIRMATION) "Create" else "Next",
+                                )
                             }
-                        },
-                        enabled =
-                            when (uiState.setupStep) {
-                                SetupStep.MAXES_INPUT -> {
-                                    if (template.requiresMaxes) {
-                                        val currentMaxes = profileUiState.currentMaxes
-                                        val effectiveSquat =
-                                            userMaxes.squat ?: currentMaxes.find { it.exerciseName == "Barbell Back Squat" }?.maxWeight
-                                        val effectiveBench =
-                                            userMaxes.bench ?: currentMaxes.find { it.exerciseName == "Barbell Bench Press" }?.maxWeight
-                                        val effectiveDeadlift =
-                                            userMaxes.deadlift
-                                                ?: currentMaxes.find { it.exerciseName == "Barbell Deadlift" }?.maxWeight
-                                        val effectiveOhp =
-                                            userMaxes.ohp ?: currentMaxes.find { it.exerciseName == "Barbell Overhead Press" }?.maxWeight
-
-                                        effectiveSquat != null &&
-                                            effectiveSquat > 0 &&
-                                            effectiveBench != null &&
-                                            effectiveBench > 0 &&
-                                            effectiveDeadlift != null &&
-                                            effectiveDeadlift > 0 &&
-                                            effectiveOhp != null &&
-                                            effectiveOhp > 0
-                                    } else {
-                                        true
-                                    }
-                                }
-                                else -> true
-                            } &&
-                                !uiState.isCreating,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        if (uiState.isCreating) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                            )
-                        } else {
-                            Text(
-                                if (uiState.setupStep == SetupStep.CONFIRMATION) "Create" else "Next",
-                            )
                         }
-                    }
                     }
                 }
             }
@@ -640,12 +642,13 @@ private fun WeightInputField(
     LaunchedEffect(Unit) {
         val initialValue = value ?: profileValue
         if (initialValue != null && initialValue > 0) {
-            val initialText = if (initialValue % 1 == 0f) {
-                initialValue.toInt().toString()
-            } else {
-                // Format to max 2 decimal places, removing trailing zeros
-                "%.2f".format(initialValue).trimEnd('0').trimEnd('.')
-            }
+            val initialText =
+                if (initialValue % 1 == 0f) {
+                    initialValue.toInt().toString()
+                } else {
+                    // Format to max 2 decimal places, removing trailing zeros
+                    "%.2f".format(initialValue).trimEnd('0').trimEnd('.')
+                }
             textFieldValue = TextFieldValue(initialText, TextRange(initialText.length))
             // If we're using profile value and current value is null, update the parent state
             if (value == null && profileValue != null) {
@@ -745,9 +748,9 @@ fun ProfileUpdatePromptDialog(
                     text = "Would you like to update your profile with these new 1RM values?",
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 updates.forEach { (exerciseName, newMax) ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),

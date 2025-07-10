@@ -8,7 +8,7 @@ import kotlinx.coroutines.withContext
 
 class ProgrammeSeeder(
     private val programmeDao: ProgrammeDao,
-    private val exerciseDao: ExerciseDao
+    private val exerciseDao: ExerciseDao,
 ) {
     suspend fun seedPopularProgrammes() {
         withContext(Dispatchers.IO) {
@@ -27,40 +27,42 @@ class ProgrammeSeeder(
 
     private suspend fun seedStrongLifts5x5() {
         // Validate exercises FIRST before creating programme
-        val requiredExercises = listOf(
-            "Barbell Back Squat",
-            "Barbell Bench Press",
-            "Barbell Row",
-            "Barbell Overhead Press",
-            "Barbell Deadlift"
-        )
-        
+        val requiredExercises =
+            listOf(
+                "Barbell Back Squat",
+                "Barbell Bench Press",
+                "Barbell Row",
+                "Barbell Overhead Press",
+                "Barbell Deadlift",
+            )
+
         val validator = ExerciseValidator(exerciseDao)
         validator.initialize()
-        
-        val validationErrors = requiredExercises.mapNotNull { exercise ->
-            when (val result = validator.validateExerciseName(exercise)) {
-                is ValidationResult.Invalid -> {
-                    println("❌ Exercise validation failed: ${result.reason}")
-                    if (result.suggestion != null) {
-                        println("   Suggestion: Use '${result.suggestion}' instead")
+
+        val validationErrors =
+            requiredExercises.mapNotNull { exercise ->
+                when (val result = validator.validateExerciseName(exercise)) {
+                    is ValidationResult.Invalid -> {
+                        println("❌ Exercise validation failed: ${result.reason}")
+                        if (result.suggestion != null) {
+                            println("   Suggestion: Use '${result.suggestion}' instead")
+                        }
+                        result
                     }
-                    result
+                    else -> null
                 }
-                else -> null
             }
-        }
-        
+
         if (validationErrors.isNotEmpty()) {
             throw IllegalStateException(
                 "Cannot seed StrongLifts 5x5: Invalid exercises found. " +
-                "Please ensure all exercises exist in the database:\n" +
-                validationErrors.joinToString("\n") { "- ${it.providedName}" }
+                    "Please ensure all exercises exist in the database:\n" +
+                    validationErrors.joinToString("\n") { "- ${it.providedName}" },
             )
         }
-        
+
         println("✅ All StrongLifts exercises validated successfully")
-        
+
         val strongLiftsStructure =
             """
             {
@@ -119,16 +121,18 @@ class ProgrammeSeeder(
             }
             """.trimIndent()
 
-        val weightCalcRules = """
+        val weightCalcRules =
+            """
             {
                 "baseOn": "LAST_WORKOUT",
                 "trainingMaxPercentage": 1.0,
                 "roundingIncrement": 2.5,
                 "minimumBarWeight": 20.0
             }
-        """.trimIndent()
+            """.trimIndent()
 
-        val progressionRules = """
+        val progressionRules =
+            """
             {
                 "type": "LINEAR",
                 "incrementRules": {
@@ -149,7 +153,7 @@ class ProgrammeSeeder(
                     "allowedMissedReps": 2
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val template =
             ProgrammeTemplate(
@@ -163,7 +167,7 @@ class ProgrammeSeeder(
                 allowsAccessoryCustomization = false,
                 jsonStructure = strongLiftsStructure,
                 weightCalculationRules = weightCalcRules,
-                progressionRules = progressionRules
+                progressionRules = progressionRules,
             )
 
         programmeDao.insertProgrammeTemplate(template)

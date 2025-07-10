@@ -259,7 +259,14 @@ fun ExerciseCard(
 
                 MetricCard(
                     icon = "💪",
-                    value = if (bestSet != null) "${bestSet.actualReps}×${WeightFormatter.formatWeightWithUnit(bestSet.actualWeight)}" else "—",
+                    value =
+                        if (bestSet != null) {
+                            "${bestSet.actualReps}×${WeightFormatter.formatWeightWithUnit(
+                                bestSet.actualWeight,
+                            )}"
+                        } else {
+                            "—"
+                        },
                     label = "Best Set",
                     modifier = Modifier.weight(1f),
                 )

@@ -85,54 +85,64 @@ interface WorkoutDao {
     """,
     )
     suspend fun getCompletedWeeksForProgramme(programmeId: Long): List<Int>
-    
+
     // ===== INTELLIGENT SUGGESTIONS QUERIES =====
-    
+
     @Query("SELECT * FROM ExerciseLog WHERE exerciseName = :exerciseName ORDER BY id DESC")
     suspend fun getExerciseLogsByName(exerciseName: String): List<ExerciseLog>
-    
-    @Query("""
+
+    @Query(
+        """
         SELECT s.* FROM SetLog s 
         WHERE s.exerciseLogId IN (:exerciseIds) 
         AND s.actualReps BETWEEN :minReps AND :maxReps 
         AND s.isCompleted = 1
         ORDER BY s.id DESC 
         LIMIT 50
-    """)
+    """,
+    )
     suspend fun getSetsForExercisesInRepRange(
-        exerciseIds: List<Long>, 
-        minReps: Int, 
-        maxReps: Int
+        exerciseIds: List<Long>,
+        minReps: Int,
+        maxReps: Int,
     ): List<SetLog>
-    
-    @Query("""
+
+    @Query(
+        """
         SELECT s.* FROM SetLog s 
         WHERE s.exerciseLogId IN (:exerciseIds) 
         AND s.isCompleted = 1
         ORDER BY s.id DESC 
         LIMIT :limit
-    """)
-    suspend fun getRecentSetsForExercises(exerciseIds: List<Long>, limit: Int): List<SetLog>
-    
-    @Query("""
+    """,
+    )
+    suspend fun getRecentSetsForExercises(
+        exerciseIds: List<Long>,
+        limit: Int,
+    ): List<SetLog>
+
+    @Query(
+        """
         SELECT s.* FROM SetLog s 
         WHERE s.exerciseLogId IN (:exerciseIds) 
         AND s.actualWeight BETWEEN :minWeight AND :maxWeight 
         AND s.isCompleted = 1
         ORDER BY s.id DESC 
         LIMIT 50
-    """)
+    """,
+    )
     suspend fun getSetsForExercisesInWeightRange(
-        exerciseIds: List<Long>, 
-        minWeight: Float, 
-        maxWeight: Float
+        exerciseIds: List<Long>,
+        minWeight: Float,
+        maxWeight: Float,
     ): List<SetLog>
-    
+
     @Query("DELETE FROM Workout")
     suspend fun deleteAllWorkouts()
-    
+
     // Get the workout date when a specific weight was achieved for an exercise
-    @Query("""
+    @Query(
+        """
         SELECT w.date FROM Workout w
         INNER JOIN ExerciseLog el ON el.workoutId = w.id
         INNER JOIN SetLog sl ON sl.exerciseLogId = el.id
@@ -142,11 +152,12 @@ interface WorkoutDao {
         AND w.date BETWEEN :startDateTime AND :endDateTime
         ORDER BY w.date DESC
         LIMIT 1
-    """)
+    """,
+    )
     suspend fun getWorkoutDateForMaxWeight(
         exerciseName: String,
         weight: Float,
         startDateTime: java.time.LocalDateTime,
-        endDateTime: java.time.LocalDateTime
+        endDateTime: java.time.LocalDateTime,
     ): java.time.LocalDateTime?
 }
