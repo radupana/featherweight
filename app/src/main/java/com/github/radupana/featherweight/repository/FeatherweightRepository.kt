@@ -3003,8 +3003,8 @@ class FeatherweightRepository(
     ): List<LocalDate> = withContext(Dispatchers.IO) {
         val startDateTime = startDate.atStartOfDay()
         val endDateTime = endDate.atTime(23, 59, 59)
-        exerciseLogDao.getDistinctWorkoutDatesForExercise(exerciseName, startDateTime, endDateTime)
-            .map { it.toLocalDate() }
+        exerciseLogDao.getDistinctWorkoutsForExercise(exerciseName, startDateTime, endDateTime)
+            .map { it.date.toLocalDate() }
             .distinct()
     }
     

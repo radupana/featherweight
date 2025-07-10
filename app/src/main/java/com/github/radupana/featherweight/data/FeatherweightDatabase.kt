@@ -44,7 +44,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         PersonalRecord::class,
         AIProgrammeRequest::class,
     ],
-    version = 38,
+    version = 39,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)

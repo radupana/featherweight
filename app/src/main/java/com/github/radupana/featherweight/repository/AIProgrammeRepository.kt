@@ -90,6 +90,56 @@ class AIProgrammeRepository(
         dao.delete(id)
     }
     
+    suspend fun submitClarification(requestId: String, clarificationResponse: String) {
+        val request = dao.getRequestById(requestId) ?: return
+        
+        // Parse the original request payload
+        val originalRequest = json.decodeFromString<SimpleRequest>(request.requestPayload)
+        
+        // Create a new request combining original context + clarification response
+        val combinedInput = "${originalRequest.userInput}\n\nClarification: $clarificationResponse"
+        
+        val newRequest = SimpleRequest(
+            userInput = combinedInput,
+            selectedGoal = originalRequest.selectedGoal,
+            selectedFrequency = originalRequest.selectedFrequency,
+            selectedDuration = originalRequest.selectedDuration,
+            selectedExperience = originalRequest.selectedExperience,
+            selectedEquipment = originalRequest.selectedEquipment,
+            generationMode = originalRequest.generationMode
+        )
+        
+        val newRequestPayload = json.encodeToString(newRequest)
+        
+        // Update the request with new payload and reset status
+        dao.updateStatus(requestId, GenerationStatus.PROCESSING)
+        
+        // Store original payload if not already stored
+        if (request.originalRequestPayload == null) {
+            dao.update(request.copy(
+                requestPayload = newRequestPayload,
+                originalRequestPayload = request.requestPayload,
+                clarificationMessage = null
+            ))
+        } else {
+            dao.update(request.copy(
+                requestPayload = newRequestPayload,
+                clarificationMessage = null
+            ))
+        }
+        
+        // Create new work request
+        val workRequest = ProgrammeGenerationWorker.createWorkRequest(requestId, newRequestPayload)
+        workManager.enqueue(workRequest)
+        
+        // Update WorkManager ID
+        dao.updateWorkManagerId(requestId, workRequest.id.toString())
+    }
+    
+    suspend fun getClarificationMessage(requestId: String): String? {
+        return dao.getClarificationMessage(requestId)
+    }
+    
     suspend fun cleanupStaleRequests() {
         // Get requests older than 1 hour that are still processing
         val staleRequests = dao.getRequestsOlderThan(

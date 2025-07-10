@@ -14,11 +14,14 @@ data class AIProgrammeRequest(
     val attemptCount: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val lastUpdatedAt: Long = System.currentTimeMillis(),
-    val workManagerId: String? = null
+    val workManagerId: String? = null,
+    val clarificationMessage: String? = null,
+    val originalRequestPayload: String? = null
 )
 
 enum class GenerationStatus {
     PROCESSING, // Being processed by WorkManager
+    NEEDS_CLARIFICATION, // Requires user clarification
     COMPLETED,  // Successfully generated
     FAILED      // Failed after all retries
 }

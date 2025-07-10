@@ -4,6 +4,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -67,6 +68,7 @@ fun AIProgrammeRequestCard(
         colors = CardDefaults.cardColors(
             containerColor = when (request.status) {
                 GenerationStatus.PROCESSING -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                GenerationStatus.NEEDS_CLARIFICATION -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
                 GenerationStatus.COMPLETED -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
                 GenerationStatus.FAILED -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
             }
@@ -105,6 +107,14 @@ fun AIProgrammeRequestCard(
                                 .rotate(rotation)
                         )
                     }
+                    GenerationStatus.NEEDS_CLARIFICATION -> {
+                        Icon(
+                            Icons.AutoMirrored.Filled.HelpOutline,
+                            contentDescription = "Needs Clarification",
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                     GenerationStatus.COMPLETED -> {
                         Icon(
                             Icons.Default.CheckCircle,
@@ -134,6 +144,7 @@ fun AIProgrammeRequestCard(
                     
                     val statusText = when (request.status) {
                         GenerationStatus.PROCESSING -> "Generating... ($timeElapsed)"
+                        GenerationStatus.NEEDS_CLARIFICATION -> "Needs clarification"
                         GenerationStatus.COMPLETED -> "Ready to preview!"
                         GenerationStatus.FAILED -> request.errorMessage ?: "Generation failed"
                     }
@@ -143,6 +154,7 @@ fun AIProgrammeRequestCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = when (request.status) {
                             GenerationStatus.PROCESSING -> MaterialTheme.colorScheme.onSurfaceVariant
+                            GenerationStatus.NEEDS_CLARIFICATION -> MaterialTheme.colorScheme.tertiary
                             GenerationStatus.COMPLETED -> MaterialTheme.colorScheme.primary
                             GenerationStatus.FAILED -> MaterialTheme.colorScheme.error
                         }
@@ -169,6 +181,22 @@ fun AIProgrammeRequestCard(
                             modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp
                         )
+                    }
+                    GenerationStatus.NEEDS_CLARIFICATION -> {
+                        IconButton(onClick = onRetry) {
+                            Icon(
+                                Icons.Default.QuestionAnswer,
+                                contentDescription = "Clarify",
+                                tint = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
+                        IconButton(onClick = onDelete) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
                     GenerationStatus.COMPLETED -> {
                         IconButton(onClick = onPreview) {

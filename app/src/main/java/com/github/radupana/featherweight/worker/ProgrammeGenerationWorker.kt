@@ -89,8 +89,18 @@ class ProgrammeGenerationWorker(
                 
                 println("✅ Programme generation successful for request $requestId")
                 Result.success()
+            } else if (response.clarificationNeeded != null) {
+                // Handle clarification needed case
+                aiRequestDao.updateStatusWithClarification(
+                    requestId, 
+                    GenerationStatus.NEEDS_CLARIFICATION, 
+                    response.clarificationNeeded
+                )
+                
+                println("❓ Programme generation needs clarification for request $requestId: ${response.clarificationNeeded}")
+                Result.success()
             } else {
-                val errorMessage = response.error ?: response.clarificationNeeded ?: "Unknown error"
+                val errorMessage = response.error ?: "Unknown error"
                 aiRequestDao.updateStatus(requestId, GenerationStatus.FAILED, errorMessage)
                 
                 println("❌ Programme generation failed: $errorMessage")

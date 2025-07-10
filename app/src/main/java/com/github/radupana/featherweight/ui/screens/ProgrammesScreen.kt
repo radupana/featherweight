@@ -26,6 +26,7 @@ import com.github.radupana.featherweight.data.AIProgrammeRequest
 import com.github.radupana.featherweight.data.GenerationStatus
 import com.github.radupana.featherweight.data.programme.*
 import com.github.radupana.featherweight.ui.components.AIProgrammeRequestCard
+import com.github.radupana.featherweight.ui.components.ClarificationDialog
 import com.github.radupana.featherweight.ui.dialogs.ProgrammeSetupDialog
 import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.ui.utils.NavigationContext
@@ -55,6 +56,8 @@ fun ProgrammesScreen(
 
     // Confirmation dialog states
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var showClarificationDialog by remember { mutableStateOf(false) }
+    var clarificationRequest by remember { mutableStateOf<AIProgrammeRequest?>(null) }
 
     // Handle error messages
     LaunchedEffect(uiState.error) {
@@ -186,7 +189,12 @@ fun ProgrammesScreen(
                                 }
                             },
                             onRetry = {
-                                viewModel.retryAIGeneration(request.id)
+                                if (request.status == GenerationStatus.NEEDS_CLARIFICATION) {
+                                    clarificationRequest = request
+                                    showClarificationDialog = true
+                                } else {
+                                    viewModel.retryAIGeneration(request.id)
+                                }
                             },
                             onDelete = {
                                 viewModel.deleteAIRequest(request.id)
@@ -371,6 +379,22 @@ fun ProgrammesScreen(
                     Text("Cancel")
                 }
             },
+        )
+    }
+    
+    // Clarification Dialog
+    if (showClarificationDialog && clarificationRequest != null) {
+        ClarificationDialog(
+            clarificationMessage = clarificationRequest!!.clarificationMessage ?: "Please provide additional information.",
+            onSubmit = { clarificationText ->
+                viewModel.submitClarification(clarificationRequest!!.id, clarificationText)
+                showClarificationDialog = false
+                clarificationRequest = null
+            },
+            onDismiss = {
+                showClarificationDialog = false
+                clarificationRequest = null
+            }
         )
     }
 }

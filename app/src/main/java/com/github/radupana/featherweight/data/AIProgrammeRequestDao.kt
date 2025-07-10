@@ -37,4 +37,10 @@ interface AIProgrammeRequestDao {
     
     @Query("DELETE FROM ai_programme_requests WHERE id = :id")
     suspend fun delete(id: String)
+    
+    @Query("UPDATE ai_programme_requests SET status = :status, clarificationMessage = :clarificationMessage, lastUpdatedAt = :timestamp WHERE id = :requestId")
+    suspend fun updateStatusWithClarification(requestId: String, status: GenerationStatus, clarificationMessage: String, timestamp: Long = System.currentTimeMillis())
+    
+    @Query("SELECT clarificationMessage FROM ai_programme_requests WHERE id = :requestId")
+    suspend fun getClarificationMessage(requestId: String): String?
 }

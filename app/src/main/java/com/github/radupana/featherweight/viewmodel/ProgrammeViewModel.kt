@@ -576,6 +576,18 @@ class ProgrammeViewModel(
             }
         }
     }
+
+    fun submitClarification(requestId: String, clarificationText: String) {
+        viewModelScope.launch {
+            try {
+                aiProgrammeRepository.submitClarification(requestId, clarificationText)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to submit clarification: ${e.message}"
+                )
+            }
+        }
+    }
 }
 
 // Data classes for UI state
