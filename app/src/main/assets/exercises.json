@@ -530,7 +530,7 @@
     },
     {
       "id": 33,
-      "name": "Barbell Lunges",
+      "name": "Barbell Lunge",
       "category": "Legs",
       "equipment": "Barbell",
       "muscleGroup": "Quadriceps",
@@ -540,7 +540,7 @@
       "requiresWeight": true,
       "instructions": "Bar on shoulders, step forward into lunge position alternating legs.",
       "aliases": [
-        "Barbell Lunge",
+        "Barbell Lunges",
         "BB Lunge"
       ]
     },
@@ -8016,6 +8016,40 @@
       "aliases": [
         "Slow Squat",
         "Time Under Tension Squat"
+      ]
+    },
+    {
+      "id": 501,
+      "name": "Weighted Dip",
+      "category": "Chest",
+      "equipment": "Weight Belt",
+      "muscleGroup": "Chest",
+      "movementPattern": "Press",
+      "type": "Strength",
+      "difficulty": "Advanced",
+      "requiresWeight": true,
+      "instructions": "Perform dips with additional weight attached via belt or held between feet.",
+      "aliases": [
+        "Weighted Dips",
+        "Belt Dip",
+        "Heavy Dip"
+      ]
+    },
+    {
+      "id": 502,
+      "name": "Barbell Paused Bench Press",
+      "category": "Chest",
+      "equipment": "Barbell",
+      "muscleGroup": "Chest",
+      "movementPattern": "Press",
+      "type": "Strength",
+      "difficulty": "Intermediate",
+      "requiresWeight": true,
+      "instructions": "Bench press with pause at chest. Competition standard is 1-2 second pause.",
+      "aliases": [
+        "Paused Bench",
+        "Competition Bench Press",
+        "Pause Bench Press"
       ]
     }
   ]
