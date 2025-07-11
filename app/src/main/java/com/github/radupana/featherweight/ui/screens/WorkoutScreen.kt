@@ -38,13 +38,11 @@ import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.CompactExerciseCard
 import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
-import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
 import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
 import com.github.radupana.featherweight.ui.dialogs.SetEditingModal
 import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
 import com.github.radupana.featherweight.ui.utils.NavigationContext
 import com.github.radupana.featherweight.ui.utils.systemBarsPadding
-import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutState
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlin.math.roundToInt
@@ -57,14 +55,9 @@ fun WorkoutScreen(
     onSelectExercise: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutViewModel = viewModel(),
-    restTimerViewModel: RestTimerViewModel,
 ) {
     val exercises by viewModel.selectedWorkoutExercises.collectAsState()
 
-    // Connect rest timer to workout lifecycle
-    LaunchedEffect(restTimerViewModel) {
-        viewModel.setRestTimerViewModel(restTimerViewModel)
-    }
 
     // Debug log to track recompositions
     LaunchedEffect(exercises) {
@@ -82,11 +75,6 @@ fun WorkoutScreen(
     val workoutState by viewModel.workoutState.collectAsState()
     val pendingOneRMUpdates by viewModel.pendingOneRMUpdates.collectAsState()
 
-    // Rest timer state
-    val timerState by restTimerViewModel.timerState.collectAsState()
-
-    // Workout timer state
-    val elapsedWorkoutTime by viewModel.elapsedWorkoutTime.collectAsState()
 
     // Dialog state
     var showEditSetDialog by remember { mutableStateOf(false) }
@@ -295,16 +283,6 @@ fun WorkoutScreen(
                     EditModeBanner()
                 }
 
-                // Unified Timer Bar
-                UnifiedTimerBar(
-                    workoutElapsed = elapsedWorkoutTime,
-                    workoutActive = workoutState.isWorkoutTimerActive,
-                    restTimerState = timerState,
-                    onRestAddTime = { restTimerViewModel.addTime(15.seconds) },
-                    onRestSubtractTime = { restTimerViewModel.subtractTime(15.seconds) },
-                    onRestSkip = { restTimerViewModel.stopTimer() },
-                    onRestTogglePause = { restTimerViewModel.togglePause() },
-                )
 
                 // Unified Progress Card
                 UnifiedProgressCard(
@@ -590,39 +568,14 @@ fun WorkoutScreen(
             onToggleCompleted = { setId, completed ->
                 if (canEdit) {
                     viewModel.markSetCompleted(setId, completed)
-                    // Auto-start smart rest timer when completing a set
-                    if (completed && setEditingExercise != null) {
-                        val completedSet = sets.find { it.id == setId }
-                        restTimerViewModel.startSmartTimer(
-                            exerciseName = setEditingExercise!!.exerciseName,
-                            exercise = null, // TODO: Add exercise entity lookup
-                            reps = completedSet?.actualReps,
-                            weight = completedSet?.actualWeight,
-                        )
-                    }
                 }
             },
             onCompleteAllSets = {
                 if (canEdit) {
                     viewModel.completeAllSetsInExercise(setEditingExercise!!.id)
-                    // Auto-start smart rest timer when completing all sets
-                    if (setEditingExercise != null) {
-                        // Use the most recent set's data for timer calculation
-                        val mostRecentSet =
-                            sets
-                                .filter { it.exerciseLogId == setEditingExercise!!.id }
-                                .maxByOrNull { it.setOrder }
-                        restTimerViewModel.startSmartTimer(
-                            exerciseName = setEditingExercise!!.exerciseName,
-                            exercise = null, // TODO: Add exercise entity lookup
-                            reps = mostRecentSet?.actualReps,
-                            weight = mostRecentSet?.actualWeight,
-                        )
-                    }
                 }
             },
             viewModel = viewModel,
-            restTimerViewModel = restTimerViewModel,
             isProgrammeWorkout = workoutState.isProgrammeWorkout,
             readOnly = !canEdit,
         )

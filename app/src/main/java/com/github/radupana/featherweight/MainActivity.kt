@@ -55,8 +55,6 @@ import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
 import com.github.radupana.featherweight.viewmodel.InsightsViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
-import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
-import com.github.radupana.featherweight.viewmodel.RestTimerViewModelFactory
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
 enum class Screen {
@@ -139,13 +137,6 @@ class MainActivity : ComponentActivity() {
                     var currentScreen by rememberSaveable { mutableStateOf(Screen.SPLASH) }
                     var selectedExerciseName by rememberSaveable { mutableStateOf("") }
 
-                    // App-level ViewModels for persistence across screens
-                    android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Creating RestTimerViewModel")
-                    val restTimerViewModel: RestTimerViewModel =
-                        viewModel(
-                            factory = RestTimerViewModelFactory(this@MainActivity),
-                        )
-                    android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: RestTimerViewModel created")
 
                     // Seed database early
                     LaunchedEffect(Unit) {
@@ -188,7 +179,6 @@ class MainActivity : ComponentActivity() {
                             MainAppWithNavigation(
                                 currentScreen = currentScreen,
                                 onScreenChange = { screen -> currentScreen = screen },
-                                restTimerViewModel = restTimerViewModel,
                                 selectedExerciseName = selectedExerciseName,
                                 onSelectedExerciseNameChange = { exerciseName -> selectedExerciseName = exerciseName },
                             )
@@ -208,7 +198,6 @@ class MainActivity : ComponentActivity() {
 fun MainAppWithNavigation(
     currentScreen: Screen,
     onScreenChange: (Screen) -> Unit,
-    restTimerViewModel: RestTimerViewModel,
     selectedExerciseName: String,
     onSelectedExerciseNameChange: (String) -> Unit,
 ) {
@@ -346,7 +335,6 @@ fun MainAppWithNavigation(
                     },
                     onSelectExercise = { onScreenChange(Screen.EXERCISE_SELECTOR) },
                     workoutViewModel = workoutViewModel,
-                    restTimerViewModel = restTimerViewModel,
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -521,7 +509,6 @@ fun WorkoutScreen(
     onBack: () -> Unit,
     onSelectExercise: () -> Unit,
     workoutViewModel: WorkoutViewModel,
-    restTimerViewModel: RestTimerViewModel,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier) {
@@ -529,7 +516,6 @@ fun WorkoutScreen(
             onBack = onBack,
             onSelectExercise = onSelectExercise,
             viewModel = workoutViewModel,
-            restTimerViewModel = restTimerViewModel,
         )
     }
 }

@@ -37,7 +37,7 @@ data class Workout(
     val dayNumber: Int? = null, // Which day in the week (1-7)
     val programmeWorkoutName: String? = null, // Name of the programme workout for display
     val isProgrammeWorkout: Boolean = false, // Quick flag to distinguish programme vs freestyle
-    // Workout Status & Timer
+    // Workout Status
     val status: WorkoutStatus = WorkoutStatus.NOT_STARTED, // Tracks workout completion state
     val durationSeconds: Long? = null, // Total workout duration in seconds
 )

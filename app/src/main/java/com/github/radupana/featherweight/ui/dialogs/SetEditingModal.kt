@@ -50,9 +50,7 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.ui.components.CenteredInputField
 import com.github.radupana.featherweight.ui.components.InputFieldType
-import com.github.radupana.featherweight.ui.components.UnifiedTimerBar
 import com.github.radupana.featherweight.util.WeightFormatter
-import com.github.radupana.featherweight.viewmodel.RestTimerViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlin.time.Duration.Companion.seconds
 
@@ -69,7 +67,6 @@ fun SetEditingModal(
     onToggleCompleted: (Long, Boolean) -> Unit,
     onCompleteAllSets: () -> Unit,
     viewModel: WorkoutViewModel,
-    restTimerViewModel: RestTimerViewModel,
     isProgrammeWorkout: Boolean = false,
     readOnly: Boolean = false,
     modifier: Modifier = Modifier,
@@ -77,7 +74,6 @@ fun SetEditingModal(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val listState = rememberLazyListState()
-    val timerState by restTimerViewModel.timerState.collectAsState()
 
     // Intelligent suggestions state
     var intelligentSuggestions by remember { mutableStateOf<SmartSuggestions?>(null) }
@@ -85,7 +81,6 @@ fun SetEditingModal(
 
     // Workout timer state
     val workoutState by viewModel.workoutState.collectAsState()
-    val elapsedWorkoutTime by viewModel.elapsedWorkoutTime.collectAsState()
     val setCompletionValidation by viewModel.setCompletionValidation.collectAsState()
 
     // Load intelligent suggestions when modal opens
@@ -201,16 +196,6 @@ fun SetEditingModal(
                     }
                 }
 
-                // Unified Timer Bar
-                UnifiedTimerBar(
-                    workoutElapsed = elapsedWorkoutTime,
-                    workoutActive = workoutState.isWorkoutTimerActive,
-                    restTimerState = timerState,
-                    onRestAddTime = { restTimerViewModel.addTime(15.seconds) },
-                    onRestSubtractTime = { restTimerViewModel.subtractTime(15.seconds) },
-                    onRestSkip = { restTimerViewModel.stopTimer() },
-                    onRestTogglePause = { restTimerViewModel.togglePause() },
-                )
 
                 // Collapsible Insights Section
                 val exerciseHistory by viewModel.exerciseHistory.collectAsState()
