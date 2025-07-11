@@ -348,11 +348,21 @@ private fun ExerciseDisplayInfo(
             fontWeight = FontWeight.Medium,
         )
 
-        // RPE and Rest
+        // Weight, RPE and Rest
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // Suggested Weight
+            exercise.suggestedWeight?.let { weight ->
+                Text(
+                    text = "${weight}kg",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+
             exercise.rpe?.let { rpe ->
                 Text(
                     text = "RPE $rpe",
@@ -389,10 +399,11 @@ private fun ExerciseEditForm(
     var sets by remember { mutableStateOf(exercise.sets.toString()) }
     var repsMin by remember { mutableStateOf(exercise.repsMin.toString()) }
     var repsMax by remember { mutableStateOf(exercise.repsMax.toString()) }
+    var weight by remember { mutableStateOf(exercise.suggestedWeight?.toString() ?: "") }
     var rpe by remember { mutableStateOf(exercise.rpe?.toString() ?: "") }
     var restSeconds by remember { mutableStateOf(exercise.restSeconds.toString()) }
 
-    LaunchedEffect(sets, repsMin, repsMax, rpe, restSeconds) {
+    LaunchedEffect(sets, repsMin, repsMax, weight, rpe, restSeconds) {
         try {
             onUpdated(
                 QuickEditAction.UpdateExercise(
@@ -400,6 +411,7 @@ private fun ExerciseEditForm(
                     sets = sets.toIntOrNull(),
                     repsMin = repsMin.toIntOrNull(),
                     repsMax = repsMax.toIntOrNull(),
+                    suggestedWeight = weight.toFloatOrNull(),
                     rpe = rpe.toFloatOrNull(),
                     restSeconds = restSeconds.toIntOrNull(),
                 ),
@@ -444,6 +456,14 @@ private fun ExerciseEditForm(
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            OutlinedTextField(
+                value = weight,
+                onValueChange = { weight = it },
+                label = { Text("Weight (kg)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.weight(1f),
+            )
+
             OutlinedTextField(
                 value = rpe,
                 onValueChange = { rpe = it },

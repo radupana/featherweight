@@ -9,10 +9,12 @@ import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.repository.AIProgrammeRepository
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.repository.SimpleRequest
 import com.github.radupana.featherweight.service.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import java.util.*
 
 class ProgrammePreviewViewModel(
@@ -53,6 +55,8 @@ class ProgrammePreviewViewModel(
     val allExercises = _allExercises.asStateFlow()
 
     private var hasLoadedProgramme = false
+    
+    private val json = Json { ignoreUnknownKeys = true }
 
     fun loadGeneratedProgramme(
         response: AIProgrammeResponse,
@@ -84,8 +88,31 @@ class ProgrammePreviewViewModel(
                     // Get all available exercises for matching
                     val allExercises = repository.getAllExercises()
 
+                    // Get the goal from the AI request if available
+                    var selectedGoal: ProgrammeGoal? = null
+                    val aiRequestId = GeneratedProgrammeHolder.getAIRequestId()
+                    if (aiRequestId != null) {
+                        try {
+                            val aiRequest = aiProgrammeRepository.getRequestById(aiRequestId)
+                            if (aiRequest != null) {
+                                // Parse the request payload to get the goal
+                                val simpleRequest = parseSimpleRequest(aiRequest.requestPayload)
+                                selectedGoal = simpleRequest?.selectedGoal?.let { goalName ->
+                                    ProgrammeGoal.values().find { it.name == goalName }
+                                }
+                                if (selectedGoal == null) {
+                                    println("❌ ERROR: Failed to parse goal from AI request. Goal was: ${simpleRequest?.selectedGoal}")
+                                    throw IllegalStateException("Programme goal is mandatory but was not found in AI request")
+                                }
+                                println("🎯 Parsed goal from AI request: $selectedGoal")
+                            }
+                        } catch (e: Exception) {
+                            println("⚠️ Failed to parse goal from AI request: ${e.message}")
+                        }
+                    }
+
                     // Process and validate the programme
-                    val preview = processGeneratedProgramme(generatedProgramme, allExercises, validationResult)
+                    val preview = processGeneratedProgramme(generatedProgramme, allExercises, validationResult, selectedGoal)
 
                     // Debug logging to understand week count
                     println("🔍 ProgrammePreviewViewModel: Generated programme has ${generatedProgramme.weeks.size} weeks")
@@ -115,6 +142,7 @@ class ProgrammePreviewViewModel(
         generated: GeneratedProgramme,
         allExercises: List<ExerciseWithDetails>,
         validationResult: ProgrammeValidationResult? = null,
+        selectedGoal: ProgrammeGoal? = null,
     ): GeneratedProgrammePreview {
         // Convert generated weeks to preview format
         val weeks =
@@ -157,7 +185,7 @@ class ProgrammePreviewViewModel(
                 description = generated.description,
                 durationWeeks = generated.durationWeeks,
                 daysPerWeek = generated.daysPerWeek,
-                focus = listOf(ProgrammeGoal.BUILD_STRENGTH), // Default goal
+                focus = listOf(selectedGoal!!), // Goal is mandatory and must be present
                 volumeLevel = VolumeLevel.MODERATE, // Default volume
                 weeks = weeks,
                 validationResult = ValidationResult(),
@@ -327,6 +355,7 @@ class ProgrammePreviewViewModel(
                     sets = action.sets ?: exercise.sets,
                     repsMin = action.repsMin ?: exercise.repsMin,
                     repsMax = action.repsMax ?: exercise.repsMax,
+                    suggestedWeight = action.suggestedWeight ?: exercise.suggestedWeight,
                     rpe = action.rpe ?: exercise.rpe,
                     restSeconds = action.restSeconds ?: exercise.restSeconds,
                 )
@@ -505,6 +534,13 @@ class ProgrammePreviewViewModel(
 
                 // Clear the generated programme holder
                 GeneratedProgrammeHolder.clearGeneratedProgramme()
+
+                // Reset the preview state to Success before navigating
+                // This prevents showing "Activating" if user navigates back
+                val preview = _currentPreview.value
+                if (preview != null) {
+                    _previewState.value = PreviewState.Success(preview)
+                }
 
                 // Navigate to home screen
                 onSuccess()
@@ -805,5 +841,14 @@ class ProgrammePreviewViewModel(
     fun autoFixValidationIssue() {
         // Auto-fix functionality requires AI service to regenerate with specific constraints
         // TODO: Implement when AI service supports targeted fixes
+    }
+
+    private fun parseSimpleRequest(requestPayload: String): SimpleRequest? {
+        return try {
+            json.decodeFromString<SimpleRequest>(requestPayload)
+        } catch (e: Exception) {
+            println("⚠️ Failed to parse SimpleRequest: ${e.message}")
+            null
+        }
     }
 }

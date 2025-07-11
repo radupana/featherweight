@@ -852,17 +852,27 @@ fun CleanSetLayout(
 ) {
     // Input states - Store as TextFieldValue to preserve cursor position
     // Use both set.id and the actual values as remember keys so UI updates when data changes
-    var weightInput by remember(set.id, set.actualWeight) {
+    var weightInput by remember(set.id, set.actualWeight, set.targetWeight) {
         val text =
             if (set.actualWeight > 0) {
                 WeightFormatter.formatWeight(set.actualWeight)
+            } else if (set.targetWeight != null && set.targetWeight > 0) {
+                // Pre-populate with target weight if no actual weight entered yet
+                WeightFormatter.formatWeight(set.targetWeight)
             } else {
                 ""
             }
         mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
-    var repsInput by remember(set.id, set.actualReps) {
-        val text = if (set.actualReps > 0) set.actualReps.toString() else ""
+    var repsInput by remember(set.id, set.actualReps, set.targetReps) {
+        val text = if (set.actualReps > 0) {
+            set.actualReps.toString()
+        } else if (set.targetReps > 0) {
+            // Pre-populate with target reps if no actual reps entered yet
+            set.targetReps.toString()
+        } else {
+            ""
+        }
         mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
     var rpeInput by remember(set.id, set.actualRpe) {

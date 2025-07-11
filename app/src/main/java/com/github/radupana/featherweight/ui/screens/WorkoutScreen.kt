@@ -1248,10 +1248,8 @@ private fun UnifiedProgressCard(
         ) {
             // Programme section (if applicable)
             if (workoutState.isProgrammeWorkout) {
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = workoutState.programmeName ?: "Programme",
@@ -1261,18 +1259,13 @@ private fun UnifiedProgressCard(
 
                     programmeProgress?.let { (completed, total) ->
                         if (total > 0) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(8.dp),
-                            ) {
-                                Text(
-                                    text = "$completed/$total workouts",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Medium,
-                                )
-                            }
+                            Text(
+                                text = "$completed/$total workouts",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(top = 2.dp),
+                            )
                         }
                     }
                 }

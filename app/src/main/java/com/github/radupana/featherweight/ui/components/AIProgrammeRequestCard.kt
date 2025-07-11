@@ -18,6 +18,7 @@ import com.github.radupana.featherweight.data.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.intOrNull
 import java.util.*
 
 @Composable
@@ -67,30 +68,56 @@ fun AIProgrammeRequestCard(
                 val json = Json { ignoreUnknownKeys = true }
                 val payload = json.parseToJsonElement(request.requestPayload).jsonObject
 
+                // Log the payload for debugging
+                println("🔍 AIProgrammeRequestCard: Parsing request payload")
+                println("📦 Raw payload: $payload")
+                
                 RequestSummary(
                     goal =
-                        payload["goal"]?.jsonPrimitive?.content?.let { goalValue ->
+                        payload["selectedGoal"]?.jsonPrimitive?.content?.let { goalValue ->
+                            println("🎯 Goal value from JSON: $goalValue")
                             ProgrammeGoal.values().find { it.name == goalValue }?.displayName
-                        } ?: "Unknown",
+                        } ?: run {
+                            println("❌ Goal not found in payload")
+                            "Unknown"
+                        },
                     experience =
-                        payload["experienceLevel"]?.jsonPrimitive?.content?.let { expValue ->
+                        payload["selectedExperience"]?.jsonPrimitive?.content?.let { expValue ->
+                            println("💪 Experience value from JSON: $expValue")
                             ExperienceLevel.values().find { it.name == expValue }?.displayName
-                        } ?: "Unknown",
+                        } ?: run {
+                            println("❌ Experience not found in payload")
+                            "Unknown"
+                        },
                     frequency =
-                        payload["frequency"]?.jsonPrimitive?.content?.let { freqValue ->
-                            TrainingFrequency.values().find { it.name == freqValue }?.displayName
-                        } ?: "Unknown",
+                        payload["selectedFrequency"]?.jsonPrimitive?.intOrNull?.let { freqValue ->
+                            println("📅 Frequency value from JSON: $freqValue")
+                            "$freqValue days/week"
+                        } ?: run {
+                            println("❌ Frequency not found in payload")
+                            "Unknown"
+                        },
                     duration =
-                        payload["sessionDuration"]?.jsonPrimitive?.content?.let { durValue ->
+                        payload["selectedDuration"]?.jsonPrimitive?.content?.let { durValue ->
+                            println("⏱️ Duration value from JSON: $durValue")
                             SessionDuration.values().find { it.name == durValue }?.displayName
-                        } ?: "Unknown",
+                        } ?: run {
+                            println("❌ Duration not found in payload")
+                            "Unknown"
+                        },
                     equipment =
-                        payload["equipment"]?.jsonPrimitive?.content?.let { equipValue ->
+                        payload["selectedEquipment"]?.jsonPrimitive?.content?.let { equipValue ->
+                            println("🏋️ Equipment value from JSON: $equipValue")
                             EquipmentAvailability.values().find { it.name == equipValue }?.displayName
-                        } ?: "Unknown",
-                    customInstructions = payload["customInstructions"]?.jsonPrimitive?.content,
+                        } ?: run {
+                            println("❌ Equipment not found in payload")
+                            "Unknown"
+                        },
+                    customInstructions = payload["userInput"]?.jsonPrimitive?.content,
                 )
             } catch (e: Exception) {
+                println("❌ ERROR parsing request payload: ${e.message}")
+                e.printStackTrace()
                 null
             }
         }

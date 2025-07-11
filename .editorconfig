@@ -1,0 +1,16 @@
+[*.{kt,kts}]
+# Disable rules that can't be auto-fixed and are annoying
+ktlint_standard_function-naming = disabled
+ktlint_standard_property-naming = disabled
+ktlint_standard_max-line-length = disabled
+ktlint_standard_no-wildcard-imports = disabled
+ktlint_standard_filename = disabled
+ktlint_standard_discouraged-comment-location = disabled
+ktlint_standard_no-consecutive-comments = disabled
+ktlint_standard_if-else-wrapping = disabled
+
+# Keep the formatting rules enabled
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+max_line_length = 140

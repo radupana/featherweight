@@ -32,6 +32,7 @@ Building a weightlifting Super App that combines the best features from apps lik
 - **No Unrequested Features**: If the user didn't ask for it, DON'T ADD IT
 - **Clean Code**: Remove unused code, imports, and dead declarations immediately
 - **Manual Testing Only**: No automated tests - we test manually to speed development
+- **Class References**: Never use full package names when referring to classes, just use the class name unless there are naming conflicts
 
 ## Common Commands
 

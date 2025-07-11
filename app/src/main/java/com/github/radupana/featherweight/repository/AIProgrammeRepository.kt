@@ -22,6 +22,7 @@ data class SimpleRequest(
     val selectedExperience: String? = null,
     val selectedEquipment: String? = null,
     val generationMode: String,
+    val user1RMs: Map<String, Float>? = null,
 )
 
 class AIProgrammeRepository(
@@ -38,6 +39,7 @@ class AIProgrammeRepository(
         selectedExperience: String? = null,
         selectedEquipment: String? = null,
         generationMode: String,
+        user1RMs: Map<String, Float>? = null,
     ): String {
         // Create request payload
         val simpleRequest =
@@ -49,6 +51,7 @@ class AIProgrammeRepository(
                 selectedExperience = selectedExperience,
                 selectedEquipment = selectedEquipment,
                 generationMode = generationMode,
+                user1RMs = user1RMs,
             )
 
         val requestPayload = json.encodeToString(simpleRequest)
@@ -113,6 +116,7 @@ class AIProgrammeRepository(
                 selectedExperience = originalRequest.selectedExperience,
                 selectedEquipment = originalRequest.selectedEquipment,
                 generationMode = originalRequest.generationMode,
+                user1RMs = originalRequest.user1RMs,
             )
 
         val newRequestPayload = json.encodeToString(newRequest)

@@ -205,6 +205,7 @@ sealed class QuickEditAction {
         val sets: Int? = null,
         val repsMin: Int? = null,
         val repsMax: Int? = null,
+        val suggestedWeight: Float? = null,
         val rpe: Float? = null,
         val restSeconds: Int? = null,
     ) : QuickEditAction()

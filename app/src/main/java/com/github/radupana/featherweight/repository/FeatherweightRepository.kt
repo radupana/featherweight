@@ -1457,8 +1457,9 @@ class FeatherweightRepository(
                     setOrder = setIndex,
                     targetReps = reps,
                     targetWeight = weight,
-                    actualReps = 0,
-                    actualWeight = 0f,
+                    // Pre-populate actual values with target values for programme workouts
+                    actualReps = reps,
+                    actualWeight = weight ?: 0f,
                     actualRpe = null,
                     isCompleted = false,
                     completedAt = null,
@@ -2676,6 +2677,19 @@ class FeatherweightRepository(
 
                 return decision.weight
             }
+        }
+
+        // Check if we have AI-suggested weight with a valid source
+        if (exerciseStructure.suggestedWeight != null && 
+            exerciseStructure.suggestedWeight > 0 &&
+            exerciseStructure.weightSource != null &&
+            exerciseStructure.weightSource != "average_estimate") {
+            // AI made an informed decision based on user's 1RMs or specific input
+            println("Calculation Method: AI-suggested with context")
+            println("AI Suggested Weight: ${exerciseStructure.suggestedWeight} kg")
+            println("Weight Source: ${exerciseStructure.weightSource}")
+            println("==============================\n")
+            return exerciseStructure.suggestedWeight
         }
 
         // Fallback to existing intelligent weight calculation

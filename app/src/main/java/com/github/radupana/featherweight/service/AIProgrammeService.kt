@@ -18,6 +18,7 @@ data class AIProgrammeRequest(
     val exerciseDatabase: List<String>,
     val maxDays: Int = 7,
     val maxWeeks: Int = 12,
+    val user1RMs: Map<String, Float>? = null,
 )
 
 data class AIProgrammeResponse(
@@ -106,7 +107,7 @@ class AIProgrammeService(
         withContext(Dispatchers.IO) {
             try {
                 val systemPrompt = buildSystemPrompt(request)
-                val userPrompt = request.userInput
+                val userPrompt = buildUserPromptWithMaxes(request)
 
                 // Log token estimation for cost tracking
                 val estimatedTokens = estimateTokens(systemPrompt + userPrompt)
@@ -228,7 +229,11 @@ class AIProgrammeService(
         
         WEIGHT ASSIGNMENT PRIORITY:
         1. User-specified exact weights (e.g., "5×5 @ 97.5kg") - USE EXACTLY
-        2. User's saved 1RMs (provided below) - calculate percentages
+        2. User's saved 1RMs (will be provided at the end of the user prompt if available) - calculate percentages based on:
+           - Strength work: 75-90% of 1RM
+           - Hypertrophy work: 60-80% of 1RM  
+           - Endurance work: 40-60% of 1RM
+           - Always round to practical weights (2.5kg increments)
         3. If no 1RMs available, use appropriate weights for average gym-goer based on gender and experience
         
         - Include "suggestedWeight" (in kg) and "weightSource" for each exercise
@@ -288,6 +293,24 @@ class AIProgrammeService(
 
         Remember: You're creating a programme that could change someone's life. Make it excellent.
         """.trimIndent()
+
+    private fun buildUserPromptWithMaxes(request: AIProgrammeRequest): String {
+        val parts = mutableListOf<String>()
+        
+        // Add the user's original input
+        parts.add(request.userInput)
+        
+        // Add user's 1RMs if available
+        if (!request.user1RMs.isNullOrEmpty()) {
+            val maxesText = request.user1RMs.entries.joinToString("\n") { (exercise, weight) ->
+                "- $exercise: ${weight}kg"
+            }
+            parts.add("\nUSER'S CURRENT 1RM VALUES (from their profile):\n$maxesText")
+            parts.add("Please use these 1RMs to calculate appropriate working weights based on the programme's intensity requirements.")
+        }
+        
+        return parts.joinToString("\n")
+    }
 
     private suspend fun callOpenAI(
         systemPrompt: String,

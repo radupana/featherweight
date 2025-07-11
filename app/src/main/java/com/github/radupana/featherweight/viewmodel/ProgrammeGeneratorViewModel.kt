@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.work.WorkManager
 import com.github.radupana.featherweight.ai.WeightExtractionService
 import com.github.radupana.featherweight.data.*
-import com.github.radupana.featherweight.data.profile.ExerciseMaxWithName
 import com.github.radupana.featherweight.repository.AIProgrammeRepository
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.AIProgrammeQuotaManager
@@ -17,6 +16,7 @@ import com.github.radupana.featherweight.service.ExerciseMatchingService
 import com.github.radupana.featherweight.service.InputAnalyzer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class ProgrammeGeneratorViewModel(
@@ -285,6 +285,11 @@ class ProgrammeGeneratorViewModel(
             _uiState.value = currentState.copy(isLoading = false) // Don't show loading anymore
 
             try {
+                // Fetch user's current 1RMs
+                val user1RMs = repository.getAllCurrentMaxes().first().associate { max ->
+                    max.exerciseName to max.maxWeight
+                }
+                
                 // Create generation request
                 val requestId =
                     aiProgrammeRepository.createGenerationRequest(
@@ -295,6 +300,7 @@ class ProgrammeGeneratorViewModel(
                         selectedExperience = currentState.selectedExperience?.name,
                         selectedEquipment = currentState.selectedEquipment?.name,
                         generationMode = "SIMPLIFIED",
+                        user1RMs = user1RMs.ifEmpty { null },
                     )
 
                 // Increment quota usage
@@ -391,27 +397,6 @@ class ProgrammeGeneratorViewModel(
         }
     }
 
-    private fun buildEnhancedUserInputWithWeights(
-        state: GuidedInputState,
-        user1RMs: List<ExerciseMaxWithName>,
-    ): String {
-        val baseInput = buildEnhancedUserInput(state)
-        val parts = mutableListOf(baseInput)
-
-        // Add user's saved 1RMs if available
-        if (user1RMs.isNotEmpty()) {
-            val maxes =
-                user1RMs.joinToString(", ") { max ->
-                    "${max.exerciseName}: ${max.maxWeight}kg"
-                }
-            parts.add("USER'S SAVED 1RMs from their profile: $maxes")
-            parts.add("Use these for calculating percentages ONLY if the user hasn't specified exact weights")
-        } else {
-            parts.add("NO SAVED 1RMs - use average gym-goer weights as specified in guidelines")
-        }
-
-        return parts.joinToString("\n\n")
-    }
 
     private suspend fun validateAndMatchExercises(
         response: AIProgrammeResponse,

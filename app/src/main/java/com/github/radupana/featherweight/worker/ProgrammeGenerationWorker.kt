@@ -81,6 +81,7 @@ class ProgrammeGenerationWorker(
                     AIProgrammeRequest(
                         userInput = simpleRequest.userInput,
                         exerciseDatabase = exerciseNames,
+                        user1RMs = simpleRequest.user1RMs,
                     )
 
                 // Make the API call with timeout
