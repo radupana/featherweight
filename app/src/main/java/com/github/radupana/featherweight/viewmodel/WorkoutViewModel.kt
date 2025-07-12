@@ -18,6 +18,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -163,6 +164,13 @@ class WorkoutViewModel(
     val restTimerExpanded: StateFlow<Boolean> = _restTimerExpanded
 
     private var restTimerJob: Job? = null
+    
+    // Workout timer state
+    private val _workoutTimerSeconds = MutableStateFlow(0)
+    val workoutTimerSeconds: StateFlow<Int> = _workoutTimerSeconds
+    
+    private var workoutTimerJob: Job? = null
+    private var workoutTimerStartTime: LocalDateTime? = null
 
     init {
         checkForOngoingWorkout()
@@ -357,6 +365,15 @@ class WorkoutViewModel(
                 // Wait for exercises to load completely before UI renders
                 loadExercisesForWorkout(workoutId)
                 loadInProgressWorkouts()
+                
+                // Resume workout timer if it was started
+                if (!isCompleted && workout.timerStartTime != null) {
+                    resumeWorkoutTimer(workout.timerStartTime)
+                } else {
+                    // Clear timer if no timer was started or workout is completed
+                    _workoutTimerSeconds.value = 0
+                    workoutTimerStartTime = null
+                }
             }
         }
     }
@@ -365,6 +382,11 @@ class WorkoutViewModel(
     fun startNewWorkout(forceNew: Boolean = false) {
         viewModelScope.launch {
             if (forceNew || repository.getOngoingWorkout() == null) {
+                // Clear any existing timers
+                stopWorkoutTimer()
+                _workoutTimerSeconds.value = 0
+                workoutTimerStartTime = null
+                
                 val workout = Workout(date = LocalDateTime.now(), notes = null)
                 val workoutId = repository.insertWorkout(workout)
 
@@ -483,6 +505,9 @@ class WorkoutViewModel(
 
             // Clear rest timer on workout completion
             skipRestTimer()
+            
+            // Stop workout timer
+            stopWorkoutTimer()
 
             _workoutState.value =
                 state.copy(
@@ -947,6 +972,11 @@ class WorkoutViewModel(
             // Auto-start rest timer when set is completed
             if (completed) {
                 startRestTimer(90) // Hardcoded 90 seconds
+                
+                // Start workout timer on first set completion
+                if (workoutTimerStartTime == null) {
+                    startWorkoutTimer()
+                }
             }
 
             // Check for Personal Records AFTER database save (when completed)
@@ -1230,6 +1260,12 @@ class WorkoutViewModel(
     // Delete any workout by ID
     fun deleteWorkout(workoutId: Long) {
         viewModelScope.launch {
+            // Stop timers if deleting current workout
+            if (workoutId == _currentWorkoutId.value) {
+                skipRestTimer()
+                stopWorkoutTimer()
+            }
+            
             repository.deleteWorkout(workoutId)
             loadInProgressWorkouts()
         }
@@ -1570,9 +1606,53 @@ class WorkoutViewModel(
     fun toggleRestTimerExpanded() {
         _restTimerExpanded.value = !_restTimerExpanded.value
     }
+    
+    // Workout timer functions
+    private fun startWorkoutTimer() {
+        val currentWorkoutId = _currentWorkoutId.value ?: return
+        
+        viewModelScope.launch {
+            // Save timer start time to database
+            workoutTimerStartTime = LocalDateTime.now()
+            repository.updateWorkoutTimerStart(currentWorkoutId, workoutTimerStartTime!!)
+            
+            // Start the timer coroutine
+            workoutTimerJob?.cancel()
+            workoutTimerJob = viewModelScope.launch {
+                while (coroutineContext.isActive) {
+                    val elapsed = java.time.Duration.between(workoutTimerStartTime, LocalDateTime.now()).seconds
+                    _workoutTimerSeconds.value = elapsed.toInt()
+                    delay(1000)
+                }
+            }
+        }
+    }
+    
+    private fun stopWorkoutTimer() {
+        workoutTimerJob?.cancel()
+        workoutTimerJob = null
+    }
+    
+    private fun resumeWorkoutTimer(startTime: LocalDateTime) {
+        workoutTimerStartTime = startTime
+        
+        // Calculate elapsed time
+        val elapsed = java.time.Duration.between(startTime, LocalDateTime.now()).seconds
+        _workoutTimerSeconds.value = elapsed.toInt()
+        
+        // Resume counting
+        workoutTimerJob = viewModelScope.launch {
+            while (coroutineContext.isActive) {
+                val newElapsed = java.time.Duration.between(workoutTimerStartTime, LocalDateTime.now()).seconds
+                _workoutTimerSeconds.value = newElapsed.toInt()
+                delay(1000)
+            }
+        }
+    }
 
     override fun onCleared() {
         super.onCleared()
         restTimerJob?.cancel()
+        workoutTimerJob?.cancel()
     }
 }

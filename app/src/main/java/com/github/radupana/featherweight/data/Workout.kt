@@ -40,4 +40,7 @@ data class Workout(
     // Workout Status
     val status: WorkoutStatus = WorkoutStatus.NOT_STARTED, // Tracks workout completion state
     val durationSeconds: Long? = null, // Total workout duration in seconds
+    // Timer fields
+    val timerStartTime: LocalDateTime? = null, // When the timer started (first set completed)
+    val timerElapsedSeconds: Int = 0, // For persistence during app restarts
 )

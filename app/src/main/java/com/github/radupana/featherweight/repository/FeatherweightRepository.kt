@@ -2164,6 +2164,16 @@ class FeatherweightRepository(
         workoutDao.updateWorkout(updatedWorkout)
         println("📊 Workout $workoutId status updated to $status")
     }
+    
+    suspend fun updateWorkoutTimerStart(
+        workoutId: Long,
+        timerStartTime: LocalDateTime,
+    ) = withContext(Dispatchers.IO) {
+        val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
+        val updatedWorkout = workout.copy(timerStartTime = timerStartTime)
+        workoutDao.updateWorkout(updatedWorkout)
+        println("⏱️ Workout $workoutId timer started at $timerStartTime")
+    }
 
     // Programme Progress
     suspend fun updateProgrammeProgress(

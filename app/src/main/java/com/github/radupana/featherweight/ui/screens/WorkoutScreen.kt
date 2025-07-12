@@ -39,6 +39,7 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.CompactExerciseCard
 import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
 import com.github.radupana.featherweight.ui.components.IntegratedRestTimer
+import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
 import com.github.radupana.featherweight.ui.dialogs.SetEditingModal
 import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
@@ -80,6 +81,9 @@ fun WorkoutScreen(
     val restTimerSeconds by viewModel.restTimerSeconds.collectAsState()
     val restTimerInitialSeconds by viewModel.restTimerInitialSeconds.collectAsState()
     val restTimerExpanded by viewModel.restTimerExpanded.collectAsState()
+    
+    // Workout timer state
+    val workoutTimerSeconds by viewModel.workoutTimerSeconds.collectAsState()
 
 
     // Dialog state
@@ -158,6 +162,7 @@ fun WorkoutScreen(
                 title = {
                     Column {
                         Row(
+                            modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
@@ -230,6 +235,12 @@ fun WorkoutScreen(
                                     )
                                 }
                             }
+                            
+                            // Workout timer
+                            WorkoutTimer(
+                                seconds = workoutTimerSeconds,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
                         }
                     }
                 },
