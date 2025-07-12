@@ -14,6 +14,8 @@ import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -149,6 +151,18 @@ class WorkoutViewModel(
     // Exercise swap state
     private val _swappingExercise = MutableStateFlow<ExerciseLog?>(null)
     val swappingExercise: StateFlow<ExerciseLog?> = _swappingExercise
+
+    // Rest timer state
+    private val _restTimerSeconds = MutableStateFlow(0)
+    val restTimerSeconds: StateFlow<Int> = _restTimerSeconds
+
+    private val _restTimerInitialSeconds = MutableStateFlow(0)
+    val restTimerInitialSeconds: StateFlow<Int> = _restTimerInitialSeconds
+    
+    private val _restTimerExpanded = MutableStateFlow(false)
+    val restTimerExpanded: StateFlow<Boolean> = _restTimerExpanded
+
+    private var restTimerJob: Job? = null
 
     init {
         checkForOngoingWorkout()
@@ -466,6 +480,10 @@ class WorkoutViewModel(
 
             val newStatus = WorkoutStatus.COMPLETED
             println("🏁 Setting workout state to completed")
+
+            // Clear rest timer on workout completion
+            skipRestTimer()
+
             _workoutState.value =
                 state.copy(
                     isActive = false,
@@ -925,6 +943,11 @@ class WorkoutViewModel(
 
             // Then persist to database
             repository.markSetCompleted(setId, completed, timestamp)
+
+            // Auto-start rest timer when set is completed
+            if (completed) {
+                startRestTimer(90) // Hardcoded 90 seconds
+            }
 
             // Check for Personal Records AFTER database save (when completed)
             if (completed) {
@@ -1508,7 +1531,48 @@ class WorkoutViewModel(
 
     // Removed weight suggestion feature - will be reimplemented later with better intelligence
 
+    // ===== REST TIMER FUNCTIONS =====
+
+    private fun startRestTimer(seconds: Int) {
+        restTimerJob?.cancel()
+        _restTimerSeconds.value = seconds
+        _restTimerInitialSeconds.value = seconds
+
+        restTimerJob =
+            viewModelScope.launch {
+                while (_restTimerSeconds.value > 0) {
+                    delay(1000)
+                    _restTimerSeconds.value -= 1
+                }
+                // Timer completed - vibration will be handled by UI
+            }
+    }
+
+    fun skipRestTimer() {
+        restTimerJob?.cancel()
+        _restTimerSeconds.value = 0
+        _restTimerInitialSeconds.value = 0
+    }
+
+    fun adjustRestTimer(adjustment: Int) {
+        val newValue = (_restTimerSeconds.value + adjustment).coerceAtLeast(0)
+        if (newValue > 0) {
+            _restTimerSeconds.value = newValue
+        } else {
+            skipRestTimer()
+        }
+    }
+
+    fun selectRestTimerPreset(seconds: Int) {
+        startRestTimer(seconds)
+    }
+    
+    fun toggleRestTimerExpanded() {
+        _restTimerExpanded.value = !_restTimerExpanded.value
+    }
+
     override fun onCleared() {
         super.onCleared()
+        restTimerJob?.cancel()
     }
 }

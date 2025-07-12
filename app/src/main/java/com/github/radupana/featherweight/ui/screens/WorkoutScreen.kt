@@ -38,6 +38,7 @@ import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.CompactExerciseCard
 import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
+import com.github.radupana.featherweight.ui.components.IntegratedRestTimer
 import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
 import com.github.radupana.featherweight.ui.dialogs.SetEditingModal
 import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
@@ -74,6 +75,11 @@ fun WorkoutScreen(
     val sets by viewModel.selectedExerciseSets.collectAsState()
     val workoutState by viewModel.workoutState.collectAsState()
     val pendingOneRMUpdates by viewModel.pendingOneRMUpdates.collectAsState()
+    
+    // Rest timer state
+    val restTimerSeconds by viewModel.restTimerSeconds.collectAsState()
+    val restTimerInitialSeconds by viewModel.restTimerInitialSeconds.collectAsState()
+    val restTimerExpanded by viewModel.restTimerExpanded.collectAsState()
 
 
     // Dialog state
@@ -292,6 +298,21 @@ fun WorkoutScreen(
                     viewModel = viewModel,
                     modifier = Modifier.padding(16.dp),
                 )
+                
+                // Rest timer (if active)
+                if (restTimerSeconds > 0) {
+                    IntegratedRestTimer(
+                        seconds = restTimerSeconds,
+                        initialSeconds = restTimerInitialSeconds,
+                        isExpanded = restTimerExpanded,
+                        onToggleExpanded = { viewModel.toggleRestTimerExpanded() },
+                        onSkip = { viewModel.skipRestTimer() },
+                        onPresetSelected = { viewModel.selectRestTimerPreset(it) },
+                        onAdjustTime = { viewModel.adjustRestTimer(it) },
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
 
                 // Exercises list or empty state
                 if (workoutState.isLoadingExercises) {

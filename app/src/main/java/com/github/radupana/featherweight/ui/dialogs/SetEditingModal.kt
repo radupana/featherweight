@@ -50,9 +50,9 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.ui.components.CenteredInputField
 import com.github.radupana.featherweight.ui.components.InputFieldType
+import com.github.radupana.featherweight.ui.components.IntegratedRestTimer
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
-import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun SetEditingModal(
@@ -82,6 +82,11 @@ fun SetEditingModal(
     // Workout timer state
     val workoutState by viewModel.workoutState.collectAsState()
     val setCompletionValidation by viewModel.setCompletionValidation.collectAsState()
+
+    // Rest timer state
+    val restTimerSeconds by viewModel.restTimerSeconds.collectAsState()
+    val restTimerInitialSeconds by viewModel.restTimerInitialSeconds.collectAsState()
+    val restTimerExpanded by viewModel.restTimerExpanded.collectAsState()
 
     // Load intelligent suggestions when modal opens
     LaunchedEffect(exercise.exerciseName) {
@@ -136,236 +141,332 @@ fun SetEditingModal(
             ),
     ) {
         Surface(
-            modifier =
-                modifier
-                    .fillMaxSize()
-                    .systemBarsPadding(),
+            modifier = modifier
+                .fillMaxSize()
+                .systemBarsPadding(),
             color = MaterialTheme.colorScheme.surface,
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
             ) {
-                // Header
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    tonalElevation = 4.dp,
-                ) {
-                    Row(
+                    // Header
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        tonalElevation = 4.dp,
+                    ) {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    keyboardController?.hide()
+                                    focusManager.clearFocus()
+                                    onDismiss()
+                                },
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Close",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                Text(
+                                    exercise.exerciseName,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    textAlign = TextAlign.Center,
+                                )
+                                if (sets.isNotEmpty()) {
+                                    val completedSets = sets.count { it.isCompleted }
+                                    Text(
+                                        "$completedSets/${sets.size} sets completed",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(48.dp))
+                        }
+                    }
+                    
+                    // Rest timer (if active)
+                    if (restTimerSeconds > 0) {
+                        IntegratedRestTimer(
+                            seconds = restTimerSeconds,
+                            initialSeconds = restTimerInitialSeconds,
+                            isExpanded = restTimerExpanded,
+                            onToggleExpanded = { viewModel.toggleRestTimerExpanded() },
+                            onSkip = { viewModel.skipRestTimer() },
+                            onPresetSelected = { viewModel.selectRestTimerPreset(it) },
+                            onAdjustTime = { viewModel.adjustRestTimer(it) }
+                        )
+                    }
+
+                    // Collapsible Insights Section
+                    val exerciseHistory by viewModel.exerciseHistory.collectAsState()
+                    val previousSets = exerciseHistory[exercise.exerciseName]?.sets ?: emptyList()
+                    var showInsights by remember { mutableStateOf(false) }
+
+                    if (previousSets.isNotEmpty() || (!isProgrammeWorkout && intelligentSuggestions != null)) {
+                        InsightsSection(
+                            exerciseName = exercise.exerciseName,
+                            previousSets = previousSets,
+                            intelligentSuggestions = if (!isProgrammeWorkout) intelligentSuggestions else null,
+                            isExpanded = showInsights,
+                            onToggleExpanded = { showInsights = !showInsights },
+                            onSelectAlternative = { alternative ->
+                                if (sets.isEmpty()) {
+                                    // Create set with initial values directly
+                                    viewModel.addSetToExercise(
+                                        exerciseLogId = exercise.id,
+                                        targetReps = alternative.actualReps,
+                                        targetWeight = alternative.actualWeight,
+                                        weight = alternative.actualWeight,
+                                        reps = alternative.actualReps,
+                                        rpe = alternative.actualRpe,
+                                    )
+                                } else {
+                                    val firstUncompletedSet = sets.firstOrNull { !it.isCompleted }
+                                    firstUncompletedSet?.let { set ->
+                                        onUpdateSet(set.id, alternative.actualReps, alternative.actualWeight, alternative.actualRpe)
+                                    }
+                                }
+                            },
+                            onSelectSuggestion = { suggestion ->
+                                if (sets.isEmpty()) {
+                                    // Create set with initial values directly
+                                    viewModel.addSetToExercise(
+                                        exerciseLogId = exercise.id,
+                                        targetReps = suggestion.suggestedReps,
+                                        targetWeight = suggestion.suggestedWeight,
+                                        weight = suggestion.suggestedWeight,
+                                        reps = suggestion.suggestedReps,
+                                        rpe = suggestion.suggestedRpe,
+                                    )
+                                } else {
+                                    val firstUncompletedSet = sets.firstOrNull { !it.isCompleted }
+                                    firstUncompletedSet?.let { set ->
+                                        onUpdateSet(set.id, suggestion.suggestedReps, suggestion.suggestedWeight, suggestion.suggestedRpe)
+                                    }
+                                }
+                            },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
+                    }
+
+                    // Content area with optimal space usage
+                    Box(
                         modifier =
                             Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                                .fillMaxSize()
+                                .padding(16.dp)
+                                .imePadding(), // Add IME padding to avoid keyboard overlap
                     ) {
-                        IconButton(
-                            onClick = {
-                                keyboardController?.hide()
-                                focusManager.clearFocus()
-                                onDismiss()
-                            },
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Close",
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-
                         Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxSize(),
                         ) {
-                            Text(
-                                exercise.exerciseName,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                textAlign = TextAlign.Center,
-                            )
+                            // Show header only when there are sets
                             if (sets.isNotEmpty()) {
-                                val completedSets = sets.count { it.isCompleted }
-                                Text(
-                                    "$completedSets/${sets.size} sets completed",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(48.dp))
-                    }
-                }
-
-
-                // Collapsible Insights Section
-                val exerciseHistory by viewModel.exerciseHistory.collectAsState()
-                val previousSets = exerciseHistory[exercise.exerciseName]?.sets ?: emptyList()
-                var showInsights by remember { mutableStateOf(false) }
-
-                if (previousSets.isNotEmpty() || (!isProgrammeWorkout && intelligentSuggestions != null)) {
-                    InsightsSection(
-                        exerciseName = exercise.exerciseName,
-                        previousSets = previousSets,
-                        intelligentSuggestions = if (!isProgrammeWorkout) intelligentSuggestions else null,
-                        isExpanded = showInsights,
-                        onToggleExpanded = { showInsights = !showInsights },
-                        onSelectAlternative = { alternative ->
-                            if (sets.isEmpty()) {
-                                // Create set with initial values directly
-                                viewModel.addSetToExercise(
-                                    exerciseLogId = exercise.id,
-                                    targetReps = alternative.actualReps,
-                                    targetWeight = alternative.actualWeight,
-                                    weight = alternative.actualWeight,
-                                    reps = alternative.actualReps,
-                                    rpe = alternative.actualRpe,
-                                )
-                            } else {
-                                val firstUncompletedSet = sets.firstOrNull { !it.isCompleted }
-                                firstUncompletedSet?.let { set ->
-                                    onUpdateSet(set.id, alternative.actualReps, alternative.actualWeight, alternative.actualRpe)
-                                }
-                            }
-                        },
-                        onSelectSuggestion = { suggestion ->
-                            if (sets.isEmpty()) {
-                                // Create set with initial values directly
-                                viewModel.addSetToExercise(
-                                    exerciseLogId = exercise.id,
-                                    targetReps = suggestion.suggestedReps,
-                                    targetWeight = suggestion.suggestedWeight,
-                                    weight = suggestion.suggestedWeight,
-                                    reps = suggestion.suggestedReps,
-                                    rpe = suggestion.suggestedRpe,
-                                )
-                            } else {
-                                val firstUncompletedSet = sets.firstOrNull { !it.isCompleted }
-                                firstUncompletedSet?.let { set ->
-                                    onUpdateSet(set.id, suggestion.suggestedReps, suggestion.suggestedWeight, suggestion.suggestedRpe)
-                                }
-                            }
-                        },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    )
-                }
-
-                // Content area with optimal space usage
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                            .imePadding(), // Add IME padding to avoid keyboard overlap
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        // Show header only when there are sets
-                        if (sets.isNotEmpty()) {
-                            // Modal header for input fields
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    "Target",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(0.8f),
-                                    textAlign = TextAlign.Center,
-                                )
-                                Text(
-                                    "Weight",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(0.8f),
-                                    textAlign = TextAlign.Center,
-                                )
-                                Text(
-                                    "Reps",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(0.6f),
-                                    textAlign = TextAlign.Center,
-                                )
-                                Text(
-                                    "RPE",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(0.6f),
-                                    textAlign = TextAlign.Center,
-                                )
-                                // "All" button for marking all sets complete
-                                // Note: We check reps > 0 here because the actual weight requirement
-                                // is checked in the ViewModel's canMarkSetComplete function
-                                val hasPopulatedSets = sets.any { !it.isCompleted && it.actualReps > 0 }
-                                if (hasPopulatedSets) {
-                                    IconButton(
-                                        onClick = onCompleteAllSets,
-                                        modifier = Modifier.size(48.dp),
-                                    ) {
-                                        Icon(
-                                            Icons.Filled.CheckCircle,
-                                            contentDescription = "Complete all",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp),
-                                        )
-                                    }
-                                } else {
-                                    Spacer(modifier = Modifier.width(48.dp))
-                                }
-                            }
-
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant,
-                                thickness = 0.5.dp,
-                            )
-                        }
-
-                        // Always show the LazyColumn
-                        Column(modifier = Modifier.weight(1f)) {
-                            // Sets list
-                            LazyColumn(
-                                modifier =
-                                    Modifier
-                                        .weight(1f)
-                                        .fillMaxWidth(),
-                                state = listState,
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                                contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = 8.dp),
-                            ) {
-                                // Always show action buttons first when there are no sets
-                                if (sets.isEmpty()) {
-                                    item {
-                                        Card(
-                                            modifier =
-                                                Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(top = 16.dp),
-                                            colors =
-                                                CardDefaults.cardColors(
-                                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                                ),
+                                // Modal header for input fields
+                                Row(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        "Target",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.weight(0.8f),
+                                        textAlign = TextAlign.Center,
+                                    )
+                                    Text(
+                                        "Weight",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.weight(0.8f),
+                                        textAlign = TextAlign.Center,
+                                    )
+                                    Text(
+                                        "Reps",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.weight(0.6f),
+                                        textAlign = TextAlign.Center,
+                                    )
+                                    Text(
+                                        "RPE",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.weight(0.6f),
+                                        textAlign = TextAlign.Center,
+                                    )
+                                    // "All" button for marking all sets complete
+                                    // Note: We check reps > 0 here because the actual weight requirement
+                                    // is checked in the ViewModel's canMarkSetComplete function
+                                    val hasPopulatedSets = sets.any { !it.isCompleted && it.actualReps > 0 }
+                                    if (hasPopulatedSets) {
+                                        IconButton(
+                                            onClick = onCompleteAllSets,
+                                            modifier = Modifier.size(48.dp),
                                         ) {
-                                            Row(
+                                            Icon(
+                                                Icons.Filled.CheckCircle,
+                                                contentDescription = "Complete all",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(24.dp),
+                                            )
+                                        }
+                                    } else {
+                                        Spacer(modifier = Modifier.width(48.dp))
+                                    }
+                                }
+
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant,
+                                    thickness = 0.5.dp,
+                                )
+                            }
+
+                            // Always show the LazyColumn
+                            Column(modifier = Modifier.weight(1f)) {
+                                // Sets list
+                                LazyColumn(
+                                    modifier =
+                                        Modifier
+                                            .weight(1f)
+                                            .fillMaxWidth(),
+                                    state = listState,
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = 8.dp),
+                                ) {
+                                    // Always show action buttons first when there are no sets
+                                    if (sets.isEmpty()) {
+                                        item {
+                                            Card(
                                                 modifier =
                                                     Modifier
                                                         .fillMaxWidth()
-                                                        .padding(16.dp),
-                                                horizontalArrangement = Arrangement.Center,
+                                                        .padding(top = 16.dp),
+                                                colors =
+                                                    CardDefaults.cardColors(
+                                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                    ),
                                             ) {
-                                                if (!readOnly) {
+                                                Row(
+                                                    modifier =
+                                                        Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(16.dp),
+                                                    horizontalArrangement = Arrangement.Center,
+                                                ) {
+                                                    if (!readOnly) {
+                                                        OutlinedButton(
+                                                            onClick = { onAddSet { } },
+                                                            modifier = Modifier.fillMaxWidth(0.6f),
+                                                        ) {
+                                                            Icon(
+                                                                Icons.Filled.Add,
+                                                                contentDescription = "Add Set",
+                                                                modifier = Modifier.size(18.dp),
+                                                            )
+                                                            Spacer(modifier = Modifier.width(8.dp))
+                                                            Text("Add Set")
+                                                        }
+                                                    } else {
+                                                        Text(
+                                                            "No sets recorded",
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    items(sets) { set ->
+                                        key(set.id) {
+                                            val dismissState =
+                                                rememberSwipeToDismissBoxState(
+                                                    confirmValueChange = { dismissDirection ->
+                                                        if (!readOnly && dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                                                            onDeleteSet(set.id)
+                                                            true
+                                                        } else {
+                                                            false
+                                                        }
+                                                    },
+                                                    positionalThreshold = { totalDistance ->
+                                                        totalDistance * 0.33f // Require 33% swipe distance
+                                                    },
+                                                )
+
+                                            CleanSetLayout(
+                                                set = set,
+                                                exercise = exercise,
+                                                onUpdateSet = { reps, weight, rpe ->
+                                                    onUpdateSet(set.id, reps, weight, rpe)
+                                                },
+                                                onUpdateTarget = { reps, weight ->
+                                                    viewModel.updateSetTarget(set.id, reps, weight)
+                                                },
+                                                onToggleCompleted = { completed ->
+                                                    onToggleCompleted(set.id, completed)
+                                                },
+                                                canMarkComplete = setCompletionValidation[set.id] ?: false,
+                                                viewModel = viewModel,
+                                                isProgrammeWorkout = isProgrammeWorkout,
+                                                swipeToDismissState = dismissState,
+                                                readOnly = readOnly,
+                                            )
+                                        }
+                                    }
+
+                                    // Action buttons after sets (only when there are sets)
+                                    if (sets.isNotEmpty() && !readOnly) {
+                                        item {
+                                            val lastSet = sets.maxByOrNull { it.setOrder }
+                                            val canCopyLast = lastSet != null && lastSet.actualReps > 0
+
+                                            Card(
+                                                modifier =
+                                                    Modifier
+                                                        .fillMaxWidth()
+                                                        .imePadding(),
+                                                colors =
+                                                    CardDefaults.cardColors(
+                                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                    ),
+                                            ) {
+                                                Row(
+                                                    modifier =
+                                                        Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(16.dp),
+                                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                ) {
                                                     OutlinedButton(
                                                         onClick = { onAddSet { } },
-                                                        modifier = Modifier.fillMaxWidth(0.6f),
+                                                        modifier = Modifier.weight(1f),
                                                     ) {
                                                         Icon(
                                                             Icons.Filled.Add,
@@ -375,104 +476,20 @@ fun SetEditingModal(
                                                         Spacer(modifier = Modifier.width(8.dp))
                                                         Text("Add Set")
                                                     }
-                                                } else {
-                                                    Text(
-                                                        "No sets recorded",
-                                                        style = MaterialTheme.typography.bodyMedium,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
 
-                                items(sets) { set ->
-                                    key(set.id) {
-                                        val dismissState =
-                                            rememberSwipeToDismissBoxState(
-                                                confirmValueChange = { dismissDirection ->
-                                                    if (!readOnly && dismissDirection == SwipeToDismissBoxValue.EndToStart) {
-                                                        onDeleteSet(set.id)
-                                                        true
-                                                    } else {
-                                                        false
-                                                    }
-                                                },
-                                                positionalThreshold = { totalDistance ->
-                                                    totalDistance * 0.33f // Require 33% swipe distance
-                                                },
-                                            )
-
-                                        CleanSetLayout(
-                                            set = set,
-                                            exercise = exercise,
-                                            onUpdateSet = { reps, weight, rpe ->
-                                                onUpdateSet(set.id, reps, weight, rpe)
-                                            },
-                                            onUpdateTarget = { reps, weight ->
-                                                viewModel.updateSetTarget(set.id, reps, weight)
-                                            },
-                                            onToggleCompleted = { completed ->
-                                                onToggleCompleted(set.id, completed)
-                                            },
-                                            canMarkComplete = setCompletionValidation[set.id] ?: false,
-                                            viewModel = viewModel,
-                                            isProgrammeWorkout = isProgrammeWorkout,
-                                            swipeToDismissState = dismissState,
-                                            readOnly = readOnly,
-                                        )
-                                    }
-                                }
-
-                                // Action buttons after sets (only when there are sets)
-                                if (sets.isNotEmpty() && !readOnly) {
-                                    item {
-                                        val lastSet = sets.maxByOrNull { it.setOrder }
-                                        val canCopyLast = lastSet != null && lastSet.actualReps > 0
-
-                                        Card(
-                                            modifier =
-                                                Modifier
-                                                    .fillMaxWidth()
-                                                    .imePadding(),
-                                            colors =
-                                                CardDefaults.cardColors(
-                                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                                ),
-                                        ) {
-                                            Row(
-                                                modifier =
-                                                    Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(16.dp),
-                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                            ) {
-                                                OutlinedButton(
-                                                    onClick = { onAddSet { } },
-                                                    modifier = Modifier.weight(1f),
-                                                ) {
-                                                    Icon(
-                                                        Icons.Filled.Add,
-                                                        contentDescription = "Add Set",
-                                                        modifier = Modifier.size(18.dp),
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    Text("Add Set")
-                                                }
-
-                                                if (canCopyLast) {
-                                                    OutlinedButton(
-                                                        onClick = onCopyLastSet,
-                                                        modifier = Modifier.weight(1f),
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.ContentCopy,
-                                                            contentDescription = "Copy Last",
-                                                            modifier = Modifier.size(18.dp),
-                                                        )
-                                                        Spacer(modifier = Modifier.width(8.dp))
-                                                        Text("Copy Last")
+                                                    if (canCopyLast) {
+                                                        OutlinedButton(
+                                                            onClick = onCopyLastSet,
+                                                            modifier = Modifier.weight(1f),
+                                                        ) {
+                                                            Icon(
+                                                                Icons.Filled.ContentCopy,
+                                                                contentDescription = "Copy Last",
+                                                                modifier = Modifier.size(18.dp),
+                                                            )
+                                                            Spacer(modifier = Modifier.width(8.dp))
+                                                            Text("Copy Last")
+                                                        }
                                                     }
                                                 }
                                             }
@@ -486,7 +503,6 @@ fun SetEditingModal(
             }
         }
     }
-}
 
 @Composable
 private fun ExpandedSetRow(
@@ -850,14 +866,15 @@ fun CleanSetLayout(
         mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
     var repsInput by remember(set.id, set.actualReps, set.targetReps) {
-        val text = if (set.actualReps > 0) {
-            set.actualReps.toString()
-        } else if (set.targetReps > 0) {
-            // Pre-populate with target reps if no actual reps entered yet
-            set.targetReps.toString()
-        } else {
-            ""
-        }
+        val text =
+            if (set.actualReps > 0) {
+                set.actualReps.toString()
+            } else if (set.targetReps > 0) {
+                // Pre-populate with target reps if no actual reps entered yet
+                set.targetReps.toString()
+            } else {
+                ""
+            }
         mutableStateOf(TextFieldValue(text, TextRange(text.length)))
     }
     var rpeInput by remember(set.id, set.actualRpe) {

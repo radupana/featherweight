@@ -26,17 +26,22 @@ Building a weightlifting Super App that combines the best features from apps lik
 - **Navigation**: Single-Activity with enum-based routing
 - **Async**: Coroutines and Flow with Dispatchers.IO
 - **Dependencies**: Version catalog in `gradle/libs.versions.toml`
+- **Min SDK**: 26 (Android 8.0) - DO NOT add Build.VERSION.SDK_INT checks for APIs available in 26+
 
 ## Development Guidelines
 
 - **Foundation First**: Make it work for one case perfectly before expanding
 - **Fail-Fast Philosophy**: No mock fallbacks or degraded functionality
 - **No Phased Planning**: Solve problems completely in one go, no "phase 1, phase 2" approaches
+- **No Time Estimates**: Never assign durations to work items (no "2 hours", "30 min" estimates)
 - **Always Compile**: Run `./gradlew assembleDebug` before saying "done"
 - **No Unrequested Features**: If the user didn't ask for it, DON'T ADD IT
+- **Clarify Before Coding**: Never start implementation until certain you have every piece of information needed
+- **No Guessing**: If something is ambiguous, ask - don't make assumptions or add random features
 - **Clean Code**: Remove unused code, imports, and dead declarations immediately
 - **Manual Testing Only**: No automated tests - we test manually to speed development
 - **Class References**: Never use full package names when referring to classes, just use the class name unless there are naming conflicts
+- **PLANNING BEFORE CODING**: Unless explicitly told to "implement", "code", or "go ahead", assume we're in planning/thinking phase. DO NOT WRITE CODE during planning discussions.
 
 ## Common Commands
 
