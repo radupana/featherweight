@@ -28,6 +28,15 @@ Building a weightlifting Super App that combines the best features from apps lik
 - **Dependencies**: Version catalog in `gradle/libs.versions.toml`
 - **Min SDK**: 26 (Android 8.0) - DO NOT add Build.VERSION.SDK_INT checks for APIs available in 26+
 
+## CRITICAL - DO NOT CHANGE THESE
+
+### OpenAI Model Name
+**The model name `gpt-4.1-mini` is CORRECT. DO NOT CHANGE IT.**
+- This is the new GPT-4.1 model announced at https://openai.com/index/gpt-4-1/
+- The model name in AIProgrammeService.kt must remain as `gpt-4.1-mini`
+- DO NOT change it to "gpt-4o-mini" or any other variant
+- This is NOT a typo or mistake - it is the correct model name
+
 ## Development Guidelines
 
 - **Foundation First**: Make it work for one case perfectly before expanding
@@ -39,6 +48,10 @@ Building a weightlifting Super App that combines the best features from apps lik
 - **Clarify Before Coding**: Never start implementation until certain you have every piece of information needed
 - **No Guessing**: If something is ambiguous, ask - don't make assumptions or add random features
 - **Clean Code**: Remove unused code, imports, and dead declarations immediately
+- **NO TODOs**: NEVER add TODO comments. Implement what was asked for completely or don't add it at all
+- **NO DEAD CODE**: NEVER add functions that aren't used. Only add what is needed and will be invoked
+- **NO UNUSED IMPORTS**: Remove all unused imports immediately. Every import must be used
+- **NO UNUSED VARIABLES**: Every variable declared must be used. Remove any that aren't
 - **Manual Testing Only**: No automated tests - we test manually to speed development
 - **Class References**: Never use full package names when referring to classes, just use the class name unless there are naming conflicts
 - **PLANNING BEFORE CODING**: Unless explicitly told to "implement", "code", or "go ahead", assume we're in planning/thinking phase. DO NOT WRITE CODE during planning discussions.
