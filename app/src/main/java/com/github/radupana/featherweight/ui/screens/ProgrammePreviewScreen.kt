@@ -161,7 +161,7 @@ fun ProgrammePreviewScreen(
                 ErrorPreviewContent(
                     message = state.message,
                     canRetry = state.canRetry,
-                    onRetry = { /* TODO: Implement retry */ },
+                    onRetry = { viewModel.activateProgramme(onSuccess = onActivated) },
                     onBack = onBack,
                     modifier =
                         Modifier
