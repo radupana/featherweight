@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.ui.screens
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,6 +10,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -222,27 +225,116 @@ fun ProgrammeDetailsContent(
         val sortedWeeks = workoutsByWeek.keys.sorted()
         
         sortedWeeks.forEach { weekNumber ->
+            val weekWorkouts = workoutsByWeek[weekNumber]!!.sortedBy { it.dayNumber }
+            val completedCount = weekWorkouts.count { it.completed }
+            val totalCount = weekWorkouts.size
+            
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    ),
+                CollapsibleWeekSection(
+                    weekNumber = weekNumber,
+                    completedCount = completedCount,
+                    totalCount = totalCount,
+                    workouts = weekWorkouts,
+                    onViewWorkout = onViewWorkout,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CollapsibleWeekSection(
+    weekNumber: Int,
+    completedCount: Int,
+    totalCount: Int,
+    workouts: List<WorkoutHistoryEntry>,
+    onViewWorkout: (Long) -> Unit,
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    
+    Column {
+        // Week header - always visible
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { isExpanded = !isExpanded },
+            colors = CardDefaults.cardColors(
+                containerColor = if (isExpanded) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                },
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = if (isExpanded) 4.dp else 2.dp
+            ),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
                 ) {
                     Text(
                         text = "Week $weekNumber",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                    Text(
+                        text = "$completedCount of $totalCount workouts completed",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-            }
-            
-            items(workoutsByWeek[weekNumber]!!.sortedBy { it.dayNumber }) { workout ->
-                WorkoutHistoryEntryCard(
-                    workout = workout,
-                    onViewWorkout = { onViewWorkout(workout.workoutId) },
+                
+                // Progress indicator
+                if (totalCount > 0) {
+                    val progress = completedCount.toFloat() / totalCount
+                    Box(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    ) {
+                        CircularProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier.size(32.dp),
+                            strokeWidth = 3.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        )
+                        Text(
+                            text = "${(progress * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    }
+                }
+                
+                // Expand/collapse icon
+                Icon(
+                    imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+        
+        // Workout entries - only visible when expanded
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Column {
+                Spacer(modifier = Modifier.height(8.dp))
+                workouts.forEach { workout ->
+                    WorkoutHistoryEntryCard(
+                        workout = workout,
+                        onViewWorkout = { onViewWorkout(workout.workoutId) },
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
             }
         }
     }
