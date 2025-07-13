@@ -1,11 +1,12 @@
 package com.github.radupana.featherweight.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,8 +15,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
-import com.github.radupana.featherweight.ui.components.LastWorkoutInfo
-import com.github.radupana.featherweight.ui.components.WheelHomeScreen
 import com.github.radupana.featherweight.viewmodel.InProgressWorkout
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
@@ -23,6 +22,12 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+
+data class LastWorkoutInfo(
+    val name: String,
+    val daysAgo: String,
+    val exercises: String,
+)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -55,7 +60,7 @@ fun HomeScreen(
             .sortedByDescending { it.startDate }
             .firstOrNull()
 
-    // Build detailed workout label for the wheel
+    // Build detailed workout label
     val activeWorkoutLabel =
         mostRecentInProgressWorkout?.let { workout ->
             when {
@@ -116,64 +121,14 @@ fun HomeScreen(
         programmeViewModel.refreshData()
     }
 
-    // Main wheel-based UI
-    WheelHomeScreen(
-        onStartFreestyle = {
-            scope.launch {
-                if (workoutViewModel.hasInProgressWorkouts()) {
-                    val recentWorkout = workoutViewModel.getMostRecentInProgressWorkout()
-                    pendingWorkout = recentWorkout
-                    showWorkoutDialog = true
-                } else {
-                    workoutViewModel.startNewWorkout(forceNew = true)
-                    onStartFreestyle()
-                }
-            }
-        },
-        onBrowseProgrammes = onBrowseProgrammes,
-        onNavigateToActiveProgramme = onNavigateToActiveProgramme,
-        onStartProgrammeWorkout = {
-            scope.launch {
-                val programme = activeProgramme
-                val workoutInfo = nextWorkoutInfo
-                if (workoutInfo != null && programme != null) {
-                    workoutViewModel.startProgrammeWorkout(
-                        programmeId = programme.id,
-                        weekNumber = workoutInfo.actualWeekNumber,
-                        dayNumber = workoutInfo.workoutStructure.day,
-                        userMaxes =
-                            mapOf(
-                                "squat" to (programme.squatMax ?: 100f),
-                                "bench" to (programme.benchMax ?: 80f),
-                                "deadlift" to (programme.deadliftMax ?: 120f),
-                                "ohp" to (programme.ohpMax ?: 60f),
-                            ),
-                        onReady = {
-                            onStartProgrammeWorkout()
-                        },
-                    )
-                }
-            }
-        },
-        onGenerateAIProgramme = onGenerateAIProgramme,
-        onViewHistory = onNavigateToHistory,
-        onViewAnalytics = onNavigateToAnalytics,
-        onProfileClick = onNavigateToProfile,
-        onContinueWorkout =
-            if (mostRecentInProgressWorkout != null) {
-                {
-                    workoutViewModel.resumeWorkout(mostRecentInProgressWorkout.id)
-                    onStartFreestyle()
-                }
-            } else {
-                null
-            },
-        activeWorkout = activeWorkoutLabel,
-        activeProgrammeName = activeProgramme?.name,
-        nextWorkoutName = nextWorkoutLabel,
-        lastWorkoutInfo = lastWorkoutInfo,
-        modifier = modifier,
-    )
+    // Main UI - just empty space for now
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Empty content area - will be filled later
+    }
 
     // Continue or Start New Workout Dialog
     if (showWorkoutDialog && pendingWorkout != null) {

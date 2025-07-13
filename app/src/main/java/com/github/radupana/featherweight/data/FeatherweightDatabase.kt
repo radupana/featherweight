@@ -42,7 +42,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         PersonalRecord::class,
         AIProgrammeRequest::class,
     ],
-    version = 41,
+    version = 42,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -84,8 +84,7 @@ abstract class FeatherweightDatabase : RoomDatabase() {
                             context.applicationContext,
                             FeatherweightDatabase::class.java,
                             "featherweight-db",
-                        )
-                        .fallbackToDestructiveMigration() // Just nuke and recreate during development
+                        ).fallbackToDestructiveMigration() // Just nuke and recreate during development
                         .build()
                 android.util.Log.e("FeatherweightDebug", "FeatherweightDatabase.getDatabase: Database instance created")
                 INSTANCE = instance
