@@ -38,7 +38,6 @@ fun ProgrammeSetupDialog(
 ) {
     val userMaxes by viewModel.userMaxes.collectAsState()
     val profileUiState by profileViewModel.uiState.collectAsState()
-    var customName by remember { mutableStateOf("") }
 
     // Auto-populate 1RM values from profile when dialog opens
     LaunchedEffect(template.requiresMaxes) {
@@ -149,8 +148,6 @@ fun ProgrammeSetupDialog(
                                     } else {
                                         ConfirmationStep(
                                             template = template,
-                                            customName = customName,
-                                            onNameChange = { customName = it },
                                             userMaxes = userMaxes,
                                         )
                                     }
@@ -161,8 +158,6 @@ fun ProgrammeSetupDialog(
                                 SetupStep.CONFIRMATION -> {
                                     ConfirmationStep(
                                         template = template,
-                                        customName = customName,
-                                        onNameChange = { customName = it },
                                         userMaxes = userMaxes,
                                     )
                                 }
@@ -198,7 +193,7 @@ fun ProgrammeSetupDialog(
                             onClick = {
                                 if (uiState.setupStep == SetupStep.CONFIRMATION) {
                                     viewModel.createProgrammeFromTemplate(
-                                        customName = customName.takeIf { it.isNotBlank() },
+                                        customName = null,  // Always use template name
                                         onSuccess = {
                                             onProgrammeCreated?.invoke()
                                         },
@@ -515,8 +510,6 @@ private fun AccessorySelectionStep() {
 @Composable
 private fun ConfirmationStep(
     template: ProgrammeTemplate,
-    customName: String,
-    onNameChange: (String) -> Unit,
     userMaxes: UserMaxes,
 ) {
     Column(
@@ -527,17 +520,6 @@ private fun ConfirmationStep(
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
         )
-
-        // Custom name input
-        OutlinedTextField(
-            value = customName,
-            onValueChange = onNameChange,
-            label = { Text("Programme Name (Optional)") },
-            placeholder = { Text(template.name) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         // Programme summary
         Card(

@@ -40,6 +40,9 @@ fun ActiveProgrammeScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var existingWorkout by remember { mutableStateOf<InProgressWorkout?>(null) }
     val scope = rememberCoroutineScope()
+    
+    // Check if there's ANY in-progress workout (not just for this programme)
+    val hasAnyInProgressWorkout = inProgressWorkouts.isNotEmpty()
 
     // Refresh programme progress and check for in-progress workouts when screen appears
     LaunchedEffect(Unit) {
@@ -333,6 +336,8 @@ fun ActiveProgrammeScreen(
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth(),
+                                    // Disable button if there's an in-progress workout that's not the current programme workout
+                                    enabled = existingWorkout != null || !hasAnyInProgressWorkout,
                                     colors =
                                         ButtonDefaults.buttonColors(
                                             containerColor = MaterialTheme.colorScheme.primary,
@@ -349,6 +354,18 @@ fun ActiveProgrammeScreen(
                                         text = if (existingWorkout != null) "Continue Workout" else "Start Next Workout",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Medium,
+                                    )
+                                }
+                                
+                                // Show message if button is disabled due to another workout in progress
+                                if (existingWorkout == null && hasAnyInProgressWorkout) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Complete or discard existing in-progress workout.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
                             }

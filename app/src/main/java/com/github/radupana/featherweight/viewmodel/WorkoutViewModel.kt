@@ -1616,11 +1616,14 @@ class WorkoutViewModel(
             workoutTimerStartTime = LocalDateTime.now()
             repository.updateWorkoutTimerStart(currentWorkoutId, workoutTimerStartTime!!)
             
+            // Capture the start time in a local variable to avoid race conditions
+            val startTime = workoutTimerStartTime!!
+            
             // Start the timer coroutine
             workoutTimerJob?.cancel()
             workoutTimerJob = viewModelScope.launch {
                 while (coroutineContext.isActive) {
-                    val elapsed = java.time.Duration.between(workoutTimerStartTime, LocalDateTime.now()).seconds
+                    val elapsed = java.time.Duration.between(startTime, LocalDateTime.now()).seconds
                     _workoutTimerSeconds.value = elapsed.toInt()
                     delay(1000)
                 }
@@ -1640,10 +1643,13 @@ class WorkoutViewModel(
         val elapsed = java.time.Duration.between(startTime, LocalDateTime.now()).seconds
         _workoutTimerSeconds.value = elapsed.toInt()
         
+        // Capture the start time in a local variable to avoid race conditions
+        val capturedStartTime = startTime
+        
         // Resume counting
         workoutTimerJob = viewModelScope.launch {
             while (coroutineContext.isActive) {
-                val newElapsed = java.time.Duration.between(workoutTimerStartTime, LocalDateTime.now()).seconds
+                val newElapsed = java.time.Duration.between(capturedStartTime, LocalDateTime.now()).seconds
                 _workoutTimerSeconds.value = newElapsed.toInt()
                 delay(1000)
             }

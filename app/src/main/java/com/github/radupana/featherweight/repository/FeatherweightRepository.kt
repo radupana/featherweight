@@ -1850,7 +1850,7 @@ class FeatherweightRepository(
 
             val programme =
                 Programme(
-                    name = name ?: template.name,
+                    name = template.name,  // Always use template name, ignore custom name
                     description = template.description,
                     durationWeeks = template.durationWeeks,
                     programmeType = template.programmeType,

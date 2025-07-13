@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,6 +47,7 @@ import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
 import com.github.radupana.featherweight.ui.screens.HistoryScreen
 import com.github.radupana.featherweight.ui.screens.HomeScreen
 import com.github.radupana.featherweight.ui.screens.InsightsScreen
+import com.github.radupana.featherweight.ui.screens.WorkoutsScreen
 import com.github.radupana.featherweight.ui.screens.SplashScreen
 import com.github.radupana.featherweight.ui.screens.UserSelectionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
@@ -60,11 +61,10 @@ import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 enum class Screen {
     SPLASH,
     USER_SELECTION,
-    HOME,
     WORKOUT_HUB,
     ACTIVE_WORKOUT,
     EXERCISE_SELECTOR,
-    HISTORY,
+    WORKOUTS,
     INSIGHTS,
     PROGRAMMES,
     ACTIVE_PROGRAMME,
@@ -160,7 +160,7 @@ class MainActivity : ComponentActivity() {
                                 onSplashFinished = {
                                     currentScreen =
                                         if (userPreferences.hasSelectedUser()) {
-                                            Screen.HOME
+                                            Screen.WORKOUTS
                                         } else {
                                             Screen.USER_SELECTION
                                         }
@@ -170,7 +170,7 @@ class MainActivity : ComponentActivity() {
                         Screen.USER_SELECTION ->
                             UserSelectionScreen(
                                 onUserSelected = {
-                                    currentScreen = Screen.HOME
+                                    currentScreen = Screen.WORKOUTS
                                 },
                             )
 
@@ -221,8 +221,8 @@ fun MainAppWithNavigation(
 
     val navigationItems =
         listOf(
-            NavigationItem(Screen.HOME, "Home", Icons.Filled.Home),
-            NavigationItem(Screen.HISTORY, "Workouts", Icons.Filled.FitnessCenter),
+            NavigationItem(Screen.WORKOUTS, "Workouts", Icons.Filled.FitnessCenter),
+            NavigationItem(Screen.PROGRAMMES, "Programmes", Icons.Filled.Schedule),
             NavigationItem(Screen.INSIGHTS, "Insights", Icons.Filled.Insights),
         )
 
@@ -230,17 +230,15 @@ fun MainAppWithNavigation(
     val showTopBar =
         currentScreen in
             listOf(
-                Screen.HOME,
                 Screen.PROGRAMMES,
-                Screen.HISTORY,
+                Screen.WORKOUTS,
                 Screen.INSIGHTS,
             )
 
     val screenTitle =
         when (currentScreen) {
-            Screen.HOME -> "Featherweight"
             Screen.PROGRAMMES -> "Programmes"
-            Screen.HISTORY -> "History"
+            Screen.WORKOUTS -> "Workouts"
             Screen.INSIGHTS -> "Insights"
             else -> ""
         }
@@ -290,27 +288,6 @@ fun MainAppWithNavigation(
         },
     ) { innerPadding ->
         when (currentScreen) {
-            Screen.HOME -> {
-                val programmeViewModel: ProgrammeViewModel = viewModel()
-
-                // Refresh programme data when returning to home screen
-                LaunchedEffect(currentScreen) {
-                    programmeViewModel.refreshData()
-                }
-
-                HomeScreen(
-                    onStartFreestyle = { onScreenChange(Screen.ACTIVE_WORKOUT) },
-                    onBrowseProgrammes = { onScreenChange(Screen.PROGRAMMES) },
-                    onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
-                    onStartProgrammeWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
-                    onGenerateAIProgramme = { onScreenChange(Screen.PROGRAMME_GENERATOR) },
-                    onNavigateToHistory = { onScreenChange(Screen.HISTORY) },
-                    onNavigateToAnalytics = { onScreenChange(Screen.INSIGHTS) },
-                    onNavigateToProfile = { onScreenChange(Screen.PROFILE) },
-                    modifier = Modifier.padding(innerPadding),
-                )
-            }
-
             Screen.WORKOUT_HUB ->
                 WorkoutHubScreen(
                     onStartActiveWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
@@ -329,9 +306,9 @@ fun MainAppWithNavigation(
                             programmeViewModel.refreshData()
                         }
 
-                        // Navigate back to the screen the user came from
-                        val backScreen = previousScreen ?: Screen.HOME
-                        onScreenChange(backScreen)
+                        // Always navigate to Workouts screen when leaving an active workout
+                        // This ensures users can easily resume their workout from the Workouts screen
+                        onScreenChange(Screen.WORKOUTS)
                     },
                     onSelectExercise = { onScreenChange(Screen.EXERCISE_SELECTOR) },
                     workoutViewModel = workoutViewModel,
@@ -368,26 +345,16 @@ fun MainAppWithNavigation(
                 )
             }
 
-            Screen.HISTORY -> {
+            Screen.WORKOUTS -> {
                 val workoutViewModel: WorkoutViewModel = viewModel()
-                val historyViewModel: HistoryViewModel = viewModel()
+                val programmeViewModel: ProgrammeViewModel = viewModel()
 
-                // Refresh history data when returning to this screen
-                LaunchedEffect(currentScreen) {
-                    historyViewModel.refreshHistory()
-                }
-
-                HistoryScreen(
-                    onViewWorkout = { workoutId ->
-                        workoutViewModel.resumeWorkout(workoutId)
-                        onScreenChange(Screen.ACTIVE_WORKOUT)
-                    },
-                    onNavigateToExercise = { exerciseName ->
-                        onSelectedExerciseNameChange(exerciseName)
-                        onScreenChange(Screen.EXERCISE_PROGRESS)
-                    },
-                    historyViewModel = historyViewModel,
+                WorkoutsScreen(
+                    onStartFreestyle = { onScreenChange(Screen.ACTIVE_WORKOUT) },
+                    onStartProgrammeWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
                     modifier = Modifier.padding(innerPadding),
+                    workoutViewModel = workoutViewModel,
+                    programmeViewModel = programmeViewModel,
                 )
             }
 
@@ -437,7 +404,7 @@ fun MainAppWithNavigation(
                 }
 
                 com.github.radupana.featherweight.ui.screens.ActiveProgrammeScreen(
-                    onBack = { onScreenChange(Screen.HOME) },
+                    onBack = { onScreenChange(Screen.PROGRAMMES) },
                     onStartProgrammeWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
                     programmeViewModel = programmeViewModel,
                     workoutViewModel = workoutViewModel,
@@ -474,7 +441,7 @@ fun MainAppWithNavigation(
 
             Screen.PROFILE -> {
                 com.github.radupana.featherweight.ui.screens.ProfileScreen(
-                    onBack = { onScreenChange(Screen.HOME) },
+                    onBack = { onScreenChange(previousScreen ?: Screen.WORKOUTS) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -482,7 +449,7 @@ fun MainAppWithNavigation(
             Screen.EXERCISE_PROGRESS -> {
                 com.github.radupana.featherweight.ui.screens.ExerciseProgressScreen(
                     exerciseName = selectedExerciseName,
-                    onBack = { onScreenChange(previousScreen ?: Screen.HISTORY) },
+                    onBack = { onScreenChange(previousScreen ?: Screen.WORKOUTS) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
