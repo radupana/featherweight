@@ -14,10 +14,14 @@ import kotlinx.coroutines.launch
 
 data class PaginatedHistoryState(
     val workouts: List<WorkoutSummary> = emptyList(),
+    val programmes: List<com.github.radupana.featherweight.repository.ProgrammeSummary> = emptyList(),
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
+    val isLoadingMoreProgrammes: Boolean = false,
     val hasMoreData: Boolean = true,
+    val hasMoreProgrammes: Boolean = true,
     val currentPage: Int = 0,
+    val currentProgrammePage: Int = 0,
     val pageSize: Int = 20,
     val totalCount: Int? = null,
     val error: String? = null,
@@ -31,16 +35,21 @@ class HistoryViewModel(
     private val _historyState = MutableStateFlow(PaginatedHistoryState())
     val historyState: StateFlow<PaginatedHistoryState> = _historyState
 
+    // Store selected programme ID for navigation
+    var selectedProgrammeId: Long? = null
+
     // Legacy compatibility - expose workouts and loading separately
     val workoutHistory: StateFlow<List<WorkoutSummary>> =
-        _historyState.map { state ->
-            state.workouts
-        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        _historyState
+            .map { state ->
+                state.workouts
+            }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val isLoading: StateFlow<Boolean> =
-        _historyState.map { state ->
-            state.isLoading
-        }.stateIn(viewModelScope, SharingStarted.Lazily, false)
+        _historyState
+            .map { state ->
+                state.isLoading
+            }.stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
@@ -67,7 +76,7 @@ class HistoryViewModel(
             val totalCount = repository.getTotalWorkoutCount()
             println("🔍 HistoryViewModel: Total workout count: $totalCount")
 
-            val firstPageRepo = repository.getWorkoutHistoryPaged(page = 0, pageSize = currentState.pageSize)
+            val firstPageRepo = repository.getCompletedWorkoutsPagedOptimized(page = 0, pageSize = currentState.pageSize)
             println("🔍 HistoryViewModel: Received ${firstPageRepo.size} workouts from repository")
 
             // Debug logging for workout statuses
@@ -80,13 +89,12 @@ class HistoryViewModel(
                     WorkoutSummary(
                         id = repoSummary.id,
                         date = repoSummary.date,
-                        name = repoSummary.name,
+                        name = repoSummary.name ?: repoSummary.programmeName,
                         exerciseCount = repoSummary.exerciseCount,
                         setCount = repoSummary.setCount,
                         totalWeight = repoSummary.totalWeight,
                         duration = repoSummary.duration,
                         status = repoSummary.status,
-                        prCount = repoSummary.prCount,
                     )
                 }
 
@@ -96,13 +104,24 @@ class HistoryViewModel(
                 "🔍 HistoryViewModel: Logic: firstPage.size (${firstPage.size}) == pageSize (${currentState.pageSize}) && < totalCount ($totalCount)",
             )
 
+            // Load programmes too
+            val firstPageProgrammes = repository.getCompletedProgrammesPaged(page = 0, pageSize = currentState.pageSize)
+            println("🔍 HistoryViewModel: Received ${firstPageProgrammes.size} programmes from repository")
+
+            val hasMoreProgrammes = firstPageProgrammes.size == currentState.pageSize
+
             _historyState.value =
                 currentState.copy(
                     workouts = firstPage,
+                    programmes = firstPageProgrammes,
                     isLoading = false,
+                    isLoadingMore = false, // Reset any concurrent loading state
+                    isLoadingMoreProgrammes = false, // Reset programme loading too
                     currentPage = 0,
+                    currentProgrammePage = 0,
                     totalCount = totalCount,
                     hasMoreData = hasMoreData,
+                    hasMoreProgrammes = hasMoreProgrammes,
                 )
         } catch (e: Exception) {
             println("🔍 HistoryViewModel: Error loading initial data: ${e.message}")
@@ -132,28 +151,36 @@ class HistoryViewModel(
 
             try {
                 val totalCount = repository.getTotalWorkoutCount()
-                val firstPageRepo = repository.getWorkoutHistoryPaged(page = 0, pageSize = currentState.pageSize)
+                val firstPageRepo = repository.getCompletedWorkoutsPagedOptimized(page = 0, pageSize = currentState.pageSize)
                 val firstPage =
                     firstPageRepo.map { repoSummary ->
                         WorkoutSummary(
                             id = repoSummary.id,
                             date = repoSummary.date,
-                            name = repoSummary.name,
+                            name = repoSummary.name ?: repoSummary.programmeName,
                             exerciseCount = repoSummary.exerciseCount,
                             setCount = repoSummary.setCount,
                             totalWeight = repoSummary.totalWeight,
                             duration = repoSummary.duration,
                             status = repoSummary.status,
-                            prCount = repoSummary.prCount,
                         )
                     }
+
+                // Also refresh programmes
+                val firstPageProgrammes = repository.getCompletedProgrammesPaged(page = 0, pageSize = currentState.pageSize)
+                val hasMoreProgrammes = firstPageProgrammes.size == currentState.pageSize
 
                 _historyState.value =
                     currentState.copy(
                         workouts = firstPage,
+                        programmes = firstPageProgrammes,
+                        isLoadingMore = false, // Reset loading states
+                        isLoadingMoreProgrammes = false,
                         currentPage = 0,
+                        currentProgrammePage = 0,
                         totalCount = totalCount,
                         hasMoreData = firstPage.size == currentState.pageSize && firstPage.size < totalCount,
+                        hasMoreProgrammes = hasMoreProgrammes,
                         error = null,
                     )
             } catch (e: Exception) {
@@ -180,13 +207,19 @@ class HistoryViewModel(
                 return@launch
             }
 
+            // Don't try to load next page if we haven't loaded initial data yet
+            if (currentState.workouts.isEmpty() && (currentState.isLoading || currentState.currentPage == 0)) {
+                println("🔍 HistoryViewModel: Skipping loadNextPage - initial data not loaded yet")
+                return@launch
+            }
+
             println("🔍 HistoryViewModel: Starting to load next page ${currentState.currentPage + 1}")
             _historyState.value = currentState.copy(isLoadingMore = true)
 
             try {
                 val nextPage = currentState.currentPage + 1
                 val newWorkoutsRepo =
-                    repository.getWorkoutHistoryPaged(
+                    repository.getCompletedWorkoutsPagedOptimized(
                         page = nextPage,
                         pageSize = currentState.pageSize,
                     )
@@ -195,13 +228,12 @@ class HistoryViewModel(
                         WorkoutSummary(
                             id = repoSummary.id,
                             date = repoSummary.date,
-                            name = repoSummary.name,
+                            name = repoSummary.name ?: repoSummary.programmeName,
                             exerciseCount = repoSummary.exerciseCount,
                             setCount = repoSummary.setCount,
                             totalWeight = repoSummary.totalWeight,
                             duration = repoSummary.duration,
                             status = repoSummary.status,
-                            prCount = repoSummary.prCount,
                         )
                     }
 
@@ -233,6 +265,52 @@ class HistoryViewModel(
         }
     }
 
+    fun loadNextProgrammePage() {
+        println("🔍 HistoryViewModel: loadNextProgrammePage() called")
+        viewModelScope.launch {
+            val currentState = _historyState.value
+
+            // Don't load if already loading, no more data, or error state
+            if (currentState.isLoadingMoreProgrammes || !currentState.hasMoreProgrammes || currentState.error != null) {
+                println(
+                    "🔍 HistoryViewModel: Skipping loadNextProgrammePage - isLoadingMoreProgrammes: ${currentState.isLoadingMoreProgrammes}, hasMoreProgrammes: ${currentState.hasMoreProgrammes}, error: ${currentState.error}",
+                )
+                return@launch
+            }
+
+            println("🔍 HistoryViewModel: Starting to load next programme page ${currentState.currentProgrammePage + 1}")
+            _historyState.value = currentState.copy(isLoadingMoreProgrammes = true)
+
+            try {
+                val nextPage = currentState.currentProgrammePage + 1
+                val newProgrammes =
+                    repository.getCompletedProgrammesPaged(
+                        page = nextPage,
+                        pageSize = currentState.pageSize,
+                    )
+
+                val allProgrammes = currentState.programmes + newProgrammes
+                val hasMoreProgrammes = newProgrammes.size == currentState.pageSize
+
+                println("🔍 HistoryViewModel: Loaded ${newProgrammes.size} new programmes, hasMoreProgrammes: $hasMoreProgrammes")
+
+                _historyState.value =
+                    currentState.copy(
+                        programmes = allProgrammes,
+                        isLoadingMoreProgrammes = false,
+                        currentProgrammePage = nextPage,
+                        hasMoreProgrammes = hasMoreProgrammes,
+                    )
+            } catch (e: Exception) {
+                _historyState.value =
+                    currentState.copy(
+                        isLoadingMoreProgrammes = false,
+                        error = "Failed to load more programmes: ${e.message}",
+                    )
+            }
+        }
+    }
+
     fun deleteWorkout(workoutId: Long) {
         viewModelScope.launch {
             try {
@@ -258,18 +336,6 @@ class HistoryViewModel(
                 refreshHistory()
             }
         }
-    }
-
-    fun addWorkoutToCache(newWorkout: WorkoutSummary) {
-        val currentState = _historyState.value
-        val updatedWorkouts = listOf(newWorkout) + currentState.workouts
-        val newTotalCount = (currentState.totalCount ?: 0) + 1
-
-        _historyState.value =
-            currentState.copy(
-                workouts = updatedWorkouts,
-                totalCount = newTotalCount,
-            )
     }
 
     fun clearError() {

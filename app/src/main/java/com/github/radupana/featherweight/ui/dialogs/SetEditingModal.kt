@@ -848,8 +848,8 @@ fun CleanSetLayout(
     viewModel: WorkoutViewModel,
     isProgrammeWorkout: Boolean,
     swipeToDismissState: SwipeToDismissBoxState,
-    readOnly: Boolean = false,
     modifier: Modifier = Modifier,
+    readOnly: Boolean = false,
 ) {
     // Input states - Store as TextFieldValue to preserve cursor position
     // Use both set.id and the actual values as remember keys so UI updates when data changes

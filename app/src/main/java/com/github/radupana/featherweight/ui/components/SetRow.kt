@@ -21,8 +21,8 @@ fun SetRow(
     set: SetLog,
     onToggleCompleted: (Boolean) -> Unit,
     onDelete: () -> Unit,
-    onOpenModal: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onOpenModal: () -> Unit = {},
     canMarkComplete: Boolean = true,
     isReadOnly: Boolean = false,
 ) {

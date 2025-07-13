@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.data.programme
 
 import androidx.room.*
+import java.time.LocalDateTime
 
 @Dao
 interface ProgrammeDao {
@@ -139,11 +140,26 @@ interface ProgrammeDao {
         activateProgramme(programmeId)
     }
 
-    // Programme completion
+    // Programme completion - ATOMIC update of status, isActive, and completedAt
+    @Transaction
+    @Query("""
+        UPDATE programmes 
+        SET status = 'COMPLETED', 
+            isActive = 0, 
+            completedAt = :completedAt 
+        WHERE id = :programmeId
+    """)
+    suspend fun completeProgrammeAtomic(
+        programmeId: Long,
+        completedAt: LocalDateTime,
+    )
+    
+    // Legacy method - DO NOT USE
+    @Deprecated("Use completeProgrammeAtomic instead for atomic updates")
     @Query("UPDATE programmes SET completedAt = :completedAt WHERE id = :programmeId")
     suspend fun completeProgramme(
         programmeId: Long,
-        completedAt: String,
+        completedAt: LocalDateTime,
     )
 
     // Statistics and analytics
@@ -155,6 +171,35 @@ interface ProgrammeDao {
 
     @Query("SELECT AVG(adherencePercentage) FROM programme_progress WHERE adherencePercentage > 0")
     suspend fun getAverageAdherence(): Float?
+
+    // Paginated query for completed programmes - uses status for reliability
+    @Query("""
+        SELECT * FROM programmes 
+        WHERE status = 'COMPLETED' 
+        ORDER BY completedAt DESC 
+        LIMIT :limit OFFSET :offset
+    """)
+    suspend fun getCompletedProgrammesPaged(limit: Int, offset: Int): List<Programme>
+    
+    // Update programme status atomically
+    @Query("""
+        UPDATE programmes 
+        SET status = :status,
+            isActive = CASE 
+                WHEN :status IN ('NOT_STARTED', 'IN_PROGRESS') THEN isActive 
+                ELSE 0 
+            END,
+            startedAt = CASE
+                WHEN :status = 'IN_PROGRESS' AND startedAt IS NULL THEN :startedAt
+                ELSE startedAt
+            END
+        WHERE id = :programmeId
+    """)
+    suspend fun updateProgrammeStatus(
+        programmeId: Long,
+        status: ProgrammeStatus,
+        startedAt: LocalDateTime = LocalDateTime.now()
+    )
 }
 
 // Raw data classes for Room @Transaction queries

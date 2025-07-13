@@ -9,7 +9,15 @@ import java.time.LocalDateTime
 /**
  * Programme entity represents a multi-week training program
  */
-@Entity(tableName = "programmes")
+@Entity(
+    tableName = "programmes",
+    indices = [
+        Index("completedAt"),
+        Index("status"),
+        Index(value = ["isActive", "completedAt"]),
+        Index(value = ["status", "completedAt"]),
+    ],
+)
 data class Programme(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -20,6 +28,7 @@ data class Programme(
     val difficulty: ProgrammeDifficulty,
     val isCustom: Boolean = false,
     val isActive: Boolean = false,
+    val status: ProgrammeStatus = ProgrammeStatus.NOT_STARTED,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val startedAt: LocalDateTime? = null,
     val completedAt: LocalDateTime? = null,
@@ -62,6 +71,33 @@ data class Programme(
 
         fun encodeProgressionRules(rules: ProgressionRules): String {
             return Json.encodeToString(rules)
+        }
+    }
+    
+    init {
+        // Validate status and isActive consistency
+        require(isValidStatusAndActiveState()) {
+            "Invalid programme state: status=$status, isActive=$isActive. " +
+            "Only NOT_STARTED and IN_PROGRESS programmes can have isActive=true"
+        }
+        
+        // Validate completedAt consistency
+        require((status == ProgrammeStatus.COMPLETED) == (completedAt != null)) {
+            "Invalid programme state: status=$status but completedAt=$completedAt. " +
+            "COMPLETED programmes must have completedAt set, others must not"
+        }
+        
+        // Validate startedAt consistency
+        require((status == ProgrammeStatus.NOT_STARTED) == (startedAt == null)) {
+            "Invalid programme state: status=$status but startedAt=$startedAt. " +
+            "NOT_STARTED programmes must not have startedAt set"
+        }
+    }
+    
+    private fun isValidStatusAndActiveState(): Boolean {
+        return when (status) {
+            ProgrammeStatus.NOT_STARTED, ProgrammeStatus.IN_PROGRESS -> true // isActive can be true or false
+            ProgrammeStatus.COMPLETED, ProgrammeStatus.CANCELLED -> !isActive // isActive must be false
         }
     }
 }
@@ -195,6 +231,13 @@ data class ProgrammeProgress(
 )
 
 // Enums
+enum class ProgrammeStatus {
+    NOT_STARTED,
+    IN_PROGRESS,
+    COMPLETED,
+    CANCELLED
+}
+
 enum class ProgrammeType {
     STRENGTH,
     POWERLIFTING,

@@ -24,6 +24,8 @@ import java.time.LocalDateTime
     indices = [
         Index("programmeId"),
         Index("programmeWorkoutId"),
+        Index(value = ["status", "date"]),
+        Index(value = ["isProgrammeWorkout", "status", "date"]),
     ],
 )
 data class Workout(

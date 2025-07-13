@@ -15,16 +15,22 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-class ExerciseProgressViewModel(application: Application) : AndroidViewModel(application) {
+class ExerciseProgressViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
     private val userPreferences = UserPreferences(application)
 
     sealed class ExerciseProgressState {
         object Loading : ExerciseProgressState()
 
-        data class Success(val data: ExerciseProgressData?) : ExerciseProgressState()
+        data class Success(
+            val data: ExerciseProgressData?,
+        ) : ExerciseProgressState()
 
-        data class Error(val message: String) : ExerciseProgressState()
+        data class Error(
+            val message: String,
+        ) : ExerciseProgressState()
     }
 
     data class ExerciseProgressData(
@@ -82,7 +88,7 @@ class ExerciseProgressViewModel(application: Application) : AndroidViewModel(app
                 }
 
                 // Get all-time PR (NO FALLBACK TO ESTIMATED MAX!)
-                val prRecord = repository.getPersonalRecordForExercise(userId, exerciseName)
+                val prRecord = repository.getPersonalRecordForExercise(exerciseName)
                 val allTimePR = prRecord?.weight ?: 0f
                 val allTimePRDate = prRecord?.recordDate?.toLocalDate()
 
@@ -97,42 +103,40 @@ class ExerciseProgressViewModel(application: Application) : AndroidViewModel(app
                 val thirtyDaysAgo = now.minusDays(30)
                 var recentBestDate: LocalDate? = null
                 val recentBest =
-                    repository.getMaxWeightForExerciseInDateRange(
-                        userId = userId,
-                        exerciseName = exerciseName,
-                        startDate = thirtyDaysAgo,
-                        endDate = now,
-                    )?.also {
-                        // Get the date when this recent best was achieved
-                        recentBestDate =
-                            repository.getDateOfMaxWeightForExercise(
-                                userId = userId,
-                                exerciseName = exerciseName,
-                                weight = it,
-                                startDate = thirtyDaysAgo,
-                                endDate = now,
-                            )
-                        android.util.Log.d("ExerciseProgress", "🔍 RECENT BEST DEBUG (30 days) for $exerciseName:")
-                        android.util.Log.d("ExerciseProgress", "  - Recent Best Weight: $it")
-                        android.util.Log.d("ExerciseProgress", "  - Recent Best Date: $recentBestDate")
-                    } ?: repository.getMaxWeightForExerciseInDateRange(
-                        userId = userId,
-                        exerciseName = exerciseName,
-                        startDate = now.minusDays(60),
-                        endDate = now,
-                    )?.also {
-                        recentBestDate =
-                            repository.getDateOfMaxWeightForExercise(
-                                userId = userId,
-                                exerciseName = exerciseName,
-                                weight = it,
-                                startDate = now.minusDays(60),
-                                endDate = now,
-                            )
-                        android.util.Log.d("ExerciseProgress", "🔍 RECENT BEST DEBUG (60 days) for $exerciseName:")
-                        android.util.Log.d("ExerciseProgress", "  - Recent Best Weight: $it")
-                        android.util.Log.d("ExerciseProgress", "  - Recent Best Date: $recentBestDate")
-                    } ?: 0f
+                    repository
+                        .getMaxWeightForExerciseInDateRange(
+                            exerciseName = exerciseName,
+                            startDate = thirtyDaysAgo,
+                            endDate = now,
+                        )?.also {
+                            // Get the date when this recent best was achieved
+                            recentBestDate =
+                                repository.getDateOfMaxWeightForExercise(
+                                    exerciseName = exerciseName,
+                                    weight = it,
+                                    startDate = thirtyDaysAgo,
+                                    endDate = now,
+                                )
+                            android.util.Log.d("ExerciseProgress", "🔍 RECENT BEST DEBUG (30 days) for $exerciseName:")
+                            android.util.Log.d("ExerciseProgress", "  - Recent Best Weight: $it")
+                            android.util.Log.d("ExerciseProgress", "  - Recent Best Date: $recentBestDate")
+                        } ?: repository
+                        .getMaxWeightForExerciseInDateRange(
+                            exerciseName = exerciseName,
+                            startDate = now.minusDays(60),
+                            endDate = now,
+                        )?.also {
+                            recentBestDate =
+                                repository.getDateOfMaxWeightForExercise(
+                                    exerciseName = exerciseName,
+                                    weight = it,
+                                    startDate = now.minusDays(60),
+                                    endDate = now,
+                                )
+                            android.util.Log.d("ExerciseProgress", "🔍 RECENT BEST DEBUG (60 days) for $exerciseName:")
+                            android.util.Log.d("ExerciseProgress", "  - Recent Best Weight: $it")
+                            android.util.Log.d("ExerciseProgress", "  - Recent Best Date: $recentBestDate")
+                        } ?: 0f
 
                 val recentBestPercentOfPR =
                     if (allTimePR > 0) {
@@ -146,28 +150,28 @@ class ExerciseProgressViewModel(application: Application) : AndroidViewModel(app
                 val fourWeeksAgo = now.minusWeeks(4)
 
                 val sessionCountLast8Weeks =
-                    repository.getDistinctWorkoutDatesForExercise(
-                        userId = userId,
-                        exerciseName = exerciseName,
-                        startDate = eightWeeksAgo,
-                        endDate = now,
-                    ).size
+                    repository
+                        .getDistinctWorkoutDatesForExercise(
+                            exerciseName = exerciseName,
+                            startDate = eightWeeksAgo,
+                            endDate = now,
+                        ).size
 
                 val sessionCountLast4Weeks =
-                    repository.getDistinctWorkoutDatesForExercise(
-                        userId = userId,
-                        exerciseName = exerciseName,
-                        startDate = fourWeeksAgo,
-                        endDate = now,
-                    ).size
+                    repository
+                        .getDistinctWorkoutDatesForExercise(
+                            exerciseName = exerciseName,
+                            startDate = fourWeeksAgo,
+                            endDate = now,
+                        ).size
 
                 val sessionCountPrevious4Weeks =
-                    repository.getDistinctWorkoutDatesForExercise(
-                        userId = userId,
-                        exerciseName = exerciseName,
-                        startDate = eightWeeksAgo,
-                        endDate = fourWeeksAgo,
-                    ).size
+                    repository
+                        .getDistinctWorkoutDatesForExercise(
+                            exerciseName = exerciseName,
+                            startDate = eightWeeksAgo,
+                            endDate = fourWeeksAgo,
+                        ).size
 
                 val weeklyFrequency = sessionCountLast8Weeks / 8.0f
 
@@ -256,7 +260,6 @@ class ExerciseProgressViewModel(application: Application) : AndroidViewModel(app
                 // Get all workout data for this exercise
                 val allWorkouts =
                     repository.getExerciseWorkoutsInDateRange(
-                        userId = userId,
                         exerciseName = exerciseName,
                         startDate = LocalDate.now().minusYears(2), // Get 2 years of data
                         endDate = LocalDate.now(),
@@ -276,8 +279,7 @@ class ExerciseProgressViewModel(application: Application) : AndroidViewModel(app
                                 reps = bestLog.actualReps,
                                 isPR = false, // Will be calculated separately
                             )
-                        }
-                        .sortedBy { it.date }
+                        }.sortedBy { it.date }
 
                 // Mark PRs
                 val dataWithPRs =

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -295,6 +296,9 @@ fun WorkoutScreen(
                 if (workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED && !isEditMode) {
                     ReadOnlyBanner(
                         onEnterEditMode = { showEditModeDialog = true },
+                        onRepeatWorkout = { 
+                            viewModel.repeatWorkout()
+                        },
                     )
                 } else if (isEditMode) {
                     EditModeBanner()
@@ -651,7 +655,10 @@ fun WorkoutScreen(
 }
 
 @Composable
-private fun ReadOnlyBanner(onEnterEditMode: () -> Unit) {
+private fun ReadOnlyBanner(
+    onEnterEditMode: () -> Unit,
+    onRepeatWorkout: () -> Unit,
+) {
     Card(
         modifier =
             Modifier
@@ -662,37 +669,60 @@ private fun ReadOnlyBanner(onEnterEditMode: () -> Unit) {
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
             ),
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f),
             ) {
-                Icon(
-                    Icons.Filled.Lock,
-                    contentDescription = "Completed",
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "This workout has been completed and is read-only",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        Icons.Filled.Lock,
+                        contentDescription = "Completed",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "This workout has been completed",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                }
             }
-
-            TextButton(onClick = onEnterEditMode) {
-                Icon(
-                    Icons.Filled.Edit,
-                    contentDescription = "Edit",
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Edit")
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onEnterEditMode) {
+                    Icon(
+                        Icons.Filled.Edit,
+                        contentDescription = "Edit",
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Edit")
+                }
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                TextButton(onClick = onRepeatWorkout) {
+                    Icon(
+                        Icons.Filled.Refresh,
+                        contentDescription = "Repeat",
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Repeat Workout")
+                }
             }
         }
     }

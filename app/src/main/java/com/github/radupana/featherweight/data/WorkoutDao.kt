@@ -140,6 +140,15 @@ interface WorkoutDao {
     @Query("DELETE FROM Workout")
     suspend fun deleteAllWorkouts()
 
+    // Paginated query for completed workouts
+    @Query("""
+        SELECT * FROM Workout 
+        WHERE status = 'COMPLETED' 
+        ORDER BY date DESC 
+        LIMIT :limit OFFSET :offset
+    """)
+    suspend fun getCompletedWorkoutsPaged(limit: Int, offset: Int): List<Workout>
+
     // Get the workout date when a specific weight was achieved for an exercise
     @Query(
         """

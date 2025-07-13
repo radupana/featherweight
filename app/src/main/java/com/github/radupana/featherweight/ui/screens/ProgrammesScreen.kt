@@ -218,12 +218,7 @@ fun ProgrammesScreen(
                 // Templates Section header - show even when keyboard visible
                 item {
                     Text(
-                        text =
-                            if (activeProgramme != null && !isKeyboardVisible) {
-                                "Browse Other Programmes"
-                            } else {
-                                "Predefined Programmes"
-                            },
+                        text = "Predefined Programme Templates",
                         style =
                             if (isKeyboardVisible) {
                                 MaterialTheme.typography.titleMedium

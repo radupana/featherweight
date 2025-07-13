@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -65,6 +66,7 @@ enum class Screen {
     ACTIVE_WORKOUT,
     EXERCISE_SELECTOR,
     WORKOUTS,
+    HISTORY,
     INSIGHTS,
     PROGRAMMES,
     ACTIVE_PROGRAMME,
@@ -72,6 +74,7 @@ enum class Screen {
     PROGRAMME_PREVIEW,
     PROFILE,
     EXERCISE_PROGRESS,
+    PROGRAMME_HISTORY_DETAIL,
 }
 
 data class NavigationItem(
@@ -135,6 +138,7 @@ class MainActivity : ComponentActivity() {
                     android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Inside FeatherweightTheme")
                     val userPreferences = remember { UserPreferences(application) }
                     var currentScreen by rememberSaveable { mutableStateOf(Screen.SPLASH) }
+                    var previousScreen by rememberSaveable { mutableStateOf<Screen?>(null) }
                     var selectedExerciseName by rememberSaveable { mutableStateOf("") }
 
 
@@ -178,7 +182,11 @@ class MainActivity : ComponentActivity() {
                             // Main app with bottom navigation
                             MainAppWithNavigation(
                                 currentScreen = currentScreen,
-                                onScreenChange = { screen -> currentScreen = screen },
+                                onScreenChange = { screen -> 
+                                    previousScreen = currentScreen
+                                    currentScreen = screen 
+                                },
+                                previousScreen = previousScreen,
                                 selectedExerciseName = selectedExerciseName,
                                 onSelectedExerciseNameChange = { exerciseName -> selectedExerciseName = exerciseName },
                             )
@@ -198,23 +206,16 @@ class MainActivity : ComponentActivity() {
 fun MainAppWithNavigation(
     currentScreen: Screen,
     onScreenChange: (Screen) -> Unit,
+    previousScreen: Screen?,
     selectedExerciseName: String,
     onSelectedExerciseNameChange: (String) -> Unit,
 ) {
-    // Track previous screen for proper back navigation
-    var previousScreen by remember { mutableStateOf<Screen?>(null) }
+    // Track last screen for internal use
     var lastScreen by remember { mutableStateOf(currentScreen) }
 
-    // Update previous screen when screen changes
+    // Update last screen when screen changes
     LaunchedEffect(currentScreen) {
         if (currentScreen != lastScreen) {
-            // Save the last screen as previous before updating
-            if (currentScreen == Screen.ACTIVE_WORKOUT || currentScreen == Screen.EXERCISE_SELECTOR || currentScreen == Screen.PROGRAMME_PREVIEW) {
-                // For these screens, keep the previousScreen from before navigation
-                // This ensures proper back navigation
-            } else {
-                previousScreen = lastScreen
-            }
             lastScreen = currentScreen
         }
     }
@@ -223,6 +224,7 @@ fun MainAppWithNavigation(
         listOf(
             NavigationItem(Screen.WORKOUTS, "Workouts", Icons.Filled.FitnessCenter),
             NavigationItem(Screen.PROGRAMMES, "Programmes", Icons.Filled.Schedule),
+            NavigationItem(Screen.HISTORY, "History", Icons.Filled.History),
             NavigationItem(Screen.INSIGHTS, "Insights", Icons.Filled.Insights),
         )
 
@@ -232,6 +234,7 @@ fun MainAppWithNavigation(
             listOf(
                 Screen.PROGRAMMES,
                 Screen.WORKOUTS,
+                Screen.HISTORY,
                 Screen.INSIGHTS,
             )
 
@@ -239,6 +242,7 @@ fun MainAppWithNavigation(
         when (currentScreen) {
             Screen.PROGRAMMES -> "Programmes"
             Screen.WORKOUTS -> "Workouts"
+            Screen.HISTORY -> "History"
             Screen.INSIGHTS -> "Insights"
             else -> ""
         }
@@ -272,7 +276,8 @@ fun MainAppWithNavigation(
                 currentScreen != Screen.ACTIVE_WORKOUT &&
                 currentScreen != Screen.EXERCISE_SELECTOR &&
                 currentScreen != Screen.PROGRAMME_GENERATOR &&
-                currentScreen != Screen.PROGRAMME_PREVIEW
+                currentScreen != Screen.PROGRAMME_PREVIEW &&
+                currentScreen != Screen.PROGRAMME_HISTORY_DETAIL
             ) {
                 NavigationBar {
                     navigationItems.forEach { item ->
@@ -306,9 +311,14 @@ fun MainAppWithNavigation(
                             programmeViewModel.refreshData()
                         }
 
-                        // Always navigate to Workouts screen when leaving an active workout
-                        // This ensures users can easily resume their workout from the Workouts screen
-                        onScreenChange(Screen.WORKOUTS)
+                        // If we're in read-only mode and came from History or Programme History Detail, go back
+                        if (workoutState.isReadOnly && 
+                            (previousScreen == Screen.HISTORY || previousScreen == Screen.PROGRAMME_HISTORY_DETAIL)) {
+                            onScreenChange(previousScreen)
+                        } else {
+                            // Otherwise navigate to Workouts screen
+                            onScreenChange(Screen.WORKOUTS)
+                        }
                     },
                     onSelectExercise = { onScreenChange(Screen.EXERCISE_SELECTOR) },
                     workoutViewModel = workoutViewModel,
@@ -356,6 +366,45 @@ fun MainAppWithNavigation(
                     workoutViewModel = workoutViewModel,
                     programmeViewModel = programmeViewModel,
                 )
+            }
+
+            Screen.HISTORY -> {
+                val historyViewModel: HistoryViewModel = viewModel()
+                val workoutViewModel: WorkoutViewModel = viewModel()
+                HistoryScreen(
+                    onViewWorkout = { workoutId ->
+                        // Navigate to workout detail - reuse existing workout screen in read-only mode
+                        workoutViewModel.resumeWorkout(workoutId)
+                        onScreenChange(Screen.ACTIVE_WORKOUT)
+                    },
+                    onViewProgramme = { programmeId ->
+                        // Store programme ID for detail view
+                        historyViewModel.selectedProgrammeId = programmeId
+                        onScreenChange(Screen.PROGRAMME_HISTORY_DETAIL)
+                    },
+                    historyViewModel = historyViewModel,
+                    modifier = Modifier.padding(innerPadding),
+                )
+            }
+
+            Screen.PROGRAMME_HISTORY_DETAIL -> {
+                val historyViewModel: HistoryViewModel = viewModel()
+                val workoutViewModel: WorkoutViewModel = viewModel()
+                val programmeId = historyViewModel.selectedProgrammeId
+                if (programmeId != null) {
+                    com.github.radupana.featherweight.ui.screens.ProgrammeHistoryDetailScreen(
+                        programmeId = programmeId,
+                        onBack = { onScreenChange(Screen.HISTORY) },
+                        onViewWorkout = { workoutId ->
+                            workoutViewModel.resumeWorkout(workoutId)
+                            onScreenChange(Screen.ACTIVE_WORKOUT)
+                        },
+                        modifier = Modifier.padding(innerPadding),
+                    )
+                } else {
+                    // Fallback to history if no programme selected
+                    onScreenChange(Screen.HISTORY)
+                }
             }
 
             Screen.INSIGHTS -> {

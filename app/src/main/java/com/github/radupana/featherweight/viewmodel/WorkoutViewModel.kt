@@ -387,6 +387,9 @@ class WorkoutViewModel(
                 _workoutTimerSeconds.value = 0
                 workoutTimerStartTime = null
                 
+                // Clear validation cache
+                _setCompletionValidation.value = emptyMap()
+                
                 val workout = Workout(date = LocalDateTime.now(), notes = null)
                 val workoutId = repository.insertWorkout(workout)
 
@@ -562,16 +565,29 @@ class WorkoutViewModel(
             return cachedResult
         }
 
-        // If no cached result, trigger async validation and use conservative default
+        // If no cached result, trigger async validation and force UI update
         viewModelScope.launch {
             val validationResult = canMarkSetCompleteInternal(set)
             val validationMap = _setCompletionValidation.value.toMutableMap()
             validationMap[set.id] = validationResult
             _setCompletionValidation.value = validationMap
+            
+            // Force UI update by updating sets state to trigger recomposition
+            _selectedExerciseSets.value = _selectedExerciseSets.value.toList()
         }
 
-        // Conservative default: for now assume weight is required
-        val fallbackResult = set.actualReps > 0 && set.actualWeight > 0
+        // Use the same logic as canMarkSetCompleteInternal for fallback
+        // This ensures consistency between cached and uncached results
+        val exerciseLog = _selectedWorkoutExercises.value.find { it.id == set.exerciseLogId }
+        val fallbackResult = if (exerciseLog?.exerciseId == null) {
+            // Legacy exercise without exercise reference - assume weight is required
+            set.actualReps > 0 && set.actualWeight > 0
+        } else {
+            // For now, assume weight is required unless we know otherwise
+            // This is conservative but matches what most users expect
+            set.actualReps > 0 && set.actualWeight > 0
+        }
+        
         println(
             "🔍 canMarkSetComplete: setId=${set.id}, actualReps=${set.actualReps}, actualWeight=${set.actualWeight}, cached=null (triggering validation), fallback=$fallbackResult",
         )
@@ -622,10 +638,18 @@ class WorkoutViewModel(
 
     private suspend fun updateSetCompletionValidation() {
         val validationMap = mutableMapOf<Long, Boolean>()
+        println("🔄 updateSetCompletionValidation: Starting validation for ${_selectedExerciseSets.value.size} sets")
         _selectedExerciseSets.value.forEach { set ->
-            validationMap[set.id] = canMarkSetCompleteInternal(set)
+            val isValid = canMarkSetCompleteInternal(set)
+            validationMap[set.id] = isValid
+            println("  ✓ Set ${set.id}: reps=${set.actualReps}, weight=${set.actualWeight}, valid=$isValid")
         }
         _setCompletionValidation.value = validationMap
+        println("🔄 updateSetCompletionValidation: Completed. Cache size: ${validationMap.size}")
+        
+        // Force UI recomposition by updating the sets state
+        // This ensures the UI reflects the updated validation cache
+        _selectedExerciseSets.value = _selectedExerciseSets.value.toList()
     }
 
     private fun loadAllSetsForCurrentExercises() {
@@ -641,12 +665,18 @@ class WorkoutViewModel(
     }
 
     private suspend fun loadAllSetsForCurrentExercisesAndWait() {
+        println("📥 loadAllSetsForCurrentExercisesAndWait: Loading sets for ${_selectedWorkoutExercises.value.size} exercises")
         val allSets = mutableListOf<SetLog>()
         _selectedWorkoutExercises.value.forEach { exercise ->
             val sets = repository.getSetsForExercise(exercise.id)
+            println("  - Exercise '${exercise.exerciseName}': ${sets.size} sets")
+            sets.forEach { set ->
+                println("    • Set ${set.id}: reps=${set.actualReps}, weight=${set.actualWeight}, completed=${set.isCompleted}")
+            }
             allSets.addAll(sets)
         }
         _selectedExerciseSets.value = allSets
+        println("📥 Total sets loaded: ${allSets.size}")
         updateSetCompletionValidation()
     }
 
@@ -1271,6 +1301,37 @@ class WorkoutViewModel(
         }
     }
 
+    // Repeat a completed workout as a new freestyle workout
+    fun repeatWorkout() {
+        viewModelScope.launch {
+            val currentWorkoutId = _currentWorkoutId.value
+            if (currentWorkoutId != null) {
+                try {
+                    val newWorkoutId = repository.copyWorkoutAsFreestyle(currentWorkoutId)
+                    
+                    // Clear current state
+                    _currentWorkoutId.value = null
+                    _workoutState.value = WorkoutState()
+                    _selectedWorkoutExercises.value = emptyList()
+                    _selectedExerciseSets.value = emptyList()
+                    _setCompletionValidation.value = emptyMap() // Clear validation cache
+                    
+                    // Load the new workout - this will populate the validation cache
+                    resumeWorkout(newWorkoutId)
+                    
+                    // Update only the workout name after loading is complete
+                    // Don't overwrite the entire state which would interfere with validation
+                    delay(100) // Small delay to ensure resumeWorkout completes
+                    _workoutState.value = _workoutState.value.copy(
+                        workoutName = "Repeat Workout"
+                    )
+                } catch (e: Exception) {
+                    println("Error repeating workout: ${e.message}")
+                }
+            }
+        }
+    }
+
     // ===== PROGRAMME WORKOUT METHODS =====
 
     // Start a workout from a programme template
@@ -1441,77 +1502,6 @@ class WorkoutViewModel(
         }
     }
 
-    fun updateSetActual(
-        setId: Long,
-        actualReps: Int,
-        actualWeight: Float,
-        actualRpe: Float?,
-    ) {
-        if (!canEditWorkout()) return
-
-        viewModelScope.launch {
-            val currentSets = _selectedExerciseSets.value
-            val currentSet = currentSets.firstOrNull { it.id == setId }
-            if (currentSet != null) {
-                val updatedSet =
-                    currentSet.copy(
-                        actualReps = actualReps,
-                        actualWeight = actualWeight,
-                        actualRpe = actualRpe,
-                    )
-
-                // Update the set in the local state immediately
-                val updatedSets =
-                    currentSets.map { set ->
-                        if (set.id == setId) updatedSet else set
-                    }
-                _selectedExerciseSets.value = updatedSets
-
-                // Update validation cache for this set
-                val validationMap = _setCompletionValidation.value.toMutableMap()
-                validationMap[setId] = canMarkSetCompleteInternal(updatedSet)
-                _setCompletionValidation.value = validationMap
-
-                // Persist to database
-                repository.updateSetLog(updatedSet)
-                loadInProgressWorkouts()
-            }
-        }
-    }
-
-    fun updateSetSuggestion(
-        setId: Long,
-        suggestedWeight: Float?,
-        suggestedReps: Int?,
-        suggestionSource: String?,
-        suggestionConfidence: Float?,
-        calculationDetails: String?,
-    ) {
-        viewModelScope.launch {
-            val currentSets = _selectedExerciseSets.value
-            val currentSet = currentSets.firstOrNull { it.id == setId }
-            if (currentSet != null) {
-                val updatedSet =
-                    currentSet.copy(
-                        suggestedWeight = suggestedWeight,
-                        suggestedReps = suggestedReps,
-                        suggestionSource = suggestionSource,
-                        suggestionConfidence = suggestionConfidence,
-                        calculationDetails = calculationDetails,
-                    )
-
-                // Update the set in the local state immediately
-                val updatedSets =
-                    currentSets.map { set ->
-                        if (set.id == setId) updatedSet else set
-                    }
-                _selectedExerciseSets.value = updatedSets
-
-                // Persist to database
-                repository.updateSetLog(updatedSet)
-            }
-        }
-    }
 
     // ===== PR CELEBRATION METHODS =====
 
@@ -1525,17 +1515,6 @@ class WorkoutViewModel(
             )
     }
 
-    /**
-     * Share a personal record achievement
-     */
-    fun sharePR(personalRecord: PersonalRecord) {
-        // Format PR for sharing - only weight PRs are tracked now
-        val prText = "New Weight PR: ${personalRecord.exerciseName} - ${personalRecord.weight}kg × ${personalRecord.reps}!"
-
-        // Note: Actual sharing implementation would be handled by the UI layer
-        // This method primarily prepares the data for sharing
-        android.util.Log.d("WorkoutViewModel", "PR ready for sharing: $prText")
-    }
 
     /**
      * Clear all pending PRs and hide celebration
@@ -1548,20 +1527,6 @@ class WorkoutViewModel(
             )
     }
 
-    /**
-     * Get formatted text for sharing a PR
-     */
-    fun getPRShareText(personalRecord: PersonalRecord): String {
-        val improvementText =
-            if (personalRecord.improvementPercentage > 0) {
-                " (+${String.format("%.1f", personalRecord.improvementPercentage)}% improvement)"
-            } else {
-                ""
-            }
-
-        // Only weight PRs are tracked now
-        return "🏋️ New Weight PR: ${personalRecord.exerciseName}\n${personalRecord.weight}kg × ${personalRecord.reps}$improvementText"
-    }
 
     // ===== INTELLIGENT SUGGESTIONS =====
 

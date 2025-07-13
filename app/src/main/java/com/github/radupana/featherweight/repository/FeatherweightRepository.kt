@@ -10,31 +10,26 @@ import com.github.radupana.featherweight.data.GeneratedProgrammePreview
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.PersonalRecord
-import com.github.radupana.featherweight.data.ProgressTrend
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SwapHistoryCount
 import com.github.radupana.featherweight.data.UserPreferences
 import com.github.radupana.featherweight.data.VolumeLevel
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
-import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseAliasSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseCorrelationSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
-import com.github.radupana.featherweight.data.exercise.MovementPattern
-import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.data.profile.UserProfile
-import com.github.radupana.featherweight.data.programme.ExercisePerformanceData
 import com.github.radupana.featherweight.data.programme.ExerciseStructure
-import com.github.radupana.featherweight.data.programme.ExerciseSubstitution
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeDifficulty
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
 import com.github.radupana.featherweight.data.programme.ProgrammeSeeder
+import com.github.radupana.featherweight.data.programme.ProgrammeStatus
 import com.github.radupana.featherweight.data.programme.ProgrammeWeek
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser
@@ -81,23 +76,22 @@ data class WorkoutSummary(
     val programmeWorkoutName: String? = null,
     val weekNumber: Int? = null,
     val dayNumber: Int? = null,
-    val prCount: Int = 0, // Number of PRs achieved in this workout
 )
 
 class FeatherweightRepository(
     application: Application,
 ) {
     init {
-        android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: Starting initialization")
+        Log.e("FeatherweightDebug", "FeatherweightRepository: Starting initialization")
     }
 
     private val db =
         FeatherweightDatabase.getDatabase(application).also {
-            android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: Database obtained")
+            Log.e("FeatherweightDebug", "FeatherweightRepository: Database obtained")
         }
     private val userPreferences =
         UserPreferences(application).also {
-            android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: UserPreferences created")
+            Log.e("FeatherweightDebug", "FeatherweightRepository: UserPreferences created")
         }
 
     // Sub-repositories
@@ -105,27 +99,27 @@ class FeatherweightRepository(
 
     private val workoutDao =
         db.workoutDao().also {
-            android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: workoutDao obtained")
+            Log.e("FeatherweightDebug", "FeatherweightRepository: workoutDao obtained")
         }
     private val exerciseLogDao =
         db.exerciseLogDao().also {
-            android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: exerciseLogDao obtained")
+            Log.e("FeatherweightDebug", "FeatherweightRepository: exerciseLogDao obtained")
         }
     private val setLogDao =
         db.setLogDao().also {
-            android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: setLogDao obtained")
+            Log.e("FeatherweightDebug", "FeatherweightRepository: setLogDao obtained")
         }
     private val exerciseDao =
         db.exerciseDao().also {
-            android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: exerciseDao obtained")
+            Log.e("FeatherweightDebug", "FeatherweightRepository: exerciseDao obtained")
         }
     private val programmeDao =
         db.programmeDao().also {
-            android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: programmeDao obtained")
+            Log.e("FeatherweightDebug", "FeatherweightRepository: programmeDao obtained")
         }
     private val profileDao =
         db.profileDao().also {
-            android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: profileDao obtained")
+            Log.e("FeatherweightDebug", "FeatherweightRepository: profileDao obtained")
         }
 
     private val globalExerciseProgressDao = db.globalExerciseProgressDao()
@@ -166,15 +160,15 @@ class FeatherweightRepository(
 
     private val exerciseSeeder =
         ExerciseSeeder(exerciseDao, application).also {
-            android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: ExerciseSeeder created")
+            Log.e("FeatherweightDebug", "FeatherweightRepository: ExerciseSeeder created")
         }
     private val exerciseAliasSeeder =
         ExerciseAliasSeeder(exerciseDao).also {
-            android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: ExerciseAliasSeeder created")
+            Log.e("FeatherweightDebug", "FeatherweightRepository: ExerciseAliasSeeder created")
         }
     private val programmeSeeder =
         ProgrammeSeeder(programmeDao, exerciseDao).also {
-            android.util.Log.e("FeatherweightDebug", "FeatherweightRepository: ProgrammeSeeder created")
+            Log.e("FeatherweightDebug", "FeatherweightRepository: ProgrammeSeeder created")
         }
 
     private val exerciseCorrelationSeeder = ExerciseCorrelationSeeder(exerciseCorrelationDao)
@@ -186,7 +180,6 @@ class FeatherweightRepository(
         withContext(Dispatchers.IO) {
             val exerciseCount = exerciseDao.getAllExercisesWithDetails().size
             val workoutCount = workoutDao.getAllWorkouts().size
-            val programmeTemplateCount = programmeDao.getAllTemplates().size
 
             // Always seed exercises if there are none
             if (exerciseCount == 0) {
@@ -198,11 +191,8 @@ class FeatherweightRepository(
                 println("Seeded exercise aliases")
             }
 
-            // Seed programme templates if none exist
-            if (programmeTemplateCount == 0) {
-                programmeSeeder.seedPopularProgrammes()
-                println("Seeded ${programmeDao.getAllTemplates().size} programme templates")
-            }
+            // Always check and seed missing programme templates
+            programmeSeeder.seedPopularProgrammes()
 
             // Seed exercise correlations if none exist
             if (exerciseCorrelationDao.getCount() == 0) {
@@ -212,57 +202,15 @@ class FeatherweightRepository(
         }
     }
 
-    private suspend fun clearAllWorkouts() {
-        // Delete all workouts (will cascade delete exercises and sets)
-        val allWorkouts = workoutDao.getAllWorkouts()
-        allWorkouts.forEach { workout ->
-            workoutDao.deleteWorkout(workout.id)
-        }
-    }
-
-    private suspend fun updateExerciseUsageCounts() {
-        // Count usage for each exercise based on ExerciseLog entries
-        val allExercises = exerciseDao.getAllExercisesWithDetails()
-        val allWorkouts = workoutDao.getAllWorkouts()
-
-        allExercises.forEach { exerciseWithDetails ->
-            var count = 0
-            allWorkouts.forEach { workout ->
-                val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                count +=
-                    exerciseLogs.count { log ->
-                        log.exerciseId == exerciseWithDetails.exercise.id ||
-                            log.exerciseName == exerciseWithDetails.exercise.name
-                    }
-            }
-
-            // Update the exercise with the calculated count
-            if (count > 0) {
-                val updatedExercise = exerciseWithDetails.exercise.copy(usageCount = count)
-                exerciseDao.updateExercise(updatedExercise)
-            }
-        }
-    }
-
     // ===== EXERCISE METHODS (Delegated to ExerciseRepository) =====
 
     suspend fun getAllExercises(): List<ExerciseWithDetails> = exerciseRepository.getAllExercises()
-
-    suspend fun getAllExerciseNamesIncludingAliases(): List<String> = exerciseRepository.getAllExerciseNamesIncludingAliases()
-
-    suspend fun getAllExercisesWithUsageStats(): List<Pair<ExerciseWithDetails, Int>> = exerciseRepository.getAllExercisesWithUsageStats()
 
     suspend fun getExerciseById(id: Long): ExerciseWithDetails? = exerciseRepository.getExerciseById(id)
 
     suspend fun searchExercises(query: String): List<Exercise> = exerciseRepository.searchExercises(query)
 
     suspend fun getExercisesByCategory(category: ExerciseCategory): List<Exercise> = exerciseRepository.getExercisesByCategory(category)
-
-    suspend fun getExercisesByMuscleGroup(muscleGroup: String): List<Exercise> = exerciseRepository.getExercisesByMuscleGroup(muscleGroup)
-
-    suspend fun getExercisesByEquipment(equipment: Equipment): List<Exercise> = exerciseRepository.getExercisesByEquipment(equipment)
-
-    suspend fun getAllExerciseAliases() = exerciseRepository.getAllExerciseAliases()
 
     // ===== EXISTING WORKOUT METHODS (Updated to work with new Exercise system) =====
 
@@ -294,12 +242,6 @@ class FeatherweightRepository(
         exerciseOrder: Int,
         notes: String? = null,
     ): Long = exerciseRepository.insertExerciseLogWithExerciseReference(workoutId, exercise, exerciseOrder, notes)
-
-    // Get exercise details for an ExerciseLog
-    suspend fun getExerciseDetailsForLog(exerciseLog: ExerciseLog): ExerciseWithDetails? =
-        exerciseLog.exerciseId?.let { exerciseId ->
-            getExerciseById(exerciseId)
-        }
 
     // Workout state management
     suspend fun getOngoingWorkout(): Workout? {
@@ -580,111 +522,6 @@ class FeatherweightRepository(
             }.sortedByDescending { it.date }
     }
 
-    // Paginated history functionality for better performance
-    suspend fun getWorkoutHistoryPaged(
-        page: Int,
-        pageSize: Int = 20,
-    ): List<WorkoutSummary> {
-        val offset = page * pageSize
-        val allWorkouts = workoutDao.getAllWorkouts().sortedByDescending { it.date }
-
-        println("🔍 PAGINATION DEBUG:")
-        println("  📊 Total workouts in DB: ${allWorkouts.size}")
-        println("  📄 Requesting page: $page, pageSize: $pageSize, offset: $offset")
-
-        // PRE-FILTER workouts - show completed workouts even without exercises
-        val validWorkouts =
-            allWorkouts.filter { workout ->
-                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                // Show workout if it's completed OR has exercises
-                workout.status == WorkoutStatus.COMPLETED || exercises.isNotEmpty()
-            }
-
-        println("  ✅ Valid workouts (completed or with exercises): ${validWorkouts.size}")
-
-        // NOW paginate the valid workouts
-        val pagedWorkouts = validWorkouts.drop(offset).take(pageSize)
-        println("  📋 Workouts after pagination: ${pagedWorkouts.size}")
-
-        val results =
-            pagedWorkouts.map { workout ->
-                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                // We know exercises is not empty because we pre-filtered
-
-                val allSets = mutableListOf<SetLog>()
-                exercises.forEach { exercise ->
-                    allSets.addAll(setLogDao.getSetLogsForExercise(exercise.id))
-                }
-
-                val completedSets = allSets.filter { it.isCompleted }
-                val totalWeight = completedSets.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
-
-                val isCompleted = workout.status == WorkoutStatus.COMPLETED
-                val displayName =
-                    if (workout.notes != null && isCompleted) {
-                        workout.notes!!
-                            .trim()
-                            .takeIf { it.isNotBlank() }
-                    } else {
-                        workout.notes?.takeIf { it.isNotBlank() }
-                    }
-
-                println("  ✅ Including workout ${workout.id}: ${displayName ?: "Unnamed"}")
-                // Get programme information if this is a programme workout
-                val programmeName =
-                    if (workout.isProgrammeWorkout && workout.programmeId != null) {
-                        try {
-                            programmeDao.getProgrammeById(workout.programmeId)?.name
-                        } catch (e: Exception) {
-                            null
-                        }
-                    } else {
-                        null
-                    }
-
-                // Calculate PR count for this workout
-                val prCount =
-                    try {
-                        val workoutDate = workout.date.toLocalDate()
-                        val startOfDay = workoutDate.atStartOfDay()
-                        val endOfDay = workoutDate.atTime(23, 59, 59)
-
-                        // Get PRs for the workout date
-                        personalRecordDao.getPRsSince(startOfDay.toString())
-                            .filter { pr ->
-                                val prDate = pr.recordDate.toLocalDate()
-                                prDate == workoutDate
-                            }
-                            .size
-                    } catch (e: Exception) {
-                        android.util.Log.w("FeatherweightRepository", "Failed to calculate PR count for workout ${workout.id}", e)
-                        0
-                    }
-
-                WorkoutSummary(
-                    id = workout.id,
-                    date = workout.date,
-                    name = displayName,
-                    exerciseCount = exercises.size,
-                    setCount = allSets.size,
-                    totalWeight = totalWeight,
-                    // TODO: Calculate duration
-                    duration = null,
-                    status = workout.status,
-                    isProgrammeWorkout = workout.isProgrammeWorkout,
-                    programmeId = workout.programmeId,
-                    programmeName = programmeName,
-                    programmeWorkoutName = workout.programmeWorkoutName,
-                    weekNumber = workout.weekNumber,
-                    dayNumber = workout.dayNumber,
-                    prCount = prCount,
-                )
-            }
-
-        println("  📦 Final results returned: ${results.size}")
-        return results
-    }
-
     suspend fun getTotalWorkoutCount(): Int {
         val allWorkouts = workoutDao.getAllWorkouts()
         println("🔍 DEBUG: Checking all workouts:")
@@ -709,7 +546,8 @@ class FeatherweightRepository(
         currentWorkoutId: Long,
     ): ExerciseHistory? {
         val allWorkouts =
-            workoutDao.getAllWorkouts()
+            workoutDao
+                .getAllWorkouts()
                 .filter { it.status == WorkoutStatus.COMPLETED } // Only look at completed workouts
                 .sortedByDescending { it.date } // Most recent first
 
@@ -721,7 +559,8 @@ class FeatherweightRepository(
 
             if (matchingExercise != null) {
                 val sets =
-                    setLogDao.getSetLogsForExercise(matchingExercise.id)
+                    setLogDao
+                        .getSetLogsForExercise(matchingExercise.id)
                         .filter { it.isCompleted } // Only completed sets
 
                 if (sets.isNotEmpty()) {
@@ -736,7 +575,7 @@ class FeatherweightRepository(
         return null
     }
 
-    suspend fun getExerciseStats(exerciseName: String): ExerciseStats? = exerciseRepository.getExerciseStats(exerciseName)
+    private suspend fun getExerciseStats(exerciseName: String): ExerciseStats? = exerciseRepository.getExerciseStats(exerciseName)
 
     suspend fun getSmartSuggestions(
         exerciseName: String,
@@ -808,21 +647,6 @@ class FeatherweightRepository(
         )
     }
 
-    /**
-     * Get real-time suggestions as user types
-     */
-    fun getSmartSuggestionsFlow(
-        exerciseName: String,
-        repsFlow: kotlinx.coroutines.flow.Flow<Int>,
-    ): kotlinx.coroutines.flow.Flow<SmartSuggestions> {
-        val userId = getCurrentUserId()
-        return freestyleIntelligenceService.getSuggestionsForReps(
-            exerciseName = exerciseName,
-            userId = userId,
-            repsFlow = repsFlow,
-        )
-    }
-
     suspend fun getWorkoutById(workoutId: Long): Workout? = workoutDao.getWorkoutById(workoutId)
 
     suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
@@ -840,12 +664,6 @@ class FeatherweightRepository(
 
     // Delete an entire workout (will cascade delete all exercises and sets)
     suspend fun deleteWorkout(workoutId: Long) = workoutDao.deleteWorkout(workoutId)
-
-    // Update an exercise log
-    suspend fun updateExerciseLog(exerciseLog: ExerciseLog) = exerciseRepository.updateExerciseLog(exerciseLog)
-
-    // Delete all sets for a specific exercise
-    suspend fun deleteSetsForExercise(exerciseLogId: Long) = exerciseRepository.deleteSetsForExercise(exerciseLogId)
 
     suspend fun deleteSetsForExerciseLog(exerciseLogId: Long) = exerciseRepository.deleteSetsForExerciseLog(exerciseLogId)
 
@@ -939,9 +757,10 @@ class FeatherweightRepository(
 
             // Convert to the expected format: List of (estimated1RM, date) pairs
             val records =
-                prs.map { pr ->
-                    Pair(pr.estimated1RM ?: pr.weight, pr.recordDate)
-                }.sortedBy { it.second } // Sort by date ascending
+                prs
+                    .map { pr ->
+                        Pair(pr.estimated1RM ?: pr.weight, pr.recordDate)
+                    }.sortedBy { it.second } // Sort by date ascending
 
             println("🔵 Found ${records.size} PRs for $exerciseName from PersonalRecord table")
             records
@@ -1055,31 +874,6 @@ class FeatherweightRepository(
 
             Log.d("Analytics", "No PRs found in PersonalRecord table")
             return@withContext null
-
-            /* OLD CODE - keeping for reference
-            println("🔵 Repository.getRecentPR called")
-            Log.d("Analytics", "=== getRecentPR called ===")
-            val exerciseNames = listOf("Barbell Bench Press", "Barbell Back Squat", "Barbell Deadlift", "Barbell Overhead Press")
-            var mostRecentPR: Triple<String, Float, LocalDateTime>? = null
-
-            exerciseNames.forEach { exerciseName ->
-                val records = getPersonalRecords(exerciseName)
-                Log.d("Analytics", "Found ${records.size} PR records for $exerciseName")
-
-                if (records.isNotEmpty()) {
-                    val latestRecord = records.last()
-                    Log.d("Analytics", "Latest PR for $exerciseName: ${latestRecord.first}kg on ${latestRecord.second}")
-
-                    if (mostRecentPR == null || latestRecord.second > mostRecentPR!!.third) {
-                        mostRecentPR = Triple(exerciseName, latestRecord.first, latestRecord.second)
-                    }
-                }
-            }
-
-            val result = mostRecentPR?.let { Pair(it.first, it.second) }
-            Log.d("Analytics", "Most recent PR: ${result?.first ?: "None"} - ${result?.second ?: 0}kg")
-            result
-             */
         }
 
     suspend fun getAverageTrainingDaysPerWeek(): Float =
@@ -1469,42 +1263,10 @@ class FeatherweightRepository(
         }
     }
 
-    // Create a simple workout from basic parameters (legacy method for compatibility)
-    suspend fun createWorkoutFromProgramme(
-        programmeId: Long,
-        programmeWorkoutId: Long,
-        weekNumber: Int,
-        dayNumber: Int,
-        workoutName: String,
-    ): Long =
-        withContext(Dispatchers.IO) {
-            val workout =
-                Workout(
-                    date = LocalDateTime.now(),
-                    programmeId = programmeId,
-                    programmeWorkoutId = programmeWorkoutId,
-                    weekNumber = weekNumber,
-                    dayNumber = dayNumber,
-                    programmeWorkoutName = workoutName,
-                    isProgrammeWorkout = true,
-                    notes = null,
-                )
-            workoutDao.insertWorkout(workout)
-        }
-
     // Get workouts for a specific programme
     suspend fun getWorkoutsByProgramme(programmeId: Long): List<Workout> =
         withContext(Dispatchers.IO) {
             workoutDao.getWorkoutsByProgramme(programmeId)
-        }
-
-    // Get programme workouts for a specific week
-    suspend fun getProgrammeWorkoutsByWeek(
-        programmeId: Long,
-        weekNumber: Int,
-    ): List<Workout> =
-        withContext(Dispatchers.IO) {
-            workoutDao.getProgrammeWorkoutsByWeek(programmeId, weekNumber)
         }
 
     // Get programme workout progress
@@ -1522,16 +1284,6 @@ class FeatherweightRepository(
                 println("📊 getProgrammeWorkoutProgress from workout count: $completed/$total")
                 Pair(completed, total)
             }
-        }
-
-    // Check if a specific programme workout has been completed
-    suspend fun isProgrammeWorkoutCompleted(
-        programmeId: Long,
-        programmeWorkoutId: Long,
-    ): Boolean =
-        withContext(Dispatchers.IO) {
-            val lastExecution = workoutDao.getLastProgrammeWorkoutExecution(programmeId, programmeWorkoutId)
-            lastExecution?.status == WorkoutStatus.COMPLETED
         }
 
     // Get next programme workout to do
@@ -1735,16 +1487,6 @@ class FeatherweightRepository(
         )
     }
 
-    // Helper to get daily workout count for custom programmes
-    private suspend fun getDailyWorkoutCount(programmeId: Long): Int {
-        val weeks = programmeDao.getWeeksForProgramme(programmeId)
-        if (weeks.isEmpty()) return 3 // fallback
-
-        // Get the first week's workout count as representative
-        val firstWeekWorkouts = programmeDao.getWorkoutsForWeek(weeks[0].id)
-        return firstWeekWorkouts.size.coerceAtLeast(1)
-    }
-
     // Calculate total workouts for a programme based on its JSON structure
     private suspend fun calculateTotalWorkoutsFromStructure(programme: Programme): Int {
         return try {
@@ -1808,16 +1550,6 @@ class FeatherweightRepository(
             programmeDao.getAllTemplates()
         }
 
-    suspend fun getTemplatesByDifficulty(difficulty: ProgrammeDifficulty) =
-        withContext(Dispatchers.IO) {
-            programmeDao.getTemplatesByDifficulty(difficulty)
-        }
-
-    suspend fun getTemplateById(id: Long) =
-        withContext(Dispatchers.IO) {
-            programmeDao.getTemplateById(id)
-        }
-
     // Programme Management
     suspend fun createProgrammeFromTemplate(
         templateId: Long,
@@ -1850,12 +1582,14 @@ class FeatherweightRepository(
 
             val programme =
                 Programme(
-                    name = template.name,  // Always use template name, ignore custom name
+                    name = template.name, // Always use template name, ignore custom name
                     description = template.description,
                     durationWeeks = template.durationWeeks,
                     programmeType = template.programmeType,
                     difficulty = template.difficulty,
                     isCustom = false,
+                    isActive = false,
+                    status = ProgrammeStatus.NOT_STARTED,
                     squatMax = squatMax,
                     benchMax = benchMax,
                     deadliftMax = deadliftMax,
@@ -1941,7 +1675,8 @@ class FeatherweightRepository(
                         },
                     isCustom = true,
                     isActive = true,
-                    startedAt = java.time.LocalDateTime.now(),
+                    status = ProgrammeStatus.IN_PROGRESS,
+                    startedAt = LocalDateTime.now(),
                 )
 
             val programmeId = programmeDao.insertProgramme(programme)
@@ -2061,7 +1796,10 @@ class FeatherweightRepository(
             try {
                 println("🔄 Setting programme as active...")
                 programmeDao.setActiveProgramme(programmeId)
-                println("✅ Programme marked as active")
+                
+                // Update status to IN_PROGRESS
+                programmeDao.updateProgrammeStatus(programmeId, ProgrammeStatus.IN_PROGRESS)
+                println("✅ Programme marked as active with status IN_PROGRESS")
 
                 // Initialize progress tracking
                 println("🔄 Getting programme details...")
@@ -2093,17 +1831,7 @@ class FeatherweightRepository(
             }
         }
 
-    suspend fun deactivateActiveProgramme() =
-        withContext(Dispatchers.IO) {
-            println("⚠️ deactivateActiveProgramme: Deactivating all programmes")
-            val activeProgramme = programmeDao.getActiveProgramme()
-            if (activeProgramme != null) {
-                println("   Active programme was: ${activeProgramme.name}")
-            }
-            programmeDao.deactivateAllProgrammes()
-        }
-
-    suspend fun completeProgramme(programmeId: Long) =
+    private suspend fun completeProgramme(programmeId: Long) =
         withContext(Dispatchers.IO) {
             println("🏁 completeProgramme called for programmeId: $programmeId")
 
@@ -2117,13 +1845,14 @@ class FeatherweightRepository(
                 println("   Progress: ${progress.completedWorkouts}/${progress.totalWorkouts} workouts")
                 println("   Adherence: ${progress.adherencePercentage}%")
 
-                // Only mark this specific programme as complete, don't deactivate all programmes
-                programmeDao.completeProgramme(programmeId, LocalDateTime.now().toString())
-
-                // Only deactivate this specific programme, not all programmes
-                val updatedProgramme = programme.copy(isActive = false)
-                programmeDao.updateProgramme(updatedProgramme)
-                println("✅ Programme marked as complete and deactivated (other programmes remain active)")
+                // ATOMIC update - sets status=COMPLETED, isActive=false, and completedAt in one transaction
+                val completionTime = LocalDateTime.now()
+                programmeDao.completeProgrammeAtomic(programmeId, completionTime)
+                
+                println("✅ Programme marked as complete atomically:")
+                println("   - status: COMPLETED")
+                println("   - isActive: false")
+                println("   - completedAt: $completionTime")
             } else {
                 println("❌ Programme or progress not found for completion")
             }
@@ -2164,7 +1893,7 @@ class FeatherweightRepository(
         workoutDao.updateWorkout(updatedWorkout)
         println("📊 Workout $workoutId status updated to $status")
     }
-    
+
     suspend fun updateWorkoutTimerStart(
         workoutId: Long,
         timerStartTime: LocalDateTime,
@@ -2175,286 +1904,16 @@ class FeatherweightRepository(
         println("⏱️ Workout $workoutId timer started at $timerStartTime")
     }
 
-    // Programme Progress
-    suspend fun updateProgrammeProgress(
-        programmeId: Long,
-        week: Int,
-        day: Int,
-    ) = withContext(Dispatchers.IO) {
-        println("🔄 updateProgrammeProgress called: programmeId=$programmeId, week=$week, day=$day")
-
-        // First check if progress record exists
-        var progress = programmeDao.getProgressForProgramme(programmeId)
-        println("📊 Initial progress check: $progress")
-
-        if (progress == null) {
-            println("⚠️ No progress record found, creating one...")
-            // Create a new progress record if it doesn't exist
-            val programme = programmeDao.getProgrammeById(programmeId)
-            if (programme != null) {
-                val totalWorkouts = calculateTotalWorkoutsFromStructure(programme)
-                progress =
-                    ProgrammeProgress(
-                        programmeId = programmeId,
-                        currentWeek = week,
-                        currentDay = day,
-                        completedWorkouts = 0,
-                        totalWorkouts = totalWorkouts,
-                        lastWorkoutDate = LocalDateTime.now(),
-                        adherencePercentage = 0f,
-                        strengthProgress = null,
-                    )
-                programmeDao.insertOrUpdateProgress(progress)
-                println("✅ Created new progress record")
-            } else {
-                println("❌ Programme not found, cannot create progress record")
-                return@withContext
-            }
-        } else {
-            // Update current week/day and timestamp
-            // This is called BEFORE the workout starts, so we're setting the next workout to do
-            programmeDao.updateProgress(programmeId, week, day, LocalDateTime.now().toString())
-            println("✅ Updated current week/day in progress table to: week=$week, day=$day")
-        }
-    }
-
-    // Exercise Substitutions
-    suspend fun addExerciseSubstitution(
-        programmeId: Long,
-        originalExercise: String,
-        substitutionExercise: String,
-    ) = withContext(Dispatchers.IO) {
-        val exercise = getExerciseByName(substitutionExercise)
-        val substitution =
-            ExerciseSubstitution(
-                programmeId = programmeId,
-                originalExerciseName = originalExercise,
-                substitutionCategory = exercise?.category ?: ExerciseCategory.FULL_BODY,
-                substitutionCriteria = null,
-                isUserDefined = true,
-            )
-        programmeDao.insertSubstitution(substitution)
-    }
-
-    suspend fun getExerciseSubstitutions(
-        programmeId: Long,
-        exerciseName: String,
-    ) = withContext(Dispatchers.IO) {
-        programmeDao.getSubstitutionsForExercise(programmeId, exerciseName)
-    }
-
     // Helper method to get exercise by name or alias
     suspend fun getExerciseByName(name: String): Exercise? = exerciseRepository.getExerciseByName(name)
-
-    private suspend fun seedTestData() {
-        // Create sample workouts from past dates
-        val workout1 =
-            Workout(
-                date = LocalDateTime.now().minusDays(3),
-                notes = "Upper Body Push",
-            )
-        val workout1Id = workoutDao.insertWorkout(workout1)
-
-        // Get exercises from database instead of hardcoding
-        val benchPressExercise = searchExercises("Bench Press").firstOrNull()
-        val overheadPressExercise = searchExercises("Overhead Press").firstOrNull()
-
-        // Add exercises to workout 1
-        val benchPress =
-            ExerciseLog(
-                workoutId = workout1Id,
-                exerciseName = "Bench Press",
-                exerciseId = benchPressExercise?.id,
-                exerciseOrder = 0,
-            )
-        val benchPressId = exerciseLogDao.insertExerciseLog(benchPress)
-
-        val overheadPress =
-            ExerciseLog(
-                workoutId = workout1Id,
-                exerciseName = "Overhead Press",
-                exerciseId = overheadPressExercise?.id,
-                exerciseOrder = 1,
-            )
-        val overheadPressId = exerciseLogDao.insertExerciseLog(overheadPress)
-
-        // Add sets for bench press
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = benchPressId,
-                setOrder = 0,
-                targetReps = 8,
-                targetWeight = 80f,
-                actualReps = 8,
-                actualWeight = 80f,
-                actualRpe = 7f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(3).toString(),
-            ),
-        )
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = benchPressId,
-                setOrder = 1,
-                targetReps = 8,
-                targetWeight = 82.5f,
-                actualReps = 8,
-                actualWeight = 82.5f,
-                actualRpe = 8f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(3).toString(),
-            ),
-        )
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = benchPressId,
-                setOrder = 2,
-                targetReps = 6,
-                targetWeight = 85f,
-                actualReps = 6,
-                actualWeight = 85f,
-                actualRpe = 9f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(3).toString(),
-            ),
-        )
-
-        // Add sets for overhead press
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = overheadPressId,
-                setOrder = 0,
-                targetReps = 10,
-                targetWeight = 50f,
-                actualReps = 10,
-                actualWeight = 50f,
-                actualRpe = 6f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(3).toString(),
-            ),
-        )
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = overheadPressId,
-                setOrder = 1,
-                targetReps = 8,
-                targetWeight = 52.5f,
-                actualReps = 8,
-                actualWeight = 52.5f,
-                actualRpe = 7f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(3).toString(),
-            ),
-        )
-
-        // Mark workout 1 as completed
-        completeWorkout(workout1Id)
-
-        // Create workout 2
-        val workout2 =
-            Workout(
-                date = LocalDateTime.now().minusDays(1),
-                notes = "Lower Body",
-            )
-        val workout2Id = workoutDao.insertWorkout(workout2)
-
-        val squatExercise = searchExercises("Back Squat").firstOrNull()
-        val deadliftExercise = searchExercises("Conventional Deadlift").firstOrNull()
-
-        val squat =
-            ExerciseLog(
-                workoutId = workout2Id,
-                exerciseName = "Back Squat",
-                exerciseId = squatExercise?.id,
-                exerciseOrder = 0,
-            )
-        val squatId = exerciseLogDao.insertExerciseLog(squat)
-
-        val deadlift =
-            ExerciseLog(
-                workoutId = workout2Id,
-                exerciseName = "Conventional Deadlift",
-                exerciseId = deadliftExercise?.id,
-                exerciseOrder = 1,
-            )
-        val deadliftId = exerciseLogDao.insertExerciseLog(deadlift)
-
-        // Add sets for squat
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = squatId,
-                setOrder = 0,
-                targetReps = 5,
-                targetWeight = 100f,
-                actualReps = 5,
-                actualWeight = 100f,
-                actualRpe = 7f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(1).toString(),
-            ),
-        )
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = squatId,
-                setOrder = 1,
-                targetReps = 5,
-                targetWeight = 105f,
-                actualReps = 5,
-                actualWeight = 105f,
-                actualRpe = 8f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(1).toString(),
-            ),
-        )
-
-        // Add sets for deadlift
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = deadliftId,
-                setOrder = 0,
-                targetReps = 3,
-                targetWeight = 120f,
-                actualReps = 3,
-                actualWeight = 120f,
-                actualRpe = 8f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(1).toString(),
-            ),
-        )
-        setLogDao.insertSetLog(
-            SetLog(
-                exerciseLogId = deadliftId,
-                setOrder = 1,
-                targetReps = 3,
-                targetWeight = 125f,
-                actualReps = 3,
-                actualWeight = 125f,
-                actualRpe = 9f,
-                isCompleted = true,
-                completedAt = LocalDateTime.now().minusDays(1).toString(),
-            ),
-        )
-
-        // Mark workout 2 as completed
-        completeWorkout(workout2Id)
-    }
 
     // ========== Profile & 1RM Management ==========
 
     suspend fun ensureUserProfile(userId: Long) =
         withContext(Dispatchers.IO) {
-            val profile = db.profileDao().getUserProfile(userId)
-            if (profile == null) {
-                // Should not happen as users are created through seedTestUsers
+            db.profileDao().getUserProfile(userId)
+                ?: // Should not happen as users are created through seedTestUsers
                 throw IllegalStateException("User profile not found for ID: $userId")
-            }
-        }
-
-    fun getUserProfileFlow() = db.profileDao().getUserProfileFlow(getCurrentUserId())
-
-    suspend fun getUserProfile() =
-        withContext(Dispatchers.IO) {
-            db.profileDao().getUserProfile(getCurrentUserId())
         }
 
     suspend fun getAllUsers() =
@@ -2481,22 +1940,10 @@ class FeatherweightRepository(
 
     fun getAllCurrentMaxes() = db.profileDao().getAllCurrentMaxes(getCurrentUserId())
 
-    fun getCurrentMaxFlow(exerciseId: Long) =
-        db.profileDao().getCurrentMaxFlow(
-            userId = getCurrentUserId(),
-            exerciseId = exerciseId,
-        )
-
-    suspend fun getCurrentMax(exerciseId: Long) =
+    private suspend fun getCurrentMax(exerciseId: Long) =
         withContext(Dispatchers.IO) {
             db.profileDao().getCurrentMax(userId = getCurrentUserId(), exerciseId = exerciseId)
         }
-
-    fun getMaxHistory(exerciseId: Long) =
-        db.profileDao().getMaxHistory(
-            userId = getCurrentUserId(),
-            exerciseId = exerciseId,
-        )
 
     suspend fun getBig4Exercises() =
         withContext(Dispatchers.IO) {
@@ -2511,27 +1958,6 @@ class FeatherweightRepository(
     suspend fun deleteAllMaxesForExercise(exerciseId: Long) =
         withContext(Dispatchers.IO) {
             db.profileDao().deleteAllMaxesForExercise(getCurrentUserId(), exerciseId)
-        }
-
-    // Calculate percentage of 1RM for a given weight
-    fun calculatePercentageOf1RM(
-        weight: Float,
-        oneRepMax: Float,
-    ): Int =
-        if (oneRepMax > 0) {
-            ((weight / oneRepMax) * 100).toInt()
-        } else {
-            0
-        }
-
-    // Check if a weight would be a new 1RM
-    suspend fun isNew1RM(
-        exerciseId: Long,
-        weight: Float,
-    ): Boolean =
-        withContext(Dispatchers.IO) {
-            val currentMax = getCurrentMax(exerciseId)
-            currentMax == null || weight > currentMax.maxWeight
         }
 
     // ========== Test User Management ==========
@@ -2690,10 +2116,11 @@ class FeatherweightRepository(
         }
 
         // Check if we have AI-suggested weight with a valid source
-        if (exerciseStructure.suggestedWeight != null && 
+        if (exerciseStructure.suggestedWeight != null &&
             exerciseStructure.suggestedWeight > 0 &&
             exerciseStructure.weightSource != null &&
-            exerciseStructure.weightSource != "average_estimate") {
+            exerciseStructure.weightSource != "average_estimate"
+        ) {
             // AI made an informed decision based on user's 1RMs or specific input
             println("Calculation Method: AI-suggested with context")
             println("AI Suggested Weight: ${exerciseStructure.suggestedWeight} kg")
@@ -2711,8 +2138,10 @@ class FeatherweightRepository(
             when (val repsStructure = exerciseStructure.reps) {
                 is RepsStructure.Single ->
                     repsStructure.value..repsStructure.value
+
                 is RepsStructure.Range ->
                     repsStructure.min..repsStructure.max
+
                 is RepsStructure.RangeString ->
                     reps..reps // Fallback to actual reps
                 is RepsStructure.PerSet ->
@@ -2742,11 +2171,6 @@ class FeatherweightRepository(
 
         return weightCalculation.weight
     }
-
-    private suspend fun getLastPerformanceForExercise(exerciseName: String): ExercisePerformanceData? =
-        exerciseRepository.getLastPerformanceForExercise(
-            exerciseName,
-        )
 
     private suspend fun recordWorkoutPerformanceData(
         workoutId: Long,
@@ -2792,6 +2216,7 @@ class FeatherweightRepository(
                 exerciseName.contains("Deadlift", ignoreCase = true) -> "deadlift"
                 exerciseName.contains("Press", ignoreCase = true) &&
                     !exerciseName.contains("Bench", ignoreCase = true) -> "ohp"
+
                 else -> null
             }
 
@@ -2817,16 +2242,17 @@ class FeatherweightRepository(
             // Get sets within rep range
             val sets = db.workoutDao().getSetsForExercisesInRepRange(exerciseIds, minReps, maxReps)
 
-            sets.map { setLog ->
-                com.github.radupana.featherweight.service.PerformanceData(
-                    targetReps = setLog.targetReps,
-                    targetWeight = setLog.targetWeight,
-                    actualReps = setLog.actualReps,
-                    actualWeight = setLog.actualWeight,
-                    actualRpe = setLog.actualRpe,
-                    timestamp = setLog.completedAt ?: "",
-                )
-            }.sortedByDescending { it.timestamp }
+            sets
+                .map { setLog ->
+                    com.github.radupana.featherweight.service.PerformanceData(
+                        targetReps = setLog.targetReps,
+                        targetWeight = setLog.targetWeight,
+                        actualReps = setLog.actualReps,
+                        actualWeight = setLog.actualWeight,
+                        actualRpe = setLog.actualRpe,
+                        timestamp = setLog.completedAt ?: "",
+                    )
+                }.sortedByDescending { it.timestamp }
         }
 
     suspend fun getRecentPerformance(
@@ -2843,16 +2269,17 @@ class FeatherweightRepository(
             // Get recent sets
             val sets = db.workoutDao().getRecentSetsForExercises(exerciseIds, limit)
 
-            sets.map { setLog ->
-                com.github.radupana.featherweight.service.PerformanceData(
-                    targetReps = setLog.targetReps,
-                    targetWeight = setLog.targetWeight,
-                    actualReps = setLog.actualReps,
-                    actualWeight = setLog.actualWeight,
-                    actualRpe = setLog.actualRpe,
-                    timestamp = setLog.completedAt ?: "",
-                )
-            }.sortedByDescending { it.timestamp }
+            sets
+                .map { setLog ->
+                    com.github.radupana.featherweight.service.PerformanceData(
+                        targetReps = setLog.targetReps,
+                        targetWeight = setLog.targetWeight,
+                        actualReps = setLog.actualReps,
+                        actualWeight = setLog.actualWeight,
+                        actualRpe = setLog.actualRpe,
+                        timestamp = setLog.completedAt ?: "",
+                    )
+                }.sortedByDescending { it.timestamp }
         }
 
     suspend fun getHistoricalPerformanceForWeight(
@@ -2870,22 +2297,17 @@ class FeatherweightRepository(
             // Get sets within weight range
             val sets = db.workoutDao().getSetsForExercisesInWeightRange(exerciseIds, minWeight, maxWeight)
 
-            sets.map { setLog ->
-                com.github.radupana.featherweight.service.PerformanceData(
-                    targetReps = setLog.targetReps,
-                    targetWeight = setLog.targetWeight,
-                    actualReps = setLog.actualReps,
-                    actualWeight = setLog.actualWeight,
-                    actualRpe = setLog.actualRpe,
-                    timestamp = setLog.completedAt ?: "",
-                )
-            }.sortedByDescending { it.timestamp }
-        }
-
-    // Global Exercise Progress Methods
-    suspend fun getGlobalExerciseProgress(exerciseName: String): GlobalExerciseProgress? =
-        withContext(Dispatchers.IO) {
-            globalExerciseProgressDao.getProgressForExercise(getCurrentUserId(), exerciseName)
+            sets
+                .map { setLog ->
+                    com.github.radupana.featherweight.service.PerformanceData(
+                        targetReps = setLog.targetReps,
+                        targetWeight = setLog.targetWeight,
+                        actualReps = setLog.actualReps,
+                        actualWeight = setLog.actualWeight,
+                        actualRpe = setLog.actualRpe,
+                        timestamp = setLog.completedAt ?: "",
+                    )
+                }.sortedByDescending { it.timestamp }
         }
 
     suspend fun getGlobalExerciseProgress(
@@ -2894,74 +2316,6 @@ class FeatherweightRepository(
     ): GlobalExerciseProgress? =
         withContext(Dispatchers.IO) {
             globalExerciseProgressDao.getProgressForExercise(userId, exerciseName)
-        }
-
-    fun observeGlobalExerciseProgress(exerciseName: String) =
-        globalExerciseProgressDao.observeProgressForExercise(getCurrentUserId(), exerciseName)
-
-    fun observeAllGlobalProgress() = globalExerciseProgressDao.getAllProgressForUser(getCurrentUserId())
-
-    suspend fun getStalledExercises(minStalls: Int = 3) =
-        withContext(Dispatchers.IO) {
-            globalExerciseProgressDao.getStalledExercises(getCurrentUserId(), minStalls)
-        }
-
-    suspend fun getExercisesByTrend(trend: ProgressTrend) =
-        withContext(Dispatchers.IO) {
-            globalExerciseProgressDao.getExercisesByTrend(getCurrentUserId(), trend)
-        }
-
-    suspend fun analyzeExerciseProgress(exerciseName: String) =
-        withContext(Dispatchers.IO) {
-            globalProgressTracker.analyzeExerciseProgress(getCurrentUserId(), exerciseName)
-        }
-
-    // Exercise Correlation Methods
-    suspend fun getExerciseCorrelations(exerciseName: String) =
-        withContext(Dispatchers.IO) {
-            exerciseCorrelationDao.getCorrelationsForExercise(exerciseName)
-        }
-
-    suspend fun getExercisesByMovementPattern(pattern: MovementPattern) =
-        withContext(Dispatchers.IO) {
-            exerciseCorrelationDao.getExercisesByMovementPattern(pattern)
-        }
-
-    suspend fun getExercisesByMuscleGroup(muscleGroup: MuscleGroup) =
-        withContext(Dispatchers.IO) {
-            exerciseCorrelationDao.getExercisesByMuscleGroup(muscleGroup)
-        }
-
-    // Progress Analytics Methods
-    suspend fun getSetsForExercise(
-        exerciseName: String,
-        days: Int,
-    ): List<SetLog> =
-        withContext(Dispatchers.IO) {
-            val cutoffDate = LocalDateTime.now().minusDays(days.toLong())
-            setLogDao.getSetsForExerciseSince(exerciseName, cutoffDate.toString())
-        }
-
-    suspend fun getSetsForExerciseSince(
-        exerciseName: String,
-        since: LocalDateTime,
-    ): List<SetLog> =
-        withContext(Dispatchers.IO) {
-            setLogDao.getSetsForExerciseSince(exerciseName, since.toString())
-        }
-
-    suspend fun getAllCompletedExercises(): List<String> =
-        withContext(Dispatchers.IO) {
-            setLogDao.getAllCompletedExerciseNames()
-        }
-
-    suspend fun getPreviousMaxWeight(
-        exerciseName: String,
-        days: Int,
-    ): Float? =
-        withContext(Dispatchers.IO) {
-            val cutoffDate = LocalDateTime.now().minusDays(days.toLong())
-            setLogDao.getMaxWeightForExerciseBefore(exerciseName, cutoffDate.toString())
         }
 
     /**
@@ -2974,17 +2328,6 @@ class FeatherweightRepository(
     ): List<PersonalRecord> =
         withContext(Dispatchers.IO) {
             prDetectionService.checkForPR(setLog, exerciseName)
-        }
-
-    /**
-     * Get recent personal records for an exercise
-     */
-    suspend fun getRecentPRsForExercise(
-        exerciseName: String,
-        limit: Int = 5,
-    ): List<PersonalRecord> =
-        withContext(Dispatchers.IO) {
-            prDetectionService.getRecentPRsForExercise(exerciseName, limit)
         }
 
     /**
@@ -3003,17 +2346,6 @@ class FeatherweightRepository(
             personalRecordDao.getAllPersonalRecords()
         }
 
-    /**
-     * Clear all personal records (for debugging corrupted data)
-     */
-    suspend fun clearAllPersonalRecords() =
-        withContext(Dispatchers.IO) {
-            println("🗑️ CLEARING ALL PERSONAL RECORDS")
-            personalRecordDao.clearAllPersonalRecords()
-        }
-
-    // ===== ACHIEVEMENT METHODS =====
-
     // ===== INSIGHTS SECTION =====
 
     // Exercise Progress Analytics Methods
@@ -3028,7 +2360,6 @@ class FeatherweightRepository(
     )
 
     suspend fun getExerciseWorkoutsInDateRange(
-        userId: Long,
         exerciseName: String,
         startDate: LocalDate,
         endDate: LocalDate,
@@ -3060,15 +2391,13 @@ class FeatherweightRepository(
         }
 
     suspend fun getPersonalRecordForExercise(
-        userId: Long,
         exerciseName: String,
     ): PersonalRecord? =
         withContext(Dispatchers.IO) {
             personalRecordDao.getLatestRecordForExercise(exerciseName)
         }
 
-    suspend fun getTotalSessionsForExercise(
-        userId: Long,
+    private suspend fun getTotalSessionsForExercise(
         exerciseName: String,
     ): Int =
         withContext(Dispatchers.IO) {
@@ -3076,7 +2405,6 @@ class FeatherweightRepository(
         }
 
     suspend fun getMaxWeightForExerciseInDateRange(
-        userId: Long,
         exerciseName: String,
         startDate: LocalDate,
         endDate: LocalDate,
@@ -3092,7 +2420,6 @@ class FeatherweightRepository(
         }
 
     suspend fun getDistinctWorkoutDatesForExercise(
-        userId: Long,
         exerciseName: String,
         startDate: LocalDate,
         endDate: LocalDate,
@@ -3100,13 +2427,13 @@ class FeatherweightRepository(
         withContext(Dispatchers.IO) {
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.atTime(23, 59, 59)
-            exerciseLogDao.getDistinctWorkoutsForExercise(exerciseName, startDateTime, endDateTime)
+            exerciseLogDao
+                .getDistinctWorkoutsForExercise(exerciseName, startDateTime, endDateTime)
                 .map { it.date.toLocalDate() }
                 .distinct()
         }
 
     suspend fun getDateOfMaxWeightForExercise(
-        userId: Long,
         exerciseName: String,
         weight: Float,
         startDate: LocalDate,
@@ -3117,13 +2444,13 @@ class FeatherweightRepository(
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.plusDays(1).atStartOfDay()
 
-            android.util.Log.d("Repository", "🔍 getDateOfMaxWeightForExercise DEBUG:")
-            android.util.Log.d("Repository", "  - Exercise: $exerciseName")
-            android.util.Log.d("Repository", "  - Weight: $weight")
-            android.util.Log.d("Repository", "  - Date range: $startDate to $endDate")
+            Log.d("Repository", "🔍 getDateOfMaxWeightForExercise DEBUG:")
+            Log.d("Repository", "  - Exercise: $exerciseName")
+            Log.d("Repository", "  - Weight: $weight")
+            Log.d("Repository", "  - Date range: $startDate to $endDate")
 
             val workoutDate = workoutDao.getWorkoutDateForMaxWeight(exerciseName, weight, startDateTime, endDateTime)
-            android.util.Log.d("Repository", "  - Found workout date: $workoutDate")
+            Log.d("Repository", "  - Found workout date: $workoutDate")
 
             workoutDate?.toLocalDate()
         }
@@ -3136,60 +2463,65 @@ class FeatherweightRepository(
             // Get all unique exercises from completed workouts
             val allExercises = exerciseLogDao.getAllUniqueExercises()
 
-            allExercises.mapNotNull { exerciseName ->
-                val globalProgress = getGlobalExerciseProgress(userId, exerciseName)
-                if (globalProgress != null) {
-                    // Get actual PR for this exercise (not estimated)
-                    val personalRecord = getPersonalRecordForExercise(userId, exerciseName)
-                    val actualMaxWeight = personalRecord?.weight ?: globalProgress.currentWorkingWeight
+            allExercises
+                .mapNotNull { exerciseName ->
+                    val globalProgress = getGlobalExerciseProgress(userId, exerciseName)
+                    if (globalProgress != null) {
+                        // Get actual PR for this exercise (not estimated)
+                        val personalRecord = getPersonalRecordForExercise(exerciseName)
+                        val actualMaxWeight = personalRecord?.weight ?: globalProgress.currentWorkingWeight
 
-                    // Get recent workout data for mini chart
-                    val recentWorkouts =
-                        getExerciseWorkoutsInDateRange(
-                            userId = userId,
-                            exerciseName = exerciseName,
-                            startDate = java.time.LocalDate.now().minusDays(90),
-                            endDate = java.time.LocalDate.now(),
-                        )
+                        // Get recent workout data for mini chart
+                        val recentWorkouts =
+                            getExerciseWorkoutsInDateRange(
+                                exerciseName = exerciseName,
+                                startDate =
+                                    java.time.LocalDate
+                                        .now()
+                                        .minusDays(90),
+                                endDate = java.time.LocalDate.now(),
+                            )
 
-                    // Calculate progress percentage (last 30 days)
-                    val thirtyDaysAgo = java.time.LocalDate.now().minusDays(30)
-                    val monthlyWorkouts =
-                        recentWorkouts.filter {
-                            it.workoutDate.toLocalDate().isAfter(thirtyDaysAgo)
-                        }
-
-                    var progressPercentage = 0f
-                    if (monthlyWorkouts.size >= 2) {
-                        val oldestWeight = monthlyWorkouts.lastOrNull()?.actualWeight ?: 0f
-                        val newestWeight = monthlyWorkouts.firstOrNull()?.actualWeight ?: 0f
-                        if (oldestWeight > 0) {
-                            progressPercentage = ((newestWeight - oldestWeight) / oldestWeight) * 100
-                        }
-                    }
-
-                    // Create mini chart data (last 8 data points)
-                    val miniChartData =
-                        recentWorkouts
-                            .take(8)
-                            .map { log ->
-                                // Show actual weight, not estimated 1RM
-                                log.actualWeight
+                        // Calculate progress percentage (last 30 days)
+                        val thirtyDaysAgo =
+                            java.time.LocalDate
+                                .now()
+                                .minusDays(30)
+                        val monthlyWorkouts =
+                            recentWorkouts.filter {
+                                it.workoutDate.toLocalDate().isAfter(thirtyDaysAgo)
                             }
-                            .reversed() // Oldest to newest for chart
 
-                    com.github.radupana.featherweight.service.ExerciseSummary(
-                        exerciseName = exerciseName,
-                        currentMax = actualMaxWeight, // Show actual PR weight
-                        progressPercentage = progressPercentage,
-                        lastWorkout = globalProgress.lastUpdated,
-                        sessionCount = getTotalSessionsForExercise(userId, exerciseName),
-                        miniChartData = miniChartData,
-                    )
-                } else {
-                    null
-                }
-            }.sortedByDescending { it.currentMax }
+                        var progressPercentage = 0f
+                        if (monthlyWorkouts.size >= 2) {
+                            val oldestWeight = monthlyWorkouts.lastOrNull()?.actualWeight ?: 0f
+                            val newestWeight = monthlyWorkouts.firstOrNull()?.actualWeight ?: 0f
+                            if (oldestWeight > 0) {
+                                progressPercentage = ((newestWeight - oldestWeight) / oldestWeight) * 100
+                            }
+                        }
+
+                        // Create mini chart data (last 8 data points)
+                        val miniChartData =
+                            recentWorkouts
+                                .take(8)
+                                .map { log ->
+                                    // Show actual weight, not estimated 1RM
+                                    log.actualWeight
+                                }.reversed() // Oldest to newest for chart
+
+                        com.github.radupana.featherweight.service.ExerciseSummary(
+                            exerciseName = exerciseName,
+                            currentMax = actualMaxWeight, // Show actual PR weight
+                            progressPercentage = progressPercentage,
+                            lastWorkout = globalProgress.lastUpdated,
+                            sessionCount = getTotalSessionsForExercise(exerciseName),
+                            miniChartData = miniChartData,
+                        )
+                    } else {
+                        null
+                    }
+                }.sortedByDescending { it.currentMax }
         }
 
     suspend fun deleteAllWorkouts() {
@@ -3213,7 +2545,9 @@ class FeatherweightRepository(
     suspend fun getWeeklyStreak(): Int =
         withContext(Dispatchers.IO) {
             val workouts =
-                db.workoutDao().getAllWorkouts()
+                db
+                    .workoutDao()
+                    .getAllWorkouts()
                     .filter { it.status == WorkoutStatus.COMPLETED }
                     .sortedByDescending { it.date }
 
@@ -3241,4 +2575,283 @@ class FeatherweightRepository(
 
             streak
         }
+
+    // Get completed workouts with programme info using proper SQL pagination
+    suspend fun getCompletedWorkoutsPagedOptimized(
+        page: Int,
+        pageSize: Int = 20,
+    ): List<WorkoutSummaryWithProgramme> =
+        withContext(Dispatchers.IO) {
+            val offset = page * pageSize
+            // Use efficient paginated query at database level
+            val allWorkouts = workoutDao.getCompletedWorkoutsPaged(pageSize, offset)
+
+            allWorkouts.map { workout ->
+                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                val sets =
+                    exercises.flatMap { exercise ->
+                        setLogDao.getSetLogsForExercise(exercise.id)
+                    }
+                val programmeName =
+                    workout.programmeId?.let {
+                        programmeDao.getProgrammeById(it)?.name
+                    }
+
+                WorkoutSummaryWithProgramme(
+                    id = workout.id,
+                    date = workout.date,
+                    name = workout.programmeWorkoutName,
+                    programmeName = programmeName,
+                    exerciseCount = exercises.size,
+                    setCount = sets.size,
+                    totalWeight =
+                        sets
+                            .filter { set -> set.isCompleted }
+                            .sumOf { set -> (set.actualWeight * set.actualReps).toDouble() }
+                            .toFloat(),
+                    duration = workout.durationSeconds?.let { it / 60 },
+                    status = workout.status,
+                )
+            }
+        }
+
+    // Get completed programmes with workout count
+    suspend fun getCompletedProgrammesPaged(
+        page: Int,
+        pageSize: Int = 20,
+    ): List<ProgrammeSummary> =
+        withContext(Dispatchers.IO) {
+            println("📋 getCompletedProgrammesPaged: page=$page, pageSize=$pageSize")
+            val offset = page * pageSize
+            // Use efficient paginated query at database level
+            val programmes = programmeDao.getCompletedProgrammesPaged(pageSize, offset)
+            println("📋 Found ${programmes.size} completed programmes from database")
+
+            programmes.map { programme ->
+                val workouts = workoutDao.getWorkoutsByProgramme(programme.id)
+                val completedWorkouts = workouts.count { it.status == WorkoutStatus.COMPLETED }
+
+                ProgrammeSummary(
+                    id = programme.id,
+                    name = programme.name,
+                    startDate = programme.startedAt ?: programme.createdAt,
+                    completionDate = programme.completedAt!!,
+                    completedAt = programme.completedAt,
+                    durationWeeks = programme.durationWeeks,
+                    completedWorkouts = completedWorkouts,
+                    totalWorkouts = workouts.size,
+                    programmeType = programme.programmeType,
+                    difficulty = programme.difficulty,
+                )
+            }
+        }
+
+    // Get programme history details
+    suspend fun getProgrammeHistoryDetails(programmeId: Long): ProgrammeHistoryDetails? =
+        withContext(Dispatchers.IO) {
+            val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext null
+            val weeks = programmeDao.getWeeksForProgramme(programmeId)
+
+            // Get all completed workouts for this programme
+            val workouts =
+                workoutDao
+                    .getWorkoutsByProgramme(programmeId)
+                    .filter { it.status == WorkoutStatus.COMPLETED }
+                    .sortedBy { workout -> (workout.weekNumber ?: 0) * 10 + (workout.dayNumber ?: 0) }
+
+            // Group workouts by week
+            val workoutsByWeek = workouts.groupBy { it.weekNumber ?: 0 }
+
+            val weekDetails =
+                (1..programme.durationWeeks).map { weekNum ->
+                    val week = weeks.find { it.weekNumber == weekNum }
+                    val weekWorkouts = workoutsByWeek[weekNum] ?: emptyList()
+
+                    ProgrammeWeekHistory(
+                        weekNumber = weekNum,
+                        weekName = week?.name ?: "Week $weekNum",
+                        workouts =
+                            weekWorkouts
+                                .map { workout ->
+                                    val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                                    val sets =
+                                        exercises.flatMap { exercise ->
+                                            setLogDao.getSetLogsForExercise(exercise.id)
+                                        }
+
+                                    WorkoutHistoryDetail(
+                                        id = workout.id,
+                                        name = workout.programmeWorkoutName ?: "Workout",
+                                        date = workout.date,
+                                        exerciseNames = exercises.take(3).map { it.exerciseName },
+                                        totalExercises = exercises.size,
+                                        totalVolume =
+                                            sets
+                                                .filter { set -> set.isCompleted }
+                                                .sumOf { set -> (set.actualWeight * set.actualReps).toDouble() }
+                                                .toFloat(),
+                                        duration = workout.durationSeconds?.let { it / 60 },
+                                    )
+                                }.sortedBy { it.date },
+                    )
+                }
+
+            // Get all workouts for this programme (including incomplete ones)
+            val allWorkouts = workoutDao.getWorkoutsByProgramme(programmeId)
+            val completedWorkouts = allWorkouts.filter { it.status == WorkoutStatus.COMPLETED }
+
+            // Calculate program duration in days
+            val programDurationDays =
+                if (programme.completedAt != null && programme.startedAt != null) {
+                    java.time.temporal.ChronoUnit.DAYS
+                        .between(programme.startedAt, programme.completedAt)
+                        .toInt() + 1
+                } else {
+                    programme.durationWeeks * 7
+                }
+
+            // Create workout history entries for all workouts
+            val workoutHistory =
+                allWorkouts
+                    .map { workout ->
+                        WorkoutHistoryEntry(
+                            workoutId = workout.id,
+                            workoutName = workout.programmeWorkoutName ?: "Workout",
+                            weekNumber = workout.weekNumber ?: 0,
+                            dayNumber = workout.dayNumber ?: 0,
+                            completed = workout.status == WorkoutStatus.COMPLETED,
+                            completedAt = if (workout.status == WorkoutStatus.COMPLETED) workout.date else null,
+                        )
+                    }.sortedBy { it.weekNumber * 10 + it.dayNumber }
+
+            ProgrammeHistoryDetails(
+                id = programme.id,
+                name = programme.name,
+                programmeType = programme.programmeType,
+                difficulty = programme.difficulty,
+                durationWeeks = programme.durationWeeks,
+                startedAt = programme.startedAt,
+                completedAt = programme.completedAt,
+                completedWorkouts = completedWorkouts.size,
+                totalWorkouts = allWorkouts.size,
+                programDurationDays = programDurationDays,
+                workoutHistory = workoutHistory,
+            )
+        }
+
+    // Copy workout for "Repeat Workout" feature
+    suspend fun copyWorkoutAsFreestyle(workoutId: Long): Long =
+        withContext(Dispatchers.IO) {
+            val originalWorkout =
+                workoutDao.getWorkoutById(workoutId)
+                    ?: throw IllegalArgumentException("Workout not found")
+
+            val exercises = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
+
+            // Create new freestyle workout
+            val newWorkout =
+                Workout(
+                    date = LocalDateTime.now(),
+                    notes = "Repeated from ${originalWorkout.programmeWorkoutName ?: "previous workout"}",
+                    status = WorkoutStatus.NOT_STARTED,
+                    isProgrammeWorkout = false,
+                )
+            val newWorkoutId = workoutDao.insertWorkout(newWorkout)
+
+            // Copy exercises and sets
+            exercises.forEach { exercise ->
+                val sets = setLogDao.getSetLogsForExercise(exercise.id)
+
+                val newExercise =
+                    ExerciseLog(
+                        workoutId = newWorkoutId,
+                        exerciseName = exercise.exerciseName,
+                        exerciseOrder = exercise.exerciseOrder,
+                        notes = exercise.notes,
+                    )
+                val newExerciseId = exerciseLogDao.insertExerciseLog(newExercise)
+
+                // Copy sets with actual values, excluding RPE
+                sets.forEach { set ->
+                    val newSet =
+                        SetLog(
+                            exerciseLogId = newExerciseId,
+                            setOrder = set.setOrder,
+                            targetReps = set.actualReps,
+                            targetWeight = set.actualWeight,
+                            actualReps = 0,
+                            actualWeight = 0f,
+                            isCompleted = false,
+                        )
+                    setLogDao.insertSetLog(newSet)
+                }
+            }
+
+            newWorkoutId
+        }
 }
+
+// New data classes for history feature
+data class WorkoutSummaryWithProgramme(
+    val id: Long,
+    val date: LocalDateTime,
+    val name: String?,
+    val programmeName: String?,
+    val exerciseCount: Int,
+    val setCount: Int,
+    val totalWeight: Float,
+    val duration: Long?,
+    val status: WorkoutStatus,
+)
+
+data class ProgrammeSummary(
+    val id: Long,
+    val name: String,
+    val startDate: LocalDateTime,
+    val completionDate: LocalDateTime,
+    val completedAt: LocalDateTime? = null,
+    val durationWeeks: Int,
+    val completedWorkouts: Int,
+    val totalWorkouts: Int = 0,
+    val programmeType: com.github.radupana.featherweight.data.programme.ProgrammeType = com.github.radupana.featherweight.data.programme.ProgrammeType.GENERAL_FITNESS,
+    val difficulty: ProgrammeDifficulty = ProgrammeDifficulty.INTERMEDIATE,
+)
+
+data class ProgrammeHistoryDetails(
+    val id: Long,
+    val name: String,
+    val programmeType: com.github.radupana.featherweight.data.programme.ProgrammeType,
+    val difficulty: ProgrammeDifficulty,
+    val durationWeeks: Int,
+    val startedAt: LocalDateTime?,
+    val completedAt: LocalDateTime?,
+    val completedWorkouts: Int,
+    val totalWorkouts: Int,
+    val programDurationDays: Int,
+    val workoutHistory: List<WorkoutHistoryEntry>,
+)
+
+data class ProgrammeWeekHistory(
+    val weekNumber: Int,
+    val weekName: String?,
+    val workouts: List<WorkoutHistoryDetail>,
+)
+
+data class WorkoutHistoryDetail(
+    val id: Long,
+    val name: String,
+    val date: LocalDateTime,
+    val exerciseNames: List<String>,
+    val totalExercises: Int,
+    val totalVolume: Float,
+    val duration: Long?,
+)
+
+data class WorkoutHistoryEntry(
+    val workoutId: Long,
+    val workoutName: String,
+    val weekNumber: Int,
+    val dayNumber: Int,
+    val completed: Boolean,
+    val completedAt: LocalDateTime?,
+)

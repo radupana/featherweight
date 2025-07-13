@@ -8051,6 +8051,23 @@
         "Competition Bench Press",
         "Pause Bench Press"
       ]
+    },
+    {
+      "id": 503,
+      "name": "Weighted Pull Up",
+      "category": "Back",
+      "equipment": "Dumbbell",
+      "muscleGroup": "Lats",
+      "movementPattern": "Pull",
+      "type": "Strength",
+      "difficulty": "Advanced",
+      "requiresWeight": true,
+      "instructions": "Attach weight to dipping belt or hold dumbbell between feet. Pull up until chin over bar.",
+      "aliases": [
+        "Weighted Pull-Up",
+        "Weighted Pullup",
+        "Pull Up with Weight"
+      ]
     }
   ]
 }
