@@ -2771,18 +2771,23 @@ class FeatherweightRepository(
                     )
                 val newExerciseId = exerciseLogDao.insertExerciseLog(newExercise)
 
-                // Copy sets with actual values, excluding RPE
+                // Copy sets with actual values pre-populated in both target and actual fields
                 sets.forEach { set ->
                     val newSet =
                         SetLog(
                             exerciseLogId = newExerciseId,
                             setOrder = set.setOrder,
+                            // Set target values from previous performance
                             targetReps = set.actualReps,
                             targetWeight = set.actualWeight,
-                            actualReps = 0,
-                            actualWeight = 0f,
+                            // Pre-populate actual values so sets can be immediately marked complete
+                            actualReps = set.actualReps,
+                            actualWeight = set.actualWeight,
+                            // Don't copy RPE - let user set it fresh
+                            actualRpe = null,
                             isCompleted = false,
                         )
+                    println("🔄 Copying set: targetReps=${newSet.targetReps}, targetWeight=${newSet.targetWeight}, actualReps=${newSet.actualReps}, actualWeight=${newSet.actualWeight}")
                     setLogDao.insertSetLog(newSet)
                 }
             }
