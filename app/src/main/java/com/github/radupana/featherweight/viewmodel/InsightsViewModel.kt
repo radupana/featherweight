@@ -456,13 +456,13 @@ class InsightsViewModel(
         loadInsightsData()
     }
 
-    suspend fun getExercisesSummary(): List<com.github.radupana.featherweight.service.ExerciseSummary> {
+    suspend fun getGroupedExercisesSummary(): com.github.radupana.featherweight.service.GroupedExerciseSummary {
         return withContext(Dispatchers.IO) {
             try {
                 repository.getExercisesSummary()
             } catch (e: Exception) {
                 e.printStackTrace()
-                emptyList()
+                com.github.radupana.featherweight.service.GroupedExerciseSummary(emptyList(), emptyList())
             }
         }
     }

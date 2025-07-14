@@ -106,6 +106,11 @@ data class ExerciseSummary(
     val sessionCount: Int,
 )
 
+data class GroupedExerciseSummary(
+    val bigFourExercises: List<ExerciseSummary>,
+    val otherExercises: List<ExerciseSummary>,
+)
+
 data class PerformanceStats(
     val exerciseName: String,
     val bestSingle: String?,

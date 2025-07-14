@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.ExerciseLog
@@ -92,7 +93,13 @@ class WorkoutViewModel(
     // Apply a pending 1RM update
     fun applyOneRMUpdate(update: PendingOneRMUpdate) {
         viewModelScope.launch {
-            repository.applyOneRMUpdate(update)
+            Log.d("FeatherweightDebug", "WorkoutViewModel: Applying 1RM update for ${update.exerciseName} - ${update.suggestedMax}kg")
+            try {
+                repository.applyOneRMUpdate(update)
+                Log.d("FeatherweightDebug", "WorkoutViewModel: Successfully applied 1RM update")
+            } catch (e: Exception) {
+                Log.e("FeatherweightDebug", "WorkoutViewModel: Failed to apply 1RM update", e)
+            }
         }
     }
 

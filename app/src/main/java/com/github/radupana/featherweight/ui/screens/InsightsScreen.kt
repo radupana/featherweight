@@ -491,7 +491,7 @@ private fun ExerciseProgressSection(
                 ),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         ) {
-            ExerciseListWithPagination(
+            GroupedExerciseList(
                 viewModel = viewModel,
                 onNavigateToExercise = onNavigateToExercise,
             )
@@ -500,13 +500,13 @@ private fun ExerciseProgressSection(
 }
 
 @Composable
-private fun ExerciseListWithPagination(
+private fun GroupedExerciseList(
     viewModel: InsightsViewModel,
     onNavigateToExercise: (String) -> Unit,
 ) {
     val listState = rememberLazyListState()
-    var exercises by remember { mutableStateOf<List<com.github.radupana.featherweight.service.ExerciseSummary>>(emptyList()) }
-    var displayedExercises by remember { mutableStateOf<List<com.github.radupana.featherweight.service.ExerciseSummary>>(emptyList()) }
+    var groupedExercises by remember { mutableStateOf<com.github.radupana.featherweight.service.GroupedExerciseSummary?>(null) }
+    var displayedOtherExercises by remember { mutableStateOf<List<com.github.radupana.featherweight.service.ExerciseSummary>>(emptyList()) }
     var isLoadingMore by remember { mutableStateOf(false) }
     var hasMore by remember { mutableStateOf(true) }
     var currentPage by remember { mutableStateOf(0) }
@@ -514,10 +514,12 @@ private fun ExerciseListWithPagination(
 
     // Initial load
     LaunchedEffect(Unit) {
-        exercises = viewModel.getExercisesSummary()
-        // Load first page
-        displayedExercises = exercises.take(pageSize)
-        hasMore = exercises.size > pageSize
+        groupedExercises = viewModel.getGroupedExercisesSummary()
+        // Load first page of "Others"
+        groupedExercises?.let {
+            displayedOtherExercises = it.otherExercises.take(pageSize)
+            hasMore = it.otherExercises.size > pageSize
+        }
     }
 
     // Infinite scroll detection
@@ -536,25 +538,27 @@ private fun ExerciseListWithPagination(
                 // Simulate loading delay
                 kotlinx.coroutines.delay(300)
 
-                // Load next page
-                val nextPage = currentPage + 1
-                val startIndex = nextPage * pageSize
-                val endIndex = minOf(startIndex + pageSize, exercises.size)
+                groupedExercises?.let {
+                    // Load next page
+                    val nextPage = currentPage + 1
+                    val startIndex = nextPage * pageSize
+                    val endIndex = minOf(startIndex + pageSize, it.otherExercises.size)
 
-                if (startIndex < exercises.size) {
-                    val newExercises = exercises.subList(startIndex, endIndex)
-                    displayedExercises = displayedExercises + newExercises
-                    currentPage = nextPage
-                    hasMore = endIndex < exercises.size
-                } else {
-                    hasMore = false
+                    if (startIndex < it.otherExercises.size) {
+                        val newExercises = it.otherExercises.subList(startIndex, endIndex)
+                        displayedOtherExercises = displayedOtherExercises + newExercises
+                        currentPage = nextPage
+                        hasMore = endIndex < it.otherExercises.size
+                    } else {
+                        hasMore = false
+                    }
                 }
 
                 isLoadingMore = false
             }
     }
 
-    if (exercises.isEmpty()) {
+    if (groupedExercises == null || (groupedExercises?.bigFourExercises.isNullOrEmpty() && groupedExercises?.otherExercises.isNullOrEmpty())) {
         Box(
             modifier =
                 Modifier
@@ -571,13 +575,51 @@ private fun ExerciseListWithPagination(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(16.dp),
         ) {
-            items(displayedExercises) { exercise ->
-                ExerciseProgressCard(
-                    exercise = exercise,
-                    onClick = {
-                        onNavigateToExercise(exercise.exerciseName)
-                    },
-                )
+            // Big Four section
+            if (groupedExercises?.bigFourExercises?.isNotEmpty() == true) {
+                item {
+                    Text(
+                        text = "Big Four",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                }
+                
+                items(groupedExercises?.bigFourExercises ?: emptyList()) { exercise ->
+                    ExerciseProgressCard(
+                        exercise = exercise,
+                        onClick = {
+                            onNavigateToExercise(exercise.exerciseName)
+                        },
+                    )
+                }
+            }
+            
+            // Others section
+            if (groupedExercises?.otherExercises?.isNotEmpty() == true) {
+                item {
+                    Text(
+                        text = "Others",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(
+                            top = if (groupedExercises?.bigFourExercises?.isNotEmpty() == true) 16.dp else 0.dp,
+                            bottom = 8.dp
+                        ),
+                    )
+                }
+                
+                items(displayedOtherExercises) { exercise ->
+                    ExerciseProgressCard(
+                        exercise = exercise,
+                        onClick = {
+                            onNavigateToExercise(exercise.exerciseName)
+                        },
+                    )
+                }
             }
 
             // Loading indicator
@@ -599,7 +641,7 @@ private fun ExerciseListWithPagination(
             }
 
             // End of list indicator
-            if (!hasMore && displayedExercises.isNotEmpty()) {
+            if (!hasMore && displayedOtherExercises.isNotEmpty()) {
                 item {
                     Text(
                         "All exercises loaded",

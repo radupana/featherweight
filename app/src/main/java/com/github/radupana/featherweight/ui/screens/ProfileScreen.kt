@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,8 +8,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -57,6 +56,11 @@ fun ProfileScreen(
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Refresh data when screen is displayed
+    LaunchedEffect(Unit) {
+        viewModel.refreshData()
+    }
 
     Scaffold(
         modifier = modifier,
@@ -109,8 +113,7 @@ fun ProfileScreen(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = ripple(bounded = false),
                                     onClick = { currentTab = "1RM" },
-                                )
-                                .padding(vertical = 12.dp),
+                                ).padding(vertical = 12.dp),
                     ) {
                         Box(
                             modifier =
@@ -165,8 +168,7 @@ fun ProfileScreen(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = ripple(bounded = false),
                                     onClick = { currentTab = "Developer" },
-                                )
-                                .padding(vertical = 12.dp),
+                                ).padding(vertical = 12.dp),
                     ) {
                         Box(
                             modifier =
@@ -247,7 +249,7 @@ fun ProfileScreen(
                                 }
                             }
 
-                            // Big 4 Compact Grid
+                            // Big 4 Section Title
                             item {
                                 Text(
                                     "Big 4 Lifts",
@@ -255,54 +257,46 @@ fun ProfileScreen(
                                     fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.padding(bottom = 8.dp),
                                 )
+                            }
 
-                                // Define Big 4 exercises with their expected names (matching database)
-                                val big4Names =
-                                    listOf(
-                                        "Barbell Back Squat",
-                                        "Barbell Bench Press",
-                                        "Barbell Deadlift",
-                                        "Barbell Overhead Press",
-                                    )
+                            // Define Big 4 exercises with their expected names (matching database)
+                            val big4Names =
+                                listOf(
+                                    "Barbell Back Squat",
+                                    "Barbell Bench Press",
+                                    "Barbell Deadlift",
+                                    "Barbell Overhead Press",
+                                )
 
-                                // Compact 2x2 Grid
-                                LazyVerticalGrid(
-                                    columns = GridCells.Fixed(2),
-                                    modifier = Modifier.height(180.dp), // Fixed height for 2 rows
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    userScrollEnabled = false, // Disable scrolling since it's embedded
-                                ) {
-                                    items(big4Names) { exerciseName ->
-                                        val exercise = uiState.big4Exercises.find { it.name == exerciseName }
-                                        val currentMax =
-                                            if (exercise != null) {
-                                                uiState.currentMaxes.find { it.exerciseId == exercise.id }
-                                            } else {
-                                                uiState.currentMaxes.find { it.exerciseName == exerciseName }
-                                            }
-
-                                        if (exercise != null) {
-                                            Compact1RMCard(
-                                                exercise = exercise,
-                                                currentMax = currentMax,
-                                                onEdit = { exerciseToEdit = exercise },
-                                                onClear = {
-                                                    viewModel.clearAllMaxesForExercise(exercise.id)
-                                                },
-                                            )
-                                        } else {
-                                            // Show placeholder card for missing exercise
-                                            Compact1RMCardPlaceholder(
-                                                exerciseName = exerciseName,
-                                                onAdd = {
-                                                    // Try to find the exercise in the database
-                                                    viewModel.findAndSelectExercise(exerciseName)
-                                                    showAdd1RMDialog = true
-                                                },
-                                            )
-                                        }
+                            // Big 4 Exercises - One per row
+                            items(big4Names) { exerciseName ->
+                                val exercise = uiState.big4Exercises.find { it.name == exerciseName }
+                                val currentMax =
+                                    if (exercise != null) {
+                                        uiState.currentMaxes.find { it.exerciseId == exercise.id }
+                                    } else {
+                                        uiState.currentMaxes.find { it.exerciseName == exerciseName }
                                     }
+
+                                if (exercise != null) {
+                                    Big4ExerciseCard(
+                                        exercise = exercise,
+                                        currentMax = currentMax,
+                                        onEdit = { exerciseToEdit = exercise },
+                                        onClear = {
+                                            viewModel.clearAllMaxesForExercise(exercise.id)
+                                        },
+                                    )
+                                } else {
+                                    // Show placeholder card for missing exercise
+                                    Big4ExercisePlaceholder(
+                                        exerciseName = exerciseName,
+                                        onAdd = {
+                                            // Try to find the exercise in the database
+                                            viewModel.findAndSelectExercise(exerciseName)
+                                            showAdd1RMDialog = true
+                                        },
+                                    )
                                 }
                             }
 
@@ -390,7 +384,8 @@ fun ProfileScreen(
                             item {
                                 Card(
                                     modifier =
-                                        Modifier.fillMaxWidth()
+                                        Modifier
+                                            .fillMaxWidth()
                                             .clickable {
                                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                                 showDeveloperDialog = true
@@ -433,7 +428,8 @@ fun ProfileScreen(
                             item {
                                 Card(
                                     modifier =
-                                        Modifier.fillMaxWidth()
+                                        Modifier
+                                            .fillMaxWidth()
                                             .clickable {
                                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                                 showClearConfirmDialog = true
@@ -652,14 +648,7 @@ private fun Compact1RMCardPlaceholder(
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text =
-                    when (exerciseName) {
-                        "Barbell Back Squat" -> "Squat"
-                        "Barbell Bench Press" -> "Bench"
-                        "Barbell Deadlift" -> "Deadlift"
-                        "Barbell Overhead Press" -> "OHP"
-                        else -> exerciseName
-                    },
+                text = exerciseName,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -727,14 +716,7 @@ private fun Compact1RMCard(
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text =
-                    when (exercise.name) {
-                        "Barbell Back Squat" -> "Squat"
-                        "Barbell Bench Press" -> "Bench"
-                        "Barbell Deadlift" -> "Deadlift"
-                        "Barbell Overhead Press" -> "OHP"
-                        else -> exercise.name
-                    },
+                text = exercise.name,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -745,27 +727,12 @@ private fun Compact1RMCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                if (currentMax != null) {
-                    Text(
-                        "${currentMax.maxWeight.toInt()}",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        "kg",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 2.dp),
-                    )
-                } else {
-                    Text(
-                        "Set 1RM",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
+                Text(
+                    "Set 1RM",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                )
             }
         }
     }
@@ -781,15 +748,7 @@ private fun Compact1RMCard(
                 )
             },
             text = {
-                val exerciseDisplayName =
-                    when (exercise.name) {
-                        "Barbell Back Squat" -> "Squat"
-                        "Barbell Bench Press" -> "Bench"
-                        "Barbell Deadlift" -> "Deadlift"
-                        "Barbell Overhead Press" -> "OHP"
-                        else -> exercise.name
-                    }
-                Text("Clear your $exerciseDisplayName 1RM?")
+                Text("Clear your ${exercise.name} 1RM?")
             },
             confirmButton = {
                 TextButton(
@@ -807,6 +766,156 @@ private fun Compact1RMCard(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun Big4ExerciseCard(
+    exercise: Exercise,
+    currentMax: ExerciseMaxWithName?,
+    onEdit: () -> Unit,
+    onClear: () -> Unit = {},
+) {
+    val haptics = LocalHapticFeedback.current
+    var showClearDialog by remember { mutableStateOf(false) }
+
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .combinedClickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = ripple(),
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onEdit()
+                    },
+                    onLongClick =
+                        if (currentMax != null) {
+                            {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                showClearDialog = true
+                            }
+                        } else {
+                            null
+                        },
+                ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = exercise.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+
+            OutlinedButton(
+                onClick = onEdit,
+                modifier = Modifier.height(36.dp),
+            ) {
+                Text("Set 1RM")
+            }
+        }
+    }
+
+    // Clear confirmation dialog
+    if (showClearDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            title = {
+                Text(
+                    text = "Clear 1RM?",
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+            },
+            text = {
+                Text("Clear your ${exercise.name} 1RM?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onClear()
+                        showClearDialog = false
+                    },
+                ) {
+                    Text("Clear", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun Big4ExercisePlaceholder(
+    exerciseName: String,
+    onAdd: () -> Unit,
+) {
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { onAdd() },
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = exerciseName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Not set",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+
+            OutlinedButton(
+                onClick = onAdd,
+                modifier = Modifier.height(36.dp),
+            ) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Add")
+            }
+        }
     }
 }
 

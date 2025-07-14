@@ -76,10 +76,10 @@ interface ProfileDao {
         )
         ORDER BY 
             CASE e.name
-                WHEN 'Back Squat' THEN 1
-                WHEN 'Conventional Deadlift' THEN 2
-                WHEN 'Bench Press' THEN 3
-                WHEN 'Overhead Press' THEN 4
+                WHEN 'Barbell Back Squat' THEN 1
+                WHEN 'Barbell Deadlift' THEN 2
+                WHEN 'Barbell Bench Press' THEN 3
+                WHEN 'Barbell Overhead Press' THEN 4
                 ELSE 5
             END,
             e.name ASC

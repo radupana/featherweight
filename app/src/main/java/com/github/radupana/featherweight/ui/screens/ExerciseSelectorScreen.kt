@@ -61,7 +61,7 @@ fun ExerciseSelectorScreen(
     }
 
     val isKeyboardVisible by rememberKeyboardState()
-    val compactPadding = if (isKeyboardVisible) 8.dp else 16.dp
+    val compactPadding = 16.dp // Keep consistent padding
     val navigationBarPadding = WindowInsets.navigationBars.asPaddingValues()
 
     LaunchedEffect(Unit) {
@@ -197,29 +197,27 @@ fun ExerciseSelectorScreen(
                 modifier = Modifier.padding(compactPadding),
             )
 
-            // Filter Chips - hide when keyboard is visible to save space
-            if (!isKeyboardVisible) {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = compactPadding),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(bottom = compactPadding),
-                ) {
-                    items(categories) { category ->
-                        FilterChip(
-                            selected = selectedCategory == category,
-                            onClick = {
-                                viewModel.selectCategory(
-                                    if (selectedCategory == category) null else category,
-                                )
-                            },
-                            label = {
-                                Text(
-                                    category.displayName,
-                                    style = MaterialTheme.typography.labelMedium,
-                                )
-                            },
-                        )
-                    }
+            // Filter Chips - always visible
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = compactPadding),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = compactPadding),
+            ) {
+                items(categories) { category ->
+                    FilterChip(
+                        selected = selectedCategory == category,
+                        onClick = {
+                            viewModel.selectCategory(
+                                if (selectedCategory == category) null else category,
+                            )
+                        },
+                        label = {
+                            Text(
+                                category.displayName,
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        },
+                    )
                 }
             }
             // Exercise List - fills remaining space
@@ -312,7 +310,6 @@ fun ExerciseSelectorScreen(
                                         SuggestionCard(
                                             suggestion = suggestion,
                                             onSelect = { onExerciseSelected(suggestion.exercise) },
-                                            isCompact = isKeyboardVisible,
                                         )
                                     }
                                 }
@@ -332,7 +329,6 @@ fun ExerciseSelectorScreen(
                                         SuggestionCard(
                                             suggestion = suggestion,
                                             onSelect = { onExerciseSelected(suggestion.exercise) },
-                                            isCompact = isKeyboardVisible,
                                         )
                                     }
                                 }
@@ -356,7 +352,6 @@ fun ExerciseSelectorScreen(
                                 ExerciseCard(
                                     exercise = exercise,
                                     onSelect = { onExerciseSelected(exercise) },
-                                    isCompact = isKeyboardVisible,
                                 )
                             }
                         }
@@ -403,7 +398,9 @@ private fun filterSuggestions(
             val searchWordLower = searchWord.lowercase()
             nameLower.contains(searchWordLower) ||
                 exercise.muscleGroup.contains(searchWordLower, ignoreCase = true) ||
-                exercise.category.name.replace('_', ' ').contains(searchWordLower, ignoreCase = true)
+                exercise.category.name
+                    .replace('_', ' ')
+                    .contains(searchWordLower, ignoreCase = true)
         }
     }
 }
@@ -442,9 +439,8 @@ private fun ExerciseCard(
     exercise: ExerciseWithDetails,
     onSelect: () -> Unit,
     modifier: Modifier = Modifier,
-    isCompact: Boolean = false,
 ) {
-    val cardPadding = if (isCompact) 10.dp else 12.dp
+    val cardPadding = 12.dp // Keep consistent padding
     Card(
         modifier =
             modifier
@@ -755,9 +751,8 @@ private fun CreateCustomExerciseDialog(
 private fun SuggestionCard(
     suggestion: ExerciseSuggestion,
     onSelect: () -> Unit,
-    isCompact: Boolean = false,
 ) {
-    val cardPadding = if (isCompact) 10.dp else 12.dp
+    val cardPadding = 12.dp // Keep consistent padding
     Card(
         modifier =
             Modifier
@@ -834,7 +829,10 @@ private fun SuggestionCard(
             }
 
             // Muscle group and equipment info
-            if (suggestion.exercise.exercise.muscleGroup.isNotEmpty() || suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT) {
+            if (suggestion.exercise.exercise.muscleGroup
+                    .isNotEmpty() ||
+                suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT
+            ) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -844,7 +842,9 @@ private fun SuggestionCard(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (suggestion.exercise.exercise.muscleGroup.isNotEmpty()) {
+                        if (suggestion.exercise.exercise.muscleGroup
+                                .isNotEmpty()
+                        ) {
                             Text(
                                 text = suggestion.exercise.exercise.muscleGroup,
                                 style = MaterialTheme.typography.bodySmall,

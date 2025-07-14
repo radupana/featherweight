@@ -35,6 +35,13 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         loadProfileData()
         observeCurrentMaxes()
     }
+    
+    fun refreshData() {
+        println("🔄 ProfileViewModel: Refreshing profile data")
+        loadProfileData()
+        // Re-subscribe to the Flow to ensure we get the latest data
+        observeCurrentMaxes()
+    }
 
     private fun loadProfileData() {
         viewModelScope.launch {
@@ -63,7 +70,14 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     private fun observeCurrentMaxes() {
         viewModelScope.launch {
+            val userId = repository.getCurrentUserId()
+            println("🔍 ProfileViewModel: Observing maxes for user $userId")
+            
             repository.getAllCurrentMaxes().collect { maxes ->
+                println("📊 ProfileViewModel: Received ${maxes.size} max records")
+                maxes.forEach { max ->
+                    println("  - ${max.exerciseName}: ${max.maxWeight}kg (userId: ${max.userId})")
+                }
                 _uiState.value = _uiState.value.copy(currentMaxes = maxes)
             }
         }

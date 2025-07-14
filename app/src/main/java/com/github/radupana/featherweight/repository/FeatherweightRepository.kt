@@ -143,6 +143,7 @@ class FeatherweightRepository(
     // Apply a pending 1RM update by updating the user's max
     suspend fun applyOneRMUpdate(update: PendingOneRMUpdate) {
         val userId = getCurrentUserId()
+
         profileDao.upsertExerciseMax(
             userId = userId,
             exerciseId = update.exerciseId,
@@ -1796,7 +1797,7 @@ class FeatherweightRepository(
             try {
                 println("🔄 Setting programme as active...")
                 programmeDao.setActiveProgramme(programmeId)
-                
+
                 // Update status to IN_PROGRESS
                 programmeDao.updateProgrammeStatus(programmeId, ProgrammeStatus.IN_PROGRESS)
                 println("✅ Programme marked as active with status IN_PROGRESS")
@@ -1848,7 +1849,7 @@ class FeatherweightRepository(
                 // ATOMIC update - sets status=COMPLETED, isActive=false, and completedAt in one transaction
                 val completionTime = LocalDateTime.now()
                 programmeDao.completeProgrammeAtomic(programmeId, completionTime)
-                
+
                 println("✅ Programme marked as complete atomically:")
                 println("   - status: COMPLETED")
                 println("   - isActive: false")
@@ -2455,73 +2456,106 @@ class FeatherweightRepository(
             workoutDate?.toLocalDate()
         }
 
-    suspend fun getExercisesSummary(): List<com.github.radupana.featherweight.service.ExerciseSummary> =
+    suspend fun getExercisesSummary(): com.github.radupana.featherweight.service.GroupedExerciseSummary =
         withContext(Dispatchers.IO) {
             val userId = userPreferences.getCurrentUserId()
-            if (userId == -1L) return@withContext emptyList()
+            if (userId == -1L) {
+                return@withContext com.github.radupana.featherweight.service
+                    .GroupedExerciseSummary(emptyList(), emptyList())
+            }
+
+            // Define Big Four exercises
+            val bigFourNames =
+                listOf(
+                    "Barbell Back Squat",
+                    "Barbell Deadlift",
+                    "Barbell Bench Press",
+                    "Barbell Overhead Press",
+                )
 
             // Get all unique exercises from completed workouts
             val allExercises = exerciseLogDao.getAllUniqueExercises()
 
-            allExercises
-                .mapNotNull { exerciseName ->
-                    val globalProgress = getGlobalExerciseProgress(userId, exerciseName)
-                    if (globalProgress != null) {
-                        // Get actual PR for this exercise (not estimated)
-                        val personalRecord = getPersonalRecordForExercise(exerciseName)
-                        val actualMaxWeight = personalRecord?.weight ?: globalProgress.currentWorkingWeight
+            val allSummaries =
+                allExercises
+                    .mapNotNull { exerciseName ->
+                        val globalProgress = getGlobalExerciseProgress(userId, exerciseName)
+                        if (globalProgress != null) {
+                            // Get actual PR for this exercise (not estimated)
+                            val personalRecord = getPersonalRecordForExercise(exerciseName)
+                            val actualMaxWeight = personalRecord?.weight ?: globalProgress.currentWorkingWeight
 
-                        // Get recent workout data for mini chart
-                        val recentWorkouts =
-                            getExerciseWorkoutsInDateRange(
+                            // Get recent workout data for mini chart
+                            val recentWorkouts =
+                                getExerciseWorkoutsInDateRange(
+                                    exerciseName = exerciseName,
+                                    startDate =
+                                        java.time.LocalDate
+                                            .now()
+                                            .minusDays(90),
+                                    endDate = java.time.LocalDate.now(),
+                                )
+
+                            // Calculate progress percentage (last 30 days)
+                            val thirtyDaysAgo =
+                                java.time.LocalDate
+                                    .now()
+                                    .minusDays(30)
+                            val monthlyWorkouts =
+                                recentWorkouts.filter {
+                                    it.workoutDate.toLocalDate().isAfter(thirtyDaysAgo)
+                                }
+
+                            var progressPercentage = 0f
+                            if (monthlyWorkouts.size >= 2) {
+                                val oldestWeight = monthlyWorkouts.lastOrNull()?.actualWeight ?: 0f
+                                val newestWeight = monthlyWorkouts.firstOrNull()?.actualWeight ?: 0f
+                                if (oldestWeight > 0) {
+                                    progressPercentage = ((newestWeight - oldestWeight) / oldestWeight) * 100
+                                }
+                            }
+
+                            // Create mini chart data (last 8 data points)
+                            val miniChartData =
+                                recentWorkouts
+                                    .take(8)
+                                    .map { log ->
+                                        // Show actual weight, not estimated 1RM
+                                        log.actualWeight
+                                    }.reversed() // Oldest to newest for chart
+
+                            com.github.radupana.featherweight.service.ExerciseSummary(
                                 exerciseName = exerciseName,
-                                startDate =
-                                    java.time.LocalDate
-                                        .now()
-                                        .minusDays(90),
-                                endDate = java.time.LocalDate.now(),
+                                currentMax = actualMaxWeight, // Show actual PR weight
+                                progressPercentage = progressPercentage,
+                                lastWorkout = globalProgress.lastUpdated,
+                                sessionCount = getTotalSessionsForExercise(exerciseName),
+                                miniChartData = miniChartData,
                             )
-
-                        // Calculate progress percentage (last 30 days)
-                        val thirtyDaysAgo =
-                            java.time.LocalDate
-                                .now()
-                                .minusDays(30)
-                        val monthlyWorkouts =
-                            recentWorkouts.filter {
-                                it.workoutDate.toLocalDate().isAfter(thirtyDaysAgo)
-                            }
-
-                        var progressPercentage = 0f
-                        if (monthlyWorkouts.size >= 2) {
-                            val oldestWeight = monthlyWorkouts.lastOrNull()?.actualWeight ?: 0f
-                            val newestWeight = monthlyWorkouts.firstOrNull()?.actualWeight ?: 0f
-                            if (oldestWeight > 0) {
-                                progressPercentage = ((newestWeight - oldestWeight) / oldestWeight) * 100
-                            }
+                        } else {
+                            null
                         }
-
-                        // Create mini chart data (last 8 data points)
-                        val miniChartData =
-                            recentWorkouts
-                                .take(8)
-                                .map { log ->
-                                    // Show actual weight, not estimated 1RM
-                                    log.actualWeight
-                                }.reversed() // Oldest to newest for chart
-
-                        com.github.radupana.featherweight.service.ExerciseSummary(
-                            exerciseName = exerciseName,
-                            currentMax = actualMaxWeight, // Show actual PR weight
-                            progressPercentage = progressPercentage,
-                            lastWorkout = globalProgress.lastUpdated,
-                            sessionCount = getTotalSessionsForExercise(exerciseName),
-                            miniChartData = miniChartData,
-                        )
-                    } else {
-                        null
                     }
-                }.sortedByDescending { it.currentMax }
+
+            // Partition into Big Four and Others
+            val (bigFourExercises, otherExercises) =
+                allSummaries.partition { summary ->
+                    summary.exerciseName in bigFourNames
+                }
+
+            // Sort Big Four by predefined order
+            val sortedBigFour =
+                bigFourExercises.sortedBy { summary ->
+                    bigFourNames.indexOf(summary.exerciseName)
+                }
+
+            // Sort Others by session count (most used first)
+            val sortedOthers = otherExercises.sortedByDescending { it.sessionCount }
+
+            com.github.radupana.featherweight.service.GroupedExerciseSummary(
+                bigFourExercises = sortedBigFour,
+                otherExercises = sortedOthers,
+            )
         }
 
     suspend fun deleteAllWorkouts() {
