@@ -127,8 +127,12 @@ fun ExerciseProgressChart(
                                 val estimated1RM =
                                     if (point.reps == 1) {
                                         point.weight
+                                    } else if (point.reps > 0 && point.reps < 37) {
+                                        // Brzycki formula: 1RM = weight / (1.0278 - 0.0278 × reps)
+                                        point.weight / (1.0278f - 0.0278f * point.reps)
                                     } else {
-                                        point.weight * (36f / (37f - point.reps))
+                                        // For very high reps, the formula becomes unreliable
+                                        point.weight
                                     }
                                 point.copy(weight = estimated1RM)
                             }
@@ -182,8 +186,8 @@ fun ExerciseProgressChart(
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold,
                         )
-                        if (viewMode == ChartViewMode.POTENTIAL && point.reps > 1) {
-                            val estimated1RM = point.weight * (36f / (37f - point.reps))
+                        if (viewMode == ChartViewMode.POTENTIAL && point.reps > 1 && point.reps < 37) {
+                            val estimated1RM = point.weight / (1.0278f - 0.0278f * point.reps)
                             Text(
                                 text = "Estimated 1RM: ${WeightFormatter.formatWeightWithUnit(estimated1RM)}",
                                 style = MaterialTheme.typography.bodySmall,
