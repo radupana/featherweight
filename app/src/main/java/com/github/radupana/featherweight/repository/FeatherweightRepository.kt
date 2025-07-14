@@ -44,6 +44,7 @@ import com.github.radupana.featherweight.service.FreestyleIntelligenceService
 import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.service.PRDetectionService
 import com.github.radupana.featherweight.service.ProgressionService
+import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.validation.ExerciseValidator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -143,14 +144,19 @@ class FeatherweightRepository(
     // Apply a pending 1RM update by updating the user's max
     suspend fun applyOneRMUpdate(update: PendingOneRMUpdate) {
         val userId = getCurrentUserId()
+        // Round weight to nearest 0.25
+        val roundedWeight = WeightFormatter.roundToNearestQuarter(update.suggestedMax)
+        println("🎯 Applying 1RM update: exercise=${update.exerciseName}, exerciseId=${update.exerciseId}, weight=$roundedWeight, userId=$userId")
 
         profileDao.upsertExerciseMax(
             userId = userId,
             exerciseId = update.exerciseId,
-            maxWeight = update.suggestedMax,
+            maxWeight = roundedWeight,
             isEstimated = false,
             notes = "Updated from ${update.source}",
         )
+
+        println("✅ 1RM update applied successfully")
 
         // Remove this update from pending list
         _pendingOneRMUpdates.value =
@@ -230,9 +236,27 @@ class FeatherweightRepository(
 
     suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long = exerciseRepository.insertExerciseLog(exerciseLog)
 
-    suspend fun insertSetLog(setLog: SetLog): Long = setLogDao.insertSetLog(setLog)
+    suspend fun insertSetLog(setLog: SetLog): Long {
+        // Round all weight fields to nearest 0.25
+        val roundedSetLog =
+            setLog.copy(
+                targetWeight = setLog.targetWeight?.let { WeightFormatter.roundToNearestQuarter(it) },
+                actualWeight = WeightFormatter.roundToNearestQuarter(setLog.actualWeight),
+                suggestedWeight = setLog.suggestedWeight?.let { WeightFormatter.roundToNearestQuarter(it) },
+            )
+        return setLogDao.insertSetLog(roundedSetLog)
+    }
 
-    suspend fun updateSetLog(setLog: SetLog) = setLogDao.updateSetLog(setLog)
+    suspend fun updateSetLog(setLog: SetLog) {
+        // Round all weight fields to nearest 0.25
+        val roundedSetLog =
+            setLog.copy(
+                targetWeight = setLog.targetWeight?.let { WeightFormatter.roundToNearestQuarter(it) },
+                actualWeight = WeightFormatter.roundToNearestQuarter(setLog.actualWeight),
+                suggestedWeight = setLog.suggestedWeight?.let { WeightFormatter.roundToNearestQuarter(it) },
+            )
+        setLogDao.updateSetLog(roundedSetLog)
+    }
 
     suspend fun deleteSetLog(setId: Long) = setLogDao.deleteSetLog(setId)
 
@@ -1260,7 +1284,7 @@ class FeatherweightRepository(
                     completedAt = null,
                 )
 
-            setLogDao.insertSetLog(setLog)
+            insertSetLog(setLog)
         }
     }
 
@@ -1930,21 +1954,18 @@ class FeatherweightRepository(
     ) = withContext(Dispatchers.IO) {
         val userId = getCurrentUserId()
         ensureUserProfile(userId)
+        // Round weight to nearest 0.25
+        val roundedWeight = WeightFormatter.roundToNearestQuarter(maxWeight)
         db.profileDao().upsertExerciseMax(
             userId = userId,
             exerciseId = exerciseId,
-            maxWeight = maxWeight,
+            maxWeight = roundedWeight,
             isEstimated = isEstimated,
             notes = notes,
         )
     }
 
     fun getAllCurrentMaxes() = db.profileDao().getAllCurrentMaxes(getCurrentUserId())
-
-    private suspend fun getCurrentMax(exerciseId: Long) =
-        withContext(Dispatchers.IO) {
-            db.profileDao().getCurrentMax(userId = getCurrentUserId(), exerciseId = exerciseId)
-        }
 
     suspend fun getBig4Exercises() =
         withContext(Dispatchers.IO) {
@@ -2822,7 +2843,7 @@ class FeatherweightRepository(
                             isCompleted = false,
                         )
                     println("🔄 Copying set: targetReps=${newSet.targetReps}, targetWeight=${newSet.targetWeight}, actualReps=${newSet.actualReps}, actualWeight=${newSet.actualWeight}")
-                    setLogDao.insertSetLog(newSet)
+                    insertSetLog(newSet)
                 }
             }
 

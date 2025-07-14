@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,11 +21,13 @@ fun OneRMUpdateDialog(
     onDismiss: () -> Unit,
     onSkip: () -> Unit,
 ) {
+    var remainingUpdates by remember { mutableStateOf(pendingUpdates) }
+    
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {}, // Prevent dismissal by tapping outside
         icon = {
             Icon(
-                imageVector = Icons.Default.TrendingUp,
+                imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                 contentDescription = "Progress",
             )
         },
@@ -40,7 +42,7 @@ fun OneRMUpdateDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(pendingUpdates) { update ->
+                items(remainingUpdates) { update ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors =
@@ -84,7 +86,7 @@ fun OneRMUpdateDialog(
                                 }
 
                                 Icon(
-                                    imageVector = Icons.Default.TrendingUp,
+                                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                                     contentDescription = "Increase",
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.align(Alignment.CenterVertically),
@@ -123,11 +125,37 @@ fun OneRMUpdateDialog(
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            FilledTonalButton(
-                                onClick = { onApply(update) },
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                Text("Update ${update.exerciseName} 1RM")
+                                Button(
+                                    onClick = { 
+                                        onApply(update)
+                                        remainingUpdates = remainingUpdates - update
+                                        if (remainingUpdates.isEmpty()) {
+                                            onDismiss()
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                                ) {
+                                    Text("Update 1RM")
+                                }
+                                
+                                OutlinedButton(
+                                    onClick = { 
+                                        remainingUpdates = remainingUpdates - update
+                                        if (remainingUpdates.isEmpty()) {
+                                            onSkip()
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Text("Skip")
+                                }
                             }
                         }
                     }
@@ -135,13 +163,28 @@ fun OneRMUpdateDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onSkip) {
-                Text("Skip All")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Close")
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    onClick = {
+                        pendingUpdates.forEach { update ->
+                            onApply(update)
+                        }
+                        onDismiss()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                    ),
+                ) {
+                    Text("Update All")
+                }
+                
+                OutlinedButton(
+                    onClick = onSkip,
+                ) {
+                    Text("Skip All")
+                }
             }
         },
     )

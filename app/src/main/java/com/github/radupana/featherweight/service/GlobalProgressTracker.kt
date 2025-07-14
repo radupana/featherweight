@@ -382,7 +382,12 @@ class GlobalProgressTracker(
         val pendingUpdate =
             when {
                 // Clear improvement over stored max - prompt update
-                currentUserMax != null && estimated1RM > currentUserMax.maxWeight * 1.02 && isBig4Exercise -> {
+                // For actual 1-rep attempts (reps = 1), use a lower threshold (any improvement)
+                // For rep-based estimates, use the 2% threshold
+                currentUserMax != null && isBig4Exercise && (
+                    (bestEstimate.source.contains("1 rep") && estimated1RM > currentUserMax.maxWeight) ||
+                    (estimated1RM > currentUserMax.maxWeight * 1.02)
+                ) -> {
                     println(
                         "🎯 New estimated 1RM (${estimated1RM.roundToInt()}kg) exceeds stored max (${currentUserMax.maxWeight.roundToInt()}kg)",
                     )

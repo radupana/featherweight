@@ -6,6 +6,7 @@ import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.PersonalRecordDao
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SetLogDao
+import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -103,9 +104,10 @@ class PRDetectionService(
                     "New weight PR: ${weight}kg × $reps"
                 }
 
+            val roundedWeight = WeightFormatter.roundToNearestQuarter(weight)
             return PersonalRecord(
                 exerciseName = exerciseName,
-                weight = weight,
+                weight = roundedWeight,
                 reps = reps,
                 recordDate = date,
                 previousWeight = previousPR?.weight,
@@ -113,8 +115,8 @@ class PRDetectionService(
                 previousDate = previousPR?.recordDate,
                 improvementPercentage = improvementPercentage,
                 recordType = PRType.WEIGHT,
-                volume = weight * reps,
-                estimated1RM = calculateEstimated1RM(weight, reps),
+                volume = roundedWeight * reps,
+                estimated1RM = calculateEstimated1RM(roundedWeight, reps),
                 notes = notes,
             )
         }

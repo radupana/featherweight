@@ -35,6 +35,7 @@ import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.profile.ExerciseMaxWithName
 import com.github.radupana.featherweight.ui.dialogs.ExerciseSelectorDialog
 import com.github.radupana.featherweight.ui.dialogs.WorkoutSeederDialog
+import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import java.time.format.DateTimeFormatter
 
@@ -236,9 +237,10 @@ fun ProfileScreen(
                             item {
                                 Column {
                                     Text(
-                                        "1 Rep Max Tracking",
+                                        "One Rep Max Tracking",
                                         style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(bottom = 2.dp),
                                     )
                                     Text(
                                         "Track your one-rep maximums",
@@ -249,13 +251,14 @@ fun ProfileScreen(
                                 }
                             }
 
-                            // Big 4 Section Title
+                            // Big Four Section Title
                             item {
                                 Text(
-                                    "Big 4 Lifts",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(bottom = 8.dp),
+                                    "Big Four",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(bottom = 4.dp, top = 8.dp),
                                 )
                             }
 
@@ -277,6 +280,8 @@ fun ProfileScreen(
                                     } else {
                                         uiState.currentMaxes.find { it.exerciseName == exerciseName }
                                     }
+                                println("🏋️ Big4Card: $exerciseName - Exercise ID: ${exercise?.id}, CurrentMax: ${currentMax?.maxWeight}")
+                                println("📊 Available maxes: ${uiState.currentMaxes.map { "${it.exerciseName}(id:${it.exerciseId}): ${WeightFormatter.formatWeight(it.maxWeight)}kg" }.joinToString()}")
 
                                 if (exercise != null) {
                                     Big4ExerciseCard(
@@ -307,10 +312,11 @@ fun ProfileScreen(
                             ) {
                                 item {
                                     Text(
-                                        "Other One Rep Maxes",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.padding(top = 16.dp),
+                                        "Others",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Normal,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
                                     )
                                 }
 
@@ -644,7 +650,7 @@ private fun Compact1RMCardPlaceholder(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(12.dp),
+                    .padding(10.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
@@ -712,7 +718,7 @@ private fun Compact1RMCard(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(12.dp),
+                    .padding(10.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
@@ -801,29 +807,37 @@ private fun Big4ExerciseCard(
                             null
                         },
                 ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 1.dp,
+            ),
         shape = RoundedCornerShape(12.dp),
     ) {
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = exercise.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Normal,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
             }
 
             OutlinedButton(
                 onClick = onEdit,
-                modifier = Modifier.height(36.dp),
+                modifier = Modifier.height(32.dp),
             ) {
                 Text("Set 1RM")
             }
@@ -885,7 +899,7 @@ private fun Big4ExercisePlaceholder(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -905,7 +919,7 @@ private fun Big4ExercisePlaceholder(
 
             OutlinedButton(
                 onClick = onAdd,
-                modifier = Modifier.height(36.dp),
+                modifier = Modifier.height(32.dp),
             ) {
                 Icon(
                     Icons.Filled.Add,
@@ -944,7 +958,7 @@ private fun ExerciseMaxCardWrapper(
                 )
             },
             text = {
-                Text("Delete ${max.exerciseName} - ${max.maxWeight.toInt()}kg?")
+                Text("Delete ${max.exerciseName} - ${WeightFormatter.formatWeightWithUnit(max.maxWeight)}?")
             },
             confirmButton = {
                 TextButton(
@@ -1002,30 +1016,25 @@ private fun OtherExerciseMaxCard(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
+                    .padding(10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     max.exerciseName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Normal,
                 )
                 Row(
                     verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        "${max.maxWeight.toInt()}",
-                        style = MaterialTheme.typography.titleLarge,
+                        WeightFormatter.formatWeightWithUnit(max.maxWeight),
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        "kg",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        fontWeight = FontWeight.Medium,
                     )
                 }
                 Text(

@@ -74,10 +74,11 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             println("🔍 ProfileViewModel: Observing maxes for user $userId")
             
             repository.getAllCurrentMaxes().collect { maxes ->
-                println("📊 ProfileViewModel: Received ${maxes.size} max records")
+                println("📊 ProfileViewModel: Received ${maxes.size} max records for userId $userId")
                 maxes.forEach { max ->
-                    println("  - ${max.exerciseName}: ${max.maxWeight}kg (userId: ${max.userId})")
+                    println("  - ${max.exerciseName}: ${max.maxWeight}kg (exerciseId: ${max.exerciseId}, userId: ${max.userId})")
                 }
+                println("🏋️ Big4 Exercises loaded: ${_uiState.value.big4Exercises.map { "${it.name}(id:${it.id})" }.joinToString()}")
                 _uiState.value = _uiState.value.copy(currentMaxes = maxes)
             }
         }
