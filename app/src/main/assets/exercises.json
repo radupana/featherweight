@@ -8068,6 +8068,23 @@
         "Weighted Pullup",
         "Pull Up with Weight"
       ]
+    },
+    {
+      "id": 504,
+      "name": "Barbell Box Squat",
+      "category": "Legs",
+      "equipment": "Barbell",
+      "muscleGroup": "Quadriceps",
+      "movementPattern": "Squat",
+      "type": "Strength",
+      "difficulty": "Intermediate",
+      "requiresWeight": true,
+      "instructions": "Stand with barbell on upper back, position box behind you at parallel depth. Sit back onto box with control, pause briefly, then drive up explosively.",
+      "aliases": [
+        "Box Squat",
+        "BB Box Squat",
+        "Barbell Box Squats"
+      ]
     }
   ]
 }
