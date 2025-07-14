@@ -317,20 +317,47 @@ class GlobalProgressTracker(
         val currentUserMax = exercise?.let { database.profileDao().getCurrentMax(userId, it.id) }
         val storedMaxWeight = currentUserMax?.maxWeight
 
-        // Find the best set for 1RM calculation with confidence scoring
+        // Find the best set for 1RM calculation
+        // Priority: 1) Actual 1RMs, 2) Lowest reps with highest weight, 3) Highest confidence
         var bestEstimate: OneRMEstimate? = null
+        var hasActual1RM = false
 
         for (set in estimableSets) {
             val estimate = calculateOneRMWithConfidence(set, storedMaxWeight)
-            if (estimate != null && (bestEstimate == null || estimate.confidence > bestEstimate.confidence)) {
-                bestEstimate = estimate
+            if (estimate != null) {
+                when {
+                    // Always prefer actual 1RMs
+                    set.actualReps == 1 -> {
+                        if (!hasActual1RM || estimate.estimatedMax > (bestEstimate?.estimatedMax ?: 0f)) {
+                            bestEstimate = estimate
+                            hasActual1RM = true
+                        }
+                    }
+                    // If we don't have a 1RM yet, use multi-rep sets
+                    !hasActual1RM -> {
+                        if (bestEstimate == null ||
+                            // Prefer lower reps
+                            set.actualReps < (
+                                estimableSets.find { it.actualWeight == bestEstimate.estimatedMax }?.actualReps
+                                    ?: Int.MAX_VALUE
+                            ) ||
+                            // If same reps, prefer higher confidence
+                            (
+                                set.actualReps == estimableSets.find { it.actualWeight == bestEstimate.estimatedMax }?.actualReps &&
+                                    estimate.confidence > bestEstimate.confidence
+                            )
+                        ) {
+                            bestEstimate = estimate
+                        }
+                    }
+                }
             }
         }
 
-        // Only proceed if we have a reasonable confidence estimate (lowered for testing)
-        if (bestEstimate == null || bestEstimate.confidence < 0.5f) {
+        // Only proceed if we have confidence >= 60%
+        if (bestEstimate == null || bestEstimate.confidence < 0.6f) {
             println(
-                "⚠️ Low confidence 1RM estimate: ${bestEstimate?.confidence?.let { (it * 100).roundToInt() }}% (need 50%), skipping update",
+                "⚠️ Low confidence 1RM estimate: ${bestEstimate?.confidence?.let { (it * 100).roundToInt() }}% (need 60%), skipping update",
             )
             return Pair(progress, null)
         }
@@ -422,7 +449,7 @@ class GlobalProgressTracker(
         val source: String,
     )
 
-    // New approach: calculate confidence based on baseline comparison + set characteristics
+    // Calculate confidence based primarily on rep count, with minor RPE adjustments
     private fun calculateOneRMWithConfidence(
         set: SetLog,
         currentStoredMax: Float? = null,
@@ -431,129 +458,69 @@ class GlobalProgressTracker(
         val weight = set.actualWeight
         val rpe = set.actualRpe
 
-        println("🔍 1RM Confidence Calc: ${weight}kg x $reps, RPE = ${rpe ?: "null"}, stored = ${currentStoredMax ?: "none"}")
+        println("🔍 1RM Confidence Calc: ${weight}kg x $reps, RPE = ${rpe ?: "null"}")
 
-        // Calculate basic estimated 1RM using Brzycki formula
+        // Calculate estimated 1RM using Brzycki formula
         val estimated1RM =
             if (reps == 1) {
-                weight
+                weight // Actual 1RM!
             } else {
                 weight / (1.0278f - 0.0278f * reps)
             }
 
-        // Base confidence on set characteristics
+        // Base confidence primarily on rep count
         val baseConfidence =
             when (reps) {
-                1 -> 0.9f // Singles are very reliable
-                in 2..3 -> 0.85f // Low reps are quite reliable
-                in 4..6 -> 0.75f // Medium reps are decent
-                in 7..10 -> 0.6f // Higher reps less reliable
-                else -> 0.4f // Very high reps unreliable
+                1 -> 1.0f // Singles are 100% confidence - it's your actual 1RM!
+                in 2..3 -> 0.85f // Very reliable
+                in 4..5 -> 0.75f // Reliable
+                in 6..8 -> 0.65f // Decent
+                in 9..12 -> 0.50f // Less reliable
+                else -> 0.30f // Very high reps unreliable
             }
 
-        // Adjust confidence based on stored baseline comparison
-        val finalConfidence =
-            if (currentStoredMax != null && currentStoredMax > 0) {
-                val improvement = (estimated1RM - currentStoredMax) / currentStoredMax
+        // Minor RPE adjustment (only for multi-rep sets, max ±5%)
+        val rpeAdjustment =
+            if (reps > 1 && rpe != null) {
                 when {
-                    improvement >= 0.05f -> Math.min(0.95f, baseConfidence + 0.2f) // 5%+ improvement = high confidence
-                    improvement >= 0.02f -> Math.min(0.9f, baseConfidence + 0.1f) // 2%+ improvement = good confidence
-                    improvement >= -0.02f -> baseConfidence // Similar to stored = base confidence
-                    else -> Math.max(0.3f, baseConfidence - 0.2f) // Worse than stored = lower confidence
+                    rpe >= 9f -> 0.05f // Near maximal effort
+                    rpe >= 7f -> 0.0f // Neutral
+                    else -> -0.05f // Too easy to be accurate
                 }
+            } else if (reps > 1) {
+                -0.05f // Missing RPE data
             } else {
-                // No stored baseline - use base confidence with RPE modifier
-                if (rpe != null && rpe >= 8f) {
-                    Math.min(0.9f, baseConfidence + 0.1f) // High RPE bonus
-                } else {
-                    baseConfidence
-                }
+                0.0f // No adjustment for singles
             }
 
-        // Apply RPE modifier for 1RM calculation
+        val finalConfidence = (baseConfidence + rpeAdjustment).coerceIn(0f, 1f)
+
+        // For singles, we don't apply RPE adjustment to the weight - it IS the 1RM
         val adjustedEstimate =
-            if (reps == 1 && rpe != null) {
-                weight * (1 + (10 - rpe) * 0.025f) // RPE adjustment for singles
+            if (reps == 1) {
+                weight // Always use actual weight for singles
             } else {
                 estimated1RM
+            }
+
+        // Format source string
+        val source =
+            when {
+                reps == 1 && rpe != null -> "1RM @ RPE ${rpe.toInt()}"
+                reps == 1 -> "1RM"
+                rpe != null -> "$reps×${weight.roundToInt()}kg @ RPE ${rpe.toInt()}"
+                else -> "$reps×${weight.roundToInt()}kg"
             }
 
         val result =
             OneRMEstimate(
                 estimatedMax = adjustedEstimate,
                 confidence = finalConfidence,
-                source =
-                    when {
-                        reps == 1 && rpe != null -> "Single @ RPE $rpe"
-                        reps == 1 -> "Single (no RPE)"
-                        rpe != null -> "$reps reps @ RPE $rpe"
-                        else -> "$reps reps (no RPE)"
-                    },
+                source = source,
             )
 
         println("🔍 1RM Confidence Result: ${result.estimatedMax.roundToInt()}kg, ${(result.confidence * 100).roundToInt()}% confidence")
         return result
-    }
-
-    /**
-     * Analyzes exercise progress to provide actionable insights
-     */
-    suspend fun analyzeExerciseProgress(
-        userId: Long,
-        exerciseName: String,
-    ): ProgressAnalysis {
-        val progress =
-            globalProgressDao.getProgressForExercise(userId, exerciseName)
-                ?: return ProgressAnalysis(
-                    exerciseName = exerciseName,
-                    hasData = false,
-                    suggestion = "No data yet. Complete a few workouts to see insights!",
-                    confidence = 0f,
-                )
-
-        val suggestion =
-            when (progress.trend) {
-                ProgressTrend.STALLING -> {
-                    when {
-                        progress.consecutiveStalls >= 3 -> {
-                            "You've stalled for ${progress.consecutiveStalls} sessions. " +
-                                "Consider a deload to ${(progress.currentWorkingWeight * 0.85).roundToInt()}kg"
-                        }
-                        progress.recentAvgRpe != null && progress.recentAvgRpe > 9 -> {
-                            "High RPE (${progress.recentAvgRpe}) suggests fatigue. Maintain current weight."
-                        }
-                        else -> {
-                            "Stalled at ${progress.currentWorkingWeight}kg. Try adding 2.5kg next session."
-                        }
-                    }
-                }
-                ProgressTrend.IMPROVING -> {
-                    when {
-                        progress.recentAvgRpe != null && progress.recentAvgRpe < 7 -> {
-                            "Low RPE (${progress.recentAvgRpe}) - you can handle more! " +
-                                "Try ${(progress.currentWorkingWeight * 1.05).roundToInt()}kg"
-                        }
-                        else -> {
-                            "Great progress! Continue with current progression."
-                        }
-                    }
-                }
-                ProgressTrend.DECLINING -> {
-                    "Performance declining. Consider a deload week or check recovery/nutrition."
-                }
-            }
-
-        return ProgressAnalysis(
-            exerciseName = exerciseName,
-            hasData = true,
-            currentWeight = progress.currentWorkingWeight,
-            estimatedMax = progress.estimatedMax,
-            trend = progress.trend,
-            suggestion = suggestion,
-            confidence = calculateConfidence(progress),
-            lastPR = progress.lastPrDate,
-            stalledSessions = progress.consecutiveStalls,
-        )
     }
 
     private fun calculateConfidence(progress: GlobalExerciseProgress): Float {
