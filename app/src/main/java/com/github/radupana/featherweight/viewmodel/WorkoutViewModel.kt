@@ -67,7 +67,7 @@ data class InProgressWorkout(
 class WorkoutViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
-    private val repository = FeatherweightRepository(application)
+    val repository = FeatherweightRepository(application)
 
     init {
         println("🚀 WorkoutViewModel: Initializing...")

@@ -33,6 +33,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -46,18 +47,19 @@ import com.github.radupana.featherweight.data.UserPreferences
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
 import com.github.radupana.featherweight.ui.screens.HistoryScreen
-import com.github.radupana.featherweight.ui.screens.HomeScreen
 import com.github.radupana.featherweight.ui.screens.InsightsScreen
-import com.github.radupana.featherweight.ui.screens.WorkoutsScreen
 import com.github.radupana.featherweight.ui.screens.SplashScreen
 import com.github.radupana.featherweight.ui.screens.UserSelectionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
+import com.github.radupana.featherweight.ui.screens.WorkoutTemplateConfigurationScreen
+import com.github.radupana.featherweight.ui.screens.WorkoutsScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
 import com.github.radupana.featherweight.viewmodel.InsightsViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import kotlinx.coroutines.launch
 
 enum class Screen {
     SPLASH,
@@ -75,6 +77,7 @@ enum class Screen {
     PROFILE,
     EXERCISE_PROGRESS,
     PROGRAMME_HISTORY_DETAIL,
+    WORKOUT_TEMPLATE_CONFIGURATION,
 }
 
 data class NavigationItem(
@@ -141,7 +144,6 @@ class MainActivity : ComponentActivity() {
                     var previousScreen by rememberSaveable { mutableStateOf<Screen?>(null) }
                     var selectedExerciseName by rememberSaveable { mutableStateOf("") }
 
-
                     // Seed database early
                     LaunchedEffect(Unit) {
                         try {
@@ -182,9 +184,9 @@ class MainActivity : ComponentActivity() {
                             // Main app with bottom navigation
                             MainAppWithNavigation(
                                 currentScreen = currentScreen,
-                                onScreenChange = { screen -> 
+                                onScreenChange = { screen ->
                                     previousScreen = currentScreen
-                                    currentScreen = screen 
+                                    currentScreen = screen
                                 },
                                 previousScreen = previousScreen,
                                 selectedExerciseName = selectedExerciseName,
@@ -212,6 +214,8 @@ fun MainAppWithNavigation(
 ) {
     // Track last screen for internal use
     var lastScreen by remember { mutableStateOf(currentScreen) }
+    // Track selected template
+    var selectedTemplate by remember { mutableStateOf<String?>(null) }
 
     // Update last screen when screen changes
     LaunchedEffect(currentScreen) {
@@ -277,7 +281,8 @@ fun MainAppWithNavigation(
                 currentScreen != Screen.EXERCISE_SELECTOR &&
                 currentScreen != Screen.PROGRAMME_GENERATOR &&
                 currentScreen != Screen.PROGRAMME_PREVIEW &&
-                currentScreen != Screen.PROGRAMME_HISTORY_DETAIL
+                currentScreen != Screen.PROGRAMME_HISTORY_DETAIL &&
+                currentScreen != Screen.WORKOUT_TEMPLATE_CONFIGURATION
             ) {
                 NavigationBar {
                     navigationItems.forEach { item ->
@@ -312,8 +317,9 @@ fun MainAppWithNavigation(
                         }
 
                         // If we're in read-only mode and came from History or Programme History Detail, go back
-                        if (workoutState.isReadOnly && 
-                            (previousScreen == Screen.HISTORY || previousScreen == Screen.PROGRAMME_HISTORY_DETAIL)) {
+                        if (workoutState.isReadOnly &&
+                            (previousScreen == Screen.HISTORY || previousScreen == Screen.PROGRAMME_HISTORY_DETAIL)
+                        ) {
                             onScreenChange(previousScreen)
                         } else {
                             // Otherwise navigate to Workouts screen
@@ -362,6 +368,10 @@ fun MainAppWithNavigation(
                 WorkoutsScreen(
                     onStartFreestyle = { onScreenChange(Screen.ACTIVE_WORKOUT) },
                     onStartProgrammeWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
+                    onStartTemplate = { templateName ->
+                        selectedTemplate = templateName
+                        onScreenChange(Screen.WORKOUT_TEMPLATE_CONFIGURATION)
+                    },
                     modifier = Modifier.padding(innerPadding),
                     workoutViewModel = workoutViewModel,
                     programmeViewModel = programmeViewModel,
@@ -501,6 +511,38 @@ fun MainAppWithNavigation(
                     onBack = { onScreenChange(previousScreen ?: Screen.WORKOUTS) },
                     modifier = Modifier.padding(innerPadding),
                 )
+            }
+
+            Screen.WORKOUT_TEMPLATE_CONFIGURATION -> {
+                selectedTemplate?.let { templateName ->
+                    val template =
+                        com.radu.featherweight.data.model.WorkoutTemplates
+                            .getTemplate(templateName)
+                    if (template != null) {
+                        val workoutViewModel: WorkoutViewModel = viewModel()
+                        val scope = rememberCoroutineScope()
+
+                        WorkoutTemplateConfigurationScreen(
+                            template = template,
+                            onConfigurationComplete = { config ->
+                                scope.launch {
+                                    val repository = workoutViewModel.repository
+                                    val workoutId = repository.generateWorkoutFromTemplate(template, config)
+                                    repository.applyTemplateWeightSuggestions(
+                                        workoutId = workoutId,
+                                        config = config,
+                                        userId = repository.getCurrentUserId(),
+                                    )
+                                    workoutViewModel.resumeWorkout(workoutId)
+                                    onScreenChange(Screen.ACTIVE_WORKOUT)
+                                }
+                            },
+                            onBack = { onScreenChange(Screen.WORKOUTS) },
+                        )
+                    } else {
+                        onScreenChange(Screen.WORKOUTS)
+                    }
+                } ?: onScreenChange(Screen.WORKOUTS)
             }
         }
     }

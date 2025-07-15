@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
+import com.github.radupana.featherweight.ui.components.GlassmorphicCard
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
@@ -50,6 +52,7 @@ private data class WorkoutInfo(
 fun WorkoutsScreen(
     onStartFreestyle: () -> Unit,
     onStartProgrammeWorkout: () -> Unit,
+    onStartTemplate: (String) -> Unit,
     modifier: Modifier = Modifier,
     workoutViewModel: WorkoutViewModel = viewModel(),
     programmeViewModel: ProgrammeViewModel = viewModel(),
@@ -261,48 +264,93 @@ fun WorkoutsScreen(
             }
 
             // Start Freestyle Workout button
-            Card(
+            GlassmorphicCard(
                 modifier = Modifier.fillMaxWidth(),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor =
-                            if (nextWorkoutLabel != null) {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            } else {
-                                MaterialTheme.colorScheme.primaryContainer
-                            },
-                    ),
             ) {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                Text(
+                    text = "Start Freestyle Workout",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Begin a freestyle workout",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            workoutViewModel.startNewWorkout(forceNew = true)
+                            onStartFreestyle()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(
-                        text = "Start Freestyle Workout",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Start Freestyle Workout")
+                }
+            }
+            
+            // Template workouts section
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Start From Template",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            
+            // Template cards in a 2x3 grid
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    TemplateButton(
+                        name = "Push",
+                        modifier = Modifier.weight(1f),
+                        onClick = { onStartTemplate("PUSH") }
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Begin a freestyle workout",
-                        style = MaterialTheme.typography.bodyMedium,
+                    TemplateButton(
+                        name = "Pull",
+                        modifier = Modifier.weight(1f),
+                        onClick = { onStartTemplate("PULL") }
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    OutlinedButton(
-                        onClick = {
-                            scope.launch {
-                                workoutViewModel.startNewWorkout(forceNew = true)
-                                onStartFreestyle()
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(Icons.Filled.Add, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Start Freestyle Workout")
-                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    TemplateButton(
+                        name = "Legs",
+                        modifier = Modifier.weight(1f),
+                        onClick = { onStartTemplate("LEGS") }
+                    )
+                    TemplateButton(
+                        name = "Upper",
+                        modifier = Modifier.weight(1f),
+                        onClick = { onStartTemplate("UPPER") }
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    TemplateButton(
+                        name = "Lower",
+                        modifier = Modifier.weight(1f),
+                        onClick = { onStartTemplate("LOWER") }
+                    )
+                    TemplateButton(
+                        name = "Full Body",
+                        modifier = Modifier.weight(1f),
+                        onClick = { onStartTemplate("FULL BODY") }
+                    )
                 }
             }
         }
@@ -331,6 +379,46 @@ fun WorkoutsScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun TemplateButton(
+    name: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val muscleGroups = when (name) {
+        "Push" -> "Chest, Shoulders, Triceps"
+        "Pull" -> "Back, Biceps"
+        "Legs" -> "Quads, Hamstrings, Glutes, Calves"
+        "Upper" -> "All upper body"
+        "Lower" -> "All lower body"
+        "Full Body" -> "Balanced mix"
+        else -> ""
+    }
+    
+    GlassmorphicCard(
+        modifier = modifier
+            .height(100.dp)
+            .clickable { onClick() }
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = muscleGroups,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

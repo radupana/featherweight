@@ -9,6 +9,9 @@ import androidx.room.Update
 interface ExerciseLogDao {
     @Insert
     suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long
+    
+    @Insert
+    suspend fun insert(exerciseLog: ExerciseLog): Long
 
     @Query("SELECT * FROM ExerciseLog WHERE workoutId = :workoutId ORDER BY exerciseOrder")
     suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog>

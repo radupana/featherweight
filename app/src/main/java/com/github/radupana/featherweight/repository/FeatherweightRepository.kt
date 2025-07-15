@@ -44,8 +44,12 @@ import com.github.radupana.featherweight.service.FreestyleIntelligenceService
 import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.service.PRDetectionService
 import com.github.radupana.featherweight.service.ProgressionService
+import com.github.radupana.featherweight.service.WorkoutTemplateGeneratorService
+import com.github.radupana.featherweight.service.WorkoutTemplateWeightService
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.validation.ExerciseValidator
+import com.radu.featherweight.data.model.WorkoutTemplate
+import com.radu.featherweight.data.model.WorkoutTemplateConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -131,6 +135,10 @@ class FeatherweightRepository(
     private val globalProgressTracker = GlobalProgressTracker(this, db)
     private val freestyleIntelligenceService = FreestyleIntelligenceService(this, db.globalExerciseProgressDao())
     private val prDetectionService = PRDetectionService(personalRecordDao, setLogDao)
+    private val workoutTemplateGeneratorService =
+        WorkoutTemplateGeneratorService(workoutDao, exerciseDao, exerciseLogDao, setLogDao)
+    private val workoutTemplateWeightService =
+        WorkoutTemplateWeightService(this, profileDao, setLogDao, exerciseLogDao, freestyleIntelligenceService)
 
     // StateFlow for pending 1RM updates
     private val _pendingOneRMUpdates = MutableStateFlow<List<PendingOneRMUpdate>>(emptyList())
@@ -792,6 +800,26 @@ class FeatherweightRepository(
         }
 
     suspend fun getEstimated1RM(exerciseName: String): Float? = exerciseRepository.getEstimated1RM(exerciseName)
+
+    suspend fun getRecentSetLogsForExercise(
+        exerciseName: String,
+        daysBack: Int,
+    ): List<SetLog> =
+        withContext(Dispatchers.IO) {
+            val sinceDate = LocalDateTime.now().minusDays(daysBack.toLong())
+            setLogDao.getSetsForExerciseSince(exerciseName, sinceDate.toString())
+        }
+
+    suspend fun generateWorkoutFromTemplate(
+        template: WorkoutTemplate,
+        config: WorkoutTemplateConfig,
+    ): Long = workoutTemplateGeneratorService.generateWorkout(template, config)
+
+    suspend fun applyTemplateWeightSuggestions(
+        workoutId: Long,
+        config: WorkoutTemplateConfig,
+        userId: Long,
+    ) = workoutTemplateWeightService.applyWeightSuggestions(workoutId, config, userId)
 
     // Performance insights
     suspend fun getTrainingFrequency(

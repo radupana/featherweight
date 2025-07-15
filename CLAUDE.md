@@ -21,6 +21,10 @@ Building a weightlifting Super App that combines the best features from apps lik
 - **Language**: Kotlin with KSP
 - **UI Framework**: Jetpack Compose (Material Design 3)
 - **Design System**: Athletic Elegance with glassmorphism (light theme only)
+  - **Glassmorphic Design**: Semi-transparent backgrounds with blur effects, subtle borders/shadows
+  - **Cards**: Use GlassmorphicCard for all major UI sections
+  - **Segmented Controls**: Use SingleChoiceSegmentedButtonRow for option selection within cards
+  - **Consistent Styling**: Match the "Start Freestyle Workout" card design throughout the app
 - **Database**: Room with SQLite (destructive migration always)
 - **Architecture**: MVVM with Repository layer
 - **Navigation**: Single-Activity with enum-based routing

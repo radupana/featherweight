@@ -9,6 +9,9 @@ import androidx.room.Update
 interface SetLogDao {
     @Insert
     suspend fun insertSetLog(setLog: SetLog): Long
+    
+    @Insert
+    suspend fun insert(setLog: SetLog): Long
 
     @Query("SELECT * FROM SetLog WHERE exerciseLogId = :exerciseLogId ORDER BY setOrder")
     suspend fun getSetLogsForExercise(exerciseLogId: Long): List<SetLog>
@@ -22,6 +25,9 @@ interface SetLogDao {
 
     @Update
     suspend fun updateSetLog(setLog: SetLog)
+    
+    @Update
+    suspend fun update(setLog: SetLog)
 
     @Query("DELETE FROM SetLog WHERE id = :setId")
     suspend fun deleteSetLog(setId: Long)
