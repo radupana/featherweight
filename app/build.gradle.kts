@@ -19,16 +19,16 @@ configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
 
 android {
     namespace = "com.github.radupana.featherweight"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.github.radupana.featherweight"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "cucumber.api.android.CucumberAndroidJUnitRunner"
 
         // Read API key from local.properties (git-ignored file)
         val localProperties = Properties()
@@ -59,6 +59,15 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
+        animationsDisabled = true
+
+        unitTests {
+            isIncludeAndroidResources = true
+        }
     }
 }
 
@@ -101,5 +110,15 @@ dependencies {
     implementation(libs.retrofit.kotlinx.serialization)
 
     // WorkManager
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation(libs.androidx.work.runtime.ktx)
+
+    // UI Testing with UI Automator
+    androidTestImplementation(libs.androidx.test.uiautomator)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.rules)
+    androidTestUtil(libs.androidx.test.orchestrator)
+    
+    // Cucumber-Android for BDD testing
+    androidTestImplementation(libs.cucumber.android)
+    androidTestImplementation(libs.cucumber.junit)
 }
