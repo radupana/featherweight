@@ -182,25 +182,6 @@ private fun PRDetailCard(
                 textAlign = TextAlign.Center,
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // PR type badge
-            AssistChip(
-                onClick = { /* Do nothing */ },
-                label = {
-                    Text(
-                        text = formatPRTypeText(personalRecord.recordType),
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                },
-                leadingIcon = {
-                    Text(
-                        text = getPRTypeEmoji(personalRecord.recordType),
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                },
-            )
-
             // Previous record comparison
             if (personalRecord.previousWeight != null && personalRecord.previousDate != null) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -235,14 +216,6 @@ private fun PRDetailCard(
 
 private fun formatPRText(pr: PersonalRecord): String {
     return "${WeightFormatter.formatWeightWithUnit(pr.weight)} × ${pr.reps}"
-}
-
-private fun formatPRTypeText(type: PRType): String {
-    return "Weight PR"
-}
-
-private fun getPRTypeEmoji(type: PRType): String {
-    return "💪"
 }
 
 // Confetti particle data class

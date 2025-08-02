@@ -15,6 +15,7 @@ import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
+import com.github.radupana.featherweight.service.OneRMService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,6 +69,11 @@ class WorkoutViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     val repository = FeatherweightRepository(application)
+    private val oneRMService = OneRMService()
+    
+    // Cache for 1RM estimates by exercise ID
+    private val _oneRMEstimates = MutableStateFlow<Map<Long, Float>>(emptyMap())
+    val oneRMEstimates: StateFlow<Map<Long, Float>> = _oneRMEstimates
 
     init {
         println("🚀 WorkoutViewModel: Initializing...")
@@ -97,6 +103,8 @@ class WorkoutViewModel(
             try {
                 repository.applyOneRMUpdate(update)
                 Log.d("FeatherweightDebug", "WorkoutViewModel: Successfully applied 1RM update")
+                // Reload 1RM estimates after update
+                loadOneRMEstimatesForCurrentExercises()
             } catch (e: Exception) {
                 Log.e("FeatherweightDebug", "WorkoutViewModel: Failed to apply 1RM update", e)
             }
@@ -668,6 +676,35 @@ class WorkoutViewModel(
             }
             _selectedExerciseSets.value = allSets
             updateSetCompletionValidation()
+            // Load 1RM estimates when sets are loaded
+            loadOneRMEstimatesForCurrentExercises()
+        }
+    }
+    
+    private fun loadOneRMEstimatesForCurrentExercises() {
+        viewModelScope.launch {
+            val exerciseIds = _selectedWorkoutExercises.value.mapNotNull { it.exerciseId }
+            if (exerciseIds.isEmpty()) {
+                _oneRMEstimates.value = emptyMap()
+                return@launch
+            }
+            
+            try {
+                val userId = repository.getCurrentUserId()
+                val maxes = repository.getCurrentMaxesForExercises(userId, exerciseIds)
+                
+                val estimatesMap = mutableMapOf<Long, Float>()
+                maxes.forEach { max ->
+                    if (max.oneRMEstimate > 0) {
+                        estimatesMap[max.exerciseId] = max.oneRMEstimate
+                    }
+                }
+                
+                _oneRMEstimates.value = estimatesMap
+                Log.d("FeatherweightDebug", "Loaded 1RM estimates for ${estimatesMap.size} exercises")
+            } catch (e: Exception) {
+                Log.e("FeatherweightDebug", "Failed to load 1RM estimates", e)
+            }
         }
     }
 
@@ -1014,6 +1051,12 @@ class WorkoutViewModel(
                 if (workoutTimerStartTime == null) {
                     startWorkoutTimer()
                 }
+                
+                // Check for 1RM updates
+                val completedSet = _selectedExerciseSets.value.find { it.id == setId }
+                completedSet?.let { set ->
+                    checkAndUpdateOneRM(set)
+                }
             }
 
             // Check for Personal Records AFTER database save (when completed)
@@ -1060,6 +1103,62 @@ class WorkoutViewModel(
                     // Log error but don't fail set completion
                     println("🏆 PR Detection: ERROR - ${e.message}")
                     android.util.Log.e("WorkoutViewModel", "PR detection failed", e)
+                }
+                
+                // Check if we should update 1RM estimate
+                try {
+                    val completedSet = updatedSets.find { it.id == setId }
+                    val exerciseLog = _selectedWorkoutExercises.value.find { exerciseLog ->
+                        updatedSets.any { it.exerciseLogId == exerciseLog.id && it.id == setId }
+                    }
+                    
+                    if (exerciseLog != null && completedSet != null) {
+                        val currentEstimate = _oneRMEstimates.value[exerciseLog.exerciseId]
+                        val newEstimate = oneRMService.calculateEstimated1RM(
+                            completedSet.actualWeight, 
+                            completedSet.actualReps
+                        )
+                        
+                        if (newEstimate != null && oneRMService.shouldUpdateOneRM(
+                            completedSet, 
+                            currentEstimate, 
+                            newEstimate
+                        )) {
+                            // Calculate confidence
+                            val percentOf1RM = if (currentEstimate != null && currentEstimate > 0) {
+                                completedSet.actualWeight / currentEstimate
+                            } else {
+                                1f
+                            }
+                            
+                            val confidence = oneRMService.calculateConfidence(
+                                completedSet.actualReps,
+                                completedSet.actualRpe,
+                                percentOf1RM
+                            )
+                            
+                            // Get current user and update 1RM
+                            val userId = repository.getCurrentUserId()
+                            val exerciseId = exerciseLog.exerciseId
+                            if (exerciseId != null) {
+                                val oneRMRecord = oneRMService.createOneRMRecord(
+                                    userId = userId,
+                                    exerciseId = exerciseId,
+                                    set = completedSet,
+                                    estimate = newEstimate,
+                                    confidence = confidence
+                                )
+                                
+                                repository.updateOrInsertOneRM(oneRMRecord)
+                                Log.d("FeatherweightDebug", "Updated 1RM for ${exerciseLog.exerciseName}: $newEstimate kg")
+                                
+                                // Reload 1RM estimates
+                                loadOneRMEstimatesForCurrentExercises()
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("FeatherweightDebug", "Failed to update 1RM estimate", e)
                 }
             }
 
@@ -1632,5 +1731,48 @@ class WorkoutViewModel(
         super.onCleared()
         restTimerJob?.cancel()
         workoutTimerJob?.cancel()
+    }
+    
+    private fun checkAndUpdateOneRM(set: SetLog) {
+        viewModelScope.launch {
+            // Get exercise info
+            val exercise = _selectedWorkoutExercises.value.find { it.id == set.exerciseLogId } ?: return@launch
+            val exerciseId = exercise.exerciseId ?: return@launch
+            
+            // Calculate estimated 1RM from this set
+            val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps) ?: return@launch
+            
+            // Get current 1RM
+            val userId = repository.getCurrentUserId()
+            val currentMax = repository.getCurrentMaxesForExercises(userId, listOf(exerciseId))
+                .firstOrNull()?.oneRMEstimate
+            
+            // Check if we should update
+            if (oneRMService.shouldUpdateOneRM(set, currentMax, estimated1RM)) {
+                // Calculate confidence
+                val percentOf1RM = if (currentMax != null && currentMax > 0) {
+                    set.actualWeight / currentMax
+                } else {
+                    1f
+                }
+                val confidence = oneRMService.calculateConfidence(set.actualReps, set.actualRpe, percentOf1RM)
+                
+                // Create context string
+                val context = oneRMService.buildContext(set.actualWeight, set.actualReps, set.actualRpe)
+                
+                // Update the 1RM
+                repository.upsertExerciseMax(
+                    userId = userId,
+                    exerciseId = exerciseId,
+                    oneRMEstimate = estimated1RM,
+                    oneRMContext = context,
+                    oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
+                    notes = "Updated from workout performance"
+                )
+                
+                // Reload 1RM estimates to update UI immediately
+                loadOneRMEstimatesForCurrentExercises()
+            }
+        }
     }
 }

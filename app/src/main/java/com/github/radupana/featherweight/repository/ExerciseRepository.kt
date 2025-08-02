@@ -11,7 +11,6 @@ import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
-import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.data.programme.ExercisePerformanceData
 import com.github.radupana.featherweight.domain.ExerciseStats
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +24,6 @@ class ExerciseRepository(
     private val exerciseLogDao = db.exerciseLogDao()
     private val setLogDao = db.setLogDao()
     private val exerciseSwapHistoryDao = db.exerciseSwapHistoryDao()
-    private val userExerciseMaxDao = db.profileDao()
 
     // ===== EXERCISE QUERIES =====
 
@@ -281,56 +279,6 @@ class ExerciseRepository(
             null
         }
 
-    suspend fun getOneRMForExercise(exerciseName: String): Float? =
-        withContext(Dispatchers.IO) {
-            // Get exercise ID by name first
-            val exercise = getExerciseByName(exerciseName) ?: return@withContext null
-
-            // Get the first user profile (single user app for now)
-            val profile = userExerciseMaxDao.getUserProfile() ?: return@withContext null
-
-            // Get current max for this exercise
-            val exerciseMax = userExerciseMaxDao.getCurrentMax(profile.id, exercise.id)
-            return@withContext exerciseMax?.maxWeight
-        }
-
-    suspend fun getEstimated1RM(exerciseName: String): Float? =
-        withContext(Dispatchers.IO) {
-            Log.d("Analytics", "=== getEstimated1RM for $exerciseName ===")
-            val allWorkouts = db.workoutDao().getAllWorkouts()
-            var bestEstimate = 0f
-
-            // Only consider COMPLETED workouts for 1RM estimation
-            val completedWorkouts = allWorkouts.filter { it.status == WorkoutStatus.COMPLETED }
-            Log.d("Analytics", "Found ${completedWorkouts.size} completed workouts out of ${allWorkouts.size} total")
-
-            completedWorkouts.forEach { workout ->
-                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                val matchingExercise = exercises.find { it.exerciseName == exerciseName }
-
-                if (matchingExercise != null) {
-                    val sets = setLogDao.getSetLogsForExercise(matchingExercise.id)
-                    Log.d("Analytics", "Processing ${sets.size} sets for $exerciseName in workout ${workout.id}")
-
-                    // FIXED: Using actualReps and actualWeight instead of legacy fields
-                    sets.filter { it.isCompleted && it.actualReps > 0 && it.actualWeight > 0 }.forEach { set ->
-                        Log.d("Analytics", "  Set: actualReps=${set.actualReps}, actualWeight=${set.actualWeight}")
-
-                        // Brzycki formula: 1RM = weight / (1.0278 - 0.0278 * reps)
-                        val estimated1RM = set.actualWeight / (1.0278f - 0.0278f * set.actualReps)
-                        Log.d("Analytics", "  Calculated 1RM: ${set.actualWeight}kg x ${set.actualReps} = ${estimated1RM}kg")
-
-                        if (estimated1RM > bestEstimate) {
-                            bestEstimate = estimated1RM
-                            Log.d("Analytics", "  New best 1RM: ${estimated1RM}kg")
-                        }
-                    }
-                }
-            }
-
-            Log.d("Analytics", "Final best 1RM for $exerciseName: ${if (bestEstimate > 0) bestEstimate else "none"}")
-            if (bestEstimate > 0) bestEstimate else null
-        }
 
     suspend fun getPersonalRecords(exerciseName: String): List<Pair<Float, LocalDateTime>> =
         withContext(Dispatchers.IO) {
@@ -389,27 +337,6 @@ class ExerciseRepository(
             records
         }
 
-    // ===== EXERCISE MAX OPERATIONS =====
-
-    suspend fun getCurrentMax(exerciseId: Long) =
-        withContext(Dispatchers.IO) {
-            // Get the first user profile (single user app for now)
-            val profile = userExerciseMaxDao.getUserProfile() ?: return@withContext null
-            userExerciseMaxDao.getCurrentMax(profile.id, exerciseId)
-        }
-
-    suspend fun deleteExerciseMax(max: UserExerciseMax) =
-        withContext(Dispatchers.IO) {
-            userExerciseMaxDao.deleteExerciseMax(max)
-        }
-
-    suspend fun deleteAllMaxesForExercise(exerciseId: Long) =
-        withContext(Dispatchers.IO) {
-            // Get the first user profile (single user app for now)
-            val profile = userExerciseMaxDao.getUserProfile() ?: return@withContext
-            userExerciseMaxDao.deleteAllMaxesForExercise(profile.id, exerciseId)
-        }
-
     // ===== EXERCISE SWAP OPERATIONS =====
 
     suspend fun swapExercise(
@@ -450,11 +377,9 @@ class ExerciseRepository(
         exerciseSwapHistoryDao.insert(swapHistory)
     }
 
-    suspend fun getSwapHistoryForExercise(exerciseId: Long): List<SwapHistoryCount> {
+    suspend fun getSwapHistoryForExercise(userId: Long, exerciseId: Long): List<SwapHistoryCount> {
         return withContext(Dispatchers.IO) {
-            // Get the first user profile (single user app for now)
-            val profile = userExerciseMaxDao.getUserProfile() ?: return@withContext emptyList()
-            exerciseSwapHistoryDao.getSwapHistoryForExercise(profile.id, exerciseId)
+            exerciseSwapHistoryDao.getSwapHistoryForExercise(userId, exerciseId)
         }
     }
 }

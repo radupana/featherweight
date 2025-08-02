@@ -20,48 +20,53 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.github.radupana.featherweight.data.profile.ExerciseMaxWithName
+import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
 import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeUiState
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.SetupStep
 import com.github.radupana.featherweight.viewmodel.UserMaxes
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun ProgrammeSetupDialog(
     template: ProgrammeTemplate,
     uiState: ProgrammeUiState,
     viewModel: ProgrammeViewModel,
-    profileViewModel: ProfileViewModel,
+    repository: com.github.radupana.featherweight.repository.FeatherweightRepository,
     onProgrammeCreated: (() -> Unit)? = null,
 ) {
     val userMaxes by viewModel.userMaxes.collectAsState()
-    val profileUiState by profileViewModel.uiState.collectAsState()
+    var profileMaxes by remember { mutableStateOf<List<OneRMWithExerciseName>>(emptyList()) }
 
     // Auto-populate 1RM values from profile when dialog opens
     LaunchedEffect(template.requiresMaxes) {
-        if (template.requiresMaxes &&
-            userMaxes.squat == null &&
-            userMaxes.bench == null &&
-            userMaxes.deadlift == null &&
-            userMaxes.ohp == null
-        ) {
-            val currentMaxes = profileUiState.currentMaxes
-            val squatMax = currentMaxes.find { it.exerciseName == "Barbell Back Squat" }?.maxWeight
-            val benchMax = currentMaxes.find { it.exerciseName == "Barbell Bench Press" }?.maxWeight
-            val deadliftMax = currentMaxes.find { it.exerciseName == "Barbell Deadlift" }?.maxWeight
-            val ohpMax = currentMaxes.find { it.exerciseName == "Barbell Overhead Press" }?.maxWeight
+        if (template.requiresMaxes) {
+            val userId = repository.getCurrentUserId()
+            val maxes = repository.getAllCurrentMaxesWithNames(userId).first()
+            profileMaxes = maxes
+            
+            if (userMaxes.squat == null &&
+                userMaxes.bench == null &&
+                userMaxes.deadlift == null &&
+                userMaxes.ohp == null
+            ) {
+                val squatMax = maxes.find { it.exerciseName == "Barbell Back Squat" }?.oneRMEstimate
+                val benchMax = maxes.find { it.exerciseName == "Barbell Bench Press" }?.oneRMEstimate
+                val deadliftMax = maxes.find { it.exerciseName == "Barbell Deadlift" }?.oneRMEstimate
+                val ohpMax = maxes.find { it.exerciseName == "Barbell Overhead Press" }?.oneRMEstimate
 
-            // Update all values at once to ensure proper validation
-            viewModel.updateUserMaxes(
-                UserMaxes(
-                    squat = squatMax,
-                    bench = benchMax,
-                    deadlift = deadliftMax,
-                    ohp = ohpMax,
-                ),
-            )
+                // Update all values at once to ensure proper validation
+                viewModel.updateUserMaxes(
+                    UserMaxes(
+                        squat = squatMax,
+                        bench = benchMax,
+                        deadlift = deadliftMax,
+                        ohp = ohpMax,
+                    ),
+                )
+            }
         }
     }
 
@@ -143,7 +148,7 @@ fun ProgrammeSetupDialog(
                                             template = template,
                                             userMaxes = userMaxes,
                                             onMaxesUpdate = viewModel::updateUserMaxes,
-                                            profileMaxes = profileUiState.currentMaxes,
+                                            profileMaxes = profileMaxes,
                                         )
                                     } else {
                                         ConfirmationStep(
@@ -197,7 +202,6 @@ fun ProgrammeSetupDialog(
                                         onSuccess = {
                                             onProgrammeCreated?.invoke()
                                         },
-                                        profileViewModel = profileViewModel,
                                     )
                                 } else {
                                     viewModel.nextSetupStep()
@@ -207,16 +211,15 @@ fun ProgrammeSetupDialog(
                                 when (uiState.setupStep) {
                                     SetupStep.MAXES_INPUT -> {
                                         if (template.requiresMaxes) {
-                                            val currentMaxes = profileUiState.currentMaxes
                                             val effectiveSquat =
-                                                userMaxes.squat ?: currentMaxes.find { it.exerciseName == "Barbell Back Squat" }?.maxWeight
+                                                userMaxes.squat ?: profileMaxes.find { it.exerciseName == "Barbell Back Squat" }?.oneRMEstimate
                                             val effectiveBench =
-                                                userMaxes.bench ?: currentMaxes.find { it.exerciseName == "Barbell Bench Press" }?.maxWeight
+                                                userMaxes.bench ?: profileMaxes.find { it.exerciseName == "Barbell Bench Press" }?.oneRMEstimate
                                             val effectiveDeadlift =
                                                 userMaxes.deadlift
-                                                    ?: currentMaxes.find { it.exerciseName == "Barbell Deadlift" }?.maxWeight
+                                                    ?: profileMaxes.find { it.exerciseName == "Barbell Deadlift" }?.oneRMEstimate
                                             val effectiveOhp =
-                                                userMaxes.ohp ?: currentMaxes.find { it.exerciseName == "Barbell Overhead Press" }?.maxWeight
+                                                userMaxes.ohp ?: profileMaxes.find { it.exerciseName == "Barbell Overhead Press" }?.oneRMEstimate
 
                                             effectiveSquat != null &&
                                                 effectiveSquat > 0 &&
@@ -340,7 +343,7 @@ private fun MaxesInputStep(
     template: ProgrammeTemplate,
     userMaxes: UserMaxes,
     onMaxesUpdate: (UserMaxes) -> Unit,
-    profileMaxes: List<ExerciseMaxWithName>,
+    profileMaxes: List<OneRMWithExerciseName>,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -361,46 +364,46 @@ private fun MaxesInputStep(
 
         // Squat 1RM with robust input handling
         val squatProfileMax = profileMaxes.find { it.exerciseName == "Barbell Back Squat" }
-        val effectiveSquatValue = userMaxes.squat ?: squatProfileMax?.maxWeight
+        val effectiveSquatValue = userMaxes.squat ?: squatProfileMax?.oneRMEstimate
         WeightInputField(
             value = userMaxes.squat,
             onValueChange = { squat -> onMaxesUpdate(userMaxes.copy(squat = squat)) },
             label = "Back Squat 1RM (kg)",
             isError = effectiveSquatValue == null || effectiveSquatValue <= 0,
-            profileValue = squatProfileMax?.maxWeight,
+            profileValue = squatProfileMax?.oneRMEstimate,
         )
 
         // Bench 1RM with robust input handling
         val benchProfileMax = profileMaxes.find { it.exerciseName == "Barbell Bench Press" }
-        val effectiveBenchValue = userMaxes.bench ?: benchProfileMax?.maxWeight
+        val effectiveBenchValue = userMaxes.bench ?: benchProfileMax?.oneRMEstimate
         WeightInputField(
             value = userMaxes.bench,
             onValueChange = { bench -> onMaxesUpdate(userMaxes.copy(bench = bench)) },
             label = "Bench Press 1RM (kg)",
             isError = effectiveBenchValue == null || effectiveBenchValue <= 0,
-            profileValue = benchProfileMax?.maxWeight,
+            profileValue = benchProfileMax?.oneRMEstimate,
         )
 
         // Deadlift 1RM with robust input handling
         val deadliftProfileMax = profileMaxes.find { it.exerciseName == "Barbell Deadlift" }
-        val effectiveDeadliftValue = userMaxes.deadlift ?: deadliftProfileMax?.maxWeight
+        val effectiveDeadliftValue = userMaxes.deadlift ?: deadliftProfileMax?.oneRMEstimate
         WeightInputField(
             value = userMaxes.deadlift,
             onValueChange = { deadlift -> onMaxesUpdate(userMaxes.copy(deadlift = deadlift)) },
             label = "Deadlift 1RM (kg)",
             isError = effectiveDeadliftValue == null || effectiveDeadliftValue <= 0,
-            profileValue = deadliftProfileMax?.maxWeight,
+            profileValue = deadliftProfileMax?.oneRMEstimate,
         )
 
         // OHP 1RM with robust input handling
         val ohpProfileMax = profileMaxes.find { it.exerciseName == "Barbell Overhead Press" }
-        val effectiveOhpValue = userMaxes.ohp ?: ohpProfileMax?.maxWeight
+        val effectiveOhpValue = userMaxes.ohp ?: ohpProfileMax?.oneRMEstimate
         WeightInputField(
             value = userMaxes.ohp,
             onValueChange = { ohp -> onMaxesUpdate(userMaxes.copy(ohp = ohp)) },
             label = "Overhead Press 1RM (kg)",
             isError = effectiveOhpValue == null || effectiveOhpValue <= 0,
-            profileValue = ohpProfileMax?.maxWeight,
+            profileValue = ohpProfileMax?.oneRMEstimate,
         )
 
         Card(

@@ -25,6 +25,7 @@ fun SetRow(
     onOpenModal: () -> Unit = {},
     canMarkComplete: Boolean = true,
     isReadOnly: Boolean = false,
+    oneRMEstimate: Float? = null,
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
@@ -137,7 +138,11 @@ fun SetRow(
                             modifier = Modifier.fillMaxSize(),
                         ) {
                             Text(
-                                if (set.actualWeight > 0) WeightFormatter.formatWeightWithUnit(set.actualWeight) else "—",
+                                text = if (set.actualWeight > 0) {
+                                    WeightFormatter.formatWeightWithUnit(set.actualWeight)
+                                } else {
+                                    "—"
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 textAlign = TextAlign.Center,
                             )

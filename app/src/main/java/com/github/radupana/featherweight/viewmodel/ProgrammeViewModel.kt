@@ -13,6 +13,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 
 class ProgrammeViewModel(
     application: Application,
@@ -305,7 +306,6 @@ class ProgrammeViewModel(
         customName: String? = null,
         accessoryCustomizations: Map<String, String> = emptyMap(),
         onSuccess: (() -> Unit)? = null,
-        profileViewModel: ProfileViewModel? = null,
     ) {
         val template = _uiState.value.selectedTemplate ?: return
         val maxes = _userMaxes.value
@@ -354,8 +354,8 @@ class ProgrammeViewModel(
                 println("✅ Programme creation completed successfully")
 
                 // Check if we should update profile 1RMs BEFORE navigation
-                if (template.requiresMaxes && profileViewModel != null) {
-                    val hasUpdates = checkAndPromptForProfileUpdate(maxes, profileViewModel)
+                if (template.requiresMaxes) {
+                    val hasUpdates = checkAndPromptForProfileUpdate(maxes)
                     if (hasUpdates) {
                         // Store the success callback to execute after profile update
                         _uiState.value =
@@ -432,14 +432,14 @@ class ProgrammeViewModel(
 
     private suspend fun checkAndPromptForProfileUpdate(
         enteredMaxes: UserMaxes,
-        profileViewModel: ProfileViewModel,
     ): Boolean {
-        val currentMaxes = profileViewModel.uiState.value.currentMaxes
+        val userId = repository.getCurrentUserId()
+        val currentMaxes = repository.getAllCurrentMaxesWithNames(userId).first()
         val updates = mutableListOf<Pair<String, Float>>()
 
         // Check Squat - compare against actual value, not just null
         enteredMaxes.squat?.let { newSquat ->
-            val currentSquat = currentMaxes.find { it.exerciseName == "Barbell Back Squat" }?.maxWeight
+            val currentSquat = currentMaxes.find { it.exerciseName == "Barbell Back Squat" }?.oneRMEstimate
             if (currentSquat != newSquat) {
                 updates.add("Barbell Back Squat" to newSquat)
             }
@@ -447,7 +447,7 @@ class ProgrammeViewModel(
 
         // Check Bench - compare against actual value, not just null
         enteredMaxes.bench?.let { newBench ->
-            val currentBench = currentMaxes.find { it.exerciseName == "Barbell Bench Press" }?.maxWeight
+            val currentBench = currentMaxes.find { it.exerciseName == "Barbell Bench Press" }?.oneRMEstimate
             if (currentBench != newBench) {
                 updates.add("Barbell Bench Press" to newBench)
             }
@@ -455,7 +455,7 @@ class ProgrammeViewModel(
 
         // Check Deadlift - compare against actual value, not just null
         enteredMaxes.deadlift?.let { newDeadlift ->
-            val currentDeadlift = currentMaxes.find { it.exerciseName == "Barbell Deadlift" }?.maxWeight
+            val currentDeadlift = currentMaxes.find { it.exerciseName == "Barbell Deadlift" }?.oneRMEstimate
             if (currentDeadlift != newDeadlift) {
                 updates.add("Barbell Deadlift" to newDeadlift)
             }
@@ -463,7 +463,7 @@ class ProgrammeViewModel(
 
         // Check OHP - compare against actual value, not just null
         enteredMaxes.ohp?.let { newOhp ->
-            val currentOhp = currentMaxes.find { it.exerciseName == "Barbell Overhead Press" }?.maxWeight
+            val currentOhp = currentMaxes.find { it.exerciseName == "Barbell Overhead Press" }?.oneRMEstimate
             if (currentOhp != newOhp) {
                 updates.add("Barbell Overhead Press" to newOhp)
             }
@@ -481,7 +481,7 @@ class ProgrammeViewModel(
         return false
     }
 
-    fun confirmProfileUpdate(profileViewModel: ProfileViewModel) {
+    fun confirmProfileUpdate() {
         viewModelScope.launch {
             println("🔄 ProgrammeViewModel: Starting profile update")
             val updates = _uiState.value.pendingProfileUpdates
@@ -493,7 +493,7 @@ class ProgrammeViewModel(
                     async {
                         println("🔄 ProgrammeViewModel: Updating $exerciseName to $newMax kg")
                         // Call the suspend function directly instead of launching another coroutine
-                        updateExerciseMaxDirectly(profileViewModel, exerciseName, newMax)
+                        updateExerciseMaxDirectly(exerciseName, newMax)
                     }
                 }
 
@@ -509,7 +509,6 @@ class ProgrammeViewModel(
     }
 
     private suspend fun updateExerciseMaxDirectly(
-        profileViewModel: ProfileViewModel,
         exerciseName: String,
         maxWeight: Float,
     ) {
@@ -519,9 +518,11 @@ class ProgrammeViewModel(
             if (exercise != null) {
                 println("✅ Found exercise ${exercise.name} with ID ${exercise.id}")
                 repository.upsertExerciseMax(
+                    userId = repository.getCurrentUserId(),
                     exerciseId = exercise.id,
-                    maxWeight = maxWeight,
-                    isEstimated = false,
+                    oneRMEstimate = maxWeight,
+                    oneRMContext = "Manually set",
+                    oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,
                     notes = "Updated from programme setup",
                 )
                 println("✅ Successfully updated 1RM for $exerciseName")

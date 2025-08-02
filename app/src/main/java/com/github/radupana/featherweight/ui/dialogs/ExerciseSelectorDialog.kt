@@ -36,8 +36,8 @@ fun ExerciseSelectorDialog(
     val filteredExercises by viewModel.filteredExercises.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
-    val isKeyboardVisible by rememberKeyboardState()
-    val compactPadding = if (isKeyboardVisible) 8.dp else 16.dp
+    // Remove keyboard state to prevent layout shifts
+    val compactPadding = 16.dp
 
     LaunchedEffect(Unit) {
         viewModel.loadExercises()
@@ -56,8 +56,9 @@ fun ExerciseSelectorDialog(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(compactPadding),
-            shape = RoundedCornerShape(if (isKeyboardVisible) 16.dp else 24.dp),
+                    .padding(compactPadding)
+                    .systemBarsPadding(NavigationContext.DIALOG),
+            shape = RoundedCornerShape(24.dp),
             colors =
                 CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -71,12 +72,7 @@ fun ExerciseSelectorDialog(
                     title = {
                         Text(
                             "Select Exercise",
-                            style =
-                                if (isKeyboardVisible) {
-                                    MaterialTheme.typography.titleMedium
-                                } else {
-                                    MaterialTheme.typography.titleLarge
-                                },
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                         )
                     },
@@ -102,9 +98,7 @@ fun ExerciseSelectorDialog(
                     placeholder = "Search exercises",
                 )
 
-                if (!isKeyboardVisible) {
-                    Spacer(modifier = Modifier.height(compactPadding))
-                }
+                Spacer(modifier = Modifier.height(compactPadding))
 
                 // Exercise List
                 if (isLoading) {
@@ -123,7 +117,7 @@ fun ExerciseSelectorDialog(
                             Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
-                                .systemBarsPadding(NavigationContext.DIALOG),
+,
                         contentPadding =
                             PaddingValues(
                                 horizontal = compactPadding,
@@ -142,7 +136,7 @@ fun ExerciseSelectorDialog(
                                     onExerciseSelected(exerciseWithDetails.exercise)
                                     onDismiss()
                                 },
-                                isCompact = isKeyboardVisible,
+                                isCompact = false,
                             )
                         }
                     }
@@ -159,7 +153,7 @@ private fun ExerciseItem(
     isCompact: Boolean = false,
 ) {
     val exercise = exerciseWithDetails.exercise
-    val itemPadding = if (isCompact) 12.dp else 16.dp
+    val itemPadding = 16.dp
 
     Card(
         modifier =
@@ -185,19 +179,7 @@ private fun ExerciseItem(
             Text(
                 text = exercise.name,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-
-            Text(
-                text = exercise.category.name.replace('_', ' '),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Text(
-                text = exerciseWithDetails.exercise.muscleGroup,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Medium,
             )
         }
     }

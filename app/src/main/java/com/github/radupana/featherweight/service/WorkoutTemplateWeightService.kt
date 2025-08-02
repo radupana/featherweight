@@ -1,14 +1,14 @@
 package com.github.radupana.featherweight.service
 
 import com.github.radupana.featherweight.data.*
-import com.github.radupana.featherweight.data.profile.ProfileDao
+import com.github.radupana.featherweight.data.profile.OneRMDao
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.radu.featherweight.data.model.*
 import kotlin.math.roundToInt
 
 class WorkoutTemplateWeightService(
     private val repository: FeatherweightRepository,
-    private val profileDao: ProfileDao,
+    private val oneRMDao: OneRMDao,
     private val setLogDao: SetLogDao,
     private val exerciseLogDao: ExerciseLogDao,
     private val freestyleIntelligenceService: FreestyleIntelligenceService,
@@ -62,10 +62,10 @@ class WorkoutTemplateWeightService(
         // Need to get exercise ID from exercise name
         val exercise = repository.getExerciseByName(exerciseName)
         if (exercise != null) {
-            val exerciseMax = profileDao.getCurrentMax(userId, exercise.id)
+            val exerciseMax = oneRMDao.getCurrentMax(userId, exercise.id)
             if (exerciseMax != null) {
                 val percentage = getIntensityPercentage(intensity)
-                val weight = calculateWeightFromPercentage(exerciseMax.maxWeight.toDouble(), percentage, targetReps)
+                val weight = calculateWeightFromPercentage(exerciseMax.oneRMEstimate.toDouble(), percentage, targetReps)
                 return WeightSuggestion(
                     weight = weight.toFloat(),
                     confidence = 0.9f,
@@ -73,9 +73,9 @@ class WorkoutTemplateWeightService(
                         listOf(
                             SuggestionSourceData(
                                 source = SuggestionSource.ONE_RM_CALCULATION,
-                                value = exerciseMax.maxWeight,
+                                value = exerciseMax.oneRMEstimate,
                                 weight = 1.0f,
-                                details = "Profile 1RM: ${exerciseMax.maxWeight}kg at ${(percentage * 100).toInt()}%",
+                                details = "Profile 1RM: ${exerciseMax.oneRMEstimate}kg at ${(percentage * 100).toInt()}%",
                             ),
                         ),
                     explanation = "Based on profile 1RM",

@@ -74,6 +74,10 @@ fun SetEditingModal(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val listState = rememberLazyListState()
+    
+    // Get 1RM estimate for this exercise
+    val oneRMEstimates by viewModel.oneRMEstimates.collectAsState()
+    val oneRMEstimate = oneRMEstimates[exercise.exerciseId]
 
     // Intelligent suggestions state
     var intelligentSuggestions by remember { mutableStateOf<SmartSuggestions?>(null) }
@@ -423,6 +427,7 @@ fun SetEditingModal(
                                             CleanSetLayout(
                                                 set = set,
                                                 exercise = exercise,
+                                                oneRMEstimate = oneRMEstimate,
                                                 onUpdateSet = { reps, weight, rpe ->
                                                     onUpdateSet(set.id, reps, weight, rpe)
                                                 },
@@ -841,6 +846,7 @@ private fun ExpandedSetRow(
 fun CleanSetLayout(
     set: SetLog,
     exercise: ExerciseLog,
+    oneRMEstimate: Float? = null,
     onUpdateSet: (Int, Float, Float?) -> Unit,
     onUpdateTarget: (Int, Float?) -> Unit,
     onToggleCompleted: (Boolean) -> Unit,
@@ -955,15 +961,18 @@ fun CleanSetLayout(
             enableDismissFromStartToEnd = false,
             enableDismissFromEndToStart = true,
         ) {
-            // Clean Input Row - Only this gets swiped
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 2.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            // Clean Input Row with percentage below
+            Column(
+                modifier = Modifier.fillMaxWidth(),
             ) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                 // Target column - read-only
                 val targetDisplay =
                     if (isProgrammeWorkout && set.targetReps > 0) {
@@ -996,52 +1005,67 @@ fun CleanSetLayout(
                 }
 
                 // Weight input
-                CenteredInputField(
-                    value = weightInput,
-                    onValueChange = { textFieldValue ->
-                        if (!readOnly) {
-                            weightInput = textFieldValue
-                            val weight = textFieldValue.text.toFloatOrNull() ?: 0f
-                            onUpdateSet(set.actualReps, weight, set.actualRpe)
-                        }
-                    },
-                    fieldType = InputFieldType.WEIGHT,
-                    placeholder = "", // No placeholder
+                Box(
                     modifier = Modifier.weight(0.8f).height(48.dp),
-                    imeAction = ImeAction.Next,
-                )
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CenteredInputField(
+                        value = weightInput,
+                        onValueChange = { textFieldValue ->
+                            if (!readOnly) {
+                                weightInput = textFieldValue
+                                val weight = textFieldValue.text.toFloatOrNull() ?: 0f
+                                onUpdateSet(set.actualReps, weight, set.actualRpe)
+                            }
+                        },
+                        fieldType = InputFieldType.WEIGHT,
+                        placeholder = "", // No placeholder
+                        modifier = Modifier.fillMaxSize(),
+                        imeAction = ImeAction.Next,
+                    )
+                }
 
                 // Reps input
-                CenteredInputField(
-                    value = repsInput,
-                    onValueChange = { textFieldValue ->
-                        if (!readOnly) {
-                            repsInput = textFieldValue
-                            val reps = textFieldValue.text.toIntOrNull() ?: 0
-                            onUpdateSet(reps, set.actualWeight, set.actualRpe)
-                        }
-                    },
-                    fieldType = InputFieldType.REPS,
-                    placeholder = "", // No placeholder
+                Box(
                     modifier = Modifier.weight(0.6f).height(48.dp),
-                    imeAction = ImeAction.Next,
-                )
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CenteredInputField(
+                        value = repsInput,
+                        onValueChange = { textFieldValue ->
+                            if (!readOnly) {
+                                repsInput = textFieldValue
+                                val reps = textFieldValue.text.toIntOrNull() ?: 0
+                                onUpdateSet(reps, set.actualWeight, set.actualRpe)
+                            }
+                        },
+                        fieldType = InputFieldType.REPS,
+                        placeholder = "", // No placeholder
+                        modifier = Modifier.fillMaxSize(),
+                        imeAction = ImeAction.Next,
+                    )
+                }
 
                 // RPE input
-                CenteredInputField(
-                    value = rpeInput,
-                    onValueChange = { textFieldValue ->
-                        if (!readOnly) {
-                            rpeInput = textFieldValue
-                            val rpe = textFieldValue.text.toIntOrNull()?.toFloat()
-                            onUpdateSet(set.actualReps, set.actualWeight, rpe)
-                        }
-                    },
-                    fieldType = InputFieldType.RPE,
-                    placeholder = "", // No placeholder
+                Box(
                     modifier = Modifier.weight(0.6f).height(48.dp),
-                    imeAction = ImeAction.Done,
-                )
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CenteredInputField(
+                        value = rpeInput,
+                        onValueChange = { textFieldValue ->
+                            if (!readOnly) {
+                                rpeInput = textFieldValue
+                                val rpe = textFieldValue.text.toIntOrNull()?.toFloat()
+                                onUpdateSet(set.actualReps, set.actualWeight, rpe)
+                            }
+                        },
+                        fieldType = InputFieldType.RPE,
+                        placeholder = "", // No placeholder
+                        modifier = Modifier.fillMaxSize(),
+                        imeAction = ImeAction.Done,
+                    )
+                }
 
                 // Completion checkbox
                 Box(
@@ -1068,6 +1092,39 @@ fun CleanSetLayout(
                                 checkedColor = MaterialTheme.colorScheme.primary,
                             ),
                     )
+                }
+                }
+                
+                // Show percentage of 1RM below the row
+                if (oneRMEstimate != null && oneRMEstimate > 0 && set.actualWeight > 0) {
+                    val percentage = ((set.actualWeight / oneRMEstimate) * 100).toInt()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        // Target column space
+                        Box(modifier = Modifier.weight(0.8f))
+                        
+                        // Weight column - center percentage under weight
+                        Box(
+                            modifier = Modifier.weight(0.8f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "$percentage% of 1RM",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
+                            )
+                        }
+                        
+                        // Remaining columns space
+                        Box(modifier = Modifier.weight(0.6f)) // Reps
+                        Box(modifier = Modifier.weight(0.6f)) // RPE
+                        Box(modifier = Modifier.size(40.dp)) // Checkbox
+                    }
                 }
             }
         } // Close SwipeToDismissBox

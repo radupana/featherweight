@@ -57,6 +57,7 @@ import com.github.radupana.featherweight.ui.screens.WorkoutsScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
 import com.github.radupana.featherweight.viewmodel.InsightsViewModel
+import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
@@ -441,7 +442,6 @@ fun MainAppWithNavigation(
                 }
 
                 com.github.radupana.featherweight.ui.screens.ProgrammesScreen(
-                    profileViewModel = profileViewModel,
                     viewModel = programmeViewModel,
                     onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
                     onNavigateToAIGenerator = { onScreenChange(Screen.PROGRAMME_GENERATOR) },
@@ -499,7 +499,9 @@ fun MainAppWithNavigation(
             }
 
             Screen.PROFILE -> {
+                val profileViewModel: ProfileViewModel = viewModel()
                 com.github.radupana.featherweight.ui.screens.ProfileScreen(
+                    viewModel = profileViewModel,
                     onBack = { onScreenChange(previousScreen ?: Screen.WORKOUTS) },
                     modifier = Modifier.padding(innerPadding),
                 )

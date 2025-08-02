@@ -286,8 +286,10 @@ class ProgrammeGeneratorViewModel(
 
             try {
                 // Fetch user's current 1RMs
-                val user1RMs = repository.getAllCurrentMaxes().first().associate { max ->
-                    max.exerciseName to max.maxWeight
+                val userId = repository.getCurrentUserId()
+                val maxes = repository.getAllCurrentMaxesWithNames(userId).first()
+                val user1RMs = maxes.associate { max ->
+                    max.exerciseName to max.oneRMEstimate
                 }
                 
                 // Create generation request

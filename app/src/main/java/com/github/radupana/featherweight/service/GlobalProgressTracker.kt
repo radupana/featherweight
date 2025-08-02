@@ -143,8 +143,8 @@ class GlobalProgressTracker(
     ): GlobalExerciseProgress {
         // Try to get 1RM from UserExerciseMax
         val exercise = database.exerciseDao().findExerciseByExactName(exerciseName)
-        val userMax = exercise?.let { database.profileDao().getCurrentMax(userId, it.id) }
-        val estimatedMax = userMax?.maxWeight ?: 0f
+        val userMax = exercise?.let { database.oneRMDao().getCurrentMax(userId, it.id) }
+        val estimatedMax = userMax?.oneRMEstimate ?: 0f
 
         return GlobalExerciseProgress(
             userId = userId,
@@ -314,8 +314,8 @@ class GlobalProgressTracker(
 
         // Get current stored max from profile FIRST for confidence calculation
         val exercise = database.exerciseDao().findExerciseByExactName(progress.exerciseName)
-        val currentUserMax = exercise?.let { database.profileDao().getCurrentMax(userId, it.id) }
-        val storedMaxWeight = currentUserMax?.maxWeight
+        val currentUserMax = exercise?.let { database.oneRMDao().getCurrentMax(userId, it.id) }
+        val storedMaxWeight = currentUserMax?.oneRMEstimate
 
         // Find the best set for 1RM calculation
         // Priority: 1) Actual 1RMs, 2) Lowest reps with highest weight, 3) Highest confidence
@@ -376,7 +376,7 @@ class GlobalProgressTracker(
                 )
 
         println("🔍 1RM Update Check: exercise=${progress.exerciseName}, isBig4=$isBig4Exercise")
-        println("🔍 1RM Update Check: currentUserMax=${currentUserMax?.maxWeight}, estimated1RM=$estimated1RM")
+        println("🔍 1RM Update Check: currentUserMax=${currentUserMax?.oneRMEstimate}, estimated1RM=$estimated1RM")
 
         // Decision logic for prompting user
         val pendingUpdate =
@@ -385,17 +385,17 @@ class GlobalProgressTracker(
                 // For actual 1-rep attempts (reps = 1), use a lower threshold (any improvement)
                 // For rep-based estimates, use the 2% threshold
                 currentUserMax != null && isBig4Exercise && (
-                    (bestEstimate.source.contains("1 rep") && estimated1RM > currentUserMax.maxWeight) ||
-                    (estimated1RM > currentUserMax.maxWeight * 1.02)
+                    (bestEstimate.source.contains("1 rep") && estimated1RM > currentUserMax.oneRMEstimate) ||
+                    (estimated1RM > currentUserMax.oneRMEstimate * 1.02)
                 ) -> {
                     println(
-                        "🎯 New estimated 1RM (${estimated1RM.roundToInt()}kg) exceeds stored max (${currentUserMax.maxWeight.roundToInt()}kg)",
+                        "🎯 New estimated 1RM (${estimated1RM.roundToInt()}kg) exceeds stored max (${currentUserMax.oneRMEstimate.roundToInt()}kg)",
                     )
                     exercise?.let {
                         PendingOneRMUpdate(
                             exerciseId = it.id,
                             exerciseName = progress.exerciseName,
-                            currentMax = currentUserMax.maxWeight,
+                            currentMax = currentUserMax.oneRMEstimate,
                             suggestedMax = estimated1RM,
                             confidence = bestEstimate.confidence,
                             source = bestEstimate.source,
@@ -422,8 +422,8 @@ class GlobalProgressTracker(
                     println("🔍 1RM Update Check: No update triggered")
                     if (currentUserMax != null) {
                         val improvement =
-                            if (currentUserMax.maxWeight > 0) {
-                                ((estimated1RM - currentUserMax.maxWeight) / currentUserMax.maxWeight) * 100
+                            if (currentUserMax.oneRMEstimate > 0) {
+                                ((estimated1RM - currentUserMax.oneRMEstimate) / currentUserMax.oneRMEstimate) * 100
                             } else {
                                 0f
                             }

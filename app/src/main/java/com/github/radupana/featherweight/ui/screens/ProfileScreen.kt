@@ -1,67 +1,41 @@
 package com.github.radupana.featherweight.ui.screens
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.radupana.featherweight.data.exercise.Exercise
-import com.github.radupana.featherweight.data.profile.ExerciseMaxWithName
-import com.github.radupana.featherweight.ui.dialogs.ExerciseSelectorDialog
-import com.github.radupana.featherweight.ui.dialogs.WorkoutSeederDialog
-import com.github.radupana.featherweight.util.WeightFormatter
+import androidx.compose.material.icons.filled.Add
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.radupana.featherweight.viewmodel.ProfileViewModel
-import java.time.format.DateTimeFormatter
+import com.github.radupana.featherweight.viewmodel.ExerciseMaxWithName
+import com.github.radupana.featherweight.ui.dialogs.Add1RMDialog
+import com.github.radupana.featherweight.ui.dialogs.ExerciseSelectorDialog
+import com.github.radupana.featherweight.ui.components.Big4ExerciseCard
+import com.github.radupana.featherweight.ui.components.OtherExerciseCard
+import com.github.radupana.featherweight.ui.components.GlassmorphicCard
+import com.github.radupana.featherweight.ui.components.CollapsibleSection
+import com.github.radupana.featherweight.ui.components.SubSection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
+    viewModel: ProfileViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: ProfileViewModel = viewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    var showAdd1RMDialog by remember { mutableStateOf(false) }
-    var showExerciseSelector by remember { mutableStateOf(false) }
-    var exerciseToEdit by remember { mutableStateOf<Exercise?>(null) }
-    var editingMax by remember { mutableStateOf<ExerciseMaxWithName?>(null) }
-    var selectedExerciseForDialog by remember { mutableStateOf<Exercise?>(null) }
-    var currentTab by remember { mutableStateOf("1RM") } // Track current tab
-    var showDeveloperDialog by remember { mutableStateOf(false) }
-    var showClearConfirmDialog by remember { mutableStateOf(false) }
-    val haptics = LocalHapticFeedback.current
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-
-    // Refresh data when screen is displayed
-    LaunchedEffect(Unit) {
-        viewModel.refreshData()
-    }
+    var showExerciseSelector by remember { mutableStateOf(false) }
+    var editingMax by remember { mutableStateOf<ExerciseMaxWithName?>(null) }
+    var showClearConfirmDialog by remember { mutableStateOf(false) }
+    var clearingExerciseId by remember { mutableStateOf<Long?>(null) }
 
     Scaffold(
         modifier = modifier,
@@ -74,404 +48,154 @@ fun ProfileScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    ),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                ),
             )
         },
     ) { paddingValues ->
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
         ) {
-            // Static Left Navigation
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxHeight()
-                        .width(80.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+            CollapsibleSection(
+                title = "One Rep Maxes",
+                isExpanded = uiState.isOneRMSectionExpanded,
+                onToggle = { viewModel.toggleOneRMSection() }
             ) {
                 Column(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(top = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.padding(top = 8.dp)
                 ) {
-                    // 1RM Menu Item
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = ripple(bounded = false),
-                                    onClick = { currentTab = "1RM" },
-                                ).padding(vertical = 12.dp),
+                    // Big Four Sub-section
+                    SubSection(
+                        title = "Big Four",
+                        isExpanded = uiState.isBig4SubSectionExpanded,
+                        onToggle = { viewModel.toggleBig4SubSection() }
                     ) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(48.dp)
-                                    .background(
-                                        if (currentTab == "1RM") {
-                                            MaterialTheme.colorScheme.primaryContainer
-                                        } else {
-                                            MaterialTheme.colorScheme.surfaceVariant
-                                        },
-                                        RoundedCornerShape(12.dp),
-                                    ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                Icons.Filled.FitnessCenter,
-                                contentDescription = "1 Rep Max",
-                                tint =
-                                    if (currentTab == "1RM") {
-                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                                modifier = Modifier.size(24.dp),
+                        uiState.big4Exercises.forEach { exercise ->
+                            Big4ExerciseCard(
+                                exerciseName = getDisplayName(exercise.exerciseName),
+                                oneRMValue = exercise.oneRMValue,
+                                oneRMType = exercise.oneRMType,
+                                oneRMContext = exercise.oneRMContext,
+                                oneRMDate = exercise.oneRMDate,
+                                sessionCount = exercise.sessionCount,
+                                onAdd = {
+                                    editingMax = ExerciseMaxWithName(
+                                        id = 0,
+                                        exerciseId = exercise.exerciseId,
+                                        exerciseName = exercise.exerciseName,
+                                        oneRMEstimate = 0f,
+                                        oneRMDate = java.time.LocalDateTime.now(),
+                                        oneRMContext = "Manually set",
+                                        oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,
+                                        notes = null,
+                                        sessionCount = 0
+                                    )
+                                },
+                                onEdit = {
+                                    editingMax = ExerciseMaxWithName(
+                                        id = 0,
+                                        exerciseId = exercise.exerciseId,
+                                        exerciseName = exercise.exerciseName,
+                                        oneRMEstimate = exercise.oneRMValue ?: 0f,
+                                        oneRMDate = java.time.LocalDateTime.now(),
+                                        oneRMContext = exercise.oneRMContext ?: "Manually set",
+                                        oneRMType = exercise.oneRMType ?: com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,
+                                        notes = null,
+                                        sessionCount = exercise.sessionCount
+                                    )
+                                },
+                                onClear = {
+                                    clearingExerciseId = exercise.exerciseId
+                                    showClearConfirmDialog = true
+                                }
                             )
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "1RM",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
-                            color =
-                                if (currentTab == "1RM") {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                        )
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Developer Tools Menu Item
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = ripple(bounded = false),
-                                    onClick = { currentTab = "Developer" },
-                                ).padding(vertical = 12.dp),
-                    ) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(48.dp)
-                                    .background(
-                                        if (currentTab == "Developer") {
-                                            MaterialTheme.colorScheme.primaryContainer
-                                        } else {
-                                            MaterialTheme.colorScheme.surfaceVariant
-                                        },
-                                        RoundedCornerShape(12.dp),
-                                    ),
-                            contentAlignment = Alignment.Center,
+                    
+                    // Other Exercises Sub-section
+                    if (uiState.otherExercises.isNotEmpty()) {
+                        SubSection(
+                            title = "Other",
+                            isExpanded = uiState.isOtherSubSectionExpanded,
+                            onToggle = { viewModel.toggleOtherSubSection() },
+                            showDivider = true
                         ) {
-                            Icon(
-                                Icons.Filled.Code,
-                                contentDescription = "Developer Tools",
-                                tint =
-                                    if (currentTab == "Developer") {
-                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                                modifier = Modifier.size(24.dp),
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "Dev",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
-                            color =
-                                if (currentTab == "Developer") {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                        )
-                    }
-                }
-            }
-
-            // Main Content Area
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background),
-            ) {
-                when (currentTab) {
-                    "1RM" -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding =
-                                PaddingValues(
-                                    start = 12.dp,
-                                    end = 12.dp,
-                                    top = 12.dp,
-                                    bottom = 80.dp, // Space for FAB
-                                ),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            // Header
-                            item {
-                                Column {
-                                    Text(
-                                        "One Rep Max Tracking",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Medium,
-                                        modifier = Modifier.padding(bottom = 2.dp),
-                                    )
-                                    Text(
-                                        "Track your one-rep maximums",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(bottom = 16.dp),
-                                    )
-                                }
-                            }
-
-                            // Big Four Section Title
-                            item {
-                                Text(
-                                    "Big Four",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Normal,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(bottom = 4.dp, top = 8.dp),
-                                )
-                            }
-
-                            // Define Big 4 exercises with their expected names (matching database)
-                            val big4Names =
-                                listOf(
-                                    "Barbell Back Squat",
-                                    "Barbell Bench Press",
-                                    "Barbell Deadlift",
-                                    "Barbell Overhead Press",
-                                )
-
-                            // Big 4 Exercises - One per row
-                            items(big4Names) { exerciseName ->
-                                val exercise = uiState.big4Exercises.find { it.name == exerciseName }
-                                val currentMax =
-                                    if (exercise != null) {
-                                        uiState.currentMaxes.find { it.exerciseId == exercise.id }
-                                    } else {
-                                        uiState.currentMaxes.find { it.exerciseName == exerciseName }
-                                    }
-                                println("🏋️ Big4Card: $exerciseName - Exercise ID: ${exercise?.id}, CurrentMax: ${currentMax?.maxWeight}")
-                                println("📊 Available maxes: ${uiState.currentMaxes.map { "${it.exerciseName}(id:${it.exerciseId}): ${WeightFormatter.formatWeight(it.maxWeight)}kg" }.joinToString()}")
-
-                                if (exercise != null) {
-                                    Big4ExerciseCard(
-                                        exercise = exercise,
-                                        currentMax = currentMax,
-                                        onEdit = { exerciseToEdit = exercise },
-                                        onClear = {
-                                            viewModel.clearAllMaxesForExercise(exercise.id)
-                                        },
-                                    )
-                                } else {
-                                    // Show placeholder card for missing exercise
-                                    Big4ExercisePlaceholder(
-                                        exerciseName = exerciseName,
-                                        onAdd = {
-                                            // Try to find the exercise in the database
-                                            viewModel.findAndSelectExercise(exerciseName)
-                                            showAdd1RMDialog = true
-                                        },
-                                    )
-                                }
-                            }
-
-                            // Other 1RMs Section
-                            if (uiState.currentMaxes.any { max ->
-                                    uiState.big4Exercises.none { it.id == max.exerciseId }
-                                }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp),
+                                horizontalArrangement = Arrangement.End
                             ) {
-                                item {
-                                    Text(
-                                        "Others",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Normal,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                                IconButton(
+                                    onClick = { showExerciseSelector = true }
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Add,
+                                        contentDescription = "Add exercise",
+                                        tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
-
-                                items(
-                                    uiState.currentMaxes.filter { max ->
-                                        uiState.big4Exercises.none { it.id == max.exerciseId }
-                                    },
-                                ) { max ->
-                                    ExerciseMaxCardWrapper(
-                                        max = max,
+                            }
+                            
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                uiState.otherExercises.forEach { max ->
+                                    OtherExerciseCard(
+                                        exerciseName = max.exerciseName,
+                                        oneRMValue = max.oneRMEstimate,
+                                        oneRMType = max.oneRMType,
+                                        oneRMContext = max.oneRMContext,
+                                        oneRMDate = max.oneRMDate,
+                                        sessionCount = max.sessionCount,
                                         onEdit = { editingMax = max },
-                                        onDelete = { viewModel.deleteMax(max) },
+                                        onDelete = { viewModel.deleteMax(max.exerciseId) }
                                     )
                                 }
                             }
                         }
-
-                        // Floating Action Button - only show for 1RM tab
-                        ExtendedFloatingActionButton(
-                            onClick = {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                showAdd1RMDialog = true
-                            },
-                            modifier =
-                                Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(16.dp),
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                    } else {
+                        // Add button when no other exercises
+                        Spacer(modifier = Modifier.height(8.dp))
+                        GlassmorphicCard(
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(
-                                Icons.Filled.Add,
-                                contentDescription = "Add 1RM",
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Add 1RM")
-                        }
-                    }
-
-                    "Developer" -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding =
-                                PaddingValues(
-                                    start = 12.dp,
-                                    end = 12.dp,
-                                    top = 12.dp,
-                                    bottom = 12.dp,
-                                ),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            // Header
-                            item {
-                                Column {
-                                    Text(
-                                        "Developer Tools",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                    Text(
-                                        "Debug and test features",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(bottom = 16.dp),
-                                    )
-                                }
-                            }
-
-                            // Developer tools content
-                            item {
-                                Card(
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                showDeveloperDialog = true
-                                            },
-                                    colors =
-                                        CardDefaults.cardColors(
-                                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                        ),
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    text = "Track More Exercises",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                
+                                Text(
+                                    text = "Add 1RM records for other exercises you want to track",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                
+                                FilledTonalButton(
+                                    onClick = { showExerciseSelector = true }
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.weight(1f),
-                                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                                        ) {
-                                            Text(
-                                                "Seed Workout Data",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Medium,
-                                            )
-                                            Text(
-                                                "Generate realistic workout history",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                            )
-                                        }
-                                        Icon(
-                                            Icons.Default.PlayArrow,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Clear data option
-                            item {
-                                Card(
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                showClearConfirmDialog = true
-                                            },
-                                    colors =
-                                        CardDefaults.cardColors(
-                                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
-                                        ),
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.weight(1f),
-                                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                                        ) {
-                                            Text(
-                                                "Clear All Workouts",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Medium,
-                                                color = MaterialTheme.colorScheme.error,
-                                            )
-                                            Text(
-                                                "Remove all workout history",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f),
-                                            )
-                                        }
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error,
-                                        )
-                                    }
+                                    Icon(
+                                        Icons.Filled.Add,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Add Exercise")
                                 }
                             }
                         }
@@ -481,124 +205,84 @@ fun ProfileScreen(
         }
     }
 
-    // Add/Edit 1RM Bottom Sheet
-    if (showAdd1RMDialog || exerciseToEdit != null || editingMax != null) {
-        // Capture editingMax in a local variable to avoid smart cast issues
-        val currentEditingMax = editingMax
-
-        // Determine which exercise is currently selected
-        // selectedExerciseForDialog takes priority when set (user changed selection)
-        val displayExerciseId = selectedExerciseForDialog?.id ?: exerciseToEdit?.id ?: currentEditingMax?.exerciseId
-        val displayExerciseName = selectedExerciseForDialog?.name ?: exerciseToEdit?.name ?: currentEditingMax?.exerciseName
-
-        // For weight, only use editingMax weight if we haven't changed the exercise
-        val displayWeight =
-            if (selectedExerciseForDialog == null && currentEditingMax != null) {
-                currentEditingMax.maxWeight
-            } else {
-                uiState.currentMaxes.find { it.exerciseId == displayExerciseId }?.maxWeight
-            }
-
-        Add1RMBottomSheet(
-            exerciseId = displayExerciseId,
-            exerciseName = displayExerciseName,
-            currentWeight = displayWeight,
-            onDismiss = {
-                showAdd1RMDialog = false
-                exerciseToEdit = null
-                editingMax = null
-                selectedExerciseForDialog = null
-            },
-            onConfirm = { exerciseId, weight ->
-                viewModel.update1RM(exerciseId, weight)
-                showAdd1RMDialog = false
-                exerciseToEdit = null
-                editingMax = null
-                selectedExerciseForDialog = null
-            },
-            onSelectExercise = {
-                showExerciseSelector = true
-            },
-        )
-    }
-
-    // Exercise Selector
+    // Exercise Selector Dialog
     if (showExerciseSelector) {
         ExerciseSelectorDialog(
             onExerciseSelected = { exercise ->
-                // Update the selected exercise and keep the modal open
-                selectedExerciseForDialog = exercise
-                // Clear other states to ensure the new selection takes precedence
-                exerciseToEdit = null
+                // Check if we already have a max for this exercise
+                val existingMax = uiState.currentMaxes.find { it.exerciseId == exercise.id }
+                if (existingMax != null) {
+                    editingMax = existingMax
+                } else {
+                    // Create a new temporary max for editing
+                    editingMax = ExerciseMaxWithName(
+                        id = 0,
+                        exerciseId = exercise.id,
+                        exerciseName = exercise.name,
+                        oneRMEstimate = 0f,
+                        oneRMDate = java.time.LocalDateTime.now(),
+                        oneRMContext = "Manually set",
+                        oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,
+                        notes = null,
+                        sessionCount = 0
+                    )
+                }
+                showExerciseSelector = false
+            },
+            onDismiss = { showExerciseSelector = false },
+        )
+    }
+
+    // Edit/Add 1RM Dialog
+    editingMax?.let { max ->
+        Add1RMDialog(
+            exerciseName = max.exerciseName,
+            currentMax = if (max.oneRMEstimate > 0) max.oneRMEstimate else null,
+            onSave = { newMax ->
+                viewModel.update1RM(max.exerciseId, max.exerciseName, newMax)
                 editingMax = null
-                showExerciseSelector = false
             },
-            onDismiss = {
-                showExerciseSelector = false
-            },
-            excludeExerciseIds = uiState.currentMaxes.map { it.exerciseId }.toSet(),
+            onDismiss = { editingMax = null },
         )
     }
-
-    // Error handling
-    uiState.error?.let { error ->
-        LaunchedEffect(error) {
-            // Show snackbar or error dialog
-            viewModel.clearError()
-        }
-    }
-
-    // Developer Workout Seeder Dialog
-    if (showDeveloperDialog) {
-        WorkoutSeederDialog(
-            onDismiss = { showDeveloperDialog = false },
-            onConfirm = { config ->
-                viewModel.seedWorkouts(config)
-                showDeveloperDialog = false
-            },
-        )
-    }
-
-    // Clear All Workouts Confirmation Dialog
-    if (showClearConfirmDialog) {
+    
+    // Clear confirmation dialog
+    if (showClearConfirmDialog && clearingExerciseId != null) {
         AlertDialog(
-            onDismissRequest = { showClearConfirmDialog = false },
-            title = {
-                Text(
-                    text = "Clear All Workouts?",
-                    style = MaterialTheme.typography.headlineSmall,
-                )
+            onDismissRequest = {
+                showClearConfirmDialog = false
+                clearingExerciseId = null
             },
-            text = {
-                Text(
-                    "This will permanently delete all workout history, exercise logs, personal records, and progress data. This action cannot be undone.",
-                )
-            },
+            title = { Text("Clear 1RM") },
+            text = { Text("Are you sure you want to clear this 1RM record?") },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.clearAllWorkouts()
+                        clearingExerciseId?.let { viewModel.deleteMax(it) }
                         showClearConfirmDialog = false
-                    },
+                        clearingExerciseId = null
+                    }
                 ) {
-                    Text("Delete All", color = MaterialTheme.colorScheme.error)
+                    Text("Clear", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearConfirmDialog = false }) {
+                TextButton(
+                    onClick = {
+                        showClearConfirmDialog = false
+                        clearingExerciseId = null
+                    }
+                ) {
                     Text("Cancel")
                 }
-            },
+            }
         )
     }
 
     // Error handling
     uiState.error?.let { error ->
         LaunchedEffect(error) {
-            snackbarHostState.showSnackbar(
-                message = error,
-                duration = SnackbarDuration.Short,
-            )
+            snackbarHostState.showSnackbar(error)
             viewModel.clearError()
         }
     }
@@ -606,641 +290,20 @@ fun ProfileScreen(
     // Success message handling
     uiState.successMessage?.let { message ->
         LaunchedEffect(message) {
-            snackbarHostState.showSnackbar(
-                message = message,
-                duration = SnackbarDuration.Short,
-            )
+            snackbarHostState.showSnackbar(message)
             viewModel.clearSuccessMessage()
         }
     }
 }
 
+// Helper function to display user-friendly names
 @Composable
-private fun Compact1RMCardPlaceholder(
-    exerciseName: String,
-    onAdd: () -> Unit,
-) {
-    val haptics = LocalHapticFeedback.current
-
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .height(80.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(),
-                    onClick = {
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onAdd()
-                    },
-                ),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation = 1.dp,
-                pressedElevation = 2.dp,
-            ),
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(10.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = exerciseName,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
-
-            Text(
-                "Not set",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                fontWeight = FontWeight.Medium,
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun Compact1RMCard(
-    exercise: Exercise,
-    currentMax: ExerciseMaxWithName?,
-    onEdit: () -> Unit,
-    onClear: () -> Unit = {},
-) {
-    val haptics = LocalHapticFeedback.current
-    var showClearDialog by remember { mutableStateOf(false) }
-
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .height(80.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .combinedClickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(),
-                    onClick = {
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onEdit()
-                    },
-                    onLongClick =
-                        if (currentMax != null) {
-                            {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                showClearDialog = true
-                            }
-                        } else {
-                            null
-                        },
-                ),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation = 1.dp,
-                pressedElevation = 2.dp,
-            ),
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(10.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = exercise.name,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
-
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    "Set 1RM",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-        }
-    }
-
-    // Clear confirmation dialog
-    if (showClearDialog) {
-        AlertDialog(
-            onDismissRequest = { showClearDialog = false },
-            title = {
-                Text(
-                    text = "Clear 1RM?",
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-            },
-            text = {
-                Text("Clear your ${exercise.name} 1RM?")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onClear()
-                        showClearDialog = false
-                    },
-                ) {
-                    Text("Clear", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) {
-                    Text("Cancel")
-                }
-            },
-        )
-    }
-}
-
-@Composable
-private fun Big4ExerciseCard(
-    exercise: Exercise,
-    currentMax: ExerciseMaxWithName?,
-    onEdit: () -> Unit,
-    onClear: () -> Unit = {},
-) {
-    val haptics = LocalHapticFeedback.current
-    var showClearDialog by remember { mutableStateOf(false) }
-
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .combinedClickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(),
-                    onClick = {
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onEdit()
-                    },
-                    onLongClick =
-                        if (currentMax != null) {
-                            {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                showClearDialog = true
-                            }
-                        } else {
-                            null
-                        },
-                ),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-            ),
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation = 0.dp,
-                pressedElevation = 1.dp,
-            ),
-        shape = RoundedCornerShape(12.dp),
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = exercise.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Normal,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-
-            OutlinedButton(
-                onClick = onEdit,
-                modifier = Modifier.height(32.dp),
-            ) {
-                Text("Set 1RM")
-            }
-        }
-    }
-
-    // Clear confirmation dialog
-    if (showClearDialog) {
-        AlertDialog(
-            onDismissRequest = { showClearDialog = false },
-            title = {
-                Text(
-                    text = "Clear 1RM?",
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-            },
-            text = {
-                Text("Clear your ${exercise.name} 1RM?")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onClear()
-                        showClearDialog = false
-                    },
-                ) {
-                    Text("Clear", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) {
-                    Text("Cancel")
-                }
-            },
-        )
-    }
-}
-
-@Composable
-private fun Big4ExercisePlaceholder(
-    exerciseName: String,
-    onAdd: () -> Unit,
-) {
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .clickable { onAdd() },
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = exerciseName,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = "Not set",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-
-            OutlinedButton(
-                onClick = onAdd,
-                modifier = Modifier.height(32.dp),
-            ) {
-                Icon(
-                    Icons.Filled.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Add")
-            }
-        }
-    }
-}
-
-@Composable
-private fun ExerciseMaxCardWrapper(
-    max: ExerciseMaxWithName,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    var showDeleteDialog by remember { mutableStateOf(false) }
-
-    OtherExerciseMaxCard(
-        max = max,
-        onEdit = onEdit,
-        onDelete = { showDeleteDialog = true },
-    )
-
-    // Delete confirmation dialog
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = {
-                Text(
-                    text = "Delete 1RM?",
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-            },
-            text = {
-                Text("Delete ${max.exerciseName} - ${WeightFormatter.formatWeightWithUnit(max.maxWeight)}?")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDelete()
-                        showDeleteDialog = false
-                    },
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
-                }
-            },
-        )
-    }
-}
-
-@Composable
-private fun OtherExerciseMaxCard(
-    max: ExerciseMaxWithName,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit = {},
-) {
-    val haptics = LocalHapticFeedback.current
-    var showMenu by remember { mutableStateOf(false) }
-
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(),
-                    onClick = {
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onEdit()
-                    },
-                ),
-        shape = RoundedCornerShape(12.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-            ),
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation = 0.dp,
-                pressedElevation = 1.dp,
-            ),
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    max.exerciseName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Normal,
-                )
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        WeightFormatter.formatWeightWithUnit(max.maxWeight),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
-                Text(
-                    max.recordedAt.format(DateTimeFormatter.ofPattern("MMM d, yyyy")),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                )
-            }
-
-            Box {
-                IconButton(
-                    onClick = { showMenu = true },
-                    modifier = Modifier.size(32.dp),
-                ) {
-                    Icon(
-                        Icons.Default.MoreVert,
-                        contentDescription = "More options",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Edit") },
-                        onClick = {
-                            showMenu = false
-                            onEdit()
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Delete") },
-                        onClick = {
-                            showMenu = false
-                            onDelete()
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun Add1RMBottomSheet(
-    exerciseId: Long? = null,
-    exerciseName: String? = null,
-    currentWeight: Float? = null,
-    onDismiss: () -> Unit,
-    onConfirm: (Long, Float) -> Unit,
-    onSelectExercise: () -> Unit,
-) {
-    val haptics = LocalHapticFeedback.current
-    var weightText by remember {
-        mutableStateOf(TextFieldValue(currentWeight?.toInt()?.toString() ?: ""))
-    }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-                    .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-        ) {
-            // Title
-            Text(
-                if (exerciseId != null) "Update 1RM" else "Add 1RM",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-            )
-
-            // Exercise Selection
-            if (exerciseName != null) {
-                Card(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onSelectExercise()
-                            },
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                        ),
-                ) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            exerciseName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "Change",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            } else {
-                Button(
-                    onClick = {
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onSelectExercise()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        ),
-                ) {
-                    Icon(
-                        Icons.Filled.Search,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Select Exercise")
-                }
-            }
-
-            // Weight Input
-            OutlinedTextField(
-                value = weightText,
-                onValueChange = { newValue ->
-                    val text = newValue.text
-                    if (text.isEmpty() || (text.all { it.isDigit() } && text.length <= 4)) {
-                        weightText = newValue
-                    }
-                },
-                label = { Text("Weight (kg)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-            )
-
-            // Action Buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onDismiss()
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Text("Cancel")
-                }
-
-                Button(
-                    onClick = {
-                        val weight = weightText.text.toFloatOrNull()
-                        if (exerciseId != null && weight != null && weight > 0) {
-                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onConfirm(exerciseId, weight)
-                        }
-                    },
-                    enabled = exerciseId != null && weightText.text.isNotEmpty(),
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Text("Save")
-                }
-            }
-        }
+private fun getDisplayName(exerciseName: String): String {
+    return when (exerciseName) {
+        "Barbell Back Squat" -> "Squat"
+        "Barbell Deadlift" -> "Deadlift"
+        "Barbell Bench Press" -> "Bench Press"
+        "Barbell Overhead Press" -> "Overhead Press"
+        else -> exerciseName
     }
 }

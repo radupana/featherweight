@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.data.exercise
 
 import androidx.room.*
+import com.github.radupana.featherweight.data.profile.OneRMType
 
 @Dao
 interface ExerciseDao {
@@ -77,6 +78,21 @@ interface ExerciseDao {
     """,
     )
     suspend fun findExerciseByNameOrAlias(searchTerm: String): Exercise?
+    
+    @Query(
+        """
+        SELECT * FROM exercises 
+        WHERE name IN ('Barbell Back Squat', 'Barbell Deadlift', 'Barbell Bench Press', 'Barbell Overhead Press')
+        ORDER BY 
+            CASE name
+                WHEN 'Barbell Back Squat' THEN 1
+                WHEN 'Barbell Deadlift' THEN 2
+                WHEN 'Barbell Bench Press' THEN 3
+                WHEN 'Barbell Overhead Press' THEN 4
+            END
+    """,
+    )
+    suspend fun getBig4Exercises(): List<Exercise>
 
     @Query("SELECT * FROM exercises WHERE id = :id")
     suspend fun getExerciseById(id: Long): Exercise?
@@ -107,4 +123,10 @@ class ExerciseTypeConverters {
 
     @TypeConverter
     fun toEquipment(equipment: String): Equipment = Equipment.valueOf(equipment)
+    
+    @TypeConverter
+    fun fromOneRMType(type: OneRMType): String = type.name
+    
+    @TypeConverter
+    fun toOneRMType(type: String): OneRMType = OneRMType.valueOf(type)
 }

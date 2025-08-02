@@ -378,7 +378,8 @@ class ExerciseSelectorViewModel(
                 }
 
                 // Get historical swaps
-                val swapHistory = repository.getSwapHistoryForExercise(exerciseId)
+                val userId = repository.getCurrentUserId()
+                val swapHistory = repository.getSwapHistoryForExercise(userId, exerciseId)
                 val previouslySwapped = mutableListOf<ExerciseSuggestion>()
 
                 println("Found ${swapHistory.size} historical swaps")

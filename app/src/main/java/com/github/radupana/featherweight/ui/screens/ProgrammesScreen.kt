@@ -36,7 +36,6 @@ import java.util.*
 fun ProgrammesScreen(
     modifier: Modifier = Modifier,
     viewModel: ProgrammeViewModel = viewModel(),
-    profileViewModel: ProfileViewModel = viewModel(),
     onNavigateToActiveProgramme: (() -> Unit)? = null,
     onNavigateToAIGenerator: (() -> Unit)? = null,
     onNavigateToAIProgrammePreview: (() -> Unit)? = null,
@@ -258,7 +257,7 @@ fun ProgrammesScreen(
             template = uiState.selectedTemplate!!,
             uiState = uiState,
             viewModel = viewModel,
-            profileViewModel = profileViewModel,
+            repository = com.github.radupana.featherweight.repository.FeatherweightRepository(viewModel.getApplication()),
             onProgrammeCreated = {
                 // Navigate to active programme screen after creation
                 onNavigateToActiveProgramme?.invoke()
@@ -271,7 +270,7 @@ fun ProgrammesScreen(
         com.github.radupana.featherweight.ui.dialogs.ProfileUpdatePromptDialog(
             updates = uiState.pendingProfileUpdates,
             onConfirm = {
-                viewModel.confirmProfileUpdate(profileViewModel)
+                viewModel.confirmProfileUpdate()
             },
             onDismiss = {
                 viewModel.dismissProfileUpdatePrompt()

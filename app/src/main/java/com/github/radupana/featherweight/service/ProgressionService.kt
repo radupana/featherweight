@@ -6,6 +6,7 @@ import com.github.radupana.featherweight.data.ExerciseProgressionStatus
 import com.github.radupana.featherweight.data.ProgressionAction
 import com.github.radupana.featherweight.data.programme.*
 import com.github.radupana.featherweight.repository.ExerciseRepository
+import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -18,6 +19,7 @@ class ProgressionService(
     private val performanceTrackingDao: ExercisePerformanceTrackingDao,
     private val exerciseRepository: ExerciseRepository,
     private val programmeDao: com.github.radupana.featherweight.data.programme.ProgrammeDao,
+    private val repository: FeatherweightRepository,
 ) {
     /**
      * Calculate the next weight for an exercise based on performance history and programme rules
@@ -261,7 +263,7 @@ class ProgressionService(
         programme: Programme,
     ): ProgressionDecision {
         // Try to get 1RM
-        val oneRM = exerciseRepository.getOneRMForExercise(exerciseName)
+        val oneRM = repository.getOneRMForExercise(exerciseName)
 
         val startingWeight =
             if (oneRM != null && oneRM > 0) {
