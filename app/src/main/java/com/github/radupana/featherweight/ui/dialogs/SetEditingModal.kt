@@ -1096,8 +1096,9 @@ fun CleanSetLayout(
                 }
                 
                 // Show percentage of 1RM below the row
-                if (oneRMEstimate != null && oneRMEstimate > 0 && set.actualWeight > 0) {
-                    val percentage = ((set.actualWeight / oneRMEstimate) * 100).toInt()
+                val displayWeight = if (set.actualWeight > 0) set.actualWeight else set.targetWeight ?: 0f
+                if (oneRMEstimate != null && oneRMEstimate > 0 && displayWeight > 0) {
+                    val percentage = ((displayWeight / oneRMEstimate) * 100).toInt()
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

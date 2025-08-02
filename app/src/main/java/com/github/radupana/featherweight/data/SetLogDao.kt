@@ -72,6 +72,17 @@ interface SetLogDao {
     """,
     )
     suspend fun getWorkoutDateForSetLog(setLogId: Long): String?
+    
+    @Query(
+        """
+        SELECT w.id 
+        FROM Workout w 
+        INNER JOIN ExerciseLog e ON w.id = e.workoutId 
+        INNER JOIN SetLog s ON e.id = s.exerciseLogId 
+        WHERE s.id = :setLogId
+    """,
+    )
+    suspend fun getWorkoutIdForSetLog(setLogId: Long): Long?
 
     @Query(
         """

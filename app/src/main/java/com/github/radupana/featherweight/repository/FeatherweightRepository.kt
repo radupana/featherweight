@@ -238,6 +238,13 @@ class FeatherweightRepository(
     suspend fun getExercisesForWorkout(workoutId: Long): List<ExerciseLog> = exerciseRepository.getExercisesForWorkout(workoutId)
 
     suspend fun getSetsForExercise(exerciseLogId: Long): List<SetLog> = exerciseRepository.getSetsForExercise(exerciseLogId)
+    
+    suspend fun getSetsForWorkout(workoutId: Long): List<SetLog> = withContext(Dispatchers.IO) {
+        val exercises = getExercisesForWorkout(workoutId)
+        exercises.flatMap { exercise ->
+            getSetsForExercise(exercise.id)
+        }
+    }
 
     suspend fun markSetCompleted(
         setId: Long,
@@ -2509,6 +2516,19 @@ class FeatherweightRepository(
     suspend fun getAllPersonalRecordsFromDB(): List<PersonalRecord> =
         withContext(Dispatchers.IO) {
             personalRecordDao.getAllPersonalRecords()
+        }
+    
+    /**
+     * Get personal records achieved during a specific workout
+     */
+    suspend fun getPersonalRecordsForWorkout(workoutId: Long): List<PersonalRecord> =
+        withContext(Dispatchers.IO) {
+            personalRecordDao.getPersonalRecordsForWorkout(workoutId)
+        }
+    
+    suspend fun getCurrentOneRMEstimate(userId: Long, exerciseId: Long): Float? =
+        withContext(Dispatchers.IO) {
+            db.oneRMDao().getCurrentOneRMEstimate(userId, exerciseId)
         }
 
     // ===== INSIGHTS SECTION =====

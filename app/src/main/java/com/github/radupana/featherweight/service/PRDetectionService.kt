@@ -47,8 +47,9 @@ class PRDetectionService(
             val currentWeight = setLog.actualWeight
             val currentReps = setLog.actualReps
 
-            // Get the actual workout date instead of using current date
+            // Get the actual workout date and ID
             val workoutDateString = setLogDao.getWorkoutDateForSetLog(setLog.id)
+            val workoutId = setLogDao.getWorkoutIdForSetLog(setLog.id)
             val currentDate =
                 if (workoutDateString != null) {
                     try {
@@ -63,14 +64,39 @@ class PRDetectionService(
                 }
 
             // Only check for weight PR (higher weight than ever before)
-            val weightPR = checkWeightPR(exerciseName, currentWeight, currentReps, currentDate)
+            val weightPR = checkWeightPR(exerciseName, currentWeight, currentReps, currentDate, workoutId)
             weightPR?.let { newPRs.add(it) }
 
-            // Save all detected PRs
+            // Save all detected PRs, but check for duplicates within the same workout
             Log.d("PRDetection", "🏆 Detected ${newPRs.size} total PRs")
             newPRs.forEach { pr ->
-                Log.d("PRDetection", "🏆 Saving ${pr.recordType} PR: ${pr.exerciseName} - ${pr.weight}kg x ${pr.reps}")
-                personalRecordDao.insertPersonalRecord(pr)
+                Log.d("PRDetection", "🏆 Processing ${pr.recordType} PR: ${pr.exerciseName} - ${pr.weight}kg x ${pr.reps}")
+                
+                // Check if there's already a PR for this exercise in this workout
+                if (pr.workoutId != null) {
+                    val existingPR = personalRecordDao.getPRForExerciseInWorkout(
+                        pr.workoutId, 
+                        pr.exerciseName, 
+                        pr.recordType
+                    )
+                    
+                    if (existingPR != null) {
+                        // If new PR is better, delete the old one
+                        if (pr.weight > existingPR.weight) {
+                            Log.d("PRDetection", "🏆 New PR is better than existing (${pr.weight}kg > ${existingPR.weight}kg), replacing")
+                            personalRecordDao.deletePR(existingPR.id)
+                            personalRecordDao.insertPersonalRecord(pr)
+                        } else {
+                            Log.d("PRDetection", "🏆 Existing PR is better (${existingPR.weight}kg >= ${pr.weight}kg), keeping existing")
+                        }
+                    } else {
+                        // No existing PR for this exercise in this workout
+                        personalRecordDao.insertPersonalRecord(pr)
+                    }
+                } else {
+                    // No workoutId (shouldn't happen with new code), just save it
+                    personalRecordDao.insertPersonalRecord(pr)
+                }
             }
 
             // Return all detected PRs
@@ -82,6 +108,7 @@ class PRDetectionService(
         weight: Float,
         reps: Int,
         date: LocalDateTime,
+        workoutId: Long?,
     ): PersonalRecord? {
         val currentMaxWeight = personalRecordDao.getMaxWeightForExercise(exerciseName)
 
@@ -118,6 +145,7 @@ class PRDetectionService(
                 volume = roundedWeight * reps,
                 estimated1RM = calculateEstimated1RM(roundedWeight, reps),
                 notes = notes,
+                workoutId = workoutId,
             )
         }
 

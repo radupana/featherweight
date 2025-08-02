@@ -26,4 +26,5 @@ data class PersonalRecord(
     val volume: Float = weight * reps, // Calculated field for convenience
     val estimated1RM: Float? = null, // Optional 1RM calculation
     val notes: String? = null, // Optional context about the PR
+    val workoutId: Long? = null, // Link to specific workout
 )

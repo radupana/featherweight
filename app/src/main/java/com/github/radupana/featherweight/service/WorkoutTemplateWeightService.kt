@@ -37,17 +37,18 @@ class WorkoutTemplateWeightService(
                 )
 
             // Update all sets with the suggested weight
-            if (suggestedWeight != null) {
-                for (set in sets) {
-                    setLogDao.update(
-                        set.copy(
-                            suggestedWeight = suggestedWeight.weight,
-                            suggestionSource = suggestedWeight.explanation,
-                            targetWeight = suggestedWeight.weight,
-                            suggestionConfidence = suggestedWeight.confidence,
-                        ),
-                    )
-                }
+            for (set in sets) {
+                setLogDao.update(
+                    set.copy(
+                        suggestedWeight = suggestedWeight.weight,
+                        suggestionSource = suggestedWeight.explanation,
+                        targetWeight = suggestedWeight.weight,
+                        // Also populate actual values so the checkbox is enabled
+                        actualWeight = suggestedWeight.weight,
+                        actualReps = set.targetReps,
+                        suggestionConfidence = suggestedWeight.confidence,
+                    ),
+                )
             }
         }
     }

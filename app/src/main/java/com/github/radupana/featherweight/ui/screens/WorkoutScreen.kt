@@ -56,6 +56,7 @@ import kotlin.time.Duration.Companion.seconds
 fun WorkoutScreen(
     onBack: () -> Unit,
     onSelectExercise: () -> Unit,
+    onWorkoutComplete: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: WorkoutViewModel = viewModel(),
 ) {
@@ -141,9 +142,12 @@ fun WorkoutScreen(
     }
 
     // Navigate away after dealing with 1RM updates
+    val currentWorkoutId by viewModel.currentWorkoutId.collectAsState()
     LaunchedEffect(shouldNavigateAfterCompletion, pendingOneRMUpdates, showOneRMUpdateDialog) {
         if (shouldNavigateAfterCompletion && pendingOneRMUpdates.isEmpty() && !showOneRMUpdateDialog) {
-            onBack()
+            currentWorkoutId?.let { workoutId ->
+                onWorkoutComplete(workoutId)
+            }
         }
     }
 
