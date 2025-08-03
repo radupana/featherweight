@@ -81,6 +81,7 @@ enum class Screen {
     PROGRAMME_HISTORY_DETAIL,
     WORKOUT_TEMPLATE_CONFIGURATION,
     WORKOUT_COMPLETION,
+    PROGRAMME_COMPLETION,
 }
 
 data class NavigationItem(
@@ -147,6 +148,7 @@ class MainActivity : ComponentActivity() {
                     var previousScreen by rememberSaveable { mutableStateOf<Screen?>(null) }
                     var selectedExerciseName by rememberSaveable { mutableStateOf("") }
                     var completedWorkoutId by rememberSaveable { mutableStateOf<Long?>(null) }
+                    var completedProgrammeId by rememberSaveable { mutableStateOf<Long?>(null) }
 
                     // Seed database early
                     LaunchedEffect(Unit) {
@@ -197,6 +199,8 @@ class MainActivity : ComponentActivity() {
                                 onSelectedExerciseNameChange = { exerciseName -> selectedExerciseName = exerciseName },
                                 completedWorkoutId = completedWorkoutId,
                                 onCompletedWorkoutIdChange = { id -> completedWorkoutId = id },
+                                completedProgrammeId = completedProgrammeId,
+                                onCompletedProgrammeIdChange = { id -> completedProgrammeId = id },
                             )
                         }
                     }
@@ -219,6 +223,8 @@ fun MainAppWithNavigation(
     onSelectedExerciseNameChange: (String) -> Unit,
     completedWorkoutId: Long?,
     onCompletedWorkoutIdChange: (Long?) -> Unit,
+    completedProgrammeId: Long?,
+    onCompletedProgrammeIdChange: (Long?) -> Unit,
 ) {
     // Track last screen for internal use
     var lastScreen by remember { mutableStateOf(currentScreen) }
@@ -291,7 +297,8 @@ fun MainAppWithNavigation(
                 currentScreen != Screen.PROGRAMME_PREVIEW &&
                 currentScreen != Screen.PROGRAMME_HISTORY_DETAIL &&
                 currentScreen != Screen.WORKOUT_TEMPLATE_CONFIGURATION &&
-                currentScreen != Screen.WORKOUT_COMPLETION
+                currentScreen != Screen.WORKOUT_COMPLETION &&
+                currentScreen != Screen.PROGRAMME_COMPLETION
             ) {
                 NavigationBar {
                     navigationItems.forEach { item ->
@@ -339,6 +346,10 @@ fun MainAppWithNavigation(
                     onWorkoutComplete = { workoutId ->
                         onCompletedWorkoutIdChange(workoutId)
                         onScreenChange(Screen.WORKOUT_COMPLETION)
+                    },
+                    onProgrammeComplete = { programmeId ->
+                        onCompletedProgrammeIdChange(programmeId)
+                        onScreenChange(Screen.PROGRAMME_COMPLETION)
                     },
                     workoutViewModel = workoutViewModel,
                     modifier = Modifier.padding(innerPadding),
@@ -452,6 +463,23 @@ fun MainAppWithNavigation(
                 } ?: run {
                     // If no workout ID, go back to workouts
                     onScreenChange(Screen.WORKOUTS)
+                }
+            }
+            
+            Screen.PROGRAMME_COMPLETION -> {
+                completedProgrammeId?.let { programmeId ->
+                    com.github.radupana.featherweight.ui.screens.ProgrammeCompletionScreen(
+                        programmeId = programmeId,
+                        onDismiss = {
+                            // Clear the completed programme ID
+                            onCompletedProgrammeIdChange(null)
+                            // Navigate to programmes screen
+                            onScreenChange(Screen.PROGRAMMES)
+                        }
+                    )
+                } ?: run {
+                    // If no programme ID, go back to programmes
+                    onScreenChange(Screen.PROGRAMMES)
                 }
             }
             
@@ -606,6 +634,7 @@ fun WorkoutScreen(
     onBack: () -> Unit,
     onSelectExercise: () -> Unit,
     onWorkoutComplete: (Long) -> Unit = {},
+    onProgrammeComplete: (Long) -> Unit = {},
     workoutViewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
@@ -614,6 +643,7 @@ fun WorkoutScreen(
             onBack = onBack,
             onSelectExercise = onSelectExercise,
             onWorkoutComplete = onWorkoutComplete,
+            onProgrammeComplete = onProgrammeComplete,
             viewModel = workoutViewModel,
         )
     }

@@ -55,6 +55,7 @@ fun WorkoutScreen(
     onBack: () -> Unit,
     onSelectExercise: () -> Unit,
     onWorkoutComplete: (Long) -> Unit = {},
+    onProgrammeComplete: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: WorkoutViewModel = viewModel(),
 ) {
@@ -434,11 +435,18 @@ fun WorkoutScreen(
             completedSets = completedSets,
             totalSets = totalSets,
             onComplete = {
-                viewModel.completeWorkout {
-                    // Completion callback: let the workout completion finish before navigation
-                    showCompleteWorkoutDialog = false
-                    shouldNavigateAfterCompletion = true
-                }
+                viewModel.completeWorkout(
+                    onComplete = {
+                        // Completion callback: let the workout completion finish before navigation
+                        showCompleteWorkoutDialog = false
+                        shouldNavigateAfterCompletion = true
+                    },
+                    onProgrammeComplete = { programmeId ->
+                        // Programme completion callback
+                        showCompleteWorkoutDialog = false
+                        onProgrammeComplete(programmeId)
+                    }
+                )
             },
             onDismiss = { showCompleteWorkoutDialog = false },
         )

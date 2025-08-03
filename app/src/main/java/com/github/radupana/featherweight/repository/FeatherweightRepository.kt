@@ -20,6 +20,7 @@ import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseAliasSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseCorrelationSeeder
+import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 import com.github.radupana.featherweight.data.profile.OneRMType
 import kotlinx.coroutines.flow.map
@@ -41,6 +42,9 @@ import com.github.radupana.featherweight.data.programme.ProgressionType
 import com.github.radupana.featherweight.data.programme.RepsStructure
 import com.github.radupana.featherweight.data.programme.WeightBasis
 import com.github.radupana.featherweight.data.programme.WorkoutStructure
+import com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats
+import com.github.radupana.featherweight.data.programme.StrengthImprovement
+import com.github.radupana.featherweight.data.programme.ProgrammeInsights
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.ExerciseStats
 import com.github.radupana.featherweight.domain.SmartSuggestions
@@ -61,6 +65,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.Duration
 import com.github.radupana.featherweight.data.programme.ProgrammeType as DataProgrammeType
 
 data class NextProgrammeWorkoutInfo(
@@ -166,6 +171,15 @@ class FeatherweightRepository(
             maxWeight = roundedWeight,
             notes = "Updated from ${update.source}",
         )
+        
+        // Save to history
+        saveOneRMToHistory(
+            userId = userId,
+            exerciseId = update.exerciseId,
+            exerciseName = update.exerciseName,
+            oneRM = roundedWeight,
+            context = "${roundedWeight}kg × 1"
+        )
 
         println("✅ 1RM update applied successfully")
 
@@ -209,6 +223,9 @@ class FeatherweightRepository(
                 println("Seeded exercise aliases")
             }
 
+            // Clean up StrongLifts programmes (we're removing it from the app)
+            cleanupStrongLiftsProgrammes()
+            
             // Always check and seed missing programme templates
             programmeSeeder.seedPopularProgrammes()
 
@@ -1827,6 +1844,150 @@ class FeatherweightRepository(
         withContext(Dispatchers.IO) {
             programmeDao.getProgrammeWithDetails(programmeId)
         }
+        
+    suspend fun calculateProgrammeCompletionStats(programmeId: Long): ProgrammeCompletionStats? =
+        withContext(Dispatchers.IO) {
+            val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext null
+            val progress = programmeDao.getProgressForProgramme(programmeId) ?: return@withContext null
+            val workouts = workoutDao.getWorkoutsByProgramme(programmeId)
+            
+            // Calculate total volume
+            var totalVolume = 0.0
+            for (workout in workouts.filter { it.status == WorkoutStatus.COMPLETED }) {
+                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                for (exercise in exercises) {
+                    val sets = setLogDao.getSetLogsForExercise(exercise.id)
+                    for (set in sets.filter { it.isCompleted }) {
+                        totalVolume += (set.actualWeight * set.actualReps).toDouble()
+                    }
+                }
+            }
+            
+            // Calculate average workout duration
+            val completedWorkouts = workouts.filter { it.status == WorkoutStatus.COMPLETED && it.durationSeconds != null }
+            val averageDuration = if (completedWorkouts.isNotEmpty()) {
+                val avgSeconds = completedWorkouts.mapNotNull { it.durationSeconds }.average().toLong()
+                Duration.ofSeconds(avgSeconds)
+            } else {
+                Duration.ZERO
+            }
+            
+            // Count PRs during programme
+            val prs = personalRecordDao.getPersonalRecordsInDateRange(
+                programme.startedAt ?: programme.createdAt,
+                programme.completedAt ?: LocalDateTime.now()
+            )
+            
+            // Calculate strength improvements
+            val strengthImprovements = calculateStrengthImprovements(programmeId)
+            val avgImprovement = if (strengthImprovements.isNotEmpty()) {
+                strengthImprovements.map { it.improvementPercentage }.average().toFloat()
+            } else {
+                0f
+            }
+            
+            // Calculate insights
+            val insights = calculateProgrammeInsights(workouts)
+            
+            ProgrammeCompletionStats(
+                programmeId = programmeId,
+                programmeName = programme.name,
+                startDate = programme.startedAt ?: programme.createdAt,
+                endDate = programme.completedAt ?: LocalDateTime.now(),
+                totalWorkouts = progress.totalWorkouts,
+                completedWorkouts = progress.completedWorkouts,
+                totalVolume = totalVolume.toFloat(),
+                averageWorkoutDuration = averageDuration,
+                totalPRs = prs.size,
+                strengthImprovements = strengthImprovements,
+                averageStrengthImprovement = avgImprovement,
+                insights = insights
+            )
+        }
+        
+    private suspend fun calculateStrengthImprovements(programmeId: Long): List<StrengthImprovement> =
+        withContext(Dispatchers.IO) {
+            val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext emptyList()
+            val startDate = programme.startedAt ?: programme.createdAt
+            val endDate = programme.completedAt ?: LocalDateTime.now()
+            
+            // Get all exercises used in the programme
+            val exerciseNames = workoutDao.getWorkoutsByProgramme(programmeId)
+                .flatMap { workout ->
+                    exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                        .map { it.exerciseName }
+                }
+                .distinct()
+            
+            // For each exercise, find 1RM improvements
+            val improvements = mutableListOf<StrengthImprovement>()
+            
+            for (exerciseName in exerciseNames) {
+                val exercise = getExerciseByName(exerciseName) ?: continue
+                
+                // Get 1RM history in programme date range
+                val history = db.oneRMDao().getOneRMHistoryInRange(exercise.id, startDate, endDate)
+                if (history.isNotEmpty()) {
+                    val startingMax = history.first().oneRMEstimate
+                    val endingMax = history.last().oneRMEstimate
+                    
+                    if (endingMax > startingMax) {
+                        val improvement = endingMax - startingMax
+                        val percentage = (improvement / startingMax) * 100
+                        
+                        improvements.add(
+                            StrengthImprovement(
+                                exerciseName = exerciseName,
+                                startingMax = startingMax,
+                                endingMax = endingMax,
+                                improvementKg = improvement,
+                                improvementPercentage = percentage
+                            )
+                        )
+                    }
+                }
+            }
+            
+            improvements.sortedByDescending { it.improvementPercentage }
+        }
+        
+    private fun calculateProgrammeInsights(workouts: List<Workout>): ProgrammeInsights {
+        val completedWorkouts = workouts.filter { it.status == WorkoutStatus.COMPLETED }
+        
+        // Calculate most consistent training day
+        val dayCount = completedWorkouts.groupingBy { 
+            it.date.dayOfWeek.name 
+        }.eachCount()
+        
+        val mostConsistentDay = dayCount.maxByOrNull { it.value }?.key
+        
+        // Calculate average rest days between workouts
+        val sortedWorkouts = completedWorkouts.sortedBy { it.date }
+        val restDays = if (sortedWorkouts.size > 1) {
+            sortedWorkouts.zipWithNext { a, b ->
+                java.time.temporal.ChronoUnit.DAYS.between(a.date, b.date).toFloat() - 1
+            }.average().toFloat()
+        } else {
+            0f
+        }
+        
+        return ProgrammeInsights(
+            totalTrainingDays = completedWorkouts.size,
+            mostConsistentDay = mostConsistentDay,
+            averageRestDaysBetweenWorkouts = restDays
+        )
+    }
+    
+    suspend fun updateProgrammeCompletionNotes(programmeId: Long, notes: String?) =
+        withContext(Dispatchers.IO) {
+            val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext
+            programmeDao.updateProgramme(
+                programme.copy(
+                    completionNotes = notes,
+                    notesCreatedAt = if (notes != null) LocalDateTime.now() else null
+                )
+            )
+        }
 
     suspend fun activateProgramme(programmeId: Long) =
         withContext(Dispatchers.IO) {
@@ -2082,16 +2243,52 @@ class FeatherweightRepository(
             // Check if we have an existing record for this user/exercise
             val existing = db.oneRMDao().getCurrentMax(oneRMRecord.userId, oneRMRecord.exerciseId)
             
-            if (existing != null) {
+            val shouldSaveHistory = if (existing != null) {
                 // Update existing record if new estimate is higher
                 if (oneRMRecord.oneRMEstimate > existing.oneRMEstimate) {
                     db.oneRMDao().updateExerciseMax(oneRMRecord.copy(id = existing.id))
+                    true
+                } else {
+                    false
                 }
             } else {
                 // Insert new record
                 db.oneRMDao().insertExerciseMax(oneRMRecord)
+                true
+            }
+            
+            // Save to history if we made a change
+            if (shouldSaveHistory) {
+                val exercise = db.exerciseDao().getExerciseById(oneRMRecord.exerciseId)
+                exercise?.let {
+                    saveOneRMToHistory(
+                        userId = oneRMRecord.userId,
+                        exerciseId = oneRMRecord.exerciseId,
+                        exerciseName = it.name,
+                        oneRM = oneRMRecord.oneRMEstimate,
+                        context = oneRMRecord.oneRMContext
+                    )
+                }
             }
         }
+
+    private suspend fun cleanupStrongLiftsProgrammes() = withContext(Dispatchers.IO) {
+        try {
+            // Delete StrongLifts template
+            programmeDao.deleteProgrammeTemplateByName("StrongLifts 5x5")
+            
+            // Delete any active StrongLifts programmes
+            val programmes = programmeDao.getAllProgrammes()
+            programmes.filter { it.templateName == "StrongLifts 5x5" || it.name == "StrongLifts 5x5" }
+                .forEach { programme ->
+                    programmeDao.deleteProgrammeById(programme.id)
+                }
+            
+            println("Cleaned up StrongLifts 5x5 programmes")
+        } catch (e: Exception) {
+            println("Error cleaning up StrongLifts programmes: ${e.message}")
+        }
+    }
 
     // ========== Test User Management ==========
 
@@ -2505,6 +2702,25 @@ class FeatherweightRepository(
         withContext(Dispatchers.IO) {
             db.oneRMDao().getCurrentOneRMEstimate(userId, exerciseId)
         }
+        
+    suspend fun saveOneRMToHistory(
+        userId: Long,
+        exerciseId: Long,
+        exerciseName: String,
+        oneRM: Float,
+        context: String
+    ) = withContext(Dispatchers.IO) {
+        db.oneRMDao().insertOneRMHistory(
+            OneRMHistory(
+                userId = userId,
+                exerciseId = exerciseId,
+                exerciseName = exerciseName,
+                oneRMEstimate = oneRM,
+                context = context,
+                recordedAt = LocalDateTime.now()
+            )
+        )
+    }
     
     /**
      * Update workout notes
@@ -2882,6 +3098,7 @@ class FeatherweightRepository(
                     totalWorkouts = workouts.size,
                     programmeType = programme.programmeType,
                     difficulty = programme.difficulty,
+                    completionNotes = programme.completionNotes,
                 )
             }
         }
@@ -2976,6 +3193,7 @@ class FeatherweightRepository(
                 totalWorkouts = allWorkouts.size,
                 programDurationDays = programDurationDays,
                 workoutHistory = workoutHistory,
+                completionNotes = programme.completionNotes,
             )
         }
 
@@ -3061,6 +3279,7 @@ data class ProgrammeSummary(
     val totalWorkouts: Int = 0,
     val programmeType: com.github.radupana.featherweight.data.programme.ProgrammeType = com.github.radupana.featherweight.data.programme.ProgrammeType.GENERAL_FITNESS,
     val difficulty: ProgrammeDifficulty = ProgrammeDifficulty.INTERMEDIATE,
+    val completionNotes: String? = null,
 )
 
 data class ProgrammeHistoryDetails(
@@ -3075,6 +3294,7 @@ data class ProgrammeHistoryDetails(
     val totalWorkouts: Int,
     val programDurationDays: Int,
     val workoutHistory: List<WorkoutHistoryEntry>,
+    val completionNotes: String? = null,
 )
 
 data class ProgrammeWeekHistory(

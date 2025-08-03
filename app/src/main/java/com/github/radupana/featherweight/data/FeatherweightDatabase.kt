@@ -11,6 +11,7 @@ import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.ExerciseTypeConverters
 import com.github.radupana.featherweight.data.profile.OneRMDao
 import com.github.radupana.featherweight.data.profile.ProfileDao
+import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.data.profile.UserProfile
 import com.github.radupana.featherweight.data.programme.ExerciseSubstitution
@@ -36,6 +37,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         ProgrammeProgress::class,
         UserProfile::class,
         UserExerciseMax::class,
+        OneRMHistory::class,
         ExerciseSwapHistory::class,
         ExercisePerformanceTracking::class,
         GlobalExerciseProgress::class,
@@ -43,7 +45,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         PersonalRecord::class,
         AIProgrammeRequest::class,
     ],
-    version = 52,
+    version = 57,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)

@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDateTime
 
 @Dao
 interface PersonalRecordDao {
@@ -129,4 +130,15 @@ interface PersonalRecordDao {
     
     @Query("DELETE FROM PersonalRecord WHERE id = :prId")
     suspend fun deletePR(prId: Long)
+    
+    @Query("""
+        SELECT * FROM PersonalRecord 
+        WHERE recordDate >= :startDate 
+        AND recordDate <= :endDate
+        ORDER BY recordDate DESC
+    """)
+    suspend fun getPersonalRecordsInDateRange(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<PersonalRecord>
 }

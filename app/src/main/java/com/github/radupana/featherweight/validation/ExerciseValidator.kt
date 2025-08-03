@@ -62,14 +62,19 @@ class ExerciseValidator(private val exerciseDao: ExerciseDao) {
         val errors = mutableListOf<ValidationError>()
 
         try {
-            // Simple regex to find exercise names in JSON
-            val exercisePattern = """"name"\s*:\s*"([^"]+)"""".toRegex()
-            val matches = exercisePattern.findAll(jsonStructure)
-
-            matches.forEach { match ->
-                val exerciseName = match.groupValues[1]
-                // Skip non-exercise names (like workout names)
-                if (!exerciseName.contains("Workout") && !exerciseName.contains("Week") && !exerciseName.contains("Day")) {
+            // Parse the JSON structure to extract only exercise names
+            // Look for patterns like: "exercises": [...{"name": "exercise_name"}...]
+            val exercisesPattern = """"exercises"\s*:\s*\[([^\]]+)\]""".toRegex()
+            val exercisesMatches = exercisesPattern.findAll(jsonStructure)
+            
+            exercisesMatches.forEach { exercisesMatch ->
+                val exercisesBlock = exercisesMatch.groupValues[1]
+                // Now find exercise names within the exercises block
+                val exerciseNamePattern = """"name"\s*:\s*"([^"]+)"""".toRegex()
+                val nameMatches = exerciseNamePattern.findAll(exercisesBlock)
+                
+                nameMatches.forEach { nameMatch ->
+                    val exerciseName = nameMatch.groupValues[1]
                     val result = validateExerciseName(exerciseName)
                     if (result is ValidationResult.Invalid) {
                         errors.add(

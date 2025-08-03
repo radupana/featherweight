@@ -2,6 +2,7 @@ package com.github.radupana.featherweight.data.profile
 
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDateTime
 
 @Dao
 interface OneRMDao {
@@ -15,7 +16,10 @@ interface OneRMDao {
     suspend fun deleteExerciseMax(max: UserExerciseMax)
 
     @Query("DELETE FROM user_exercise_maxes WHERE userId = :userId AND exerciseId = :exerciseId")
-    suspend fun deleteAllMaxesForExercise(userId: Long, exerciseId: Long)
+    suspend fun deleteAllMaxesForExercise(
+        userId: Long,
+        exerciseId: Long,
+    )
 
     @Query(
         """
@@ -23,9 +27,12 @@ interface OneRMDao {
         WHERE userId = :userId AND exerciseId = :exerciseId
         ORDER BY oneRMDate DESC
         LIMIT 1
-    """
+    """,
     )
-    suspend fun getCurrentMax(userId: Long, exerciseId: Long): UserExerciseMax?
+    suspend fun getCurrentMax(
+        userId: Long,
+        exerciseId: Long,
+    ): UserExerciseMax?
 
     @Query(
         """
@@ -33,9 +40,12 @@ interface OneRMDao {
         WHERE userId = :userId AND exerciseId = :exerciseId
         ORDER BY oneRMDate DESC
         LIMIT 1
-    """
+    """,
     )
-    fun getCurrentMaxFlow(userId: Long, exerciseId: Long): Flow<UserExerciseMax?>
+    fun getCurrentMaxFlow(
+        userId: Long,
+        exerciseId: Long,
+    ): Flow<UserExerciseMax?>
 
     @Query(
         """
@@ -44,9 +54,12 @@ interface OneRMDao {
         AND oneRMEstimate > 0
         ORDER BY oneRMDate DESC
         LIMIT 1
-    """
+    """,
     )
-    suspend fun getCurrentOneRMEstimate(userId: Long, exerciseId: Long): Float?
+    suspend fun getCurrentOneRMEstimate(
+        userId: Long,
+        exerciseId: Long,
+    ): Float?
 
     @Query(
         """
@@ -57,25 +70,31 @@ interface OneRMDao {
             WHERE userId = :userId AND exerciseId IN (:exerciseIds)
             GROUP BY exerciseId
         )
-    """
+    """,
     )
-    suspend fun getCurrentMaxesForExercises(userId: Long, exerciseIds: List<Long>): List<UserExerciseMax>
+    suspend fun getCurrentMaxesForExercises(
+        userId: Long,
+        exerciseIds: List<Long>,
+    ): List<UserExerciseMax>
 
     @Query(
         """
         SELECT * FROM user_exercise_maxes
         WHERE userId = :userId AND exerciseId = :exerciseId
         ORDER BY oneRMDate DESC
-    """
+    """,
     )
-    fun getMaxHistory(userId: Long, exerciseId: Long): Flow<List<UserExerciseMax>>
+    fun getMaxHistory(
+        userId: Long,
+        exerciseId: Long,
+    ): Flow<List<UserExerciseMax>>
 
     @Transaction
     suspend fun upsertExerciseMax(
         userId: Long,
         exerciseId: Long,
         maxWeight: Float,
-        notes: String? = null
+        notes: String? = null,
     ) {
         val currentMax = getCurrentMax(userId, exerciseId)
         if (currentMax != null && currentMax.oneRMEstimate == maxWeight) {
@@ -95,15 +114,15 @@ interface OneRMDao {
                     oneRMContext = "${maxWeight}kg × 1",
                     oneRMConfidence = 1.0f,
                     oneRMDate = java.time.LocalDateTime.now(),
-                    notes = notes
-                )
+                    notes = notes,
+                ),
             )
         }
     }
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdateExerciseMax(max: UserExerciseMax): Long
-    
+
     @Query(
         """
         SELECT 
@@ -137,10 +156,10 @@ interface OneRMDao {
             GROUP BY exerciseId
         )
         ORDER BY e.name ASC
-    """
+    """,
     )
     fun getAllCurrentMaxesWithNames(userId: Long): Flow<List<OneRMWithExerciseName>>
-    
+
     @Query(
         """
         SELECT 
@@ -183,10 +202,10 @@ interface OneRMDao {
                 WHEN 'Barbell Bench Press' THEN 3
                 WHEN 'Barbell Overhead Press' THEN 4
             END
-    """
+    """,
     )
     fun getBig4ExercisesWithMaxes(userId: Long): Flow<List<Big4ExerciseWithOptionalMax>>
-    
+
     @Query(
         """
         SELECT 
@@ -222,9 +241,43 @@ interface OneRMDao {
             GROUP BY exerciseId
         )
         ORDER BY e.usageCount DESC, e.name ASC
-    """
+    """,
     )
     fun getOtherExercisesWithMaxes(userId: Long): Flow<List<OneRMWithExerciseName>>
+
+    // OneRM History methods
+    @Insert
+    suspend fun insertOneRMHistory(history: OneRMHistory): Long
+
+    @Query(
+        """
+        SELECT * FROM one_rm_history
+        WHERE exerciseId = :exerciseId
+        AND recordedAt >= :startDate
+        AND recordedAt <= :endDate
+        ORDER BY recordedAt ASC
+        """,
+    )
+    suspend fun getOneRMHistoryInRange(
+        exerciseId: Long,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime,
+    ): List<OneRMHistory>
+
+    @Query(
+        """
+        SELECT * FROM one_rm_history
+        WHERE userId = :userId
+        AND exerciseId = :exerciseId
+        ORDER BY recordedAt DESC
+        LIMIT :limit
+        """,
+    )
+    suspend fun getRecentOneRMHistory(
+        userId: Long,
+        exerciseId: Long,
+        limit: Int = 10,
+    ): List<OneRMHistory>
 }
 
 data class OneRMWithExerciseName(
@@ -233,12 +286,12 @@ data class OneRMWithExerciseName(
     val exerciseId: Long,
     val exerciseName: String,
     val oneRMEstimate: Float,
-    val oneRMDate: java.time.LocalDateTime,
+    val oneRMDate: LocalDateTime,
     val oneRMContext: String,
     val mostWeightLifted: Float,
     val mostWeightReps: Int,
     val mostWeightRpe: Float?,
-    val mostWeightDate: java.time.LocalDateTime,
+    val mostWeightDate: LocalDateTime,
     val oneRMConfidence: Float,
     val oneRMType: OneRMType,
     val notes: String?,
@@ -251,12 +304,12 @@ data class Big4ExerciseWithOptionalMax(
     val exerciseId: Long,
     val exerciseName: String,
     val oneRMEstimate: Float?,
-    val oneRMDate: java.time.LocalDateTime?,
+    val oneRMDate: LocalDateTime?,
     val oneRMContext: String?,
     val mostWeightLifted: Float?,
     val mostWeightReps: Int?,
     val mostWeightRpe: Float?,
-    val mostWeightDate: java.time.LocalDateTime?,
+    val mostWeightDate: LocalDateTime?,
     val oneRMConfidence: Float?,
     val oneRMType: OneRMType?,
     val notes: String?,

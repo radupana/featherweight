@@ -625,18 +625,33 @@ fun ProgrammeHistoryCard(
                     )
                 }
 
-                // Completion indicator
-                Surface(
-                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(12.dp),
+                // Completion indicator and notes icon
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = "Completed",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        fontWeight = FontWeight.Medium,
-                    )
+                    // Notes indicator
+                    if (!programme.completionNotes.isNullOrBlank()) {
+                        Icon(
+                            Icons.Filled.Notes,
+                            contentDescription = "Has completion notes",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text(
+                            text = "Completed",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
                 }
             }
 

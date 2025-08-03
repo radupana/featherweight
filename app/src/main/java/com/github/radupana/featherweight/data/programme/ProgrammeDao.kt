@@ -39,6 +39,12 @@ interface ProgrammeDao {
 
     @Query("SELECT * FROM programme_templates WHERE id = :id")
     suspend fun getTemplateById(id: Long): ProgrammeTemplate?
+    
+    @Query("DELETE FROM programme_templates WHERE name = :name")
+    suspend fun deleteProgrammeTemplateByName(name: String)
+    
+    @Query("DELETE FROM programmes WHERE id = :id")
+    suspend fun deleteProgrammeById(id: Long)
 
     // Programme Weeks
     @Insert

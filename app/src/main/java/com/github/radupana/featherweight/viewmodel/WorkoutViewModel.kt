@@ -499,13 +499,18 @@ class WorkoutViewModel(
     // Removed - completed workouts cannot be edited
 
     // Complete the current workout (handles both regular and programme workouts)
-    fun completeWorkout(onComplete: (() -> Unit)? = null) {
+    fun completeWorkout(onComplete: (() -> Unit)? = null, onProgrammeComplete: ((Long) -> Unit)? = null) {
         val currentId = _currentWorkoutId.value ?: return
         println("🏁 Starting workout completion for ID: $currentId")
 
         viewModelScope.launch {
             val state = _workoutState.value
             println("🏁 Current workout state: isActive=${state.isActive}, status=${state.status}, isProgramme=${state.isProgrammeWorkout}")
+
+            // Store programme ID before completion if this is a programme workout
+            val programmeId = if (state.isProgrammeWorkout) {
+                repository.getWorkoutById(currentId)?.programmeId
+            } else null
 
             // Calculate final duration and complete the workout
             val finalDuration = if (workoutTimerStartTime != null) {
@@ -540,6 +545,16 @@ class WorkoutViewModel(
 
             println("🏁 Loading in-progress workouts")
             loadInProgressWorkouts()
+
+            // Check if programme is complete
+            if (programmeId != null) {
+                val programme = repository.getProgrammeById(programmeId)
+                if (programme?.status == com.github.radupana.featherweight.data.programme.ProgrammeStatus.COMPLETED) {
+                    println("🎉 Programme completed! Navigating to completion screen")
+                    onProgrammeComplete?.invoke(programmeId)
+                    return@launch
+                }
+            }
 
             println("🏁 Workout completion finished successfully")
             // Callback for UI to handle post-completion actions
