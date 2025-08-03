@@ -15,21 +15,13 @@ fun WorkoutTimer(
     seconds: Int,
     modifier: Modifier = Modifier
 ) {
-    if (seconds > 0) {
-        Surface(
-            modifier = modifier,
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
-        ) {
-            Text(
-                text = formatWorkoutTime(seconds),
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
-            )
-        }
-    }
+    Text(
+        text = formatWorkoutTime(seconds),
+        modifier = modifier,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Medium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
 
 private fun formatWorkoutTime(seconds: Int): String {

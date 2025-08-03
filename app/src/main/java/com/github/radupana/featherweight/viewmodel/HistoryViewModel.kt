@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.repository.FeatherweightRepository
-import com.github.radupana.featherweight.ui.screens.WorkoutSummary
+import com.github.radupana.featherweight.repository.WorkoutSummary
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

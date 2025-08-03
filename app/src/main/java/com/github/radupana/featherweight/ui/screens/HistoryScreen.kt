@@ -22,23 +22,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.radupana.featherweight.repository.WorkoutSummary
+import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-// Local data classes for HistoryScreen to avoid import issues
-data class WorkoutSummary(
-    val id: Long,
-    val date: LocalDateTime,
-    val name: String?,
-    val exerciseCount: Int,
-    val setCount: Int,
-    val totalWeight: Float,
-    val duration: Long?, // minutes
-    val status: com.github.radupana.featherweight.data.WorkoutStatus,
-    val hasNotes: Boolean = false,
-)
+// WorkoutSummary now imported from repository
 
 data class Quadruple<A, B, C, D>(
     val first: A,
@@ -254,10 +244,10 @@ fun WorkoutHistoryCard(
                     )
                 }
 
-                // Notes indicator and status
+                // Notes indicator and timer
                 Column(
                     horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     // Notes indicator
                     if (workout.hasNotes) {
@@ -265,21 +255,15 @@ fun WorkoutHistoryCard(
                             Icons.Filled.Notes,
                             contentDescription = "Has notes",
                             modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
-                    
-                    // Status indicator with improved colors
-                    Surface(
-                        color = statusColor,
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text(
-                            text = statusText,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = statusTextColor,
-                            fontWeight = FontWeight.Medium,
+
+                    // Timer for completed workouts
+                    if (workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED && workout.duration != null) {
+                        WorkoutTimer(
+                            seconds = workout.duration.toInt(),
+                            modifier = Modifier,
                         )
                     }
                 }
@@ -309,21 +293,6 @@ fun WorkoutHistoryCard(
                     value = "${String.format("%.1f", workout.totalWeight / 1000)}k kg",
                     isCompleted = workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED,
                     modifier = Modifier.weight(1f),
-                )
-            }
-
-            // Duration (if available)
-            workout.duration?.let { duration ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Duration: $duration minutes",
-                    style = MaterialTheme.typography.bodySmall,
-                    color =
-                        if (workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        } else {
-                            Color(0xFF8D6E63)
-                        },
                 )
             }
 

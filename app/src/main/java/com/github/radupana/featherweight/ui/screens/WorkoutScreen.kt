@@ -12,17 +12,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,8 +36,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.CompactExerciseCard
-import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
 import com.github.radupana.featherweight.ui.components.IntegratedRestTimer
+import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.ui.dialogs.NotesInputModal
 import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
@@ -51,7 +48,6 @@ import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import com.github.radupana.featherweight.viewmodel.WorkoutState
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,14 +60,13 @@ fun WorkoutScreen(
 ) {
     val exercises by viewModel.selectedWorkoutExercises.collectAsState()
 
-
     // Debug log to track recompositions
     LaunchedEffect(exercises) {
         Log.d(
             "DragReorder",
             "WorkoutScreen recomposed with exercises: ${exercises.mapIndexed {
-                    idx,
-                    ex,
+                idx,
+                ex,
                 ->
                 "$idx:${ex.exerciseName}"
             }.joinToString()}",
@@ -80,23 +75,21 @@ fun WorkoutScreen(
     val sets by viewModel.selectedExerciseSets.collectAsState()
     val workoutState by viewModel.workoutState.collectAsState()
     val pendingOneRMUpdates by viewModel.pendingOneRMUpdates.collectAsState()
-    
+
     // Rest timer state
     val restTimerSeconds by viewModel.restTimerSeconds.collectAsState()
     val restTimerInitialSeconds by viewModel.restTimerInitialSeconds.collectAsState()
     val restTimerExpanded by viewModel.restTimerExpanded.collectAsState()
-    
+
     // Workout timer state
     val workoutTimerSeconds by viewModel.workoutTimerSeconds.collectAsState()
-
 
     // Dialog state
     var showEditSetDialog by remember { mutableStateOf(false) }
     var showCompleteWorkoutDialog by remember { mutableStateOf(false) }
     var showWorkoutMenuDialog by remember { mutableStateOf(false) }
     var showEditWorkoutNameDialog by remember { mutableStateOf(false) }
-    var showEditModeDialog by remember { mutableStateOf(false) }
-    var showSaveEditDialog by remember { mutableStateOf(false) }
+    // Edit mode dialogs removed
     var showDeleteWorkoutDialog by remember { mutableStateOf(false) }
     var showOneRMUpdateDialog by remember { mutableStateOf(false) }
     var shouldNavigateAfterCompletion by remember { mutableStateOf(false) }
@@ -129,7 +122,6 @@ fun WorkoutScreen(
     }
 
     val canEdit = viewModel.canEditWorkout()
-    val isEditMode = workoutState.isInEditMode
 
     // Show 1RM update dialog when there are pending updates
     LaunchedEffect(pendingOneRMUpdates, workoutState.status) {
@@ -155,13 +147,9 @@ fun WorkoutScreen(
         }
     }
 
-    // Handle back press during edit mode
+    // Handle back press
     val handleBack = {
-        if (isEditMode) {
-            showSaveEditDialog = true
-        } else {
-            onBack()
-        }
+        onBack()
     }
 
     Scaffold(
@@ -219,36 +207,10 @@ fun WorkoutScreen(
                                 }
                             }
 
-                            // Status icons
-                            if (workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED && !isEditMode) {
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Icon(
-                                    Icons.Filled.Lock,
-                                    contentDescription = "Read-only",
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            if (isEditMode) {
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Surface(
-                                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
-                                    shape = MaterialTheme.shapes.small,
-                                ) {
-                                    Text(
-                                        "EDITING",
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.secondary,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                }
-                            }
-                            
                             // Workout timer
                             WorkoutTimer(
                                 seconds = workoutTimerSeconds,
-                                modifier = Modifier.padding(start = 8.dp)
+                                modifier = Modifier.padding(start = 8.dp),
                             )
                         }
                     }
@@ -259,35 +221,33 @@ fun WorkoutScreen(
                     }
                 },
                 actions = {
-                    if (isEditMode) {
-                        // Edit mode actions
-                        IconButton(onClick = { showSaveEditDialog = true }) {
-                            Icon(Icons.Filled.Save, contentDescription = "Save Changes")
-                        }
-                        IconButton(onClick = {
-                            viewModel.discardEditModeChanges()
-                        }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Discard Changes")
-                        }
-                    } else {
-                        // Normal actions
-                        // Notes button
-                        IconButton(onClick = { 
-                            // Load current notes from repository
-                            currentWorkoutId?.let { workoutId ->
-                                viewModel.loadWorkoutNotes(workoutId) { notes ->
-                                    currentNotes = notes ?: ""
-                                    showNotesModal = true
-                                }
+                    // Notes button
+                    IconButton(onClick = {
+                        // Load current notes from repository
+                        currentWorkoutId?.let { workoutId ->
+                            viewModel.loadWorkoutNotes(workoutId) { notes ->
+                                currentNotes = notes ?: ""
+                                showNotesModal = true
                             }
-                        }) {
+                        }
+                    }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Notes,
+                            contentDescription = "Workout Notes",
+                            tint = if (currentNotes.isNotBlank()) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                        )
+                    }
+
+                    // Show repeat button for completed workouts, menu for active
+                    if (!canEdit && workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
+                        IconButton(onClick = { viewModel.repeatWorkout() }) {
                             Icon(
-                                Icons.Filled.Notes, 
-                                contentDescription = "Workout Notes",
-                                tint = if (currentNotes.isNotBlank()) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                                Icons.Filled.Refresh,
+                                contentDescription = "Repeat Workout",
+                                tint = MaterialTheme.colorScheme.primary,
                             )
                         }
-                        
+                    } else if (canEdit) {
                         IconButton(onClick = { showWorkoutMenuDialog = true }) {
                             Icon(Icons.Filled.MoreVert, contentDescription = "Workout Options")
                         }
@@ -296,11 +256,7 @@ fun WorkoutScreen(
                 colors =
                     TopAppBarDefaults.topAppBarColors(
                         containerColor =
-                            when {
-                                isEditMode -> MaterialTheme.colorScheme.secondaryContainer
-                                !canEdit -> MaterialTheme.colorScheme.surfaceVariant
-                                else -> MaterialTheme.colorScheme.surface
-                            },
+                            if (!canEdit) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
                         titleContentColor = MaterialTheme.colorScheme.onSurface,
                     ),
             )
@@ -317,18 +273,6 @@ fun WorkoutScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 // Normal workout view
-                // Status banners
-                if (workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED && !isEditMode) {
-                    ReadOnlyBanner(
-                        onEnterEditMode = { showEditModeDialog = true },
-                        onRepeatWorkout = { 
-                            viewModel.repeatWorkout()
-                        },
-                    )
-                } else if (isEditMode) {
-                    EditModeBanner()
-                }
-
 
                 // Unified Progress Card
                 UnifiedProgressCard(
@@ -338,7 +282,7 @@ fun WorkoutScreen(
                     viewModel = viewModel,
                     modifier = Modifier.padding(16.dp),
                 )
-                
+
                 // Rest timer (if active)
                 if (restTimerSeconds > 0) {
                     IntegratedRestTimer(
@@ -349,7 +293,7 @@ fun WorkoutScreen(
                         onSkip = { viewModel.skipRestTimer() },
                         onPresetSelected = { viewModel.selectRestTimerPreset(it) },
                         onAdjustTime = { viewModel.adjustRestTimer(it) },
-                        modifier = Modifier.padding(horizontal = 16.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp),
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -370,16 +314,29 @@ fun WorkoutScreen(
                         )
                     }
                 } else if (exercises.isEmpty()) {
-                    EmptyWorkoutState(
-                        canEdit = canEdit,
-                        onAddExercise = onSelectExercise,
-                        modifier = Modifier.weight(1f),
-                    )
+                    // Empty state - show buttons
+                    Box(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (canEdit) {
+                            WorkoutActionButtons(
+                                canCompleteWorkout = false,
+                                onAddExercise = onSelectExercise,
+                                onCompleteWorkout = { },
+                                modifier = Modifier.padding(16.dp),
+                            )
+                        }
+                    }
                 } else {
                     ExercisesList(
                         exercises = exercises,
                         sets = sets,
                         canEdit = canEdit,
+                        canCompleteWorkout = workoutState.isActive,
                         onDeleteExercise = { exerciseId ->
                             if (canEdit) {
                                 viewModel.deleteExercise(exerciseId)
@@ -395,92 +352,17 @@ fun WorkoutScreen(
                             }
                         },
                         onSelectExercise = onSelectExercise,
+                        onCompleteWorkout = { showCompleteWorkoutDialog = true },
                         viewModel = viewModel,
                         modifier = Modifier.weight(1f),
-                    )
-                }
-
-                // Action buttons at bottom
-                if (canEdit && exercises.isNotEmpty()) {
-                    WorkoutActionButtons(
-                        canCompleteWorkout = workoutState.isActive && !isEditMode,
-                        onAddExercise = onSelectExercise,
-                        onCompleteWorkout = { showCompleteWorkoutDialog = true },
-                        modifier = Modifier.padding(16.dp),
                     )
                 }
             }
         }
     }
 
-    // Edit Mode Confirmation Dialog
-    if (showEditModeDialog) {
-        AlertDialog(
-            onDismissRequest = { showEditModeDialog = false },
-            title = { Text("Edit Completed Workout?") },
-            text = {
-                Text(
-                    "This workout has been completed. You can temporarily edit it to make corrections, " +
-                        "but you'll need to save or discard your changes when done.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.enterEditMode()
-                        showEditModeDialog = false
-                    },
-                ) {
-                    Text("Enter Edit Mode")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { showEditModeDialog = false }) {
-                    Text("Cancel")
-                }
-            },
-        )
-    }
-
-    // Save Edit Mode Dialog
-    if (showSaveEditDialog) {
-        AlertDialog(
-            onDismissRequest = { showSaveEditDialog = false },
-            title = { Text("Save Changes?") },
-            text = {
-                Text(
-                    "Do you want to save your changes to this workout or discard them?",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.saveEditModeChanges()
-                        showSaveEditDialog = false
-                        onBack()
-                    },
-                ) {
-                    Text("Save Changes")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = {
-                        viewModel.discardEditModeChanges()
-                        showSaveEditDialog = false
-                        onBack()
-                    },
-                ) {
-                    Text("Discard Changes")
-                }
-            },
-        )
-    }
-
     // Workout Menu Dialog
-    if (showWorkoutMenuDialog && !isEditMode) {
+    if (showWorkoutMenuDialog) {
         WorkoutMenuDialog(
             canEdit = canEdit,
             canCompleteAllSets = viewModel.canCompleteAllSetsInWorkout(),
@@ -677,129 +559,26 @@ fun WorkoutScreen(
             },
         )
     }
-    
+
     // Notes Input Modal
     NotesInputModal(
         isVisible = showNotesModal,
         title = "Workout Notes",
         initialNotes = currentNotes,
         onNotesChanged = { newNotes ->
-            currentNotes = newNotes
-            // Auto-save notes
-            currentWorkoutId?.let { workoutId ->
-                viewModel.saveWorkoutNotes(workoutId, newNotes)
+            if (canEdit) {
+                currentNotes = newNotes
+                // Auto-save notes
+                currentWorkoutId?.let { workoutId ->
+                    viewModel.saveWorkoutNotes(workoutId, newNotes)
+                }
             }
         },
         onDismiss = {
             showNotesModal = false
-        }
+        },
+        readOnly = !canEdit,
     )
-}
-
-@Composable
-private fun ReadOnlyBanner(
-    onEnterEditMode: () -> Unit,
-    onRepeatWorkout: () -> Unit,
-) {
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            ),
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(
-                        Icons.Filled.Lock,
-                        contentDescription = "Completed",
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "This workout has been completed",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                TextButton(onClick = onEnterEditMode) {
-                    Icon(
-                        Icons.Filled.Edit,
-                        contentDescription = "Edit",
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Edit")
-                }
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                TextButton(onClick = onRepeatWorkout) {
-                    Icon(
-                        Icons.Filled.Refresh,
-                        contentDescription = "Repeat",
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Repeat Workout")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EditModeBanner() {
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            ),
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Filled.Edit,
-                contentDescription = "Editing",
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                "You're temporarily editing this completed workout. Save or discard when done.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-        }
-    }
 }
 
 @Composable
@@ -816,24 +595,25 @@ private fun WorkoutMenuDialog(
         title = { Text("Workout Options") },
         text = {
             Column {
-                if (canEdit && canCompleteAllSets) {
-                    TextButton(
-                        onClick = onCompleteAllSets,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Start,
+                // Only show edit options for non-completed workouts
+                if (canEdit) {
+                    if (canCompleteAllSets) {
+                        TextButton(
+                            onClick = onCompleteAllSets,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Icon(Icons.Filled.CheckCircle, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Mark all populated sets done")
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Start,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Icon(Icons.Filled.CheckCircle, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Mark all populated sets done")
+                            }
                         }
                     }
-                }
 
-                if (canEdit) {
                     TextButton(
                         onClick = onEditName,
                         modifier = Modifier.fillMaxWidth(),
@@ -984,67 +764,17 @@ private fun CompleteWorkoutDialog(
     )
 }
 
-@Composable
-private fun EmptyWorkoutState(
-    canEdit: Boolean,
-    onAddExercise: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .padding(32.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                if (canEdit) "No exercises yet" else "No exercises in this workout",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                if (canEdit) {
-                    "Start by adding your first exercise"
-                } else {
-                    "This completed workout contains no exercises"
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-
-            if (canEdit) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = onAddExercise,
-                    modifier = Modifier.fillMaxWidth(0.6f),
-                ) {
-                    Icon(
-                        Icons.Filled.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Add Exercise")
-                }
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ExercisesList(
     exercises: List<ExerciseLog>,
     sets: List<SetLog>,
     canEdit: Boolean,
+    canCompleteWorkout: Boolean,
     onDeleteExercise: (Long) -> Unit,
     onOpenSetEditingModal: (Long) -> Unit,
     onSelectExercise: () -> Unit,
+    onCompleteWorkout: () -> Unit,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
@@ -1221,6 +951,18 @@ private fun ExercisesList(
                             alpha = if (isDragged) 0.9f else 1f
                         }.zIndex(if (isDragged) 1f else 0f),
             )
+        }
+
+        // Action buttons at the end of the list
+        if (canEdit) {
+            item {
+                WorkoutActionButtons(
+                    canCompleteWorkout = canCompleteWorkout && exercises.isNotEmpty(),
+                    onAddExercise = onSelectExercise,
+                    onCompleteWorkout = onCompleteWorkout,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+            }
         }
     }
 }

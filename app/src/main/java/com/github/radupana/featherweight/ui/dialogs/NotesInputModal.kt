@@ -23,7 +23,8 @@ fun NotesInputModal(
     initialNotes: String,
     onNotesChanged: (String) -> Unit,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    readOnly: Boolean = false
 ) {
     if (isVisible) {
         Dialog(
@@ -82,7 +83,7 @@ fun NotesInputModal(
                         BasicTextField(
                             value = notes,
                             onValueChange = { newValue ->
-                                if (newValue.length <= maxLength) {
+                                if (!readOnly && newValue.length <= maxLength) {
                                     notes = newValue
                                     onNotesChanged(newValue)
                                 }
@@ -98,8 +99,9 @@ fun NotesInputModal(
                                 capitalization = KeyboardCapitalization.Sentences
                             ),
                             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            readOnly = readOnly,
                             decorationBox = { innerTextField ->
-                                if (notes.isEmpty()) {
+                                if (notes.isEmpty() && !readOnly) {
                                     Text(
                                         text = "Add your notes here...",
                                         style = MaterialTheme.typography.bodyLarge,

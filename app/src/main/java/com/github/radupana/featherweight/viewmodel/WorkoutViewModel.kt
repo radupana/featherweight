@@ -234,9 +234,13 @@ class WorkoutViewModel(
     // Check if there's an ongoing workout when the app starts
     private fun checkForOngoingWorkout() {
         viewModelScope.launch {
-            val ongoingWorkout = repository.getOngoingWorkout()
-            if (ongoingWorkout != null) {
-                resumeWorkout(ongoingWorkout.id)
+            // Only check for ongoing workouts if we don't already have a workout loaded
+            // This prevents overriding when navigating from history
+            if (_currentWorkoutId.value == null) {
+                val ongoingWorkout = repository.getOngoingWorkout()
+                if (ongoingWorkout != null) {
+                    resumeWorkout(ongoingWorkout.id)
+                }
             }
         }
     }
@@ -330,6 +334,50 @@ class WorkoutViewModel(
         )
     }
 
+    // View a completed workout (read-only, no timers, no state changes)
+    fun viewCompletedWorkout(workoutId: Long) {
+        viewModelScope.launch {
+            repository.getWorkoutById(workoutId)?.let { workout ->
+                if (workout.status != WorkoutStatus.COMPLETED) {
+                    println("WARNING: viewCompletedWorkout called on non-completed workout!")
+                    return@let
+                }
+                
+                // Stop any running timers - we're just viewing
+                stopWorkoutTimer()
+                skipRestTimer()
+                
+                _currentWorkoutId.value = workoutId
+                _workoutState.value = WorkoutState(
+                    isActive = false,
+                    status = WorkoutStatus.COMPLETED,
+                    workoutId = workoutId,
+                    startTime = workout.date,
+                    workoutName = workout.name,
+                    isReadOnly = true,
+                    isInEditMode = false,
+                    originalWorkoutData = null,
+                    isProgrammeWorkout = workout.isProgrammeWorkout,
+                    programmeId = workout.programmeId,
+                    programmeName = workout.programmeId?.let {
+                        repository.getProgrammeById(it)?.name
+                    },
+                    programmeWorkoutName = workout.programmeWorkoutName,
+                    weekNumber = workout.weekNumber,
+                    dayNumber = workout.dayNumber
+                )
+                
+                // Set the timer to the final duration (static, not running)
+                _workoutTimerSeconds.value = workout.durationSeconds?.toInt() ?: 0
+                workoutTimerStartTime = null
+                
+                // Load exercises and sets
+                loadExercisesForWorkout(workoutId)
+                loadInProgressWorkouts()
+            }
+        }
+    }
+    
     // Resume an existing workout
     fun resumeWorkout(workoutId: Long) {
         viewModelScope.launch {
@@ -376,13 +424,22 @@ class WorkoutViewModel(
                 loadExercisesForWorkout(workoutId)
                 loadInProgressWorkouts()
                 
-                // Resume workout timer if it was started
-                if (!isCompleted && workout.timerStartTime != null) {
+                // Handle workout timer
+                if (workout.status == WorkoutStatus.COMPLETED) {
+                    // For completed workouts, show the final duration (NEVER start a timer)
+                    stopWorkoutTimer() // Ensure any running timer is stopped
+                    _workoutTimerSeconds.value = workout.durationSeconds?.toInt() ?: 0
+                    workoutTimerStartTime = null
+                    println("FeatherweightDebug: Loaded completed workout timer: ${workout.durationSeconds} seconds")
+                } else if (workout.status == WorkoutStatus.IN_PROGRESS && workout.timerStartTime != null) {
+                    // For in-progress workouts, resume the running timer
                     resumeWorkoutTimer(workout.timerStartTime)
                 } else {
-                    // Clear timer if no timer was started or workout is completed
+                    // No timer data or not started
+                    stopWorkoutTimer()
                     _workoutTimerSeconds.value = 0
                     workoutTimerStartTime = null
+                    println("FeatherweightDebug: No timer data for workout $workoutId, status: ${workout.status}, durationSeconds: ${workout.durationSeconds}")
                 }
             }
         }
@@ -437,63 +494,9 @@ class WorkoutViewModel(
         }
     }
 
-    fun enterEditMode() {
-        val currentState = _workoutState.value
-        if (currentState.status == WorkoutStatus.COMPLETED && !currentState.isInEditMode) {
-            // Backup current data for potential rollback
-            val backupData =
-                Triple(
-                    _selectedWorkoutExercises.value,
-                    _selectedExerciseSets.value,
-                    currentState.workoutName,
-                )
+    // Removed - completed workouts cannot be edited
 
-            _workoutState.value =
-                currentState.copy(
-                    isInEditMode = true,
-                    isReadOnly = false,
-                    originalWorkoutData = backupData,
-                )
-        }
-    }
-
-    fun saveEditModeChanges() {
-        val currentState = _workoutState.value
-        if (currentState.isInEditMode) {
-            // Changes are already persisted through normal operations
-            // Just exit edit mode and return to read-only
-            _workoutState.value =
-                currentState.copy(
-                    isInEditMode = false,
-                    isReadOnly = true,
-                    originalWorkoutData = null,
-                )
-            loadInProgressWorkouts()
-        }
-    }
-
-    fun discardEditModeChanges() {
-        val currentState = _workoutState.value
-        if (currentState.isInEditMode && currentState.originalWorkoutData != null) {
-            val (originalExercises, originalSets, originalName) = currentState.originalWorkoutData
-
-            // Restore original data
-            _selectedWorkoutExercises.value = originalExercises
-            _selectedExerciseSets.value = originalSets
-
-            // Exit edit mode
-            _workoutState.value =
-                currentState.copy(
-                    isInEditMode = false,
-                    isReadOnly = true,
-                    workoutName = originalName,
-                    originalWorkoutData = null,
-                )
-
-            // Note: In a real app, you'd want to rollback database changes too
-            // For simplicity, we're just restoring the UI state
-        }
-    }
+    // Removed - completed workouts cannot be edited
 
     // Complete the current workout (handles both regular and programme workouts)
     fun completeWorkout(onComplete: (() -> Unit)? = null) {
@@ -505,7 +508,11 @@ class WorkoutViewModel(
             println("🏁 Current workout state: isActive=${state.isActive}, status=${state.status}, isProgramme=${state.isProgrammeWorkout}")
 
             // Calculate final duration and complete the workout
-            val finalDuration = null
+            val finalDuration = if (workoutTimerStartTime != null) {
+                java.time.Duration.between(workoutTimerStartTime, LocalDateTime.now()).seconds
+            } else {
+                _workoutTimerSeconds.value.toLong()
+            }
             println("🏁 Final duration: $finalDuration seconds")
 
             // Complete the workout (this will automatically update programme progress if applicable)
@@ -561,7 +568,8 @@ class WorkoutViewModel(
     // Check if current workout can be edited
     fun canEditWorkout(): Boolean {
         val state = _workoutState.value
-        return !state.isReadOnly || state.isInEditMode
+        // Completed workouts are always read-only, no exceptions
+        return !state.isReadOnly
     }
 
     // Public synchronous function for UI
@@ -1416,6 +1424,11 @@ class WorkoutViewModel(
                     _selectedWorkoutExercises.value = emptyList()
                     _selectedExerciseSets.value = emptyList()
                     _setCompletionValidation.value = emptyMap() // Clear validation cache
+                    
+                    // Clear timer state for new workout
+                    stopWorkoutTimer()
+                    _workoutTimerSeconds.value = 0
+                    workoutTimerStartTime = null
                     
                     // Load the new workout - this will populate the validation cache
                     resumeWorkout(newWorkoutId)

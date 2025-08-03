@@ -75,8 +75,7 @@ data class WorkoutSummary(
     val exerciseCount: Int,
     val setCount: Int,
     val totalWeight: Float,
-    // minutes
-    val duration: Long?,
+    val duration: Long?, // seconds
     val status: WorkoutStatus,
     val hasNotes: Boolean = false,
     // Programme Integration Fields
@@ -528,8 +527,7 @@ class FeatherweightRepository(
                     exerciseCount = exercises.size,
                     setCount = allSets.size,
                     totalWeight = totalWeight,
-                    // TODO: Calculate duration
-                    duration = null,
+                    duration = workout.durationSeconds,
                     status = workout.status,
                     hasNotes = !workout.notes.isNullOrBlank(),
                     isProgrammeWorkout = workout.isProgrammeWorkout,
@@ -2850,7 +2848,7 @@ class FeatherweightRepository(
                             .filter { set -> set.isCompleted }
                             .sumOf { set -> (set.actualWeight * set.actualReps).toDouble() }
                             .toFloat(),
-                    duration = workout.durationSeconds?.let { it / 60 },
+                    duration = workout.durationSeconds,
                     status = workout.status,
                     hasNotes = !workout.notes.isNullOrBlank(),
                 )
@@ -2932,7 +2930,7 @@ class FeatherweightRepository(
                                                 .filter { set -> set.isCompleted }
                                                 .sumOf { set -> (set.actualWeight * set.actualReps).toDouble() }
                                                 .toFloat(),
-                                        duration = workout.durationSeconds?.let { it / 60 },
+                                        duration = workout.durationSeconds,
                                     )
                                 }.sortedBy { it.date },
                     )

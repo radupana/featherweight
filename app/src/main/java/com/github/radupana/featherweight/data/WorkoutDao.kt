@@ -62,19 +62,6 @@ interface WorkoutDao {
     )
     suspend fun getTotalProgrammeWorkoutCount(programmeId: Long): Int
 
-    @Query(
-        """
-        SELECT * FROM Workout 
-        WHERE programmeId = :programmeId 
-        AND programmeWorkoutId = :programmeWorkoutId 
-        ORDER BY date DESC 
-        LIMIT 1
-    """,
-    )
-    suspend fun getLastProgrammeWorkoutExecution(
-        programmeId: Long,
-        programmeWorkoutId: Long,
-    ): Workout?
 
     @Query(
         """

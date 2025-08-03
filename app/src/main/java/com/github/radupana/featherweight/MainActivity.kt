@@ -394,10 +394,18 @@ fun MainAppWithNavigation(
             Screen.HISTORY -> {
                 val historyViewModel: HistoryViewModel = viewModel()
                 val workoutViewModel: WorkoutViewModel = viewModel()
+                
+                // Refresh history when navigating to this screen
+                LaunchedEffect(currentScreen) {
+                    if (currentScreen == Screen.HISTORY) {
+                        historyViewModel.refreshHistory()
+                    }
+                }
+                
                 HistoryScreen(
                     onViewWorkout = { workoutId ->
-                        // Navigate to workout detail - reuse existing workout screen in read-only mode
-                        workoutViewModel.resumeWorkout(workoutId)
+                        // Navigate to workout detail - view completed workout in read-only mode
+                        workoutViewModel.viewCompletedWorkout(workoutId)
                         onScreenChange(Screen.ACTIVE_WORKOUT)
                     },
                     onViewProgramme = { programmeId ->
@@ -419,7 +427,7 @@ fun MainAppWithNavigation(
                         programmeId = programmeId,
                         onBack = { onScreenChange(Screen.HISTORY) },
                         onViewWorkout = { workoutId ->
-                            workoutViewModel.resumeWorkout(workoutId)
+                            workoutViewModel.viewCompletedWorkout(workoutId)
                             onScreenChange(Screen.ACTIVE_WORKOUT)
                         },
                         modifier = Modifier.padding(innerPadding),

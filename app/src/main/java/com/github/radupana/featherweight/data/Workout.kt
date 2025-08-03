@@ -14,16 +14,9 @@ import java.time.LocalDateTime
             childColumns = ["programmeId"],
             onDelete = ForeignKey.SET_NULL,
         ),
-        ForeignKey(
-            entity = com.github.radupana.featherweight.data.programme.ProgrammeWorkout::class,
-            parentColumns = ["id"],
-            childColumns = ["programmeWorkoutId"],
-            onDelete = ForeignKey.SET_NULL,
-        ),
     ],
     indices = [
         Index("programmeId"),
-        Index("programmeWorkoutId"),
         Index(value = ["status", "date"]),
         Index(value = ["isProgrammeWorkout", "status", "date"]),
     ],
@@ -36,7 +29,6 @@ data class Workout(
     val notesUpdatedAt: LocalDateTime? = null,
     // Programme Integration Fields
     val programmeId: Long? = null, // Links to Programme table (null for freestyle workouts)
-    val programmeWorkoutId: Long? = null, // Links to ProgrammeWorkout template
     val weekNumber: Int? = null, // Which week in the programme (1-based)
     val dayNumber: Int? = null, // Which day in the week (1-7)
     val programmeWorkoutName: String? = null, // Name of the programme workout for display
