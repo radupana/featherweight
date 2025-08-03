@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
@@ -41,6 +42,7 @@ import com.github.radupana.featherweight.ui.components.CompactExerciseCard
 import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
 import com.github.radupana.featherweight.ui.components.IntegratedRestTimer
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
+import com.github.radupana.featherweight.ui.dialogs.NotesInputModal
 import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
 import com.github.radupana.featherweight.ui.dialogs.SetEditingModal
 import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
@@ -99,6 +101,8 @@ fun WorkoutScreen(
     var showOneRMUpdateDialog by remember { mutableStateOf(false) }
     var shouldNavigateAfterCompletion by remember { mutableStateOf(false) }
     var showPRCelebration by remember { mutableStateOf(false) }
+    var showNotesModal by remember { mutableStateOf(false) }
+    var currentNotes by remember { mutableStateOf("") }
 
     var editingSet by remember { mutableStateOf<SetLog?>(null) }
     var editingExerciseName by remember { mutableStateOf<String?>(null) }
@@ -267,6 +271,23 @@ fun WorkoutScreen(
                         }
                     } else {
                         // Normal actions
+                        // Notes button
+                        IconButton(onClick = { 
+                            // Load current notes from repository
+                            currentWorkoutId?.let { workoutId ->
+                                viewModel.loadWorkoutNotes(workoutId) { notes ->
+                                    currentNotes = notes ?: ""
+                                    showNotesModal = true
+                                }
+                            }
+                        }) {
+                            Icon(
+                                Icons.Filled.Notes, 
+                                contentDescription = "Workout Notes",
+                                tint = if (currentNotes.isNotBlank()) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                            )
+                        }
+                        
                         IconButton(onClick = { showWorkoutMenuDialog = true }) {
                             Icon(Icons.Filled.MoreVert, contentDescription = "Workout Options")
                         }
@@ -656,6 +677,23 @@ fun WorkoutScreen(
             },
         )
     }
+    
+    // Notes Input Modal
+    NotesInputModal(
+        isVisible = showNotesModal,
+        title = "Workout Notes",
+        initialNotes = currentNotes,
+        onNotesChanged = { newNotes ->
+            currentNotes = newNotes
+            // Auto-save notes
+            currentWorkoutId?.let { workoutId ->
+                viewModel.saveWorkoutNotes(workoutId, newNotes)
+            }
+        },
+        onDismiss = {
+            showNotesModal = false
+        }
+    )
 }
 
 @Composable

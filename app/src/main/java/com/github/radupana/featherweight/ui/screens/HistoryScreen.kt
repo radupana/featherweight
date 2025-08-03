@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -36,6 +37,7 @@ data class WorkoutSummary(
     val totalWeight: Float,
     val duration: Long?, // minutes
     val status: com.github.radupana.featherweight.data.WorkoutStatus,
+    val hasNotes: Boolean = false,
 )
 
 data class Quadruple<A, B, C, D>(
@@ -252,18 +254,34 @@ fun WorkoutHistoryCard(
                     )
                 }
 
-                // Status indicator with improved colors
-                Surface(
-                    color = statusColor,
-                    shape = RoundedCornerShape(12.dp),
+                // Notes indicator and status
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = statusText,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = statusTextColor,
-                        fontWeight = FontWeight.Medium,
-                    )
+                    // Notes indicator
+                    if (workout.hasNotes) {
+                        Icon(
+                            Icons.Filled.Notes,
+                            contentDescription = "Has notes",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    
+                    // Status indicator with improved colors
+                    Surface(
+                        color = statusColor,
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text(
+                            text = statusText,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = statusTextColor,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
                 }
             }
 

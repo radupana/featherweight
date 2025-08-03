@@ -78,6 +78,7 @@ data class WorkoutSummary(
     // minutes
     val duration: Long?,
     val status: WorkoutStatus,
+    val hasNotes: Boolean = false,
     // Programme Integration Fields
     val isProgrammeWorkout: Boolean = false,
     val programmeId: Long? = null,
@@ -485,23 +486,6 @@ class FeatherweightRepository(
         }
     }
 
-    suspend fun updateWorkoutName(
-        workoutId: Long,
-        name: String?,
-    ) {
-        val workout = workoutDao.getAllWorkouts().find { it.id == workoutId } ?: return
-        val isCompleted = workout.notes?.contains("[COMPLETED]") == true
-
-        val newNotes =
-            if (isCompleted) {
-                name ?: ""
-            } else {
-                name
-            }
-
-        val updatedWorkout = workout.copy(notes = newNotes)
-        workoutDao.updateWorkout(updatedWorkout)
-    }
 
     // History functionality
     suspend fun getWorkoutHistory(): List<WorkoutSummary> {
@@ -524,14 +508,6 @@ class FeatherweightRepository(
                 val totalWeight = completedSets.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
 
                 val isCompleted = workout.status == WorkoutStatus.COMPLETED
-                val displayName =
-                    if (workout.notes != null && isCompleted) {
-                        workout.notes!!
-                            .trim()
-                            .takeIf { it.isNotBlank() }
-                    } else {
-                        workout.notes?.takeIf { it.isNotBlank() }
-                    }
 
                 // Get programme information if this is a programme workout
                 val programmeName =
@@ -548,13 +524,14 @@ class FeatherweightRepository(
                 WorkoutSummary(
                     id = workout.id,
                     date = workout.date,
-                    name = displayName,
+                    name = workout.name ?: workout.programmeWorkoutName,
                     exerciseCount = exercises.size,
                     setCount = allSets.size,
                     totalWeight = totalWeight,
                     // TODO: Calculate duration
                     duration = null,
                     status = workout.status,
+                    hasNotes = !workout.notes.isNullOrBlank(),
                     isProgrammeWorkout = workout.isProgrammeWorkout,
                     programmeId = workout.programmeId,
                     programmeName = programmeName,
@@ -2530,6 +2507,52 @@ class FeatherweightRepository(
         withContext(Dispatchers.IO) {
             db.oneRMDao().getCurrentOneRMEstimate(userId, exerciseId)
         }
+    
+    /**
+     * Update workout notes
+     */
+    suspend fun updateWorkoutNotes(workoutId: Long, notes: String?) =
+        withContext(Dispatchers.IO) {
+            val workout = workoutDao.getWorkoutById(workoutId)
+            if (workout != null) {
+                val updatedWorkout = workout.copy(
+                    notes = notes?.takeIf { it.isNotBlank() },
+                    notesUpdatedAt = if (notes?.isNotBlank() == true) LocalDateTime.now() else null
+                )
+                workoutDao.updateWorkout(updatedWorkout)
+            }
+        }
+    
+    /**
+     * Get workout notes
+     */
+    suspend fun getWorkoutNotes(workoutId: Long): String? =
+        withContext(Dispatchers.IO) {
+            workoutDao.getWorkoutById(workoutId)?.notes
+        }
+    
+    /**
+     * Update workout name (separate from notes)
+     */
+    suspend fun updateWorkoutName(workoutId: Long, name: String?) =
+        withContext(Dispatchers.IO) {
+            val workout = workoutDao.getWorkoutById(workoutId)
+            if (workout != null) {
+                val updatedWorkout = workout.copy(
+                    name = name?.takeIf { it.isNotBlank() }
+                )
+                workoutDao.updateWorkout(updatedWorkout)
+            }
+        }
+    
+    
+    /**
+     * Get programme completion notes
+     */
+    suspend fun getProgrammeCompletionNotes(programmeId: Long): String? =
+        withContext(Dispatchers.IO) {
+            programmeDao.getProgrammeById(programmeId)?.completionNotes
+        }
 
     // ===== INSIGHTS SECTION =====
 
@@ -2818,7 +2841,7 @@ class FeatherweightRepository(
                 WorkoutSummaryWithProgramme(
                     id = workout.id,
                     date = workout.date,
-                    name = workout.programmeWorkoutName,
+                    name = workout.name ?: workout.programmeWorkoutName,
                     programmeName = programmeName,
                     exerciseCount = exercises.size,
                     setCount = sets.size,
@@ -2829,6 +2852,7 @@ class FeatherweightRepository(
                             .toFloat(),
                     duration = workout.durationSeconds?.let { it / 60 },
                     status = workout.status,
+                    hasNotes = !workout.notes.isNullOrBlank(),
                 )
             }
         }
@@ -3025,6 +3049,7 @@ data class WorkoutSummaryWithProgramme(
     val totalWeight: Float,
     val duration: Long?,
     val status: WorkoutStatus,
+    val hasNotes: Boolean = false,
 )
 
 data class ProgrammeSummary(

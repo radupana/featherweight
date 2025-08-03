@@ -32,6 +32,8 @@ data class Programme(
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val startedAt: LocalDateTime? = null,
     val completedAt: LocalDateTime? = null,
+    val completionNotes: String? = null,
+    val notesCreatedAt: LocalDateTime? = null,
     // User's 1RM values for percentage-based programs
     val squatMax: Float? = null,
     val benchMax: Float? = null,

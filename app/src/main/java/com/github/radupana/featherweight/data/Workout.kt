@@ -31,7 +31,9 @@ import java.time.LocalDateTime
 data class Workout(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDateTime,
+    val name: String? = null, // Custom workout name (separate from notes)
     val notes: String? = null,
+    val notesUpdatedAt: LocalDateTime? = null,
     // Programme Integration Fields
     val programmeId: Long? = null, // Links to Programme table (null for freestyle workouts)
     val programmeWorkoutId: Long? = null, // Links to ProgrammeWorkout template

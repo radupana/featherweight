@@ -27,6 +27,17 @@
 - **Direct Entity Changes**: Modify Room entities directly. Do not create versioned entities (e.g., `UserV2`).
 - **No Legacy Code**: Do not write code for backward compatibility or to handle legacy data.
 
+## Debugging Guidelines
+
+When debugging UI display issues:
+1. **Start from the symptom** - If wrong data shows in UI, trace from the UI component backwards
+2. **Find the actual assignment** - Search for where the displayed field is SET, not just where it's defined
+3. **Check screenshots first** - Screenshots show WHICH screen has the bug, focus your search there
+4. **Never assume the layer** - Don't assume bugs are in repository/database without verifying the viewmodel first
+5. **Follow the data flow** - Trace: UI → ViewModel → Repository → Database, not the other way around
+
+Common pitfall: When field A shows value from field B, the bug is usually where field A is assigned, not where field B is stored.
+
 ## Common Commands
 
 - **Build**: `./gradlew assembleDebug`

@@ -95,6 +95,7 @@ class HistoryViewModel(
                         totalWeight = repoSummary.totalWeight,
                         duration = repoSummary.duration,
                         status = repoSummary.status,
+                        hasNotes = repoSummary.hasNotes,
                     )
                 }
 
@@ -163,6 +164,7 @@ class HistoryViewModel(
                             totalWeight = repoSummary.totalWeight,
                             duration = repoSummary.duration,
                             status = repoSummary.status,
+                            hasNotes = repoSummary.hasNotes,
                         )
                     }
 
@@ -234,6 +236,7 @@ class HistoryViewModel(
                             totalWeight = repoSummary.totalWeight,
                             duration = repoSummary.duration,
                             status = repoSummary.status,
+                            hasNotes = repoSummary.hasNotes,
                         )
                     }
 

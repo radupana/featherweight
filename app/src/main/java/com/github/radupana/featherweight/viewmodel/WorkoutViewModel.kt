@@ -356,12 +356,7 @@ class WorkoutViewModel(
                         status = if (isCompleted) WorkoutStatus.COMPLETED else WorkoutStatus.IN_PROGRESS,
                         workoutId = workoutId,
                         startTime = workout.date,
-                        workoutName =
-                            workout.notes?.let { notes ->
-                                notes
-                                    .trim()
-                                    .takeIf { it.isNotBlank() }
-                            },
+                        workoutName = workout.name,
                         isReadOnly = isCompleted,
                         isInEditMode = false,
                         originalWorkoutData = null,
@@ -545,7 +540,7 @@ class WorkoutViewModel(
         }
     }
 
-    // Update workout name
+    // Update workout name (separate from notes)
     fun updateWorkoutName(name: String?) {
         val currentId = _currentWorkoutId.value ?: return
         viewModelScope.launch {
@@ -1772,6 +1767,29 @@ class WorkoutViewModel(
                 
                 // Reload 1RM estimates to update UI immediately
                 loadOneRMEstimatesForCurrentExercises()
+            }
+        }
+    }
+    
+    // Notes methods
+    fun loadWorkoutNotes(workoutId: Long, callback: (String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val notes = repository.getWorkoutNotes(workoutId)
+                callback(notes)
+            } catch (e: Exception) {
+                Log.e("WorkoutViewModel", "Failed to load workout notes", e)
+                callback(null)
+            }
+        }
+    }
+    
+    fun saveWorkoutNotes(workoutId: Long, notes: String) {
+        viewModelScope.launch {
+            try {
+                repository.updateWorkoutNotes(workoutId, notes)
+            } catch (e: Exception) {
+                Log.e("WorkoutViewModel", "Failed to save workout notes", e)
             }
         }
     }
