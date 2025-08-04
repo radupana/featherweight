@@ -39,6 +39,7 @@ fun InsightsScreen(
     var weeklyWorkoutCount by remember { mutableStateOf(0) }
     var currentStreak by remember { mutableStateOf(0) }
     var isHighlightsLoading by remember { mutableStateOf(true) }
+    var isDataInitialized by remember { mutableStateOf(false) }
 
     // Load highlights data
     LaunchedEffect(Unit) {
@@ -47,7 +48,13 @@ fun InsightsScreen(
             weeklyWorkoutCount = workoutCount
             currentStreak = streak
             isHighlightsLoading = false
+            isDataInitialized = true
         }
+    }
+
+    // Don't render anything until data is loaded
+    if (!isDataInitialized) {
+        return
     }
 
     // Main scrollable layout
@@ -61,15 +68,11 @@ fun InsightsScreen(
     ) {
         // Highlights section
         item {
-            if (isHighlightsLoading) {
-                HighlightsLoadingSection()
-            } else {
-                HighlightsSection(
-                    recentPRs = recentPRs,
-                    weeklyWorkoutCount = weeklyWorkoutCount,
-                    currentStreak = currentStreak,
-                )
-            }
+            HighlightsSection(
+                recentPRs = recentPRs,
+                weeklyWorkoutCount = weeklyWorkoutCount,
+                currentStreak = currentStreak,
+            )
         }
 
         // Spacer between sections
@@ -271,98 +274,7 @@ private fun formatRelativeDate(date: java.time.LocalDate): String {
     }
 }
 
-@Composable
-private fun HighlightsLoadingSection() {
-    Column {
-        Text(
-            text = "Highlights",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = 16.dp),
-        )
 
-        // Loading card
-        Card(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                ),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .shimmerEffect(),
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Loading stats cards
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            repeat(2) {
-                Card(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .height(100.dp),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        ),
-                ) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .shimmerEffect(),
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun Modifier.shimmerEffect(): Modifier =
-    composed {
-        var size by remember {
-            mutableStateOf(Size.Zero)
-        }
-        val transition = rememberInfiniteTransition(label = "shimmer")
-        val startOffsetX by transition.animateFloat(
-            initialValue = -2 * size.width,
-            targetValue = 2 * size.width,
-            animationSpec =
-                infiniteRepeatable(
-                    animation = tween(1000),
-                ),
-            label = "shimmer",
-        )
-
-        background(
-            brush =
-                Brush.linearGradient(
-                    colors =
-                        listOf(
-                            Color(0xFFB0BEC5),
-                            Color(0xFF90A4AE),
-                            Color(0xFFB0BEC5),
-                        ),
-                    start = Offset(startOffsetX, 0f),
-                    end = Offset(startOffsetX + size.width, size.height),
-                ),
-        ).onGloballyPositioned {
-            size = Size(it.size.width.toFloat(), it.size.height.toFloat())
-        }
-    }
 
 @Composable
 private fun ExerciseProgressCard(
@@ -487,7 +399,7 @@ private fun ExerciseProgressSection(
             // Use remaining height
             colors =
                 CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 ),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         ) {
@@ -510,6 +422,7 @@ private fun GroupedExerciseList(
     var isLoadingMore by remember { mutableStateOf(false) }
     var hasMore by remember { mutableStateOf(true) }
     var currentPage by remember { mutableStateOf(0) }
+    var isDataInitialized by remember { mutableStateOf(false) }
     val pageSize = 10
 
     // Initial load
@@ -520,6 +433,12 @@ private fun GroupedExerciseList(
             displayedOtherExercises = it.otherExercises.take(pageSize)
             hasMore = it.otherExercises.size > pageSize
         }
+        isDataInitialized = true
+    }
+
+    // Don't render until data is loaded
+    if (!isDataInitialized) {
+        return
     }
 
     // Infinite scroll detection
