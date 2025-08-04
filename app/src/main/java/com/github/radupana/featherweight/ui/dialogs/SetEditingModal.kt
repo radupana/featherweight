@@ -359,7 +359,7 @@ fun SetEditingModal(
                                             .weight(1f)
                                             .fillMaxWidth(),
                                     state = listState,
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
                                     contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = 8.dp),
                                 ) {
                                     // Always show action buttons first when there are no sets
@@ -890,7 +890,6 @@ fun CleanSetLayout(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         // Swipeable Input Area - ONLY this part can be swiped to delete
         SwipeToDismissBox(
@@ -971,7 +970,7 @@ fun CleanSetLayout(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 2.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.Top,
                 ) {
                 // Target column - read-only
                 val targetDisplay =
@@ -1006,23 +1005,45 @@ fun CleanSetLayout(
 
                 // Weight input
                 Box(
-                    modifier = Modifier.weight(0.8f).height(48.dp),
-                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.weight(0.8f), // Ensure height is not fixed
+                    contentAlignment = Alignment.TopCenter, // Align content to the top
                 ) {
-                    CenteredInputField(
-                        value = weightInput,
-                        onValueChange = { textFieldValue ->
-                            if (!readOnly) {
-                                weightInput = textFieldValue
-                                val weight = textFieldValue.text.toFloatOrNull() ?: 0f
-                                onUpdateSet(set.actualReps, weight, set.actualRpe)
-                            }
-                        },
-                        fieldType = InputFieldType.WEIGHT,
-                        placeholder = "", // No placeholder
-                        modifier = Modifier.fillMaxSize(),
-                        imeAction = ImeAction.Next,
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(0.dp) // No space between items
+                    ) {
+                        Box(
+                            modifier = Modifier.height(48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CenteredInputField(
+                                value = weightInput,
+                                onValueChange = { textFieldValue ->
+                                    if (!readOnly) {
+                                        weightInput = textFieldValue
+                                        val weight = textFieldValue.text.toFloatOrNull() ?: 0f
+                                        onUpdateSet(set.actualReps, weight, set.actualRpe)
+                                    }
+                                },
+                                fieldType = InputFieldType.WEIGHT,
+                                placeholder = "", // No placeholder
+                                modifier = Modifier.fillMaxSize(),
+                                imeAction = ImeAction.Next,
+                            )
+                        }
+
+                        // Show percentage of 1RM below the row
+                        val displayWeight = if (set.actualWeight > 0) set.actualWeight else set.targetWeight ?: 0f
+                        if (oneRMEstimate != null && oneRMEstimate > 0 && displayWeight > 0) {
+                            val percentage = ((displayWeight / oneRMEstimate) * 100).toInt()
+                            Text(
+                                text = "$percentage% of 1RM",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier // No offset
+                            )
+                        }
+                    }
                 }
 
                 // Reps input
@@ -1095,38 +1116,7 @@ fun CleanSetLayout(
                 }
                 }
                 
-                // Show percentage of 1RM below the row
-                val displayWeight = if (set.actualWeight > 0) set.actualWeight else set.targetWeight ?: 0f
-                if (oneRMEstimate != null && oneRMEstimate > 0 && displayWeight > 0) {
-                    val percentage = ((displayWeight / oneRMEstimate) * 100).toInt()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        // Target column space
-                        Box(modifier = Modifier.weight(0.8f))
-                        
-                        // Weight column - center percentage under weight
-                        Box(
-                            modifier = Modifier.weight(0.8f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "$percentage% of 1RM",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
-                            )
-                        }
-                        
-                        // Remaining columns space
-                        Box(modifier = Modifier.weight(0.6f)) // Reps
-                        Box(modifier = Modifier.weight(0.6f)) // RPE
-                        Box(modifier = Modifier.size(40.dp)) // Checkbox
-                    }
-                }
+                
             }
         } // Close SwipeToDismissBox
     } // Close Column
