@@ -22,7 +22,7 @@ testRunner = "1.6.2"
 testRules = "1.6.1"
 testOrchestrator = "1.5.1"
 cucumberAndroid = "7.18.1"
-workRuntimeKtx = "2.10.2"
+workRuntimeKtx = "2.10.3"
 
 
 [libraries]
