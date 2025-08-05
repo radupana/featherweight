@@ -3,7 +3,6 @@ package com.github.radupana.featherweight.ui.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,7 +14,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,22 +28,16 @@ data class ExerciseDataPoint(
     val weight: Float,
     val reps: Int,
     val isPR: Boolean = false,
+    val context: String? = null, // e.g., "90kg × 3 @ RPE 8"
 )
-
-enum class ChartViewMode(val label: String) {
-    ACTUAL("Actual"),
-    POTENTIAL("Potential"),
-}
 
 @Composable
 fun ExerciseProgressChart(
     dataPoints: List<ExerciseDataPoint>,
     modifier: Modifier = Modifier,
-    showEstimated1RM: Boolean = false,
     onDataPointClick: (ExerciseDataPoint) -> Unit = {},
 ) {
     var selectedPoint by remember { mutableStateOf<ExerciseDataPoint?>(null) }
-    var viewMode by remember { mutableStateOf(ChartViewMode.ACTUAL) }
 
     // Filter data to show last 12 weeks
     val filteredData =
@@ -55,45 +47,13 @@ fun ExerciseProgressChart(
         }
 
     Column(modifier = modifier) {
-        // Header with title and toggle
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Weight Progression",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-            )
-
-            // View mode toggle
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                ChartViewMode.values().forEach { mode ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { viewMode = mode },
-                    ) {
-                        RadioButton(
-                            selected = viewMode == mode,
-                            onClick = { viewMode = mode },
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Text(
-                            text = mode.label,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(start = 4.dp),
-                        )
-                    }
-                }
-            }
-        }
+        // Header with title
+        Text(
+            text = "One Rep Max Progression",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
 
         // Chart
         Card(
@@ -119,37 +79,13 @@ fun ExerciseProgressChart(
                         )
                     }
                 } else {
-                    // Transform data based on view mode
-                    val displayData =
-                        if (viewMode == ChartViewMode.POTENTIAL) {
-                            filteredData.map { point ->
-                                // Calculate estimated 1RM using Brzycki formula
-                                val estimated1RM =
-                                    if (point.reps == 1) {
-                                        point.weight
-                                    } else if (point.reps > 0 && point.reps < 37) {
-                                        // Brzycki formula: 1RM = weight / (1.0278 - 0.0278 × reps)
-                                        point.weight / (1.0278f - 0.0278f * point.reps)
-                                    } else {
-                                        // For very high reps, the formula becomes unreliable
-                                        point.weight
-                                    }
-                                point.copy(weight = estimated1RM)
-                            }
-                        } else {
-                            filteredData
-                        }
-
                     ChartCanvas(
-                        dataPoints = displayData,
+                        dataPoints = filteredData,
                         selectedPoint = selectedPoint,
                         onPointSelected = { point ->
-                            // Find original data point for selection
-                            val originalPoint = filteredData.find { it.date == point.date }
-                            selectedPoint = originalPoint
-                            onDataPointClick(originalPoint ?: point)
+                            selectedPoint = point
+                            onDataPointClick(point)
                         },
-                        isPotentialView = viewMode == ChartViewMode.POTENTIAL,
                     )
                 }
             }
@@ -182,14 +118,13 @@ fun ExerciseProgressChart(
                             fontWeight = FontWeight.Medium,
                         )
                         Text(
-                            text = "${WeightFormatter.formatWeightWithUnit(point.weight)} × ${point.reps} reps",
+                            text = "1RM: ${WeightFormatter.formatWeightWithUnit(point.weight)}",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold,
                         )
-                        if (viewMode == ChartViewMode.POTENTIAL && point.reps > 1 && point.reps < 37) {
-                            val estimated1RM = point.weight / (1.0278f - 0.0278f * point.reps)
+                        point.context?.let { context ->
                             Text(
-                                text = "Estimated 1RM: ${WeightFormatter.formatWeightWithUnit(estimated1RM)}",
+                                text = "From: $context",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
                             )
@@ -220,17 +155,10 @@ private fun ChartCanvas(
     dataPoints: List<ExerciseDataPoint>,
     selectedPoint: ExerciseDataPoint?,
     onPointSelected: (ExerciseDataPoint) -> Unit,
-    isPotentialView: Boolean = false,
 ) {
     var clickPosition by remember { mutableStateOf<Offset?>(null) }
-    val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
-    val primaryColor =
-        if (isPotentialView) {
-            MaterialTheme.colorScheme.tertiary
-        } else {
-            ChartTheme.primaryChartColor()
-        }
+    val primaryColor = ChartTheme.primaryChartColor()
     val onSurfaceColor = ChartTheme.axisLabelColor()
     val surfaceVariantColor = ChartTheme.gridLineColor()
     val prColor = ChartTheme.prMarkerColor
@@ -372,7 +300,9 @@ private fun ChartCanvas(
 
             // Format date label
             val now = LocalDate.now()
-            val daysBetween = java.time.temporal.ChronoUnit.DAYS.between(dataPoint.date, now)
+            val daysBetween =
+                java.time.temporal.ChronoUnit.DAYS
+                    .between(dataPoint.date, now)
             val dateLabel =
                 when {
                     daysBetween == 0L -> "Today"

@@ -178,7 +178,7 @@ class FeatherweightRepository(
             exerciseId = update.exerciseId,
             exerciseName = update.exerciseName,
             oneRM = roundedWeight,
-            context = "${roundedWeight}kg × 1"
+            context = update.source // Use the source from the update (e.g., "3×100kg @ RPE 9")
         )
 
         println("✅ 1RM update applied successfully")
@@ -2720,6 +2720,19 @@ class FeatherweightRepository(
                 recordedAt = LocalDateTime.now()
             )
         )
+    }
+    
+    suspend fun getOneRMHistoryForExercise(
+        exerciseName: String,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<OneRMHistory> = withContext(Dispatchers.IO) {
+        val exercise = getExerciseByName(exerciseName)
+        if (exercise != null) {
+            db.oneRMDao().getOneRMHistoryInRange(exercise.id, startDate, endDate)
+        } else {
+            emptyList()
+        }
     }
     
     /**

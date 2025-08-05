@@ -257,49 +257,50 @@ class ExerciseProgressViewModel(
                 val userId = userPreferences.getCurrentUserId()
                 if (userId == -1L) return@launch
 
-                // Get all workout data for this exercise
-                val allWorkouts =
-                    repository.getExerciseWorkoutsInDateRange(
-                        exerciseName = exerciseName,
-                        startDate = LocalDate.now().minusYears(2), // Get 2 years of data
-                        endDate = LocalDate.now(),
-                    )
+                // Get 1RM history data for this exercise
+                val startDate = LocalDate.now().minusYears(2).atStartOfDay()
+                val endDate = LocalDate.now().atTime(23, 59, 59)
+                
+                val oneRMHistory = repository.getOneRMHistoryForExercise(
+                    exerciseName = exerciseName,
+                    startDate = startDate,
+                    endDate = endDate
+                )
 
-                // Group by date and get the best performance per day
-                val chartPoints =
-                    allWorkouts
-                        .groupBy { it.workoutDate.toLocalDate() }
-                        .map { (date, logs) ->
-                            // Get the best actual weight lifted that day
-                            val bestLog = logs.maxByOrNull { it.actualWeight }!!
-
-                            ExerciseDataPoint(
-                                date = date,
-                                weight = bestLog.actualWeight, // Show actual weight, not estimated
-                                reps = bestLog.actualReps,
-                                isPR = false, // Will be calculated separately
-                            )
-                        }.sortedBy { it.date }
+                // Group by date and get the best 1RM per day
+                val chartPoints = oneRMHistory
+                    .groupBy { it.recordedAt.toLocalDate() }
+                    .map { (date, records) ->
+                        // Get the highest 1RM estimate for that day
+                        val best1RM = records.maxByOrNull { it.oneRMEstimate }!!
+                        
+                        ExerciseDataPoint(
+                            date = date,
+                            weight = best1RM.oneRMEstimate,
+                            reps = 1, // 1RM always represents 1 rep
+                            isPR = false, // Will be calculated separately
+                            context = best1RM.context // Include the context (e.g., "90kg × 3 @ RPE 8")
+                        )
+                    }.sortedBy { it.date }
 
                 // Mark PRs
-                val dataWithPRs =
-                    if (chartPoints.isNotEmpty()) {
-                        var currentMax = 0f
-                        chartPoints.map { point ->
-                            if (point.weight > currentMax) {
-                                currentMax = point.weight
-                                point.copy(isPR = true)
-                            } else {
-                                point
-                            }
+                val dataWithPRs = if (chartPoints.isNotEmpty()) {
+                    var currentMax = 0f
+                    chartPoints.map { point ->
+                        if (point.weight > currentMax) {
+                            currentMax = point.weight
+                            point.copy(isPR = true)
+                        } else {
+                            point
                         }
-                    } else {
-                        emptyList()
                     }
+                } else {
+                    emptyList()
+                }
 
                 _chartData.value = dataWithPRs
             } catch (e: Exception) {
-                // Handle error silently for chart data
+                android.util.Log.e("ExerciseProgress", "Error loading 1RM history", e)
                 _chartData.value = emptyList()
             }
         }
