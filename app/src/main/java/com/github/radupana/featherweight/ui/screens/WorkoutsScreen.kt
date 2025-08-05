@@ -104,7 +104,7 @@ fun WorkoutsScreen(
     LaunchedEffect(lastCompletedWorkout, lastCompletedWorkoutExercises) {
         lastCompletedWorkout?.let { workout ->
             val daysAgoText =
-                when (val daysAgo = ChronoUnit.DAYS.between(workout.date, LocalDateTime.now()).toInt()) {
+                when (val daysAgo = ChronoUnit.DAYS.between(workout.date.toLocalDate(), LocalDateTime.now().toLocalDate()).toInt()) {
                     0 -> "today"
                     1 -> "yesterday"
                     else -> "$daysAgo days ago"
