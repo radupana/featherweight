@@ -4,7 +4,10 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 
@@ -44,24 +47,25 @@ fun rememberKeyboardHeight(): State<Int> {
 fun Modifier.systemBarsPadding(
     navigationContext: NavigationContext = NavigationContext.BOTTOM_NAVIGATION,
     includeIme: Boolean = true,
-): Modifier {
-    return when (navigationContext) {
+): Modifier =
+    when (navigationContext) {
         NavigationContext.BOTTOM_NAVIGATION -> {
             // Bottom nav already handles navigation bar space
             if (includeIme) this.imePadding() else this
         }
+
         NavigationContext.FULL_SCREEN -> {
             // Full-screen needs both
             var modifier = this.navigationBarsPadding()
             if (includeIme) modifier = modifier.imePadding()
             modifier
         }
+
         NavigationContext.DIALOG -> {
             // Dialogs typically only need IME padding
             if (includeIme) this.imePadding() else this
         }
     }
-}
 
 /**
  * @deprecated Use systemBarsPadding with NavigationContext instead.

@@ -71,15 +71,16 @@ class PRDetectionService(
             Log.d("PRDetection", "🏆 Detected ${newPRs.size} total PRs")
             newPRs.forEach { pr ->
                 Log.d("PRDetection", "🏆 Processing ${pr.recordType} PR: ${pr.exerciseName} - ${pr.weight}kg x ${pr.reps}")
-                
+
                 // Check if there's already a PR for this exercise in this workout
                 if (pr.workoutId != null) {
-                    val existingPR = personalRecordDao.getPRForExerciseInWorkout(
-                        pr.workoutId, 
-                        pr.exerciseName, 
-                        pr.recordType
-                    )
-                    
+                    val existingPR =
+                        personalRecordDao.getPRForExerciseInWorkout(
+                            pr.workoutId,
+                            pr.exerciseName,
+                            pr.recordType,
+                        )
+
                     if (existingPR != null) {
                         // If new PR is better, delete the old one
                         if (pr.weight > existingPR.weight) {

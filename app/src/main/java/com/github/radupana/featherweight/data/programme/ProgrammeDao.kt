@@ -1,6 +1,14 @@
 package com.github.radupana.featherweight.data.programme
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Embedded
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Relation
+import androidx.room.Transaction
+import androidx.room.Update
 import java.time.LocalDateTime
 
 @Dao
@@ -39,10 +47,10 @@ interface ProgrammeDao {
 
     @Query("SELECT * FROM programme_templates WHERE id = :id")
     suspend fun getTemplateById(id: Long): ProgrammeTemplate?
-    
+
     @Query("DELETE FROM programme_templates WHERE name = :name")
     suspend fun deleteProgrammeTemplateByName(name: String)
-    
+
     @Query("DELETE FROM programmes WHERE id = :id")
     suspend fun deleteProgrammeById(id: Long)
 
@@ -148,18 +156,20 @@ interface ProgrammeDao {
 
     // Programme completion - ATOMIC update of status, isActive, and completedAt
     @Transaction
-    @Query("""
+    @Query(
+        """
         UPDATE programmes 
         SET status = 'COMPLETED', 
             isActive = 0, 
             completedAt = :completedAt 
         WHERE id = :programmeId
-    """)
+    """,
+    )
     suspend fun completeProgrammeAtomic(
         programmeId: Long,
         completedAt: LocalDateTime,
     )
-    
+
     // Legacy method - DO NOT USE
     @Deprecated("Use completeProgrammeAtomic instead for atomic updates")
     @Query("UPDATE programmes SET completedAt = :completedAt WHERE id = :programmeId")
@@ -179,16 +189,22 @@ interface ProgrammeDao {
     suspend fun getAverageAdherence(): Float?
 
     // Paginated query for completed programmes - uses status for reliability
-    @Query("""
+    @Query(
+        """
         SELECT * FROM programmes 
         WHERE status = 'COMPLETED' 
         ORDER BY completedAt DESC 
         LIMIT :limit OFFSET :offset
-    """)
-    suspend fun getCompletedProgrammesPaged(limit: Int, offset: Int): List<Programme>
-    
+    """,
+    )
+    suspend fun getCompletedProgrammesPaged(
+        limit: Int,
+        offset: Int,
+    ): List<Programme>
+
     // Update programme status atomically
-    @Query("""
+    @Query(
+        """
         UPDATE programmes 
         SET status = :status,
             isActive = CASE 
@@ -200,11 +216,12 @@ interface ProgrammeDao {
                 ELSE startedAt
             END
         WHERE id = :programmeId
-    """)
+    """,
+    )
     suspend fun updateProgrammeStatus(
         programmeId: Long,
         status: ProgrammeStatus,
-        startedAt: LocalDateTime = LocalDateTime.now()
+        startedAt: LocalDateTime = LocalDateTime.now(),
     )
 }
 

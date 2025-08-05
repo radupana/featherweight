@@ -1,9 +1,18 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.data.*
+import com.github.radupana.featherweight.data.ExerciseLog
+import com.github.radupana.featherweight.data.ExerciseLogDao
+import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.data.SetLogDao
+import com.github.radupana.featherweight.data.Workout
+import com.github.radupana.featherweight.data.WorkoutDao
+import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
-import com.radu.featherweight.data.model.*
+import com.github.radupana.featherweight.data.model.TimeAvailable
+import com.github.radupana.featherweight.data.model.TrainingGoal
+import com.github.radupana.featherweight.data.model.WorkoutTemplate
+import com.github.radupana.featherweight.data.model.WorkoutTemplateConfig
 import java.time.LocalDateTime
 
 class WorkoutTemplateGeneratorService(
@@ -69,7 +78,7 @@ class WorkoutTemplateGeneratorService(
     ): List<Triple<Exercise, Int, Int>> {
         val result = mutableListOf<Triple<Exercise, Int, Int>>()
         val maxExercises = getMaxExercises(config.timeAvailable, template.name)
-        
+
         println("FeatherweightDebug: Generating ${template.name} workout with max $maxExercises exercises")
 
         // First, add all required exercises
@@ -113,7 +122,7 @@ class WorkoutTemplateGeneratorService(
             if (exercise != null) {
                 return exercise
             }
-            
+
             // If not found, try alias match
             exercise = exerciseDao.findExerciseByAlias(exerciseName)
             if (exercise != null) {
@@ -128,25 +137,32 @@ class WorkoutTemplateGeneratorService(
         return null
     }
 
-    private fun getMaxExercises(timeAvailable: TimeAvailable, templateName: String): Int {
-        return when (templateName) {
-            "Push", "Pull" -> when (timeAvailable) {
-                TimeAvailable.QUICK -> 4
-                TimeAvailable.STANDARD -> 6
-                TimeAvailable.EXTENDED -> 7
-            }
-            "Legs" -> when (timeAvailable) {
-                TimeAvailable.QUICK -> 3
-                TimeAvailable.STANDARD -> 5
-                TimeAvailable.EXTENDED -> 7
-            }
-            else -> when (timeAvailable) { // Full Body, Upper, Lower
-                TimeAvailable.QUICK -> 3
-                TimeAvailable.STANDARD -> 6
-                TimeAvailable.EXTENDED -> 9
-            }
+    private fun getMaxExercises(
+        timeAvailable: TimeAvailable,
+        templateName: String,
+    ): Int =
+        when (templateName) {
+            "Push", "Pull" ->
+                when (timeAvailable) {
+                    TimeAvailable.QUICK -> 4
+                    TimeAvailable.STANDARD -> 6
+                    TimeAvailable.EXTENDED -> 7
+                }
+
+            "Legs" ->
+                when (timeAvailable) {
+                    TimeAvailable.QUICK -> 3
+                    TimeAvailable.STANDARD -> 5
+                    TimeAvailable.EXTENDED -> 7
+                }
+
+            else ->
+                when (timeAvailable) { // Full Body, Upper, Lower
+                    TimeAvailable.QUICK -> 3
+                    TimeAvailable.STANDARD -> 6
+                    TimeAvailable.EXTENDED -> 9
+                }
         }
-    }
 
     private fun getSetsForExercise(
         exerciseName: String,

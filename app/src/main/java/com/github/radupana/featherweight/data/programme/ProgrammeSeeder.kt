@@ -15,7 +15,7 @@ class ProgrammeSeeder(
             // Check and seed each programme individually
             val existingTemplates = programmeDao.getAllTemplates()
             val existingNames = existingTemplates.map { it.name }.toSet()
-            
+
             if (!existingNames.contains("2-Week Test Programme")) {
                 seed2WeekTestProgramme()
                 println("Seeded 2-Week Test Programme")
@@ -32,11 +32,11 @@ class ProgrammeSeeder(
                 // Upper exercises
                 "Barbell Bench Press",
                 "Barbell Row",
-                "Barbell Overhead Press", 
+                "Barbell Overhead Press",
                 // Lower exercises
                 "Barbell Back Squat",
                 "Barbell Deadlift",
-                "Barbell Romanian Deadlift"
+                "Barbell Romanian Deadlift",
             )
 
         val validator = ExerciseValidator(exerciseDao)
@@ -52,6 +52,7 @@ class ProgrammeSeeder(
                         }
                         result
                     }
+
                     else -> null
                 }
             }

@@ -100,45 +100,53 @@ interface PersonalRecordDao {
 
     @Query("SELECT * FROM PersonalRecord ORDER BY recordDate DESC")
     suspend fun getAllPersonalRecords(): List<PersonalRecord>
-    
-    @Query("""
+
+    @Query(
+        """
         SELECT * FROM PersonalRecord 
         WHERE DATE(recordDate) = DATE(:workoutDate) 
         ORDER BY recordDate DESC
-    """)
+    """,
+    )
     suspend fun getPersonalRecordsForDate(workoutDate: String): List<PersonalRecord>
-    
-    @Query("""
+
+    @Query(
+        """
         SELECT * FROM PersonalRecord 
         WHERE workoutId = :workoutId 
         ORDER BY recordDate DESC
-    """)
+    """,
+    )
     suspend fun getPersonalRecordsForWorkout(workoutId: Long): List<PersonalRecord>
-    
-    @Query("""
+
+    @Query(
+        """
         SELECT * FROM PersonalRecord 
         WHERE workoutId = :workoutId 
         AND exerciseName = :exerciseName
         AND recordType = :recordType
         LIMIT 1
-    """)
+    """,
+    )
     suspend fun getPRForExerciseInWorkout(
-        workoutId: Long, 
+        workoutId: Long,
         exerciseName: String,
-        recordType: PRType
+        recordType: PRType,
     ): PersonalRecord?
-    
+
     @Query("DELETE FROM PersonalRecord WHERE id = :prId")
     suspend fun deletePR(prId: Long)
-    
-    @Query("""
+
+    @Query(
+        """
         SELECT * FROM PersonalRecord 
         WHERE recordDate >= :startDate 
         AND recordDate <= :endDate
         ORDER BY recordDate DESC
-    """)
+    """,
+    )
     suspend fun getPersonalRecordsInDateRange(
         startDate: LocalDateTime,
-        endDate: LocalDateTime
+        endDate: LocalDateTime,
     ): List<PersonalRecord>
 }

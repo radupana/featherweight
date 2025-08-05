@@ -6,7 +6,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class UserPreferences(context: Context) {
+class UserPreferences(
+    context: Context,
+) {
     private val sharedPreferences: SharedPreferences =
         context.getSharedPreferences("featherweight_prefs", Context.MODE_PRIVATE)
 
@@ -18,13 +20,9 @@ class UserPreferences(context: Context) {
         _currentUserId.value = userId
     }
 
-    fun getCurrentUserId(): Long {
-        return sharedPreferences.getLong(KEY_CURRENT_USER_ID, 0L)
-    }
+    fun getCurrentUserId(): Long = sharedPreferences.getLong(KEY_CURRENT_USER_ID, 0L)
 
-    fun hasSelectedUser(): Boolean {
-        return getCurrentUserId() != 0L
-    }
+    fun hasSelectedUser(): Boolean = getCurrentUserId() != 0L
 
     fun clearCurrentUser() {
         sharedPreferences.edit().remove(KEY_CURRENT_USER_ID).apply()

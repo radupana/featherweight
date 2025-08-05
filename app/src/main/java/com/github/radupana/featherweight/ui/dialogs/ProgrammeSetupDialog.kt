@@ -1,13 +1,43 @@
 package com.github.radupana.featherweight.ui.dialogs
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
@@ -22,7 +52,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
-import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeUiState
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.SetupStep
@@ -46,7 +75,7 @@ fun ProgrammeSetupDialog(
             val userId = repository.getCurrentUserId()
             val maxes = repository.getAllCurrentMaxesWithNames(userId).first()
             profileMaxes = maxes
-            
+
             if (userMaxes.squat == null &&
                 userMaxes.bench == null &&
                 userMaxes.deadlift == null &&
@@ -157,9 +186,11 @@ fun ProgrammeSetupDialog(
                                         )
                                     }
                                 }
+
                                 SetupStep.ACCESSORY_SELECTION -> {
                                     AccessorySelectionStep()
                                 }
+
                                 SetupStep.CONFIRMATION -> {
                                     ConfirmationStep(
                                         template = template,
@@ -198,7 +229,7 @@ fun ProgrammeSetupDialog(
                             onClick = {
                                 if (uiState.setupStep == SetupStep.CONFIRMATION) {
                                     viewModel.createProgrammeFromTemplate(
-                                        customName = null,  // Always use template name
+                                        customName = null, // Always use template name
                                         onSuccess = {
                                             onProgrammeCreated?.invoke()
                                         },
@@ -212,14 +243,17 @@ fun ProgrammeSetupDialog(
                                     SetupStep.MAXES_INPUT -> {
                                         if (template.requiresMaxes) {
                                             val effectiveSquat =
-                                                userMaxes.squat ?: profileMaxes.find { it.exerciseName == "Barbell Back Squat" }?.oneRMEstimate
+                                                userMaxes.squat
+                                                    ?: profileMaxes.find { it.exerciseName == "Barbell Back Squat" }?.oneRMEstimate
                                             val effectiveBench =
-                                                userMaxes.bench ?: profileMaxes.find { it.exerciseName == "Barbell Bench Press" }?.oneRMEstimate
+                                                userMaxes.bench
+                                                    ?: profileMaxes.find { it.exerciseName == "Barbell Bench Press" }?.oneRMEstimate
                                             val effectiveDeadlift =
                                                 userMaxes.deadlift
                                                     ?: profileMaxes.find { it.exerciseName == "Barbell Deadlift" }?.oneRMEstimate
                                             val effectiveOhp =
-                                                userMaxes.ohp ?: profileMaxes.find { it.exerciseName == "Barbell Overhead Press" }?.oneRMEstimate
+                                                userMaxes.ohp
+                                                    ?: profileMaxes.find { it.exerciseName == "Barbell Overhead Press" }?.oneRMEstimate
 
                                             effectiveSquat != null &&
                                                 effectiveSquat > 0 &&
@@ -233,6 +267,7 @@ fun ProgrammeSetupDialog(
                                             true
                                         }
                                     }
+
                                     else -> true
                                 } &&
                                     !uiState.isCreating,
@@ -662,6 +697,7 @@ private fun WeightInputField(
                                 parts[0].length <= 4 &&
                                 parts[1].all { it.isDigit() } &&
                                 parts[1].length <= 2
+
                         else -> false
                     }
                 if (isValid) {

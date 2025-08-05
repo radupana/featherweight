@@ -22,21 +22,15 @@ object GeneratedProgrammeHolder {
         _aiRequestId = aiRequestId
     }
 
-    fun getGeneratedProgramme(): AIProgrammeResponse? {
-        return _currentResponse
-    }
+    fun getGeneratedProgramme(): AIProgrammeResponse? = _currentResponse
 
-    fun getAIRequestId(): String? {
-        return _aiRequestId
-    }
+    fun getAIRequestId(): String? = _aiRequestId
 
     fun setValidationResult(result: ProgrammeValidationResult) {
         _validationResult = result
     }
 
-    fun getValidationResult(): ProgrammeValidationResult? {
-        return _validationResult
-    }
+    fun getValidationResult(): ProgrammeValidationResult? = _validationResult
 
     fun clearGeneratedProgramme() {
         _currentResponse = null

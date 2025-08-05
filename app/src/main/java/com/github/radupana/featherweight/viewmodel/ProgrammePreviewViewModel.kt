@@ -4,18 +4,40 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.WorkManager
-import com.github.radupana.featherweight.data.*
+import com.github.radupana.featherweight.data.ExerciseAlternative
+import com.github.radupana.featherweight.data.ExerciseEditState
+import com.github.radupana.featherweight.data.ExerciseMatchInfo
+import com.github.radupana.featherweight.data.ExercisePreview
 import com.github.radupana.featherweight.data.FeatherweightDatabase
+import com.github.radupana.featherweight.data.GeneratedProgrammePreview
+import com.github.radupana.featherweight.data.GenerationMetadata
+import com.github.radupana.featherweight.data.PreviewState
+import com.github.radupana.featherweight.data.ProgrammeGoal
+import com.github.radupana.featherweight.data.ProgrammeValidationResult
+import com.github.radupana.featherweight.data.QuickEditAction
+import com.github.radupana.featherweight.data.ValidationCategory
+import com.github.radupana.featherweight.data.ValidationError
+import com.github.radupana.featherweight.data.ValidationResult
+import com.github.radupana.featherweight.data.ValidationWarning
+import com.github.radupana.featherweight.data.VolumeLevel
+import com.github.radupana.featherweight.data.WeekPreview
+import com.github.radupana.featherweight.data.WorkoutPreview
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.repository.AIProgrammeRepository
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.SimpleRequest
-import com.github.radupana.featherweight.service.*
+import com.github.radupana.featherweight.service.AIProgrammeResponse
+import com.github.radupana.featherweight.service.AIProgrammeService
+import com.github.radupana.featherweight.service.ExerciseMatchingService
+import com.github.radupana.featherweight.service.ExerciseNameMatcher
+import com.github.radupana.featherweight.service.GeneratedProgramme
+import com.github.radupana.featherweight.service.GeneratedWorkout
+import com.github.radupana.featherweight.service.ProgrammeValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-import java.util.*
+import java.util.UUID
 
 class ProgrammePreviewViewModel(
     application: Application,
@@ -55,7 +77,7 @@ class ProgrammePreviewViewModel(
     val allExercises = _allExercises.asStateFlow()
 
     private var hasLoadedProgramme = false
-    
+
     private val json = Json { ignoreUnknownKeys = true }
 
     fun loadGeneratedProgramme(
@@ -97,9 +119,10 @@ class ProgrammePreviewViewModel(
                             if (aiRequest != null) {
                                 // Parse the request payload to get the goal
                                 val simpleRequest = parseSimpleRequest(aiRequest.requestPayload)
-                                selectedGoal = simpleRequest?.selectedGoal?.let { goalName ->
-                                    ProgrammeGoal.values().find { it.name == goalName }
-                                }
+                                selectedGoal =
+                                    simpleRequest?.selectedGoal?.let { goalName ->
+                                        ProgrammeGoal.values().find { it.name == goalName }
+                                    }
                                 if (selectedGoal == null) {
                                     println("❌ ERROR: Failed to parse goal from AI request. Goal was: ${simpleRequest?.selectedGoal}")
                                     throw IllegalStateException("Programme goal is mandatory but was not found in AI request")
@@ -817,7 +840,7 @@ class ProgrammePreviewViewModel(
     private fun addProgressiveOverload(preview: GeneratedProgrammePreview): GeneratedProgrammePreview {
         val updatedWeeks =
             preview.weeks.mapIndexed { weekIndex, week ->
-                val progressionFactor = 1.0f + (weekIndex * 0.05f) // 5% increase per week
+                1.0f + (weekIndex * 0.05f) // 5% increase per week
                 week.copy(
                     workouts =
                         week.workouts.map { workout ->
@@ -843,12 +866,11 @@ class ProgrammePreviewViewModel(
         // TODO: Implement when AI service supports targeted fixes
     }
 
-    private fun parseSimpleRequest(requestPayload: String): SimpleRequest? {
-        return try {
+    private fun parseSimpleRequest(requestPayload: String): SimpleRequest? =
+        try {
             json.decodeFromString<SimpleRequest>(requestPayload)
         } catch (e: Exception) {
             println("⚠️ Failed to parse SimpleRequest: ${e.message}")
             null
         }
-    }
 }

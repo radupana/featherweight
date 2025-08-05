@@ -230,23 +230,18 @@ object ExampleTemplates {
             ),
         )
 
-    fun getTemplatesForGoal(goal: ProgrammeGoal): List<ExampleTemplate> {
-        return templates.filter { it.goal == goal }
-    }
+    fun getTemplatesForGoal(goal: ProgrammeGoal): List<ExampleTemplate> = templates.filter { it.goal == goal }
 
-    fun getTemplatesForFrequency(frequency: Int): List<ExampleTemplate> {
-        return templates.filter { it.frequency == frequency }
-    }
+    fun getTemplatesForFrequency(frequency: Int): List<ExampleTemplate> = templates.filter { it.frequency == frequency }
 
     fun getFilteredTemplates(
         goal: ProgrammeGoal? = null,
         frequency: Int? = null,
         duration: SessionDuration? = null,
-    ): List<ExampleTemplate> {
-        return templates.filter { template ->
+    ): List<ExampleTemplate> =
+        templates.filter { template ->
             (goal == null || template.goal == goal) &&
                 (frequency == null || template.frequency == frequency) &&
                 (duration == null || template.duration == duration)
         }
-    }
 }

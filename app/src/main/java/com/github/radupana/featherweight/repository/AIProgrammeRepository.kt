@@ -8,7 +8,6 @@ import com.github.radupana.featherweight.data.GenerationStatus
 import com.github.radupana.featherweight.worker.ProgrammeGenerationWorker
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -150,9 +149,7 @@ class AIProgrammeRepository(
         dao.updateWorkManagerId(requestId, workRequest.id.toString())
     }
 
-    suspend fun getClarificationMessage(requestId: String): String? {
-        return dao.getClarificationMessage(requestId)
-    }
+    suspend fun getClarificationMessage(requestId: String): String? = dao.getClarificationMessage(requestId)
 
     suspend fun cleanupStaleRequests() {
         // Get requests older than 1 hour that are still processing

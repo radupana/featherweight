@@ -8,10 +8,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.combine
-import java.time.LocalDateTime
-import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 
 data class ProfileUiState(
     val isLoading: Boolean = false,
@@ -47,7 +43,9 @@ data class Big4Exercise(
     val sessionCount: Int = 0,
 )
 
-class ProfileViewModel(application: Application) : AndroidViewModel(application) {
+class ProfileViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -71,7 +69,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 // Ensure user profile exists
                 val userId = repository.getCurrentUserId()
                 repository.ensureUserProfile(userId)
-                
+
                 _uiState.value = _uiState.value.copy(isLoading = false)
             } catch (e: Exception) {
                 _uiState.value =
@@ -87,66 +85,72 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val userId = repository.getCurrentUserId()
             repository.getAllCurrentMaxesWithNames(userId).collect { maxes ->
-                _uiState.value = _uiState.value.copy(
-                    currentMaxes = maxes.map { max ->
-                        ExerciseMaxWithName(
-                            id = max.id,
-                            exerciseId = max.exerciseId,
-                            exerciseName = max.exerciseName,
-                            oneRMEstimate = max.oneRMEstimate,
-                            oneRMDate = max.oneRMDate,
-                            oneRMContext = max.oneRMContext,
-                            oneRMType = max.oneRMType,
-                            notes = max.notes,
-                            sessionCount = max.sessionCount
-                        )
-                    }
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        currentMaxes =
+                            maxes.map { max ->
+                                ExerciseMaxWithName(
+                                    id = max.id,
+                                    exerciseId = max.exerciseId,
+                                    exerciseName = max.exerciseName,
+                                    oneRMEstimate = max.oneRMEstimate,
+                                    oneRMDate = max.oneRMDate,
+                                    oneRMContext = max.oneRMContext,
+                                    oneRMType = max.oneRMType,
+                                    notes = max.notes,
+                                    sessionCount = max.sessionCount,
+                                )
+                            },
+                    )
             }
         }
     }
-    
+
     private fun observeBig4AndOtherExercises() {
         viewModelScope.launch {
             val userId = repository.getCurrentUserId()
-            
+
             // Get Big 4 exercises
             launch {
                 repository.getBig4ExercisesWithMaxes(userId).collect { big4 ->
-                    _uiState.value = _uiState.value.copy(
-                        big4Exercises = big4.map { max ->
-                            Big4Exercise(
-                                exerciseId = max.exerciseId,
-                                exerciseName = max.exerciseName,
-                                oneRMValue = max.oneRMEstimate,
-                                oneRMType = max.oneRMType,
-                                oneRMContext = max.oneRMContext,
-                                oneRMDate = max.oneRMDate,
-                                sessionCount = max.sessionCount
-                            )
-                        }
-                    )
+                    _uiState.value =
+                        _uiState.value.copy(
+                            big4Exercises =
+                                big4.map { max ->
+                                    Big4Exercise(
+                                        exerciseId = max.exerciseId,
+                                        exerciseName = max.exerciseName,
+                                        oneRMValue = max.oneRMEstimate,
+                                        oneRMType = max.oneRMType,
+                                        oneRMContext = max.oneRMContext,
+                                        oneRMDate = max.oneRMDate,
+                                        sessionCount = max.sessionCount,
+                                    )
+                                },
+                        )
                 }
             }
-            
+
             // Get other exercises
             launch {
                 repository.getOtherExercisesWithMaxes(userId).collect { others ->
-                    _uiState.value = _uiState.value.copy(
-                        otherExercises = others.map { max ->
-                            ExerciseMaxWithName(
-                                id = max.id,
-                                exerciseId = max.exerciseId,
-                                exerciseName = max.exerciseName,
-                                oneRMEstimate = max.oneRMEstimate,
-                                oneRMDate = max.oneRMDate,
-                                oneRMContext = max.oneRMContext,
-                                oneRMType = max.oneRMType,
-                                notes = max.notes,
-                                sessionCount = max.sessionCount
-                            )
-                        }
-                    )
+                    _uiState.value =
+                        _uiState.value.copy(
+                            otherExercises =
+                                others.map { max ->
+                                    ExerciseMaxWithName(
+                                        id = max.id,
+                                        exerciseId = max.exerciseId,
+                                        exerciseName = max.exerciseName,
+                                        oneRMEstimate = max.oneRMEstimate,
+                                        oneRMDate = max.oneRMDate,
+                                        oneRMContext = max.oneRMContext,
+                                        oneRMType = max.oneRMType,
+                                        notes = max.notes,
+                                        sessionCount = max.sessionCount,
+                                    )
+                                },
+                        )
                 }
             }
         }
@@ -160,8 +164,11 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         _uiState.value = _uiState.value.copy(successMessage = null)
     }
 
-
-    fun update1RM(exerciseId: Long, exerciseName: String, newMax: Float) {
+    fun update1RM(
+        exerciseId: Long,
+        exerciseName: String,
+        newMax: Float,
+    ) {
         viewModelScope.launch {
             try {
                 val userId = repository.getCurrentUserId()
@@ -170,15 +177,17 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     exerciseId = exerciseId,
                     oneRMEstimate = newMax,
                     oneRMContext = "Manually set",
-                    oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED
+                    oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,
                 )
-                _uiState.value = _uiState.value.copy(
-                    successMessage = "Updated 1RM for $exerciseName"
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        successMessage = "Updated 1RM for $exerciseName",
+                    )
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Failed to update 1RM: ${e.message}"
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Failed to update 1RM: ${e.message}",
+                    )
             }
         }
     }
@@ -186,34 +195,39 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     fun deleteMax(exerciseId: Long) {
         viewModelScope.launch {
             try {
-                val userId = repository.getCurrentUserId()
+                repository.getCurrentUserId()
                 repository.deleteAllMaxesForExercise(exerciseId)
-                _uiState.value = _uiState.value.copy(
-                    successMessage = "Deleted 1RM record"
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        successMessage = "Deleted 1RM record",
+                    )
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Failed to delete 1RM: ${e.message}"
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Failed to delete 1RM: ${e.message}",
+                    )
             }
         }
     }
-    
+
     fun toggleOneRMSection() {
-        _uiState.value = _uiState.value.copy(
-            isOneRMSectionExpanded = !_uiState.value.isOneRMSectionExpanded
-        )
+        _uiState.value =
+            _uiState.value.copy(
+                isOneRMSectionExpanded = !_uiState.value.isOneRMSectionExpanded,
+            )
     }
-    
+
     fun toggleBig4SubSection() {
-        _uiState.value = _uiState.value.copy(
-            isBig4SubSectionExpanded = !_uiState.value.isBig4SubSectionExpanded
-        )
+        _uiState.value =
+            _uiState.value.copy(
+                isBig4SubSectionExpanded = !_uiState.value.isBig4SubSectionExpanded,
+            )
     }
-    
+
     fun toggleOtherSubSection() {
-        _uiState.value = _uiState.value.copy(
-            isOtherSubSectionExpanded = !_uiState.value.isOtherSubSectionExpanded
-        )
+        _uiState.value =
+            _uiState.value.copy(
+                isOtherSubSectionExpanded = !_uiState.value.isOtherSubSectionExpanded,
+            )
     }
 }

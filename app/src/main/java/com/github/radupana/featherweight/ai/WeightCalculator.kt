@@ -79,6 +79,7 @@ class WeightCalculator {
                     avgReps <= 8 -> 75f
                     else -> 70f
                 }
+
             ProgrammeType.HYPERTROPHY ->
                 when {
                     avgReps <= 6 -> 75f
@@ -86,12 +87,14 @@ class WeightCalculator {
                     avgReps <= 15 -> 65f
                     else -> 60f
                 }
+
             ProgrammeType.ENDURANCE ->
                 when {
                     avgReps <= 12 -> 65f
                     avgReps <= 20 -> 55f
                     else -> 50f
                 }
+
             ProgrammeType.GENERAL ->
                 when {
                     avgReps <= 5 -> 75f
@@ -116,24 +119,28 @@ class WeightCalculator {
                     avgReps <= 10 -> 60f
                     else -> 50f
                 }
+
             ExerciseCategory.MEDIUM_COMPOUND ->
                 when {
                     avgReps <= 5 -> 50f
                     avgReps <= 10 -> 40f
                     else -> 35f
                 }
+
             ExerciseCategory.LIGHT_COMPOUND ->
                 when {
                     avgReps <= 5 -> 35f
                     avgReps <= 10 -> 30f
                     else -> 25f
                 }
+
             ExerciseCategory.ISOLATION ->
                 when {
                     avgReps <= 8 -> 25f
                     avgReps <= 15 -> 20f
                     else -> 15f
                 }
+
             ExerciseCategory.BODYWEIGHT -> 0f
             ExerciseCategory.UNKNOWN -> 45f // Fallback
         }
@@ -151,7 +158,8 @@ class WeightCalculator {
             name.contains("bench press") ||
                 name.contains("overhead press") ||
                 name.contains("row") ||
-                name.contains("pull-up") && !name.contains("assisted") -> ExerciseCategory.MEDIUM_COMPOUND
+                name.contains("pull-up") &&
+                !name.contains("assisted") -> ExerciseCategory.MEDIUM_COMPOUND
 
             // Light compounds
             name.contains("lunge") ||

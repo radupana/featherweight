@@ -1,6 +1,12 @@
 package com.github.radupana.featherweight.data.profile
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Transaction
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
 
@@ -99,7 +105,7 @@ interface OneRMDao {
         val currentMax = getCurrentMax(userId, exerciseId)
         if (currentMax != null && currentMax.oneRMEstimate == maxWeight) {
             // Same weight, just update the date
-            updateExerciseMax(currentMax.copy(oneRMDate = java.time.LocalDateTime.now()))
+            updateExerciseMax(currentMax.copy(oneRMDate = LocalDateTime.now()))
         } else {
             // New max, insert new record
             insertExerciseMax(
@@ -109,11 +115,11 @@ interface OneRMDao {
                     mostWeightLifted = maxWeight,
                     mostWeightReps = 1,
                     mostWeightRpe = null,
-                    mostWeightDate = java.time.LocalDateTime.now(),
+                    mostWeightDate = LocalDateTime.now(),
                     oneRMEstimate = maxWeight,
                     oneRMContext = "${maxWeight}kg × 1",
                     oneRMConfidence = 1.0f,
-                    oneRMDate = java.time.LocalDateTime.now(),
+                    oneRMDate = LocalDateTime.now(),
                     notes = notes,
                 ),
             )

@@ -25,23 +25,17 @@ object WeightFormatter {
     /**
      * Formats weight with kg unit
      */
-    fun formatWeightWithUnit(weight: Float): String {
-        return "${formatWeight(weight)}kg"
-    }
+    fun formatWeightWithUnit(weight: Float): String = "${formatWeight(weight)}kg"
 
     /**
      * Rounds a weight to the nearest quarter (0.25 increments)
      */
-    fun roundToNearestQuarter(weight: Float): Float {
-        return (round(weight * 4) / 4).toFloat()
-    }
+    fun roundToNearestQuarter(weight: Float): Float = (round(weight * 4) / 4).toFloat()
 
     /**
      * Rounds UP to the nearest quarter (for progression suggestions)
      */
-    fun roundUpToNearestQuarter(weight: Float): Float {
-        return (ceil(weight * 4) / 4).toFloat()
-    }
+    fun roundUpToNearestQuarter(weight: Float): Float = (ceil(weight * 4) / 4).toFloat()
 
     /**
      * Formats any decimal to at most 2 decimal places
@@ -49,9 +43,7 @@ object WeightFormatter {
     fun formatDecimal(
         value: Float,
         decimals: Int = 2,
-    ): String {
-        return String.format("%.${decimals}f", value).trimEnd('0').trimEnd('.')
-    }
+    ): String = String.format("%.${decimals}f", value).trimEnd('0').trimEnd('.')
 
     /**
      * Formats percentage values (0-1 scale to 0-100%)
@@ -68,11 +60,10 @@ object WeightFormatter {
     /**
      * Formats large volumes (e.g., 1234kg -> 1.2k kg)
      */
-    fun formatVolume(volume: Float): String {
-        return when {
+    fun formatVolume(volume: Float): String =
+        when {
             volume >= 10000 -> "${formatDecimal(volume / 1000, 1)}k kg"
             volume >= 1000 -> "${formatDecimal(volume / 1000, 2)}k kg"
             else -> formatWeightWithUnit(volume)
         }
-    }
 }

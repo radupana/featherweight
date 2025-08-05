@@ -2,7 +2,17 @@ package com.github.radupana.featherweight.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -11,9 +21,30 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -95,6 +126,7 @@ fun HistoryScreen(
                         onLoadMore = { historyViewModel.loadNextPage() },
                         modifier = Modifier.weight(1f),
                     )
+
                 1 ->
                     ProgrammesHistorySection(
                         programmes = historyState.programmes,
@@ -153,7 +185,7 @@ fun WorkoutHistoryCard(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     // Improved color scheme based on workout status
-    val (containerColor, statusColor, statusTextColor, statusText) =
+    val (containerColor, _, _, _) =
         when (workout.status) {
             com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED -> {
                 Quadruple(
@@ -163,6 +195,7 @@ fun WorkoutHistoryCard(
                     "Completed",
                 )
             }
+
             com.github.radupana.featherweight.data.WorkoutStatus.IN_PROGRESS -> {
                 Quadruple(
                     Color(0xFFFFFBE6), // Very light yellow background for in-progress
@@ -171,6 +204,7 @@ fun WorkoutHistoryCard(
                     "In Progress",
                 )
             }
+
             com.github.radupana.featherweight.data.WorkoutStatus.NOT_STARTED -> {
                 Quadruple(
                     Color(0xFFF5F5F5), // Light gray background for not started
@@ -414,6 +448,7 @@ fun WorkoutsHistorySection(
                     CircularProgressIndicator()
                 }
             }
+
             workouts.isEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -443,6 +478,7 @@ fun WorkoutsHistorySection(
                     }
                 }
             }
+
             else -> {
                 LazyColumn(
                     state = listState,
@@ -518,6 +554,7 @@ fun ProgrammesHistorySection(
                     CircularProgressIndicator()
                 }
             }
+
             programmes.isEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -547,6 +584,7 @@ fun ProgrammesHistorySection(
                     }
                 }
             }
+
             else -> {
                 LazyColumn(
                     state = listState,
@@ -639,7 +677,7 @@ fun ProgrammeHistoryCard(
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
-                    
+
                     Surface(
                         color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
                         shape = RoundedCornerShape(12.dp),

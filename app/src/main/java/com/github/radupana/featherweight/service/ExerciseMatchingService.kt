@@ -52,25 +52,60 @@ class ExerciseMatchingService {
         // Common movement patterns
         private val MOVEMENT_PATTERNS =
             listOf(
-                "press", "row", "squat", "deadlift", "curl", "extension",
-                "raise", "fly", "pulldown", "pull up", "push up", "dip",
-                "lunge", "step up", "thrust", "bridge", "plank",
+                "press",
+                "row",
+                "squat",
+                "deadlift",
+                "curl",
+                "extension",
+                "raise",
+                "fly",
+                "pulldown",
+                "pull up",
+                "push up",
+                "dip",
+                "lunge",
+                "step up",
+                "thrust",
+                "bridge",
+                "plank",
             )
 
         // Muscle groups
         private val MUSCLE_GROUPS =
             listOf(
-                "chest", "back", "shoulder", "bicep", "tricep",
-                "quad", "hamstring", "glute", "calf", "core", "abs",
+                "chest",
+                "back",
+                "shoulder",
+                "bicep",
+                "tricep",
+                "quad",
+                "hamstring",
+                "glute",
+                "calf",
+                "core",
+                "abs",
             )
 
         // Position/angle modifiers
         private val MODIFIERS =
             listOf(
-                "incline", "decline", "flat", "seated", "standing",
-                "lying", "kneeling", "single arm", "single leg",
-                "close grip", "wide grip", "neutral grip",
-                "front", "back", "overhead", "reverse",
+                "incline",
+                "decline",
+                "flat",
+                "seated",
+                "standing",
+                "lying",
+                "kneeling",
+                "single arm",
+                "single leg",
+                "close grip",
+                "wide grip",
+                "neutral grip",
+                "front",
+                "back",
+                "overhead",
+                "reverse",
             )
     }
 
@@ -170,8 +205,8 @@ class ExerciseMatchingService {
     /**
      * Normalize exercise name for better matching.
      */
-    private fun normalizeExerciseName(name: String): String {
-        return name
+    private fun normalizeExerciseName(name: String): String =
+        name
             .trim()
             .replace(Regex("-+"), " ") // Hyphens to spaces
             .replace(Regex("\\s+"), " ") // Multiple spaces to single
@@ -205,7 +240,6 @@ class ExerciseMatchingService {
                     else -> word.split(" ").joinToString(" ") { it.capitalize() }
                 }
             }
-    }
 
     /**
      * Direct match against exercise names and aliases.
@@ -255,6 +289,7 @@ class ExerciseMatchingService {
                 EQUIPMENT_MAPPINGS.containsKey(word) -> {
                     equipment = EQUIPMENT_MAPPINGS[word]
                 }
+
                 EQUIPMENT_MAPPINGS.containsValue(word) -> {
                     equipment = word
                 }
@@ -287,8 +322,8 @@ class ExerciseMatchingService {
     private fun findComponentMatches(
         components: ExerciseComponents,
         exercises: List<Exercise>,
-    ): List<ExerciseMatch> {
-        return exercises.mapNotNull { exercise ->
+    ): List<ExerciseMatch> =
+        exercises.mapNotNull { exercise ->
             val score = calculateComponentScore(components, exercise)
             if (score > 0) {
                 ExerciseMatch(
@@ -300,7 +335,6 @@ class ExerciseMatchingService {
                 null
             }
         }
-    }
 
     /**
      * Calculate similarity score based on components.

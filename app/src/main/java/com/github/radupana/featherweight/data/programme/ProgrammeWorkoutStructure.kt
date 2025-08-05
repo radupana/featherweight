@@ -62,21 +62,34 @@ data class ProgressionStructure(
 // Flexible increment structure to handle both single values and per-exercise values
 @Serializable(with = IncrementSerializer::class)
 sealed class IncrementStructure {
-    data class Single(val value: Float) : IncrementStructure()
+    data class Single(
+        val value: Float,
+    ) : IncrementStructure()
 
-    data class PerExercise(val values: Map<String, Float>) : IncrementStructure()
+    data class PerExercise(
+        val values: Map<String, Float>,
+    ) : IncrementStructure()
 }
 
 // Flexible reps structure to handle both single values, ranges, and AMRAP
 @Serializable(with = RepsSerializer::class)
 sealed class RepsStructure {
-    data class Single(val value: Int) : RepsStructure()
+    data class Single(
+        val value: Int,
+    ) : RepsStructure()
 
-    data class Range(val min: Int, val max: Int) : RepsStructure()
+    data class Range(
+        val min: Int,
+        val max: Int,
+    ) : RepsStructure()
 
-    data class RangeString(val value: String) : RepsStructure() // "8-12"
+    data class RangeString(
+        val value: String,
+    ) : RepsStructure() // "8-12"
 
-    data class PerSet(val values: List<String>) : RepsStructure() // [5, 3, "1+"]
+    data class PerSet(
+        val values: List<String>,
+    ) : RepsStructure() // [5, 3, "1+"]
 }
 
 /**
@@ -89,14 +102,13 @@ object ProgrammeWorkoutParser {
             isLenient = true
         }
 
-    fun parseStructure(jsonString: String): ProgrammeStructure? {
-        return try {
+    fun parseStructure(jsonString: String): ProgrammeStructure? =
+        try {
             json.decodeFromString<ProgrammeStructure>(jsonString)
         } catch (e: Exception) {
             println("❌ Error parsing programme structure: ${e.message}")
             null
         }
-    }
 
     fun getWorkoutForWeekAndDay(
         structure: ProgrammeStructure,
@@ -140,20 +152,19 @@ object ProgrammeWorkoutParser {
         }
     }
 
-    fun parseReps(repsStructure: RepsStructure): String {
-        return when (repsStructure) {
+    fun parseReps(repsStructure: RepsStructure): String =
+        when (repsStructure) {
             is RepsStructure.Single -> repsStructure.value.toString()
             is RepsStructure.Range -> "${repsStructure.min}-${repsStructure.max}"
             is RepsStructure.RangeString -> repsStructure.value
             is RepsStructure.PerSet -> repsStructure.values.joinToString(", ")
         }
-    }
 
     fun parseRepsForSet(
         repsStructure: RepsStructure,
         setIndex: Int,
-    ): Int {
-        return when (repsStructure) {
+    ): Int =
+        when (repsStructure) {
             is RepsStructure.Single -> repsStructure.value
             is RepsStructure.Range -> (repsStructure.min + repsStructure.max) / 2 // Use average
             is RepsStructure.RangeString -> {
@@ -167,6 +178,7 @@ object ProgrammeWorkoutParser {
                     repsStructure.value.toIntOrNull() ?: 8
                 }
             }
+
             is RepsStructure.PerSet -> {
                 // Handle per-set reps like [5, 3, "1+"]
                 val setReps = repsStructure.values.getOrNull(setIndex) ?: repsStructure.values.lastOrNull() ?: "5"
@@ -176,7 +188,6 @@ object ProgrammeWorkoutParser {
                 }
             }
         }
-    }
 }
 
 // Custom serializers for flexible data structures
@@ -204,9 +215,11 @@ object IncrementSerializer : KSerializer<IncrementStructure> {
             element is JsonPrimitive && element.isString -> {
                 IncrementStructure.Single(element.content.toFloatOrNull() ?: 2.5f)
             }
+
             element is JsonPrimitive -> {
                 IncrementStructure.Single(element.content.toFloatOrNull() ?: 2.5f)
             }
+
             element is JsonObject -> {
                 val values =
                     element.mapValues { (_, v) ->
@@ -214,6 +227,7 @@ object IncrementSerializer : KSerializer<IncrementStructure> {
                     }
                 IncrementStructure.PerExercise(values)
             }
+
             else -> IncrementStructure.Single(2.5f)
         }
     }
@@ -247,9 +261,11 @@ object RepsSerializer : KSerializer<RepsStructure> {
                     else -> RepsStructure.RangeString(content)
                 }
             }
+
             element is JsonPrimitive -> {
                 RepsStructure.Single(element.content.toIntOrNull() ?: 5)
             }
+
             element is JsonArray -> {
                 val values =
                     element.map {
@@ -260,6 +276,7 @@ object RepsSerializer : KSerializer<RepsStructure> {
                     }
                 RepsStructure.PerSet(values)
             }
+
             else -> RepsStructure.Single(5)
         }
     }

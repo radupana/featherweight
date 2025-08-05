@@ -3,7 +3,9 @@ package com.github.radupana.featherweight.service
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
 
-class StallDetectionService(private val db: FeatherweightDatabase) {
+class StallDetectionService(
+    private val db: FeatherweightDatabase,
+) {
     data class StallAnalysis(
         val isStalling: Boolean,
         val weeksAtCurrentWeight: Int,
@@ -97,8 +99,8 @@ class StallDetectionService(private val db: FeatherweightDatabase) {
         progress: GlobalExerciseProgress,
         recommendation: StallRecommendation,
         avgRpe: Float,
-    ): String {
-        return when (recommendation) {
+    ): String =
+        when (recommendation) {
             StallRecommendation.DELOAD ->
                 "You've been pushing hard (RPE ${avgRpe.toInt()}/10) and hit a plateau. A strategic deload will help you recover and break through."
 
@@ -120,10 +122,9 @@ class StallDetectionService(private val db: FeatherweightDatabase) {
             StallRecommendation.CONTINUE ->
                 "Progress looks normal. Keep pushing with current programming."
         }
-    }
 
-    fun getActionableSteps(recommendation: StallRecommendation): List<String> {
-        return when (recommendation) {
+    fun getActionableSteps(recommendation: StallRecommendation): List<String> =
+        when (recommendation) {
             StallRecommendation.DELOAD ->
                 listOf(
                     "Reduce weight by 15% for next workout",
@@ -180,5 +181,4 @@ class StallDetectionService(private val db: FeatherweightDatabase) {
                     "Stay patient with the process",
                 )
         }
-    }
 }

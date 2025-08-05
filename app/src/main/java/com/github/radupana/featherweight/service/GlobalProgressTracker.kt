@@ -1,7 +1,11 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.data.*
+import com.github.radupana.featherweight.data.FeatherweightDatabase
+import com.github.radupana.featherweight.data.GlobalExerciseProgress
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
+import com.github.radupana.featherweight.data.ProgressTrend
+import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.data.VolumeTrend
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
@@ -242,6 +246,7 @@ class GlobalProgressTracker(
                     trend = ProgressTrend.IMPROVING,
                 )
             }
+
             currentWeight == previousWeight -> {
                 // Stalled at same weight
                 val weeksSinceLastUpdate =
@@ -264,6 +269,7 @@ class GlobalProgressTracker(
                     trend = newTrend,
                 )
             }
+
             else -> {
                 // Regression
                 progress.copy(
@@ -384,10 +390,12 @@ class GlobalProgressTracker(
                 // Clear improvement over stored max - prompt update
                 // For actual 1-rep attempts (reps = 1), use a lower threshold (any improvement)
                 // For rep-based estimates, use the 2% threshold
-                currentUserMax != null && isBig4Exercise && (
-                    (bestEstimate.source.contains("1 rep") && estimated1RM > currentUserMax.oneRMEstimate) ||
-                    (estimated1RM > currentUserMax.oneRMEstimate * 1.02)
-                ) -> {
+                currentUserMax != null &&
+                    isBig4Exercise &&
+                    (
+                        (bestEstimate.source.contains("1 rep") && estimated1RM > currentUserMax.oneRMEstimate) ||
+                            (estimated1RM > currentUserMax.oneRMEstimate * 1.02)
+                    ) -> {
                     println(
                         "🎯 New estimated 1RM (${estimated1RM.roundToInt()}kg) exceeds stored max (${currentUserMax.oneRMEstimate.roundToInt()}kg)",
                     )

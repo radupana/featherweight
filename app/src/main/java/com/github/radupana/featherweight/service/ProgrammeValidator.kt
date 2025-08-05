@@ -1,6 +1,13 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.data.*
+import com.github.radupana.featherweight.data.GeneratedProgrammePreview
+import com.github.radupana.featherweight.data.MovementPattern
+import com.github.radupana.featherweight.data.MuscleGroup
+import com.github.radupana.featherweight.data.ValidationCategory
+import com.github.radupana.featherweight.data.ValidationError
+import com.github.radupana.featherweight.data.ValidationResult
+import com.github.radupana.featherweight.data.ValidationWarning
+import com.github.radupana.featherweight.data.VolumeMetrics
 
 class ProgrammeValidator {
     companion object {
@@ -80,7 +87,7 @@ class ProgrammeValidator {
         val errors = mutableListOf<ValidationError>()
 
         // Calculate overall programme metrics
-        val totalVolume = calculateTotalVolume(programme)
+        calculateTotalVolume(programme)
         val muscleGroupVolume = calculateMuscleGroupVolume(programme)
 
         // Volume validation
@@ -181,8 +188,9 @@ class ProgrammeValidator {
                         ),
                     )
                 }
+
                 currentVolume > range.last -> {
-                    val severity = if (currentVolume > range.last * 1.5) "high" else "moderate"
+                    if (currentVolume > range.last * 1.5) "high" else "moderate"
                     warnings.add(
                         ValidationWarning(
                             message = "High volume for ${muscle.displayName}",

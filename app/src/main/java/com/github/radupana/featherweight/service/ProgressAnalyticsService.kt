@@ -1,6 +1,6 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.data.*
+import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import java.time.LocalDateTime
 

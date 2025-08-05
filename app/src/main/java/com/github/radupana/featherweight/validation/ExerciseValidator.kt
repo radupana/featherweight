@@ -7,7 +7,9 @@ import kotlinx.coroutines.withContext
 /**
  * Validates exercise names against the database to prevent mismatches
  */
-class ExerciseValidator(private val exerciseDao: ExerciseDao) {
+class ExerciseValidator(
+    private val exerciseDao: ExerciseDao,
+) {
     private var validExerciseNames: Set<String> = emptySet()
     private var validExerciseIds: Set<Long> = emptySet()
 
@@ -26,8 +28,8 @@ class ExerciseValidator(private val exerciseDao: ExerciseDao) {
     /**
      * Validate a single exercise name
      */
-    fun validateExerciseName(name: String): ValidationResult {
-        return when {
+    fun validateExerciseName(name: String): ValidationResult =
+        when {
             validExerciseNames.contains(name) -> ValidationResult.Valid
             else -> {
                 val suggestion = findClosestMatch(name)
@@ -38,13 +40,12 @@ class ExerciseValidator(private val exerciseDao: ExerciseDao) {
                 )
             }
         }
-    }
 
     /**
      * Validate an exercise ID
      */
-    fun validateExerciseId(id: Long): ValidationResult {
-        return when {
+    fun validateExerciseId(id: Long): ValidationResult =
+        when {
             validExerciseIds.contains(id) -> ValidationResult.Valid
             else ->
                 ValidationResult.Invalid(
@@ -53,7 +54,6 @@ class ExerciseValidator(private val exerciseDao: ExerciseDao) {
                     reason = "Exercise with ID $id does not exist in database",
                 )
         }
-    }
 
     /**
      * Validate all exercise names in a programme structure
@@ -66,13 +66,13 @@ class ExerciseValidator(private val exerciseDao: ExerciseDao) {
             // Look for patterns like: "exercises": [...{"name": "exercise_name"}...]
             val exercisesPattern = """"exercises"\s*:\s*\[([^\]]+)\]""".toRegex()
             val exercisesMatches = exercisesPattern.findAll(jsonStructure)
-            
+
             exercisesMatches.forEach { exercisesMatch ->
                 val exercisesBlock = exercisesMatch.groupValues[1]
                 // Now find exercise names within the exercises block
                 val exerciseNamePattern = """"name"\s*:\s*"([^"]+)"""".toRegex()
                 val nameMatches = exerciseNamePattern.findAll(exercisesBlock)
-                
+
                 nameMatches.forEach { nameMatch ->
                     val exerciseName = nameMatch.groupValues[1]
                     val result = validateExerciseName(exerciseName)
@@ -144,9 +144,7 @@ class ExerciseValidator(private val exerciseDao: ExerciseDao) {
     /**
      * Batch validate multiple exercise names
      */
-    fun validateExerciseNames(names: List<String>): Map<String, ValidationResult> {
-        return names.associateWith { validateExerciseName(it) }
-    }
+    fun validateExerciseNames(names: List<String>): Map<String, ValidationResult> = names.associateWith { validateExerciseName(it) }
 }
 
 sealed class ValidationResult {

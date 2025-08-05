@@ -14,25 +14,25 @@ class ProgrammeHistoryDetailViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
-    
+
     private val _programmeDetails = MutableStateFlow<ProgrammeHistoryDetails?>(null)
     val programmeDetails: StateFlow<ProgrammeHistoryDetails?> = _programmeDetails.asStateFlow()
-    
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-    
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
-    
+
     fun loadProgrammeDetails(programmeId: Long) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
-            
+
             try {
                 val details = repository.getProgrammeHistoryDetails(programmeId)
                 _programmeDetails.value = details
-                
+
                 if (details == null) {
                     _error.value = "Programme not found"
                 }

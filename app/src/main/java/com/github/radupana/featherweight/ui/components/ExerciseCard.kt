@@ -1,13 +1,39 @@
 package com.github.radupana.featherweight.ui.components
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -36,7 +62,13 @@ fun ExerciseCard(
     val completedSets = sets.count { it.isCompleted }
     val totalVolume = sets.filter { it.isCompleted }.sumOf { (it.actualReps * it.actualWeight).toDouble() }.toFloat()
     val bestSet = sets.filter { it.isCompleted }.maxByOrNull { it.actualReps * it.actualWeight }
-    val avgRpe = sets.filter { it.isCompleted && it.actualRpe != null }.map { it.actualRpe!! }.average().takeIf { !it.isNaN() }?.toFloat()
+    val avgRpe =
+        sets
+            .filter { it.isCompleted && it.actualRpe != null }
+            .map { it.actualRpe!! }
+            .average()
+            .takeIf { !it.isNaN() }
+            ?.toFloat()
 
     GlassCard(
         modifier = modifier.fillMaxWidth(),
@@ -173,7 +205,10 @@ fun ExerciseCard(
             // Modern empty state
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
             ) {
                 Icon(
                     Icons.Filled.FitnessCenter,
@@ -261,9 +296,11 @@ fun ExerciseCard(
                     icon = "💪",
                     value =
                         if (bestSet != null) {
-                            "${bestSet.actualReps}×${WeightFormatter.formatWeightWithUnit(
-                                bestSet.actualWeight,
-                            )}"
+                            "${bestSet.actualReps}×${
+                                WeightFormatter.formatWeightWithUnit(
+                                    bestSet.actualWeight,
+                                )
+                            }"
                         } else {
                             "—"
                         },

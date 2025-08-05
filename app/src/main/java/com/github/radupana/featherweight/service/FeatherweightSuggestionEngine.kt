@@ -161,27 +161,23 @@ class FeatherweightSuggestionEngine(
     override suspend fun explainSuggestion(
         exerciseName: String,
         suggestion: WeightSuggestion,
-    ): String {
-        return suggestion.explanation
-    }
+    ): String = suggestion.explanation
 
     override fun observeWeightSuggestions(
         exerciseName: String,
         targetReps: Flow<Int>,
-    ): Flow<WeightSuggestion> {
-        return targetReps.map { reps ->
+    ): Flow<WeightSuggestion> =
+        targetReps.map { reps ->
             suggestWeight(exerciseName, reps)
         }
-    }
 
     override fun observeRepsSuggestions(
         exerciseName: String,
         targetWeight: Flow<Float>,
-    ): Flow<RepsSuggestion> {
-        return targetWeight.map { weight ->
+    ): Flow<RepsSuggestion> =
+        targetWeight.map { weight ->
             suggestReps(exerciseName, weight)
         }
-    }
 
     // Helper methods
 
@@ -241,9 +237,10 @@ class FeatherweightSuggestionEngine(
             val avgWeight = relevantSets.map { it.actualWeight }.average().toFloat()
             // Small progression bump if recent performance was good
             val successRate =
-                relevantSets.count {
-                    it.actualReps >= it.targetReps
-                }.toFloat() / relevantSets.size
+                relevantSets
+                    .count {
+                        it.actualReps >= it.targetReps
+                    }.toFloat() / relevantSets.size
 
             if (successRate > 0.8f) {
                 avgWeight + 2.5f // Small progression
@@ -265,10 +262,12 @@ class FeatherweightSuggestionEngine(
                 val shoulderPress = repository.getOneRMForExercise("Barbell Overhead Press")
                 shoulderPress?.let { it * 1.3f * calculatePercentageForReps(targetReps) }
             }
+
             "barbell back squat" -> {
                 val deadlift = repository.getOneRMForExercise("Barbell Deadlift")
                 deadlift?.let { it * 0.85f * calculatePercentageForReps(targetReps) }
             }
+
             else -> null
         }
     }
@@ -341,7 +340,7 @@ class FeatherweightSuggestionEngine(
                 else -> "Very low confidence"
             }
 
-        val primarySource = sources.maxByOrNull { it.weight }
+        sources.maxByOrNull { it.weight }
         val explanation = StringBuilder("${finalWeight}kg suggested ($confidenceText)\n\n")
 
         sources.forEach { source ->

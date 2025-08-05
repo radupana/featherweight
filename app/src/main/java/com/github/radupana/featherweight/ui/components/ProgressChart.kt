@@ -1,14 +1,26 @@
 package com.github.radupana.featherweight.ui.components
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
@@ -216,10 +228,12 @@ private fun DrawScope.drawLineChart(
         val isFirst = index == 0
         val isLast = index == screenPoints.size - 1
         val isPR =
-            data.showPRmarkers && (
-                isFirst || isLast ||
-                    points[index].weight > points.getOrNull(index - 1)?.weight ?: 0f
-            )
+            data.showPRmarkers &&
+                (
+                    isFirst ||
+                        isLast ||
+                        points[index].weight > points.getOrNull(index - 1)?.weight ?: 0f
+                )
 
         val pointColor = if (isPR) ChartTheme.prMarkerColor else data.primaryColor
         val pointRadius = if (isPR) 6.dp.toPx() else 4.dp.toPx()
@@ -270,7 +284,9 @@ private fun DrawScope.drawBarChart(
         drawRect(
             color = data.primaryColor,
             topLeft = Offset(x, y),
-            size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
+            size =
+                androidx.compose.ui.geometry
+                    .Size(barWidth, barHeight),
         )
     }
 }

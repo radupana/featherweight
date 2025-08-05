@@ -1,18 +1,65 @@
 package com.github.radupana.featherweight.ui.components.preview
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Numbers
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
@@ -20,7 +67,15 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.github.radupana.featherweight.data.*
+import com.github.radupana.featherweight.data.ExerciseEditState
+import com.github.radupana.featherweight.data.GeneratedProgrammePreview
+import com.github.radupana.featherweight.data.QuickEditAction
+import com.github.radupana.featherweight.data.ValidationError
+import com.github.radupana.featherweight.data.ValidationIssue
+import com.github.radupana.featherweight.data.ValidationResult
+import com.github.radupana.featherweight.data.ValidationSeverity
+import com.github.radupana.featherweight.data.ValidationWarning
+import com.github.radupana.featherweight.data.WeekPreview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,7 +204,10 @@ fun ProgrammeOverviewCard(
                 )
                 OverviewItem(
                     label = "Volume",
-                    value = preview.volumeLevel.name.lowercase().replaceFirstChar { it.uppercase() },
+                    value =
+                        preview.volumeLevel.name
+                            .lowercase()
+                            .replaceFirstChar { it.uppercase() },
                 )
             }
 
@@ -335,8 +393,7 @@ private fun ValidationIssueItem(
                             ValidationSeverity.WARNING -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
                         },
                     shape = RoundedCornerShape(8.dp),
-                )
-                .padding(12.dp),
+                ).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -373,6 +430,7 @@ private fun ValidationIssueItem(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         )
                     }
+
                 is ValidationError -> {
                     Text(
                         text = issue.requiredAction,
@@ -492,7 +550,10 @@ fun ActionButtonsCard(
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp).padding(end = 4.dp),
+                        modifier =
+                            Modifier
+                                .size(18.dp)
+                                .padding(end = 4.dp),
                     )
                     Text("Discard")
                 }

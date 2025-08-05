@@ -3,7 +3,10 @@ package com.github.radupana.featherweight.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.radupana.featherweight.data.exercise.*
+import com.github.radupana.featherweight.data.exercise.Equipment
+import com.github.radupana.featherweight.data.exercise.ExerciseCategory
+import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
+import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -165,7 +168,10 @@ class ExerciseSelectorViewModel(
                             if (exercise.muscleGroup.contains(searchWord, ignoreCase = true)) {
                                 score += 30
                             }
-                            if (exercise.category.name.replace('_', ' ').contains(searchWord, ignoreCase = true)) {
+                            if (exercise.category.name
+                                    .replace('_', ' ')
+                                    .contains(searchWord, ignoreCase = true)
+                            ) {
                                 score += 20
                             }
                         }
@@ -183,8 +189,7 @@ class ExerciseSelectorViewModel(
                 .sortedWith(
                     compareByDescending<Pair<ExerciseWithDetails, Int>> { it.second }
                         .thenBy { it.first.exercise.name },
-                )
-                .map { it.first }
+                ).map { it.first }
         } else {
             // When not searching, maintain the usage-based order
             filteredByAttributes
@@ -251,13 +256,13 @@ class ExerciseSelectorViewModel(
                 _exerciseCreated.value = null // Clear any previous success
 
                 // Try to determine category from name
-                val category = inferCategoryFromName(name)
+                inferCategoryFromName(name)
 
                 // Basic muscle groups based on common exercise patterns
-                val primaryMuscles = inferMusclesFromName(name)
+                inferMusclesFromName(name)
 
                 // Default to bodyweight if we can't determine equipment
-                val equipmentSet = inferEquipmentFromName(name)
+                inferEquipmentFromName(name)
 
                 // TODO: Re-implement custom exercise creation
                 println("Custom exercise creation not yet implemented: $name")
@@ -292,11 +297,13 @@ class ExerciseSelectorViewModel(
                 nameLower.contains("row") ||
                 nameLower.contains("lat") ||
                 nameLower.contains("back") -> ExerciseCategory.BACK
+
             nameLower.contains("squat") ||
                 nameLower.contains("lunge") ||
                 nameLower.contains("leg") ||
                 nameLower.contains("quad") ||
                 nameLower.contains("glute") -> ExerciseCategory.LEGS
+
             nameLower.contains("shoulder") || nameLower.contains("delt") || nameLower.contains("raise") -> ExerciseCategory.SHOULDERS
             nameLower.contains(
                 "curl",
@@ -304,12 +311,14 @@ class ExerciseSelectorViewModel(
                 nameLower.contains("extension") ||
                 nameLower.contains("tricep") ||
                 nameLower.contains("bicep") -> ExerciseCategory.ARMS
+
             nameLower.contains(
                 "plank",
             ) ||
                 nameLower.contains("crunch") ||
                 nameLower.contains("ab") ||
                 nameLower.contains("core") -> ExerciseCategory.CORE
+
             else -> ExerciseCategory.FULL_BODY
         }
     }
@@ -348,6 +357,7 @@ class ExerciseSelectorViewModel(
                 nameLower.contains("bench") ||
                 nameLower.contains("squat") ||
                 nameLower.contains("deadlift") -> setOf(Equipment.BARBELL)
+
             nameLower.contains("dumbbell") || nameLower.contains("db") -> setOf(Equipment.DUMBBELL)
             nameLower.contains("cable") -> setOf(Equipment.CABLE)
             nameLower.contains("pull-up") || nameLower.contains("pullup") || nameLower.contains("chin-up") -> setOf(Equipment.PULL_UP_BAR)

@@ -98,7 +98,7 @@ class InputAnalyzer {
         if (selectedGoal != null) {
             detected.add(DetectedElement.GOAL)
         } else {
-            GOAL_KEYWORDS.forEach { (goal, keywords) ->
+            GOAL_KEYWORDS.forEach { (_, keywords) ->
                 if (keywords.any { lowercaseText.contains(it) }) {
                     detected.add(DetectedElement.GOAL)
                     return@forEach
@@ -261,6 +261,7 @@ class InputAnalyzer {
                         ),
                     )
                 }
+
                 ProgrammeGoal.BUILD_MUSCLE -> {
                     chips.addAll(
                         listOf(
@@ -277,6 +278,7 @@ class InputAnalyzer {
                         ),
                     )
                 }
+
                 else -> {}
             }
         }

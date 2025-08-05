@@ -5,15 +5,17 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.WorkManager
 import com.github.radupana.featherweight.data.FeatherweightDatabase
-import com.github.radupana.featherweight.data.programme.*
+import com.github.radupana.featherweight.data.programme.Programme
+import com.github.radupana.featherweight.data.programme.ProgrammeProgress
+import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
 import com.github.radupana.featherweight.repository.AIProgrammeRepository
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class ProgrammeViewModel(
     application: Application,
@@ -251,9 +253,11 @@ class ProgrammeViewModel(
                             },
                     )
             }
+
             SetupStep.ACCESSORY_SELECTION -> {
                 _uiState.value = _uiState.value.copy(setupStep = SetupStep.CONFIRMATION)
             }
+
             SetupStep.CONFIRMATION -> {
                 // This should trigger programme creation
             }
@@ -276,6 +280,7 @@ class ProgrammeViewModel(
                             },
                     )
             }
+
             SetupStep.CONFIRMATION -> {
                 if (template?.allowsAccessoryCustomization == true) {
                     _uiState.value = _uiState.value.copy(setupStep = SetupStep.ACCESSORY_SELECTION)
@@ -285,6 +290,7 @@ class ProgrammeViewModel(
                     dismissSetupDialog()
                 }
             }
+
             SetupStep.MAXES_INPUT -> {
                 dismissSetupDialog()
             }
@@ -382,9 +388,7 @@ class ProgrammeViewModel(
 
     // Removed deactivateActiveProgramme and reactivateProgramme - we only support delete now
 
-    suspend fun getInProgressWorkoutCount(programme: Programme): Int {
-        return repository.getInProgressWorkoutCountByProgramme(programme.id)
-    }
+    suspend fun getInProgressWorkoutCount(programme: Programme): Int = repository.getInProgressWorkoutCountByProgramme(programme.id)
 
     fun deleteProgramme(programme: Programme) {
         viewModelScope.launch {
@@ -571,7 +575,9 @@ class ProgrammeViewModel(
                 val request = aiProgrammeRepository.getRequestById(requestId)
                 if (request != null && request.generatedProgrammeJson != null) {
                     // Parse the generated programme JSON
-                    val aiService = com.github.radupana.featherweight.service.AIProgrammeService(getApplication())
+                    val aiService =
+                        com.github.radupana.featherweight.service
+                            .AIProgrammeService(getApplication())
                     val response = aiService.parseAIProgrammeResponse(request.generatedProgrammeJson)
 
                     if (response.programme != null) {

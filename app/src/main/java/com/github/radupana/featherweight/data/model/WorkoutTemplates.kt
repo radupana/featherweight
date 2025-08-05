@@ -1,4 +1,4 @@
-package com.radu.featherweight.data.model
+package com.github.radupana.featherweight.data.model
 
 object WorkoutTemplates {
     private val PUSH =

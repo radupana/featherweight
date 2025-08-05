@@ -293,63 +293,63 @@ fun WorkoutsScreen(
                     Text("Start Freestyle Workout")
                 }
             }
-            
+
             // Template workouts section
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = "Start From Template",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 12.dp)
+                modifier = Modifier.padding(bottom = 12.dp),
             )
-            
+
             // Template cards in a 2x3 grid
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     TemplateButton(
                         name = "Push",
                         modifier = Modifier.weight(1f),
-                        onClick = { onStartTemplate("PUSH") }
+                        onClick = { onStartTemplate("PUSH") },
                     )
                     TemplateButton(
                         name = "Pull",
                         modifier = Modifier.weight(1f),
-                        onClick = { onStartTemplate("PULL") }
+                        onClick = { onStartTemplate("PULL") },
                     )
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     TemplateButton(
                         name = "Legs",
                         modifier = Modifier.weight(1f),
-                        onClick = { onStartTemplate("LEGS") }
+                        onClick = { onStartTemplate("LEGS") },
                     )
                     TemplateButton(
                         name = "Upper",
                         modifier = Modifier.weight(1f),
-                        onClick = { onStartTemplate("UPPER") }
+                        onClick = { onStartTemplate("UPPER") },
                     )
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     TemplateButton(
                         name = "Lower",
                         modifier = Modifier.weight(1f),
-                        onClick = { onStartTemplate("LOWER") }
+                        onClick = { onStartTemplate("LOWER") },
                     )
                     TemplateButton(
                         name = "Full Body",
                         modifier = Modifier.weight(1f),
-                        onClick = { onStartTemplate("FULL BODY") }
+                        onClick = { onStartTemplate("FULL BODY") },
                     )
                 }
             }
@@ -387,22 +387,24 @@ fun WorkoutsScreen(
 private fun TemplateButton(
     name: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val muscleGroups = when (name) {
-        "Push" -> "Chest, Shoulders, Triceps"
-        "Pull" -> "Back, Biceps"
-        "Legs" -> "Quads, Hamstrings, Glutes, Calves"
-        "Upper" -> "All upper body"
-        "Lower" -> "All lower body"
-        "Full Body" -> "Balanced mix"
-        else -> ""
-    }
-    
+    val muscleGroups =
+        when (name) {
+            "Push" -> "Chest, Shoulders, Triceps"
+            "Pull" -> "Back, Biceps"
+            "Legs" -> "Quads, Hamstrings, Glutes, Calves"
+            "Upper" -> "All upper body"
+            "Lower" -> "All lower body"
+            "Full Body" -> "Balanced mix"
+            else -> ""
+        }
+
     GlassmorphicCard(
-        modifier = modifier
-            .height(100.dp)
-            .clickable { onClick() }
+        modifier =
+            modifier
+                .height(100.dp)
+                .clickable { onClick() },
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),

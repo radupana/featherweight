@@ -17,7 +17,9 @@ data class UserSelectionUiState(
     val error: String? = null,
 )
 
-class UserSelectionViewModel(application: Application) : AndroidViewModel(application) {
+class UserSelectionViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
     private val userPreferences = UserPreferences(application)
 

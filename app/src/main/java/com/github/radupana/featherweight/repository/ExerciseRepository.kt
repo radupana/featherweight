@@ -125,18 +125,15 @@ class ExerciseRepository(
 
     suspend fun getSetsForExercise(exerciseLogId: Long): List<SetLog> = setLogDao.getSetLogsForExercise(exerciseLogId)
 
-    suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long {
-        return exerciseLogDao.insertExerciseLog(exerciseLog)
-    }
+    suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long = exerciseLogDao.insertExerciseLog(exerciseLog)
 
     suspend fun insertExerciseLogWithExerciseReference(
         workoutId: Long,
         exerciseName: String,
         order: Int = 0,
     ): Long {
-        val exercise =
-            getExerciseByName(exerciseName)
-                ?: throw IllegalArgumentException("Exercise '$exerciseName' not found in database")
+        getExerciseByName(exerciseName)
+            ?: throw IllegalArgumentException("Exercise '$exerciseName' not found in database")
 
         val exerciseLog =
             ExerciseLog(
@@ -243,7 +240,9 @@ class ExerciseRepository(
         withContext(Dispatchers.IO) {
             // Get all completed workouts ordered by date (newest first)
             val completedWorkouts =
-                db.workoutDao().getAllWorkouts()
+                db
+                    .workoutDao()
+                    .getAllWorkouts()
                     .filter { it.status == WorkoutStatus.COMPLETED }
                     .sortedByDescending { it.date }
 
@@ -278,7 +277,6 @@ class ExerciseRepository(
 
             null
         }
-
 
     suspend fun getPersonalRecords(exerciseName: String): List<Pair<Float, LocalDateTime>> =
         withContext(Dispatchers.IO) {
@@ -377,9 +375,11 @@ class ExerciseRepository(
         exerciseSwapHistoryDao.insert(swapHistory)
     }
 
-    suspend fun getSwapHistoryForExercise(userId: Long, exerciseId: Long): List<SwapHistoryCount> {
-        return withContext(Dispatchers.IO) {
+    suspend fun getSwapHistoryForExercise(
+        userId: Long,
+        exerciseId: Long,
+    ): List<SwapHistoryCount> =
+        withContext(Dispatchers.IO) {
             exerciseSwapHistoryDao.getSwapHistoryForExercise(userId, exerciseId)
         }
-    }
 }

@@ -12,44 +12,49 @@ import kotlinx.coroutines.launch
 data class ProgrammeCompletionUiState(
     val isLoading: Boolean = true,
     val completionStats: ProgrammeCompletionStats? = null,
-    val error: String? = null
+    val error: String? = null,
 )
 
 class ProgrammeCompletionViewModel(
-    private val repository: FeatherweightRepository
+    private val repository: FeatherweightRepository,
 ) : ViewModel() {
-    
     private val _uiState = MutableStateFlow(ProgrammeCompletionUiState())
     val uiState: StateFlow<ProgrammeCompletionUiState> = _uiState.asStateFlow()
-    
+
     fun loadProgrammeCompletionStats(programmeId: Long) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            
+
             try {
                 val stats = repository.calculateProgrammeCompletionStats(programmeId)
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    completionStats = stats,
-                    error = null
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        isLoading = false,
+                        completionStats = stats,
+                        error = null,
+                    )
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = e.message
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        isLoading = false,
+                        error = e.message,
+                    )
             }
         }
     }
-    
-    fun saveProgrammeNotes(programmeId: Long, notes: String) {
+
+    fun saveProgrammeNotes(
+        programmeId: Long,
+        notes: String,
+    ) {
         viewModelScope.launch {
             try {
                 repository.updateProgrammeCompletionNotes(programmeId, notes)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Failed to save notes: ${e.message}"
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Failed to save notes: ${e.message}",
+                    )
             }
         }
     }

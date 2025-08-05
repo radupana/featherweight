@@ -1,27 +1,37 @@
 package com.github.radupana.featherweight.data
 
-enum class ProgrammeGoal(val displayName: String, val emoji: String) {
+enum class ProgrammeGoal(
+    val displayName: String,
+    val emoji: String,
+) {
     BUILD_STRENGTH("Build Strength", "💪"),
     BUILD_MUSCLE("Build Muscle", "🏋️"),
     LOSE_FAT("Lose Fat", "🔥"),
     ATHLETIC_PERFORMANCE("Athletic Performance", "⚡"),
 }
 
-enum class SessionDuration(val displayName: String, val minutesRange: String) {
+enum class SessionDuration(
+    val displayName: String,
+    val minutesRange: String,
+) {
     QUICK("Quick", "30-45 min"),
     STANDARD("Standard", "45-60 min"),
     EXTENDED("Extended", "60-90 min"),
     LONG("Long", "90+ min"),
 }
 
-enum class ExperienceLevel(val displayName: String) {
+enum class ExperienceLevel(
+    val displayName: String,
+) {
     BEGINNER("Beginner"),
     INTERMEDIATE("Intermediate"),
     ADVANCED("Advanced"),
     ELITE("Elite"),
 }
 
-enum class EquipmentAvailability(val displayName: String) {
+enum class EquipmentAvailability(
+    val displayName: String,
+) {
     BARBELL_AND_RACK("Barbell & Rack"),
     FULL_GYM("Full Commercial Gym"),
     DUMBBELLS_ONLY("Dumbbells Only"),
@@ -31,7 +41,10 @@ enum class EquipmentAvailability(val displayName: String) {
 
 // GenerationMode removed - only using simplified approach
 
-enum class TrainingFrequency(val displayName: String, val daysPerWeek: Int) {
+enum class TrainingFrequency(
+    val displayName: String,
+    val daysPerWeek: Int,
+) {
     TWO_DAYS("2x per week", 2),
     THREE_DAYS("3x per week", 3),
     FOUR_DAYS("4x per week", 4),
@@ -89,16 +102,17 @@ data class GuidedInputState(
     val loadingMessage: String = "Preparing your personalized programme...",
     val errorMessage: String? = null,
 ) {
-    fun isStepComplete(step: WizardStep): Boolean {
-        return when (step) {
+    fun isStepComplete(step: WizardStep): Boolean =
+        when (step) {
             WizardStep.QUICK_SETUP -> selectedGoal != null && selectedFrequency != null && selectedDuration != null
             WizardStep.ABOUT_YOU -> selectedExperience != null && selectedEquipment != null
             WizardStep.CUSTOMIZE -> false // Customize step is optional and never shows as complete
         }
-    }
 
-    fun canGenerate(): Boolean {
-        return selectedGoal != null && selectedFrequency != null && selectedDuration != null &&
-            selectedExperience != null && selectedEquipment != null
-    }
+    fun canGenerate(): Boolean =
+        selectedGoal != null &&
+            selectedFrequency != null &&
+            selectedDuration != null &&
+            selectedExperience != null &&
+            selectedEquipment != null
 }

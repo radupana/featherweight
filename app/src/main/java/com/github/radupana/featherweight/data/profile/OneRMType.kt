@@ -8,9 +8,9 @@ enum class OneRMType {
      * The 1RM value was manually entered by the user.
      */
     MANUALLY_ENTERED,
-    
+
     /**
      * The 1RM value was automatically calculated from workout performance.
      */
-    AUTOMATICALLY_CALCULATED
+    AUTOMATICALLY_CALCULATED,
 }

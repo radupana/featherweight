@@ -4,7 +4,9 @@ import com.github.radupana.featherweight.data.ExercisePerformanceTracking
 import com.github.radupana.featherweight.data.ExercisePerformanceTrackingDao
 import com.github.radupana.featherweight.data.ExerciseProgressionStatus
 import com.github.radupana.featherweight.data.ProgressionAction
-import com.github.radupana.featherweight.data.programme.*
+import com.github.radupana.featherweight.data.programme.DeloadRules
+import com.github.radupana.featherweight.data.programme.Programme
+import com.github.radupana.featherweight.data.programme.ProgressionRules
 import com.github.radupana.featherweight.repository.ExerciseRepository
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.Dispatchers
@@ -148,7 +150,8 @@ class ProgressionService(
         // Determine success based on programme rules
         val progressionRules =
             programmeDao
-                .getProgrammeById(programmeId)?.getProgressionRulesObject()
+                .getProgrammeById(programmeId)
+                ?.getProgressionRulesObject()
 
         val wasSuccessful =
             if (progressionRules != null) {

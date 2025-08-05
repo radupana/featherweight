@@ -4,18 +4,38 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.*
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.radupana.featherweight.ui.theme.ChartTheme
@@ -35,6 +55,7 @@ data class ExerciseDataPoint(
 fun ExerciseProgressChart(
     dataPoints: List<ExerciseDataPoint>,
     modifier: Modifier = Modifier,
+    isMaxWeightChart: Boolean = false,
     onDataPointClick: (ExerciseDataPoint) -> Unit = {},
 ) {
     var selectedPoint by remember { mutableStateOf<ExerciseDataPoint?>(null) }
@@ -47,14 +68,6 @@ fun ExerciseProgressChart(
         }
 
     Column(modifier = modifier) {
-        // Header with title
-        Text(
-            text = "One Rep Max Progression",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp),
-        )
-
         // Chart
         Card(
             modifier =
@@ -118,7 +131,7 @@ fun ExerciseProgressChart(
                             fontWeight = FontWeight.Medium,
                         )
                         Text(
-                            text = "1RM: ${WeightFormatter.formatWeightWithUnit(point.weight)}",
+                            text = "${if (isMaxWeightChart) "Weight Lifted" else "1RM"}: ${WeightFormatter.formatWeightWithUnit(point.weight)}",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold,
                         )
@@ -127,20 +140,6 @@ fun ExerciseProgressChart(
                                 text = "From: $context",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
-                            )
-                        }
-                    }
-                    if (point.isPR) {
-                        Surface(
-                            color = Color(0xFFFFD700).copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(4.dp),
-                        ) {
-                            Text(
-                                text = "PR",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFB8860B),
                             )
                         }
                     }
@@ -352,24 +351,7 @@ private fun ChartCanvas(
                 center = Offset(x, animatedY),
             )
 
-            // PR marker
-            if (dataPoint.isPR) {
-                val prText = "PR"
-                val prTextResult =
-                    textMeasurer.measure(
-                        text = prText,
-                        style =
-                            TextStyle(
-                                fontSize = 8.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = prColor,
-                            ),
-                    )
-                drawText(
-                    textLayoutResult = prTextResult,
-                    topLeft = Offset(x - prTextResult.size.width / 2, animatedY - 20.dp.toPx()),
-                )
-            }
+            // PR marker - no text needed since 1RM progression is monotonically increasing
         }
     }
 }

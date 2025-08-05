@@ -1,7 +1,14 @@
 package com.github.radupana.featherweight.worker
 
 import android.content.Context
-import androidx.work.*
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.CoroutineWorker
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequest
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.GenerationStatus
 import com.github.radupana.featherweight.repository.SimpleRequest
@@ -10,7 +17,6 @@ import com.github.radupana.featherweight.service.AIProgrammeService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.net.SocketTimeoutException
 
@@ -37,16 +43,15 @@ class ProgrammeGenerationWorker(
             return OneTimeWorkRequestBuilder<ProgrammeGenerationWorker>()
                 .setInputData(inputData)
                 .setConstraints(
-                    Constraints.Builder()
+                    Constraints
+                        .Builder()
                         .setRequiredNetworkType(NetworkType.CONNECTED)
                         .build(),
-                )
-                .setBackoffCriteria(
+                ).setBackoffCriteria(
                     BackoffPolicy.EXPONENTIAL,
                     30,
                     java.util.concurrent.TimeUnit.SECONDS,
-                )
-                .addTag("programme_generation")
+                ).addTag("programme_generation")
                 .addTag(requestId)
                 .build()
         }

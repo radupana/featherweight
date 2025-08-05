@@ -62,7 +62,6 @@ interface WorkoutDao {
     )
     suspend fun getTotalProgrammeWorkoutCount(programmeId: Long): Int
 
-
     @Query(
         """
         SELECT DISTINCT weekNumber FROM Workout 
@@ -128,13 +127,18 @@ interface WorkoutDao {
     suspend fun deleteAllWorkouts()
 
     // Paginated query for completed workouts
-    @Query("""
+    @Query(
+        """
         SELECT * FROM Workout 
         WHERE status = 'COMPLETED' 
         ORDER BY date DESC 
         LIMIT :limit OFFSET :offset
-    """)
-    suspend fun getCompletedWorkoutsPaged(limit: Int, offset: Int): List<Workout>
+    """,
+    )
+    suspend fun getCompletedWorkoutsPaged(
+        limit: Int,
+        offset: Int,
+    ): List<Workout>
 
     // Get the workout date when a specific weight was achieved for an exercise
     @Query(

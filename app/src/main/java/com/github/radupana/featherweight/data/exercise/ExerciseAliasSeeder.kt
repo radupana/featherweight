@@ -1,6 +1,8 @@
 package com.github.radupana.featherweight.data.exercise
 
-class ExerciseAliasSeeder(private val exerciseDao: ExerciseDao) {
+class ExerciseAliasSeeder(
+    private val exerciseDao: ExerciseDao,
+) {
     suspend fun seedExerciseAliases() {
         // Map of exercise name to list of aliases
         val exerciseAliases =

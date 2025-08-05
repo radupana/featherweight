@@ -1,16 +1,49 @@
 package com.github.radupana.featherweight.ui.screens
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -20,7 +53,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.AIProgrammeRequest
 import com.github.radupana.featherweight.data.GenerationStatus
-import com.github.radupana.featherweight.data.programme.*
+import com.github.radupana.featherweight.data.programme.Programme
+import com.github.radupana.featherweight.data.programme.ProgrammeProgress
+import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
 import com.github.radupana.featherweight.ui.components.AIProgrammeRequestCard
 import com.github.radupana.featherweight.ui.components.ClarificationDialog
 import com.github.radupana.featherweight.ui.dialogs.ProgrammeSetupDialog
@@ -28,9 +63,7 @@ import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.ui.utils.NavigationContext
 import com.github.radupana.featherweight.ui.utils.rememberKeyboardState
 import com.github.radupana.featherweight.ui.utils.systemBarsPadding
-import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
-import java.util.*
 
 @Composable
 fun ProgrammesScreen(
@@ -43,7 +76,6 @@ fun ProgrammesScreen(
     val uiState by viewModel.uiState.collectAsState()
     val activeProgramme by viewModel.activeProgramme.collectAsState()
     val programmeProgress by viewModel.programmeProgress.collectAsState()
-    val allProgrammes by viewModel.allProgrammes.collectAsState()
     val aiProgrammeRequests by viewModel.aiProgrammeRequests.collectAsState(initial = emptyList())
     val isKeyboardVisible by rememberKeyboardState()
     val compactPadding = if (isKeyboardVisible) 8.dp else 16.dp
@@ -257,7 +289,9 @@ fun ProgrammesScreen(
             template = uiState.selectedTemplate!!,
             uiState = uiState,
             viewModel = viewModel,
-            repository = com.github.radupana.featherweight.repository.FeatherweightRepository(viewModel.getApplication()),
+            repository =
+                com.github.radupana.featherweight.repository
+                    .FeatherweightRepository(viewModel.getApplication()),
             onProgrammeCreated = {
                 // Navigate to active programme screen after creation
                 onNavigateToActiveProgramme?.invoke()
@@ -577,12 +611,12 @@ private fun ProgressMetric(
 }
 
 // Helper function to format enum names properly
-private fun formatEnumName(enumName: String): String {
-    return enumName.split('_')
+private fun formatEnumName(enumName: String): String =
+    enumName
+        .split('_')
         .joinToString(" ") { word ->
             word.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
         }
-}
 
 @Composable
 private fun ProgrammeTemplateCard(

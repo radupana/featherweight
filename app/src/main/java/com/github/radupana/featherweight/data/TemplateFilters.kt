@@ -1,6 +1,8 @@
 package com.github.radupana.featherweight.data
 
-enum class TemplateFilterCategory(val displayName: String) {
+enum class TemplateFilterCategory(
+    val displayName: String,
+) {
     GOAL("Goal"),
     EQUIPMENT("Equipment"),
     EXPERIENCE("Experience"),
@@ -47,15 +49,13 @@ object TemplateFilters {
             TemplateFilter(TemplateFilterCategory.FREQUENCY, "6_plus_days", "6+ days/week"),
         )
 
-    fun getFiltersByCategory(category: TemplateFilterCategory): List<TemplateFilter> {
-        return allFilters.filter { it.category == category }
-    }
+    fun getFiltersByCategory(category: TemplateFilterCategory): List<TemplateFilter> = allFilters.filter { it.category == category }
 
     fun matchesFilter(
         template: ExampleTemplate,
         filter: TemplateFilter,
-    ): Boolean {
-        return when (filter.category) {
+    ): Boolean =
+        when (filter.category) {
             TemplateFilterCategory.GOAL ->
                 when (filter.value) {
                     "strength" -> template.goal == ProgrammeGoal.BUILD_STRENGTH
@@ -112,5 +112,4 @@ object TemplateFilters {
                     else -> false
                 }
         }
-    }
 }

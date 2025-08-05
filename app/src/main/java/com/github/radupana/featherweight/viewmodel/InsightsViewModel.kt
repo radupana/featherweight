@@ -408,7 +408,7 @@ class InsightsViewModel(
     private suspend fun loadPerformanceMetrics(): PerformanceMetrics {
         val now = LocalDateTime.now()
         val weekStart = now.minusDays(7)
-        val monthStart = now.minusDays(30)
+        now.minusDays(30)
 
         val trainingFrequency = repository.getTrainingFrequency(weekStart, now)
         val averageRPE = repository.getAverageRPE(daysSince = 30)
@@ -456,16 +456,16 @@ class InsightsViewModel(
         loadInsightsData()
     }
 
-    suspend fun getGroupedExercisesSummary(): com.github.radupana.featherweight.service.GroupedExerciseSummary {
-        return withContext(Dispatchers.IO) {
+    suspend fun getGroupedExercisesSummary(): com.github.radupana.featherweight.service.GroupedExerciseSummary =
+        withContext(Dispatchers.IO) {
             try {
                 repository.getExercisesSummary()
             } catch (e: Exception) {
                 e.printStackTrace()
-                com.github.radupana.featherweight.service.GroupedExerciseSummary(emptyList(), emptyList())
+                com.github.radupana.featherweight.service
+                    .GroupedExerciseSummary(emptyList(), emptyList())
             }
         }
-    }
 
     fun loadHighlightsData(
         onComplete: (
@@ -485,7 +485,12 @@ class InsightsViewModel(
                 // Get workouts from this week
                 val now = LocalDateTime.now()
                 // Start from Sunday 23:59:59 to include all of Monday onwards
-                val weekStart = now.with(java.time.DayOfWeek.MONDAY).toLocalDate().atStartOfDay().minusSeconds(1)
+                val weekStart =
+                    now
+                        .with(java.time.DayOfWeek.MONDAY)
+                        .toLocalDate()
+                        .atStartOfDay()
+                        .minusSeconds(1)
                 val weeklyWorkoutCount =
                     withContext(Dispatchers.IO) {
                         repository.getCompletedWorkoutCountSince(weekStart)

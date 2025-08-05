@@ -9,7 +9,7 @@ import androidx.room.Update
 interface ExerciseLogDao {
     @Insert
     suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long
-    
+
     @Insert
     suspend fun insert(exerciseLog: ExerciseLog): Long
 

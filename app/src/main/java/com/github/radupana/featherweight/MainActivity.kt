@@ -50,9 +50,9 @@ import com.github.radupana.featherweight.ui.screens.HistoryScreen
 import com.github.radupana.featherweight.ui.screens.InsightsScreen
 import com.github.radupana.featherweight.ui.screens.SplashScreen
 import com.github.radupana.featherweight.ui.screens.UserSelectionScreen
+import com.github.radupana.featherweight.ui.screens.WorkoutCompletionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
-import com.github.radupana.featherweight.ui.screens.WorkoutCompletionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutTemplateConfigurationScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutsScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
@@ -405,14 +405,14 @@ fun MainAppWithNavigation(
             Screen.HISTORY -> {
                 val historyViewModel: HistoryViewModel = viewModel()
                 val workoutViewModel: WorkoutViewModel = viewModel()
-                
+
                 // Refresh history when navigating to this screen
                 LaunchedEffect(currentScreen) {
                     if (currentScreen == Screen.HISTORY) {
                         historyViewModel.refreshHistory()
                     }
                 }
-                
+
                 HistoryScreen(
                     onViewWorkout = { workoutId ->
                         // Navigate to workout detail - view completed workout in read-only mode
@@ -458,14 +458,14 @@ fun MainAppWithNavigation(
                             onCompletedWorkoutIdChange(null)
                             // Navigate to workouts screen
                             onScreenChange(Screen.WORKOUTS)
-                        }
+                        },
                     )
                 } ?: run {
                     // If no workout ID, go back to workouts
                     onScreenChange(Screen.WORKOUTS)
                 }
             }
-            
+
             Screen.PROGRAMME_COMPLETION -> {
                 completedProgrammeId?.let { programmeId ->
                     com.github.radupana.featherweight.ui.screens.ProgrammeCompletionScreen(
@@ -475,14 +475,14 @@ fun MainAppWithNavigation(
                             onCompletedProgrammeIdChange(null)
                             // Navigate to programmes screen
                             onScreenChange(Screen.PROGRAMMES)
-                        }
+                        },
                     )
                 } ?: run {
                     // If no programme ID, go back to programmes
                     onScreenChange(Screen.PROGRAMMES)
                 }
             }
-            
+
             Screen.INSIGHTS -> {
                 val insightsViewModel: InsightsViewModel = viewModel()
                 InsightsScreen(
@@ -496,7 +496,6 @@ fun MainAppWithNavigation(
             }
 
             Screen.PROGRAMMES -> {
-                val profileViewModel: com.github.radupana.featherweight.viewmodel.ProfileViewModel = viewModel()
                 val programmeViewModel: ProgrammeViewModel = viewModel()
 
                 // Force refresh AI requests when returning from preview screen
@@ -583,7 +582,7 @@ fun MainAppWithNavigation(
             Screen.WORKOUT_TEMPLATE_CONFIGURATION -> {
                 selectedTemplate?.let { templateName ->
                     val template =
-                        com.radu.featherweight.data.model.WorkoutTemplates
+                        com.github.radupana.featherweight.data.model.WorkoutTemplates
                             .getTemplate(templateName)
                     if (template != null) {
                         val workoutViewModel: WorkoutViewModel = viewModel()

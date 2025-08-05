@@ -9,7 +9,7 @@ import androidx.room.Update
 interface SetLogDao {
     @Insert
     suspend fun insertSetLog(setLog: SetLog): Long
-    
+
     @Insert
     suspend fun insert(setLog: SetLog): Long
 
@@ -25,7 +25,7 @@ interface SetLogDao {
 
     @Update
     suspend fun updateSetLog(setLog: SetLog)
-    
+
     @Update
     suspend fun update(setLog: SetLog)
 
@@ -72,7 +72,7 @@ interface SetLogDao {
     """,
     )
     suspend fun getWorkoutDateForSetLog(setLogId: Long): String?
-    
+
     @Query(
         """
         SELECT w.id 

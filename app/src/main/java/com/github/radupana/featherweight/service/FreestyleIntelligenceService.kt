@@ -1,10 +1,11 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.data.*
+import com.github.radupana.featherweight.data.GlobalExerciseProgress
+import com.github.radupana.featherweight.data.GlobalExerciseProgressDao
+import com.github.radupana.featherweight.data.ProgressTrend
 import com.github.radupana.featherweight.domain.AlternativeSuggestion
 import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.repository.FeatherweightRepository
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlin.math.roundToInt
 
@@ -81,20 +82,18 @@ class FreestyleIntelligenceService(
         exerciseName: String,
         userId: Long,
         repsFlow: kotlinx.coroutines.flow.Flow<Int>,
-    ): kotlinx.coroutines.flow.Flow<SmartSuggestions> {
-        return repsFlow.map { reps ->
+    ): kotlinx.coroutines.flow.Flow<SmartSuggestions> =
+        repsFlow.map { reps ->
             getIntelligentSuggestions(exerciseName, userId, reps)
         }
-    }
 
-    private fun analyzeRpeTrend(progress: GlobalExerciseProgress): RpeTrendAnalysis {
-        return when {
+    private fun analyzeRpeTrend(progress: GlobalExerciseProgress): RpeTrendAnalysis =
+        when {
             progress.recentAvgRpe == null -> RpeTrendAnalysis.UNKNOWN
             progress.recentAvgRpe < 7f -> RpeTrendAnalysis.TOO_EASY
             progress.recentAvgRpe > 9f -> RpeTrendAnalysis.TOO_HARD
             else -> RpeTrendAnalysis.OPTIMAL
         }
-    }
 
     private suspend fun suggestProgressiveOverload(
         progress: GlobalExerciseProgress,
@@ -237,9 +236,11 @@ class FreestyleIntelligenceService(
                     val weight = roundToNearestPlate(baseWeight * (1 + increase))
                     weight to "Steady progress detected. ${if (increase > 0) "Small increase recommended." else "Maintain current trajectory."}"
                 }
+
                 ProgressTrend.STALLING -> {
                     baseWeight to "Approaching a stall (${progress.consecutiveStalls} sessions). Consider varying intensity or volume next session."
                 }
+
                 ProgressTrend.DECLINING -> {
                     val weight = roundToNearestPlate(baseWeight * 0.95f)
                     weight to "Performance declining. Reduce weight by 5% and focus on recovery."
@@ -334,7 +335,5 @@ class FreestyleIntelligenceService(
         return (weight / 2.5f).roundToInt() * 2.5f
     }
 
-    private fun Float.format(decimals: Int): String {
-        return "%.${decimals}f".format(this)
-    }
+    private fun Float.format(decimals: Int): String = "%.${decimals}f".format(this)
 }

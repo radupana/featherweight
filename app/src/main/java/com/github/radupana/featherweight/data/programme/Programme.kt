@@ -1,8 +1,10 @@
 package com.github.radupana.featherweight.data.programme
 
-import androidx.room.*
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
+import androidx.room.PrimaryKey
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 
@@ -46,62 +48,55 @@ data class Programme(
     val templateName: String? = null,
 ) {
     // Helper methods to serialize/deserialize rules
-    fun getWeightCalculationRulesObject(): WeightCalculationRules? {
-        return weightCalculationRules?.let {
+    fun getWeightCalculationRulesObject(): WeightCalculationRules? =
+        weightCalculationRules?.let {
             try {
                 Json.decodeFromString<WeightCalculationRules>(it)
             } catch (e: Exception) {
                 null
             }
         }
-    }
 
-    fun getProgressionRulesObject(): ProgressionRules? {
-        return progressionRules?.let {
+    fun getProgressionRulesObject(): ProgressionRules? =
+        progressionRules?.let {
             try {
                 Json.decodeFromString<ProgressionRules>(it)
             } catch (e: Exception) {
                 null
             }
         }
-    }
 
     companion object {
-        fun encodeWeightCalculationRules(rules: WeightCalculationRules): String {
-            return Json.encodeToString(rules)
-        }
+        fun encodeWeightCalculationRules(rules: WeightCalculationRules): String = Json.encodeToString(rules)
 
-        fun encodeProgressionRules(rules: ProgressionRules): String {
-            return Json.encodeToString(rules)
-        }
+        fun encodeProgressionRules(rules: ProgressionRules): String = Json.encodeToString(rules)
     }
-    
+
     init {
         // Validate status and isActive consistency
         require(isValidStatusAndActiveState()) {
             "Invalid programme state: status=$status, isActive=$isActive. " +
-            "Only NOT_STARTED and IN_PROGRESS programmes can have isActive=true"
+                "Only NOT_STARTED and IN_PROGRESS programmes can have isActive=true"
         }
-        
+
         // Validate completedAt consistency
         require((status == ProgrammeStatus.COMPLETED) == (completedAt != null)) {
             "Invalid programme state: status=$status but completedAt=$completedAt. " +
-            "COMPLETED programmes must have completedAt set, others must not"
+                "COMPLETED programmes must have completedAt set, others must not"
         }
-        
+
         // Validate startedAt consistency
         require((status == ProgrammeStatus.NOT_STARTED) == (startedAt == null)) {
             "Invalid programme state: status=$status but startedAt=$startedAt. " +
-            "NOT_STARTED programmes must not have startedAt set"
+                "NOT_STARTED programmes must not have startedAt set"
         }
     }
-    
-    private fun isValidStatusAndActiveState(): Boolean {
-        return when (status) {
+
+    private fun isValidStatusAndActiveState(): Boolean =
+        when (status) {
             ProgrammeStatus.NOT_STARTED, ProgrammeStatus.IN_PROGRESS -> true // isActive can be true or false
             ProgrammeStatus.COMPLETED, ProgrammeStatus.CANCELLED -> !isActive // isActive must be false
         }
-    }
 }
 
 /**
@@ -237,7 +232,7 @@ enum class ProgrammeStatus {
     NOT_STARTED,
     IN_PROGRESS,
     COMPLETED,
-    CANCELLED
+    CANCELLED,
 }
 
 enum class ProgrammeType {

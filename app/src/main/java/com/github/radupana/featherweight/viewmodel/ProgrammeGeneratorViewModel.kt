@@ -6,7 +6,15 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.WorkManager
 import com.github.radupana.featherweight.ai.WeightExtractionService
-import com.github.radupana.featherweight.data.*
+import com.github.radupana.featherweight.data.EquipmentAvailability
+import com.github.radupana.featherweight.data.ExperienceLevel
+import com.github.radupana.featherweight.data.FeatherweightDatabase
+import com.github.radupana.featherweight.data.GuidedInputState
+import com.github.radupana.featherweight.data.ProgrammeGoal
+import com.github.radupana.featherweight.data.ProgrammeValidationResult
+import com.github.radupana.featherweight.data.SessionDuration
+import com.github.radupana.featherweight.data.TrainingFrequency
+import com.github.radupana.featherweight.data.WizardStep
 import com.github.radupana.featherweight.repository.AIProgrammeRepository
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.AIProgrammeQuotaManager
@@ -102,6 +110,7 @@ class ProgrammeGeneratorViewModel(
                     _uiState.value = currentState.copy(currentStep = WizardStep.ABOUT_YOU)
                 }
             }
+
             WizardStep.ABOUT_YOU -> {
                 // Only proceed if required fields are filled
                 if (currentState.selectedExperience != null &&
@@ -110,6 +119,7 @@ class ProgrammeGeneratorViewModel(
                     _uiState.value = currentState.copy(currentStep = WizardStep.CUSTOMIZE)
                 }
             }
+
             WizardStep.CUSTOMIZE -> {
                 // This is the last step, don't navigate further
             }
@@ -122,9 +132,11 @@ class ProgrammeGeneratorViewModel(
             WizardStep.QUICK_SETUP -> {
                 // This is the first step, can't go back
             }
+
             WizardStep.ABOUT_YOU -> {
                 _uiState.value = currentState.copy(currentStep = WizardStep.QUICK_SETUP)
             }
+
             WizardStep.CUSTOMIZE -> {
                 _uiState.value = currentState.copy(currentStep = WizardStep.ABOUT_YOU)
             }
@@ -145,10 +157,12 @@ class ProgrammeGeneratorViewModel(
                     state.selectedFrequency != null &&
                     state.selectedDuration != null
             }
+
             WizardStep.ABOUT_YOU -> {
                 state.selectedExperience != null &&
                     state.selectedEquipment != null
             }
+
             WizardStep.CUSTOMIZE -> true // Can always generate from customize step
         }
     }
@@ -161,10 +175,12 @@ class ProgrammeGeneratorViewModel(
                     state.selectedFrequency != null &&
                     state.selectedDuration != null
             }
+
             WizardStep.ABOUT_YOU -> {
                 state.selectedExperience != null &&
                     state.selectedEquipment != null
             }
+
             WizardStep.CUSTOMIZE -> state.customInstructions.isNotEmpty()
         }
     }
@@ -185,14 +201,17 @@ class ProgrammeGeneratorViewModel(
                             hints.add("Consider mentioning your current 1RM numbers")
                             hints.add("Specify if you prefer powerlifting or Olympic lifting")
                         }
+
                         ProgrammeGoal.BUILD_MUSCLE -> {
                             hints.add("Mention any muscle groups you want to prioritize")
                             hints.add("Include your preferred training split if you have one")
                         }
+
                         ProgrammeGoal.LOSE_FAT -> {
                             hints.add("Note if you're doing any cardio alongside weight training")
                             hints.add("Mention if you have any dietary restrictions")
                         }
+
                         ProgrammeGoal.ATHLETIC_PERFORMANCE -> {
                             hints.add("Specify which sport or activity you're training for")
                             hints.add("Include any speed/agility work requirements")
@@ -206,9 +225,11 @@ class ProgrammeGeneratorViewModel(
                         EquipmentAvailability.LIMITED -> {
                             hints.add("List the specific equipment you have available")
                         }
+
                         EquipmentAvailability.BODYWEIGHT -> {
                             hints.add("Mention if you have access to pull-up bars or dip stations")
                         }
+
                         else -> {}
                     }
                 }
@@ -217,6 +238,7 @@ class ProgrammeGeneratorViewModel(
                 hints.add("Mention any injuries or areas to work around")
                 hints.add("Note your schedule preferences or time constraints")
             }
+
             else -> {}
         }
 
@@ -234,21 +256,25 @@ class ProgrammeGeneratorViewModel(
                 examples.add("My deadlift is weak compared to my squat, need to bring it up")
                 examples.add("Want to compete in powerlifting next year")
             }
+
             ProgrammeGoal.BUILD_MUSCLE -> {
                 examples.add("My chest is lagging, want extra volume there")
                 examples.add("Prefer higher rep ranges (8-12) for hypertrophy")
                 examples.add("Want to focus on arms and shoulders this cycle")
             }
+
             ProgrammeGoal.LOSE_FAT -> {
                 examples.add("Need to maintain strength while cutting 20 pounds")
                 examples.add("Prefer circuit-style training to keep heart rate up")
                 examples.add("Limited to 45 minutes per session due to schedule")
             }
+
             ProgrammeGoal.ATHLETIC_PERFORMANCE -> {
                 examples.add("Training for basketball season, need explosive power")
                 examples.add("Rugby player needing strength and conditioning")
                 examples.add("Want to improve my 40-yard dash time")
             }
+
             else -> {
                 examples.add("Recovering from shoulder injury, need modifications")
                 examples.add("Want to focus on functional fitness and mobility")
@@ -288,32 +314,33 @@ class ProgrammeGeneratorViewModel(
                 // Fetch user's current 1RMs
                 val userId = repository.getCurrentUserId()
                 val maxes = repository.getAllCurrentMaxesWithNames(userId).first()
-                val user1RMs = maxes.associate { max ->
-                    max.exerciseName to max.oneRMEstimate
-                }
-                
+                val user1RMs =
+                    maxes.associate { max ->
+                        max.exerciseName to max.oneRMEstimate
+                    }
+
                 // Create generation request
-                val requestId =
-                    aiProgrammeRepository.createGenerationRequest(
-                        userInput = buildFullUserInput(currentState),
-                        selectedGoal = currentState.selectedGoal?.name,
-                        selectedFrequency = currentState.selectedFrequency?.daysPerWeek,
-                        selectedDuration = currentState.selectedDuration?.name,
-                        selectedExperience = currentState.selectedExperience?.name,
-                        selectedEquipment = currentState.selectedEquipment?.name,
-                        generationMode = "SIMPLIFIED",
-                        user1RMs = user1RMs.ifEmpty { null },
-                    )
+                aiProgrammeRepository.createGenerationRequest(
+                    userInput = buildFullUserInput(currentState),
+                    selectedGoal = currentState.selectedGoal?.name,
+                    selectedFrequency = currentState.selectedFrequency?.daysPerWeek,
+                    selectedDuration = currentState.selectedDuration?.name,
+                    selectedExperience = currentState.selectedExperience?.name,
+                    selectedEquipment = currentState.selectedEquipment?.name,
+                    generationMode = "SIMPLIFIED",
+                    user1RMs = user1RMs.ifEmpty { null },
+                )
 
                 // Increment quota usage
                 quotaManager.incrementUsage()
 
                 // Show toast message
-                Toast.makeText(
-                    getApplication(),
-                    "Your programme is being created! Check the Programmes section",
-                    Toast.LENGTH_LONG,
-                ).show()
+                Toast
+                    .makeText(
+                        getApplication(),
+                        "Your programme is being created! Check the Programmes section",
+                        Toast.LENGTH_LONG,
+                    ).show()
 
                 // Navigate to programmes screen
                 onNavigateToProgrammes?.invoke()
@@ -326,9 +353,7 @@ class ProgrammeGeneratorViewModel(
         }
     }
 
-    private fun buildFullUserInput(state: GuidedInputState): String {
-        return buildEnhancedUserInput(state)
-    }
+    private fun buildFullUserInput(state: GuidedInputState): String = buildEnhancedUserInput(state)
 
     private fun buildEnhancedUserInput(state: GuidedInputState): String {
         val parts = mutableListOf<String>()
@@ -398,7 +423,6 @@ class ProgrammeGeneratorViewModel(
             "Create a general fitness programme suitable for someone looking to improve their overall health and fitness."
         }
     }
-
 
     private suspend fun validateAndMatchExercises(
         response: AIProgrammeResponse,

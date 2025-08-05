@@ -86,8 +86,8 @@ data class SuggestedWeight(
 /**
  * Default increment values for common exercises
  */
-fun defaultIncrements(): Map<String, Float> {
-    return mapOf(
+fun defaultIncrements(): Map<String, Float> =
+    mapOf(
         // Lower body - larger increments
         "squat" to 5.0f,
         "deadlift" to 5.0f,
@@ -104,7 +104,6 @@ fun defaultIncrements(): Map<String, Float> {
         // Default for unspecified exercises
         "default" to 2.5f,
     )
-}
 
 /**
  * Common progression templates for popular programmes

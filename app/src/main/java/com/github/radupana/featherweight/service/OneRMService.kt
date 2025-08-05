@@ -1,8 +1,8 @@
 package com.github.radupana.featherweight.service
 
 import com.github.radupana.featherweight.data.SetLog
-import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.data.profile.OneRMType
+import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.LocalDateTime
 import kotlin.math.roundToInt

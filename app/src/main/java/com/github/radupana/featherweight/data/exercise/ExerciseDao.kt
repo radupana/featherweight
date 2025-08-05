@@ -1,6 +1,11 @@
 package com.github.radupana.featherweight.data.exercise
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.Query
+import androidx.room.Transaction
+import androidx.room.TypeConverter
+import androidx.room.Update
 import com.github.radupana.featherweight.data.profile.OneRMType
 
 @Dao
@@ -78,7 +83,7 @@ interface ExerciseDao {
     """,
     )
     suspend fun findExerciseByNameOrAlias(searchTerm: String): Exercise?
-    
+
     @Query(
         """
         SELECT * FROM exercises 
@@ -123,10 +128,10 @@ class ExerciseTypeConverters {
 
     @TypeConverter
     fun toEquipment(equipment: String): Equipment = Equipment.valueOf(equipment)
-    
+
     @TypeConverter
     fun fromOneRMType(type: OneRMType): String = type.name
-    
+
     @TypeConverter
     fun toOneRMType(type: String): OneRMType = OneRMType.valueOf(type)
 }

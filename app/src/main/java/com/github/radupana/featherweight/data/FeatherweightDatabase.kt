@@ -10,8 +10,8 @@ import com.github.radupana.featherweight.data.exercise.ExerciseAlias
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.ExerciseTypeConverters
 import com.github.radupana.featherweight.data.profile.OneRMDao
-import com.github.radupana.featherweight.data.profile.ProfileDao
 import com.github.radupana.featherweight.data.profile.OneRMHistory
+import com.github.radupana.featherweight.data.profile.ProfileDao
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.data.profile.UserProfile
 import com.github.radupana.featherweight.data.programme.ExerciseSubstitution

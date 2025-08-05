@@ -15,7 +15,7 @@ data class ProgrammeCompletionStats(
     val totalPRs: Int,
     val strengthImprovements: List<StrengthImprovement>,
     val averageStrengthImprovement: Float,
-    val insights: ProgrammeInsights
+    val insights: ProgrammeInsights,
 )
 
 data class StrengthImprovement(
@@ -23,11 +23,11 @@ data class StrengthImprovement(
     val startingMax: Float,
     val endingMax: Float,
     val improvementKg: Float,
-    val improvementPercentage: Float
+    val improvementPercentage: Float,
 )
 
 data class ProgrammeInsights(
     val totalTrainingDays: Int,
     val mostConsistentDay: String?, // "Monday", "Tuesday", etc.
-    val averageRestDaysBetweenWorkouts: Float
+    val averageRestDaysBetweenWorkouts: Float,
 )

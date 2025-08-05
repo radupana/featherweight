@@ -1,11 +1,24 @@
 package com.github.radupana.featherweight.ui.screens
 
-import androidx.compose.animation.*
-import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -13,24 +26,34 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Notes
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.radupana.featherweight.data.programme.ProgrammeDifficulty
-import com.github.radupana.featherweight.data.programme.ProgrammeType
 import com.github.radupana.featherweight.repository.ProgrammeHistoryDetails
 import com.github.radupana.featherweight.repository.WorkoutHistoryEntry
 import com.github.radupana.featherweight.viewmodel.ProgrammeHistoryDetailViewModel
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,11 +67,11 @@ fun ProgrammeHistoryDetailScreen(
     val programmeDetails by viewModel.programmeDetails.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
-    
+
     LaunchedEffect(programmeId) {
         viewModel.loadProgrammeDetails(programmeId)
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -65,19 +88,22 @@ fun ProgrammeHistoryDetailScreen(
         when {
             isLoading -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator()
                 }
             }
+
             error != null -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
@@ -101,6 +127,7 @@ fun ProgrammeHistoryDetailScreen(
                     }
                 }
             }
+
             programmeDetails != null -> {
                 ProgrammeDetailsContent(
                     details = programmeDetails!!,
@@ -137,9 +164,9 @@ fun ProgrammeDetailsContent(
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     // Programme metadata
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -150,7 +177,11 @@ fun ProgrammeDetailsContent(
                             shape = RoundedCornerShape(8.dp),
                         ) {
                             Text(
-                                text = details.programmeType.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() },
+                                text =
+                                    details.programmeType.name
+                                        .replace("_", " ")
+                                        .lowercase()
+                                        .replaceFirstChar { it.uppercase() },
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -161,16 +192,19 @@ fun ProgrammeDetailsContent(
                             shape = RoundedCornerShape(8.dp),
                         ) {
                             Text(
-                                text = details.difficulty.name.lowercase().replaceFirstChar { it.uppercase() },
+                                text =
+                                    details.difficulty.name
+                                        .lowercase()
+                                        .replaceFirstChar { it.uppercase() },
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                             )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Duration and completion stats
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -192,9 +226,9 @@ fun ProgrammeDetailsContent(
                             modifier = Modifier.weight(1f),
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Dates
                     Column {
                         Text(
@@ -211,16 +245,17 @@ fun ProgrammeDetailsContent(
                 }
             }
         }
-        
+
         // Completion Notes (if any)
         if (!details.completionNotes.isNullOrBlank()) {
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     elevation = CardDefaults.cardElevation(4.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
-                    ),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+                        ),
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -241,9 +276,9 @@ fun ProgrammeDetailsContent(
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         Text(
                             text = details.completionNotes,
                             style = MaterialTheme.typography.bodyMedium,
@@ -253,7 +288,7 @@ fun ProgrammeDetailsContent(
                 }
             }
         }
-        
+
         // Workout History Section
         item {
             Text(
@@ -262,16 +297,16 @@ fun ProgrammeDetailsContent(
                 fontWeight = FontWeight.Bold,
             )
         }
-        
+
         // Group workouts by week
         val workoutsByWeek = details.workoutHistory.groupBy { it.weekNumber }
         val sortedWeeks = workoutsByWeek.keys.sorted()
-        
+
         sortedWeeks.forEach { weekNumber ->
             val weekWorkouts = workoutsByWeek[weekNumber]!!.sortedBy { it.dayNumber }
             val completedCount = weekWorkouts.count { it.completed }
             val totalCount = weekWorkouts.size
-            
+
             item {
                 CollapsibleWeekSection(
                     weekNumber = weekNumber,
@@ -294,28 +329,33 @@ fun CollapsibleWeekSection(
     onViewWorkout: (Long) -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
-    
+
     Column {
         // Week header - always visible
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { isExpanded = !isExpanded },
-            colors = CardDefaults.cardColors(
-                containerColor = if (isExpanded) {
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                },
-            ),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = if (isExpanded) 4.dp else 2.dp
-            ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded },
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        if (isExpanded) {
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        },
+                ),
+            elevation =
+                CardDefaults.cardElevation(
+                    defaultElevation = if (isExpanded) 4.dp else 2.dp,
+                ),
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(
@@ -332,7 +372,7 @@ fun CollapsibleWeekSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                
+
                 // Progress indicator
                 if (totalCount > 0) {
                     val progress = completedCount.toFloat() / totalCount
@@ -353,7 +393,7 @@ fun CollapsibleWeekSection(
                         )
                     }
                 }
-                
+
                 // Expand/collapse icon
                 Icon(
                     imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
@@ -362,12 +402,12 @@ fun CollapsibleWeekSection(
                 )
             }
         }
-        
+
         // Workout entries - only visible when expanded
         AnimatedVisibility(
             visible = isExpanded,
             enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
+            exit = shrinkVertically() + fadeOut(),
         ) {
             Column {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -389,26 +429,29 @@ fun WorkoutHistoryEntryCard(
     onViewWorkout: () -> Unit,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onViewWorkout() },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onViewWorkout() },
         elevation = CardDefaults.cardElevation(2.dp),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Day indicator
             Surface(
                 modifier = Modifier.size(48.dp),
                 shape = RoundedCornerShape(12.dp),
-                color = if (workout.completed) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                },
+                color =
+                    if (workout.completed) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    },
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -419,28 +462,30 @@ fun WorkoutHistoryEntryCard(
                         Text(
                             text = "Day",
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (workout.completed) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
+                            color =
+                                if (workout.completed) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                         )
                         Text(
                             text = workout.dayNumber.toString(),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (workout.completed) {
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
+                            color =
+                                if (workout.completed) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                         )
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             // Workout details
             Column(
                 modifier = Modifier.weight(1f),
@@ -464,7 +509,7 @@ fun WorkoutHistoryEntryCard(
                     )
                 }
             }
-            
+
             // Completion indicator
             if (workout.completed) {
                 Icon(

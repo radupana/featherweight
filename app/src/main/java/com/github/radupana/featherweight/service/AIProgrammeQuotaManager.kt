@@ -5,7 +5,9 @@ import android.content.SharedPreferences
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-class AIProgrammeQuotaManager(context: Context) {
+class AIProgrammeQuotaManager(
+    context: Context,
+) {
     companion object {
         private const val PREFS_NAME = "ai_programme_quota"
         private const val KEY_USAGE_COUNT = "usage_count"
@@ -50,7 +52,8 @@ class AIProgrammeQuotaManager(context: Context) {
 
         if (lastResetDate != today) {
             // New day, reset quota
-            prefs.edit()
+            prefs
+                .edit()
                 .putInt(KEY_USAGE_COUNT, 0)
                 .putString(KEY_LAST_RESET_DATE, today)
                 .apply()
@@ -59,7 +62,8 @@ class AIProgrammeQuotaManager(context: Context) {
 
     // For debugging/admin
     fun resetQuota() {
-        prefs.edit()
+        prefs
+            .edit()
             .putInt(KEY_USAGE_COUNT, 0)
             .putString(KEY_LAST_RESET_DATE, LocalDate.now().format(dateFormatter))
             .apply()

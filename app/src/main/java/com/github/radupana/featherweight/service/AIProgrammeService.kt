@@ -296,19 +296,20 @@ class AIProgrammeService(
 
     private fun buildUserPromptWithMaxes(request: AIProgrammeRequest): String {
         val parts = mutableListOf<String>()
-        
+
         // Add the user's original input
         parts.add(request.userInput)
-        
+
         // Add user's 1RMs if available
         if (!request.user1RMs.isNullOrEmpty()) {
-            val maxesText = request.user1RMs.entries.joinToString("\n") { (exercise, weight) ->
-                "- $exercise: ${weight}kg"
-            }
+            val maxesText =
+                request.user1RMs.entries.joinToString("\n") { (exercise, weight) ->
+                    "- $exercise: ${weight}kg"
+                }
             parts.add("\nUSER'S CURRENT 1RM VALUES (from their profile):\n$maxesText")
             parts.add("Please use these 1RMs to calculate appropriate working weights based on the programme's intensity requirements.")
         }
-        
+
         return parts.joinToString("\n")
     }
 
@@ -408,9 +409,7 @@ class AIProgrammeService(
         }
     }
 
-    fun parseAIProgrammeResponse(jsonResponse: String): AIProgrammeResponse {
-        return parseAIResponse(jsonResponse)
-    }
+    fun parseAIProgrammeResponse(jsonResponse: String): AIProgrammeResponse = parseAIResponse(jsonResponse)
 
     private fun parseAIResponse(response: String): AIProgrammeResponse {
         return try {

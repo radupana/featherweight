@@ -1,8 +1,10 @@
 package com.github.radupana.featherweight.data.profile
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import java.time.LocalDateTime
 
 @Dao
 interface ProfileDao {
@@ -21,7 +23,4 @@ interface ProfileDao {
 
     @Query("SELECT * FROM user_profiles LIMIT 1")
     suspend fun getUserProfile(): UserProfile?
-
-
-
 }

@@ -1,11 +1,31 @@
 package com.github.radupana.featherweight.ui.components
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -19,7 +39,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.format.DateTimeFormatter
@@ -187,9 +206,11 @@ private fun PRDetailCard(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Previous: ${WeightFormatter.formatWeightWithUnit(
-                        personalRecord.previousWeight,
-                    )} × ${personalRecord.previousReps ?: 0}",
+                    text = "Previous: ${
+                        WeightFormatter.formatWeightWithUnit(
+                            personalRecord.previousWeight,
+                        )
+                    } × ${personalRecord.previousReps ?: 0}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -214,9 +235,7 @@ private fun PRDetailCard(
     }
 }
 
-private fun formatPRText(pr: PersonalRecord): String {
-    return "${WeightFormatter.formatWeightWithUnit(pr.weight)} × ${pr.reps}"
-}
+private fun formatPRText(pr: PersonalRecord): String = "${WeightFormatter.formatWeightWithUnit(pr.weight)} × ${pr.reps}"
 
 // Confetti particle data class
 private data class ConfettiParticle(

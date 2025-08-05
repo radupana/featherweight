@@ -1,6 +1,6 @@
 package com.github.radupana.featherweight.data
 
-import java.util.*
+import java.util.UUID
 
 data class GeneratedProgrammePreview(
     val id: String = UUID.randomUUID().toString(),

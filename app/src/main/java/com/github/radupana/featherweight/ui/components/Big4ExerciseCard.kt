@@ -1,7 +1,15 @@
 package com.github.radupana.featherweight.ui.components
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,59 +29,65 @@ fun Big4ExerciseCard(
     onAdd: () -> Unit,
     onEdit: () -> Unit,
     onClear: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     GlassmorphicCard(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             ) {
                 Text(
                     text = exerciseName,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
                 )
-                
+
                 if (oneRMValue != null) {
                     Text(
                         text = "${WeightFormatter.formatWeight(oneRMValue)} kg",
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 4.dp)
+                        modifier = Modifier.padding(top = 4.dp),
                     )
-                    
+
                     if (oneRMType != null) {
-                        val contextText = when (oneRMType) {
-                            OneRMType.MANUALLY_ENTERED -> "Manually set"
-                            OneRMType.AUTOMATICALLY_CALCULATED -> {
-                                if (oneRMContext != null && oneRMDate != null) {
-                                    val dateStr = oneRMDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM d"))
-                                    "$oneRMContext on $dateStr"
-                                } else {
-                                    oneRMContext ?: "Calculated"
+                        val contextText =
+                            when (oneRMType) {
+                                OneRMType.MANUALLY_ENTERED -> "Manually set"
+                                OneRMType.AUTOMATICALLY_CALCULATED -> {
+                                    if (oneRMContext != null && oneRMDate != null) {
+                                        val dateStr =
+                                            oneRMDate.format(
+                                                java.time.format.DateTimeFormatter
+                                                    .ofPattern("MMM d"),
+                                            )
+                                        "$oneRMContext on $dateStr"
+                                    } else {
+                                        oneRMContext ?: "Calculated"
+                                    }
                                 }
                             }
-                        }
                         Text(
                             text = contextText,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 2.dp)
+                            modifier = Modifier.padding(top = 2.dp),
                         )
-                        
+
                         Text(
                             text = "$sessionCount sessions",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            modifier = Modifier.padding(top = 2.dp)
+                            modifier = Modifier.padding(top = 2.dp),
                         )
                     }
                 } else {
@@ -81,27 +95,28 @@ fun Big4ExerciseCard(
                         text = "No 1RM set",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp)
+                        modifier = Modifier.padding(top = 8.dp),
                     )
                 }
             }
-            
+
             if (oneRMValue != null) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(start = 16.dp)
+                    modifier = Modifier.padding(start = 16.dp),
                 ) {
                     FilledTonalButton(
-                        onClick = onEdit
+                        onClick = onEdit,
                     ) {
                         Text("Edit")
                     }
-                    
+
                     OutlinedButton(
                         onClick = onClear,
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
+                        colors =
+                            ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error,
+                            ),
                     ) {
                         Text("Clear")
                     }
@@ -109,7 +124,7 @@ fun Big4ExerciseCard(
             } else {
                 FilledTonalButton(
                     onClick = onAdd,
-                    modifier = Modifier.padding(start = 16.dp)
+                    modifier = Modifier.padding(start = 16.dp),
                 ) {
                     Text("Add")
                 }

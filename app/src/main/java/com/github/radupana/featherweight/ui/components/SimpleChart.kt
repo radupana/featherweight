@@ -3,13 +3,29 @@ package com.github.radupana.featherweight.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -31,7 +47,10 @@ fun StrengthProgressionChart(
 ) {
     if (data.isEmpty()) {
         Box(
-            modifier = modifier.fillMaxWidth().height(200.dp),
+            modifier =
+                modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -86,9 +105,11 @@ fun StrengthProgressionChart(
                         ),
                 ) {
                     Text(
-                        text = "${WeightFormatter.formatWeightWithUnit(
-                            weight,
-                        )} on ${date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}",
+                        text = "${
+                            WeightFormatter.formatWeightWithUnit(
+                                weight,
+                            )
+                        } on ${date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = ChartTheme.tooltipContentColor(),
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -142,7 +163,10 @@ fun StrengthProgressionChart(
 
         // X-axis labels (simplified)
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             if (data.isNotEmpty()) {
@@ -178,7 +202,10 @@ fun VolumeBarChart(
 ) {
     if (weeklyData.isEmpty()) {
         Box(
-            modifier = modifier.fillMaxWidth().height(160.dp),
+            modifier =
+                modifier
+                    .fillMaxWidth()
+                    .height(160.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -266,7 +293,10 @@ fun VolumeBarChart(
 
         // X-axis labels
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             weeklyData.forEach { (label, _) ->
@@ -371,8 +401,8 @@ private fun DrawScope.drawStrengthChart(
 
     // Draw Y-axis labels
     repeat(5) { i ->
-        val weight = minWeight + (weightRange * i / 4f)
-        val y = padding + ((4 - i) / 4f) * chartHeight
+        minWeight + (weightRange * i / 4f)
+        padding + ((4 - i) / 4f) * chartHeight
 
         // You could add text drawing here if needed, but it's complex with Canvas
         // For now, we'll rely on the title showing the current max

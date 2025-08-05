@@ -192,6 +192,7 @@ class WorkoutSeedingService(
                 generateExercise(workoutId, exerciseOrder["bench"]!!, "bench", progressedBenchRM, config, exerciseIds, weekInCycle)
                 generateExercise(workoutId, exerciseOrder["row"]!!, "row", progressedSquatRM * 0.8f, config, exerciseIds, weekInCycle)
             }
+
             "deadlift_row" -> {
                 exerciseOrder["deadlift"] = order++
                 exerciseOrder["row"] = order++
@@ -201,6 +202,7 @@ class WorkoutSeedingService(
                 generateExercise(workoutId, exerciseOrder["row"]!!, "row", progressedDeadliftRM * 0.6f, config, exerciseIds, weekInCycle)
                 generateExercise(workoutId, exerciseOrder["curl"]!!, "curl", progressedBenchRM * 0.5f, config, exerciseIds, weekInCycle)
             }
+
             "squat_ohp" -> {
                 exerciseOrder["squat"] = order++
                 exerciseOrder["ohp"] = order++
@@ -218,6 +220,7 @@ class WorkoutSeedingService(
                     weekInCycle,
                 )
             }
+
             "bench_accessories" -> {
                 exerciseOrder["bench"] = order++
                 exerciseOrder["incline"] = order++
@@ -247,7 +250,7 @@ class WorkoutSeedingService(
         exerciseIds: Map<String, Long>,
         weekInCycle: Int,
     ) {
-        val exerciseId = exerciseIds[exerciseKey] ?: return
+        exerciseIds[exerciseKey] ?: return
         val exerciseName = exerciseNames[exerciseKey] ?: return
 
         // Create exercise log
