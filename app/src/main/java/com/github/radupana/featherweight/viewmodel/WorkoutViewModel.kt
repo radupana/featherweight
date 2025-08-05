@@ -1688,6 +1688,10 @@ class WorkoutViewModel(
         val newValue = (_restTimerSeconds.value + adjustment).coerceAtLeast(0)
         if (newValue > 0) {
             _restTimerSeconds.value = newValue
+            // Only update initialSeconds when adding time (+15s), not when subtracting (-15s)
+            if (adjustment > 0) {
+                _restTimerInitialSeconds.value = newValue
+            }
         } else {
             skipRestTimer()
         }

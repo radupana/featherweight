@@ -125,22 +125,16 @@ fun IntegratedRestTimer(
                             Text("60s")
                         }
                         OutlinedButton(
-                            onClick = { onPresetSelected(90) },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text("90s")
-                        }
-                        OutlinedButton(
                             onClick = { onPresetSelected(120) },
                             modifier = Modifier.weight(1f),
                         ) {
                             Text("120s")
                         }
                         OutlinedButton(
-                            onClick = { onPresetSelected(240) },
+                            onClick = { onPresetSelected(180) },
                             modifier = Modifier.weight(1f),
                         ) {
-                            Text("240s")
+                            Text("180s")
                         }
                     }
 
@@ -153,7 +147,7 @@ fun IntegratedRestTimer(
                             onClick = { onAdjustTime(-15) },
                             modifier = Modifier.weight(1f),
                         ) {
-                            Text("-15")
+                            Text("-15s")
                         }
                         Button(
                             onClick = onSkip,
@@ -165,7 +159,7 @@ fun IntegratedRestTimer(
                             onClick = { onAdjustTime(15) },
                             modifier = Modifier.weight(1f),
                         ) {
-                            Text("+15")
+                            Text("+15s")
                         }
                     }
                 }
