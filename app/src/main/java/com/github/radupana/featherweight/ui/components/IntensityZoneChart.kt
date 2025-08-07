@@ -184,16 +184,20 @@ private fun IntensityZoneChartCanvas(
 
         if (intensityData.isEmpty()) return@Canvas
 
-        // Calculate bounds - use set count for better visualization
-        intensityData.sumOf { it.sets }
-        val maxSetsInZone = intensityData.maxOf { it.sets }
-        val maxValue = maxSetsInZone.toFloat() * 1.05f
+        // Calculate bounds - use percentages for better visualization
+        val totalSets = intensityData.sumOf { it.sets }.toFloat()
+        val maxPercentage =
+            if (totalSets > 0) {
+                (intensityData.maxOf { it.sets }.toFloat() / totalSets * 100) * 1.05f
+            } else {
+                100f
+            }
 
         // Draw grid lines
         val gridLines = 4
         for (i in 0..gridLines) {
             val y = topPadding + chartHeight - (i.toFloat() / gridLines * chartHeight)
-            val setCount = (i.toFloat() / gridLines * maxValue).toInt()
+            val percentage = (i.toFloat() / gridLines * maxPercentage).toInt()
 
             // Grid line
             drawLine(
@@ -204,11 +208,11 @@ private fun IntensityZoneChartCanvas(
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 5f)),
             )
 
-            // Set count label
-            val setCountText = "$setCount"
+            // Percentage label
+            val percentageText = "$percentage%"
             val textLayoutResult =
                 textMeasurer.measure(
-                    text = setCountText,
+                    text = percentageText,
                     style =
                         TextStyle(
                             fontSize = 10.sp,
@@ -231,7 +235,8 @@ private fun IntensityZoneChartCanvas(
 
         intensityData.forEachIndexed { index, zone ->
             val x = leftPadding + index * (barWidth + barSpacing)
-            val barHeight = (zone.sets.toFloat() / maxValue * chartHeight) * animationProgress.value
+            val zonePercentage = if (totalSets > 0) (zone.sets.toFloat() / totalSets * 100) else 0f
+            val barHeight = (zonePercentage / maxPercentage * chartHeight) * animationProgress.value
             val y = topPadding + chartHeight - barHeight
 
             val isSelected = zone == selectedZone
@@ -255,10 +260,11 @@ private fun IntensityZoneChartCanvas(
                 }
             }
 
-            // X-axis label (zone name)
+            // X-axis label (RPE range)
+            val rpeRangeLabel = zone.range // Use the range instead of zone name
             val textLayoutResult =
                 textMeasurer.measure(
-                    text = zone.zone,
+                    text = rpeRangeLabel,
                     style =
                         TextStyle(
                             fontSize = 9.sp,
@@ -275,12 +281,12 @@ private fun IntensityZoneChartCanvas(
                     ),
             )
 
-            // Display set count on top of bar if bar is tall enough
+            // Display percentage on top of bar if bar is tall enough
             if (barHeight > 20.dp.toPx()) {
-                val setCountText = "${zone.sets}"
-                val setCountLayout =
+                val percentageText = "${zonePercentage.toInt()}%"
+                val percentageLayout =
                     textMeasurer.measure(
-                        text = setCountText,
+                        text = percentageText,
                         style =
                             TextStyle(
                                 fontSize = 8.sp,
@@ -289,10 +295,10 @@ private fun IntensityZoneChartCanvas(
                             ),
                     )
                 drawText(
-                    textLayoutResult = setCountLayout,
+                    textLayoutResult = percentageLayout,
                     topLeft =
                         Offset(
-                            x + barWidth / 2 - setCountLayout.size.width / 2,
+                            x + barWidth / 2 - percentageLayout.size.width / 2,
                             y + 4.dp.toPx(),
                         ),
                 )

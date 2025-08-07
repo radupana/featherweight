@@ -177,14 +177,20 @@ private fun RepRangeChartCanvas(
 
         if (distributionData.isEmpty()) return@Canvas
 
-        // Calculate bounds
-        val maxVolume = distributionData.maxOf { it.volume } * 1.05f
+        // Calculate bounds - use percentages for better visualization
+        val totalVolume = distributionData.sumOf { it.volume.toDouble() }.toFloat()
+        val maxPercentage =
+            if (totalVolume > 0f) {
+                (distributionData.maxOf { it.volume } / totalVolume * 100) * 1.05f
+            } else {
+                100f
+            }
 
         // Draw grid lines
         val gridLines = 4
         for (i in 0..gridLines) {
             val y = topPadding + chartHeight - (i.toFloat() / gridLines * chartHeight)
-            val volume = i.toFloat() / gridLines * maxVolume
+            val percentage = i.toFloat() / gridLines * maxPercentage
 
             // Grid line
             drawLine(
@@ -195,11 +201,11 @@ private fun RepRangeChartCanvas(
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 5f)),
             )
 
-            // Volume label
-            val volumeText = "${WeightFormatter.formatWeight(volume)}kg"
+            // Percentage label
+            val percentageText = "${percentage.toInt()}%"
             val textLayoutResult =
                 textMeasurer.measure(
-                    text = volumeText,
+                    text = percentageText,
                     style =
                         TextStyle(
                             fontSize = 10.sp,
@@ -222,7 +228,8 @@ private fun RepRangeChartCanvas(
 
         distributionData.forEachIndexed { index, range ->
             val x = leftPadding + index * (barWidth + barSpacing)
-            val barHeight = (range.volume / maxVolume * chartHeight) * animationProgress.value
+            val rangePercentage = if (totalVolume > 0f) (range.volume / totalVolume * 100) else 0f
+            val barHeight = (rangePercentage / maxPercentage * chartHeight) * animationProgress.value
             val y = topPadding + chartHeight - barHeight
 
             val isSelected = range == selectedRange
@@ -233,6 +240,30 @@ private fun RepRangeChartCanvas(
                 topLeft = Offset(x, y),
                 size = Size(barWidth, barHeight),
             )
+
+            // Percentage label on bar
+            if (barHeight > 20.dp.toPx()) { // Only show if bar is tall enough
+                val percentageText = "${rangePercentage.toInt()}%"
+                val percentageTextResult =
+                    textMeasurer.measure(
+                        text = percentageText,
+                        style =
+                            TextStyle(
+                                fontSize = 12.sp,
+                                color = onSurfaceColor,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                    )
+
+                drawText(
+                    textLayoutResult = percentageTextResult,
+                    topLeft =
+                        Offset(
+                            x + barWidth / 2 - percentageTextResult.size.width / 2,
+                            y + 8.dp.toPx(),
+                        ),
+                )
+            }
 
             // Handle click detection
             clickPosition?.let { click ->

@@ -4,520 +4,701 @@ import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
-import com.github.radupana.featherweight.data.seeding.WorkoutSeedConfig
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
 class WorkoutSeedingService(
     private val repository: FeatherweightRepository,
 ) {
-    private val exerciseNames =
+    companion object {
+        // Weight thresholds and improvements
+        private const val MIN_MEANINGFUL_WEIGHT = 40f // Minimum weight for 1RM calculations (kg)
+        private const val MIN_IMPROVEMENT_THRESHOLD = 0.01f // 1% improvement required for 1RM update
+        private const val RPE_TOLERANCE = 0.15f // 15% tolerance for RPE-based weight validation
+
+        // Standard percentage of 1RM for different rep ranges (at RPE 10)
+        private const val ONE_REP_PERCENTAGE = 1.0f
+        private const val THREE_REP_PERCENTAGE = 0.90f
+        private const val FIVE_REP_PERCENTAGE = 0.85f
+        private const val EIGHT_REP_PERCENTAGE = 0.75f
+    }
+
+    data class SeedConfig(
+        val numberOfWeeks: Int,
+        val workoutsPerWeek: Int = 4,
+        val includeAccessories: Boolean = true,
+        val progressionRate: Float = 0.025f,
+        val variationRange: Float = 2.5f,
+    )
+
+    data class WorkoutPlan(
+        val mainLifts: List<PlannedExercise>,
+        val accessories: List<PlannedExercise>,
+    )
+
+    data class PlannedExercise(
+        val name: String,
+        val sets: List<PlannedSet>,
+    )
+
+    data class PlannedSet(
+        val reps: Int,
+        val rpe: Int,
+        val weightMultiplier: Float = 1.0f,
+    )
+
+    // Default 1RMs if not set in profile
+    private val default1RMs =
         mapOf(
-            "squat" to "Barbell Back Squat",
-            "bench" to "Barbell Bench Press",
-            "deadlift" to "Barbell Deadlift",
-            "ohp" to "Barbell Overhead Press",
-            "row" to "Barbell Bent-Over Row",
-            "incline" to "Dumbbell Incline Bench Press",
-            "curl" to "Barbell Bicep Curl",
-            "legpress" to "Leg Press",
+            "Barbell Back Squat" to 130f,
+            "Barbell Bench Press" to 105f,
+            "Barbell Deadlift" to 180f,
+            "Barbell Overhead Press" to 70f,
         )
 
-    suspend fun seedWorkouts(config: WorkoutSeedConfig): Int =
+    suspend fun seedRealisticWorkouts(config: SeedConfig): Int =
         withContext(Dispatchers.IO) {
-            println("🌱 WorkoutSeedingService: Starting workout generation")
-
-            // Get user ID
             val userId = repository.getCurrentUserId()
-
-            // Get exercise IDs
-            val exerciseIds = mutableMapOf<String, Long>()
-            exerciseNames.forEach { (key, name) ->
-                val exercise = repository.getExerciseByName(name)
-                if (exercise != null) {
-                    exerciseIds[key] = exercise.id
-                    println("✅ Found exercise: $name (ID: ${exercise.id})")
-                } else {
-                    println("❌ Exercise not found: $name")
-                }
+            if (userId == -1L) {
+                throw IllegalStateException("No user selected")
             }
 
-            // Calculate workout dates
-            val endDate = LocalDate.now().minusDays(1)
-            val startDate = endDate.minusDays((config.numberOfWorkouts / config.workoutsPerWeek * 7).toLong())
-            val workoutDates =
-                generateWorkoutDates(startDate, endDate, config.workoutsPerWeek)
-                    .take(config.numberOfWorkouts)
+            // Get 1RMs from profile or use defaults
+            val oneRMs = get1RMs(userId)
 
-            println("📅 Generated ${workoutDates.size} workout dates from $startDate to $endDate")
+            // Generate workout dates, skipping existing workouts
+            val workoutDates = generateAvailableWorkoutDates(config)
 
-            // Track generated workout IDs for post-processing
-            val generatedWorkoutIds = mutableListOf<Long>()
+            var workoutsCreated = 0
 
-            // Generate workouts
             workoutDates.forEachIndexed { index, date ->
-                val workoutId =
-                    generateWorkout(
-                        date = date,
-                        weekNumber = index / config.workoutsPerWeek + 1,
-                        workoutIndex = index,
-                        config = config,
-                        exerciseIds = exerciseIds,
-                    )
-                generatedWorkoutIds.add(workoutId)
+                val weekNumber = (index / config.workoutsPerWeek) + 1
+                val dayInWeek = (index % config.workoutsPerWeek) + 1
+                val cycleWeek = ((weekNumber - 1) % 4) + 1 // 4-week cycle
 
-                println("✅ Generated workout ${index + 1}/${workoutDates.size} for $date")
+                // Determine if this is a 5-day week (every 4th week)
+                val is5DayWeek = cycleWeek == 4 && dayInWeek == 5
+
+                val workoutPlan = generateWorkoutPlan(weekNumber, cycleWeek, dayInWeek, is5DayWeek)
+                val progressionMultiplier = calculateProgressionMultiplier(weekNumber)
+                val isDeloadWeek = weekNumber % 4 == 0
+
+                val workoutId =
+                    createWorkout(
+                        date = date,
+                        weekNumber = weekNumber,
+                        dayInWeek = dayInWeek,
+                        workoutPlan = workoutPlan,
+                        oneRMs = oneRMs,
+                        progressionMultiplier = progressionMultiplier,
+                        isDeloadWeek = isDeloadWeek,
+                        config = config,
+                    )
+
+                // Process workout completion to trigger all side effects
+                processWorkoutCompletion(workoutId, userId)
+
+                workoutsCreated++
             }
 
-            println("🎉 WorkoutSeedingService: Completed generating ${workoutDates.size} workouts")
-
-            // Process all generated workouts to update analytics
-            println("📊 WorkoutSeedingService: Processing analytics for generated workouts...")
-            processGeneratedWorkouts(generatedWorkoutIds, userId)
-
-            workoutDates.size // Return value at the end of the coroutine
+            workoutsCreated
         }
 
-    private fun generateWorkoutDates(
-        startDate: LocalDate,
-        endDate: LocalDate,
-        workoutsPerWeek: Int,
-    ): List<LocalDate> {
+    private suspend fun get1RMs(userId: Long): Map<String, Float> {
+        val profile1RMs = mutableMapOf<String, Float>()
+
+        // Get 1RMs from profile if available
+        for (exerciseName in default1RMs.keys) {
+            val profileRM = repository.getExercise1RM(exerciseName, userId)
+            if (profileRM != null && profileRM > 0) {
+                profile1RMs[exerciseName] = profileRM
+            } else {
+                profile1RMs[exerciseName] = default1RMs[exerciseName] ?: 100f
+            }
+        }
+
+        return profile1RMs
+    }
+
+    private suspend fun generateAvailableWorkoutDates(config: SeedConfig): List<LocalDate> {
         val dates = mutableListOf<LocalDate>()
-        var current = startDate
+        val endDate = LocalDate.now().minusDays(1) // Start from yesterday
+        var currentDate = endDate
+        var weeksGenerated = 0
+        var daysInCurrentWeek = 0
 
-        while (current <= endDate) {
-            // Generate workouts for this week
-            val weekDates =
-                when (workoutsPerWeek) {
-                    3 -> listOf(1, 3, 5) // Mon, Wed, Fri
-                    4 -> listOf(1, 2, 4, 5) // Mon, Tue, Thu, Fri
-                    5 -> listOf(1, 2, 3, 4, 5) // Mon-Fri
-                    6 -> listOf(1, 2, 3, 4, 5, 6) // Mon-Sat
-                    else -> listOf(1, 3, 5) // Default to 3 days
-                }
+        while (weeksGenerated < config.numberOfWeeks && currentDate.isAfter(endDate.minusYears(1))) {
+            // Check if this date already has a workout
+            val existingWorkout = repository.getWorkoutForDate(currentDate)
 
-            weekDates.forEach { dayOfWeek ->
-                val workoutDate = current.plusDays(dayOfWeek - 1L)
-                if (workoutDate <= endDate) {
-                    dates.add(workoutDate)
+            if (existingWorkout == null) {
+                // Determine which day of the training week this should be
+                val dayOfWeek = currentDate.dayOfWeek.value // 1=Monday, 7=Sunday
+                val cycleWeek = (weeksGenerated % 4) + 1 // 4-week cycle
+                val workoutsThisWeek = if (cycleWeek == 4) 5 else 4
+
+                // Training days based on the pattern
+                val trainingDays =
+                    when (workoutsThisWeek) {
+                        5 -> listOf(1, 2, 4, 5, 6) // Mon, Tue, Thu, Fri, Sat
+                        else -> listOf(1, 2, 4, 5) // Mon, Tue, Thu, Fri
+                    }
+
+                if (dayOfWeek in trainingDays && daysInCurrentWeek < workoutsThisWeek) {
+                    dates.add(0, currentDate) // Add to beginning to maintain chronological order
+                    daysInCurrentWeek++
+
+                    if (daysInCurrentWeek >= workoutsThisWeek) {
+                        weeksGenerated++
+                        daysInCurrentWeek = 0
+                    }
                 }
             }
 
-            current = current.plusWeeks(1)
+            currentDate = currentDate.minusDays(1)
+
+            // Reset week counter on Sunday
+            if (currentDate.dayOfWeek.value == 7 && daysInCurrentWeek > 0) {
+                weeksGenerated++
+                daysInCurrentWeek = 0
+            }
         }
 
         return dates
     }
 
-    private suspend fun generateWorkout(
+    private fun isTestWeek(weekNumber: Int): Boolean = weekNumber % 8 == 0
+
+    private fun isOpenerWeek(weekNumber: Int): Boolean {
+        return (weekNumber + 1) % 8 == 0 // Week before test week
+    }
+
+    private fun isRecoveryWeek(weekNumber: Int): Boolean {
+        return (weekNumber - 1) % 8 == 0 // Week after test week
+    }
+
+    private fun generateWorkoutPlan(
+        weekNumber: Int,
+        cycleWeek: Int,
+        dayInWeek: Int,
+        is5DayWeek: Boolean,
+    ): WorkoutPlan =
+        when {
+            // Monday: Squat (Heavy) + Back accessories
+            dayInWeek == 1 -> generateSquatWorkout(weekNumber)
+
+            // Tuesday: Bench (Heavy) + Tricep/Chest accessories
+            dayInWeek == 2 -> generateBenchWorkout(weekNumber)
+
+            // Thursday: Deadlift + Squat (Light) + Back accessories
+            dayInWeek == 3 -> generateDeadliftWorkout(weekNumber)
+
+            // Friday: Bench (Medium) + OHP + Arm accessories
+            dayInWeek == 4 ->
+                WorkoutPlan(
+                    mainLifts =
+                        listOf(
+                            PlannedExercise(
+                                "Barbell Bench Press",
+                                listOf(
+                                    PlannedSet(8, 7),
+                                    PlannedSet(8, 7),
+                                    PlannedSet(8, 7),
+                                ),
+                            ),
+                            PlannedExercise(
+                                "Barbell Overhead Press",
+                                listOf(
+                                    PlannedSet(8, 7),
+                                    PlannedSet(8, 7),
+                                    PlannedSet(8, 7),
+                                ),
+                            ),
+                        ),
+                    accessories =
+                        listOf(
+                            PlannedExercise("Barbell Bicep Curl", listOf(PlannedSet(10, 7), PlannedSet(10, 7), PlannedSet(10, 7))),
+                            PlannedExercise("Dumbbell Bicep Curl", listOf(PlannedSet(12, 7), PlannedSet(12, 7), PlannedSet(12, 7))),
+                            PlannedExercise("Cable Tricep Pushdown", listOf(PlannedSet(12, 7), PlannedSet(12, 7), PlannedSet(12, 7))),
+                        ),
+                )
+
+            // Saturday (Week 4 only): Bench (Light) + Full accessories
+            is5DayWeek ->
+                WorkoutPlan(
+                    mainLifts =
+                        listOf(
+                            PlannedExercise(
+                                "Barbell Bench Press",
+                                listOf(
+                                    PlannedSet(8, 6),
+                                    PlannedSet(8, 6),
+                                    PlannedSet(8, 6),
+                                ),
+                            ),
+                        ),
+                    accessories =
+                        listOf(
+                            PlannedExercise("Dumbbell Bench Press", listOf(PlannedSet(10, 6), PlannedSet(10, 6), PlannedSet(10, 6))),
+                            PlannedExercise("Dumbbell Incline Bench Press", listOf(PlannedSet(10, 6), PlannedSet(10, 6), PlannedSet(10, 6))),
+                            PlannedExercise("Dumbbell Fly", listOf(PlannedSet(12, 6), PlannedSet(12, 6))),
+                            PlannedExercise("Barbell Bicep Curl", listOf(PlannedSet(12, 6), PlannedSet(12, 6), PlannedSet(12, 6))),
+                        ),
+                )
+
+            else -> WorkoutPlan(mainLifts = emptyList(), accessories = emptyList())
+        }
+
+    private fun generateSquatWorkout(weekNumber: Int): WorkoutPlan {
+        val isTest = isTestWeek(weekNumber)
+        val isOpener = isOpenerWeek(weekNumber)
+        val isRecovery = isRecoveryWeek(weekNumber)
+
+        val mainSets =
+            when {
+                isTest ->
+                    listOf(
+                        PlannedSet(1, 10), // Max attempt at 105% of estimated 1RM
+                        PlannedSet(3, 7), // Back-off set
+                        PlannedSet(3, 7), // Back-off set
+                    )
+                isOpener ->
+                    listOf(
+                        PlannedSet(1, 6), // Opener
+                        PlannedSet(3, 8),
+                        PlannedSet(3, 8),
+                        PlannedSet(3, 8),
+                    )
+                isRecovery ->
+                    listOf(
+                        // No singles on recovery week
+                        PlannedSet(3, 7),
+                        PlannedSet(3, 7),
+                        PlannedSet(3, 7),
+                    )
+                else ->
+                    listOf(
+                        PlannedSet(1, Random.nextInt(7, 9)), // Regular weeks: RPE 7-8
+                        PlannedSet(3, 8),
+                        PlannedSet(3, 8),
+                        PlannedSet(3, 8),
+                    )
+            }
+
+        val accessories =
+            if (isTest) {
+                // Reduced accessory volume on test weeks
+                listOf(
+                    PlannedExercise("Barbell Row", listOf(PlannedSet(8, 7), PlannedSet(8, 7))),
+                )
+            } else {
+                listOf(
+                    PlannedExercise("Barbell Row", listOf(PlannedSet(8, 7), PlannedSet(8, 7), PlannedSet(8, 7))),
+                    PlannedExercise("Pull Up", listOf(PlannedSet(8, 7), PlannedSet(8, 7), PlannedSet(8, 7))),
+                )
+            }
+
+        return WorkoutPlan(
+            mainLifts = listOf(PlannedExercise("Barbell Back Squat", mainSets)),
+            accessories = accessories,
+        )
+    }
+
+    private fun generateBenchWorkout(weekNumber: Int): WorkoutPlan {
+        val isTest = isTestWeek(weekNumber)
+        val isOpener = isOpenerWeek(weekNumber)
+        val isRecovery = isRecoveryWeek(weekNumber)
+
+        val mainSets =
+            when {
+                isTest ->
+                    listOf(
+                        PlannedSet(1, 10), // Max attempt
+                        PlannedSet(3, 7), // Back-off set
+                        PlannedSet(3, 7), // Back-off set
+                    )
+                isOpener ->
+                    listOf(
+                        PlannedSet(1, 6), // Opener
+                        PlannedSet(3, 8),
+                        PlannedSet(3, 8),
+                        PlannedSet(3, 8),
+                    )
+                isRecovery ->
+                    listOf(
+                        // No singles on recovery week
+                        PlannedSet(3, 7),
+                        PlannedSet(3, 7),
+                        PlannedSet(3, 7),
+                    )
+                else ->
+                    listOf(
+                        PlannedSet(1, Random.nextInt(7, 9)), // Regular weeks: RPE 7-8
+                        PlannedSet(3, 8),
+                        PlannedSet(3, 8),
+                        PlannedSet(3, 8),
+                    )
+            }
+
+        val accessories =
+            if (isTest) {
+                // Reduced accessory volume on test weeks
+                listOf(
+                    PlannedExercise("Dumbbell Incline Bench Press", listOf(PlannedSet(8, 7), PlannedSet(8, 7))),
+                )
+            } else {
+                listOf(
+                    PlannedExercise("Dumbbell Incline Bench Press", listOf(PlannedSet(8, 7), PlannedSet(8, 7), PlannedSet(8, 7))),
+                    PlannedExercise("Cable Tricep Pushdown", listOf(PlannedSet(12, 7), PlannedSet(12, 7), PlannedSet(12, 7))),
+                    PlannedExercise("Dumbbell Fly", listOf(PlannedSet(12, 6), PlannedSet(12, 6), PlannedSet(12, 6))),
+                )
+            }
+
+        return WorkoutPlan(
+            mainLifts = listOf(PlannedExercise("Barbell Bench Press", mainSets)),
+            accessories = accessories,
+        )
+    }
+
+    private fun generateDeadliftWorkout(weekNumber: Int): WorkoutPlan {
+        val isTest = isTestWeek(weekNumber)
+        val isOpener = isOpenerWeek(weekNumber)
+        val isRecovery = isRecoveryWeek(weekNumber)
+
+        val mainSets =
+            when {
+                isTest ->
+                    listOf(
+                        PlannedSet(1, 10), // Max attempt
+                        PlannedSet(3, 7), // Back-off set
+                        PlannedSet(3, 7), // Back-off set
+                    )
+                isOpener ->
+                    listOf(
+                        PlannedSet(1, 6), // Opener
+                        PlannedSet(3, 7),
+                        PlannedSet(3, 7),
+                        PlannedSet(3, 7),
+                    )
+                isRecovery ->
+                    listOf(
+                        // No singles on recovery week
+                        PlannedSet(3, 6),
+                        PlannedSet(3, 6),
+                        PlannedSet(3, 6),
+                    )
+                else ->
+                    listOf(
+                        PlannedSet(1, Random.nextInt(7, 9)), // Regular weeks: RPE 7-8
+                        PlannedSet(3, 7),
+                        PlannedSet(3, 7),
+                        PlannedSet(3, 7),
+                    )
+            }
+
+        val squatSets =
+            if (isTest) {
+                // Lighter squat on test day
+                listOf(PlannedSet(8, 6), PlannedSet(8, 6))
+            } else {
+                listOf(PlannedSet(8, 7), PlannedSet(8, 7), PlannedSet(8, 7))
+            }
+
+        val accessories =
+            if (isTest) {
+                // Reduced accessory volume on test weeks
+                listOf(
+                    PlannedExercise("Barbell Row", listOf(PlannedSet(8, 6), PlannedSet(8, 6))),
+                )
+            } else {
+                listOf(
+                    PlannedExercise("Barbell Row", listOf(PlannedSet(8, 7), PlannedSet(8, 7), PlannedSet(8, 7))),
+                    PlannedExercise("Pull Up", listOf(PlannedSet(8, 6), PlannedSet(8, 6), PlannedSet(8, 6))),
+                )
+            }
+
+        return WorkoutPlan(
+            mainLifts =
+                listOf(
+                    PlannedExercise("Barbell Deadlift", mainSets),
+                    PlannedExercise("Barbell Back Squat", squatSets),
+                ),
+            accessories = accessories,
+        )
+    }
+
+    private fun calculateProgressionMultiplier(weekNumber: Int): Float =
+        when {
+            weekNumber <= 4 -> 0.95f // 95% of 1RM baseline
+            weekNumber <= 8 -> 0.98f // +3%
+            weekNumber <= 12 -> 1.01f // +6%
+            weekNumber <= 16 -> 1.03f // +8%
+            else -> 1.03f + ((weekNumber - 16) * 0.0125f) // Continue scaling
+        }
+
+    private fun calculateWorkingWeight(
+        oneRM: Float,
+        reps: Int,
+        rpe: Int,
+    ): Float {
+        // More realistic weight calculations based on RPE and rep ranges
+        // Using Epley formula inverse: weight = 1RM / (1 + reps/30) adjusted for RPE
+
+        // Base percentage based on reps (assuming RPE 10)
+        val basePercentage =
+            when (reps) {
+                1 -> 1.0f
+                2 -> 0.95f
+                3 -> 0.90f
+                4 -> 0.87f
+                5 -> 0.85f
+                6 -> 0.82f
+                7 -> 0.80f
+                8 -> 0.77f
+                9 -> 0.75f
+                10 -> 0.73f
+                11 -> 0.71f
+                12 -> 0.69f
+                else -> 0.65f
+            }
+
+        // Adjust for RPE (reps in reserve)
+        val rpeAdjustment =
+            when (rpe) {
+                6 -> 0.85f // 4 reps in reserve
+                7 -> 0.90f // 3 reps in reserve
+                8 -> 0.94f // 2 reps in reserve
+                9 -> 0.97f // 1 rep in reserve
+                10 -> 1.0f // 0 reps in reserve (max effort)
+                else -> 0.90f
+            }
+
+        return oneRM * basePercentage * rpeAdjustment
+    }
+
+    private fun applyRandomVariation(
+        weight: Float,
+        range: Float,
+    ): Float {
+        val variation = Random.nextFloat() * range * 2 - range // -range to +range
+        return (weight + variation).coerceAtLeast(20f) // Minimum 20kg (empty barbell)
+    }
+
+    private suspend fun createWorkout(
         date: LocalDate,
         weekNumber: Int,
-        workoutIndex: Int,
-        config: WorkoutSeedConfig,
-        exerciseIds: Map<String, Long>,
+        dayInWeek: Int,
+        workoutPlan: WorkoutPlan,
+        oneRMs: Map<String, Float>,
+        progressionMultiplier: Float,
+        isDeloadWeek: Boolean,
+        config: SeedConfig,
     ): Long {
-        // Create workout as IN_PROGRESS so completeWorkout() will process it
+        // Create workout as IN_PROGRESS for proper analytics processing
         val workout =
             Workout(
                 date = date.atTime(18, 0), // 6 PM
-                notes = "Generated workout ${workoutIndex + 1}",
-                status = WorkoutStatus.IN_PROGRESS, // CRITICAL: Must be IN_PROGRESS for analytics to run
+                notes = "Seeded workout - Week $weekNumber Day $dayInWeek",
+                status = WorkoutStatus.IN_PROGRESS,
                 weekNumber = weekNumber,
-                dayNumber = (workoutIndex % config.workoutsPerWeek) + 1,
+                dayNumber = dayInWeek,
                 isProgrammeWorkout = false,
-                durationSeconds = null, // Will be set when completed
+                durationSeconds = null,
             )
 
-        // Insert workout and get ID
         val workoutId = repository.insertWorkout(workout)
 
-        // Generate exercises for this workout
-        generateWorkoutExercises(
-            workoutId = workoutId,
-            workoutIndex = workoutIndex,
-            config = config,
-            exerciseIds = exerciseIds,
-        )
+        // Add exercises and sets
+        val allExercises = workoutPlan.mainLifts + if (config.includeAccessories) workoutPlan.accessories else emptyList()
+
+        allExercises.forEach { plannedExercise ->
+            val exercise = repository.getExerciseByName(plannedExercise.name)
+            if (exercise != null) {
+                val exerciseLog =
+                    ExerciseLog(
+                        workoutId = workoutId,
+                        exerciseId = exercise.id,
+                        exerciseName = plannedExercise.name,
+                        exerciseOrder = allExercises.indexOf(plannedExercise) + 1,
+                        notes = null,
+                    )
+
+                val exerciseLogId = repository.insertExerciseLog(exerciseLog)
+
+                // Get base 1RM for this exercise or use a default
+                val exerciseRM =
+                    oneRMs[plannedExercise.name] ?: when {
+                        plannedExercise.name.contains("Row") -> 80f
+                        plannedExercise.name.contains("Pull Up") -> 0f // Bodyweight
+                        plannedExercise.name.contains("Dumbbell") -> 30f // Per dumbbell
+                        plannedExercise.name.contains("Cable") -> 40f
+                        else -> 60f
+                    }
+
+                // Create sets with realistic variations
+                var setStartTime = date.atTime(18, 0)
+                plannedExercise.sets.forEachIndexed { setIndex, plannedSet ->
+                    val baseWeight = calculateWorkingWeight(exerciseRM, plannedSet.reps, plannedSet.rpe)
+                    var adjustedWeight = baseWeight * progressionMultiplier
+
+                    // Special handling for test week max attempts (RPE 10)
+                    if (plannedSet.rpe == 10 && plannedSet.reps == 1 && isTestWeek(weekNumber)) {
+                        // For true 1RM attempts, use 100-102% of current estimated 1RM
+                        adjustedWeight = exerciseRM * (1.0f + Random.nextFloat() * 0.02f)
+                    }
+
+                    // Apply deload if needed
+                    if (isDeloadWeek) {
+                        adjustedWeight *= 0.85f // 15% reduction for deload
+                    }
+
+                    // Apply smaller random variation for more realistic workouts
+                    val smallerVariation = config.variationRange * 0.5f // Half the variation
+                    val finalWeight = applyRandomVariation(adjustedWeight, smallerVariation)
+
+                    // Round to nearest 2.5kg
+                    val roundedWeight = (finalWeight / 2.5f).roundToInt() * 2.5f
+
+                    // Simulate slight rep variation (±1 rep occasionally)
+                    val actualReps =
+                        when {
+                            Random.nextFloat() < 0.8f -> plannedSet.reps // 80% hit target
+                            Random.nextFloat() < 0.5f -> plannedSet.reps + 1 // 10% do extra rep
+                            else -> (plannedSet.reps - 1).coerceAtLeast(1) // 10% miss by 1 rep
+                        }
+
+                    // Add rest time between sets (2-3 minutes)
+                    setStartTime = setStartTime.plusMinutes(Random.nextLong(2, 4))
+
+                    val setLog =
+                        SetLog(
+                            exerciseLogId = exerciseLogId,
+                            setOrder = setIndex + 1,
+                            targetReps = plannedSet.reps,
+                            targetWeight = roundedWeight,
+                            actualReps = actualReps,
+                            actualWeight = roundedWeight,
+                            actualRpe = plannedSet.rpe.toFloat(),
+                            notes = null,
+                            isCompleted = true,
+                            completedAt = setStartTime.toString(),
+                        )
+
+                    repository.insertSetLog(setLog)
+                }
+            }
+        }
 
         return workoutId
     }
 
-    private suspend fun generateWorkoutExercises(
+    private suspend fun processWorkoutCompletion(
         workoutId: Long,
-        workoutIndex: Int,
-        config: WorkoutSeedConfig,
-        exerciseIds: Map<String, Long>,
-    ) {
-        // Calculate progression - which cycle and week we're in
-        val cycleNumber = workoutIndex / 16 // 16 workouts per cycle (4 weeks x 4 workouts/week)
-        val weekInCycle = (workoutIndex % 16) / 4 + 1 // Which week (1-4) in current cycle
-
-        // Calculate progressive 1RMs based on cycle
-        val progressedSquatRM = config.squatRM + (cycleNumber * 5f) // +5kg per cycle for squats
-        val progressedBenchRM = config.benchRM + (cycleNumber * 2.5f) // +2.5kg per cycle for bench
-        val progressedDeadliftRM = config.deadliftRM + (cycleNumber * 5f) // +5kg per cycle for deadlifts
-        val progressedOhpRM = config.ohpRM + (cycleNumber * 2.5f) // +2.5kg per cycle for OHP
-
-        println("🏋️ Workout ${workoutIndex + 1}: Cycle $cycleNumber, Week $weekInCycle")
-        println(
-            "   Progressed RMs: Squat ${progressedSquatRM}kg, Bench ${progressedBenchRM}kg, Deadlift ${progressedDeadliftRM}kg, OHP ${progressedOhpRM}kg",
-        )
-
-        // Determine workout type based on index
-        val workoutType =
-            when (workoutIndex % 4) {
-                0 -> "squat_bench" // Squat + Bench focus
-                1 -> "deadlift_row" // Deadlift + Row focus
-                2 -> "squat_ohp" // Squat + OHP focus
-                3 -> "bench_accessories" // Bench + accessories
-                else -> "squat_bench"
-            }
-
-        val exerciseOrder = mutableMapOf<String, Int>()
-        var order = 1
-
-        when (workoutType) {
-            "squat_bench" -> {
-                exerciseOrder["squat"] = order++
-                exerciseOrder["bench"] = order++
-                exerciseOrder["row"] = order++
-
-                generateExercise(workoutId, exerciseOrder["squat"]!!, "squat", progressedSquatRM, config, exerciseIds, weekInCycle)
-                generateExercise(workoutId, exerciseOrder["bench"]!!, "bench", progressedBenchRM, config, exerciseIds, weekInCycle)
-                generateExercise(workoutId, exerciseOrder["row"]!!, "row", progressedSquatRM * 0.8f, config, exerciseIds, weekInCycle)
-            }
-
-            "deadlift_row" -> {
-                exerciseOrder["deadlift"] = order++
-                exerciseOrder["row"] = order++
-                exerciseOrder["curl"] = order++
-
-                generateExercise(workoutId, exerciseOrder["deadlift"]!!, "deadlift", progressedDeadliftRM, config, exerciseIds, weekInCycle)
-                generateExercise(workoutId, exerciseOrder["row"]!!, "row", progressedDeadliftRM * 0.6f, config, exerciseIds, weekInCycle)
-                generateExercise(workoutId, exerciseOrder["curl"]!!, "curl", progressedBenchRM * 0.5f, config, exerciseIds, weekInCycle)
-            }
-
-            "squat_ohp" -> {
-                exerciseOrder["squat"] = order++
-                exerciseOrder["ohp"] = order++
-                exerciseOrder["incline"] = order++
-
-                generateExercise(workoutId, exerciseOrder["squat"]!!, "squat", progressedSquatRM, config, exerciseIds, weekInCycle)
-                generateExercise(workoutId, exerciseOrder["ohp"]!!, "ohp", progressedOhpRM, config, exerciseIds, weekInCycle)
-                generateExercise(
-                    workoutId,
-                    exerciseOrder["incline"]!!,
-                    "incline",
-                    progressedBenchRM * 0.7f,
-                    config,
-                    exerciseIds,
-                    weekInCycle,
-                )
-            }
-
-            "bench_accessories" -> {
-                exerciseOrder["bench"] = order++
-                exerciseOrder["incline"] = order++
-                exerciseOrder["curl"] = order++
-
-                generateExercise(workoutId, exerciseOrder["bench"]!!, "bench", progressedBenchRM, config, exerciseIds, weekInCycle)
-                generateExercise(
-                    workoutId,
-                    exerciseOrder["incline"]!!,
-                    "incline",
-                    progressedBenchRM * 0.7f,
-                    config,
-                    exerciseIds,
-                    weekInCycle,
-                )
-                generateExercise(workoutId, exerciseOrder["curl"]!!, "curl", progressedBenchRM * 0.5f, config, exerciseIds, weekInCycle)
-            }
-        }
-    }
-
-    private suspend fun generateExercise(
-        workoutId: Long,
-        exerciseOrder: Int,
-        exerciseKey: String,
-        baseRM: Float,
-        config: WorkoutSeedConfig,
-        exerciseIds: Map<String, Long>,
-        weekInCycle: Int,
-    ) {
-        exerciseIds[exerciseKey] ?: return
-        val exerciseName = exerciseNames[exerciseKey] ?: return
-
-        // Create exercise log
-        val exerciseLog =
-            ExerciseLog(
-                workoutId = workoutId,
-                exerciseName = exerciseName,
-                exerciseOrder = exerciseOrder,
-                notes = null,
-            )
-
-        // Insert exercise log and get ID
-        val exerciseLogId = repository.insertExerciseLog(exerciseLog)
-
-        // Generate sets based on program style
-        when (config.programStyle) {
-            "5/3/1" -> generate531Sets(exerciseLogId, baseRM, config, weekInCycle)
-            "Linear" -> generateLinearSets(exerciseLogId, baseRM, config, weekInCycle)
-            "Random" -> generateRandomSets(exerciseLogId, baseRM, config)
-            else -> generate531Sets(exerciseLogId, baseRM, config, weekInCycle)
-        }
-    }
-
-    private suspend fun generate531Sets(
-        exerciseLogId: Long,
-        baseRM: Float,
-        config: WorkoutSeedConfig,
-        weekInCycle: Int,
-    ) {
-        val trainingMax = baseRM * 0.9f // 5/3/1 uses 90% of 1RM
-
-        // Proper 5/3/1 week cycling
-        val (percentages, reps, weekName) =
-            when (weekInCycle) {
-                1 -> Triple(listOf(0.65f, 0.75f, 0.85f), listOf(5, 5, 5), "Week 1 (5/5/5+)")
-                2 -> Triple(listOf(0.70f, 0.80f, 0.90f), listOf(3, 3, 3), "Week 2 (3/3/3+)")
-                3 -> Triple(listOf(0.75f, 0.85f, 0.95f), listOf(5, 3, 1), "Week 3 (5/3/1+)")
-                4 -> Triple(listOf(0.40f, 0.50f, 0.60f), listOf(5, 5, 5), "Week 4 (Deload)")
-                else -> Triple(listOf(0.65f, 0.75f, 0.85f), listOf(5, 5, 5), "Week 1 (5/5/5+)")
-            }
-
-        println("     $weekName - Training Max: ${trainingMax}kg")
-
-        percentages.zip(reps).forEachIndexed { index, (percentage, targetReps) ->
-            val weight =
-                (trainingMax * percentage).let { w ->
-                    if (config.includeVariation) {
-                        w * Random.nextFloat().let { 0.95f + it * 0.1f } // ±5%
-                    } else {
-                        w
-                    }
-                }
-
-            val actualReps =
-                if (config.includeFailures && Random.nextFloat() < 0.05f) {
-                    maxOf(1, targetReps - Random.nextInt(3))
-                } else {
-                    // AMRAP set (last set gets bonus reps, except on deload week)
-                    if (index == 2 && weekInCycle != 4) {
-                        val bonusReps =
-                            when (weekInCycle) {
-                                1 -> Random.nextInt(2, 6) // 5+ set: 2-5 bonus reps
-                                2 -> Random.nextInt(1, 4) // 3+ set: 1-3 bonus reps
-                                3 -> Random.nextInt(1, 3) // 1+ set: 1-2 bonus reps
-                                else -> 0
-                            }
-                        targetReps + bonusReps
-                    } else {
-                        targetReps
-                    }
-                }
-
-            val setLog =
-                SetLog(
-                    exerciseLogId = exerciseLogId,
-                    setOrder = index + 1,
-                    targetReps = targetReps,
-                    targetWeight = weight,
-                    actualReps = actualReps,
-                    actualWeight = weight,
-                    isCompleted = true,
-                    actualRpe =
-                        when (weekInCycle) {
-                            1 -> Random.nextInt(6, 8).toFloat() // Week 1: moderate intensity
-                            2 -> Random.nextInt(7, 9).toFloat() // Week 2: higher intensity
-                            3 -> Random.nextInt(8, 10).toFloat() // Week 3: highest intensity
-                            4 -> Random.nextInt(4, 6).toFloat() // Week 4: deload, easy
-                            else -> Random.nextInt(6, 8).toFloat()
-                        },
-                    notes = if (index == 2 && weekInCycle != 4) "AMRAP set" else null,
-                    completedAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                )
-
-            println("       Set ${index + 1}: ${weight.toInt()}kg x $actualReps @ RPE ${setLog.actualRpe}")
-            repository.insertSetLog(setLog)
-        }
-    }
-
-    private suspend fun generateLinearSets(
-        exerciseLogId: Long,
-        baseRM: Float,
-        config: WorkoutSeedConfig,
-        weekInCycle: Int,
-    ) {
-        // Linear progression - deload every 4th week, otherwise steady increase
-        val workingWeight =
-            if (weekInCycle == 4) {
-                baseRM * 0.7f // Deload week: 70% of 1RM
-            } else {
-                baseRM * 0.8f // Normal weeks: 80% of 1RM
-            }
-
-        val weekName = if (weekInCycle == 4) "Deload" else "Working"
-        println("     Linear $weekName - Working Weight: ${workingWeight.toInt()}kg")
-
-        // 3 sets of 5 reps
-        repeat(3) { index ->
-            val weight =
-                workingWeight.let { w ->
-                    if (config.includeVariation) {
-                        w * Random.nextFloat().let { 0.95f + it * 0.1f }
-                    } else {
-                        w
-                    }
-                }
-
-            val actualReps =
-                if (config.includeFailures && Random.nextFloat() < 0.05f) {
-                    maxOf(1, 5 - Random.nextInt(3))
-                } else {
-                    5
-                }
-
-            val setLog =
-                SetLog(
-                    exerciseLogId = exerciseLogId,
-                    setOrder = index + 1,
-                    targetReps = 5,
-                    targetWeight = weight,
-                    actualReps = actualReps,
-                    actualWeight = weight,
-                    isCompleted = true,
-                    actualRpe = if (weekInCycle == 4) Random.nextInt(4, 6).toFloat() else Random.nextInt(6, 9).toFloat(),
-                    notes = if (weekInCycle == 4) "Deload week" else null,
-                    completedAt = null,
-                )
-
-            println("       Set ${index + 1}: ${weight.toInt()}kg x $actualReps @ RPE ${setLog.actualRpe}")
-            repository.insertSetLog(setLog)
-        }
-    }
-
-    private suspend fun generateRandomSets(
-        exerciseLogId: Long,
-        baseRM: Float,
-        config: WorkoutSeedConfig,
-    ) {
-        val numSets = Random.nextInt(3, 6)
-        val repRange = listOf(3, 5, 8, 10, 12)
-
-        repeat(numSets) { index ->
-            val targetReps = repRange.random()
-            val percentage =
-                when (targetReps) {
-                    3 -> 0.85f
-                    5 -> 0.8f
-                    8 -> 0.75f
-                    10 -> 0.7f
-                    12 -> 0.65f
-                    else -> 0.75f
-                }
-
-            val weight =
-                (baseRM * percentage).let { w ->
-                    if (config.includeVariation) {
-                        w * Random.nextFloat().let { 0.95f + it * 0.1f }
-                    } else {
-                        w
-                    }
-                }
-
-            val actualReps =
-                if (config.includeFailures && Random.nextFloat() < 0.05f) {
-                    maxOf(1, targetReps - Random.nextInt(3))
-                } else {
-                    targetReps
-                }
-
-            val setLog =
-                SetLog(
-                    exerciseLogId = exerciseLogId,
-                    setOrder = index + 1,
-                    targetReps = targetReps,
-                    targetWeight = weight,
-                    actualReps = actualReps,
-                    actualWeight = weight,
-                    isCompleted = true,
-                    actualRpe = Random.nextInt(6, 10).toFloat(),
-                    notes = null,
-                    completedAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                )
-
-            repository.insertSetLog(setLog)
-        }
-    }
-
-    private suspend fun processGeneratedWorkouts(
-        workoutIds: List<Long>,
         userId: Long,
     ) {
-        println("🔄 Processing ${workoutIds.size} workouts for analytics...")
+        // Use OneRMService for proper validation
+        val oneRMService = OneRMService()
 
-        workoutIds.forEach { workoutId ->
-            try {
-                // Process each workout as if it was just completed
-                // The most critical part is updating global exercise progress
+        // Process each exercise's sets with proper 1RM validation
+        val workout = repository.getWorkoutById(workoutId)
+        if (workout != null) {
+            val exerciseLogs = repository.getExerciseLogsForWorkout(workoutId)
 
-                // 1. Complete the workout - this triggers ALL analytics
-                // Since we created workouts as IN_PROGRESS, completeWorkout() will:
-                // - Update status to COMPLETED
-                // - Update GlobalExerciseProgress (populates Exercise tab!)
-                // - Calculate estimated 1RMs
-                // - Record performance data
-                println("📊 Completing workout $workoutId to trigger all analytics")
-                repository.completeWorkout(workoutId, (90 * 60).toLong())
+            exerciseLogs.forEach { exerciseLog ->
+                if (exerciseLog.exerciseId != null) {
+                    val sets = repository.getSetLogsForExercise(exerciseLog.id)
 
-                // 2. Manually trigger PR detection for seeded workouts
-                // Since seeded sets don't go through markSetCompleted, we need to check PRs manually
-                println("🏆 Manually checking for PRs in seeded workout...")
-                val workout = repository.getWorkoutById(workoutId)
-                if (workout != null) {
-                    val exerciseLogs = repository.getExerciseLogsForWorkout(workoutId)
-                    exerciseLogs.forEach { exerciseLog ->
-                        val sets = repository.getSetLogsForExercise(exerciseLog.id)
-                        sets.filter { it.isCompleted }.forEach { set ->
-                            try {
-                                val prs = repository.checkForPR(set, exerciseLog.exerciseName)
-                                if (prs.isNotEmpty()) {
-                                    println("🏆 Found ${prs.size} PRs for ${exerciseLog.exerciseName}")
+                    // Get current 1RM for this exercise
+                    val currentMax =
+                        repository
+                            .getCurrentMaxesForExercises(userId, listOf(exerciseLog.exerciseId))
+                            .firstOrNull()
+                            ?.oneRMEstimate
+
+                    // Find the best set that would actually update the 1RM
+                    var shouldUpdate = false
+                    var bestEstimated1RM = 0f
+                    var bestSet: SetLog? = null
+
+                    sets.filter { it.isCompleted }.forEach { set ->
+                        // Check for PRs
+                        try {
+                            repository.checkForPR(set, exerciseLog.exerciseName)
+                        } catch (e: Exception) {
+                            // Silently continue if PR check fails
+                        }
+
+                        // Only calculate 1RM for meaningful sets (not warmups)
+                        if (set.actualWeight >= MIN_MEANINGFUL_WEIGHT && set.actualReps <= 10) {
+                            // Calculate estimated 1RM using the service
+                            val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps)
+
+                            if (estimated1RM != null) {
+                                // Only update if this is truly better than current max
+                                // Add a threshold to avoid tiny improvements from seeded data
+                                val improvementThreshold = currentMax?.times(1 + MIN_IMPROVEMENT_THRESHOLD) ?: 0f
+
+                                if (estimated1RM > improvementThreshold && estimated1RM > bestEstimated1RM) {
+                                    // Verify the set makes sense (not artificially inflated)
+                                    val expectedWeight =
+                                        when (set.actualReps) {
+                                            1 -> estimated1RM * ONE_REP_PERCENTAGE
+                                            3 -> estimated1RM * THREE_REP_PERCENTAGE
+                                            5 -> estimated1RM * FIVE_REP_PERCENTAGE
+                                            8 -> estimated1RM * EIGHT_REP_PERCENTAGE
+                                            else -> estimated1RM * 0.70f
+                                        }
+
+                                    // Only accept if the actual weight is within reasonable range
+                                    val tolerance = RPE_TOLERANCE
+                                    if (Math.abs(set.actualWeight - expectedWeight) / expectedWeight <= tolerance) {
+                                        bestEstimated1RM = estimated1RM
+                                        bestSet = set
+                                        shouldUpdate = true
+                                    }
                                 }
-                            } catch (e: Exception) {
-                                println("❌ Error checking PR: ${e.message}")
                             }
                         }
                     }
+
+                    // Only update 1RM if we found a valid update that passes all checks
+                    if (shouldUpdate && bestSet != null) {
+                        // Build context with ACTUAL weight from the set, not calculated values
+                        val context =
+                            "${bestSet!!.actualWeight}kg × ${bestSet!!.actualReps}" +
+                                if (bestSet!!.actualRpe != null && bestSet!!.actualRpe > 0) {
+                                    " @ RPE ${bestSet!!.actualRpe.toInt()}"
+                                } else {
+                                    ""
+                                }
+
+                        try {
+                            repository.upsertExerciseMax(
+                                userId = userId,
+                                exerciseId = exerciseLog.exerciseId,
+                                oneRMEstimate = bestEstimated1RM,
+                                oneRMContext = context,
+                                oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
+                                notes = "Generated from seeded workout",
+                                workoutDate = workout.date,
+                            )
+                        } catch (e: Exception) {
+                            // Silently continue if 1RM update fails
+                        }
+                    }
                 }
-                println("🏆 PR detection completed for workout $workoutId")
-            } catch (e: Exception) {
-                println("❌ Error processing workout $workoutId: ${e.message}")
-                e.printStackTrace()
             }
         }
 
-        println("✅ Analytics processing complete!")
-
-        // Verify PR data was saved
-        val allPRs = repository.getAllPersonalRecordsFromDB()
-        println("📊 Personal Records in database after seeding: ${allPRs.size}")
-        allPRs.forEach { pr ->
-            println("  🏆 ${pr.exerciseName}: ${pr.weight}kg (${pr.recordType}) on ${pr.recordDate}")
-        }
-
-        // Verify exercise-specific PRs
-        val exercisesToCheck = listOf("Barbell Back Squat", "Barbell Bench Press", "Barbell Deadlift", "Barbell Overhead Press")
-        exercisesToCheck.forEach { exercise ->
-            val prs = repository.getPersonalRecords(exercise)
-            println("📊 PRs for $exercise: ${prs.size} records")
-        }
+        // Complete the workout to trigger all analytics
+        val duration = (60 + Random.nextInt(30)) * 60L // 60-90 minutes
+        repository.completeWorkout(workoutId, duration)
     }
+
+    // Removed unused cleanup methods - these were temporary debug utilities
+    // The proper fix is in clearAllWorkoutData() in FeatherweightRepository
 }

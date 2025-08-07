@@ -3,10 +3,10 @@ package com.github.radupana.featherweight.service
 import com.github.radupana.featherweight.data.ExerciseLogDao
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SetLogDao
-import com.github.radupana.featherweight.data.profile.OneRMDao
-import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.data.model.IntensityLevel
 import com.github.radupana.featherweight.data.model.WorkoutTemplateConfig
+import com.github.radupana.featherweight.data.profile.OneRMDao
+import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlin.math.roundToInt
 
 class WorkoutTemplateWeightService(

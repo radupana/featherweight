@@ -22,6 +22,8 @@ import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseCorrelationSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
+import com.github.radupana.featherweight.data.model.WorkoutTemplate
+import com.github.radupana.featherweight.data.model.WorkoutTemplateConfig
 import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.OneRMType
 import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
@@ -54,8 +56,6 @@ import com.github.radupana.featherweight.service.WorkoutTemplateGeneratorService
 import com.github.radupana.featherweight.service.WorkoutTemplateWeightService
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.validation.ExerciseValidator
-import com.github.radupana.featherweight.data.model.WorkoutTemplate
-import com.github.radupana.featherweight.data.model.WorkoutTemplateConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -172,13 +172,14 @@ class FeatherweightRepository(
             notes = "Updated from ${update.source}",
         )
 
-        // Save to history
+        // Save to history with the correct date from the workout
         saveOneRMToHistory(
             userId = userId,
             exerciseId = update.exerciseId,
             exerciseName = update.exerciseName,
             oneRM = roundedWeight,
             context = update.source, // Use the source from the update (e.g., "3×100kg @ RPE 9")
+            recordedAt = update.workoutDate, // Use the workout date from the update
         )
 
         println("✅ 1RM update applied successfully")
@@ -2141,10 +2142,12 @@ class FeatherweightRepository(
         oneRMContext: String,
         oneRMType: OneRMType,
         notes: String? = null,
+        workoutDate: LocalDateTime? = null,
     ) = withContext(Dispatchers.IO) {
         ensureUserProfile(userId)
         // Round weight to nearest 0.25
         val roundedWeight = WeightFormatter.roundToNearestQuarter(oneRMEstimate)
+        val dateToUse = workoutDate ?: LocalDateTime.now()
         val userExerciseMax =
             UserExerciseMax(
                 userId = userId,
@@ -2152,15 +2155,28 @@ class FeatherweightRepository(
                 mostWeightLifted = roundedWeight,
                 mostWeightReps = 1,
                 mostWeightRpe = null,
-                mostWeightDate = LocalDateTime.now(),
+                mostWeightDate = dateToUse,
                 oneRMEstimate = roundedWeight,
                 oneRMContext = oneRMContext,
                 oneRMConfidence = if (oneRMType == OneRMType.MANUALLY_ENTERED) 1.0f else 0.9f,
-                oneRMDate = LocalDateTime.now(),
+                oneRMDate = dateToUse,
                 oneRMType = oneRMType,
                 notes = notes,
             )
         db.oneRMDao().insertOrUpdateExerciseMax(userExerciseMax)
+
+        // Also save to OneRMHistory for chart tracking with the correct date
+        val exercise = db.exerciseDao().getExerciseById(exerciseId)
+        if (exercise != null) {
+            saveOneRMToHistory(
+                userId = userId,
+                exerciseId = exerciseId,
+                exerciseName = exercise.name,
+                oneRM = roundedWeight,
+                context = oneRMContext,
+                recordedAt = dateToUse,
+            )
+        }
     }
 
     // Remove getAllCurrentMaxes - this should only be used in Insights
@@ -2733,6 +2749,7 @@ class FeatherweightRepository(
         exerciseName: String,
         oneRM: Float,
         context: String,
+        recordedAt: LocalDateTime? = null,
     ) = withContext(Dispatchers.IO) {
         db.oneRMDao().insertOneRMHistory(
             OneRMHistory(
@@ -2741,7 +2758,7 @@ class FeatherweightRepository(
                 exerciseName = exerciseName,
                 oneRMEstimate = oneRM,
                 context = context,
-                recordedAt = LocalDateTime.now(),
+                recordedAt = recordedAt ?: LocalDateTime.now(),
             ),
         )
     }
@@ -2809,6 +2826,55 @@ class FeatherweightRepository(
     suspend fun getProgrammeCompletionNotes(programmeId: Long): String? =
         withContext(Dispatchers.IO) {
             programmeDao.getProgrammeById(programmeId)?.completionNotes
+        }
+
+    /**
+     * Get workout for a specific date
+     */
+    suspend fun getWorkoutForDate(date: LocalDate): Workout? =
+        withContext(Dispatchers.IO) {
+            val startOfDay = date.atStartOfDay()
+            val endOfDay = date.atTime(23, 59, 59)
+            workoutDao.getWorkoutsInDateRange(startOfDay, endOfDay).firstOrNull()
+        }
+
+    /**
+     * Get exercise 1RM from user profile
+     */
+    suspend fun getExercise1RM(
+        exerciseName: String,
+        userId: Long,
+    ): Float? =
+        withContext(Dispatchers.IO) {
+            val exercise = getExerciseByName(exerciseName) ?: return@withContext null
+            db.oneRMDao().getCurrentMax(userId, exercise.id)?.oneRMEstimate
+        }
+
+    /**
+     * Clear all workout data (for developer tools)
+     */
+    suspend fun clearAllWorkoutData() =
+        withContext(Dispatchers.IO) {
+            val userId = getCurrentUserId()
+
+            // Delete all workouts and related data
+            workoutDao.deleteAllWorkouts()
+            exerciseLogDao.deleteAllExerciseLogs()
+            setLogDao.deleteAllSetLogs()
+            personalRecordDao.deleteAllPersonalRecords()
+            globalExerciseProgressDao.deleteAllGlobalProgress()
+
+            // CRITICAL: Also delete all 1RM related data that was NOT being cleared!
+            // This is why phantom data persisted across "Clear All Workout Data"
+            if (userId != -1L) {
+                // Delete all UserExerciseMax entries for this user
+                db.oneRMDao().deleteAllUserExerciseMaxes(userId)
+
+                // Delete all OneRMHistory entries for this user
+                db.oneRMDao().deleteAllOneRMHistory(userId)
+            }
+
+            println("🗑️ Cleared all workout data including 1RM history and exercise maxes")
         }
 
     // ===== INSIGHTS SECTION =====
@@ -3040,14 +3106,27 @@ class FeatherweightRepository(
             )
         }
 
-    suspend fun deleteAllWorkouts() {
-        db.workoutDao().deleteAllWorkouts()
-        db.exerciseLogDao().deleteAllExerciseLogs()
-        db.setLogDao().deleteAllSetLogs()
-        db.personalRecordDao().deleteAllPersonalRecords()
-        db.globalExerciseProgressDao().deleteAllGlobalProgress()
-        println("🗑️ Repository: Deleted all workout-related data")
-    }
+    suspend fun deleteAllWorkouts() =
+        withContext(Dispatchers.IO) {
+            val userId = getCurrentUserId()
+
+            db.workoutDao().deleteAllWorkouts()
+            db.exerciseLogDao().deleteAllExerciseLogs()
+            db.setLogDao().deleteAllSetLogs()
+            db.personalRecordDao().deleteAllPersonalRecords()
+            db.globalExerciseProgressDao().deleteAllGlobalProgress()
+
+            // CRITICAL: Also delete all 1RM related data
+            if (userId != -1L) {
+                // Delete all UserExerciseMax entries for this user
+                db.oneRMDao().deleteAllUserExerciseMaxes(userId)
+
+                // Delete all OneRMHistory entries for this user
+                db.oneRMDao().deleteAllOneRMHistory(userId)
+            }
+
+            println("🗑️ Repository: Deleted all workout-related data including 1RM history")
+        }
 
     suspend fun getCompletedWorkoutCountSince(since: LocalDateTime): Int =
         withContext(Dispatchers.IO) {
@@ -3383,8 +3462,8 @@ data class WorkoutHistoryEntry(
 )
 
 // Extension function to convert from data.programme.ProgrammeType to ai.ProgrammeType
-private fun DataProgrammeType.toAiProgrammeType(): ProgrammeType {
-    return when (this) {
+private fun DataProgrammeType.toAiProgrammeType(): ProgrammeType =
+    when (this) {
         DataProgrammeType.STRENGTH -> ProgrammeType.STRENGTH
         DataProgrammeType.POWERLIFTING -> ProgrammeType.STRENGTH
         DataProgrammeType.BODYBUILDING -> ProgrammeType.HYPERTROPHY
@@ -3392,4 +3471,3 @@ private fun DataProgrammeType.toAiProgrammeType(): ProgrammeType {
         DataProgrammeType.OLYMPIC_LIFTING -> ProgrammeType.STRENGTH
         DataProgrammeType.HYBRID -> ProgrammeType.GENERAL
     }
-}

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.service.WorkoutSeedingService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +20,23 @@ data class ProfileUiState(
     val isOneRMSectionExpanded: Boolean = true,
     val isBig4SubSectionExpanded: Boolean = true,
     val isOtherSubSectionExpanded: Boolean = true,
+    val seedingState: SeedingState = SeedingState.Idle,
+    val seedingWeeks: Int = 12,
 )
+
+sealed class SeedingState {
+    object Idle : SeedingState()
+
+    object InProgress : SeedingState()
+
+    data class Success(
+        val workoutsCreated: Int,
+    ) : SeedingState()
+
+    data class Error(
+        val message: String?,
+    ) : SeedingState()
+}
 
 data class ExerciseMaxWithName(
     val id: Long,
@@ -47,6 +64,7 @@ class ProfileViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
+    private val workoutSeedingService = WorkoutSeedingService(repository)
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -229,5 +247,61 @@ class ProfileViewModel(
             _uiState.value.copy(
                 isOtherSubSectionExpanded = !_uiState.value.isOtherSubSectionExpanded,
             )
+    }
+
+    // Developer Tools Functions
+
+    fun updateSeedingWeeks(weeks: Int) {
+        _uiState.value = _uiState.value.copy(seedingWeeks = weeks.coerceIn(1, 52))
+    }
+
+    fun seedWorkoutData() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(seedingState = SeedingState.InProgress)
+            try {
+                val config =
+                    WorkoutSeedingService.SeedConfig(
+                        numberOfWeeks = _uiState.value.seedingWeeks,
+                        workoutsPerWeek = 4,
+                        includeAccessories = true,
+                    )
+                val count = workoutSeedingService.seedRealisticWorkouts(config)
+                _uiState.value =
+                    _uiState.value.copy(
+                        seedingState = SeedingState.Success(count),
+                        successMessage = "Successfully created $count workouts",
+                    )
+            } catch (e: Exception) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        seedingState = SeedingState.Error(e.message),
+                        error = "Failed to seed workouts: ${e.message}",
+                    )
+            }
+        }
+    }
+
+    fun clearAllWorkoutData() {
+        viewModelScope.launch {
+            try {
+                repository.clearAllWorkoutData()
+                _uiState.value =
+                    _uiState.value.copy(
+                        successMessage = "All workout data cleared",
+                        seedingState = SeedingState.Idle,
+                    )
+                // Refresh the profile data
+                loadProfileData()
+            } catch (e: Exception) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Failed to clear workout data: ${e.message}",
+                    )
+            }
+        }
+    }
+
+    fun resetSeedingState() {
+        _uiState.value = _uiState.value.copy(seedingState = SeedingState.Idle)
     }
 }

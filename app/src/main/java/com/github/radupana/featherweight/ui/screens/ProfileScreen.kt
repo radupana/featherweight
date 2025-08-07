@@ -236,6 +236,128 @@ fun ProfileScreen(
                     }
                 }
             }
+
+            // Developer Tools Section
+            Spacer(modifier = Modifier.height(24.dp))
+
+            CollapsibleSection(
+                title = "Developer Tools",
+                isExpanded = true,
+                onToggle = { },
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.padding(top = 8.dp),
+                ) {
+                    GlassmorphicCard(
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                text = "Seed Workout Data",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+
+                            Text(
+                                text = "Generate realistic workout data for testing",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = "Weeks to generate: ${uiState.seedingWeeks}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+
+                                Row {
+                                    TextButton(
+                                        onClick = { viewModel.updateSeedingWeeks(uiState.seedingWeeks - 1) },
+                                        enabled = uiState.seedingWeeks > 1,
+                                    ) {
+                                        Text("-")
+                                    }
+
+                                    TextButton(
+                                        onClick = { viewModel.updateSeedingWeeks(uiState.seedingWeeks + 1) },
+                                        enabled = uiState.seedingWeeks < 52,
+                                    ) {
+                                        Text("+")
+                                    }
+                                }
+                            }
+
+                            val seedingState = uiState.seedingState
+
+                            FilledTonalButton(
+                                onClick = { viewModel.seedWorkoutData() },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = seedingState !is com.github.radupana.featherweight.viewmodel.SeedingState.InProgress,
+                            ) {
+                                Text(
+                                    when (seedingState) {
+                                        is com.github.radupana.featherweight.viewmodel.SeedingState.InProgress -> "Generating..."
+                                        is com.github.radupana.featherweight.viewmodel.SeedingState.Success -> "Generated ${seedingState.workoutsCreated} workouts"
+                                        else -> "Generate Workouts"
+                                    },
+                                )
+                            }
+
+                            if (seedingState is com.github.radupana.featherweight.viewmodel.SeedingState.Success) {
+                                TextButton(
+                                    onClick = { viewModel.resetSeedingState() },
+                                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                                ) {
+                                    Text("Generate More")
+                                }
+                            }
+                        }
+                    }
+
+                    GlassmorphicCard(
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                text = "Clear All Data",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+
+                            Text(
+                                text = "Remove all workout data (cannot be undone)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+
+                            FilledTonalButton(
+                                onClick = { viewModel.clearAllWorkoutData() },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Clear All Workout Data", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 

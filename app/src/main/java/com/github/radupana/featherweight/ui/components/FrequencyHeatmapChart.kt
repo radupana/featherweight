@@ -2,6 +2,7 @@ package com.github.radupana.featherweight.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,7 +36,6 @@ import com.github.radupana.featherweight.ui.theme.ChartTheme
 import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 
 data class FrequencyDataPoint(
     val date: LocalDate,
@@ -52,38 +52,67 @@ fun FrequencyHeatmapChart(
     var selectedPoint by remember { mutableStateOf<FrequencyDataPoint?>(null) }
 
     Column(modifier = modifier) {
-        // Chart
-        Card(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(200.dp),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-        ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                if (dataPoints.isEmpty()) {
+        // Determine visualization type based on data density
+        val sessionCount = dataPoints.size
+
+        when {
+            sessionCount == 0 -> {
+                // No data available
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                        ),
+                ) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "No frequency data available",
+                            text = "No training data available",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         )
                     }
-                } else {
-                    FrequencyHeatmapCanvas(
-                        dataPoints = dataPoints,
-                        selectedPoint = selectedPoint,
-                        onPointSelected = { point ->
-                            selectedPoint = point
-                            onDayClick(point)
-                        },
-                    )
+                }
+            }
+            sessionCount < 10 -> {
+                // Sparse data - show as cards
+                SparseFrequencyView(
+                    dataPoints = dataPoints,
+                    selectedPoint = selectedPoint,
+                    onPointSelected = { point ->
+                        selectedPoint = point
+                        onDayClick(point)
+                    },
+                )
+            }
+            else -> {
+                // Regular heatmap for dense data
+                Card(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                        ),
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        FrequencyHeatmapCanvas(
+                            dataPoints = dataPoints,
+                            selectedPoint = selectedPoint,
+                            onPointSelected = { point ->
+                                selectedPoint = point
+                                onDayClick(point)
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -107,7 +136,7 @@ fun FrequencyHeatmapChart(
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 val colors =
                     listOf(
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                        Color(0xFF212121), // Dark grey for empty
                         Color(0xFF4FC3F7), // Light blue
                         Color(0xFF29B6F6), // Blue
                         Color(0xFFFF9800), // Orange
@@ -173,6 +202,100 @@ fun FrequencyHeatmapChart(
 }
 
 @Composable
+private fun SparseFrequencyView(
+    dataPoints: List<FrequencyDataPoint>,
+    selectedPoint: FrequencyDataPoint?,
+    onPointSelected: (FrequencyDataPoint) -> Unit,
+) {
+    val maxVolume = dataPoints.maxOfOrNull { it.volume } ?: 1f
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        // Title
+        Text(
+            text = "Training Sessions (${dataPoints.size} total)",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+
+        // Session cards
+        dataPoints.sortedByDescending { it.date }.forEach { point ->
+            val intensity = (point.volume / maxVolume).coerceIn(0f, 1f)
+            val color =
+                when {
+                    intensity < 0.25f -> Color(0xFF4FC3F7) // Light blue
+                    intensity < 0.5f -> Color(0xFF29B6F6) // Blue
+                    intensity < 0.75f -> Color(0xFFFF9800) // Orange
+                    else -> Color(0xFFF44336) // Red
+                }
+
+            Card(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onPointSelected(point) },
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            if (point == selectedPoint) {
+                                color.copy(alpha = 0.2f)
+                            } else {
+                                Color(0xFF212121) // Dark background for sparse view
+                            },
+                    ),
+            ) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = point.date.format(DateTimeFormatter.ofPattern("MMM d, yyyy")),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (point == selectedPoint) FontWeight.Bold else FontWeight.Normal,
+                        )
+                        Text(
+                            text = "${point.sessions} session${if (point.sessions != 1) "s" else ""}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        )
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "${WeightFormatter.formatWeight(point.volume)}kg",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                        )
+
+                        // Color indicator
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(12.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(color),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun FrequencyHeatmapCanvas(
     dataPoints: List<FrequencyDataPoint>,
     selectedPoint: FrequencyDataPoint?,
@@ -182,14 +305,25 @@ private fun FrequencyHeatmapCanvas(
     ChartTheme.primaryChartColor()
     val gridLineColor = ChartTheme.gridLineColor()
 
-    // Create a complete 12-week grid starting from 12 weeks ago
     val endDate = LocalDate.now()
-    val startDate = endDate.minusWeeks(12)
-    val totalDays = ChronoUnit.DAYS.between(startDate, endDate).toInt() + 1
+    val startDate = endDate.minusWeeks(12) // Always show 12 weeks
 
-    // Create map for quick lookup
-    val dataMap = dataPoints.associateBy { it.date }
-    val maxVolume = if (dataPoints.isNotEmpty()) dataPoints.maxOf { it.volume } else 1f
+    // Group data points by week (Monday to Sunday)
+    val weeklyData = mutableMapOf<LocalDate, MutableList<FrequencyDataPoint>>()
+
+    dataPoints.forEach { point ->
+        if (point.date >= startDate && point.date <= endDate) {
+            // Find Monday of the week containing this date
+            val monday = point.date.minusDays(point.date.dayOfWeek.value - 1L)
+            weeklyData.getOrPut(monday) { mutableListOf() }.add(point)
+        }
+    }
+
+    // Calculate sessions per week for color mapping
+    val weeklySessionCounts =
+        weeklyData.mapValues { (_, points) ->
+            points.sumOf { it.sessions }
+        }
 
     Canvas(
         modifier =
@@ -206,38 +340,34 @@ private fun FrequencyHeatmapCanvas(
         val availableWidth = size.width - 2 * padding
         val availableHeight = size.height - 2 * padding
 
-        // Calculate grid dimensions (7 days x ~12 weeks)
-        val daysPerWeek = 7
-        val weeks = kotlin.math.ceil(totalDays.toDouble() / daysPerWeek).toInt()
+        // 12 weekly blocks arranged in a 4x3 grid
+        val columns = 4
+        val rows = 3
 
-        val cellWidth = availableWidth / weeks
-        val cellHeight = availableHeight / daysPerWeek
+        val cellWidth = availableWidth / columns
+        val cellHeight = availableHeight / rows
         val cellSize = kotlin.math.min(cellWidth, cellHeight) * 0.8f
-        cellSize * 0.1f
 
-        for (dayOffset in 0 until totalDays) {
-            val currentDate = startDate.plusDays(dayOffset.toLong())
-            val weekIndex = dayOffset / daysPerWeek
-            val dayIndex = dayOffset % daysPerWeek
+        // Generate 12 weeks from start date
+        for (weekOffset in 0 until 12) {
+            val weekStart = startDate.plusWeeks(weekOffset.toLong())
+            val columnIndex = weekOffset % columns
+            val rowIndex = weekOffset / columns
 
-            val x = padding + weekIndex * cellWidth + cellWidth / 2 - cellSize / 2
-            val y = padding + dayIndex * cellHeight + cellHeight / 2 - cellSize / 2
+            val x = padding + columnIndex * cellWidth + cellWidth / 2 - cellSize / 2
+            val y = padding + rowIndex * cellHeight + cellHeight / 2 - cellSize / 2
 
-            val dataPoint = dataMap[currentDate]
-            val isSelected = dataPoint == selectedPoint
+            val sessionsThisWeek = weeklySessionCounts[weekStart] ?: 0
+            val weekData = weeklyData[weekStart]
+            val isSelected = weekData?.contains(selectedPoint) == true
 
             val color =
-                if (dataPoint != null) {
-                    val intensity = (dataPoint.volume / maxVolume).coerceIn(0f, 1f)
-                    // Blue to red gradient
-                    when {
-                        intensity < 0.25f -> Color(0xFF4FC3F7) // Light blue
-                        intensity < 0.5f -> Color(0xFF29B6F6) // Blue
-                        intensity < 0.75f -> Color(0xFFFF9800) // Orange
-                        else -> Color(0xFFF44336) // Red
-                    }
-                } else {
-                    gridLineColor.copy(alpha = 0.1f)
+                when (sessionsThisWeek) {
+                    0 -> Color(0xFF212121) // Dark grey for no sessions
+                    1 -> Color(0xFF4FC3F7) // Light blue for 1 session
+                    2 -> Color(0xFF29B6F6) // Blue for 2 sessions
+                    3 -> Color(0xFFFF9800) // Orange for 3 sessions
+                    else -> Color(0xFFF44336) // Red for 4+ sessions
                 }
 
             // Draw cell
@@ -247,14 +377,15 @@ private fun FrequencyHeatmapCanvas(
                 size = Size(cellSize, cellSize),
             )
 
-            // Handle click detection
+            // Handle click detection - select the most recent session from that week
             clickPosition?.let { click ->
                 if (click.x >= x &&
                     click.x <= x + cellSize &&
                     click.y >= y &&
                     click.y <= y + cellSize
                 ) {
-                    onPointSelected(dataPoint)
+                    val mostRecentInWeek = weekData?.maxByOrNull { it.date }
+                    onPointSelected(mostRecentInWeek)
                     clickPosition = null
                 }
             }

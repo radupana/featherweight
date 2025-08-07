@@ -240,27 +240,42 @@ private fun VolumeBarChartCanvas(
                     clickPosition = null
                 }
             }
+        }
 
-            // X-axis label (week start date)
-            val weekLabel = dataPoint.date.format(DateTimeFormatter.ofPattern("MMM d"))
-            val textLayoutResult =
-                textMeasurer.measure(
-                    text = weekLabel,
-                    style =
-                        TextStyle(
-                            fontSize = 10.sp,
-                            color = onSurfaceColor,
+        // Add smart X-axis labels (beginning, middle, end)
+        if (dataPoints.size >= 2) {
+            val labelIndices =
+                when (dataPoints.size) {
+                    2 -> listOf(0, dataPoints.size - 1)
+                    else -> listOf(0, dataPoints.size / 2, dataPoints.size - 1)
+                }
+
+            labelIndices.forEach { index ->
+                val dataPoint = dataPoints[index]
+                val x = leftPadding + index * (barWidth + barSpacing) + barWidth / 2
+
+                // Format date label for X-axis
+                val dateLabel = dataPoint.date.format(DateTimeFormatter.ofPattern("MMM d"))
+
+                val textLayoutResult =
+                    textMeasurer.measure(
+                        text = dateLabel,
+                        style =
+                            TextStyle(
+                                fontSize = 10.sp,
+                                color = onSurfaceColor,
+                            ),
+                    )
+
+                drawText(
+                    textLayoutResult = textLayoutResult,
+                    topLeft =
+                        Offset(
+                            x - textLayoutResult.size.width / 2,
+                            size.height - bottomPadding + 8.dp.toPx(),
                         ),
                 )
-
-            drawText(
-                textLayoutResult = textLayoutResult,
-                topLeft =
-                    Offset(
-                        x + barWidth / 2 - textLayoutResult.size.width / 2,
-                        size.height - bottomPadding + 8.dp.toPx(),
-                    ),
-            )
+            }
         }
 
         // Clear click position after processing

@@ -288,33 +288,61 @@ private fun ChartCanvas(
                 ),
         )
 
-        // Draw X-axis labels
+        // Draw X-axis labels with improved distribution to avoid duplicates
         val xLabelCount = minOf(5, dataPoints.size) // Show max 5 labels
-        val xLabelInterval = (dataPoints.size - 1).coerceAtLeast(1) / (xLabelCount - 1).coerceAtLeast(1)
+        val usedLabels = mutableSetOf<String>() // Track used labels to prevent duplicates
 
         for (i in 0 until xLabelCount) {
-            val index = (i * xLabelInterval).toInt().coerceIn(0, dataPoints.size - 1)
+            val index =
+                if (xLabelCount == 1) {
+                    0
+                } else {
+                    (i * (dataPoints.size - 1) / (xLabelCount - 1)).coerceIn(0, dataPoints.size - 1)
+                }
             val dataPoint = dataPoints[index]
             val x = leftPadding + (index.toFloat() / (dataPoints.size - 1).coerceAtLeast(1)) * chartWidth
 
-            // Format date label
+            // Format date label with improved logic
             val now = LocalDate.now()
             val daysBetween =
                 java.time.temporal.ChronoUnit.DAYS
                     .between(dataPoint.date, now)
+            val weeksBetween = daysBetween / 7
+            val monthsBetween =
+                java.time.temporal.ChronoUnit.MONTHS
+                    .between(dataPoint.date, now)
+
             val dateLabel =
                 when {
                     daysBetween == 0L -> "Today"
                     daysBetween == 1L -> "1d"
                     daysBetween < 7 -> "${daysBetween}d"
-                    daysBetween < 30 -> "${daysBetween / 7}w"
-                    daysBetween < 365 -> "${daysBetween / 30}m"
-                    else -> dataPoint.date.format(DateTimeFormatter.ofPattern("MMM yy"))
+                    weeksBetween < 4 -> "${weeksBetween}w"
+                    monthsBetween < 12 -> "${monthsBetween}m"
+                    else -> {
+                        // For dates more than a year old, still use month format
+                        val totalMonths = monthsBetween.coerceAtMost(99)
+                        "${totalMonths}m"
+                    }
                 }
+
+            // Skip this label if it's a duplicate, except for the first and last labels
+            val finalLabel =
+                if (usedLabels.contains(dateLabel) && i != 0 && i != xLabelCount - 1) {
+                    // If it's a duplicate, use a more specific format based on context
+                    when {
+                        daysBetween < 30 -> "${daysBetween}d"
+                        monthsBetween < 2 -> "${weeksBetween}w"
+                        else -> dataPoint.date.format(DateTimeFormatter.ofPattern("MMM d"))
+                    }
+                } else {
+                    dateLabel
+                }
+            usedLabels.add(finalLabel)
 
             val textLayoutResult =
                 textMeasurer.measure(
-                    text = dateLabel,
+                    text = finalLabel,
                     style =
                         TextStyle(
                             fontSize = 10.sp,

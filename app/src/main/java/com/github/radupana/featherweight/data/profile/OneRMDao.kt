@@ -284,6 +284,12 @@ interface OneRMDao {
         exerciseId: Long,
         limit: Int = 10,
     ): List<OneRMHistory>
+
+    @Query("DELETE FROM user_exercise_maxes WHERE userId = :userId")
+    suspend fun deleteAllUserExerciseMaxes(userId: Long)
+
+    @Query("DELETE FROM one_rm_history WHERE userId = :userId")
+    suspend fun deleteAllOneRMHistory(userId: Long)
 }
 
 data class OneRMWithExerciseName(

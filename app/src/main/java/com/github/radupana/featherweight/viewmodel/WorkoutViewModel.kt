@@ -1825,7 +1825,13 @@ class WorkoutViewModel(
                 // Create context string
                 val context = oneRMService.buildContext(set.actualWeight, set.actualReps, set.actualRpe)
 
-                // Update the 1RM
+                // Get the workout date
+                val workoutDate =
+                    _currentWorkoutId.value?.let { workoutId ->
+                        repository.getWorkoutById(workoutId)?.date
+                    }
+
+                // Update the 1RM with the workout date
                 repository.upsertExerciseMax(
                     userId = userId,
                     exerciseId = exerciseId,
@@ -1833,6 +1839,7 @@ class WorkoutViewModel(
                     oneRMContext = context,
                     oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
                     notes = "Updated from workout performance",
+                    workoutDate = workoutDate,
                 )
 
                 // Reload 1RM estimates to update UI immediately

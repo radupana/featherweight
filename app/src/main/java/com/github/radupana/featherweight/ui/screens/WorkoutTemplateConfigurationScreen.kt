@@ -32,12 +32,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.github.radupana.featherweight.ui.components.GlassmorphicCard
 import com.github.radupana.featherweight.data.model.IntensityLevel
 import com.github.radupana.featherweight.data.model.TimeAvailable
 import com.github.radupana.featherweight.data.model.TrainingGoal
 import com.github.radupana.featherweight.data.model.WorkoutTemplate
 import com.github.radupana.featherweight.data.model.WorkoutTemplateConfig
+import com.github.radupana.featherweight.ui.components.GlassmorphicCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

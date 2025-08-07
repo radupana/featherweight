@@ -19,6 +19,12 @@ interface WorkoutDao {
     @Query("SELECT * FROM Workout WHERE id = :workoutId")
     suspend fun getWorkoutById(workoutId: Long): Workout?
 
+    @Query("SELECT * FROM Workout WHERE date >= :startDate AND date <= :endDate ORDER BY date DESC")
+    suspend fun getWorkoutsInDateRange(
+        startDate: java.time.LocalDateTime,
+        endDate: java.time.LocalDateTime,
+    ): List<Workout>
+
     @Query("DELETE FROM Workout WHERE id = :workoutId")
     suspend fun deleteWorkout(workoutId: Long)
 

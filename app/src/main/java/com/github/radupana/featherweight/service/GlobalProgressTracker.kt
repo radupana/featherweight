@@ -37,6 +37,7 @@ class GlobalProgressTracker(
                     exerciseName = exercise.exerciseName,
                     workoutId = workoutId,
                     isProgrammeWorkout = workout.programmeId != null,
+                    workoutDate = workout.date,
                 )
             pendingUpdate?.let { pendingUpdates.add(it) }
         }
@@ -49,6 +50,7 @@ class GlobalProgressTracker(
         exerciseName: String,
         workoutId: Long,
         isProgrammeWorkout: Boolean,
+        workoutDate: LocalDateTime? = null,
     ): PendingOneRMUpdate? {
         val exerciseLogs =
             database
@@ -117,7 +119,7 @@ class GlobalProgressTracker(
         progress = updateVolumeTrends(progress, sessionVolume)
 
         // Update 1RM estimate and get pending update if applicable
-        val (updatedProgress, pendingUpdate) = updateEstimatedMax(progress, completedSets, userId)
+        val (updatedProgress, pendingUpdate) = updateEstimatedMax(progress, completedSets, userId, workoutDate)
         progress = updatedProgress
 
         // Track workout source
@@ -309,6 +311,7 @@ class GlobalProgressTracker(
         progress: GlobalExerciseProgress,
         sets: List<SetLog>,
         userId: Long,
+        workoutDate: LocalDateTime? = null,
     ): Pair<GlobalExerciseProgress, PendingOneRMUpdate?> {
         // Only consider sets with sufficient data for estimation
         val estimableSets =
@@ -407,6 +410,7 @@ class GlobalProgressTracker(
                             suggestedMax = estimated1RM,
                             confidence = bestEstimate.confidence,
                             source = bestEstimate.source,
+                            workoutDate = workoutDate,
                         )
                     }
                 }
@@ -422,6 +426,7 @@ class GlobalProgressTracker(
                             suggestedMax = estimated1RM,
                             confidence = bestEstimate.confidence,
                             source = bestEstimate.source,
+                            workoutDate = workoutDate,
                         )
                     }
                 }

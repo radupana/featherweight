@@ -511,26 +511,11 @@ private fun ExerciseInsightsContent(
                     // Pattern Chart
                     when (selectedPatternType) {
                         ExerciseProgressViewModel.PatternType.FREQUENCY -> {
-                            if (frequencyData.isNotEmpty()) {
-                                FrequencyHeatmapChart(
-                                    dataPoints = frequencyData,
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                            } else {
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .height(200.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = "No frequency data available",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    )
-                                }
-                            }
+                            // Always show the chart - it handles empty state internally
+                            FrequencyHeatmapChart(
+                                dataPoints = frequencyData,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
                         }
 
                         ExerciseProgressViewModel.PatternType.REP_RANGES -> {
