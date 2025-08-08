@@ -46,6 +46,7 @@ class PRDetectionService(
 
             val currentWeight = setLog.actualWeight
             val currentReps = setLog.actualReps
+            val currentRpe = setLog.actualRpe
 
             // Get the actual workout date and ID
             val workoutDateString = setLogDao.getWorkoutDateForSetLog(setLog.id)
@@ -64,7 +65,7 @@ class PRDetectionService(
                 }
 
             // Only check for weight PR (higher weight than ever before)
-            val weightPR = checkWeightPR(exerciseName, currentWeight, currentReps, currentDate, workoutId)
+            val weightPR = checkWeightPR(exerciseName, currentWeight, currentReps, currentRpe, currentDate, workoutId)
             weightPR?.let { newPRs.add(it) }
 
             // Save all detected PRs, but check for duplicates within the same workout
@@ -108,6 +109,7 @@ class PRDetectionService(
         exerciseName: String,
         weight: Float,
         reps: Int,
+        rpe: Float?,
         date: LocalDateTime,
         workoutId: Long?,
     ): PersonalRecord? {
@@ -144,7 +146,7 @@ class PRDetectionService(
                 improvementPercentage = improvementPercentage,
                 recordType = PRType.WEIGHT,
                 volume = roundedWeight * reps,
-                estimated1RM = calculateEstimated1RM(roundedWeight, reps),
+                estimated1RM = calculateEstimated1RM(roundedWeight, reps, rpe),
                 notes = notes,
                 workoutId = workoutId,
             )
@@ -154,17 +156,28 @@ class PRDetectionService(
     }
 
     /**
-     * Calculate estimated 1RM using Brzycki formula
+     * Calculate estimated 1RM using Brzycki formula with RPE consideration
      */
     private fun calculateEstimated1RM(
         weight: Float,
         reps: Int,
+        rpe: Float? = null,
     ): Float {
-        if (reps == 1) return weight
-        if (reps > 15) return weight // Formula becomes unreliable beyond 15 reps
+        // Calculate effective reps based on RPE for singles
+        val effectiveReps = when {
+            reps == 1 && rpe != null -> {
+                // For singles with RPE, calculate total possible reps
+                val repsInReserve = (10f - rpe).coerceAtLeast(0f).toInt()
+                reps + repsInReserve  // Total reps possible at this weight
+            }
+            else -> reps
+        }
+        
+        if (effectiveReps == 1) return weight
+        if (effectiveReps > 15) return weight // Formula becomes unreliable beyond 15 reps
 
         // Brzycki formula: 1RM = weight / (1.0278 - 0.0278 × reps)
-        return weight / (1.0278f - 0.0278f * reps)
+        return weight / (1.0278f - 0.0278f * effectiveReps)
     }
 
     /**

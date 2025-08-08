@@ -18,9 +18,12 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ViewWeek
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,12 +34,16 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -55,7 +62,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.repository.WorkoutSummary
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
+import com.github.radupana.featherweight.ui.components.history.CalendarView
+import com.github.radupana.featherweight.ui.components.history.FilterBottomSheet
+import com.github.radupana.featherweight.ui.components.history.HistorySearchBar
+import com.github.radupana.featherweight.ui.components.history.HistorySearchState
+import com.github.radupana.featherweight.ui.components.history.WeekGroupView
+import com.github.radupana.featherweight.ui.components.history.groupWorkoutsByWeek
+import androidx.compose.foundation.lazy.items
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
+import com.github.radupana.featherweight.viewmodel.HistoryViewMode
+import com.github.radupana.featherweight.viewmodel.WeekGroupState
 import kotlinx.coroutines.flow.distinctUntilChanged
 import java.time.format.DateTimeFormatter
 
@@ -68,7 +84,7 @@ data class Quadruple<A, B, C, D>(
     val fourth: D,
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HistoryScreen(
     modifier: Modifier = Modifier,
@@ -77,8 +93,18 @@ fun HistoryScreen(
     historyViewModel: HistoryViewModel = viewModel(),
 ) {
     val historyState by historyViewModel.historyState.collectAsState()
+    val viewMode by historyViewModel.viewMode.collectAsState()
+    val calendarState by historyViewModel.calendarState.collectAsState()
+    val weekGroupState by historyViewModel.weekGroupState.collectAsState()
+    val searchQuery by historyViewModel.searchQuery.collectAsState()
+    val searchResults by historyViewModel.searchResults.collectAsState()
+    val filters by historyViewModel.filters.collectAsState()
+    val recentSearches by historyViewModel.recentSearches.collectAsState()
     val isRefreshing by historyViewModel.isRefreshing.collectAsState()
-    var selectedTab by remember { mutableIntStateOf(0) }
+    
+    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Workouts, 1 = Programmes
+    var showFilterSheet by remember { mutableStateOf(false) }
+    val filterSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Error handling
     historyState.error?.let { error ->
@@ -88,15 +114,13 @@ fun HistoryScreen(
         }
     }
 
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = { historyViewModel.refreshHistory() },
+    Box(
         modifier = modifier.fillMaxSize(),
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
         ) {
-            // Tab Row
+            // Tab Row for Workouts/Programmes
             TabRow(
                 selectedTabIndex = selectedTab,
                 modifier = Modifier.fillMaxWidth(),
@@ -115,19 +139,127 @@ fun HistoryScreen(
 
             // Content based on selected tab
             when (selectedTab) {
-                0 ->
-                    WorkoutsHistorySection(
-                        workouts = historyState.workouts,
-                        isLoading = historyState.isLoading,
-                        isLoadingMore = historyState.isLoadingMore,
-                        hasMoreData = historyState.hasMoreData,
-                        onViewWorkout = onViewWorkout,
-                        onDeleteWorkout = { historyViewModel.deleteWorkout(it) },
-                        onLoadMore = { historyViewModel.loadNextPage() },
-                        modifier = Modifier.weight(1f),
-                    )
-
-                1 ->
+                0 -> {
+                    // Workouts tab with new view modes
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        // Search bar (visible in LIST and WEEK modes)
+                        if (viewMode != HistoryViewMode.CALENDAR) {
+                            HistorySearchBar(
+                                searchState = HistorySearchState(
+                                    query = searchQuery,
+                                    selectedExercises = filters.exercises.toSet(),
+                                    hasDateRange = filters.dateRange != null,
+                                    showFilters = false,
+                                    recentSearches = recentSearches,
+                                    showRecentSearches = false
+                                ),
+                                onSearchChange = historyViewModel::updateSearchQuery,
+                                onExerciseFilterToggle = { exercise ->
+                                    val currentExercises = filters.exercises.toSet()
+                                    val newExercises = if (exercise in currentExercises) {
+                                        currentExercises - exercise
+                                    } else {
+                                        currentExercises + exercise
+                                    }
+                                    historyViewModel.updateFilters(filters.copy(exercises = newExercises.toList()))
+                                },
+                                onDateRangeFilterToggle = {
+                                    historyViewModel.updateFilters(filters.copy(dateRange = null))
+                                },
+                                onClearFilters = historyViewModel::clearFilters,
+                                onAdvancedFiltersClick = { showFilterSheet = true },
+                                onRecentSearchClick = historyViewModel::selectRecentSearch,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
+                        
+                        // Main content area
+                        Box(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            when (viewMode) {
+                                HistoryViewMode.CALENDAR -> {
+                                    CalendarView(
+                                        selectedDate = calendarState.selectedDate,
+                                        workoutDates = calendarState.workoutCounts.keys,
+                                        onDateSelected = { date ->
+                                            historyViewModel.selectDate(date)
+                                            val workouts = historyViewModel.getWorkoutsForDate(date)
+                                            if (workouts.size == 1) {
+                                                onViewWorkout(workouts.first().id)
+                                            }
+                                        }
+                                    )
+                                }
+                                
+                                HistoryViewMode.WEEK -> {
+                                    WeekView(
+                                        weekGroupState = weekGroupState,
+                                        onWeekToggle = historyViewModel::toggleWeekExpanded,
+                                        onExpandAll = historyViewModel::expandAllWeeks,
+                                        onCollapseAll = historyViewModel::collapseAllWeeks,
+                                        onViewWorkout = onViewWorkout,
+                                        onDeleteWorkout = historyViewModel::deleteWorkout
+                                    )
+                                }
+                                
+                                HistoryViewMode.LIST -> {
+                                    val displayWorkouts = if (searchQuery.isNotBlank() || filters.exercises.isNotEmpty() || filters.dateRange != null) {
+                                        searchResults
+                                    } else {
+                                        historyState.workouts
+                                    }
+                                    
+                                    WorkoutsHistorySection(
+                                        workouts = displayWorkouts,
+                                        isLoading = historyState.isLoading,
+                                        isLoadingMore = historyState.isLoadingMore,
+                                        hasMoreData = historyState.hasMoreData && searchQuery.isBlank(),
+                                        onViewWorkout = onViewWorkout,
+                                        onDeleteWorkout = { historyViewModel.deleteWorkout(it) },
+                                        onLoadMore = { 
+                                            if (searchQuery.isBlank()) {
+                                                historyViewModel.loadNextPage()
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // Bottom navigation for view modes
+                        NavigationBar(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            NavigationBarItem(
+                                selected = viewMode == HistoryViewMode.CALENDAR,
+                                onClick = { historyViewModel.setViewMode(HistoryViewMode.CALENDAR) },
+                                icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Calendar") },
+                                label = { Text("Calendar") }
+                            )
+                            NavigationBarItem(
+                                selected = viewMode == HistoryViewMode.WEEK,
+                                onClick = { historyViewModel.setViewMode(HistoryViewMode.WEEK) },
+                                icon = { Icon(Icons.Default.ViewWeek, contentDescription = "Week") },
+                                label = { Text("Week") }
+                            )
+                            NavigationBarItem(
+                                selected = viewMode == HistoryViewMode.LIST,
+                                onClick = { historyViewModel.setViewMode(HistoryViewMode.LIST) },
+                                icon = { Icon(Icons.Default.List, contentDescription = "List") },
+                                label = { Text("List") }
+                            )
+                        }
+                    }
+                }
+                
+                1 -> {
+                    // Programmes tab (unchanged)
                     ProgrammesHistorySection(
                         programmes = historyState.programmes,
                         isLoading = historyState.isLoading,
@@ -137,6 +269,7 @@ fun HistoryScreen(
                         onLoadMore = { historyViewModel.loadNextProgrammePage() },
                         modifier = Modifier.weight(1f),
                     )
+                }
             }
 
             // Error display
@@ -175,8 +308,126 @@ fun HistoryScreen(
             }
         }
     }
+    
+    // Filter bottom sheet
+    if (showFilterSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showFilterSheet = false },
+            sheetState = filterSheetState
+        ) {
+            FilterBottomSheet(
+                filters = com.github.radupana.featherweight.ui.components.history.HistoryFilters(
+                    selectedExercises = filters.exercises.toSet(),
+                    startDate = filters.dateRange?.first,
+                    endDate = filters.dateRange?.second
+                ),
+                availableExercises = emptyList(), // TODO: Load from repository
+                availableMuscleGroups = emptyList(), // TODO: Load from repository  
+                onFiltersChanged = { },
+                onApplyFilters = { newFilters ->
+                    val dateRange = if (newFilters.startDate != null && newFilters.endDate != null) {
+                        Pair(newFilters.startDate, newFilters.endDate)
+                    } else null
+                    historyViewModel.updateFilters(
+                        com.github.radupana.featherweight.repository.WorkoutFilters(
+                            exercises = newFilters.selectedExercises.toList(),
+                            dateRange = dateRange
+                        )
+                    )
+                    showFilterSheet = false
+                },
+                onClearFilters = {
+                    historyViewModel.clearFilters()
+                    showFilterSheet = false
+                },
+                onDismiss = { showFilterSheet = false }
+            )
+        }
+    }
 }
 
+@Composable
+fun WeekView(
+    weekGroupState: com.github.radupana.featherweight.viewmodel.WeekGroupState,
+    onWeekToggle: (String) -> Unit,
+    onExpandAll: () -> Unit,
+    onCollapseAll: () -> Unit,
+    onViewWorkout: (Long) -> Unit,
+    onDeleteWorkout: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (weekGroupState.isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator()
+        }
+    } else {
+        val weekGroups = weekGroupState.weeks.map { weekWorkouts ->
+            com.github.radupana.featherweight.ui.components.history.WeekGroup(
+                weekNumber = weekWorkouts.weekStart.get(java.time.temporal.WeekFields.of(java.util.Locale.getDefault()).weekOfYear()),
+                year = weekWorkouts.weekStart.year,
+                workouts = weekWorkouts.workouts,
+                startDate = weekWorkouts.weekStart.format(java.time.format.DateTimeFormatter.ofPattern("MMM d")),
+                endDate = weekWorkouts.weekEnd.format(java.time.format.DateTimeFormatter.ofPattern("MMM d")),
+                totalVolume = weekWorkouts.totalVolume,
+                totalWorkouts = weekWorkouts.totalWorkouts,
+            )
+        }
+        
+        Column(modifier = modifier.fillMaxSize()) {
+            // Header with expand/collapse all buttons
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Weekly View",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = onExpandAll,
+                        modifier = Modifier.size(width = 100.dp, height = 36.dp)
+                    ) {
+                        Text("Expand All", style = MaterialTheme.typography.labelSmall)
+                    }
+                    OutlinedButton(
+                        onClick = onCollapseAll,
+                        modifier = Modifier.size(width = 100.dp, height = 36.dp)
+                    ) {
+                        Text("Collapse", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+            
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(weekGroups) { weekGroup ->
+                    val weekId = weekGroup.year.toString() + "_" + weekGroup.weekNumber.toString()
+                    WeekGroupView(
+                        weekGroup = weekGroup,
+                        isExpanded = weekId in weekGroupState.expandedWeeks,
+                        onToggleExpanded = { onWeekToggle(weekId) },
+                        onWorkoutClick = onViewWorkout,
+                        onWorkoutLongClick = onDeleteWorkout
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WorkoutHistoryCard(
     workout: WorkoutSummary,
@@ -411,6 +662,7 @@ fun WorkoutStatItem(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WorkoutsHistorySection(
     workouts: List<WorkoutSummary>,

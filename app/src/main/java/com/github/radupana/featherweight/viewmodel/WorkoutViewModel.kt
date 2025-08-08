@@ -1800,8 +1800,10 @@ class WorkoutViewModel(
             val exercise = _selectedWorkoutExercises.value.find { it.id == set.exerciseLogId } ?: return@launch
             val exerciseId = exercise.exerciseId ?: return@launch
 
-            // Calculate estimated 1RM from this set
-            val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps) ?: return@launch
+            // Calculate estimated 1RM from this set (now with RPE consideration)
+            println("FeatherweightDebug: Calculating 1RM for ${exercise.exerciseName}: ${set.actualWeight}kg x ${set.actualReps} @ RPE ${set.actualRpe}")
+            val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps, set.actualRpe) ?: return@launch
+            println("FeatherweightDebug: Calculated 1RM: $estimated1RM kg")
 
             // Get current 1RM
             val userId = repository.getCurrentUserId()

@@ -201,6 +201,18 @@ private fun PRDetailCard(
                 textAlign = TextAlign.Center,
             )
 
+            // Show estimated 1RM if available
+            if (personalRecord.estimated1RM != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "Est. 1RM: ${WeightFormatter.formatWeightWithUnit(personalRecord.estimated1RM)}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            }
+
             // Previous record comparison
             if (personalRecord.previousWeight != null && personalRecord.previousDate != null) {
                 Spacer(modifier = Modifier.height(8.dp))

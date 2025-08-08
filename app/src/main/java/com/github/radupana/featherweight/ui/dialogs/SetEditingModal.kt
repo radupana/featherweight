@@ -90,6 +90,7 @@ import com.github.radupana.featherweight.ui.components.IntegratedRestTimer
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun SetEditingModal(
     exercise: ExerciseLog,
@@ -878,6 +879,7 @@ private fun ExpandedSetRow(
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun CleanSetLayout(
     set: SetLog,

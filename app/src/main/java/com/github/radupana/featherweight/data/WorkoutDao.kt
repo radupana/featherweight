@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
+import java.time.LocalDateTime
 
 @Dao
 interface WorkoutDao {
@@ -166,4 +167,27 @@ interface WorkoutDao {
         startDateTime: java.time.LocalDateTime,
         endDateTime: java.time.LocalDateTime,
     ): java.time.LocalDateTime?
+
+    @Query("SELECT date, COUNT(*) as count FROM workout WHERE date >= :startDate AND date < :endDate GROUP BY date")
+    suspend fun getWorkoutCountsByDateRange(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime,
+    ): List<WorkoutDateCount>
+
+    @Query("SELECT * FROM workout WHERE date >= :startOfWeek AND date < :endOfWeek ORDER BY date DESC")
+    suspend fun getWorkoutsByWeek(
+        startOfWeek: LocalDateTime,
+        endOfWeek: LocalDateTime,
+    ): List<Workout>
+
+    @Query("SELECT w.* FROM workout w WHERE w.name LIKE '%' || :searchQuery || '%' OR w.notes LIKE '%' || :searchQuery || '%' ORDER BY date DESC LIMIT :limit")
+    suspend fun searchWorkouts(
+        searchQuery: String,
+        limit: Int = 100,
+    ): List<Workout>
 }
+
+data class WorkoutDateCount(
+    val date: LocalDateTime,
+    val count: Int,
+)

@@ -18,16 +18,30 @@ class OneRMService {
     /**
      * Calculate estimated 1RM using Brzycki formula
      * Only valid for reps <= 15
+     * For singles with RPE, adjusts based on reps in reserve
      */
     fun calculateEstimated1RM(
         weight: Float,
         reps: Int,
+        rpe: Float? = null,
     ): Float? {
         if (reps <= 0 || reps > MAX_REPS_FOR_ESTIMATE) return null
-        if (reps == 1) return weight
+        
+        // Calculate effective reps based on RPE for singles
+        val effectiveReps = when {
+            reps == 1 && rpe != null -> {
+                // For singles with RPE, calculate total possible reps
+                val repsInReserve = (10f - rpe).coerceAtLeast(0f).toInt()
+                reps + repsInReserve  // Total reps possible at this weight
+            }
+            else -> reps
+        }
+        
+        // If it's a true max (RPE 10 or no RPE adjustment needed)
+        if (effectiveReps == 1) return weight
 
         // Brzycki formula: 1RM = weight / (1.0278 - 0.0278 × reps)
-        return weight / (1.0278f - 0.0278f * reps)
+        return weight / (1.0278f - 0.0278f * effectiveReps)
     }
 
     /**

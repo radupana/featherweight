@@ -73,6 +73,13 @@ data class NextProgrammeWorkoutInfo(
     val actualWeekNumber: Int,
 )
 
+data class WorkoutFilters(
+    val dateRange: Pair<LocalDate, LocalDate>? = null,
+    val exercises: List<String> = emptyList(),
+    val muscleGroups: List<String> = emptyList(),
+    val programmeId: Long? = null,
+)
+
 data class WorkoutSummary(
     val id: Long,
     val date: LocalDateTime,
@@ -2836,6 +2843,171 @@ class FeatherweightRepository(
             val startOfDay = date.atStartOfDay()
             val endOfDay = date.atTime(23, 59, 59)
             workoutDao.getWorkoutsInDateRange(startOfDay, endOfDay).firstOrNull()
+        }
+
+    suspend fun getWorkoutCountsByMonth(
+        year: Int,
+        month: Int,
+    ): Map<LocalDate, Int> =
+        withContext(Dispatchers.IO) {
+            val startOfMonth = LocalDate.of(year, month, 1)
+            val endOfMonth = startOfMonth.plusMonths(1)
+
+            val dateCountList =
+                workoutDao.getWorkoutCountsByDateRange(
+                    startDate = startOfMonth.atStartOfDay(),
+                    endDate = endOfMonth.atStartOfDay(),
+                )
+
+            dateCountList.associate {
+                it.date.toLocalDate() to it.count
+            }
+        }
+
+    suspend fun getWorkoutsByWeek(weekStart: LocalDate): List<WorkoutSummary> =
+        withContext(Dispatchers.IO) {
+            val startOfWeek = weekStart.atStartOfDay()
+            val endOfWeek = weekStart.plusDays(7).atStartOfDay()
+
+            val workouts = workoutDao.getWorkoutsByWeek(startOfWeek, endOfWeek)
+            workouts.map { workout ->
+                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                val allSets = mutableListOf<SetLog>()
+                exercises.forEach { exercise ->
+                    allSets.addAll(setLogDao.getSetLogsForExercise(exercise.id))
+                }
+
+                val completedSets = allSets.filter { it.isCompleted }
+                val totalWeight = completedSets.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
+
+                WorkoutSummary(
+                    id = workout.id,
+                    date = workout.date,
+                    name = workout.name,
+                    exerciseCount = exercises.size,
+                    setCount = completedSets.size,
+                    totalWeight = totalWeight,
+                    duration = workout.durationSeconds,
+                    status = workout.status,
+                    hasNotes = !workout.notes.isNullOrBlank(),
+                    programmeId = workout.programmeId,
+                    programmeName = workout.programmeWorkoutName,
+                    weekNumber = workout.weekNumber,
+                    dayNumber = workout.dayNumber,
+                )
+            }
+        }
+
+    suspend fun searchWorkouts(
+        query: String,
+        filters: WorkoutFilters? = null,
+    ): List<WorkoutSummary> =
+        withContext(Dispatchers.IO) {
+            val workouts = workoutDao.searchWorkouts(query)
+
+            workouts
+                .filter { workout ->
+                    // Apply date range filter if specified
+                    filters?.dateRange?.let { (startDate, endDate) ->
+                        val workoutDate = workout.date.toLocalDate()
+                        workoutDate >= startDate && workoutDate <= endDate
+                    } ?: true
+                }.filter { workout ->
+                    // Apply programme filter if specified
+                    filters?.programmeId?.let { programmeId ->
+                        workout.programmeId == programmeId
+                    } ?: true
+                }.mapNotNull { workout ->
+                    val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+
+                    // Apply exercise and muscle group filters
+                    val matchesFilters =
+                        when {
+                            filters?.exercises?.isNotEmpty() == true -> {
+                                exercises.any { exercise ->
+                                    filters.exercises.any { filterExercise ->
+                                        exercise.exerciseName.contains(filterExercise, ignoreCase = true)
+                                    }
+                                }
+                            }
+                            filters?.muscleGroups?.isNotEmpty() == true -> {
+                                exercises.any { exercise ->
+                                    val exerciseData = getExerciseByName(exercise.exerciseName)
+                                    exerciseData?.let { data ->
+                                        filters.muscleGroups.any { muscleGroup ->
+                                            data.muscleGroup.contains(muscleGroup, ignoreCase = true)
+                                        }
+                                    } ?: false
+                                }
+                            }
+                            else -> true
+                        }
+
+                    if (!matchesFilters) return@mapNotNull null
+
+                    val allSets = mutableListOf<SetLog>()
+                    exercises.forEach { exercise ->
+                        allSets.addAll(setLogDao.getSetLogsForExercise(exercise.id))
+                    }
+
+                    val completedSets = allSets.filter { it.isCompleted }
+                    val totalWeight = completedSets.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
+
+                    WorkoutSummary(
+                        id = workout.id,
+                        date = workout.date,
+                        name = workout.name,
+                        exerciseCount = exercises.size,
+                        setCount = completedSets.size,
+                        totalWeight = totalWeight,
+                        duration = workout.durationSeconds,
+                        status = workout.status,
+                        hasNotes = !workout.notes.isNullOrBlank(),
+                        programmeId = workout.programmeId,
+                        programmeName = workout.programmeWorkoutName,
+                        weekNumber = workout.weekNumber,
+                        dayNumber = workout.dayNumber,
+                    )
+                }
+        }
+
+    suspend fun getWorkoutsByDateRange(
+        startDate: LocalDate,
+        endDate: LocalDate,
+    ): List<WorkoutSummary> =
+        withContext(Dispatchers.IO) {
+            val workouts =
+                workoutDao.getWorkoutsInDateRange(
+                    startDate = startDate.atStartOfDay(),
+                    endDate = endDate.atTime(23, 59, 59),
+                )
+
+            workouts.map { workout ->
+                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                val allSets = mutableListOf<SetLog>()
+                exercises.forEach { exercise ->
+                    allSets.addAll(setLogDao.getSetLogsForExercise(exercise.id))
+                }
+
+                val completedSets = allSets.filter { it.isCompleted }
+                val totalWeight = completedSets.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
+
+                WorkoutSummary(
+                    id = workout.id,
+                    date = workout.date,
+                    name = workout.name,
+                    exerciseCount = exercises.size,
+                    setCount = completedSets.size,
+                    totalWeight = totalWeight,
+                    duration = workout.durationSeconds,
+                    status = workout.status,
+                    hasNotes = !workout.notes.isNullOrBlank(),
+                    programmeId = workout.programmeId,
+                    programmeName = workout.programmeWorkoutName,
+                    weekNumber = workout.weekNumber,
+                    dayNumber = workout.dayNumber,
+                )
+            }
         }
 
     /**

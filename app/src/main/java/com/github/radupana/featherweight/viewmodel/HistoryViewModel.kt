@@ -11,6 +11,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.temporal.WeekFields
+import java.util.Locale
+import com.github.radupana.featherweight.repository.WorkoutFilters
+import kotlinx.coroutines.flow.asStateFlow
 
 data class PaginatedHistoryState(
     val workouts: List<WorkoutSummary> = emptyList(),
@@ -27,6 +35,29 @@ data class PaginatedHistoryState(
     val error: String? = null,
 )
 
+enum class HistoryViewMode { CALENDAR, WEEK, LIST }
+
+data class CalendarState(
+    val currentMonth: YearMonth,
+    val selectedDate: LocalDate? = null,
+    val workoutCounts: Map<LocalDate, Int> = emptyMap(),
+    val isLoading: Boolean = false,
+)
+
+data class WeekGroupState(
+    val weeks: List<WeekWorkouts> = emptyList(),
+    val expandedWeeks: Set<String> = emptySet(),
+    val isLoading: Boolean = false,
+)
+
+data class WeekWorkouts(
+    val weekStart: LocalDate,
+    val weekEnd: LocalDate,
+    val workouts: List<WorkoutSummary>,
+    val totalVolume: Double,
+    val totalWorkouts: Int,
+)
+
 class HistoryViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
@@ -34,6 +65,39 @@ class HistoryViewModel(
 
     private val _historyState = MutableStateFlow(PaginatedHistoryState())
     val historyState: StateFlow<PaginatedHistoryState> = _historyState
+
+    // New view mode state
+    private val _viewMode = MutableStateFlow(HistoryViewMode.CALENDAR)
+    val viewMode: StateFlow<HistoryViewMode> = _viewMode.asStateFlow()
+
+    // Calendar state
+    private val _calendarState = MutableStateFlow(
+        CalendarState(
+            currentMonth = YearMonth.now(),
+            selectedDate = LocalDate.now()
+        )
+    )
+    val calendarState: StateFlow<CalendarState> = _calendarState.asStateFlow()
+
+    // Week group state
+    private val _weekGroupState = MutableStateFlow(WeekGroupState())
+    val weekGroupState: StateFlow<WeekGroupState> = _weekGroupState.asStateFlow()
+
+    // Search and filter state
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _filters = MutableStateFlow(WorkoutFilters())
+    val filters: StateFlow<WorkoutFilters> = _filters.asStateFlow()
+
+    private val _searchResults = MutableStateFlow<List<WorkoutSummary>>(emptyList())
+    val searchResults: StateFlow<List<WorkoutSummary>> = _searchResults.asStateFlow()
+
+    private val _recentSearches = MutableStateFlow<List<String>>(emptyList())
+    val recentSearches: StateFlow<List<String>> = _recentSearches.asStateFlow()
+
+    // Search debouncing
+    private var searchJob: Job? = null
 
     // Store selected programme ID for navigation
     var selectedProgrammeId: Long? = null
@@ -59,6 +123,8 @@ class HistoryViewModel(
         viewModelScope.launch {
             repository.seedDatabaseIfEmpty()
             loadInitialData()
+            loadCalendarData()
+            loadWeekGroups()
         }
     }
 
@@ -368,5 +434,206 @@ class HistoryViewModel(
         }
 
         return shouldLoad
+    }
+
+    // New methods for multi-view support
+
+    fun setViewMode(mode: HistoryViewMode) {
+        _viewMode.value = mode
+        when (mode) {
+            HistoryViewMode.CALENDAR -> loadCalendarData()
+            HistoryViewMode.WEEK -> loadWeekGroups()
+            HistoryViewMode.LIST -> {} // List data already loaded
+        }
+    }
+
+    // Calendar methods
+
+    fun loadCalendarData() {
+        viewModelScope.launch {
+            _calendarState.value = _calendarState.value.copy(isLoading = true)
+            try {
+                val currentMonth = _calendarState.value.currentMonth
+                val workoutCounts = repository.getWorkoutCountsByMonth(
+                    currentMonth.year,
+                    currentMonth.monthValue
+                )
+                _calendarState.value = _calendarState.value.copy(
+                    workoutCounts = workoutCounts,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                println("Error loading calendar data: ${e.message}")
+                _calendarState.value = _calendarState.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    fun navigateToMonth(yearMonth: YearMonth) {
+        _calendarState.value = _calendarState.value.copy(currentMonth = yearMonth)
+        loadCalendarData()
+    }
+
+    fun selectDate(date: LocalDate) {
+        _calendarState.value = _calendarState.value.copy(selectedDate = date)
+    }
+
+    fun navigateToPreviousMonth() {
+        val newMonth = _calendarState.value.currentMonth.minusMonths(1)
+        navigateToMonth(newMonth)
+    }
+
+    fun navigateToNextMonth() {
+        val newMonth = _calendarState.value.currentMonth.plusMonths(1)
+        navigateToMonth(newMonth)
+    }
+
+    fun navigateToToday() {
+        val today = LocalDate.now()
+        _calendarState.value = _calendarState.value.copy(
+            currentMonth = YearMonth.from(today),
+            selectedDate = today
+        )
+        loadCalendarData()
+    }
+
+    // Week grouping methods
+
+    fun loadWeekGroups() {
+        viewModelScope.launch {
+            _weekGroupState.value = _weekGroupState.value.copy(isLoading = true)
+            try {
+                // Load last 12 weeks of data
+                val weekField = WeekFields.of(Locale.getDefault())
+                val today = LocalDate.now()
+                val weeks = mutableListOf<WeekWorkouts>()
+                
+                for (i in 0..11) {
+                    val weekStart = today.minusWeeks(i.toLong()).with(weekField.dayOfWeek(), 1)
+                    val workouts = repository.getWorkoutsByWeek(weekStart)
+                    
+                    if (workouts.isNotEmpty()) {
+                        val weekEnd = weekStart.plusDays(6)
+                        val totalVolume = workouts.sumOf { it.totalWeight.toDouble() }
+                        weeks.add(
+                            WeekWorkouts(
+                                weekStart = weekStart,
+                                weekEnd = weekEnd,
+                                workouts = workouts,
+                                totalVolume = totalVolume,
+                                totalWorkouts = workouts.size
+                            )
+                        )
+                    }
+                }
+                
+                _weekGroupState.value = WeekGroupState(
+                    weeks = weeks,
+                    expandedWeeks = emptySet(),
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                println("Error loading week groups: ${e.message}")
+                _weekGroupState.value = _weekGroupState.value.copy(isLoading = false)
+            }
+        }
+    }
+
+    fun toggleWeekExpanded(weekId: String) {
+        val currentExpanded = _weekGroupState.value.expandedWeeks
+        _weekGroupState.value = _weekGroupState.value.copy(
+            expandedWeeks = if (weekId in currentExpanded) {
+                currentExpanded - weekId
+            } else {
+                currentExpanded + weekId
+            }
+        )
+    }
+
+    fun expandAllWeeks() {
+        val allWeekIds = _weekGroupState.value.weeks.map { it.weekStart.toString() }.toSet()
+        _weekGroupState.value = _weekGroupState.value.copy(expandedWeeks = allWeekIds)
+    }
+
+    fun collapseAllWeeks() {
+        _weekGroupState.value = _weekGroupState.value.copy(expandedWeeks = emptySet())
+    }
+
+    // Search and filter methods
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+        
+        // Cancel previous search job
+        searchJob?.cancel()
+        
+        if (query.isBlank()) {
+            _searchResults.value = emptyList()
+            return
+        }
+        
+        // Debounce search
+        searchJob = viewModelScope.launch {
+            delay(300) // 300ms debounce
+            performSearch()
+        }
+    }
+
+    private suspend fun performSearch() {
+        try {
+            val results = repository.searchWorkouts(
+                query = _searchQuery.value,
+                filters = _filters.value
+            )
+            _searchResults.value = results
+            
+            // Add to recent searches
+            if (_searchQuery.value.isNotBlank()) {
+                val recent = _recentSearches.value.toMutableList()
+                recent.remove(_searchQuery.value)
+                recent.add(0, _searchQuery.value)
+                _recentSearches.value = recent.take(5) // Keep only 5 recent searches
+            }
+        } catch (e: Exception) {
+            println("Error performing search: ${e.message}")
+            _searchResults.value = emptyList()
+        }
+    }
+
+    fun updateFilters(filters: WorkoutFilters) {
+        _filters.value = filters
+        if (_searchQuery.value.isNotBlank() || filters.exercises.isNotEmpty() || filters.dateRange != null) {
+            viewModelScope.launch {
+                performSearch()
+            }
+        }
+    }
+
+    fun clearFilters() {
+        _filters.value = WorkoutFilters()
+        _searchQuery.value = ""
+        _searchResults.value = emptyList()
+    }
+
+    fun clearRecentSearches() {
+        _recentSearches.value = emptyList()
+    }
+
+    fun selectRecentSearch(search: String) {
+        updateSearchQuery(search)
+    }
+
+    // Get workouts for a specific date (used by calendar view)
+    fun getWorkoutsForDate(date: LocalDate): List<WorkoutSummary> {
+        return when (_viewMode.value) {
+            HistoryViewMode.LIST -> {
+                if (_searchQuery.value.isNotBlank() || _filters.value.exercises.isNotEmpty() || _filters.value.dateRange != null) {
+                    _searchResults.value.filter { it.date.toLocalDate() == date }
+                } else {
+                    _historyState.value.workouts.filter { it.date.toLocalDate() == date }
+                }
+            }
+            else -> _historyState.value.workouts.filter { it.date.toLocalDate() == date }
+        }
     }
 }

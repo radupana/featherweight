@@ -25,7 +25,6 @@ class GlobalProgressTracker(
         userId: Long,
     ): List<PendingOneRMUpdate> {
         val pendingUpdates = mutableListOf<PendingOneRMUpdate>()
-        println("🔄 GlobalProgressTracker: Updating progress for workout $workoutId")
 
         val workout = repository.getWorkoutById(workoutId) ?: return emptyList()
         val exercises = database.exerciseLogDao().getExerciseLogsForWorkout(workoutId)
@@ -64,7 +63,6 @@ class GlobalProgressTracker(
         val completedSets = sets.filter { it.isCompleted }
 
         if (completedSets.isEmpty()) {
-            println("⚠️ No completed sets for $exerciseName, skipping progress update")
             return null
         }
 
@@ -133,13 +131,6 @@ class GlobalProgressTracker(
         // Save updated progress
         globalProgressDao.insertOrUpdate(progress)
 
-        println(
-            "✅ Updated progress for $exerciseName: " +
-                "Weight: ${previousWeight}kg → ${maxWeight}kg, " +
-                "Volume: ${sessionVolume}kg, " +
-                "Trend: ${progress.trend}",
-        )
-
         return pendingUpdate
     }
 
@@ -183,7 +174,6 @@ class GlobalProgressTracker(
                         lastPrDate = LocalDateTime.now(),
                         lastPrWeight = weight,
                     )
-                println("🎉 New 1RM PR: ${weight}kg!")
             }
         }
 
@@ -365,14 +355,10 @@ class GlobalProgressTracker(
 
         // Only proceed if we have confidence >= 60%
         if (bestEstimate == null || bestEstimate.confidence < 0.6f) {
-            println(
-                "⚠️ Low confidence 1RM estimate: ${bestEstimate?.confidence?.let { (it * 100).roundToInt() }}% (need 60%), skipping update",
-            )
             return Pair(progress, null)
         }
 
         val estimated1RM = bestEstimate.estimatedMax
-        println("💪 Estimated 1RM: ${estimated1RM.roundToInt()}kg (confidence: ${(bestEstimate.confidence * 100).roundToInt()}%)")
 
         // Check if this is a Big 4 exercise
         val isBig4Exercise =
@@ -383,9 +369,6 @@ class GlobalProgressTracker(
                     "Barbell Bench Press",
                     "Barbell Overhead Press",
                 )
-
-        println("🔍 1RM Update Check: exercise=${progress.exerciseName}, isBig4=$isBig4Exercise")
-        println("🔍 1RM Update Check: currentUserMax=${currentUserMax?.oneRMEstimate}, estimated1RM=$estimated1RM")
 
         // Decision logic for prompting user
         val pendingUpdate =
@@ -399,9 +382,6 @@ class GlobalProgressTracker(
                         (bestEstimate.source.contains("1 rep") && estimated1RM > currentUserMax.oneRMEstimate) ||
                             (estimated1RM > currentUserMax.oneRMEstimate * 1.02)
                     ) -> {
-                    println(
-                        "🎯 New estimated 1RM (${estimated1RM.roundToInt()}kg) exceeds stored max (${currentUserMax.oneRMEstimate.roundToInt()}kg)",
-                    )
                     exercise?.let {
                         PendingOneRMUpdate(
                             exerciseId = it.id,
@@ -417,7 +397,6 @@ class GlobalProgressTracker(
 
                 // No stored max but high confidence estimate - suggest adding
                 currentUserMax == null && bestEstimate.confidence >= 0.85f && isBig4Exercise -> {
-                    println("💡 High confidence 1RM estimate (${estimated1RM.roundToInt()}kg) - suggest adding to profile")
                     exercise?.let {
                         PendingOneRMUpdate(
                             exerciseId = it.id,
@@ -431,23 +410,7 @@ class GlobalProgressTracker(
                     }
                 }
 
-                else -> {
-                    println("🔍 1RM Update Check: No update triggered")
-                    if (currentUserMax != null) {
-                        val improvement =
-                            if (currentUserMax.oneRMEstimate > 0) {
-                                ((estimated1RM - currentUserMax.oneRMEstimate) / currentUserMax.oneRMEstimate) * 100
-                            } else {
-                                0f
-                            }
-                        println("🔍 1RM Update Check: Has stored max, improvement = $improvement% (need 2%+)")
-                    } else {
-                        println(
-                            "🔍 1RM Update Check: No stored max, confidence = ${(bestEstimate.confidence * 100).roundToInt()}% (need 85%+)",
-                        )
-                    }
-                    null
-                }
+                else -> null
             }
 
         // Always update internal tracking
@@ -476,24 +439,44 @@ class GlobalProgressTracker(
         val weight = set.actualWeight
         val rpe = set.actualRpe
 
-        println("🔍 1RM Confidence Calc: ${weight}kg x $reps, RPE = ${rpe ?: "null"}")
+        // Calculate effective reps based on RPE for singles
+        val effectiveReps = when {
+            reps == 1 && rpe != null -> {
+                // For singles with RPE, calculate total possible reps
+                val repsInReserve = (10f - rpe).coerceAtLeast(0f).toInt()
+                reps + repsInReserve  // Total reps possible at this weight
+            }
+            else -> reps  // For multi-rep sets or singles without RPE, use actual reps
+        }
 
         // Calculate estimated 1RM using Brzycki formula
         val estimated1RM =
-            if (reps == 1) {
-                weight // Actual 1RM!
+            if (effectiveReps == 1) {
+                weight // True max (RPE 10 or proven single)
+            } else if (effectiveReps <= 15) {
+                weight / (1.0278f - 0.0278f * effectiveReps)
             } else {
-                weight / (1.0278f - 0.0278f * reps)
+                // Formula unreliable beyond 15 reps
+                weight * 1.5f  // Rough estimate
             }
 
-        // Base confidence primarily on rep count
+        // Base confidence primarily on rep count and context
         val baseConfidence =
-            when (reps) {
-                1 -> 1.0f // Singles are 100% confidence - it's your actual 1RM!
-                in 2..3 -> 0.85f // Very reliable
-                in 4..5 -> 0.75f // Reliable
-                in 6..8 -> 0.65f // Decent
-                in 9..12 -> 0.50f // Less reliable
+            when {
+                // Single that exceeds current max - high confidence regardless of RPE
+                reps == 1 && weight > (currentStoredMax ?: 0f) -> 0.90f
+                // Single with high RPE - near maximal
+                reps == 1 && rpe != null && rpe >= 9.5f -> 0.95f
+                reps == 1 && rpe != null && rpe >= 8.5f -> 0.85f
+                // Single with moderate/low RPE - adjusted estimate
+                reps == 1 && rpe != null -> 0.70f
+                // Single without RPE below current max - could be warm-up
+                reps == 1 -> 0.40f
+                // Multi-rep sets
+                reps in 2..3 -> 0.85f // Very reliable
+                reps in 4..5 -> 0.75f // Reliable
+                reps in 6..8 -> 0.65f // Decent
+                reps in 9..12 -> 0.50f // Less reliable
                 else -> 0.30f // Very high reps unreliable
             }
 
@@ -508,22 +491,16 @@ class GlobalProgressTracker(
             } else if (reps > 1) {
                 -0.05f // Missing RPE data
             } else {
-                0.0f // No adjustment for singles
+                0.0f // No adjustment for singles (already handled in base confidence)
             }
 
         val finalConfidence = (baseConfidence + rpeAdjustment).coerceIn(0f, 1f)
 
-        // For singles, we don't apply RPE adjustment to the weight - it IS the 1RM
-        val adjustedEstimate =
-            if (reps == 1) {
-                weight // Always use actual weight for singles
-            } else {
-                estimated1RM
-            }
-
         // Format source string
         val source =
             when {
+                reps == 1 && rpe != null && rpe < 10 -> 
+                    "1×${weight.roundToInt()}kg @ RPE ${rpe.toInt()} (est. ${effectiveReps}RM)"
                 reps == 1 && rpe != null -> "1RM @ RPE ${rpe.toInt()}"
                 reps == 1 -> "1RM"
                 rpe != null -> "$reps×${weight.roundToInt()}kg @ RPE ${rpe.toInt()}"
@@ -532,12 +509,11 @@ class GlobalProgressTracker(
 
         val result =
             OneRMEstimate(
-                estimatedMax = adjustedEstimate,
+                estimatedMax = estimated1RM,
                 confidence = finalConfidence,
                 source = source,
             )
 
-        println("🔍 1RM Confidence Result: ${result.estimatedMax.roundToInt()}kg, ${(result.confidence * 100).roundToInt()}% confidence")
         return result
     }
 
