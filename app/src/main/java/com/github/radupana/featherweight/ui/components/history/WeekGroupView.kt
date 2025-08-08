@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,7 +22,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,7 +31,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.repository.WorkoutSummary
-import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.format.DateTimeFormatter
 import java.time.temporal.WeekFields
 import java.util.Locale
@@ -82,45 +81,27 @@ fun WeekGroupView(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Week ${weekGroup.weekNumber}, ${weekGroup.year}",
+                        text = "${weekGroup.startDate} - ${weekGroup.endDate}, ${weekGroup.year}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "${weekGroup.startDate} - ${weekGroup.endDate}",
+                        text = "${weekGroup.totalWorkouts} ${if (weekGroup.totalWorkouts == 1) "workout" else "workouts"} this week",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    // Week summary chips
-                    WeekSummaryChip(
-                        label = "${weekGroup.totalWorkouts}",
-                        description = "workouts",
-                    )
-
-                    if (weekGroup.totalVolume > 0) {
-                        WeekSummaryChip(
-                            label = WeightFormatter.formatWeight(weekGroup.totalVolume.toFloat()),
-                            description = "volume",
-                        )
-                    }
-
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand",
-                        modifier =
-                            Modifier
-                                .size(20.dp)
-                                .rotate(rotation),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    modifier =
+                        Modifier
+                            .size(20.dp)
+                            .rotate(rotation),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             // Expandable workout list
@@ -134,28 +115,31 @@ fun WeekGroupView(
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                     )
 
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        weekGroup.workouts.forEach { workout ->
-                            CompactWorkoutCard(
-                                workout = workout,
-                                onClick = { onWorkoutClick(workout.id) },
-                                onLongClick = { onWorkoutLongClick(workout.id) },
-                            )
-                        }
-
-                        if (weekGroup.workouts.isEmpty()) {
+                    if (weekGroup.workouts.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text(
                                 text = "No workouts this week",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             )
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            weekGroup.workouts.forEach { workout ->
+                                CompactWorkoutCard(
+                                    workout = workout,
+                                    onClick = { onWorkoutClick(workout.id) },
+                                    onLongClick = { onWorkoutLongClick(workout.id) },
+                                )
+                            }
                         }
                     }
                 }
@@ -164,35 +148,6 @@ fun WeekGroupView(
     }
 }
 
-@Composable
-private fun WeekSummaryChip(
-    label: String,
-    description: String,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
 
 @Composable
 private fun CompactWorkoutCard(
@@ -233,21 +188,6 @@ private fun CompactWorkoutCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-
-            if (workout.totalWeight > 0) {
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f),
-                ) {
-                    Text(
-                        text = WeightFormatter.formatWeight(workout.totalWeight.toFloat()),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                    )
-                }
             }
         }
     }

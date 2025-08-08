@@ -23,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -32,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kizitonwose.calendar.compose.HorizontalCalendar
 import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.CalendarDay
@@ -48,7 +50,9 @@ import java.util.Locale
 fun CalendarView(
     selectedDate: LocalDate?,
     workoutDates: Set<LocalDate>,
+    workoutDayInfo: Map<LocalDate, com.github.radupana.featherweight.repository.WorkoutDayInfo>,
     onDateSelected: (LocalDate) -> Unit,
+    onMonthChanged: (YearMonth) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val currentMonth = remember { YearMonth.now() }
@@ -64,6 +68,11 @@ fun CalendarView(
             firstVisibleMonth = currentMonth,
             firstDayOfWeek = daysOfWeek.first(),
         )
+    
+    // Notify when the visible month changes
+    LaunchedEffect(state.firstVisibleMonth.yearMonth) {
+        onMonthChanged(state.firstVisibleMonth.yearMonth)
+    }
 
     Card(
         modifier = modifier,
@@ -145,10 +154,15 @@ fun CalendarView(
             HorizontalCalendar(
                 state = state,
                 dayContent = { calendarDay ->
+                    val dayInfo = workoutDayInfo[calendarDay.date]
+                    if (dayInfo != null && calendarDay.position == DayPosition.MonthDate) {
+                        println("🔍 CalendarView: ${calendarDay.date} has workouts: C=${dayInfo.completedCount}, IP=${dayInfo.inProgressCount}")
+                    }
                     CalendarDayContent(
                         calendarDay = calendarDay,
                         isSelected = selectedDate == calendarDay.date,
                         hasWorkout = workoutDates.contains(calendarDay.date),
+                        workoutDayInfo = dayInfo,
                         isToday = calendarDay.date == LocalDate.now(),
                         onClick = { if (calendarDay.position == DayPosition.MonthDate) onDateSelected(calendarDay.date) },
                     )
@@ -163,6 +177,7 @@ private fun CalendarDayContent(
     calendarDay: CalendarDay,
     isSelected: Boolean,
     hasWorkout: Boolean,
+    workoutDayInfo: com.github.radupana.featherweight.repository.WorkoutDayInfo?,
     isToday: Boolean,
     onClick: () -> Unit,
 ) {
@@ -199,25 +214,77 @@ private fun CalendarDayContent(
                 fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
             )
 
-            // Workout indicator dot
-            if (hasWorkout && isInCurrentMonth) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(4.dp)
-                            .background(
-                                color =
-                                    when {
-                                        isSelected -> MaterialTheme.colorScheme.onPrimary
-                                        isToday -> MaterialTheme.colorScheme.primary
-                                        else -> MaterialTheme.colorScheme.tertiary
-                                    },
-                                shape = CircleShape,
-                            ),
+            // Workout indicators based on status
+            if (isInCurrentMonth && workoutDayInfo != null) {
+                WorkoutIndicators(
+                    dayInfo = workoutDayInfo,
+                    isSelected = isSelected,
+                    isToday = isToday,
                 )
             } else {
                 Spacer(modifier = Modifier.height(4.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutIndicators(
+    dayInfo: com.github.radupana.featherweight.repository.WorkoutDayInfo,
+    isSelected: Boolean,
+    isToday: Boolean,
+) {
+    val totalWorkouts = dayInfo.completedCount + dayInfo.inProgressCount
+    
+    when {
+        totalWorkouts == 0 -> {
+            // No indicator for days without workouts
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+        totalWorkouts == 1 -> {
+            // Single dot indicator
+            val isCompleted = dayInfo.completedCount > 0
+            Box(
+                modifier = Modifier
+                    .size(4.dp)
+                    .background(
+                        color = when {
+                            isSelected -> MaterialTheme.colorScheme.onPrimary
+                            isToday -> MaterialTheme.colorScheme.primary
+                            else -> if (isCompleted) {
+                                MaterialTheme.colorScheme.tertiary
+                            } else {
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
+                            }
+                        },
+                        shape = CircleShape,
+                    )
+                    .then(
+                        if (!isCompleted && !isSelected && !isToday) {
+                            // Hollow dot for in-progress workouts
+                            Modifier.background(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = CircleShape
+                            ).padding(0.5.dp)
+                        } else {
+                            Modifier
+                        }
+                    )
+            )
+        }
+        else -> {
+            // Multiple workouts - show number badge
+            Text(
+                text = totalWorkouts.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                fontSize = 8.sp,
+                color = when {
+                    isSelected -> MaterialTheme.colorScheme.onPrimary
+                    isToday -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.tertiary
+                },
+                fontWeight = FontWeight.Bold,
+            )
         }
     }
 }

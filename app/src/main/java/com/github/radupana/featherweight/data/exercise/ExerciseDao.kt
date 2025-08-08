@@ -45,6 +45,9 @@ interface ExerciseDao {
     @Query("UPDATE exercises SET usageCount = usageCount + 1 WHERE id = :exerciseId")
     suspend fun incrementUsageCount(exerciseId: Long)
 
+    @Query("UPDATE exercises SET usageCount = 0")
+    suspend fun resetAllUsageCounts()
+
     // Alias operations
     @Insert
     suspend fun insertAliases(aliases: List<ExerciseAlias>)

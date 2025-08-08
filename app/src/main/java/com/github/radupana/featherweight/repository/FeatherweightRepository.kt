@@ -80,6 +80,12 @@ data class WorkoutFilters(
     val programmeId: Long? = null,
 )
 
+data class WorkoutDayInfo(
+    val completedCount: Int,
+    val inProgressCount: Int,
+    val notStartedCount: Int,
+)
+
 data class WorkoutSummary(
     val id: Long,
     val date: LocalDateTime,
@@ -2864,6 +2870,50 @@ class FeatherweightRepository(
             }
         }
 
+    suspend fun getWorkoutCountsByMonthWithStatus(
+        year: Int,
+        month: Int,
+    ): Map<LocalDate, WorkoutDayInfo> =
+        withContext(Dispatchers.IO) {
+            val startOfMonth = LocalDate.of(year, month, 1)
+            val endOfMonth = startOfMonth.plusMonths(1)
+            val dateStatusCountList =
+                workoutDao.getWorkoutCountsByDateRangeWithStatus(
+                    startDate = startOfMonth.atStartOfDay(),
+                    endDate = endOfMonth.atStartOfDay(),
+                )
+            
+            // Group by date and aggregate counts by status
+            val dayInfoMap = mutableMapOf<LocalDate, WorkoutDayInfo>()
+            
+            // First pass: Initialize all dates that have workouts
+            val uniqueDates = dateStatusCountList.map { it.date.toLocalDate() }.toSet()
+            uniqueDates.forEach { date ->
+                dayInfoMap[date] = WorkoutDayInfo(0, 0, 0)
+            }
+            
+            // Second pass: Fill in the counts for each status
+            dateStatusCountList.forEach { item ->
+                val date = item.date.toLocalDate()
+                val currentInfo = dayInfoMap[date]!!
+                
+                // Update only the specific count for this status, preserving other counts
+                dayInfoMap[date] = when (item.status) {
+                    WorkoutStatus.COMPLETED -> currentInfo.copy(completedCount = item.count)
+                    WorkoutStatus.IN_PROGRESS -> currentInfo.copy(inProgressCount = item.count)
+                    WorkoutStatus.NOT_STARTED -> currentInfo.copy(notStartedCount = item.count)
+                }
+            }
+            
+            // Debug logging
+            println("🔍 Calendar: Month $year-$month workout counts:")
+            dayInfoMap.forEach { (date, info) ->
+                println("  📅 $date: Completed=${info.completedCount}, InProgress=${info.inProgressCount}, NotStarted=${info.notStartedCount}")
+            }
+            
+            dayInfoMap
+        }
+
     suspend fun getWorkoutsByWeek(weekStart: LocalDate): List<WorkoutSummary> =
         withContext(Dispatchers.IO) {
             val startOfWeek = weekStart.atStartOfDay()
@@ -3045,8 +3095,11 @@ class FeatherweightRepository(
                 // Delete all OneRMHistory entries for this user
                 db.oneRMDao().deleteAllOneRMHistory(userId)
             }
+            
+            // Reset all exercise usage counts to 0
+            exerciseDao.resetAllUsageCounts()
 
-            println("🗑️ Cleared all workout data including 1RM history and exercise maxes")
+            println("🗑️ Cleared all workout data including 1RM history, exercise maxes, and usage counts")
         }
 
     // ===== INSIGHTS SECTION =====
@@ -3296,8 +3349,11 @@ class FeatherweightRepository(
                 // Delete all OneRMHistory entries for this user
                 db.oneRMDao().deleteAllOneRMHistory(userId)
             }
+            
+            // Reset all exercise usage counts to 0
+            exerciseDao.resetAllUsageCounts()
 
-            println("🗑️ Repository: Deleted all workout-related data including 1RM history")
+            println("🗑️ Repository: Deleted all workout-related data including 1RM history and usage counts")
         }
 
     suspend fun getCompletedWorkoutCountSince(since: LocalDateTime): Int =
