@@ -87,7 +87,7 @@ fun NotesInputModal(
 
                     // Notes input
                     var notes by remember { mutableStateOf(initialNotes) }
-                    val maxLength = 2000
+                    val maxLength = 200
 
                     Card(
                         modifier =
