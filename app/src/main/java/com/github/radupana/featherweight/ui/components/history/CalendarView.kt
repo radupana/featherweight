@@ -68,7 +68,7 @@ fun CalendarView(
             firstVisibleMonth = currentMonth,
             firstDayOfWeek = daysOfWeek.first(),
         )
-    
+
     // Notify when the visible month changes
     LaunchedEffect(state.firstVisibleMonth.yearMonth) {
         onMonthChanged(state.firstVisibleMonth.yearMonth)
@@ -235,7 +235,7 @@ private fun WorkoutIndicators(
     isToday: Boolean,
 ) {
     val totalWorkouts = dayInfo.completedCount + dayInfo.inProgressCount
-    
+
     when {
         totalWorkouts == 0 -> {
             // No indicator for days without workouts
@@ -245,31 +245,34 @@ private fun WorkoutIndicators(
             // Single dot indicator
             val isCompleted = dayInfo.completedCount > 0
             Box(
-                modifier = Modifier
-                    .size(4.dp)
-                    .background(
-                        color = when {
-                            isSelected -> MaterialTheme.colorScheme.onPrimary
-                            isToday -> MaterialTheme.colorScheme.primary
-                            else -> if (isCompleted) {
-                                MaterialTheme.colorScheme.tertiary
+                modifier =
+                    Modifier
+                        .size(4.dp)
+                        .background(
+                            color =
+                                when {
+                                    isSelected -> MaterialTheme.colorScheme.onPrimary
+                                    isToday -> MaterialTheme.colorScheme.primary
+                                    else ->
+                                        if (isCompleted) {
+                                            MaterialTheme.colorScheme.tertiary
+                                        } else {
+                                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
+                                        }
+                                },
+                            shape = CircleShape,
+                        ).then(
+                            if (!isCompleted && !isSelected && !isToday) {
+                                // Hollow dot for in-progress workouts
+                                Modifier
+                                    .background(
+                                        color = MaterialTheme.colorScheme.surface,
+                                        shape = CircleShape,
+                                    ).padding(0.5.dp)
                             } else {
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
-                            }
-                        },
-                        shape = CircleShape,
-                    )
-                    .then(
-                        if (!isCompleted && !isSelected && !isToday) {
-                            // Hollow dot for in-progress workouts
-                            Modifier.background(
-                                color = MaterialTheme.colorScheme.surface,
-                                shape = CircleShape
-                            ).padding(0.5.dp)
-                        } else {
-                            Modifier
-                        }
-                    )
+                                Modifier
+                            },
+                        ),
             )
         }
         else -> {
@@ -278,11 +281,12 @@ private fun WorkoutIndicators(
                 text = totalWorkouts.toString(),
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = 8.sp,
-                color = when {
-                    isSelected -> MaterialTheme.colorScheme.onPrimary
-                    isToday -> MaterialTheme.colorScheme.primary
-                    else -> MaterialTheme.colorScheme.tertiary
-                },
+                color =
+                    when {
+                        isSelected -> MaterialTheme.colorScheme.onPrimary
+                        isToday -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.tertiary
+                    },
                 fontWeight = FontWeight.Bold,
             )
         }

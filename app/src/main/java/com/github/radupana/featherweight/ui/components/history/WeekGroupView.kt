@@ -117,10 +117,11 @@ fun WeekGroupView(
 
                     if (weekGroup.workouts.isEmpty()) {
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                            contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 text = "No workouts this week",
@@ -147,7 +148,6 @@ fun WeekGroupView(
         }
     }
 }
-
 
 @Composable
 private fun CompactWorkoutCard(

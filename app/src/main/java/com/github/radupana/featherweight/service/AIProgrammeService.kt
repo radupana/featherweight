@@ -11,6 +11,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.json.JSONObject
 import retrofit2.Retrofit
+import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
 
 data class AIProgrammeRequest(
@@ -111,19 +112,16 @@ class AIProgrammeService(
 
                 // Log token estimation for cost tracking
                 val estimatedTokens = estimateTokens(systemPrompt + userPrompt)
-                println("Estimated tokens for request: $estimatedTokens")
 
                 val response = callOpenAI(systemPrompt, userPrompt)
                 val parsedResponse = parseAIResponse(response)
 
                 // Log successful generation for analytics
                 if (parsedResponse.success) {
-                    println("Programme generation successful")
                 }
 
                 parsedResponse
             } catch (e: Exception) {
-                println("Programme generation failed: ${e.message}")
                 AIProgrammeResponse(
                     success = false,
                     error = "Failed to generate programme: ${e.message}",
@@ -318,7 +316,6 @@ class AIProgrammeService(
         userPrompt: String,
     ): String {
         if (OPENAI_API_KEY == "YOUR_API_KEY_HERE" || OPENAI_API_KEY.isBlank()) {
-            println("❌ FATAL: OpenAI API key not configured")
             throw IllegalStateException(
                 "AI service is not configured. Please configure your OpenAI API key to use AI programme generation.",
             )
@@ -338,22 +335,6 @@ class AIProgrammeService(
                     responseFormat = ResponseFormat(type = "json_object"),
                 )
 
-            // Log the complete request
-            println("🤖 OpenAI Request [${java.time.LocalDateTime.now()}]:")
-            println("📝 Model: $MODEL")
-            println("🎯 Temperature: $TEMPERATURE")
-            println("📏 Max Tokens: $MAX_TOKENS")
-            // Log the complete prompt in human-readable format (not JSON)
-            println("\n" + "=".repeat(70))
-            println("📜 COMPLETE LLM PROMPT (HUMAN READABLE)")
-            println("=".repeat(70))
-            println("\n🎯 SYSTEM PROMPT:")
-            println("-".repeat(70))
-            println(systemPrompt)
-            println("\n💬 USER PROMPT:")
-            println("-".repeat(70))
-            println(userPrompt)
-            println("\n" + "=".repeat(70) + "\n")
 
             val response =
                 api.createChatCompletion(
@@ -368,24 +349,11 @@ class AIProgrammeService(
                     val finishReason = body.choices[0].finishReason
 
                     // Log the complete response
-                    println("✅ OpenAI Response [${java.time.LocalDateTime.now()}]:")
-                    println(
-                        "📊 Usage: ${body.usage?.totalTokens ?: "unknown"} tokens (prompt: ${body.usage?.promptTokens}, completion: ${body.usage?.completionTokens})",
-                    )
-                    println("💰 Estimated cost: ~$${((body.usage?.totalTokens ?: 0) * 0.00015f / 1000f)}")
-                    println("📄 Response content length: ${responseContent.length} chars")
-                    println("🏁 Finish reason: $finishReason")
 
                     // Log the FULL response for debugging truncation
-                    println("\n" + "=".repeat(70))
-                    println("📜 COMPLETE AI RESPONSE")
-                    println("=".repeat(70))
-                    println(responseContent)
-                    println("=".repeat(70) + "\n")
 
                     // Check if response was truncated
                     if (finishReason == "length") {
-                        println("⚠️ WARNING: Response was truncated due to token limit!")
                         throw Exception(
                             "Programme generation incomplete - response was truncated. Please try a shorter programme duration.",
                         )
@@ -393,17 +361,14 @@ class AIProgrammeService(
 
                     responseContent
                 } else {
-                    println("❌ OpenAI Response: Empty choices array")
                     throw Exception("Empty response from OpenAI")
                 }
             } else {
                 val errorBody = response.errorBody()?.string()
-                println("❌ OpenAI API Error [${response.code()}]: $errorBody")
                 throw Exception("OpenAI API error: ${response.code()} - $errorBody")
             }
         } catch (e: Exception) {
             // Log detailed error and throw exception instead of using mock
-            println("OpenAI API call failed: ${e.javaClass.simpleName}: ${e.message}")
             e.printStackTrace()
             throw Exception("AI service is temporarily unavailable. Please try again later or use a template programme.")
         }
@@ -471,8 +436,6 @@ class AIProgrammeService(
                 programme = programme,
             )
         } catch (e: Exception) {
-            println("Failed to parse AI response: ${e.message}")
-            println("Response content: $response")
             AIProgrammeResponse(
                 success = false,
                 error = "Failed to parse AI response: ${e.message}",
@@ -494,7 +457,6 @@ class AIProgrammeService(
                     )
                 weeks.add(week)
             } catch (e: Exception) {
-                println("Error parsing week ${i + 1}: ${e.message}")
             }
         }
 
@@ -516,7 +478,6 @@ class AIProgrammeService(
 
                         // Validate required exercise fields
                         if (!exerciseJson.has("exerciseName") || !exerciseJson.has("sets")) {
-                            println("Skipping exercise due to missing required fields")
                             continue
                         }
 
@@ -526,7 +487,6 @@ class AIProgrammeService(
 
                         // Validate exercise parameters
                         if (sets <= 0 || sets > 20 || repsMin <= 0 || repsMax > 100) {
-                            println("Skipping exercise with invalid parameters: sets=$sets, reps=$repsMin-$repsMax")
                             continue
                         }
 
@@ -554,7 +514,6 @@ class AIProgrammeService(
                             ),
                         )
                     } catch (e: Exception) {
-                        println("Failed to parse exercise $j: ${e.message}")
                         continue
                     }
                 }
@@ -569,7 +528,6 @@ class AIProgrammeService(
                     )
                 }
             } catch (e: Exception) {
-                println("Failed to parse workout $i: ${e.message}")
                 continue
             }
         }

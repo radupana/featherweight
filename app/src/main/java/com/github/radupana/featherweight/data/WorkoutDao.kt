@@ -174,26 +174,30 @@ interface WorkoutDao {
         endDate: LocalDateTime,
     ): List<WorkoutDateCount>
 
-    @Query("""
+    @Query(
+        """
         SELECT date, COUNT(*) as count 
         FROM workout 
         WHERE date >= :startDate 
         AND date < :endDate 
         AND status = 'COMPLETED'
         GROUP BY date
-    """)
+    """,
+    )
     suspend fun getCompletedWorkoutCountsByDateRange(
         startDate: LocalDateTime,
         endDate: LocalDateTime,
     ): List<WorkoutDateCount>
 
-    @Query("""
+    @Query(
+        """
         SELECT date, status, COUNT(*) as count 
         FROM workout 
         WHERE date >= :startDate 
         AND date < :endDate 
         GROUP BY date, status
-    """)
+    """,
+    )
     suspend fun getWorkoutCountsByDateRangeWithStatus(
         startDate: LocalDateTime,
         endDate: LocalDateTime,

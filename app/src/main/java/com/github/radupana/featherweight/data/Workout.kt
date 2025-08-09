@@ -4,12 +4,13 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.data.programme.Programme
 import java.time.LocalDateTime
 
 @Entity(
     foreignKeys = [
         ForeignKey(
-            entity = com.github.radupana.featherweight.data.programme.Programme::class,
+            entity = Programme::class,
             parentColumns = ["id"],
             childColumns = ["programmeId"],
             onDelete = ForeignKey.SET_NULL,

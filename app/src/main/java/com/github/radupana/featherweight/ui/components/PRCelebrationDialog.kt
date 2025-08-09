@@ -204,7 +204,7 @@ private fun PRDetailCard(
             // Show estimated 1RM if available
             if (personalRecord.estimated1RM != null) {
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Text(
                     text = "Est. 1RM: ${WeightFormatter.formatWeightWithUnit(personalRecord.estimated1RM)}",
                     style = MaterialTheme.typography.bodyLarge,

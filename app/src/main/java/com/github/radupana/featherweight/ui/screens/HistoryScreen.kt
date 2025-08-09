@@ -15,11 +15,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Refresh
@@ -32,8 +32,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -41,12 +41,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -58,7 +58,6 @@ import com.github.radupana.featherweight.repository.WorkoutSummary
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.ui.components.history.CalendarView
 import com.github.radupana.featherweight.ui.components.history.WeekGroupView
-import androidx.compose.foundation.lazy.items
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import java.time.format.DateTimeFormatter
@@ -83,7 +82,7 @@ fun HistoryScreen(
     val historyState by historyViewModel.historyState.collectAsState()
     val calendarState by historyViewModel.calendarState.collectAsState()
     val weekGroupState by historyViewModel.weekGroupState.collectAsState()
-    
+
     var selectedTab by remember { mutableIntStateOf(0) } // 0 = Workouts, 1 = Programmes
 
     // Error handling
@@ -123,7 +122,7 @@ fun HistoryScreen(
                     // Workouts tab - unified view with calendar and week groups
                     LazyColumn(
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(bottom = 16.dp)
+                        contentPadding = PaddingValues(bottom = 16.dp),
                     ) {
                         // Calendar at the top (fixed)
                         item {
@@ -141,20 +140,22 @@ fun HistoryScreen(
                                 onMonthChanged = { yearMonth ->
                                     historyViewModel.navigateToMonth(yearMonth)
                                 },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
                             )
                         }
-                        
+
                         // Week groups below
                         if (weekGroupState.isLoading) {
                             item {
                                 Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(32.dp),
-                                    contentAlignment = Alignment.Center
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(32.dp),
+                                    contentAlignment = Alignment.Center,
                                 ) {
                                     CircularProgressIndicator()
                                 }
@@ -162,31 +163,46 @@ fun HistoryScreen(
                         } else if (weekGroupState.weeks.isEmpty()) {
                             item {
                                 Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(32.dp),
-                                    contentAlignment = Alignment.Center
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(32.dp),
+                                    contentAlignment = Alignment.Center,
                                 ) {
                                     Text(
                                         text = "No workouts this month",
                                         style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                     )
                                 }
                             }
                         } else {
-                            val weekGroups = weekGroupState.weeks.map { weekWorkouts ->
-                                com.github.radupana.featherweight.ui.components.history.WeekGroup(
-                                    weekNumber = weekWorkouts.weekStart.get(java.time.temporal.WeekFields.of(java.util.Locale.getDefault()).weekOfYear()),
-                                    year = weekWorkouts.weekStart.year,
-                                    workouts = weekWorkouts.workouts,
-                                    startDate = weekWorkouts.weekStart.format(java.time.format.DateTimeFormatter.ofPattern("MMM d")),
-                                    endDate = weekWorkouts.weekEnd.format(java.time.format.DateTimeFormatter.ofPattern("MMM d")),
-                                    totalVolume = weekWorkouts.totalVolume,
-                                    totalWorkouts = weekWorkouts.totalWorkouts,
-                                )
-                            }
-                            
+                            val weekGroups =
+                                weekGroupState.weeks.map { weekWorkouts ->
+                                    com.github.radupana.featherweight.ui.components.history.WeekGroup(
+                                        weekNumber =
+                                            weekWorkouts.weekStart.get(
+                                                java.time.temporal.WeekFields
+                                                    .of(java.util.Locale.getDefault())
+                                                    .weekOfYear(),
+                                            ),
+                                        year = weekWorkouts.weekStart.year,
+                                        workouts = weekWorkouts.workouts,
+                                        startDate =
+                                            weekWorkouts.weekStart.format(
+                                                java.time.format.DateTimeFormatter
+                                                    .ofPattern("MMM d"),
+                                            ),
+                                        endDate =
+                                            weekWorkouts.weekEnd.format(
+                                                java.time.format.DateTimeFormatter
+                                                    .ofPattern("MMM d"),
+                                            ),
+                                        totalVolume = weekWorkouts.totalVolume,
+                                        totalWorkouts = weekWorkouts.totalWorkouts,
+                                    )
+                                }
+
                             items(weekGroups) { weekGroup ->
                                 val weekId = "${weekGroup.year}_${weekGroup.weekNumber}"
                                 WeekGroupView(
@@ -195,15 +211,16 @@ fun HistoryScreen(
                                     onToggleExpanded = { historyViewModel.toggleWeekExpanded(weekId) },
                                     onWorkoutClick = onViewWorkout,
                                     onWorkoutLongClick = historyViewModel::deleteWorkout,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 6.dp),
                                 )
                             }
                         }
                     }
                 }
-                
+
                 1 -> {
                     // Programmes tab (unchanged)
                     ProgrammesHistorySection(
@@ -255,7 +272,6 @@ fun HistoryScreen(
         }
     }
 }
-
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

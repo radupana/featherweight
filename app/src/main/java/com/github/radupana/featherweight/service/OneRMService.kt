@@ -26,17 +26,18 @@ class OneRMService {
         rpe: Float? = null,
     ): Float? {
         if (reps <= 0 || reps > MAX_REPS_FOR_ESTIMATE) return null
-        
+
         // Calculate effective reps based on RPE for singles
-        val effectiveReps = when {
-            reps == 1 && rpe != null -> {
-                // For singles with RPE, calculate total possible reps
-                val repsInReserve = (10f - rpe).coerceAtLeast(0f).toInt()
-                reps + repsInReserve  // Total reps possible at this weight
+        val effectiveReps =
+            when {
+                reps == 1 && rpe != null -> {
+                    // For singles with RPE, calculate total possible reps
+                    val repsInReserve = (10f - rpe).coerceAtLeast(0f).toInt()
+                    reps + repsInReserve // Total reps possible at this weight
+                }
+                else -> reps
             }
-            else -> reps
-        }
-        
+
         // If it's a true max (RPE 10 or no RPE adjustment needed)
         if (effectiveReps == 1) return weight
 

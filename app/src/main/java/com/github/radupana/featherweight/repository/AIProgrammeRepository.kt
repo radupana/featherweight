@@ -40,7 +40,6 @@ class AIProgrammeRepository(
         generationMode: String,
         user1RMs: Map<String, Float>? = null,
     ): String {
-        // Create request payload
         val simpleRequest =
             SimpleRequest(
                 userInput = userInput,
@@ -55,18 +54,14 @@ class AIProgrammeRepository(
 
         val requestPayload = json.encodeToString(simpleRequest)
 
-        // Create database entry
         val request =
             AIProgrammeRequest(
                 requestPayload = requestPayload,
             )
         dao.insert(request)
 
-        // Create and enqueue work
         val workRequest = ProgrammeGenerationWorker.createWorkRequest(request.id, requestPayload)
         workManager.enqueue(workRequest)
-
-        // Update with WorkManager ID
         dao.updateWorkManagerId(request.id, workRequest.id.toString())
 
         return request.id
@@ -79,14 +74,9 @@ class AIProgrammeRepository(
     suspend fun retryGeneration(requestId: String) {
         val request = dao.getRequestById(requestId) ?: return
 
-        // Reset status to processing
         dao.updateStatus(requestId, GenerationStatus.PROCESSING)
-
-        // Create new work request
         val workRequest = ProgrammeGenerationWorker.createWorkRequest(requestId, request.requestPayload)
         workManager.enqueue(workRequest)
-
-        // Update WorkManager ID
         dao.updateWorkManagerId(requestId, workRequest.id.toString())
     }
 
@@ -100,12 +90,8 @@ class AIProgrammeRepository(
     ) {
         val request = dao.getRequestById(requestId) ?: return
 
-        // Parse the original request payload
         val originalRequest = json.decodeFromString<SimpleRequest>(request.requestPayload)
-
-        // Create a new request combining original context + clarification response
         val combinedInput = "${originalRequest.userInput}\n\nClarification: $clarificationResponse"
-
         val newRequest =
             SimpleRequest(
                 userInput = combinedInput,
@@ -119,11 +105,8 @@ class AIProgrammeRepository(
             )
 
         val newRequestPayload = json.encodeToString(newRequest)
-
-        // Update the request with new payload and reset status
         dao.updateStatus(requestId, GenerationStatus.PROCESSING)
 
-        // Store original payload if not already stored
         if (request.originalRequestPayload == null) {
             dao.update(
                 request.copy(
@@ -141,18 +124,12 @@ class AIProgrammeRepository(
             )
         }
 
-        // Create new work request
         val workRequest = ProgrammeGenerationWorker.createWorkRequest(requestId, newRequestPayload)
         workManager.enqueue(workRequest)
-
-        // Update WorkManager ID
         dao.updateWorkManagerId(requestId, workRequest.id.toString())
     }
 
-    suspend fun getClarificationMessage(requestId: String): String? = dao.getClarificationMessage(requestId)
-
     suspend fun cleanupStaleRequests() {
-        // Get requests older than 1 hour that are still processing
         val staleRequests =
             dao.getRequestsOlderThan(
                 GenerationStatus.PROCESSING,
@@ -162,11 +139,8 @@ class AIProgrammeRepository(
         for (request in staleRequests) {
             if (request.workManagerId != null) {
                 try {
-                    // Check WorkManager status
                     val workInfo = workManager.getWorkInfoById(UUID.fromString(request.workManagerId)).get()
-
                     if (workInfo?.state?.isFinished == true) {
-                        // Work finished but DB wasn't updated
                         val errorMessage =
                             when (workInfo.state) {
                                 WorkInfo.State.FAILED -> "Generation failed"
@@ -176,11 +150,9 @@ class AIProgrammeRepository(
                         dao.updateStatus(request.id, GenerationStatus.FAILED, errorMessage)
                     }
                 } catch (e: Exception) {
-                    // If we can't check WorkManager, mark as failed
                     dao.updateStatus(request.id, GenerationStatus.FAILED, "Generation timed out")
                 }
             } else {
-                // No WorkManager ID means something went wrong
                 dao.updateStatus(request.id, GenerationStatus.FAILED, "Generation was not properly started")
             }
         }

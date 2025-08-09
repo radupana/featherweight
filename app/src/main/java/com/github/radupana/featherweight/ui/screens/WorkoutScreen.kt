@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.ui.screens
 
-import android.util.Log
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -97,20 +96,6 @@ fun WorkoutScreen(
 ) {
     val exercises by viewModel.selectedWorkoutExercises.collectAsState()
 
-    // Debug log to track recompositions
-    LaunchedEffect(exercises) {
-        Log.d(
-            "DragReorder",
-            "WorkoutScreen recomposed with exercises: ${
-                exercises.mapIndexed {
-                    idx,
-                    ex,
-                    ->
-                    "$idx:${ex.exerciseName}"
-                }.joinToString()
-            }",
-        )
-    }
     val sets by viewModel.selectedExerciseSets.collectAsState()
     val workoutState by viewModel.workoutState.collectAsState()
     val pendingOneRMUpdates by viewModel.pendingOneRMUpdates.collectAsState()
@@ -128,7 +113,6 @@ fun WorkoutScreen(
     var showCompleteWorkoutDialog by remember { mutableStateOf(false) }
     var showWorkoutMenuDialog by remember { mutableStateOf(false) }
     var showEditWorkoutNameDialog by remember { mutableStateOf(false) }
-    // Edit mode dialogs removed
     var showDeleteWorkoutDialog by remember { mutableStateOf(false) }
     var showOneRMUpdateDialog by remember { mutableStateOf(false) }
     var shouldNavigateAfterCompletion by remember { mutableStateOf(false) }
@@ -365,7 +349,7 @@ fun WorkoutScreen(
                             WorkoutActionButtons(
                                 canCompleteWorkout = false,
                                 onAddExercise = onSelectExercise,
-                                onCompleteWorkout = { },
+                                onCompleteWorkout = {},
                                 modifier = Modifier.padding(16.dp),
                             )
                         }
@@ -831,8 +815,6 @@ private fun ExercisesList(
     var initialDragIndex by remember { mutableStateOf<Int?>(null) }
     val density = LocalDensity.current
 
-    // Debug mode - set to true to see detailed logging
-
     // Item measurements - CompactExerciseCard height + spacing
     val cardHeightDp = 80.dp // Estimated height of CompactExerciseCard
     val spacingDp = 8.dp // From verticalArrangement
@@ -910,7 +892,6 @@ private fun ExercisesList(
                     val startIndex = currentExercisesList.indexOfFirst { it.id == exercise.id }
 
                     if (startIndex == -1) {
-                        Log.e("DragReorder", "ERROR: Exercise ${exercise.exerciseName} not found in list!")
                         return@CompactExerciseCard
                     }
 
@@ -918,30 +899,14 @@ private fun ExercisesList(
                     initialDragIndex = startIndex
                     targetIndex = startIndex
                     draggedOffset = 0f
-
-                    // Log current state
-                    val exerciseList =
-                        currentExercisesList
-                            .mapIndexed { idx, ex ->
-                                "$idx: ${ex.exerciseName} (order=${ex.exerciseOrder})"
-                            }.joinToString(", ")
-                    Log.d("DragReorder", "=== DRAG START ===")
-                    Log.d("DragReorder", "Dragging: ${exercise.exerciseName} from index $startIndex")
-                    Log.d("DragReorder", "Current order: $exerciseList")
                 },
                 onDragEnd = {
                     val finalTarget = targetIndex
                     val startIndex = initialDragIndex
 
-                    Log.d("DragReorder", "=== DRAG END ===")
-                    Log.d("DragReorder", "From: $startIndex, To: $finalTarget, Offset: $draggedOffset")
-
                     // Perform the reorder if needed
                     if (startIndex != null && finalTarget != null && startIndex != finalTarget) {
-                        Log.d("DragReorder", "Executing reorder: ${exercise.exerciseName} from $startIndex to $finalTarget")
                         viewModel.reorderExercisesInstantly(startIndex, finalTarget)
-                    } else {
-                        Log.d("DragReorder", "No reorder needed")
                     }
 
                     // Reset state
@@ -978,13 +943,9 @@ private fun ExercisesList(
 
                         newTargetIndex = newTargetIndex.coerceIn(0, currentCount - 1)
 
-                        // Only log when target changes
+                        // Only update when target changes
                         if (newTargetIndex != targetIndex) {
                             targetIndex = newTargetIndex
-                            Log.d(
-                                "DragReorder",
-                                "Target changed: ${exercise.exerciseName} -> position $newTargetIndex (offset: ${draggedOffset.toInt()}px)",
-                            )
                         }
                     }
                 },

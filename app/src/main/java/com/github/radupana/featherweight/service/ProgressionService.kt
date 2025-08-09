@@ -2,12 +2,12 @@ package com.github.radupana.featherweight.service
 
 import com.github.radupana.featherweight.data.ExercisePerformanceTracking
 import com.github.radupana.featherweight.data.ExercisePerformanceTrackingDao
-import com.github.radupana.featherweight.data.ExerciseProgressionStatus
 import com.github.radupana.featherweight.data.ProgressionAction
+import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.programme.DeloadRules
 import com.github.radupana.featherweight.data.programme.Programme
+import com.github.radupana.featherweight.data.programme.ProgrammeDao
 import com.github.radupana.featherweight.data.programme.ProgressionRules
-import com.github.radupana.featherweight.repository.ExerciseRepository
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,8 +19,7 @@ import java.time.LocalDateTime
  */
 class ProgressionService(
     private val performanceTrackingDao: ExercisePerformanceTrackingDao,
-    private val exerciseRepository: ExerciseRepository,
-    private val programmeDao: com.github.radupana.featherweight.data.programme.ProgrammeDao,
+    private val programmeDao: ProgrammeDao,
     private val repository: FeatherweightRepository,
 ) {
     /**
@@ -29,13 +28,8 @@ class ProgressionService(
     suspend fun calculateProgressionWeight(
         exerciseName: String,
         programme: Programme,
-        currentWorkoutId: Long,
     ): ProgressionDecision =
         withContext(Dispatchers.IO) {
-            println("\n=== PROGRESSION CALCULATION ===")
-            println("Exercise: $exerciseName")
-            println("Programme: ${programme.name}")
-
             val progressionRules =
                 programme.getProgressionRulesObject()
                     ?: return@withContext ProgressionDecision(
@@ -53,7 +47,6 @@ class ProgressionService(
                 )
 
             if (recentPerformance.isEmpty()) {
-                println("No performance history - first workout")
                 return@withContext handleFirstWorkout(exerciseName, programme)
             }
 
@@ -63,10 +56,6 @@ class ProgressionService(
                     programmeId = programme.id,
                     exerciseName = exerciseName,
                 )
-
-            println("Last performance: ${lastPerformance.achievedWeight}kg")
-            println("Was successful: ${lastPerformance.wasSuccessful}")
-            println("Consecutive failures: $consecutiveFailures")
 
             // Check deload conditions
             val deloadRules = progressionRules.deloadRules
@@ -81,7 +70,6 @@ class ProgressionService(
 
             // Check if recovering from deload
             if (lastPerformance.isDeloadWorkout) {
-                println("Last workout was a deload - checking recovery")
                 return@withContext handleDeloadRecovery(
                     exerciseName = exerciseName,
                     deloadWeight = lastPerformance.achievedWeight,
@@ -98,7 +86,6 @@ class ProgressionService(
                         ?: 2.5f
 
                 val newWeight = lastPerformance.achievedWeight + increment
-                println("Success! Progressing by $increment kg to $newWeight kg")
 
                 return@withContext ProgressionDecision(
                     weight = newWeight,
@@ -107,7 +94,6 @@ class ProgressionService(
                     isDeload = false,
                 )
             } else {
-                println("Last workout failed - maintaining weight")
                 return@withContext ProgressionDecision(
                     weight = lastPerformance.targetWeight,
                     action = ProgressionAction.MAINTAIN,
@@ -124,8 +110,7 @@ class ProgressionService(
         workoutId: Long,
         programmeId: Long,
         exerciseName: String,
-        exerciseLogId: Long,
-        sets: List<com.github.radupana.featherweight.data.SetLog>,
+        sets: List<SetLog>,
     ) = withContext(Dispatchers.IO) {
         val targetSets = sets.size
         val completedSets = sets.count { it.isCompleted }
@@ -190,76 +175,7 @@ class ProgressionService(
             )
 
         performanceTrackingDao.insertPerformanceRecord(performanceRecord)
-
-        println("📊 Recorded performance: $exerciseName - ${if (wasSuccessful) "✅ Success" else "❌ Failed"}")
-        println("   Sets: $completedSets/$targetSets, Reps: $achievedReps/$totalTargetReps (missed: $missedReps)")
     }
-
-    /**
-     * Get current progression status for an exercise
-     */
-    suspend fun getProgressionStatus(
-        programmeId: Long,
-        exerciseName: String,
-    ): ExerciseProgressionStatus =
-        withContext(Dispatchers.IO) {
-            val recentPerformance =
-                performanceTrackingDao.getRecentPerformance(
-                    programmeId = programmeId,
-                    exerciseName = exerciseName,
-                    limit = 10,
-                )
-
-            val consecutiveFailures =
-                performanceTrackingDao.getConsecutiveFailures(
-                    programmeId = programmeId,
-                    exerciseName = exerciseName,
-                )
-
-            val lastSuccess =
-                performanceTrackingDao.getLastSuccess(
-                    programmeId = programmeId,
-                    exerciseName = exerciseName,
-                )
-
-            val lastDeload =
-                performanceTrackingDao.getLastDeload(
-                    programmeId = programmeId,
-                    exerciseName = exerciseName,
-                )
-
-            val totalDeloads =
-                performanceTrackingDao.getTotalDeloads(
-                    programmeId = programmeId,
-                    exerciseName = exerciseName,
-                )
-
-            val currentWeight = recentPerformance.firstOrNull()?.targetWeight ?: 0f
-            val isInDeloadCycle = recentPerformance.firstOrNull()?.isDeloadWorkout ?: false
-
-            // Determine suggested action
-            val programme = programmeDao.getProgrammeById(programmeId)
-            val deloadRules = programme?.getProgressionRulesObject()?.deloadRules
-
-            val suggestedAction =
-                when {
-                    isInDeloadCycle -> ProgressionAction.MAINTAIN
-                    deloadRules != null && consecutiveFailures >= deloadRules.triggerAfterFailures -> ProgressionAction.DELOAD
-                    recentPerformance.firstOrNull()?.wasSuccessful == true -> ProgressionAction.PROGRESS
-                    else -> ProgressionAction.MAINTAIN
-                }
-
-            ExerciseProgressionStatus(
-                exerciseName = exerciseName,
-                currentWeight = currentWeight,
-                consecutiveFailures = consecutiveFailures,
-                lastSuccessDate = lastSuccess?.workoutDate,
-                lastDeloadDate = lastDeload?.workoutDate,
-                totalDeloads = totalDeloads,
-                isInDeloadCycle = isInDeloadCycle,
-                suggestedAction = suggestedAction,
-            )
-        }
 
     private suspend fun handleFirstWorkout(
         exerciseName: String,
@@ -300,8 +216,6 @@ class ProgressionService(
         // Round to nearest 2.5kg
         val roundedWeight = (deloadWeight / 2.5f).toInt() * 2.5f
 
-        println("🔻 DELOAD: $lastWeight kg → $roundedWeight kg (${(deloadRules.deloadPercentage * 100).toInt()}%)")
-
         return ProgressionDecision(
             weight = roundedWeight,
             action = ProgressionAction.DELOAD,
@@ -328,22 +242,18 @@ class ProgressionService(
                 .firstOrNull { !it.isDeloadWorkout }
                 ?.targetWeight ?: deloadWeight
 
-        // Calculate recovery increment (smaller than normal progression)
-        val normalIncrement =
+        val increment =
             progressionRules.incrementRules[exerciseName.lowercase()]
                 ?: progressionRules.incrementRules["default"]
                 ?: 2.5f
-        val recoveryIncrement = normalIncrement // Could be smaller if desired
 
-        val newWeight = deloadWeight + recoveryIncrement
-
-        // Don't exceed pre-deload weight too quickly
+        val newWeight = deloadWeight + increment
         val cappedWeight = newWeight.coerceAtMost(preDeloadWeight)
 
         return ProgressionDecision(
             weight = cappedWeight,
             action = ProgressionAction.PROGRESS,
-            reason = "Recovering from deload - progressing by $recoveryIncrement kg",
+            reason = "Recovering from deload - progressing by $increment kg",
             isDeload = false,
         )
     }

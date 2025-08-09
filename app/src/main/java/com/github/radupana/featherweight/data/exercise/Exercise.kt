@@ -11,11 +11,11 @@ import java.time.LocalDateTime
 data class Exercise(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val name: String, // Canonical name following our naming convention
+    val name: String,
     val category: ExerciseCategory,
     val equipment: Equipment,
-    val muscleGroup: String, // Primary muscle group
-    val movementPattern: String, // e.g., "Squat", "Press", "Row"
+    val muscleGroup: String,
+    val movementPattern: String,
     val type: ExerciseType = ExerciseType.STRENGTH,
     val difficulty: ExerciseDifficulty = ExerciseDifficulty.BEGINNER,
     val requiresWeight: Boolean = true,
@@ -25,7 +25,6 @@ data class Exercise(
     val updatedAt: LocalDateTime = LocalDateTime.now(),
 )
 
-// Simplified data class for exercise with aliases
 data class ExerciseWithDetails(
     @Embedded val exercise: Exercise,
     @Relation(
@@ -50,10 +49,7 @@ data class ExerciseWithDetails(
 data class ExerciseAlias(
     val exerciseId: Long,
     val alias: String,
-    // Confidence score for fuzzy matching (0.0 to 1.0)
     val confidence: Float = 1.0f,
-    // Whether this alias should be exact match only
     val exactMatchOnly: Boolean = false,
-    // Source of the alias (e.g., "common", "ai", "user")
     val source: String = "common",
 )

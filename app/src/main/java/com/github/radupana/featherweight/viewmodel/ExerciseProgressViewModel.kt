@@ -128,7 +128,6 @@ class ExerciseProgressViewModel(
                 val allTimePR = prRecord?.weight ?: 0f
                 val allTimePRDate = prRecord?.recordDate?.toLocalDate()
 
-
                 // Calculate Recent Best (30 days, extend to 60 if needed)
                 val now = LocalDate.now()
                 val thirtyDaysAgo = now.minusDays(30)

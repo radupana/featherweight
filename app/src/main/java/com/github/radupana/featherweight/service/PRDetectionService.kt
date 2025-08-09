@@ -164,15 +164,16 @@ class PRDetectionService(
         rpe: Float? = null,
     ): Float {
         // Calculate effective reps based on RPE for singles
-        val effectiveReps = when {
-            reps == 1 && rpe != null -> {
-                // For singles with RPE, calculate total possible reps
-                val repsInReserve = (10f - rpe).coerceAtLeast(0f).toInt()
-                reps + repsInReserve  // Total reps possible at this weight
+        val effectiveReps =
+            when {
+                reps == 1 && rpe != null -> {
+                    // For singles with RPE, calculate total possible reps
+                    val repsInReserve = (10f - rpe).coerceAtLeast(0f).toInt()
+                    reps + repsInReserve // Total reps possible at this weight
+                }
+                else -> reps
             }
-            else -> reps
-        }
-        
+
         if (effectiveReps == 1) return weight
         if (effectiveReps > 15) return weight // Formula becomes unreliable beyond 15 reps
 

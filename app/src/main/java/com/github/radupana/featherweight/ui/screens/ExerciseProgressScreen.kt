@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,7 +32,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -57,11 +55,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.ui.components.ExerciseDataPoint
 import com.github.radupana.featherweight.ui.components.ExerciseProgressChart
 import com.github.radupana.featherweight.ui.components.FrequencyDataPoint
-import com.github.radupana.featherweight.ui.components.TrainingPatternsChart
 import com.github.radupana.featherweight.ui.components.IntensityZoneChart
 import com.github.radupana.featherweight.ui.components.IntensityZoneData
 import com.github.radupana.featherweight.ui.components.RepRangeChart
 import com.github.radupana.featherweight.ui.components.RepRangeDistribution
+import com.github.radupana.featherweight.ui.components.TrainingPatternsChart
 import com.github.radupana.featherweight.ui.components.VolumeBarChart
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.ExerciseProgressViewModel
@@ -597,7 +595,7 @@ private fun ExerciseInsightsContent(
                             text = data.progressStatusDetail,
                             style = MaterialTheme.typography.bodyMedium,
                         )
-                        
+
                         Text(
                             text = "Consider: Deload week • Change rep range • Vary intensity",
                             style = MaterialTheme.typography.bodySmall,
@@ -744,4 +742,3 @@ private fun MostWeightLiftedCard(
         }
     }
 }
-

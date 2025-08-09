@@ -2,14 +2,12 @@ package com.github.radupana.featherweight
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -33,9 +31,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -43,6 +41,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import com.github.radupana.featherweight.data.UserPreferences
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
@@ -61,7 +60,6 @@ import com.github.radupana.featherweight.viewmodel.InsightsViewModel
 import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
-import kotlinx.coroutines.launch
 
 enum class Screen {
     SPLASH,
@@ -91,16 +89,6 @@ data class NavigationItem(
 )
 
 class MainActivity : ComponentActivity() {
-    companion object {
-        init {
-            android.util.Log.e("FeatherweightDebug", "MainActivity: Companion object initialized")
-        }
-    }
-
-    init {
-        android.util.Log.e("FeatherweightDebug", "MainActivity: Class initialized")
-    }
-
     private val requestPermissionLauncher =
         registerForActivityResult(
             ActivityResultContracts.RequestPermission(),
@@ -110,39 +98,29 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install splash screen (Android 12+ native splash)
-        android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: Starting")
         installSplashScreen()
-        android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: Splash screen installed")
 
         super.onCreate(savedInstanceState)
-        android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: super.onCreate completed")
 
         // Request notification permission for Android 13+
-        android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: Checking notification permission")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS,
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
         // Enable edge-to-edge display for modern look
-        android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: Enabling edge-to-edge")
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         // Configure keyboard behavior - this is crucial for proper keyboard handling
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
 
-        android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: About to setContent")
         try {
             setContent {
-                android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Inside setContent")
                 FeatherweightTheme {
-                    android.util.Log.e("FeatherweightDebug", "MainActivity.setContent: Inside FeatherweightTheme")
                     val userPreferences = remember { UserPreferences(application) }
                     var currentScreen by rememberSaveable { mutableStateOf(Screen.SPLASH) }
                     var previousScreen by rememberSaveable { mutableStateOf<Screen?>(null) }
@@ -153,15 +131,10 @@ class MainActivity : ComponentActivity() {
                     // Seed database early
                     LaunchedEffect(Unit) {
                         try {
-                            android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Creating repository")
                             val repository = FeatherweightRepository(application)
-                            android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Repository created, seeding database")
                             repository.seedDatabaseIfEmpty()
-                            android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Database seeded, seeding test users")
                             repository.seedTestUsers()
-                            android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Test users seeded")
                         } catch (e: Exception) {
-                            android.util.Log.e("FeatherweightDebug", "MainActivity.LaunchedEffect: Exception caught!", e)
                             e.printStackTrace()
                         }
                     }
@@ -207,7 +180,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         } catch (e: Exception) {
-            android.util.Log.e("FeatherweightDebug", "MainActivity.onCreate: Exception in setContent!", e)
             e.printStackTrace()
         }
     }
@@ -226,17 +198,8 @@ fun MainAppWithNavigation(
     completedProgrammeId: Long?,
     onCompletedProgrammeIdChange: (Long?) -> Unit,
 ) {
-    // Track last screen for internal use
-    var lastScreen by remember { mutableStateOf(currentScreen) }
     // Track selected template
     var selectedTemplate by remember { mutableStateOf<String?>(null) }
-
-    // Update last screen when screen changes
-    LaunchedEffect(currentScreen) {
-        if (currentScreen != lastScreen) {
-            lastScreen = currentScreen
-        }
-    }
 
     val navigationItems =
         listOf(
@@ -317,8 +280,7 @@ fun MainAppWithNavigation(
             Screen.WORKOUT_HUB ->
                 WorkoutHubScreen(
                     onStartActiveWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
-                    onStartTemplate = { onScreenChange(Screen.PROGRAMMES) },
-                    modifier = Modifier.padding(innerPadding),
+                    onStartTemplate = { onScreenChange(Screen.PROGRAMMES) }
                 )
 
             Screen.ACTIVE_WORKOUT -> {
@@ -351,7 +313,7 @@ fun MainAppWithNavigation(
                         onCompletedProgrammeIdChange(programmeId)
                         onScreenChange(Screen.PROGRAMME_COMPLETION)
                     },
-                    workoutViewModel = workoutViewModel,
+                    viewModel = workoutViewModel,
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -611,49 +573,5 @@ fun MainAppWithNavigation(
                 } ?: onScreenChange(Screen.WORKOUTS)
             }
         }
-    }
-}
-
-@Composable
-fun WorkoutHubScreen(
-    onStartActiveWorkout: () -> Unit,
-    onStartTemplate: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(modifier = modifier) {
-        WorkoutHubScreen(
-            onStartActiveWorkout = onStartActiveWorkout,
-            onStartTemplate = onStartTemplate,
-        )
-    }
-}
-
-@Composable
-fun WorkoutScreen(
-    onBack: () -> Unit,
-    onSelectExercise: () -> Unit,
-    onWorkoutComplete: (Long) -> Unit = {},
-    onProgrammeComplete: (Long) -> Unit = {},
-    workoutViewModel: WorkoutViewModel,
-    modifier: Modifier = Modifier,
-) {
-    Box(modifier = modifier) {
-        WorkoutScreen(
-            onBack = onBack,
-            onSelectExercise = onSelectExercise,
-            onWorkoutComplete = onWorkoutComplete,
-            onProgrammeComplete = onProgrammeComplete,
-            viewModel = workoutViewModel,
-        )
-    }
-}
-
-@Composable
-fun HistoryScreen(
-    onViewWorkout: (Long) -> Unit = {},
-    modifier: Modifier = Modifier,
-) {
-    Box(modifier = modifier) {
-        HistoryScreen(onViewWorkout = onViewWorkout)
     }
 }

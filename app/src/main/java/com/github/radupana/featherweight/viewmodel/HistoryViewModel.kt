@@ -6,16 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.WorkoutSummary
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.WeekFields
 import java.util.Locale
-import kotlinx.coroutines.flow.asStateFlow
 
 data class PaginatedHistoryState(
     val programmes: List<com.github.radupana.featherweight.repository.ProgrammeSummary> = emptyList(),
@@ -58,22 +56,21 @@ class HistoryViewModel(
     val historyState: StateFlow<PaginatedHistoryState> = _historyState
 
     // Calendar state
-    private val _calendarState = MutableStateFlow(
-        CalendarState(
-            currentMonth = YearMonth.now(),
-            selectedDate = LocalDate.now()
+    private val _calendarState =
+        MutableStateFlow(
+            CalendarState(
+                currentMonth = YearMonth.now(),
+                selectedDate = LocalDate.now(),
+            ),
         )
-    )
     val calendarState: StateFlow<CalendarState> = _calendarState.asStateFlow()
 
     // Week group state
     private val _weekGroupState = MutableStateFlow(WeekGroupState())
     val weekGroupState: StateFlow<WeekGroupState> = _weekGroupState.asStateFlow()
 
-
     // Store selected programme ID for navigation
     var selectedProgrammeId: Long? = null
-
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
@@ -124,7 +121,6 @@ class HistoryViewModel(
         }
     }
 
-
     fun refreshHistory() {
         viewModelScope.launch {
             _isRefreshing.value = true
@@ -143,7 +139,7 @@ class HistoryViewModel(
                         hasMoreProgrammes = hasMoreProgrammes,
                         error = null,
                     )
-                
+
                 // Also refresh calendar and week groups
                 loadCalendarData()
                 loadWeekGroups()
@@ -157,7 +153,6 @@ class HistoryViewModel(
             }
         }
     }
-
 
     fun loadNextProgrammePage() {
         println("🔍 HistoryViewModel: loadNextProgrammePage() called")
@@ -229,7 +224,6 @@ class HistoryViewModel(
         _historyState.value = currentState.copy(error = null)
     }
 
-
     // Calendar methods
 
     fun loadCalendarData() {
@@ -238,27 +232,30 @@ class HistoryViewModel(
             try {
                 val currentMonth = _calendarState.value.currentMonth
                 // Load both old counts (for compatibility) and new status-aware counts
-                val workoutCounts = repository.getWorkoutCountsByMonth(
-                    currentMonth.year,
-                    currentMonth.monthValue
-                )
-                val workoutDayInfo = repository.getWorkoutCountsByMonthWithStatus(
-                    currentMonth.year,
-                    currentMonth.monthValue
-                )
-                
+                val workoutCounts =
+                    repository.getWorkoutCountsByMonth(
+                        currentMonth.year,
+                        currentMonth.monthValue,
+                    )
+                val workoutDayInfo =
+                    repository.getWorkoutCountsByMonthWithStatus(
+                        currentMonth.year,
+                        currentMonth.monthValue,
+                    )
+
                 println("🔍 HistoryViewModel: Loaded calendar data for ${currentMonth.year}-${currentMonth.monthValue}")
                 println("  📊 workoutCounts size: ${workoutCounts.size}")
                 println("  📊 workoutDayInfo size: ${workoutDayInfo.size}")
                 workoutDayInfo.forEach { (date, info) ->
                     println("    📅 $date: C=${info.completedCount}, IP=${info.inProgressCount}, NS=${info.notStartedCount}")
                 }
-                
-                _calendarState.value = _calendarState.value.copy(
-                    workoutCounts = workoutCounts,
-                    workoutDayInfo = workoutDayInfo,
-                    isLoading = false
-                )
+
+                _calendarState.value =
+                    _calendarState.value.copy(
+                        workoutCounts = workoutCounts,
+                        workoutDayInfo = workoutDayInfo,
+                        isLoading = false,
+                    )
             } catch (e: Exception) {
                 println("Error loading calendar data: ${e.message}")
                 _calendarState.value = _calendarState.value.copy(isLoading = false)
@@ -269,7 +266,7 @@ class HistoryViewModel(
     fun navigateToMonth(yearMonth: YearMonth) {
         _calendarState.value = _calendarState.value.copy(currentMonth = yearMonth)
         loadCalendarData()
-        loadWeekGroups()  // Also reload week groups for the new month
+        loadWeekGroups() // Also reload week groups for the new month
     }
 
     fun selectDate(date: LocalDate) {
@@ -288,12 +285,13 @@ class HistoryViewModel(
 
     fun navigateToToday() {
         val today = LocalDate.now()
-        _calendarState.value = _calendarState.value.copy(
-            currentMonth = YearMonth.from(today),
-            selectedDate = today
-        )
+        _calendarState.value =
+            _calendarState.value.copy(
+                currentMonth = YearMonth.from(today),
+                selectedDate = today,
+            )
         loadCalendarData()
-        loadWeekGroups()  // Also reload week groups for the current month
+        loadWeekGroups() // Also reload week groups for the current month
     }
 
     // Week grouping methods
@@ -306,23 +304,23 @@ class HistoryViewModel(
                 val currentMonth = _calendarState.value.currentMonth
                 val weekField = WeekFields.of(Locale.getDefault())
                 val weeks = mutableListOf<WeekWorkouts>()
-                
+
                 // Find first day of month and last day of month
                 val firstDayOfMonth = currentMonth.atDay(1)
                 val lastDayOfMonth = currentMonth.atEndOfMonth()
-                
+
                 // Find the week containing the first day of the month
                 val firstWeekStart = firstDayOfMonth.with(weekField.dayOfWeek(), 1)
-                
+
                 // Find the week containing the last day of the month
                 val lastWeekStart = lastDayOfMonth.with(weekField.dayOfWeek(), 1)
-                
+
                 // Iterate through all weeks that overlap with this month
                 var currentWeekStart = firstWeekStart
                 while (!currentWeekStart.isAfter(lastWeekStart)) {
                     val weekEnd = currentWeekStart.plusDays(6)
                     val workouts = repository.getWorkoutsByWeek(currentWeekStart)
-                    
+
                     // Only add weeks that have workouts
                     if (workouts.isNotEmpty()) {
                         val totalVolume = workouts.sumOf { it.totalWeight.toDouble() }
@@ -332,19 +330,20 @@ class HistoryViewModel(
                                 weekEnd = weekEnd,
                                 workouts = workouts,
                                 totalVolume = totalVolume,
-                                totalWorkouts = workouts.size
-                            )
+                                totalWorkouts = workouts.size,
+                            ),
                         )
                     }
-                    
+
                     currentWeekStart = currentWeekStart.plusWeeks(1)
                 }
-                
-                _weekGroupState.value = WeekGroupState(
-                    weeks = weeks,
-                    expandedWeeks = emptySet(),
-                    isLoading = false
-                )
+
+                _weekGroupState.value =
+                    WeekGroupState(
+                        weeks = weeks,
+                        expandedWeeks = emptySet(),
+                        isLoading = false,
+                    )
             } catch (e: Exception) {
                 println("Error loading week groups: ${e.message}")
                 _weekGroupState.value = _weekGroupState.value.copy(isLoading = false)
@@ -354,24 +353,28 @@ class HistoryViewModel(
 
     fun toggleWeekExpanded(weekId: String) {
         val currentExpanded = _weekGroupState.value.expandedWeeks
-        _weekGroupState.value = _weekGroupState.value.copy(
-            expandedWeeks = if (weekId in currentExpanded) {
-                currentExpanded - weekId
-            } else {
-                currentExpanded + weekId
-            }
-        )
+        _weekGroupState.value =
+            _weekGroupState.value.copy(
+                expandedWeeks =
+                    if (weekId in currentExpanded) {
+                        currentExpanded - weekId
+                    } else {
+                        currentExpanded + weekId
+                    },
+            )
     }
 
     fun expandAllWeeks() {
-        val allWeekIds = _weekGroupState.value.weeks.map { it.weekStart.toString() }.toSet()
+        val allWeekIds =
+            _weekGroupState.value.weeks
+                .map { it.weekStart.toString() }
+                .toSet()
         _weekGroupState.value = _weekGroupState.value.copy(expandedWeeks = allWeekIds)
     }
 
     fun collapseAllWeeks() {
         _weekGroupState.value = _weekGroupState.value.copy(expandedWeeks = emptySet())
     }
-
 
     // Get workouts for a specific date (used by calendar view)
     fun getWorkoutsForDate(date: LocalDate): List<WorkoutSummary> {

@@ -440,14 +440,15 @@ class GlobalProgressTracker(
         val rpe = set.actualRpe
 
         // Calculate effective reps based on RPE for singles
-        val effectiveReps = when {
-            reps == 1 && rpe != null -> {
-                // For singles with RPE, calculate total possible reps
-                val repsInReserve = (10f - rpe).coerceAtLeast(0f).toInt()
-                reps + repsInReserve  // Total reps possible at this weight
+        val effectiveReps =
+            when {
+                reps == 1 && rpe != null -> {
+                    // For singles with RPE, calculate total possible reps
+                    val repsInReserve = (10f - rpe).coerceAtLeast(0f).toInt()
+                    reps + repsInReserve // Total reps possible at this weight
+                }
+                else -> reps // For multi-rep sets or singles without RPE, use actual reps
             }
-            else -> reps  // For multi-rep sets or singles without RPE, use actual reps
-        }
 
         // Calculate estimated 1RM using Brzycki formula
         val estimated1RM =
@@ -457,7 +458,7 @@ class GlobalProgressTracker(
                 weight / (1.0278f - 0.0278f * effectiveReps)
             } else {
                 // Formula unreliable beyond 15 reps
-                weight * 1.5f  // Rough estimate
+                weight * 1.5f // Rough estimate
             }
 
         // Base confidence primarily on rep count and context
@@ -499,7 +500,7 @@ class GlobalProgressTracker(
         // Format source string
         val source =
             when {
-                reps == 1 && rpe != null && rpe < 10 -> 
+                reps == 1 && rpe != null && rpe < 10 ->
                     "1×${weight.roundToInt()}kg @ RPE ${rpe.toInt()} (est. ${effectiveReps}RM)"
                 reps == 1 && rpe != null -> "1RM @ RPE ${rpe.toInt()}"
                 reps == 1 -> "1RM"

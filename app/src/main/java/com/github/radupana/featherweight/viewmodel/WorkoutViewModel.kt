@@ -10,8 +10,6 @@ import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
-import com.github.radupana.featherweight.data.exercise.Exercise
-import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.SmartSuggestions
@@ -77,38 +75,18 @@ class WorkoutViewModel(
     private val _oneRMEstimates = MutableStateFlow<Map<Long, Float>>(emptyMap())
     val oneRMEstimates: StateFlow<Map<Long, Float>> = _oneRMEstimates
 
-    init {
-        println("🚀 WorkoutViewModel: Initializing...")
-        loadInProgressWorkouts()
-
-        // Debug: Check PersonalRecord database
-        viewModelScope.launch {
-            try {
-                val allPRs = repository.getAllPersonalRecordsFromDB()
-                println("🏆 DEBUG WorkoutVM: PersonalRecord database contains ${allPRs.size} records")
-                allPRs.take(5).forEach { pr ->
-                    println("🏆 DEBUG WorkoutVM: ${pr.exerciseName} - ${pr.weight}kg x ${pr.reps} = ${pr.estimated1RM}kg 1RM")
-                }
-            } catch (e: Exception) {
-                println("🏆 DEBUG WorkoutVM ERROR: Failed to query PersonalRecords - ${e.message}")
-            }
-        }
-    }
-
     // Expose pending 1RM updates from repository
     val pendingOneRMUpdates = repository.pendingOneRMUpdates
 
     // Apply a pending 1RM update
     fun applyOneRMUpdate(update: PendingOneRMUpdate) {
         viewModelScope.launch {
-            Log.d("FeatherweightDebug", "WorkoutViewModel: Applying 1RM update for ${update.exerciseName} - ${update.suggestedMax}kg")
             try {
                 repository.applyOneRMUpdate(update)
-                Log.d("FeatherweightDebug", "WorkoutViewModel: Successfully applied 1RM update")
                 // Reload 1RM estimates after update
                 loadOneRMEstimatesForCurrentExercises()
             } catch (e: Exception) {
-                Log.e("FeatherweightDebug", "WorkoutViewModel: Failed to apply 1RM update", e)
+                Log.e("WorkoutViewModel", "Failed to apply 1RM update", e)
             }
         }
     }
@@ -161,8 +139,6 @@ class WorkoutViewModel(
     val lastCompletedWorkoutExercises: StateFlow<List<ExerciseLog>> = _lastCompletedWorkoutExercises
 
     // Exercise-related state
-    private val _availableExercises = MutableStateFlow<List<ExerciseWithDetails>>(emptyList())
-    val availableExercises: StateFlow<List<ExerciseWithDetails>> = _availableExercises
 
     private val _exerciseDetails = MutableStateFlow<Map<Long, ExerciseWithDetails>>(emptyMap())
 
@@ -190,8 +166,8 @@ class WorkoutViewModel(
     private var workoutTimerStartTime: LocalDateTime? = null
 
     init {
-        checkForOngoingWorkout()
         loadInProgressWorkouts()
+        checkForOngoingWorkout()
         loadExercises()
     }
 
@@ -201,35 +177,26 @@ class WorkoutViewModel(
         viewModelScope.launch {
             try {
                 val exercises = repository.getAllExercises()
-                _availableExercises.value = exercises
 
                 // Create lookup map for exercise details
                 val detailsMap = exercises.associateBy { it.exercise.id }
                 _exerciseDetails.value = detailsMap
             } catch (e: Exception) {
+                Log.e("WorkoutViewModel", "Failed to load exercises", e)
             }
         }
     }
 
-    suspend fun getAllExercises(): List<ExerciseWithDetails> = repository.getAllExercises()
 
-    suspend fun searchExercises(query: String): List<Exercise> = repository.searchExercises(query)
 
-    suspend fun getExercisesByCategory(category: ExerciseCategory): List<Exercise> = repository.getExercisesByCategory(category)
 
     suspend fun getExercisesByMuscleGroup(muscleGroup: String): List<ExerciseWithDetails> {
         val allExercises = repository.getAllExercises()
         return allExercises.filter { it.exercise.muscleGroup.equals(muscleGroup, ignoreCase = true) }
     }
 
-    suspend fun createCustomExercise(name: String): ExerciseWithDetails? = null
-
     fun getExerciseDetails(exerciseId: Long): ExerciseWithDetails? = _exerciseDetails.value[exerciseId]
 
-    fun getExerciseDetailsForLog(exerciseLog: ExerciseLog): ExerciseWithDetails? =
-        exerciseLog.exerciseId?.let { exerciseId ->
-            getExerciseDetails(exerciseId)
-        }
 
     // ===== EXISTING WORKOUT METHODS (Updated to work with exercises) =====
 
@@ -264,6 +231,7 @@ class WorkoutViewModel(
                                     sets.count { it.isCompleted }
                                 }
                             } catch (e: Exception) {
+                                Log.e("WorkoutViewModel", "Failed to calculate completed sets", e)
                                 0
                             }
 
@@ -341,7 +309,7 @@ class WorkoutViewModel(
         viewModelScope.launch {
             repository.getWorkoutById(workoutId)?.let { workout ->
                 if (workout.status != WorkoutStatus.COMPLETED) {
-                    println("WARNING: viewCompletedWorkout called on non-completed workout!")
+                    Log.w("WorkoutViewModel", "viewCompletedWorkout called on non-completed workout")
                     return@let
                 }
 
@@ -395,6 +363,7 @@ class WorkoutViewModel(
                         try {
                             repository.getProgrammeById(workout.programmeId)?.name
                         } catch (e: Exception) {
+                            Log.e("WorkoutViewModel", "Failed to get programme name", e)
                             null
                         }
                     } else {
@@ -434,7 +403,6 @@ class WorkoutViewModel(
                     stopWorkoutTimer() // Ensure any running timer is stopped
                     _workoutTimerSeconds.value = workout.durationSeconds?.toInt() ?: 0
                     workoutTimerStartTime = null
-                    println("FeatherweightDebug: Loaded completed workout timer: ${workout.durationSeconds} seconds")
                 } else if (workout.status == WorkoutStatus.IN_PROGRESS && workout.timerStartTime != null) {
                     // For in-progress workouts, resume the running timer
                     resumeWorkoutTimer(workout.timerStartTime)
@@ -443,7 +411,6 @@ class WorkoutViewModel(
                     stopWorkoutTimer()
                     _workoutTimerSeconds.value = 0
                     workoutTimerStartTime = null
-                    println("FeatherweightDebug: No timer data for workout $workoutId, status: ${workout.status}, durationSeconds: ${workout.durationSeconds}")
                 }
             }
         }
@@ -498,21 +465,15 @@ class WorkoutViewModel(
         }
     }
 
-    // Removed - completed workouts cannot be edited
-
-    // Removed - completed workouts cannot be edited
-
     // Complete the current workout (handles both regular and programme workouts)
     fun completeWorkout(
         onComplete: (() -> Unit)? = null,
         onProgrammeComplete: ((Long) -> Unit)? = null,
     ) {
         val currentId = _currentWorkoutId.value ?: return
-        println("🏁 Starting workout completion for ID: $currentId")
 
         viewModelScope.launch {
             val state = _workoutState.value
-            println("🏁 Current workout state: isActive=${state.isActive}, status=${state.status}, isProgramme=${state.isProgrammeWorkout}")
 
             // Store programme ID before completion if this is a programme workout
             val programmeId =
@@ -531,15 +492,11 @@ class WorkoutViewModel(
                 } else {
                     _workoutTimerSeconds.value.toLong()
                 }
-            println("🏁 Final duration: $finalDuration seconds")
 
             // Complete the workout (this will automatically update programme progress if applicable)
-            println("🏁 Calling repository.completeWorkout($currentId, $finalDuration)")
             repository.completeWorkout(currentId, finalDuration)
-            println("🏁 Repository completeWorkout returned")
 
             val newStatus = WorkoutStatus.COMPLETED
-            println("🏁 Setting workout state to completed")
 
             // Clear rest timer on workout completion
             skipRestTimer()
@@ -556,20 +513,17 @@ class WorkoutViewModel(
                     originalWorkoutData = null,
                 )
 
-            println("🏁 Loading in-progress workouts")
             loadInProgressWorkouts()
 
             // Check if programme is complete
             if (programmeId != null) {
                 val programme = repository.getProgrammeById(programmeId)
                 if (programme?.status == com.github.radupana.featherweight.data.programme.ProgrammeStatus.COMPLETED) {
-                    println("🎉 Programme completed! Navigating to completion screen")
                     onProgrammeComplete?.invoke(programmeId)
                     return@launch
                 }
             }
 
-            println("🏁 Workout completion finished successfully")
             // Callback for UI to handle post-completion actions
             onComplete?.invoke()
         }
@@ -605,9 +559,6 @@ class WorkoutViewModel(
         // Use cached validation result if available
         val cachedResult = _setCompletionValidation.value[set.id]
         if (cachedResult != null) {
-            println(
-                "🔍 canMarkSetComplete: setId=${set.id}, actualReps=${set.actualReps}, actualWeight=${set.actualWeight}, cached=$cachedResult, result=$cachedResult",
-            )
             return cachedResult
         }
 
@@ -635,13 +586,6 @@ class WorkoutViewModel(
                 set.actualReps > 0 && set.actualWeight > 0
             }
 
-        println(
-            "🔍 canMarkSetComplete: setId=${set.id}, actualReps=${set.actualReps}, actualWeight=${set.actualWeight}, cached=null (triggering validation), fallback=$fallbackResult",
-        )
-
-        // Also print current cache state for debugging
-        println("📊 Current validation cache: ${_setCompletionValidation.value}")
-
         return fallbackResult
     }
 
@@ -663,9 +607,6 @@ class WorkoutViewModel(
                 set.actualReps > 0 && set.actualWeight > 0
             }
 
-        println(
-            "🏋️ canMarkSetCompleteInternal: exercise=${exerciseLog?.exerciseName}, requiresWeight=$requiresWeight, actualReps=${set.actualReps}, actualWeight=${set.actualWeight}, result=$result",
-        )
         return result
     }
 
@@ -685,14 +626,11 @@ class WorkoutViewModel(
 
     private suspend fun updateSetCompletionValidation() {
         val validationMap = mutableMapOf<Long, Boolean>()
-        println("🔄 updateSetCompletionValidation: Starting validation for ${_selectedExerciseSets.value.size} sets")
         _selectedExerciseSets.value.forEach { set ->
             val isValid = canMarkSetCompleteInternal(set)
             validationMap[set.id] = isValid
-            println("  ✓ Set ${set.id}: reps=${set.actualReps}, weight=${set.actualWeight}, valid=$isValid")
         }
         _setCompletionValidation.value = validationMap
-        println("🔄 updateSetCompletionValidation: Completed. Cache size: ${validationMap.size}")
 
         // Force UI recomposition by updating the sets state
         // This ensures the UI reflects the updated validation cache
@@ -733,26 +671,19 @@ class WorkoutViewModel(
                 }
 
                 _oneRMEstimates.value = estimatesMap
-                Log.d("FeatherweightDebug", "Loaded 1RM estimates for ${estimatesMap.size} exercises")
             } catch (e: Exception) {
-                Log.e("FeatherweightDebug", "Failed to load 1RM estimates", e)
+                Log.e("WorkoutViewModel", "Failed to load 1RM estimates", e)
             }
         }
     }
 
     private suspend fun loadAllSetsForCurrentExercisesAndWait() {
-        println("📥 loadAllSetsForCurrentExercisesAndWait: Loading sets for ${_selectedWorkoutExercises.value.size} exercises")
         val allSets = mutableListOf<SetLog>()
         _selectedWorkoutExercises.value.forEach { exercise ->
             val sets = repository.getSetsForExercise(exercise.id)
-            println("  - Exercise '${exercise.exerciseName}': ${sets.size} sets")
-            sets.forEach { set ->
-                println("    • Set ${set.id}: reps=${set.actualReps}, weight=${set.actualWeight}, completed=${set.isCompleted}")
-            }
             allSets.addAll(sets)
         }
         _selectedExerciseSets.value = allSets
-        println("📥 Total sets loaded: ${allSets.size}")
         updateSetCompletionValidation()
     }
 
@@ -813,49 +744,6 @@ class WorkoutViewModel(
         }
     }
 
-    // Get exercise suggestions based on current workout context
-    suspend fun getExerciseSuggestions(
-        query: String = "",
-        currentMuscleGroups: Set<String> = emptySet(),
-    ): List<ExerciseWithDetails> =
-        try {
-            if (query.isNotEmpty()) {
-                // Search-based suggestions
-                val searchResults = repository.searchExercises(query)
-                searchResults.mapNotNull { exercise ->
-                    repository.getExerciseById(exercise.id)
-                }
-            } else {
-                // Context-based suggestions
-                val suggestions = mutableListOf<ExerciseWithDetails>()
-
-                // If no current muscle groups, suggest compound movements
-                if (currentMuscleGroups.isEmpty()) {
-                    suggestions.addAll(
-                        repository
-                            .getAllExercises()
-                            .filter { exercise ->
-                                exercise.exercise.movementPattern.contains("Squat", ignoreCase = true) ||
-                                    exercise.exercise.movementPattern.contains("Press", ignoreCase = true) ||
-                                    exercise.exercise.movementPattern.contains("Deadlift", ignoreCase = true) ||
-                                    exercise.exercise.movementPattern.contains("Row", ignoreCase = true)
-                            }.take(10),
-                    )
-                } else {
-                    // Suggest complementary muscle groups
-                    val complementaryMuscles = getComplementaryMuscleGroups(currentMuscleGroups)
-                    complementaryMuscles.forEach { muscleGroup ->
-                        suggestions.addAll(
-                            getExercisesByMuscleGroup(muscleGroup).take(3),
-                        )
-                    }
-                }
-
-                suggestions.distinctBy { it.exercise.id }.take(15)
-            }
-        } catch (e: Exception) {
-            emptyList()
-        }
 
     private fun getComplementaryMuscleGroups(currentMuscles: Set<String>): List<String> {
         val complementary = mutableListOf<String>()
@@ -911,10 +799,6 @@ class WorkoutViewModel(
                 val currentHistory = _exerciseHistory.value.toMutableMap()
                 currentHistory[exerciseName] = history
                 _exerciseHistory.value = currentHistory
-
-                println("📊 Loaded exercise history for $exerciseName: ${history.sets.size} sets from ${history.lastWorkoutDate}")
-            } else {
-                println("📊 No exercise history found for $exerciseName")
             }
         }
     }
@@ -962,7 +846,6 @@ class WorkoutViewModel(
             val validationMap = _setCompletionValidation.value.toMutableMap()
             validationMap[newSetId] = validationResult
             _setCompletionValidation.value = validationMap
-            println("🎯 Created set with id=$newSetId, actualReps=$reps, actualWeight=$weight, validation=$validationResult")
 
             loadAllSetsForCurrentExercises()
             loadInProgressWorkouts()
@@ -1094,8 +977,6 @@ class WorkoutViewModel(
             // Check for Personal Records AFTER database save (when completed)
             if (completed) {
                 try {
-                    println("🏆 PR Detection: Starting PR check for setId=$setId AFTER database save")
-
                     // Get the set data from local state (which now includes the completion)
                     val completedSet = updatedSets.find { it.id == setId }
 
@@ -1106,16 +987,10 @@ class WorkoutViewModel(
                         }
 
                     if (exerciseLog != null && completedSet != null) {
-                        println("🏆 PR Detection: Found exercise=${exerciseLog.exerciseName} for completed set")
-                        println("🏆 PR Detection: Set data - weight=${completedSet.actualWeight}, reps=${completedSet.actualReps}")
-
                         val allPRs = repository.checkForPR(completedSet, exerciseLog.exerciseName)
-
-                        println("🏆 PR Detection: Found ${allPRs.size} total PRs")
 
                         if (allPRs.isNotEmpty()) {
                             allPRs.forEach { pr ->
-                                println("🏆 PR Detection: New ${pr.recordType} PR - ${pr.weight}kg x ${pr.reps}")
                             }
 
                             // Update state to show PR celebration
@@ -1124,16 +999,11 @@ class WorkoutViewModel(
                                     pendingPRs = _workoutState.value.pendingPRs + allPRs,
                                     shouldShowPRCelebration = true,
                                 )
-                            println("🏆 PR Detection: Updated state with ${allPRs.size} PRs, shouldShow=true")
                         }
                     } else {
-                        println(
-                            "🏆 PR Detection: Missing data - exerciseLog=${exerciseLog?.exerciseName}, completedSet=${completedSet?.id}",
-                        )
                     }
                 } catch (e: Exception) {
                     // Log error but don't fail set completion
-                    println("🏆 PR Detection: ERROR - ${e.message}")
                     Log.e("WorkoutViewModel", "PR detection failed", e)
                 }
 
@@ -1189,7 +1059,6 @@ class WorkoutViewModel(
                                     )
 
                                 repository.updateOrInsertOneRM(oneRMRecord)
-                                Log.d("FeatherweightDebug", "Updated 1RM for ${exerciseLog.exerciseName}: $newEstimate kg")
 
                                 // Reload 1RM estimates
                                 loadOneRMEstimatesForCurrentExercises()
@@ -1197,7 +1066,7 @@ class WorkoutViewModel(
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e("FeatherweightDebug", "Failed to update 1RM estimate", e)
+                    Log.e("WorkoutViewModel", "Failed to update 1RM estimate", e)
                 }
             }
 
@@ -1243,13 +1112,6 @@ class WorkoutViewModel(
         val allSets = _selectedExerciseSets.value
         val result = allSets.isNotEmpty() && allSets.any { canMarkSetComplete(it) && !it.isCompleted }
 
-        // Debug logging
-        println("🔍 canCompleteAllSetsInWorkout Debug:")
-        println("  Total sets: ${allSets.size}")
-        println("  Sets that can be marked complete: ${allSets.count { canMarkSetComplete(it) }}")
-        println("  Uncompleted sets that can be marked: ${allSets.count { canMarkSetComplete(it) && !it.isCompleted }}")
-        println("  Result: $result")
-
         return result
     }
 
@@ -1279,31 +1141,6 @@ class WorkoutViewModel(
         }
     }
 
-    fun reorderExercises(
-        fromIndex: Int,
-        toIndex: Int,
-    ) {
-        if (!canEditWorkout()) return
-
-        viewModelScope.launch {
-            val exercises = _selectedWorkoutExercises.value.toMutableList()
-            if (fromIndex in exercises.indices && toIndex in exercises.indices) {
-                // Move the item in the list
-                val item = exercises.removeAt(fromIndex)
-                exercises.add(toIndex, item)
-
-                // Update the exerciseOrder for all affected items
-                exercises.forEachIndexed { index, exercise ->
-                    if (exercise.exerciseOrder != index) {
-                        repository.updateExerciseOrder(exercise.id, index)
-                    }
-                }
-
-                // Update the UI state
-                _selectedWorkoutExercises.value = exercises
-            }
-        }
-    }
 
     // ===== EXERCISE SWAP METHODS =====
 
@@ -1359,7 +1196,7 @@ class WorkoutViewModel(
                     _swappingExercise.value = null
                 }
             } catch (e: Exception) {
-                // Error swapping exercise
+                Log.e("WorkoutViewModel", "Failed to swap exercise", e)
             }
         }
     }
@@ -1481,7 +1318,7 @@ class WorkoutViewModel(
                             workoutName = "Repeat Workout",
                         )
                 } catch (e: Exception) {
-                    println("Error repeating workout: ${e.message}")
+                    Log.e("WorkoutViewModel", "Error repeating workout", e)
                 }
             }
         }
@@ -1582,8 +1419,6 @@ class WorkoutViewModel(
         return repository.getNextProgrammeWorkout(activeProgramme.id)
     }
 
-    // Check if the current workout is part of a programme
-    fun isProgrammeWorkout(): Boolean = _workoutState.value.isProgrammeWorkout
 
     // Get programme display name for current workout
     fun getProgrammeDisplayName(): String? {
@@ -1615,15 +1450,6 @@ class WorkoutViewModel(
         }
     }
 
-    // Get workouts for the current programme
-    suspend fun getProgrammeWorkouts(): List<Workout>? {
-        val state = _workoutState.value
-        return if (state.isProgrammeWorkout && state.programmeId != null) {
-            repository.getWorkoutsByProgramme(state.programmeId)
-        } else {
-            null
-        }
-    }
 
     // ===== ENHANCED SET MANAGEMENT FOR TARGET/ACTUAL =====
 
@@ -1659,26 +1485,7 @@ class WorkoutViewModel(
 
     // ===== PR CELEBRATION METHODS =====
 
-    /**
-     * Dismiss the current PR celebration dialog
-     */
-    fun dismissPRCelebration() {
-        _workoutState.value =
-            _workoutState.value.copy(
-                shouldShowPRCelebration = false,
-            )
-    }
 
-    /**
-     * Clear all pending PRs and hide celebration
-     */
-    fun clearAllPendingPRs() {
-        _workoutState.value =
-            _workoutState.value.copy(
-                pendingPRs = emptyList(),
-                shouldShowPRCelebration = false,
-            )
-    }
 
     // ===== INTELLIGENT SUGGESTIONS =====
 
@@ -1801,9 +1608,7 @@ class WorkoutViewModel(
             val exerciseId = exercise.exerciseId ?: return@launch
 
             // Calculate estimated 1RM from this set (now with RPE consideration)
-            println("FeatherweightDebug: Calculating 1RM for ${exercise.exerciseName}: ${set.actualWeight}kg x ${set.actualReps} @ RPE ${set.actualRpe}")
             val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps, set.actualRpe) ?: return@launch
-            println("FeatherweightDebug: Calculated 1RM: $estimated1RM kg")
 
             // Get current 1RM
             val userId = repository.getCurrentUserId()
@@ -1822,7 +1627,6 @@ class WorkoutViewModel(
                     } else {
                         1f
                     }
-                oneRMService.calculateConfidence(set.actualReps, set.actualRpe, percentOf1RM)
 
                 // Create context string
                 val context = oneRMService.buildContext(set.actualWeight, set.actualReps, set.actualRpe)

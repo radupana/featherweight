@@ -10,12 +10,21 @@
 - **No Unrequested Features**: Only build what has been explicitly requested.
 - **Fail-Fast**: Do not write fallback or degraded functionality. If a feature fails, it should fail visibly.
 - **Complete Work**: Solve problems completely. Do not use a phased approach (e.g., "phase 1, phase 2").
+- Never run the App yourself, always prompt the user to do it, if you need something tested.
 
 ## Code Quality
 
 - **No TODOs**: Never leave `TODO` comments. Implement the functionality completely.
 - **Clean Code**: Immediately remove all unused imports, variables, and functions.
 - **Class References**: Use simple class names (e.g., `MyClass`) instead of fully qualified names (`com.example.MyClass`), unless there is a naming conflict.
+- **No Empty Blocks**: Never leave empty init blocks, else blocks, catch blocks, or `.also {}` chains. Remove them or add meaningful logic.
+- **No Dead Code**: Never compute values that aren't used. Remove all unused variables, parameters, and methods immediately.
+- **No Debug Code**: Never leave `println()` statements or debug `Log.d()` statements in production code. Use proper logging frameworks if needed.
+- **Verify Variable References**: Always double-check variable references in data classes and constructors to avoid referencing wrong or undefined variables.
+- **Single Init Block**: Never have multiple init blocks in the same class. Consolidate them into one.
+- **Handle Exceptions**: Never leave catch blocks empty. At minimum, add appropriate error logging.
+- **Remove Unused Parameters**: Never keep unused method or constructor parameters. Remove them immediately.
+- **No Obvious Comments**: Never add comments that state the obvious (e.g., `// Create request` before creating a request).
 
 ## Git & Commits
 
