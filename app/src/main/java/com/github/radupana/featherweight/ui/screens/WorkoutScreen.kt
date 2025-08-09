@@ -512,6 +512,7 @@ fun WorkoutScreen(
         SetEditingModal(
             exercise = setEditingExercise!!,
             sets = sets.filter { it.exerciseLogId == setEditingExercise!!.id },
+            workoutTimerSeconds = workoutTimerSeconds,
             onDismiss = {
                 showSetEditingModal = false
                 setEditingExercise = null

@@ -78,6 +78,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -87,6 +88,7 @@ import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.ui.components.CenteredInputField
 import com.github.radupana.featherweight.ui.components.CompactRestTimer
 import com.github.radupana.featherweight.ui.components.InputFieldType
+import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
@@ -104,6 +106,7 @@ fun SetEditingModal(
     onToggleCompleted: (Long, Boolean) -> Unit,
     onCompleteAllSets: () -> Unit,
     viewModel: WorkoutViewModel,
+    workoutTimerSeconds: Int = 0,
     isProgrammeWorkout: Boolean = false,
     readOnly: Boolean = false,
     modifier: Modifier = Modifier,
@@ -229,6 +232,8 @@ fun SetEditingModal(
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                             )
                             if (sets.isNotEmpty()) {
                                 val completedSets = sets.count { it.isCompleted }
@@ -240,7 +245,15 @@ fun SetEditingModal(
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(48.dp))
+                        // Workout timer on the right
+                        if (workoutTimerSeconds > 0) {
+                            WorkoutTimer(
+                                seconds = workoutTimerSeconds,
+                                modifier = Modifier.padding(end = 8.dp),
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.width(48.dp))
+                        }
                     }
                 }
 
