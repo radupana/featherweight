@@ -31,9 +31,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -41,7 +41,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.launch
 import com.github.radupana.featherweight.data.UserPreferences
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
@@ -60,6 +59,7 @@ import com.github.radupana.featherweight.viewmodel.InsightsViewModel
 import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import kotlinx.coroutines.launch
 
 enum class Screen {
     SPLASH,
@@ -280,7 +280,7 @@ fun MainAppWithNavigation(
             Screen.WORKOUT_HUB ->
                 WorkoutHubScreen(
                     onStartActiveWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
-                    onStartTemplate = { onScreenChange(Screen.PROGRAMMES) }
+                    onStartTemplate = { onScreenChange(Screen.PROGRAMMES) },
                 )
 
             Screen.ACTIVE_WORKOUT -> {

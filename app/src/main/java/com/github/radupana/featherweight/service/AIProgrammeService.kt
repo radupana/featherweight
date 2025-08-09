@@ -11,7 +11,6 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.json.JSONObject
 import retrofit2.Retrofit
-import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
 
 data class AIProgrammeRequest(
@@ -334,7 +333,6 @@ class AIProgrammeService(
                     temperature = TEMPERATURE,
                     responseFormat = ResponseFormat(type = "json_object"),
                 )
-
 
             val response =
                 api.createChatCompletion(

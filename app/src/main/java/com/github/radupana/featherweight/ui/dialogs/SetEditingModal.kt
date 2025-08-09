@@ -85,8 +85,8 @@ import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.ui.components.CenteredInputField
+import com.github.radupana.featherweight.ui.components.CompactRestTimer
 import com.github.radupana.featherweight.ui.components.InputFieldType
-import com.github.radupana.featherweight.ui.components.IntegratedRestTimer
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
@@ -125,7 +125,6 @@ fun SetEditingModal(
     // Rest timer state
     val restTimerSeconds by viewModel.restTimerSeconds.collectAsState()
     val restTimerInitialSeconds by viewModel.restTimerInitialSeconds.collectAsState()
-    val restTimerExpanded by viewModel.restTimerExpanded.collectAsState()
 
     // Load intelligent suggestions when modal opens
     LaunchedEffect(exercise.exerciseName) {
@@ -186,9 +185,14 @@ fun SetEditingModal(
                     .systemBarsPadding(),
             color = MaterialTheme.colorScheme.surface,
         ) {
-            Column(
+            Box(
                 modifier = Modifier.fillMaxSize(),
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = if (restTimerSeconds > 0) 56.dp else 0.dp), // Add padding when timer is visible
+                ) {
                 // Header
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant,
@@ -240,18 +244,7 @@ fun SetEditingModal(
                     }
                 }
 
-                // Rest timer (if active)
-                if (restTimerSeconds > 0) {
-                    IntegratedRestTimer(
-                        seconds = restTimerSeconds,
-                        initialSeconds = restTimerInitialSeconds,
-                        isExpanded = restTimerExpanded,
-                        onToggleExpanded = { viewModel.toggleRestTimerExpanded() },
-                        onSkip = { viewModel.skipRestTimer() },
-                        onPresetSelected = { viewModel.selectRestTimerPreset(it) },
-                        onAdjustTime = { viewModel.adjustRestTimer(it) },
-                    )
-                }
+                // Rest timer removed - now shown at bottom of WorkoutScreen
 
                 // Collapsible Insights Section
                 val exerciseHistory by viewModel.exerciseHistory.collectAsState()
@@ -539,6 +532,22 @@ fun SetEditingModal(
                             }
                         }
                     }
+                }
+                } // End of Column
+                
+                // Rest timer at bottom (if active)
+                if (restTimerSeconds > 0) {
+                    CompactRestTimer(
+                        seconds = restTimerSeconds,
+                        initialSeconds = restTimerInitialSeconds,
+                        onSkip = { viewModel.skipRestTimer() },
+                        onPresetSelected = { viewModel.selectRestTimerPreset(it) },
+                        onAdjustTime = { viewModel.adjustRestTimer(it) },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(bottom = 80.dp), // Add padding to lift it above navigation
+                    )
                 }
             }
         }

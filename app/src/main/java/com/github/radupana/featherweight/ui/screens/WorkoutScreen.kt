@@ -71,7 +71,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.CompactExerciseCard
-import com.github.radupana.featherweight.ui.components.IntegratedRestTimer
+import com.github.radupana.featherweight.ui.components.CompactRestTimer
 import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.ui.dialogs.NotesInputModal
@@ -103,7 +103,6 @@ fun WorkoutScreen(
     // Rest timer state
     val restTimerSeconds by viewModel.restTimerSeconds.collectAsState()
     val restTimerInitialSeconds by viewModel.restTimerInitialSeconds.collectAsState()
-    val restTimerExpanded by viewModel.restTimerExpanded.collectAsState()
 
     // Workout timer state
     val workoutTimerSeconds by viewModel.workoutTimerSeconds.collectAsState()
@@ -289,11 +288,12 @@ fun WorkoutScreen(
             modifier =
                 Modifier
                     .padding(innerPadding)
-                    .fillMaxSize()
-                    .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
+                    .fillMaxSize(),
         ) {
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
             ) {
                 // Normal workout view
 
@@ -306,20 +306,7 @@ fun WorkoutScreen(
                     modifier = Modifier.padding(16.dp),
                 )
 
-                // Rest timer (if active)
-                if (restTimerSeconds > 0) {
-                    IntegratedRestTimer(
-                        seconds = restTimerSeconds,
-                        initialSeconds = restTimerInitialSeconds,
-                        isExpanded = restTimerExpanded,
-                        onToggleExpanded = { viewModel.toggleRestTimerExpanded() },
-                        onSkip = { viewModel.skipRestTimer() },
-                        onPresetSelected = { viewModel.selectRestTimerPreset(it) },
-                        onAdjustTime = { viewModel.adjustRestTimer(it) },
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
+                // Removed rest timer from here - moved to bottom
 
                 // Exercises list or empty state
                 if (workoutState.isLoadingExercises) {
@@ -328,7 +315,8 @@ fun WorkoutScreen(
                         modifier =
                             Modifier
                                 .weight(1f)
-                                .fillMaxWidth(),
+                                .fillMaxWidth()
+                                .padding(bottom = if (restTimerSeconds > 0) 56.dp else 0.dp), // Add padding when timer is visible
                         contentAlignment = Alignment.Center,
                     ) {
                         CircularProgressIndicator(
@@ -342,7 +330,8 @@ fun WorkoutScreen(
                         modifier =
                             Modifier
                                 .weight(1f)
-                                .fillMaxWidth(),
+                                .fillMaxWidth()
+                                .padding(bottom = if (restTimerSeconds > 0) 56.dp else 0.dp), // Add padding when timer is visible
                         contentAlignment = Alignment.Center,
                     ) {
                         if (canEdit) {
@@ -377,9 +366,28 @@ fun WorkoutScreen(
                         onSelectExercise = onSelectExercise,
                         onCompleteWorkout = { showCompleteWorkoutDialog = true },
                         viewModel = viewModel,
-                        modifier = Modifier.weight(1f),
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .padding(bottom = if (restTimerSeconds > 0) 56.dp else 0.dp),
+                        // Add padding when timer is visible
                     )
                 }
+            }
+
+            // Rest timer at bottom (if active)
+            if (restTimerSeconds > 0) {
+                CompactRestTimer(
+                    seconds = restTimerSeconds,
+                    initialSeconds = restTimerInitialSeconds,
+                    onSkip = { viewModel.skipRestTimer() },
+                    onPresetSelected = { viewModel.selectRestTimerPreset(it) },
+                    onAdjustTime = { viewModel.adjustRestTimer(it) },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION), // Position above nav bar
+                )
             }
         }
     }

@@ -140,7 +140,7 @@ class WorkoutViewModel(
 
     // Exercise-related state
 
-    private val _exerciseDetails = MutableStateFlow<Map<Long, ExerciseWithDetails>>(emptyMap())
+    private val exerciseDetailsMap = MutableStateFlow<Map<Long, ExerciseWithDetails>>(emptyMap())
 
     // Exercise swap state
     private val _swappingExercise = MutableStateFlow<ExerciseLog?>(null)
@@ -152,9 +152,6 @@ class WorkoutViewModel(
 
     private val _restTimerInitialSeconds = MutableStateFlow(0)
     val restTimerInitialSeconds: StateFlow<Int> = _restTimerInitialSeconds
-
-    private val _restTimerExpanded = MutableStateFlow(false)
-    val restTimerExpanded: StateFlow<Boolean> = _restTimerExpanded
 
     private var restTimerJob: Job? = null
 
@@ -180,23 +177,19 @@ class WorkoutViewModel(
 
                 // Create lookup map for exercise details
                 val detailsMap = exercises.associateBy { it.exercise.id }
-                _exerciseDetails.value = detailsMap
+                exerciseDetailsMap.value = detailsMap
             } catch (e: Exception) {
                 Log.e("WorkoutViewModel", "Failed to load exercises", e)
             }
         }
     }
 
-
-
-
     suspend fun getExercisesByMuscleGroup(muscleGroup: String): List<ExerciseWithDetails> {
         val allExercises = repository.getAllExercises()
         return allExercises.filter { it.exercise.muscleGroup.equals(muscleGroup, ignoreCase = true) }
     }
 
-    fun getExerciseDetails(exerciseId: Long): ExerciseWithDetails? = _exerciseDetails.value[exerciseId]
-
+    fun getExerciseDetails(exerciseId: Long): ExerciseWithDetails? = exerciseDetailsMap.value[exerciseId]
 
     // ===== EXISTING WORKOUT METHODS (Updated to work with exercises) =====
 
@@ -744,7 +737,6 @@ class WorkoutViewModel(
         }
     }
 
-
     private fun getComplementaryMuscleGroups(currentMuscles: Set<String>): List<String> {
         val complementary = mutableListOf<String>()
 
@@ -1141,7 +1133,6 @@ class WorkoutViewModel(
         }
     }
 
-
     // ===== EXERCISE SWAP METHODS =====
 
     fun initiateExerciseSwap(exerciseLogId: Long) {
@@ -1419,7 +1410,6 @@ class WorkoutViewModel(
         return repository.getNextProgrammeWorkout(activeProgramme.id)
     }
 
-
     // Get programme display name for current workout
     fun getProgrammeDisplayName(): String? {
         val state = _workoutState.value
@@ -1449,7 +1439,6 @@ class WorkoutViewModel(
             null
         }
     }
-
 
     // ===== ENHANCED SET MANAGEMENT FOR TARGET/ACTUAL =====
 
@@ -1484,8 +1473,6 @@ class WorkoutViewModel(
     }
 
     // ===== PR CELEBRATION METHODS =====
-
-
 
     // ===== INTELLIGENT SUGGESTIONS =====
 
@@ -1529,10 +1516,6 @@ class WorkoutViewModel(
 
     fun selectRestTimerPreset(seconds: Int) {
         startRestTimer(seconds)
-    }
-
-    fun toggleRestTimerExpanded() {
-        _restTimerExpanded.value = !_restTimerExpanded.value
     }
 
     // Workout timer functions

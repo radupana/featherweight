@@ -437,7 +437,6 @@ class FeatherweightRepository(
             }.sortedByDescending { it.date }
     }
 
-
     // Smart suggestions functionality (enhanced with exercise data)
     suspend fun getExerciseHistory(
         exerciseName: String,
@@ -1355,7 +1354,7 @@ class FeatherweightRepository(
                 val errorMessage =
                     validationErrors.joinToString("\n") { error ->
                         "${error.field}: ${error.error}" +
-                        (error.suggestion?.let { " (Try: $it)" } ?: "")
+                            (error.suggestion?.let { " (Try: $it)" } ?: "")
                     }
                 throw IllegalArgumentException(errorMessage)
             }
@@ -1899,7 +1898,6 @@ class FeatherweightRepository(
                 )
             }
         }
-
 
     fun getBig4ExercisesWithMaxes(userId: Long): Flow<List<com.github.radupana.featherweight.data.profile.Big4ExerciseWithOptionalMax>> = db.oneRMDao().getBig4ExercisesWithMaxes(userId)
 
@@ -2559,7 +2557,6 @@ class FeatherweightRepository(
             }
         }
 
-
     suspend fun getWorkoutsByDateRange(
         startDate: LocalDate,
         endDate: LocalDate,
@@ -2868,7 +2865,6 @@ class FeatherweightRepository(
                 otherExercises = sortedOthers,
             )
         }
-
 
     suspend fun getCompletedWorkoutCountSince(since: LocalDateTime): Int =
         withContext(Dispatchers.IO) {
