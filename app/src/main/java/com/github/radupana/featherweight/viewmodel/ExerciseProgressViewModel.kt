@@ -128,11 +128,6 @@ class ExerciseProgressViewModel(
                 val allTimePR = prRecord?.weight ?: 0f
                 val allTimePRDate = prRecord?.recordDate?.toLocalDate()
 
-                // DEBUG: Log PR record details
-                android.util.Log.d("ExerciseProgress", "🔍 PR RECORD DEBUG for $exerciseName:")
-                android.util.Log.d("ExerciseProgress", "  - PR Weight: $allTimePR")
-                android.util.Log.d("ExerciseProgress", "  - PR Date from DB: ${prRecord?.recordDate}")
-                android.util.Log.d("ExerciseProgress", "  - PR Date converted: $allTimePRDate")
 
                 // Calculate Recent Best (30 days, extend to 60 if needed)
                 val now = LocalDate.now()
@@ -153,9 +148,6 @@ class ExerciseProgressViewModel(
                                     startDate = thirtyDaysAgo,
                                     endDate = now,
                                 )
-                            android.util.Log.d("ExerciseProgress", "🔍 RECENT BEST DEBUG (30 days) for $exerciseName:")
-                            android.util.Log.d("ExerciseProgress", "  - Recent Best Weight: $it")
-                            android.util.Log.d("ExerciseProgress", "  - Recent Best Date: $recentBestDate")
                         } ?: repository
                         .getMaxWeightForExerciseInDateRange(
                             exerciseName = exerciseName,
@@ -169,9 +161,6 @@ class ExerciseProgressViewModel(
                                     startDate = now.minusDays(60),
                                     endDate = now,
                                 )
-                            android.util.Log.d("ExerciseProgress", "🔍 RECENT BEST DEBUG (60 days) for $exerciseName:")
-                            android.util.Log.d("ExerciseProgress", "  - Recent Best Weight: $it")
-                            android.util.Log.d("ExerciseProgress", "  - Recent Best Date: $recentBestDate")
                         } ?: 0f
 
                 val recentBestPercentOfPR =

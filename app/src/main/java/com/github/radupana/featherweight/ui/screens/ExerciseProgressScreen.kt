@@ -19,7 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Info
@@ -29,9 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -60,7 +57,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.ui.components.ExerciseDataPoint
 import com.github.radupana.featherweight.ui.components.ExerciseProgressChart
 import com.github.radupana.featherweight.ui.components.FrequencyDataPoint
-import com.github.radupana.featherweight.ui.components.FrequencyHeatmapChart
+import com.github.radupana.featherweight.ui.components.TrainingPatternsChart
 import com.github.radupana.featherweight.ui.components.IntensityZoneChart
 import com.github.radupana.featherweight.ui.components.IntensityZoneData
 import com.github.radupana.featherweight.ui.components.RepRangeChart
@@ -512,7 +509,7 @@ private fun ExerciseInsightsContent(
                     when (selectedPatternType) {
                         ExerciseProgressViewModel.PatternType.FREQUENCY -> {
                             // Always show the chart - it handles empty state internally
-                            FrequencyHeatmapChart(
+                            TrainingPatternsChart(
                                 dataPoints = frequencyData,
                                 modifier = Modifier.fillMaxWidth(),
                             )
@@ -600,24 +597,12 @@ private fun ExerciseInsightsContent(
                             text = data.progressStatusDetail,
                             style = MaterialTheme.typography.bodyMedium,
                         )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            OutlinedButton(
-                                onClick = { /* TODO: Implement deload suggestion */ },
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text("Take Deload Week")
-                            }
-                            OutlinedButton(
-                                onClick = { /* TODO: Implement rep range suggestion */ },
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text("Switch Rep Range")
-                            }
-                        }
+                        
+                        Text(
+                            text = "Consider: Deload week • Change rep range • Vary intensity",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        )
                     }
                 }
             }
@@ -701,20 +686,11 @@ private fun StatusExplanation(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MostWeightLiftedCard(
     data: ExerciseProgressViewModel.ExerciseProgressData,
     modifier: Modifier = Modifier,
 ) {
-    var selectedPeriod by remember { mutableStateOf(TimePeriod.ALL_TIME) }
-    var periodWeight by remember { mutableStateOf(data.allTimePR) }
-    var periodDate by remember { mutableStateOf(data.allTimePRDate) }
-    var expanded by remember { mutableStateOf(false) }
-
-    // TODO: Update these values based on selected period
-    // This will require adding repository methods to fetch max weight for different time periods
-
     Card(
         modifier = modifier,
         colors =
@@ -727,71 +703,29 @@ private fun MostWeightLiftedCard(
                 Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Icon(
-                        Icons.Default.FitnessCenter,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.tertiary,
-                    )
-                    Text(
-                        text = "Most weight lifted",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                }
-
-                // Time period selector
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = it },
-                ) {
-                    FilterChip(
-                        selected = true,
-                        onClick = { expanded = true },
-                        label = { Text(selectedPeriod.label) },
-                        modifier = Modifier.menuAnchor(),
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.ArrowDropDown,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        },
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                    ) {
-                        TimePeriod.values().forEach { period ->
-                            DropdownMenuItem(
-                                text = { Text(period.label) },
-                                onClick = {
-                                    selectedPeriod = period
-                                    expanded = false
-                                    // TODO: Update periodWeight and periodDate based on selection
-                                },
-                            )
-                        }
-                    }
-                }
+                Icon(
+                    Icons.Default.FitnessCenter,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+                Text(
+                    text = "Most weight lifted",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text =
-                    if (periodWeight > 0) {
-                        WeightFormatter.formatWeightWithUnit(periodWeight)
+                    if (data.allTimePR > 0) {
+                        WeightFormatter.formatWeightWithUnit(data.allTimePR)
                     } else {
                         "No lifts yet"
                     },
@@ -800,7 +734,7 @@ private fun MostWeightLiftedCard(
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
             )
 
-            periodDate?.let { date ->
+            data.allTimePRDate?.let { date ->
                 Text(
                     text = date.format(DateTimeFormatter.ofPattern("MMM d, yyyy")),
                     style = MaterialTheme.typography.bodySmall,
@@ -811,10 +745,3 @@ private fun MostWeightLiftedCard(
     }
 }
 
-enum class TimePeriod(
-    val label: String,
-) {
-    ALL_TIME("All time"),
-    LAST_MONTH("Last month"),
-    LAST_3_MONTHS("Last 3 months"),
-}
