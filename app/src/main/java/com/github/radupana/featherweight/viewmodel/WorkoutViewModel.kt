@@ -494,8 +494,10 @@ class WorkoutViewModel(
             // Clear rest timer on workout completion
             skipRestTimer()
 
-            // Stop workout timer
+            // Stop and reset workout timer
             stopWorkoutTimer()
+            _workoutTimerSeconds.value = 0
+            workoutTimerStartTime = null
 
             _workoutState.value =
                 state.copy(
@@ -1255,7 +1257,11 @@ class WorkoutViewModel(
         viewModelScope.launch {
             repository.deleteWorkout(currentId)
 
-            // Reset state after deletion
+            // Reset state after deletion, including timers
+            skipRestTimer()
+            stopWorkoutTimer()
+            _workoutTimerSeconds.value = 0
+            workoutTimerStartTime = null
             _currentWorkoutId.value = null
             _workoutState.value = WorkoutState()
             _selectedWorkoutExercises.value = emptyList()
@@ -1267,10 +1273,12 @@ class WorkoutViewModel(
     // Delete any workout by ID
     fun deleteWorkout(workoutId: Long) {
         viewModelScope.launch {
-            // Stop timers if deleting current workout
+            // Stop and reset timers if deleting current workout
             if (workoutId == _currentWorkoutId.value) {
                 skipRestTimer()
                 stopWorkoutTimer()
+                _workoutTimerSeconds.value = 0
+                workoutTimerStartTime = null
             }
 
             repository.deleteWorkout(workoutId)
@@ -1552,6 +1560,9 @@ class WorkoutViewModel(
     }
 
     private fun resumeWorkoutTimer(startTime: LocalDateTime) {
+        // CRITICAL: Stop any existing timer first to prevent multiple timers
+        stopWorkoutTimer()
+        
         workoutTimerStartTime = startTime
 
         // Calculate elapsed time
