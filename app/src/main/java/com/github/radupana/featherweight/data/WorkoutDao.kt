@@ -214,6 +214,37 @@ interface WorkoutDao {
         searchQuery: String,
         limit: Int = 100,
     ): List<Workout>
+
+    // Export-related queries
+    @Query(
+        """
+        SELECT * FROM Workout 
+        WHERE date BETWEEN :startDate AND :endDate 
+        AND status != :excludeStatus
+        ORDER BY date DESC
+        LIMIT :limit OFFSET :offset
+        """
+    )
+    suspend fun getWorkoutsInDateRangePaged(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime,
+        excludeStatus: WorkoutStatus = WorkoutStatus.NOT_STARTED,
+        limit: Int,
+        offset: Int
+    ): List<Workout>
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM Workout 
+        WHERE date BETWEEN :startDate AND :endDate 
+        AND status != :excludeStatus
+        """
+    )
+    suspend fun getWorkoutCountInDateRange(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime,
+        excludeStatus: WorkoutStatus = WorkoutStatus.NOT_STARTED
+    ): Int
 }
 
 data class WorkoutDateCount(

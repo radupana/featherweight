@@ -46,8 +46,11 @@ import com.github.radupana.featherweight.ui.components.OtherExerciseCard
 import com.github.radupana.featherweight.ui.components.SubSection
 import com.github.radupana.featherweight.ui.dialogs.Add1RMDialog
 import com.github.radupana.featherweight.ui.dialogs.ExerciseSelectorDialog
+import com.github.radupana.featherweight.ui.dialogs.ExportWorkoutsDialog
+import com.github.radupana.featherweight.ui.dialogs.ExportShareDialog
 import com.github.radupana.featherweight.viewmodel.ExerciseMaxWithName
 import com.github.radupana.featherweight.viewmodel.ProfileViewModel
+import androidx.compose.material.icons.filled.Download
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,6 +65,7 @@ fun ProfileScreen(
     var editingMax by remember { mutableStateOf<ExerciseMaxWithName?>(null) }
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     var clearingExerciseId by remember { mutableStateOf<Long?>(null) }
+    var showExportDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -237,6 +241,56 @@ fun ProfileScreen(
                 }
             }
 
+            // Data Management Section
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            CollapsibleSection(
+                title = "Data Management",
+                isExpanded = uiState.isDataManagementSectionExpanded,
+                onToggle = { viewModel.toggleDataManagementSection() },
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.padding(top = 8.dp),
+                ) {
+                    GlassmorphicCard(
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                text = "Export Workout Data",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            
+                            Text(
+                                text = "Download your workout history as JSON for analysis with AI tools",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            
+                            FilledTonalButton(
+                                onClick = { showExportDialog = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    Icons.Filled.Download,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Export Workout Data")
+                            }
+                        }
+                    }
+                }
+            }
+
             // Developer Tools Section
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -387,6 +441,25 @@ fun ProfileScreen(
                 showExerciseSelector = false
             },
             onDismiss = { showExerciseSelector = false },
+        )
+    }
+
+    // Export Dialog
+    if (showExportDialog) {
+        ExportWorkoutsDialog(
+            onDismiss = { showExportDialog = false },
+            onExport = { startDate, endDate ->
+                viewModel.exportWorkouts(startDate, endDate)
+                showExportDialog = false
+            }
+        )
+    }
+
+    // Export Share Dialog
+    uiState.exportedFilePath?.let { filePath ->
+        ExportShareDialog(
+            filePath = filePath,
+            onDismiss = { viewModel.clearExportedFile() }
         )
     }
 

@@ -1,14 +1,22 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
+import com.github.radupana.featherweight.data.export.ExportOptions
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.WorkoutSeedingService
+import com.github.radupana.featherweight.worker.ExportWorkoutsWorker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 
 data class ProfileUiState(
     val isLoading: Boolean = false,
@@ -20,8 +28,11 @@ data class ProfileUiState(
     val isOneRMSectionExpanded: Boolean = true,
     val isBig4SubSectionExpanded: Boolean = true,
     val isOtherSubSectionExpanded: Boolean = true,
+    val isDataManagementSectionExpanded: Boolean = true,
     val seedingState: SeedingState = SeedingState.Idle,
     val seedingWeeks: Int = 12,
+    val isExporting: Boolean = false,
+    val exportedFilePath: String? = null,
 )
 
 sealed class SeedingState {
@@ -303,5 +314,79 @@ class ProfileViewModel(
 
     fun resetSeedingState() {
         _uiState.value = _uiState.value.copy(seedingState = SeedingState.Idle)
+    }
+
+    fun toggleDataManagementSection() {
+        _uiState.value = _uiState.value.copy(
+            isDataManagementSectionExpanded = !_uiState.value.isDataManagementSectionExpanded
+        )
+    }
+
+    fun exportWorkouts(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ) {
+        val context = getApplication<Application>()
+        
+        val exportOptions = ExportOptions(
+            includeBodyweight = true,
+            includeOneRepMaxes = true,
+            includeNotes = true,
+            includeProfile = true
+        )
+        
+        val inputData = workDataOf(
+            "startDate" to startDate.toString(),
+            "endDate" to endDate.toString(),
+            "includeBodyweight" to exportOptions.includeBodyweight,
+            "includeOneRepMaxes" to exportOptions.includeOneRepMaxes,
+            "includeNotes" to exportOptions.includeNotes,
+            "includeProfile" to exportOptions.includeProfile
+        )
+        
+        val exportRequest = OneTimeWorkRequestBuilder<ExportWorkoutsWorker>()
+            .setInputData(inputData)
+            .addTag("workout_export")
+            .build()
+            
+        WorkManager.getInstance(context)
+            .enqueueUniqueWork(
+                "workout_export_${System.currentTimeMillis()}",
+                ExistingWorkPolicy.KEEP,
+                exportRequest
+            )
+            
+        // Update UI to show export started
+        _uiState.value = _uiState.value.copy(
+            isExporting = true,
+            successMessage = "Export started. You'll be notified when complete."
+        )
+        
+        // Observe work status
+        WorkManager.getInstance(context)
+            .getWorkInfoByIdLiveData(exportRequest.id)
+            .observeForever { workInfo ->
+                when (workInfo?.state) {
+                    androidx.work.WorkInfo.State.SUCCEEDED -> {
+                        val filePath = workInfo.outputData.getString("filePath")
+                        _uiState.value = _uiState.value.copy(
+                            isExporting = false,
+                            successMessage = "Export completed successfully!",
+                            exportedFilePath = filePath
+                        )
+                    }
+                    androidx.work.WorkInfo.State.FAILED -> {
+                        _uiState.value = _uiState.value.copy(
+                            isExporting = false,
+                            error = "Export failed. Please try again."
+                        )
+                    }
+                    else -> { /* ongoing */ }
+                }
+            }
+    }
+    
+    fun clearExportedFile() {
+        _uiState.value = _uiState.value.copy(exportedFilePath = null)
     }
 }

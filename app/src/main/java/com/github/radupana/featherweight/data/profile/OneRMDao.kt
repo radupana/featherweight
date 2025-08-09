@@ -290,6 +290,58 @@ interface OneRMDao {
 
     @Query("DELETE FROM one_rm_history WHERE userId = :userId")
     suspend fun deleteAllOneRMHistory(userId: Long)
+
+    // Export-related queries
+    @Query(
+        """
+        SELECT 
+            h.id,
+            h.userId,
+            h.exerciseId,
+            h.exerciseName,
+            h.oneRMEstimate,
+            h.context,
+            h.recordedAt
+        FROM one_rm_history h
+        WHERE h.recordedAt >= :startDate
+        AND h.recordedAt <= :endDate
+        ORDER BY h.recordedAt DESC
+        """
+    )
+    suspend fun getAllOneRMHistoryInRange(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): List<OneRMHistoryWithName>
+
+    @Query(
+        """
+        SELECT 
+            uem.id,
+            uem.userId,
+            uem.exerciseId,
+            e.name as exerciseName,
+            uem.mostWeightLifted,
+            uem.mostWeightReps,
+            uem.mostWeightRpe,
+            uem.mostWeightDate,
+            uem.oneRMEstimate,
+            uem.oneRMContext,
+            uem.oneRMConfidence,
+            uem.oneRMDate,
+            uem.oneRMType,
+            uem.notes
+        FROM user_exercise_maxes uem
+        INNER JOIN exercises e ON e.id = uem.exerciseId
+        WHERE uem.userId = :userId
+        AND uem.id IN (
+            SELECT MAX(id) FROM user_exercise_maxes
+            WHERE userId = :userId
+            GROUP BY exerciseId
+        )
+        ORDER BY e.name ASC
+        """
+    )
+    suspend fun getAllCurrentMaxesForExport(userId: Long): List<UserExerciseMaxWithName>
 }
 
 data class OneRMWithExerciseName(
@@ -326,4 +378,31 @@ data class Big4ExerciseWithOptionalMax(
     val oneRMType: OneRMType?,
     val notes: String?,
     val sessionCount: Int = 0,
+)
+
+data class OneRMHistoryWithName(
+    val id: Long,
+    val userId: Long,
+    val exerciseId: Long,
+    val exerciseName: String,
+    val oneRMEstimate: Float,
+    val context: String,
+    val recordedAt: LocalDateTime
+)
+
+data class UserExerciseMaxWithName(
+    val id: Long,
+    val userId: Long,
+    val exerciseId: Long,
+    val exerciseName: String,
+    val mostWeightLifted: Float,
+    val mostWeightReps: Int,
+    val mostWeightRpe: Float?,
+    val mostWeightDate: LocalDateTime,
+    val oneRMEstimate: Float,
+    val oneRMContext: String,
+    val oneRMConfidence: Float,
+    val oneRMDate: LocalDateTime,
+    val oneRMType: OneRMType,
+    val notes: String?
 )
