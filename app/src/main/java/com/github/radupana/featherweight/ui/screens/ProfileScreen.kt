@@ -58,6 +58,7 @@ fun ProfileScreen(
     viewModel: ProfileViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    insightsViewModel: com.github.radupana.featherweight.viewmodel.InsightsViewModel? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -407,6 +408,40 @@ fun ProfileScreen(
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text("Clear All Workout Data", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+
+                    // Training Analysis Developer Tool
+                    GlassmorphicCard(
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                text = "Training Analysis",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+
+                            Text(
+                                text = "Force training analysis to run (bypasses weekly schedule)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+
+                            FilledTonalButton(
+                                onClick = { 
+                                    insightsViewModel?.forceAnalysis()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text("Force Training Analysis")
                             }
                         }
                     }

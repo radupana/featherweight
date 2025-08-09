@@ -10,6 +10,7 @@ import com.github.radupana.featherweight.data.GlobalExerciseProgress
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.data.TrainingAnalysis
 import com.github.radupana.featherweight.data.SwapHistoryCount
 import com.github.radupana.featherweight.data.UserPreferences
 import com.github.radupana.featherweight.data.VolumeLevel
@@ -3087,6 +3088,24 @@ class FeatherweightRepository(
             }
 
             newWorkoutId
+        }
+
+    // Training Analysis methods
+    suspend fun saveTrainingAnalysis(analysis: TrainingAnalysis) =
+        withContext(Dispatchers.IO) {
+            db.trainingAnalysisDao().insertAnalysis(analysis)
+        }
+
+    suspend fun getLatestTrainingAnalysis(): TrainingAnalysis? =
+        withContext(Dispatchers.IO) {
+            val userId = getCurrentUserId()
+            db.trainingAnalysisDao().getLatestAnalysis(userId)
+        }
+
+    suspend fun deleteOldAnalyses(olderThan: LocalDateTime) =
+        withContext(Dispatchers.IO) {
+            val userId = getCurrentUserId()
+            db.trainingAnalysisDao().deleteOldAnalyses(userId, olderThan)
         }
 }
 

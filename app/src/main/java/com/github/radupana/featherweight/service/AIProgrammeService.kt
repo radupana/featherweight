@@ -538,4 +538,10 @@ class AIProgrammeService(
         // Rough estimation: ~4 characters per token
         return (text.length / 4).coerceAtLeast(1)
     }
+    
+    // Public method for training analysis
+    suspend fun analyzeTraining(prompt: String): String = withContext(Dispatchers.IO) {
+        val systemPrompt = "You are an expert strength training coach and sports scientist. Provide analysis in valid JSON format."
+        callOpenAI(systemPrompt, prompt)
+    }
 }
