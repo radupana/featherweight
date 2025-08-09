@@ -69,7 +69,7 @@ class AIProgrammeService(
     companion object {
         private val OPENAI_API_KEY = BuildConfig.OPENAI_API_KEY
         private const val BASE_URL = "https://api.openai.com/"
-        private const val MODEL = "gpt-4.1-mini" // NOTE: This is correct - new model name
+        private const val MODEL = "gpt-5-mini" // NOTE: This is correct - new model name
         private const val MAX_TOKENS = 32768 // Increased to support 8-week programmes
         private const val TEMPERATURE = 0.7
     }
@@ -538,10 +538,11 @@ class AIProgrammeService(
         // Rough estimation: ~4 characters per token
         return (text.length / 4).coerceAtLeast(1)
     }
-    
+
     // Public method for training analysis
-    suspend fun analyzeTraining(prompt: String): String = withContext(Dispatchers.IO) {
-        val systemPrompt = "You are an expert strength training coach and sports scientist. Provide analysis in valid JSON format."
-        callOpenAI(systemPrompt, prompt)
-    }
+    suspend fun analyzeTraining(prompt: String): String =
+        withContext(Dispatchers.IO) {
+            val systemPrompt = "You are an expert strength training coach and sports scientist. Provide analysis in valid JSON format."
+            callOpenAI(systemPrompt, prompt)
+        }
 }
