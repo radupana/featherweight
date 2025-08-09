@@ -1071,12 +1071,10 @@ class WorkoutViewModel(
     fun completeAllSetsInExercise(exerciseLogId: Long) {
         viewModelScope.launch {
             val exerciseSets = _selectedExerciseSets.value.filter { it.exerciseLogId == exerciseLogId }
-            val timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
 
             exerciseSets.forEach { set ->
-                // Only mark as complete if set has valid data
                 if (canMarkSetCompleteInternal(set) && !set.isCompleted) {
-                    repository.markSetCompleted(set.id, true, timestamp)
+                    markSetCompleted(set.id, true)
                 }
             }
 
@@ -1088,12 +1086,10 @@ class WorkoutViewModel(
     fun completeAllSetsInWorkout() {
         viewModelScope.launch {
             val allSets = _selectedExerciseSets.value
-            val timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
 
             allSets.forEach { set ->
-                // Only mark as complete if set has valid data and is not already completed
                 if (canMarkSetCompleteInternal(set) && !set.isCompleted) {
-                    repository.markSetCompleted(set.id, true, timestamp)
+                    markSetCompleted(set.id, true)
                 }
             }
 

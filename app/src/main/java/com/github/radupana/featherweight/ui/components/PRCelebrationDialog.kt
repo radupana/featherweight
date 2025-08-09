@@ -16,8 +16,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -108,7 +111,8 @@ fun PRCelebrationDialog(
                 modifier =
                     Modifier
                         .fillMaxWidth(0.9f)
-                        .scale(scale),
+                        .scale(scale)
+                        .heightIn(max = 600.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors =
                     CardDefaults.cardColors(
@@ -131,7 +135,7 @@ fun PRCelebrationDialog(
                     )
 
                     Text(
-                        text = if (personalRecords.size == 1) "PERSONAL RECORD!" else "MULTIPLE PRS!",
+                        text = if (personalRecords.size == 1) "PERSONAL RECORD!" else "Multiple PRs!",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -139,17 +143,21 @@ fun PRCelebrationDialog(
                         modifier = Modifier.padding(bottom = 16.dp),
                     )
 
-                    // PR details
-                    personalRecords.forEach { pr ->
-                        PRDetailCard(
-                            personalRecord = pr,
-                            modifier = Modifier.padding(vertical = 4.dp),
-                        )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        personalRecords.forEach { pr ->
+                            PRDetailCard(
+                                personalRecord = pr,
+                                modifier = Modifier.padding(vertical = 4.dp),
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Action button
                     Button(
                         onClick = onDismiss,
                         modifier = Modifier.fillMaxWidth(),
