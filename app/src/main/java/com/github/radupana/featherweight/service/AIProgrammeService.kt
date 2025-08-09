@@ -71,7 +71,7 @@ class AIProgrammeService(
         private const val BASE_URL = "https://api.openai.com/"
         private const val MODEL = "gpt-5-mini" // NOTE: This is correct - new model name
         private const val MAX_TOKENS = 32768 // Increased to support 8-week programmes
-        private const val TEMPERATURE = 0.7
+        private const val TEMPERATURE = 1.0 // 5-mini only supports 1
     }
 
     private val json =
