@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -37,7 +38,6 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -64,7 +64,6 @@ import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.CenteredInputField
 import com.github.radupana.featherweight.ui.components.InputFieldType
-import com.github.radupana.featherweight.ui.theme.FeatherweightColors
 import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.ui.utils.DragHandle
 import com.github.radupana.featherweight.util.WeightFormatter
@@ -151,10 +150,10 @@ fun ExerciseCard(
                     onDragStart = { onDragStart(exercise.id) },
                     onDragEnd = onDragEnd,
                     onDrag = { dragAmount -> onDrag(exercise.id, dragAmount) },
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier.padding(end = 8.dp),
                 )
             }
-            
+
             // Chevron icon for expand/collapse
             val rotationAngle by animateFloatAsState(
                 targetValue = if (isExpanded) 0f else -90f,
@@ -170,64 +169,13 @@ fun ExerciseCard(
                         .graphicsLayer { rotationZ = rotationAngle },
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            // Exercise name and progress
-            Row(
+            // Exercise name (no progress info for cleaner look)
+            Text(
+                text = exercise.exerciseName,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = exercise.exerciseName,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-
-                if (sets.isNotEmpty()) {
-                    val progress = (completedSets.toFloat() / sets.size * 100).toInt().coerceIn(0, 100)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(
-                            text = "$completedSets/${sets.size}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        LinearProgressIndicator(
-                            progress = {
-                                if (sets.isEmpty()) {
-                                    0f
-                                } else {
-                                    (completedSets.toFloat() / sets.size).coerceIn(0f, 1f)
-                                }
-                            },
-                            modifier =
-                                Modifier
-                                    .width(40.dp)
-                                    .height(3.dp),
-                            color =
-                                if (completedSets == sets.size) {
-                                    FeatherweightColors.successGradientStart
-                                } else {
-                                    MaterialTheme.colorScheme.primary
-                                },
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        )
-                        Text(
-                            text = "$progress%",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
-                            color =
-                                if (completedSets == sets.size) {
-                                    FeatherweightColors.successGradientStart
-                                } else {
-                                    MaterialTheme.colorScheme.primary
-                                },
-                        )
-                    }
-                }
-            }
+            )
 
             // Action buttons (swap and delete) - only show when editable
             if (viewModel.canEditWorkout()) {
@@ -280,7 +228,19 @@ fun ExerciseCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Spacer(modifier = Modifier.width(20.dp)) // For set number
+                        // Set number column
+                        Box(
+                            modifier = Modifier.width(32.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                "#",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
 
                         // Target column for programme workouts
                         val isProgrammeWorkout =
@@ -325,7 +285,26 @@ fun ExerciseCard(
                             textAlign = TextAlign.Center,
                         )
 
-                        Spacer(modifier = Modifier.width(40.dp)) // For checkbox
+                        // Dedicated checkbox column - complete all sets button
+                        Box(
+                            modifier = Modifier.width(48.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            val canCompleteAllSets = viewModel.canCompleteAllSetsInExercise(exercise.id)
+                            if (viewModel.canEditWorkout() && canCompleteAllSets) {
+                                IconButton(
+                                    onClick = { viewModel.completeAllSetsInExercise(exercise.id) },
+                                    modifier = Modifier.size(40.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Filled.CheckCircle,
+                                        contentDescription = "Complete all populated sets",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     HorizontalDivider(
@@ -517,14 +496,18 @@ private fun CleanSetRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.Top,
             ) {
-                // Set number
-                Text(
-                    text = "$setNumber",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.width(20.dp),
-                    textAlign = TextAlign.Center,
-                )
+                // Set number column - match header layout
+                Box(
+                    modifier = Modifier.width(32.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "$setNumber",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                    )
+                }
 
                 // Target column for programme workouts
                 if (isProgrammeWorkout) {
@@ -691,31 +674,36 @@ private fun CleanSetRow(
                     }
                 }
 
-                // Checkbox
+                // Dedicated checkbox column - match header layout
                 Box(
-                    modifier =
-                        Modifier
-                            .size(40.dp)
-                            .clickable(
-                                enabled = !readOnly && (canMarkComplete || set.isCompleted),
-                                onClick = {
-                                    val newChecked = !set.isCompleted
-                                    if (!newChecked || canMarkComplete) {
-                                        onToggleCompleted(newChecked)
-                                    }
-                                },
-                            ),
+                    modifier = Modifier.width(48.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Checkbox(
-                        checked = set.isCompleted,
-                        onCheckedChange = null,
-                        enabled = !readOnly && (canMarkComplete || set.isCompleted),
-                        colors =
-                            CheckboxDefaults.colors(
-                                checkedColor = MaterialTheme.colorScheme.primary,
-                            ),
-                    )
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(40.dp)
+                                .clickable(
+                                    enabled = !readOnly && (canMarkComplete || set.isCompleted),
+                                    onClick = {
+                                        val newChecked = !set.isCompleted
+                                        if (!newChecked || canMarkComplete) {
+                                            onToggleCompleted(newChecked)
+                                        }
+                                    },
+                                ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Checkbox(
+                            checked = set.isCompleted,
+                            onCheckedChange = null,
+                            enabled = !readOnly && (canMarkComplete || set.isCompleted),
+                            colors =
+                                CheckboxDefaults.colors(
+                                    checkedColor = MaterialTheme.colorScheme.primary,
+                                ),
+                        )
+                    }
                 }
             }
         }

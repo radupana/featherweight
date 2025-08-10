@@ -166,12 +166,13 @@ class WorkoutViewModel(
     // Drag and drop state
     private val _isDragInProgress = MutableStateFlow(false)
     val isDragInProgress: StateFlow<Boolean> = _isDragInProgress
-    
+
     private val _draggedExerciseId = MutableStateFlow<Long?>(null)
     val draggedExerciseId: StateFlow<Long?> = _draggedExerciseId
-    
+
     private var dragStartIndex: Int = -1
     private var originalExerciseOrder: List<ExerciseLog> = emptyList()
+    private var accumulatedDragAmount: Float = 0f
 
     // Workout timer state
     private val _workoutTimerSeconds = MutableStateFlow(0)
@@ -362,67 +363,65 @@ class WorkoutViewModel(
     }
 
     // Resume an existing workout
-    fun resumeWorkout(workoutId: Long) {
-        viewModelScope.launch {
-            val workout = repository.getWorkoutById(workoutId)
-            if (workout != null) {
-                val isCompleted = workout.status == WorkoutStatus.COMPLETED
+    suspend fun resumeWorkout(workoutId: Long) {
+        val workout = repository.getWorkoutById(workoutId)
+        if (workout != null) {
+            val isCompleted = workout.status == WorkoutStatus.COMPLETED
 
-                // Get programme information if this is a programme workout
-                val programmeName =
-                    if (workout.isProgrammeWorkout && workout.programmeId != null) {
-                        try {
-                            repository.getProgrammeById(workout.programmeId)?.name
-                        } catch (e: Exception) {
-                            Log.e("WorkoutViewModel", "Failed to get programme name", e)
-                            null
-                        }
-                    } else {
+            // Get programme information if this is a programme workout
+            val programmeName =
+                if (workout.isProgrammeWorkout && workout.programmeId != null) {
+                    try {
+                        repository.getProgrammeById(workout.programmeId)?.name
+                    } catch (e: Exception) {
+                        Log.e("WorkoutViewModel", "Failed to get programme name", e)
                         null
                     }
-
-                _currentWorkoutId.value = workoutId
-                _workoutState.value =
-                    WorkoutState(
-                        isActive = !isCompleted,
-                        status = if (isCompleted) WorkoutStatus.COMPLETED else WorkoutStatus.IN_PROGRESS,
-                        workoutId = workoutId,
-                        startTime = workout.date,
-                        workoutName = workout.name,
-                        isReadOnly = isCompleted,
-                        isInEditMode = false,
-                        originalWorkoutData = null,
-                        // Programme Integration
-                        isProgrammeWorkout = workout.isProgrammeWorkout,
-                        programmeId = workout.programmeId,
-                        programmeName = programmeName,
-                        weekNumber = workout.weekNumber,
-                        dayNumber = workout.dayNumber,
-                        programmeWorkoutName = workout.programmeWorkoutName,
-                        // Clear any pending celebrations from previous sessions
-                        pendingPRs = emptyList(),
-                        shouldShowPRCelebration = false,
-                    )
-
-                // Wait for exercises to load completely before UI renders
-                loadExercisesForWorkout(workoutId, isInitialLoad = true)
-                loadInProgressWorkouts()
-
-                // Handle workout timer
-                if (workout.status == WorkoutStatus.COMPLETED) {
-                    // For completed workouts, show the final duration (NEVER start a timer)
-                    stopWorkoutTimer() // Ensure any running timer is stopped
-                    _workoutTimerSeconds.value = workout.durationSeconds?.toInt() ?: 0
-                    workoutTimerStartTime = null
-                } else if (workout.status == WorkoutStatus.IN_PROGRESS && workout.timerStartTime != null) {
-                    // For in-progress workouts, resume the running timer
-                    resumeWorkoutTimer(workout.timerStartTime)
                 } else {
-                    // No timer data or not started
-                    stopWorkoutTimer()
-                    _workoutTimerSeconds.value = 0
-                    workoutTimerStartTime = null
+                    null
                 }
+
+            _currentWorkoutId.value = workoutId
+            _workoutState.value =
+                WorkoutState(
+                    isActive = !isCompleted,
+                    status = if (isCompleted) WorkoutStatus.COMPLETED else WorkoutStatus.IN_PROGRESS,
+                    workoutId = workoutId,
+                    startTime = workout.date,
+                    workoutName = workout.name,
+                    isReadOnly = isCompleted,
+                    isInEditMode = false,
+                    originalWorkoutData = null,
+                    // Programme Integration
+                    isProgrammeWorkout = workout.isProgrammeWorkout,
+                    programmeId = workout.programmeId,
+                    programmeName = programmeName,
+                    weekNumber = workout.weekNumber,
+                    dayNumber = workout.dayNumber,
+                    programmeWorkoutName = workout.programmeWorkoutName,
+                    // Clear any pending celebrations from previous sessions
+                    pendingPRs = emptyList(),
+                    shouldShowPRCelebration = false,
+                )
+
+            // Wait for exercises to load completely before UI renders
+            loadExercisesForWorkout(workoutId, isInitialLoad = true)
+            loadInProgressWorkouts()
+
+            // Handle workout timer
+            if (workout.status == WorkoutStatus.COMPLETED) {
+                // For completed workouts, show the final duration (NEVER start a timer)
+                stopWorkoutTimer() // Ensure any running timer is stopped
+                _workoutTimerSeconds.value = workout.durationSeconds?.toInt() ?: 0
+                workoutTimerStartTime = null
+            } else if (workout.status == WorkoutStatus.IN_PROGRESS && workout.timerStartTime != null) {
+                // For in-progress workouts, resume the running timer
+                resumeWorkoutTimer(workout.timerStartTime)
+            } else {
+                // No timer data or not started
+                stopWorkoutTimer()
+                _workoutTimerSeconds.value = 0
+                workoutTimerStartTime = null
             }
         }
     }
@@ -850,10 +849,14 @@ class WorkoutViewModel(
         if (!canEditWorkout()) return
         _isDragInProgress.value = true
         _draggedExerciseId.value = exerciseId
-        
+
         // Store original order for potential restoration
         originalExerciseOrder = _selectedWorkoutExercises.value
         dragStartIndex = originalExerciseOrder.indexOfFirst { it.id == exerciseId }
+        accumulatedDragAmount = 0f
+
+        // Collapse all exercises for smoother drag animation
+        _expandedExerciseIds.value = emptySet()
     }
 
     fun onExerciseDragEnd() {
@@ -861,32 +864,52 @@ class WorkoutViewModel(
         if (_isDragInProgress.value && originalExerciseOrder != _selectedWorkoutExercises.value) {
             commitExerciseReordering()
         }
-        
+
         _isDragInProgress.value = false
         _draggedExerciseId.value = null
         dragStartIndex = -1
         originalExerciseOrder = emptyList()
+        accumulatedDragAmount = 0f
     }
 
-    fun onExerciseDrag(exerciseId: Long, dragAmount: Float) {
-        // During drag, just track movement - actual reordering happens elsewhere
+    fun onExerciseDrag(
+        exerciseId: Long,
+        dragAmount: Float,
+    ) {
         if (!canEditWorkout() || !_isDragInProgress.value) return
-        // This is called for visual feedback but actual reordering logic 
-        // would be handled by UI drag gestures in a real implementation
+
+        // Accumulate drag amount
+        accumulatedDragAmount += dragAmount
+
+        // Calculate target index based on accumulated drag from start position
+        val cardHeight = 100f // Approximate height per exercise card in dp
+        val indexOffset = (accumulatedDragAmount / cardHeight).toInt()
+        val targetIndex = (dragStartIndex + indexOffset).coerceIn(0, originalExerciseOrder.size - 1)
+
+        // Only reorder if target index is different from current position
+        val currentExercises = _selectedWorkoutExercises.value
+        val currentIndex = currentExercises.indexOfFirst { it.id == exerciseId }
+
+        if (targetIndex != currentIndex && currentIndex != -1) {
+            reorderExercises(currentIndex, targetIndex)
+        }
     }
 
-    fun reorderExercises(fromIndex: Int, toIndex: Int) {
+    fun reorderExercises(
+        fromIndex: Int,
+        toIndex: Int,
+    ) {
         if (!canEditWorkout() || fromIndex == toIndex) return
-        
+
         val exercises = _selectedWorkoutExercises.value.toMutableList()
-        
+
         // Validate indices
         if (fromIndex < 0 || fromIndex >= exercises.size || toIndex < 0 || toIndex >= exercises.size) return
-        
+
         // Move the exercise (UI state only - database update happens on drag end)
         val exerciseToMove = exercises.removeAt(fromIndex)
         exercises.add(toIndex, exerciseToMove)
-        
+
         // Update UI state immediately for smooth visual feedback
         _selectedWorkoutExercises.value = exercises
     }
@@ -895,12 +918,11 @@ class WorkoutViewModel(
         viewModelScope.launch {
             try {
                 val exercises = _selectedWorkoutExercises.value
-                
+
                 // Update exercise orders in database
                 exercises.forEachIndexed { index, exercise ->
                     repository.updateExerciseOrder(exercise.id, index)
                 }
-                
             } catch (e: Exception) {
                 // Restore original order on error
                 _selectedWorkoutExercises.value = originalExerciseOrder
@@ -1055,6 +1077,15 @@ class WorkoutViewModel(
         setId: Long,
         completed: Boolean,
     ) {
+        viewModelScope.launch {
+            completeSetInternal(setId, completed)
+        }
+    }
+
+    private suspend fun completeSetInternal(
+        setId: Long,
+        completed: Boolean,
+    ) {
         // Validation: Only allow marking complete if set has reps and weight
         if (completed) {
             val set = _selectedExerciseSets.value.find { it.id == setId }
@@ -1070,161 +1101,158 @@ class WorkoutViewModel(
                 null
             }
 
-        viewModelScope.launch {
-            // Update local state immediately
-            val updatedSets =
-                _selectedExerciseSets.value.map { set ->
-                    if (set.id == setId) {
-                        set.copy(
-                            isCompleted = completed,
-                            completedAt = timestamp,
-                        )
-                    } else {
-                        set
-                    }
-                }
-            _selectedExerciseSets.value = updatedSets
-
-            // Update workout status to IN_PROGRESS when first set is completed
-            val currentWorkoutId = _currentWorkoutId.value
-            if (completed && currentWorkoutId != null) {
-                val currentState = _workoutState.value
-                if (currentState.isActive && currentState.status != WorkoutStatus.COMPLETED) {
-                    // Check if this is the first completed set
-                    val hasCompletedSets = _selectedExerciseSets.value.any { it.isCompleted && it.id != setId }
-                    if (!hasCompletedSets) {
-                        repository.updateWorkoutStatus(currentWorkoutId, WorkoutStatus.IN_PROGRESS)
-                    }
+        // Update local state immediately
+        val updatedSets =
+            _selectedExerciseSets.value.map { set ->
+                if (set.id == setId) {
+                    set.copy(
+                        isCompleted = completed,
+                        completedAt = timestamp,
+                    )
+                } else {
+                    set
                 }
             }
+        _selectedExerciseSets.value = updatedSets
 
-            // Then persist to database
-            repository.markSetCompleted(setId, completed, timestamp)
-
-            // Auto-start rest timer when set is completed
-            if (completed) {
-                startRestTimer(DEFAULT_REST_TIMER_SECONDS)
-
-                // Start workout timer on first set completion
-                if (workoutTimerStartTime == null) {
-                    startWorkoutTimer()
-                }
-
-                // Check for 1RM updates
-                val completedSet = _selectedExerciseSets.value.find { it.id == setId }
-                completedSet?.let { set ->
-                    checkAndUpdateOneRM(set)
+        // Update workout status to IN_PROGRESS when first set is completed
+        val currentWorkoutId = _currentWorkoutId.value
+        if (completed && currentWorkoutId != null) {
+            val currentState = _workoutState.value
+            if (currentState.isActive && currentState.status != WorkoutStatus.COMPLETED) {
+                // Check if this is the first completed set
+                val hasCompletedSets = _selectedExerciseSets.value.any { it.isCompleted && it.id != setId }
+                if (!hasCompletedSets) {
+                    repository.updateWorkoutStatus(currentWorkoutId, WorkoutStatus.IN_PROGRESS)
                 }
             }
-
-            // Check for Personal Records AFTER database save (when completed)
-            if (completed) {
-                try {
-                    // Get the set data from local state (which now includes the completion)
-                    val completedSet = updatedSets.find { it.id == setId }
-
-                    // Get exercise name for this set
-                    val exerciseLog =
-                        _selectedWorkoutExercises.value.find { exerciseLog ->
-                            updatedSets.any { it.exerciseLogId == exerciseLog.id && it.id == setId }
-                        }
-
-                    if (exerciseLog != null && completedSet != null) {
-                        val allPRs = repository.checkForPR(completedSet, exerciseLog.exerciseName)
-
-                        if (allPRs.isNotEmpty()) {
-                            allPRs.forEach { pr ->
-                            }
-
-                            // Update state to show PR celebration
-                            _workoutState.value =
-                                _workoutState.value.copy(
-                                    pendingPRs = _workoutState.value.pendingPRs + allPRs,
-                                    shouldShowPRCelebration = true,
-                                )
-                        }
-                    } else {
-                    }
-                } catch (e: Exception) {
-                    // Log error but don't fail set completion
-                    Log.e("WorkoutViewModel", "PR detection failed", e)
-                }
-
-                // Check if we should update 1RM estimate
-                try {
-                    val completedSet = updatedSets.find { it.id == setId }
-                    val exerciseLog =
-                        _selectedWorkoutExercises.value.find { exerciseLog ->
-                            updatedSets.any { it.exerciseLogId == exerciseLog.id && it.id == setId }
-                        }
-
-                    if (exerciseLog != null && completedSet != null) {
-                        val currentEstimate = _oneRMEstimates.value[exerciseLog.exerciseId]
-                        val newEstimate =
-                            oneRMService.calculateEstimated1RM(
-                                completedSet.actualWeight,
-                                completedSet.actualReps,
-                            )
-
-                        if (newEstimate != null &&
-                            oneRMService.shouldUpdateOneRM(
-                                completedSet,
-                                currentEstimate,
-                                newEstimate,
-                            )
-                        ) {
-                            // Calculate confidence
-                            val percentOf1RM =
-                                if (currentEstimate != null && currentEstimate > 0) {
-                                    completedSet.actualWeight / currentEstimate
-                                } else {
-                                    1f
-                                }
-
-                            val confidence =
-                                oneRMService.calculateConfidence(
-                                    completedSet.actualReps,
-                                    completedSet.actualRpe,
-                                    percentOf1RM,
-                                )
-
-                            // Get current user and update 1RM
-                            val userId = repository.getCurrentUserId()
-                            val exerciseId = exerciseLog.exerciseId
-                            if (exerciseId != null) {
-                                val oneRMRecord =
-                                    oneRMService.createOneRMRecord(
-                                        userId = userId,
-                                        exerciseId = exerciseId,
-                                        set = completedSet,
-                                        estimate = newEstimate,
-                                        confidence = confidence,
-                                    )
-
-                                repository.updateOrInsertOneRM(oneRMRecord)
-
-                                // Reload 1RM estimates
-                                loadOneRMEstimatesForCurrentExercises()
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e("WorkoutViewModel", "Failed to update 1RM estimate", e)
-                }
-            }
-
-            loadInProgressWorkouts()
         }
+
+        // Then persist to database
+        repository.markSetCompleted(setId, completed, timestamp)
+
+        // Auto-start rest timer when set is completed
+        if (completed) {
+            startRestTimer(DEFAULT_REST_TIMER_SECONDS)
+
+            // Start workout timer on first set completion
+            if (workoutTimerStartTime == null) {
+                startWorkoutTimer()
+            }
+
+            // Check for 1RM updates
+            val completedSet = _selectedExerciseSets.value.find { it.id == setId }
+            completedSet?.let { set ->
+                checkAndUpdateOneRM(set)
+            }
+        }
+
+        // Check for Personal Records AFTER database save (when completed)
+        if (completed) {
+            try {
+                // Get the set data from local state (which now includes the completion)
+                val completedSet = updatedSets.find { it.id == setId }
+
+                // Get exercise name for this set
+                val exerciseLog =
+                    _selectedWorkoutExercises.value.find { exerciseLog ->
+                        updatedSets.any { it.exerciseLogId == exerciseLog.id && it.id == setId }
+                    }
+
+                if (exerciseLog != null && completedSet != null) {
+                    val allPRs = repository.checkForPR(completedSet, exerciseLog.exerciseName)
+
+                    if (allPRs.isNotEmpty()) {
+                        // Update state to show PR celebration
+                        _workoutState.value =
+                            _workoutState.value.copy(
+                                pendingPRs = _workoutState.value.pendingPRs + allPRs,
+                                shouldShowPRCelebration = true,
+                            )
+                    }
+                }
+            } catch (e: Exception) {
+                // Log error but don't fail set completion
+                Log.e("WorkoutViewModel", "PR detection failed", e)
+            }
+
+            // Check if we should update 1RM estimate
+            try {
+                val completedSet = updatedSets.find { it.id == setId }
+                val exerciseLog =
+                    _selectedWorkoutExercises.value.find { exerciseLog ->
+                        updatedSets.any { it.exerciseLogId == exerciseLog.id && it.id == setId }
+                    }
+
+                if (exerciseLog != null && completedSet != null) {
+                    val currentEstimate = _oneRMEstimates.value[exerciseLog.exerciseId]
+                    val newEstimate =
+                        oneRMService.calculateEstimated1RM(
+                            completedSet.actualWeight,
+                            completedSet.actualReps,
+                        )
+
+                    if (newEstimate != null &&
+                        oneRMService.shouldUpdateOneRM(
+                            completedSet,
+                            currentEstimate,
+                            newEstimate,
+                        )
+                    ) {
+                        // Calculate confidence
+                        val percentOf1RM =
+                            if (currentEstimate != null && currentEstimate > 0) {
+                                completedSet.actualWeight / currentEstimate
+                            } else {
+                                1f
+                            }
+
+                        val confidence =
+                            oneRMService.calculateConfidence(
+                                completedSet.actualReps,
+                                completedSet.actualRpe,
+                                percentOf1RM,
+                            )
+
+                        // Get current user and update 1RM
+                        val userId = repository.getCurrentUserId()
+                        val exerciseId = exerciseLog.exerciseId
+                        if (exerciseId != null) {
+                            val oneRMRecord =
+                                oneRMService.createOneRMRecord(
+                                    userId = userId,
+                                    exerciseId = exerciseId,
+                                    set = completedSet,
+                                    estimate = newEstimate,
+                                    confidence = confidence,
+                                )
+
+                            repository.updateOrInsertOneRM(oneRMRecord)
+
+                            // Reload 1RM estimates
+                            loadOneRMEstimatesForCurrentExercises()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("WorkoutViewModel", "Failed to update 1RM estimate", e)
+            }
+        }
+
+        loadInProgressWorkouts()
     }
 
     fun completeAllSetsInExercise(exerciseLogId: Long) {
         viewModelScope.launch {
             val exerciseSets = _selectedExerciseSets.value.filter { it.exerciseLogId == exerciseLogId }
-
-            exerciseSets.forEach { set ->
-                if (canMarkSetCompleteInternal(set) && !set.isCompleted) {
-                    markSetCompleted(set.id, true)
+            val setsToComplete =
+                exerciseSets.filter { set ->
+                    canMarkSetCompleteInternal(set) && !set.isCompleted
                 }
+
+            // Complete each set sequentially to avoid race conditions
+            setsToComplete.forEach { set ->
+                completeSetInternal(set.id, true)
             }
 
             loadAllSetsForCurrentExercises()
@@ -1235,11 +1263,15 @@ class WorkoutViewModel(
     fun completeAllSetsInWorkout() {
         viewModelScope.launch {
             val allSets = _selectedExerciseSets.value
-
-            allSets.forEach { set ->
-                if (canMarkSetCompleteInternal(set) && !set.isCompleted) {
-                    markSetCompleted(set.id, true)
+            val setsToComplete =
+                allSets.filter { set ->
+                    canMarkSetCompleteInternal(set) && !set.isCompleted
                 }
+
+            // Complete each set sequentially to avoid race conditions
+            setsToComplete.forEach { set ->
+                // Use the internal completion logic without launching new coroutines
+                completeSetInternal(set.id, true)
             }
 
             loadAllSetsForCurrentExercises()
@@ -1252,6 +1284,11 @@ class WorkoutViewModel(
         val result = allSets.isNotEmpty() && allSets.any { canMarkSetComplete(it) && !it.isCompleted }
 
         return result
+    }
+
+    fun canCompleteAllSetsInExercise(exerciseLogId: Long): Boolean {
+        val exerciseSets = _selectedExerciseSets.value.filter { it.exerciseLogId == exerciseLogId }
+        return exerciseSets.isNotEmpty() && exerciseSets.any { canMarkSetComplete(it) && !it.isCompleted }
     }
 
     // Smart suggestions
@@ -1430,7 +1467,6 @@ class WorkoutViewModel(
 
                     // Update only the workout name after loading is complete
                     // Don't overwrite the entire state which would interfere with validation
-                    delay(100) // Small delay to ensure resumeWorkout completes
                     _workoutState.value =
                         _workoutState.value.copy(
                             workoutName = "Repeat Workout",

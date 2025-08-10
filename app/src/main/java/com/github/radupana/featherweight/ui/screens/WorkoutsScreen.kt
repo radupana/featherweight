@@ -186,8 +186,10 @@ fun WorkoutsScreen(
 
                         Button(
                             onClick = {
-                                workoutViewModel.resumeWorkout(mostRecentInProgressWorkout.id)
-                                onStartFreestyle()
+                                scope.launch {
+                                    workoutViewModel.resumeWorkout(mostRecentInProgressWorkout.id)
+                                    onStartFreestyle()
+                                }
                             },
                         ) {
                             Icon(Icons.Filled.PlayArrow, contentDescription = null)

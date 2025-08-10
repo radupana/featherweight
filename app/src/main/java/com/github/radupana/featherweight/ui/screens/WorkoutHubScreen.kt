@@ -171,8 +171,10 @@ fun WorkoutHubScreen(
                         WorkoutHubInProgressCard(
                             workout = workout,
                             onContinue = {
-                                workoutViewModel.resumeWorkout(workout.id)
-                                onStartActiveWorkout()
+                                scope.launch {
+                                    workoutViewModel.resumeWorkout(workout.id)
+                                    onStartActiveWorkout()
+                                }
                             },
                         )
                         if (workout != inProgressWorkouts.last()) {
@@ -217,9 +219,11 @@ fun WorkoutHubScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        workoutViewModel.resumeWorkout(pendingWorkout!!.id)
-                        onStartActiveWorkout()
-                        showWorkoutDialog = false
+                        scope.launch {
+                            workoutViewModel.resumeWorkout(pendingWorkout!!.id)
+                            onStartActiveWorkout()
+                            showWorkoutDialog = false
+                        }
                     },
                 ) {
                     Text("Continue")

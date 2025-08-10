@@ -42,6 +42,7 @@ import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
 import com.github.radupana.featherweight.viewmodel.InProgressWorkout
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -72,7 +73,7 @@ fun HomeScreen(
     val programmeProgress by programmeViewModel.programmeProgress.collectAsState()
     val lastCompletedWorkout by workoutViewModel.lastCompletedWorkout.collectAsState()
     val lastCompletedWorkoutExercises by workoutViewModel.lastCompletedWorkoutExercises.collectAsState()
-    rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
     var showWorkoutDialog by remember { mutableStateOf(false) }
     var pendingWorkout by remember { mutableStateOf<InProgressWorkout?>(null) }
 
@@ -191,9 +192,11 @@ fun HomeScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        workoutViewModel.resumeWorkout(pendingWorkout!!.id)
-                        onStartFreestyle()
-                        showWorkoutDialog = false
+                        scope.launch {
+                            workoutViewModel.resumeWorkout(pendingWorkout!!.id)
+                            onStartFreestyle()
+                            showWorkoutDialog = false
+                        }
                     },
                 ) {
                     Text("Continue")

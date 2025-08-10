@@ -66,9 +66,12 @@ fun CompactRestTimer(
 
         // Progress indicator at top
         LinearProgressIndicator(
-            progress = { 
-                if (initialSeconds > 0) (seconds.toFloat() / initialSeconds).coerceIn(0f, 1f) 
-                else 0f 
+            progress = {
+                if (initialSeconds > 0) {
+                    (seconds.toFloat() / initialSeconds).coerceIn(0f, 1f)
+                } else {
+                    0f
+                }
             },
             modifier =
                 Modifier
