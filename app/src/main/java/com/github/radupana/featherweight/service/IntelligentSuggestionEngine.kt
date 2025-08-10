@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 interface IntelligentSuggestionEngine {
     suspend fun suggestWeight(
         exerciseName: String,
-        targetReps: Int,
+        targetReps: Int?,
     ): WeightSuggestion
 
     suspend fun suggestReps(
@@ -71,7 +71,7 @@ enum class SuggestionSource {
 interface FailureAnalysisEngine {
     suspend fun analyzePerformance(
         exerciseName: String,
-        targetReps: Int,
+        targetReps: Int?,
         targetWeight: Float?,
         actualReps: Int,
         actualWeight: Float,
@@ -124,7 +124,7 @@ data class DeloadRecommendation(
 )
 
 data class PerformanceData(
-    val targetReps: Int,
+    val targetReps: Int?,
     val targetWeight: Float?,
     val actualReps: Int,
     val actualWeight: Float,

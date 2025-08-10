@@ -114,10 +114,15 @@ class ProgressionService(
     ) = withContext(Dispatchers.IO) {
         val targetSets = sets.size
         val completedSets = sets.count { it.isCompleted }
-        val targetReps = sets.firstOrNull()?.actualReps ?: 0
-        val totalTargetReps = targetSets * targetReps
+        val targetReps = sets.firstOrNull()?.targetReps
         val achievedReps = sets.sumOf { if (it.isCompleted) it.actualReps else 0 }
-        val missedReps = totalTargetReps - achievedReps
+        val missedReps =
+            if (targetReps != null) {
+                val totalTargetReps = targetSets * targetReps
+                totalTargetReps - achievedReps
+            } else {
+                0 // No concept of "missed reps" in freestyle workouts
+            }
 
         // Get the target weight (should be consistent across sets for linear progression)
         val targetWeight = sets.firstOrNull()?.actualWeight ?: 0f
@@ -139,7 +144,8 @@ class ProgressionService(
                 ?.getProgressionRulesObject()
 
         val wasSuccessful =
-            if (progressionRules != null) {
+            if (progressionRules != null && targetReps != null) {
+                // Program workout with target reps - use progression rules
                 val criteria = progressionRules.successCriteria
                 val meetsSetRequirement = criteria.requiredSets == null || completedSets >= criteria.requiredSets
                 val meetsRepRequirement =
@@ -151,9 +157,12 @@ class ProgressionService(
                         (criteria.maxRPE == null || averageRpe <= criteria.maxRPE)
 
                 meetsSetRequirement && meetsRepRequirement && meetsRpeRequirement
-            } else {
-                // Default: all sets completed
+            } else if (targetReps != null) {
+                // Program workout without progression rules - strict target adherence
                 completedSets == targetSets && missedReps == 0
+            } else {
+                // Freestyle workout - success based on reasonable completion rate
+                completedSets.toFloat() / targetSets >= 0.8f // 80% completion rate
             }
 
         val performanceRecord =

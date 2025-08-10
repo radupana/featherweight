@@ -3073,9 +3073,9 @@ class FeatherweightRepository(
                         SetLog(
                             exerciseLogId = newExerciseId,
                             setOrder = set.setOrder,
-                            // Set target values from previous performance
-                            targetReps = set.actualReps,
-                            targetWeight = set.actualWeight,
+                            // Freestyle workouts should NOT have target values - this is false data
+                            targetReps = null,
+                            targetWeight = null,
                             // Pre-populate actual values so sets can be immediately marked complete
                             actualReps = set.actualReps,
                             actualWeight = set.actualWeight,

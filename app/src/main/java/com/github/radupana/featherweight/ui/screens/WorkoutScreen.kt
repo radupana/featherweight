@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
@@ -55,7 +54,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -67,7 +65,6 @@ import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.ui.dialogs.NotesInputModal
 import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
-import com.github.radupana.featherweight.viewmodel.WorkoutState
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,7 +101,6 @@ fun WorkoutScreen(
     var showPRCelebration by remember { mutableStateOf(false) }
     var showNotesModal by remember { mutableStateOf(false) }
     var currentNotes by remember { mutableStateOf("") }
-
 
     // Calculate progress stats
     val totalSets = exercises.sumOf { ex -> sets.count { it.exerciseLogId == ex.id } }
@@ -149,7 +145,6 @@ fun WorkoutScreen(
         }
     }
 
-
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -188,13 +183,14 @@ fun WorkoutScreen(
                                             tint = MaterialTheme.colorScheme.primary,
                                         )
                                         Text(
-                                            text = buildString {
-                                                workoutState.programmeName?.let { append(it) }
-                                                if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
-                                                    if (isNotEmpty()) append(" • ")
-                                                    append("W${workoutState.weekNumber}D${workoutState.dayNumber}")
-                                                }
-                                            },
+                                            text =
+                                                buildString {
+                                                    workoutState.programmeName?.let { append(it) }
+                                                    if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
+                                                        if (isNotEmpty()) append(" • ")
+                                                        append("W${workoutState.weekNumber}D${workoutState.dayNumber}")
+                                                    }
+                                                },
                                             style = MaterialTheme.typography.labelMedium,
                                             color = MaterialTheme.colorScheme.primary,
                                             maxLines = 1,
@@ -217,71 +213,74 @@ fun WorkoutScreen(
                             )
                         }
                     },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    // Notes button
-                    IconButton(onClick = {
-                        // Load current notes from repository
-                        currentWorkoutId?.let { workoutId ->
-                            viewModel.loadWorkoutNotes(workoutId) { notes ->
-                                currentNotes = notes ?: ""
-                                showNotesModal = true
-                            }
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Notes,
-                            contentDescription = "Workout Notes",
-                            tint = if (currentNotes.isNotBlank()) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                        )
-                    }
-
-                    // Show repeat button for completed workouts, menu for active
-                    if (!canEdit && workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
-                        IconButton(onClick = { viewModel.repeatWorkout() }) {
+                    },
+                    actions = {
+                        // Notes button
+                        IconButton(onClick = {
+                            // Load current notes from repository
+                            currentWorkoutId?.let { workoutId ->
+                                viewModel.loadWorkoutNotes(workoutId) { notes ->
+                                    currentNotes = notes ?: ""
+                                    showNotesModal = true
+                                }
+                            }
+                        }) {
                             Icon(
-                                Icons.Filled.Refresh,
-                                contentDescription = "Repeat Workout",
-                                tint = MaterialTheme.colorScheme.primary,
+                                Icons.AutoMirrored.Filled.Notes,
+                                contentDescription = "Workout Notes",
+                                tint = if (currentNotes.isNotBlank()) MaterialTheme.colorScheme.primary else LocalContentColor.current,
                             )
                         }
-                    } else if (canEdit) {
-                        IconButton(onClick = { showWorkoutMenuDialog = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = "Workout Options")
+
+                        // Show repeat button for completed workouts, menu for active
+                        if (!canEdit && workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
+                            IconButton(onClick = { viewModel.repeatWorkout() }) {
+                                Icon(
+                                    Icons.Filled.Refresh,
+                                    contentDescription = "Repeat Workout",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        } else if (canEdit) {
+                            IconButton(onClick = { showWorkoutMenuDialog = true }) {
+                                Icon(Icons.Filled.MoreVert, contentDescription = "Workout Options")
+                            }
                         }
-                    }
-                },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor =
-                            if (!canEdit) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    ),
+                    },
+                    colors =
+                        TopAppBarDefaults.topAppBarColors(
+                            containerColor =
+                                if (!canEdit) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
+                            titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        ),
                 )
-                
+
                 // Progress bar below TopAppBar
                 if (totalSets > 0) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .padding(bottom = 8.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .padding(bottom = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         LinearProgressIndicator(
-                            progress = { completedSets.toFloat() / totalSets },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(4.dp),
-                            color = if (completedSets == totalSets) {
-                                MaterialTheme.colorScheme.tertiary
-                            } else {
-                                MaterialTheme.colorScheme.primary
-                            },
+                            progress = { (completedSets.toFloat() / totalSets).coerceIn(0f, 1f) },
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .height(4.dp),
+                            color =
+                                if (completedSets == totalSets) {
+                                    MaterialTheme.colorScheme.tertiary
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
                             trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         )
                         Spacer(modifier = Modifier.width(12.dp))
@@ -289,11 +288,12 @@ fun WorkoutScreen(
                             text = "$completedSets / $totalSets",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Medium,
-                            color = if (completedSets == totalSets) {
-                                MaterialTheme.colorScheme.tertiary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
+                            color =
+                                if (completedSets == totalSets) {
+                                    MaterialTheme.colorScheme.tertiary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                         )
                     }
                 }
@@ -301,17 +301,19 @@ fun WorkoutScreen(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize(),
+            modifier =
+                Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize(),
         ) {
             // Exercises list or empty state
             if (workoutState.isLoadingExercises) {
                 // Show loading indicator while exercises are being loaded
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator(
@@ -322,9 +324,10 @@ fun WorkoutScreen(
             } else if (exercises.isEmpty()) {
                 // Empty state - show buttons
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (canEdit) {
@@ -351,9 +354,10 @@ fun WorkoutScreen(
                     onSelectExercise = onSelectExercise,
                     onCompleteWorkout = { showCompleteWorkoutDialog = true },
                     viewModel = viewModel,
-                    modifier = Modifier
-                        .weight(1f)
-                        .imePadding() // Handle keyboard
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .imePadding(), // Handle keyboard
                 )
             }
 
@@ -460,8 +464,6 @@ fun WorkoutScreen(
             onDismiss = { showCompleteWorkoutDialog = false },
         )
     }
-
-
 
     // 1RM Update Dialog
     if (showOneRMUpdateDialog && pendingOneRMUpdates.isNotEmpty()) {
@@ -808,4 +810,3 @@ private fun WorkoutActionButtons(
         }
     }
 }
-

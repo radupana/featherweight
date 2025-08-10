@@ -13,49 +13,64 @@ class FeatherweightSuggestionEngine(
 ) : IntelligentSuggestionEngine {
     override suspend fun suggestWeight(
         exerciseName: String,
-        targetReps: Int,
+        targetReps: Int?,
     ): WeightSuggestion {
         val sources = mutableListOf<SuggestionSourceData>()
         val weights = mutableListOf<Float>()
         val confidences = mutableListOf<Float>()
 
+        // For freestyle workouts (null targetReps), use a default of 8-10 reps for calculations
+        val effectiveTargetReps = targetReps ?: 8
+
         // 1. One RM calculation (if available)
         val oneRM = repository.getOneRMForExercise(exerciseName)
         if (oneRM != null) {
-            val percentage = calculatePercentageForReps(targetReps)
+            val percentage = calculatePercentageForReps(effectiveTargetReps)
             val weight = oneRM * percentage
+            val confidence = if (targetReps != null) 0.9f else 0.7f // Lower confidence for freestyle
             sources.add(
                 SuggestionSourceData(
                     source = SuggestionSource.ONE_RM_CALCULATION,
                     value = weight,
                     weight = 0.4f,
-                    details = "1RM: ${oneRM}kg × ${(percentage * 100).roundToInt()}% for $targetReps reps",
+                    details =
+                        if (targetReps != null) {
+                            "1RM: ${oneRM}kg × ${(percentage * 100).roundToInt()}% for $targetReps reps"
+                        } else {
+                            "1RM: ${oneRM}kg × ${(percentage * 100).roundToInt()}% (estimated for freestyle)"
+                        },
                 ),
             )
             weights.add(weight)
-            confidences.add(0.9f)
+            confidences.add(confidence)
         }
 
         // 2. Historical average for similar rep ranges
-        val historicalData = repository.getHistoricalPerformance(exerciseName, targetReps - 1, targetReps + 1)
+        val historicalData = repository.getHistoricalPerformance(exerciseName, effectiveTargetReps - 1, effectiveTargetReps + 1)
         if (historicalData.isNotEmpty()) {
             val avgWeight = historicalData.map { it.actualWeight }.average().toFloat()
+            val confidence = if (targetReps != null) 0.7f else 0.6f // Lower confidence for freestyle
             sources.add(
                 SuggestionSourceData(
                     source = SuggestionSource.HISTORICAL_AVERAGE,
                     value = avgWeight,
                     weight = 0.3f,
-                    details = "Average from ${historicalData.size} recent $targetReps±1 rep sets",
+                    details =
+                        if (targetReps != null) {
+                            "Average from ${historicalData.size} recent $targetReps±1 rep sets"
+                        } else {
+                            "Average from ${historicalData.size} recent similar rep sets"
+                        },
                 ),
             )
             weights.add(avgWeight)
-            confidences.add(0.7f)
+            confidences.add(confidence)
         }
 
         // 3. Recent performance trend
         val recentSets = repository.getRecentPerformance(exerciseName, limit = 5)
         if (recentSets.isNotEmpty()) {
-            val trendWeight = calculateTrendWeight(recentSets, targetReps)
+            val trendWeight = calculateTrendWeight(recentSets, effectiveTargetReps)
             sources.add(
                 SuggestionSourceData(
                     source = SuggestionSource.RECENT_PERFORMANCE,
@@ -69,7 +84,7 @@ class FeatherweightSuggestionEngine(
         }
 
         // 4. Cross-exercise correlation (if available)
-        val correlatedWeight = calculateCorrelatedWeight(exerciseName, targetReps)
+        val correlatedWeight = calculateCorrelatedWeight(exerciseName, effectiveTargetReps)
         if (correlatedWeight != null) {
             sources.add(
                 SuggestionSourceData(
@@ -100,7 +115,7 @@ class FeatherweightSuggestionEngine(
             }
 
         // Generate alternative rep ranges
-        val alternatives = generateAlternativeWeights(sources, targetReps)
+        val alternatives = generateAlternativeWeights(sources, effectiveTargetReps)
 
         val explanation = buildExplanation(sources, finalWeight, finalConfidence)
 
@@ -239,7 +254,7 @@ class FeatherweightSuggestionEngine(
             val successRate =
                 relevantSets
                     .count {
-                        it.actualReps >= it.targetReps
+                        it.targetReps != null && it.actualReps >= it.targetReps
                     }.toFloat() / relevantSets.size
 
             if (successRate > 0.8f) {

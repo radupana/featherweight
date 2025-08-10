@@ -70,7 +70,7 @@ class WorkoutViewModel(
 ) : AndroidViewModel(application) {
     val repository = FeatherweightRepository(application)
     private val oneRMService = OneRMService()
-    
+
     companion object {
         private const val DEFAULT_REST_TIMER_SECONDS = 90
     }
@@ -158,7 +158,7 @@ class WorkoutViewModel(
     val restTimerInitialSeconds: StateFlow<Int> = _restTimerInitialSeconds
 
     private var restTimerJob: Job? = null
-    
+
     // Exercise card expansion state
     private val _expandedExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
     val expandedExerciseIds: StateFlow<Set<Long>> = _expandedExerciseIds
@@ -613,7 +613,10 @@ class WorkoutViewModel(
         return result
     }
 
-    private suspend fun loadExercisesForWorkout(workoutId: Long, isInitialLoad: Boolean = false) {
+    private suspend fun loadExercisesForWorkout(
+        workoutId: Long,
+        isInitialLoad: Boolean = false,
+    ) {
         // Set loading state to true before starting
         _workoutState.value = _workoutState.value.copy(isLoadingExercises = true)
 
@@ -621,7 +624,7 @@ class WorkoutViewModel(
             _selectedWorkoutExercises.value = repository.getExercisesForWorkout(workoutId)
             // Wait for sets to be loaded completely
             loadAllSetsForCurrentExercisesAndWait()
-            
+
             if (isInitialLoad) {
                 // Initial load: expand all exercises by default
                 _expandedExerciseIds.value = _selectedWorkoutExercises.value.map { it.id }.toSet()
@@ -818,9 +821,9 @@ class WorkoutViewModel(
     fun loadExerciseHistoryForName(exerciseName: String) {
         loadExerciseHistory(exerciseName)
     }
-    
+
     // ===== EXERCISE CARD EXPANSION MANAGEMENT =====
-    
+
     fun toggleExerciseExpansion(exerciseId: Long) {
         val current = _expandedExerciseIds.value.toMutableSet()
         if (current.contains(exerciseId)) {
@@ -830,14 +833,13 @@ class WorkoutViewModel(
         }
         _expandedExerciseIds.value = current
     }
-    
 
     // ===== EXISTING SET MANAGEMENT METHODS =====
 
     // Set management - only allowed if workout can be edited
     fun addSetToExercise(
         exerciseLogId: Long,
-        targetReps: Int = 0,
+        targetReps: Int? = null,
         targetWeight: Float? = null,
         weight: Float = 0f,
         reps: Int = 0,
@@ -848,12 +850,14 @@ class WorkoutViewModel(
 
         viewModelScope.launch {
             val setOrder = repository.getSetsForExercise(exerciseLogId).size
+            val isProgrammeWorkout = _workoutState.value.isProgrammeWorkout
             val setLog =
                 SetLog(
                     exerciseLogId = exerciseLogId,
                     setOrder = setOrder,
-                    targetReps = targetReps,
-                    targetWeight = targetWeight,
+                    // Only set target values for programme workouts, null for freestyle
+                    targetReps = if (isProgrammeWorkout) targetReps else null,
+                    targetWeight = if (isProgrammeWorkout) targetWeight else null,
                     actualReps = reps,
                     actualWeight = weight,
                     actualRpe = rpe,
@@ -876,39 +880,42 @@ class WorkoutViewModel(
             onSetCreated(newSetId)
         }
     }
-    
+
     fun addSet(exerciseLogId: Long) {
         addSetToExercise(exerciseLogId) { }
     }
-    
+
     fun copyLastSet(exerciseLogId: Long) {
         if (!canEditWorkout()) return
-        
+
         viewModelScope.launch {
             val sets = repository.getSetsForExercise(exerciseLogId)
             val lastSet = sets.maxByOrNull { it.setOrder }
-            
+
             if (lastSet != null && lastSet.actualReps > 0) {
                 val newSetOrder = (sets.maxOfOrNull { it.setOrder } ?: 0) + 1
-                val newSet = SetLog(
-                    exerciseLogId = exerciseLogId,
-                    setOrder = newSetOrder,
-                    targetReps = lastSet.targetReps,
-                    targetWeight = lastSet.targetWeight,
-                    actualReps = lastSet.actualReps,
-                    actualWeight = lastSet.actualWeight,
-                    actualRpe = lastSet.actualRpe,
-                    isCompleted = false
-                )
-                
+                val isProgrammeWorkout = _workoutState.value.isProgrammeWorkout
+                val newSet =
+                    SetLog(
+                        exerciseLogId = exerciseLogId,
+                        setOrder = newSetOrder,
+                        // Only copy target values for programme workouts, set to null for freestyle
+                        targetReps = if (isProgrammeWorkout) lastSet.targetReps else null,
+                        targetWeight = if (isProgrammeWorkout) lastSet.targetWeight else null,
+                        actualReps = lastSet.actualReps,
+                        actualWeight = lastSet.actualWeight,
+                        actualRpe = lastSet.actualRpe,
+                        isCompleted = false,
+                    )
+
                 val newSetId = repository.insertSetLog(newSet)
-                
+
                 // Update validation cache
                 val validationResult = canMarkSetCompleteInternal(newSet.copy(id = newSetId))
                 val validationMap = _setCompletionValidation.value.toMutableMap()
                 validationMap[newSetId] = validationResult
                 _setCompletionValidation.value = validationMap
-                
+
                 loadAllSetsForCurrentExercises()
                 loadInProgressWorkouts()
             }
@@ -1266,7 +1273,6 @@ class WorkoutViewModel(
 
         val exercises = _selectedWorkoutExercises.value.toMutableList()
         if (fromIndex in exercises.indices && toIndex in exercises.indices && fromIndex != toIndex) {
-
             // Move the item in the list
             val item = exercises.removeAt(fromIndex)
             exercises.add(toIndex, item)
@@ -1276,7 +1282,6 @@ class WorkoutViewModel(
                 exercises.mapIndexed { index, exercise ->
                     exercise.copy(exerciseOrder = index)
                 }
-
 
             // Update the UI state immediately for smooth animation
             _selectedWorkoutExercises.value = updatedExercises

@@ -20,7 +20,7 @@ data class ExercisePerformanceTracking(
     val achievedWeight: Float,
     val targetSets: Int,
     val completedSets: Int,
-    val targetReps: Int,
+    val targetReps: Int?,
     val achievedReps: Int, // Total across all sets
     val missedReps: Int, // Total missed reps
     // Success/Failure tracking

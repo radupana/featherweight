@@ -181,7 +181,10 @@ fun CompactExerciseCard(
 
                         // Progress bar
                         LinearProgressIndicator(
-                            progress = { completedSets.toFloat() / sets.size },
+                            progress = { 
+                                if (sets.isEmpty()) 0f 
+                                else (completedSets.toFloat() / sets.size).coerceIn(0f, 1f) 
+                            },
                             modifier =
                                 Modifier
                                     .weight(1f)

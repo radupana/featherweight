@@ -48,7 +48,7 @@ class WorkoutTemplateWeightService(
                         targetWeight = suggestedWeight.weight,
                         // Also populate actual values so the checkbox is enabled
                         actualWeight = suggestedWeight.weight,
-                        actualReps = set.targetReps,
+                        actualReps = set.targetReps ?: 0,
                         suggestionConfidence = suggestedWeight.confidence,
                     ),
                 )

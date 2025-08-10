@@ -19,7 +19,7 @@ data class SetLog(
     val exerciseLogId: Long,
     val setOrder: Int,
     // Target (what programme says to do) - nullable for freestyle workouts
-    val targetReps: Int = 0,
+    val targetReps: Int? = null,
     val targetWeight: Float? = null,
     // Actual performance (what user actually did) - THE SOURCE OF TRUTH
     val actualReps: Int = 0,

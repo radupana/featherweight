@@ -72,7 +72,7 @@ data class ExportedExercise(
 
 data class ExportedSet(
     val setNumber: Int,
-    val targetReps: Int,
+    val targetReps: Int?,
     val targetWeight: Float?,
     val actualReps: Int,
     val actualWeight: Float,

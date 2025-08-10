@@ -216,7 +216,7 @@ class WorkoutExportService(
     ) {
         writer.beginObject()
         writer.name("setNumber").value(setNumber)
-        writer.name("targetReps").value(set.targetReps)
+        set.targetReps?.let { writer.name("targetReps").value(it) }
         set.targetWeight?.let { writer.name("targetWeight").value(it) }
         writer.name("actualReps").value(set.actualReps)
         writer.name("actualWeight").value(set.actualWeight)

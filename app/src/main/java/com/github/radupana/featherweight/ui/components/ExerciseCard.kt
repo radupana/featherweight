@@ -17,35 +17,34 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,13 +52,12 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.ExerciseLog
@@ -134,9 +132,10 @@ fun ExerciseCard(
         }
         // Compact header with action buttons
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onToggleExpansion),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggleExpansion),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -144,14 +143,15 @@ fun ExerciseCard(
             val rotationAngle by animateFloatAsState(
                 targetValue = if (isExpanded) 0f else -90f,
                 animationSpec = tween(200),
-                label = "chevron rotation"
+                label = "chevron rotation",
             )
             Icon(
                 Icons.Filled.KeyboardArrowDown,
                 contentDescription = if (isExpanded) "Collapse" else "Expand",
-                modifier = Modifier
-                    .size(24.dp)
-                    .graphicsLayer { rotationZ = rotationAngle },
+                modifier =
+                    Modifier
+                        .size(24.dp)
+                        .graphicsLayer { rotationZ = rotationAngle },
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             // Exercise name and progress
@@ -168,7 +168,7 @@ fun ExerciseCard(
                 )
 
                 if (sets.isNotEmpty()) {
-                    val progress = (completedSets.toFloat() / sets.size * 100).toInt()
+                    val progress = (completedSets.toFloat() / sets.size * 100).toInt().coerceIn(0, 100)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -179,31 +179,40 @@ fun ExerciseCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         LinearProgressIndicator(
-                            progress = { completedSets.toFloat() / sets.size },
-                            modifier = Modifier
-                                .width(40.dp)
-                                .height(3.dp),
-                            color = if (completedSets == sets.size) {
-                                FeatherweightColors.successGradientStart
-                            } else {
-                                MaterialTheme.colorScheme.primary
+                            progress = {
+                                if (sets.isEmpty()) {
+                                    0f
+                                } else {
+                                    (completedSets.toFloat() / sets.size).coerceIn(0f, 1f)
+                                }
                             },
+                            modifier =
+                                Modifier
+                                    .width(40.dp)
+                                    .height(3.dp),
+                            color =
+                                if (completedSets == sets.size) {
+                                    FeatherweightColors.successGradientStart
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
                             trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         )
                         Text(
                             text = "$progress%",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
-                            color = if (completedSets == sets.size) {
-                                FeatherweightColors.successGradientStart
-                            } else {
-                                MaterialTheme.colorScheme.primary
-                            },
+                            color =
+                                if (completedSets == sets.size) {
+                                    FeatherweightColors.successGradientStart
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
                         )
                     }
                 }
             }
-            
+
             // Action buttons (swap and delete) - only show when editable
             if (viewModel.canEditWorkout()) {
                 Row(
@@ -244,137 +253,144 @@ fun ExerciseCard(
         ) {
             Column {
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 // Column headers
                 if (sets.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Spacer(modifier = Modifier.width(20.dp)) // For set number
-                
-                // Target column for programme workouts
-                val isProgrammeWorkout = viewModel.workoutState.collectAsState().value.isProgrammeWorkout
-                if (isProgrammeWorkout) {
-                    Text(
-                        "Target",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(0.8f),
-                        textAlign = TextAlign.Center,
-                    )
-                }
-                
-                Text(
-                    "Weight",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(0.8f),
-                    textAlign = TextAlign.Center,
-                )
-                
-                Text(
-                    "Reps",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(0.6f),
-                    textAlign = TextAlign.Center,
-                )
-                
-                Text(
-                    "RPE",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(0.6f),
-                    textAlign = TextAlign.Center,
-                )
-                
-                Spacer(modifier = Modifier.width(40.dp)) // For checkbox
-            }
-            
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant,
-                thickness = 0.5.dp,
-            )
-        }
-        
-        // Sets list
-        Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            // Get 1RM for percentage calculations
-            val oneRMEstimates by viewModel.oneRMEstimates.collectAsState()
-            val oneRMEstimate = exercise.exerciseId?.let { oneRMEstimates[it] }
-            val isProgrammeWorkout = viewModel.workoutState.collectAsState().value.isProgrammeWorkout
-            
-            sets.forEachIndexed { index, set ->
-                key(set.id) {
-                    CleanSetRow(
-                        set = set,
-                        setNumber = index + 1,
-                        oneRMEstimate = oneRMEstimate,
-                        isProgrammeWorkout = isProgrammeWorkout,
-                        onUpdateSet = { reps, weight, rpe ->
-                            viewModel.updateSet(set.id, reps, weight, rpe)
-                        },
-                        onToggleCompleted = { completed ->
-                            viewModel.markSetCompleted(set.id, completed)
-                        },
-                        onDeleteSet = {
-                            viewModel.deleteSet(set.id)
-                        },
-                        canMarkComplete = set.actualReps > 0 && set.actualWeight > 0,
-                        readOnly = !viewModel.canEditWorkout(),
-                    )
-                }
-            }
-            
-            // Action buttons for adding sets
-            if (viewModel.canEditWorkout()) {
-                val lastSet = sets.maxByOrNull { it.setOrder }
-                val canCopyLast = lastSet != null && lastSet.actualReps > 0
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = { viewModel.addSet(exercise.id) },
-                        modifier = Modifier.weight(1f),
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(
-                            Icons.Filled.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add Set")
-                    }
-                    
-                    if (canCopyLast) {
-                        OutlinedButton(
-                            onClick = { viewModel.copyLastSet(exercise.id) },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Icon(
-                                Icons.Filled.ContentCopy,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
+                        Spacer(modifier = Modifier.width(20.dp)) // For set number
+
+                        // Target column for programme workouts
+                        val isProgrammeWorkout =
+                            viewModel.workoutState
+                                .collectAsState()
+                                .value.isProgrammeWorkout
+                        if (isProgrammeWorkout) {
+                            Text(
+                                "Target",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(0.8f),
+                                textAlign = TextAlign.Center,
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Copy Last")
+                        }
+
+                        Text(
+                            "Weight",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(0.8f),
+                            textAlign = TextAlign.Center,
+                        )
+
+                        Text(
+                            "Reps",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(0.6f),
+                            textAlign = TextAlign.Center,
+                        )
+
+                        Text(
+                            "RPE",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(0.6f),
+                            textAlign = TextAlign.Center,
+                        )
+
+                        Spacer(modifier = Modifier.width(40.dp)) // For checkbox
+                    }
+
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                        thickness = 0.5.dp,
+                    )
+                }
+
+                // Sets list
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    // Get 1RM for percentage calculations
+                    val oneRMEstimates by viewModel.oneRMEstimates.collectAsState()
+                    val oneRMEstimate = exercise.exerciseId?.let { oneRMEstimates[it] }
+                    val isProgrammeWorkout =
+                        viewModel.workoutState
+                            .collectAsState()
+                            .value.isProgrammeWorkout
+
+                    sets.forEachIndexed { index, set ->
+                        key(set.id) {
+                            CleanSetRow(
+                                set = set,
+                                setNumber = index + 1,
+                                oneRMEstimate = oneRMEstimate,
+                                isProgrammeWorkout = isProgrammeWorkout,
+                                onUpdateSet = { reps, weight, rpe ->
+                                    viewModel.updateSet(set.id, reps, weight, rpe)
+                                },
+                                onToggleCompleted = { completed ->
+                                    viewModel.markSetCompleted(set.id, completed)
+                                },
+                                onDeleteSet = {
+                                    viewModel.deleteSet(set.id)
+                                },
+                                canMarkComplete = set.actualReps > 0 && set.actualWeight > 0,
+                                readOnly = !viewModel.canEditWorkout(),
+                            )
+                        }
+                    }
+
+                    // Action buttons for adding sets
+                    if (viewModel.canEditWorkout()) {
+                        val lastSet = sets.maxByOrNull { it.setOrder }
+                        val canCopyLast = lastSet != null && lastSet.actualReps > 0
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            OutlinedButton(
+                                onClick = { viewModel.addSet(exercise.id) },
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Icon(
+                                    Icons.Filled.Add,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Add Set")
+                            }
+
+                            if (canCopyLast) {
+                                OutlinedButton(
+                                    onClick = { viewModel.copyLastSet(exercise.id) },
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Icon(
+                                        Icons.Filled.ContentCopy,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Copy Last")
+                                }
+                            }
                         }
                     }
                 }
-            }
-        }
             }
         }
     }
@@ -393,32 +409,33 @@ private fun CleanSetRow(
     canMarkComplete: Boolean,
     readOnly: Boolean,
 ) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.EndToStart -> {
-                    if (!readOnly) {
-                        onDeleteSet()
-                        true // Confirm the dismissal
-                    } else {
-                        false
+    val dismissState =
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = { value ->
+                when (value) {
+                    SwipeToDismissBoxValue.EndToStart -> {
+                        if (!readOnly) {
+                            onDeleteSet()
+                            true // Confirm the dismissal
+                        } else {
+                            false
+                        }
                     }
+                    else -> false
                 }
-                else -> false
-            }
-        },
-        positionalThreshold = { totalDistance ->
-            totalDistance * 0.33f // Require 33% swipe distance
-        }
-    )
-    
+            },
+            positionalThreshold = { totalDistance ->
+                totalDistance * 0.33f // Require 33% swipe distance
+            },
+        )
+
     SwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
             val progress = dismissState.progress
             val targetValue = dismissState.targetValue
             val currentValue = dismissState.currentValue
-            
+
             // Show red only when swiping to delete and not already dismissed
             if (progress > 0.01f &&
                 targetValue == SwipeToDismissBoxValue.EndToStart &&
@@ -432,19 +449,21 @@ private fun CleanSetRow(
                     val minWidth = 40.dp
                     val maxAdditionalWidth = 160.dp
                     val currentWidth = minWidth + (maxAdditionalWidth.value * progress).dp
-                    
+
                     Surface(
-                        modifier = Modifier
-                            .width(currentWidth)
-                            .fillMaxHeight()
-                            .padding(vertical = 2.dp),
+                        modifier =
+                            Modifier
+                                .width(currentWidth)
+                                .fillMaxHeight()
+                                .padding(vertical = 2.dp),
                         color = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
-                        shape = RoundedCornerShape(
-                            topStart = 8.dp,
-                            bottomStart = 8.dp,
-                            topEnd = 0.dp,
-                            bottomEnd = 0.dp,
-                        ),
+                        shape =
+                            RoundedCornerShape(
+                                topStart = 8.dp,
+                                bottomStart = 8.dp,
+                                topEnd = 0.dp,
+                                bottomEnd = 0.dp,
+                            ),
                     ) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -454,12 +473,14 @@ private fun CleanSetRow(
                             Icon(
                                 Icons.Filled.Delete,
                                 contentDescription = "Delete",
-                                tint = MaterialTheme.colorScheme.onError.copy(
-                                    alpha = 0.6f + (0.4f * progress),
-                                ),
-                                modifier = Modifier
-                                    .size((20 + (4 * progress)).dp)
-                                    .offset(x = iconOffset),
+                                tint =
+                                    MaterialTheme.colorScheme.onError.copy(
+                                        alpha = 0.6f + (0.4f * progress),
+                                    ),
+                                modifier =
+                                    Modifier
+                                        .size((20 + (4 * progress)).dp)
+                                        .offset(x = iconOffset),
                             )
                         }
                     }
@@ -473,9 +494,10 @@ private fun CleanSetRow(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.Top,
             ) {
@@ -487,27 +509,29 @@ private fun CleanSetRow(
                     modifier = Modifier.width(20.dp),
                     textAlign = TextAlign.Center,
                 )
-                
+
                 // Target column for programme workouts
                 if (isProgrammeWorkout) {
-                    val targetDisplay = if (set.targetReps > 0) {
-                        if (set.targetWeight != null && set.targetWeight > 0) {
-                            "${set.targetReps}×${WeightFormatter.formatWeight(set.targetWeight)}"
+                    val targetDisplay =
+                        if (set.targetReps != null && set.targetReps > 0) {
+                            if (set.targetWeight != null && set.targetWeight > 0) {
+                                "${set.targetReps}×${WeightFormatter.formatWeight(set.targetWeight)}"
+                            } else {
+                                "${set.targetReps}"
+                            }
                         } else {
-                            "${set.targetReps}"
+                            ""
                         }
-                    } else {
-                        ""
-                    }
-                    
+
                     Box(
-                        modifier = Modifier
-                            .weight(0.8f)
-                            .height(48.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                shape = RoundedCornerShape(8.dp),
-                            ),
+                        modifier =
+                            Modifier
+                                .weight(0.8f)
+                                .height(48.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                    shape = RoundedCornerShape(8.dp),
+                                ),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -518,7 +542,7 @@ private fun CleanSetRow(
                         )
                     }
                 }
-                
+
                 // Weight input with % of 1RM below
                 Box(
                     modifier = Modifier.weight(0.8f),
@@ -533,13 +557,15 @@ private fun CleanSetRow(
                             contentAlignment = Alignment.Center,
                         ) {
                             if (!set.isCompleted && !readOnly) {
-                                var weightValue by remember(set.id) { 
-                                    mutableStateOf(TextFieldValue(
-                                        text = if (set.actualWeight > 0) WeightFormatter.formatWeight(set.actualWeight) else "",
-                                        selection = TextRange.Zero
-                                    ))
+                                var weightValue by remember(set.id) {
+                                    mutableStateOf(
+                                        TextFieldValue(
+                                            text = if (set.actualWeight > 0) WeightFormatter.formatWeight(set.actualWeight) else "",
+                                            selection = TextRange.Zero,
+                                        ),
+                                    )
                                 }
-                                
+
                                 CenteredInputField(
                                     value = weightValue,
                                     onValueChange = { newValue ->
@@ -559,7 +585,7 @@ private fun CleanSetRow(
                                 )
                             }
                         }
-                        
+
                         // Show percentage of 1RM below the weight
                         val displayWeight = if (set.actualWeight > 0) set.actualWeight else set.targetWeight ?: 0f
                         if (oneRMEstimate != null && oneRMEstimate > 0 && displayWeight > 0) {
@@ -572,22 +598,25 @@ private fun CleanSetRow(
                         }
                     }
                 }
-                
+
                 // Reps input
                 Box(
-                    modifier = Modifier
-                        .weight(0.6f)
-                        .height(48.dp),
+                    modifier =
+                        Modifier
+                            .weight(0.6f)
+                            .height(48.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (!set.isCompleted && !readOnly) {
-                        var repsValue by remember(set.id) { 
-                            mutableStateOf(TextFieldValue(
-                                text = if (set.actualReps > 0) set.actualReps.toString() else "",
-                                selection = TextRange.Zero
-                            ))
+                        var repsValue by remember(set.id) {
+                            mutableStateOf(
+                                TextFieldValue(
+                                    text = if (set.actualReps > 0) set.actualReps.toString() else "",
+                                    selection = TextRange.Zero,
+                                ),
+                            )
                         }
-                        
+
                         CenteredInputField(
                             value = repsValue,
                             onValueChange = { newValue ->
@@ -607,22 +636,25 @@ private fun CleanSetRow(
                         )
                     }
                 }
-                
-                // RPE input  
+
+                // RPE input
                 Box(
-                    modifier = Modifier
-                        .weight(0.6f)
-                        .height(48.dp),
+                    modifier =
+                        Modifier
+                            .weight(0.6f)
+                            .height(48.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (!set.isCompleted && !readOnly) {
-                        var rpeValue by remember(set.id) { 
-                            mutableStateOf(TextFieldValue(
-                                text = set.actualRpe?.toString() ?: "",
-                                selection = TextRange.Zero
-                            ))
+                        var rpeValue by remember(set.id) {
+                            mutableStateOf(
+                                TextFieldValue(
+                                    text = set.actualRpe?.toString() ?: "",
+                                    selection = TextRange.Zero,
+                                ),
+                            )
                         }
-                        
+
                         CenteredInputField(
                             value = rpeValue,
                             onValueChange = { newValue ->
@@ -642,29 +674,31 @@ private fun CleanSetRow(
                         )
                     }
                 }
-                
+
                 // Checkbox
                 Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clickable(
-                            enabled = !readOnly && (canMarkComplete || set.isCompleted),
-                            onClick = {
-                                val newChecked = !set.isCompleted
-                                if (!newChecked || canMarkComplete) {
-                                    onToggleCompleted(newChecked)
-                                }
-                            }
-                        ),
+                    modifier =
+                        Modifier
+                            .size(40.dp)
+                            .clickable(
+                                enabled = !readOnly && (canMarkComplete || set.isCompleted),
+                                onClick = {
+                                    val newChecked = !set.isCompleted
+                                    if (!newChecked || canMarkComplete) {
+                                        onToggleCompleted(newChecked)
+                                    }
+                                },
+                            ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Checkbox(
                         checked = set.isCompleted,
                         onCheckedChange = null,
                         enabled = !readOnly && (canMarkComplete || set.isCompleted),
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = MaterialTheme.colorScheme.primary,
-                        ),
+                        colors =
+                            CheckboxDefaults.colors(
+                                checkedColor = MaterialTheme.colorScheme.primary,
+                            ),
                     )
                 }
             }
