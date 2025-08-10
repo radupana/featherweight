@@ -1,48 +1,73 @@
 package com.github.radupana.featherweight.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxState
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.ui.components.CenteredInputField
+import com.github.radupana.featherweight.ui.components.InputFieldType
 import com.github.radupana.featherweight.ui.theme.FeatherweightColors
 import com.github.radupana.featherweight.ui.theme.GlassCard
-import com.github.radupana.featherweight.ui.theme.GradientProgressIndicator
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
@@ -51,34 +76,20 @@ import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 fun ExerciseCard(
     exercise: ExerciseLog,
     sets: List<SetLog>,
-    onEditSets: () -> Unit,
+    isExpanded: Boolean,
+    onToggleExpansion: () -> Unit,
     onDeleteExercise: (Long) -> Unit,
+    onSwapExercise: (Long) -> Unit,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
     var showDeleteExerciseDialog by remember { mutableStateOf(false) }
-
-    // Calculate summary metrics
     val completedSets = sets.count { it.isCompleted }
-    val totalVolume = sets.filter { it.isCompleted }.sumOf { (it.actualReps * it.actualWeight).toDouble() }.toFloat()
-    val bestSet = sets.filter { it.isCompleted }.maxByOrNull { it.actualReps * it.actualWeight }
-    val avgRpe =
-        sets
-            .filter { it.isCompleted && it.actualRpe != null }
-            .map { it.actualRpe!! }
-            .average()
-            .takeIf { !it.isNaN() }
-            ?.toFloat()
 
     GlassCard(
         modifier = modifier.fillMaxWidth(),
-        onClick =
-            if (viewModel.canEditWorkout()) {
-                { onEditSets() }
-            } else {
-                null
-            },
-        elevation = 8.dp,
+        onClick = null,
+        elevation = 2.dp,
     ) {
         // Delete confirmation dialog
         if (showDeleteExerciseDialog) {
@@ -121,261 +132,542 @@ fun ExerciseCard(
                 },
             )
         }
-        // Exercise header with improved visual hierarchy
+        // Compact header with action buttons
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggleExpansion),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(
+            // Chevron icon for expand/collapse
+            val rotationAngle by animateFloatAsState(
+                targetValue = if (isExpanded) 0f else -90f,
+                animationSpec = tween(200),
+                label = "chevron rotation"
+            )
+            Icon(
+                Icons.Filled.KeyboardArrowDown,
+                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                modifier = Modifier
+                    .size(24.dp)
+                    .graphicsLayer { rotationZ = rotationAngle },
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            // Exercise name and progress
+            Row(
                 modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     text = exercise.exerciseName,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
 
                 if (sets.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                    val progress = (completedSets.toFloat() / sets.size * 100).toInt()
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = "$completedSets/${sets.size}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        LinearProgressIndicator(
+                            progress = { completedSets.toFloat() / sets.size },
+                            modifier = Modifier
+                                .width(40.dp)
+                                .height(3.dp),
+                            color = if (completedSets == sets.size) {
+                                FeatherweightColors.successGradientStart
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        )
+                        Text(
+                            text = "$progress%",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = if (completedSets == sets.size) {
+                                FeatherweightColors.successGradientStart
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                        )
+                    }
+                }
+            }
+            
+            // Action buttons (swap and delete) - only show when editable
+            if (viewModel.canEditWorkout()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(0.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(
+                        onClick = { onSwapExercise(exercise.id) },
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.SwapHoriz,
+                            contentDescription = "Swap Exercise",
+                            modifier = Modifier.size(22.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    IconButton(
+                        onClick = { showDeleteExerciseDialog = true },
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = "Delete Exercise",
+                            modifier = Modifier.size(22.dp),
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
+        }
+
+        // Expandable content with animation
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically(animationSpec = tween(200)),
+            exit = shrinkVertically(animationSpec = tween(200)),
+        ) {
+            Column {
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Column headers
+                if (sets.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Spacer(modifier = Modifier.width(20.dp)) // For set number
+                
+                // Target column for programme workouts
+                val isProgrammeWorkout = viewModel.workoutState.collectAsState().value.isProgrammeWorkout
+                if (isProgrammeWorkout) {
                     Text(
-                        text = "$completedSets of ${sets.size} sets completed",
-                        style = MaterialTheme.typography.bodySmall,
+                        "Target",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(0.8f),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                
+                Text(
+                    "Weight",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(0.8f),
+                    textAlign = TextAlign.Center,
+                )
+                
+                Text(
+                    "Reps",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(0.6f),
+                    textAlign = TextAlign.Center,
+                )
+                
+                Text(
+                    "RPE",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(0.6f),
+                    textAlign = TextAlign.Center,
+                )
+                
+                Spacer(modifier = Modifier.width(40.dp)) // For checkbox
+            }
+            
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                thickness = 0.5.dp,
+            )
+        }
+        
+        // Sets list
+        Column(
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            // Get 1RM for percentage calculations
+            val oneRMEstimates by viewModel.oneRMEstimates.collectAsState()
+            val oneRMEstimate = exercise.exerciseId?.let { oneRMEstimates[it] }
+            val isProgrammeWorkout = viewModel.workoutState.collectAsState().value.isProgrammeWorkout
+            
+            sets.forEachIndexed { index, set ->
+                key(set.id) {
+                    CleanSetRow(
+                        set = set,
+                        setNumber = index + 1,
+                        oneRMEstimate = oneRMEstimate,
+                        isProgrammeWorkout = isProgrammeWorkout,
+                        onUpdateSet = { reps, weight, rpe ->
+                            viewModel.updateSet(set.id, reps, weight, rpe)
+                        },
+                        onToggleCompleted = { completed ->
+                            viewModel.markSetCompleted(set.id, completed)
+                        },
+                        onDeleteSet = {
+                            viewModel.deleteSet(set.id)
+                        },
+                        canMarkComplete = set.actualReps > 0 && set.actualWeight > 0,
+                        readOnly = !viewModel.canEditWorkout(),
                     )
                 }
             }
-
-            // Modern status indicator
-            if (sets.isNotEmpty()) {
-                val progress = completedSets.toFloat() / sets.size
-                val isComplete = completedSets == sets.size
-
-                Surface(
-                    modifier = Modifier.size(48.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    color =
-                        if (isComplete) {
-                            FeatherweightColors.successGradientStart.copy(alpha = 0.1f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        },
+            
+            // Action buttons for adding sets
+            if (viewModel.canEditWorkout()) {
+                val lastSet = sets.maxByOrNull { it.setOrder }
+                val canCopyLast = lastSet != null && lastSet.actualReps > 0
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize(),
+                    OutlinedButton(
+                        onClick = { viewModel.addSet(exercise.id) },
+                        modifier = Modifier.weight(1f),
                     ) {
-                        if (isComplete) {
+                        Icon(
+                            Icons.Filled.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add Set")
+                    }
+                    
+                    if (canCopyLast) {
+                        OutlinedButton(
+                            onClick = { viewModel.copyLastSet(exercise.id) },
+                            modifier = Modifier.weight(1f),
+                        ) {
                             Icon(
-                                Icons.Filled.CheckCircle,
-                                contentDescription = "Complete",
-                                tint = FeatherweightColors.successGradientStart,
-                                modifier = Modifier.size(24.dp),
+                                Icons.Filled.ContentCopy,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
                             )
-                        } else {
-                            CircularProgressIndicator(
-                                progress = { progress },
-                                modifier = Modifier.size(24.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                                strokeWidth = 3.dp,
-                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Copy Last")
                         }
                     }
                 }
             }
-
-            // Delete option for editable workouts
-            if (viewModel.canEditWorkout()) {
-                IconButton(
-                    onClick = { showDeleteExerciseDialog = true },
-                ) {
-                    Icon(
-                        Icons.Filled.Delete,
-                        contentDescription = "Delete Exercise",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (sets.isEmpty()) {
-            // Modern empty state
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-            ) {
-                Icon(
-                    Icons.Filled.FitnessCenter,
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Ready to start training",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = "Tap to add your first set",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                )
-            }
-        } else {
-            // Modern progress visualization
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "Progress",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-
-                    val progressPercentage = (completedSets.toFloat() / sets.size * 100).toInt()
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color =
-                            if (progressPercentage == 100) {
-                                FeatherweightColors.successGradientStart.copy(alpha = 0.1f)
-                            } else {
-                                MaterialTheme.colorScheme.primaryContainer
-                            },
-                    ) {
-                        Text(
-                            text = "$progressPercentage%",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color =
-                                if (progressPercentage == 100) {
-                                    FeatherweightColors.successGradientStart
-                                } else {
-                                    MaterialTheme.colorScheme.primary
-                                },
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                GradientProgressIndicator(
-                    progress = completedSets.toFloat() / sets.size,
-                    modifier = Modifier.fillMaxWidth(),
-                    strokeWidth = 6.dp,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Modern metrics cards
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                MetricCard(
-                    icon = "📊",
-                    value = if (totalVolume > 0) WeightFormatter.formatVolume(totalVolume) else "—",
-                    label = "Volume",
-                    modifier = Modifier.weight(1f),
-                )
-
-                MetricCard(
-                    icon = "💪",
-                    value =
-                        if (bestSet != null) {
-                            "${bestSet.actualReps}×${
-                                WeightFormatter.formatWeightWithUnit(
-                                    bestSet.actualWeight,
-                                )
-                            }"
-                        } else {
-                            "—"
-                        },
-                    label = "Best Set",
-                    modifier = Modifier.weight(1f),
-                )
-
-                MetricCard(
-                    icon = "⚡",
-                    value = if (avgRpe != null) WeightFormatter.formatDecimal(avgRpe, 1) else "—",
-                    label = "Avg RPE",
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-
-        // Interactive hint for editable workouts
-        if (viewModel.canEditWorkout()) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    Icons.Filled.TouchApp,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Tap to edit sets",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                )
             }
         }
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-private fun MetricCard(
-    icon: String,
-    value: String,
-    label: String,
-    modifier: Modifier = Modifier,
+private fun CleanSetRow(
+    set: SetLog,
+    setNumber: Int,
+    oneRMEstimate: Float?,
+    isProgrammeWorkout: Boolean,
+    onUpdateSet: (Int, Float, Float?) -> Unit,
+    onToggleCompleted: (Boolean) -> Unit,
+    onDeleteSet: () -> Unit,
+    canMarkComplete: Boolean,
+    readOnly: Boolean,
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        tonalElevation = 2.dp,
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.EndToStart -> {
+                    if (!readOnly) {
+                        onDeleteSet()
+                        true // Confirm the dismissal
+                    } else {
+                        false
+                    }
+                }
+                else -> false
+            }
+        },
+        positionalThreshold = { totalDistance ->
+            totalDistance * 0.33f // Require 33% swipe distance
+        }
+    )
+    
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            val progress = dismissState.progress
+            val targetValue = dismissState.targetValue
+            val currentValue = dismissState.currentValue
+            
+            // Show red only when swiping to delete and not already dismissed
+            if (progress > 0.01f &&
+                targetValue == SwipeToDismissBoxValue.EndToStart &&
+                currentValue != SwipeToDismissBoxValue.EndToStart
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
+                    // Dynamic red stripe that grows with swipe
+                    val minWidth = 40.dp
+                    val maxAdditionalWidth = 160.dp
+                    val currentWidth = minWidth + (maxAdditionalWidth.value * progress).dp
+                    
+                    Surface(
+                        modifier = Modifier
+                            .width(currentWidth)
+                            .fillMaxHeight()
+                            .padding(vertical = 2.dp),
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
+                        shape = RoundedCornerShape(
+                            topStart = 8.dp,
+                            bottomStart = 8.dp,
+                            topEnd = 0.dp,
+                            bottomEnd = 0.dp,
+                        ),
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            val iconOffset = ((1 - progress) * 15).dp
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.onError.copy(
+                                    alpha = 0.6f + (0.4f * progress),
+                                ),
+                                modifier = Modifier
+                                    .size((20 + (4 * progress)).dp)
+                                    .offset(x = iconOffset),
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = !readOnly,
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(
-                text = icon,
-                style = MaterialTheme.typography.titleLarge,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                // Set number
+                Text(
+                    text = "$setNumber",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.width(20.dp),
+                    textAlign = TextAlign.Center,
+                )
+                
+                // Target column for programme workouts
+                if (isProgrammeWorkout) {
+                    val targetDisplay = if (set.targetReps > 0) {
+                        if (set.targetWeight != null && set.targetWeight > 0) {
+                            "${set.targetReps}×${WeightFormatter.formatWeight(set.targetWeight)}"
+                        } else {
+                            "${set.targetReps}"
+                        }
+                    } else {
+                        ""
+                    }
+                    
+                    Box(
+                        modifier = Modifier
+                            .weight(0.8f)
+                            .height(48.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(8.dp),
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = targetDisplay,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (targetDisplay.isNotEmpty()) FontWeight.Medium else FontWeight.Normal,
+                        )
+                    }
+                }
+                
+                // Weight input with % of 1RM below
+                Box(
+                    modifier = Modifier.weight(0.8f),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier.height(48.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (!set.isCompleted && !readOnly) {
+                                var weightValue by remember(set.id) { 
+                                    mutableStateOf(TextFieldValue(
+                                        text = if (set.actualWeight > 0) WeightFormatter.formatWeight(set.actualWeight) else "",
+                                        selection = TextRange.Zero
+                                    ))
+                                }
+                                
+                                CenteredInputField(
+                                    value = weightValue,
+                                    onValueChange = { newValue ->
+                                        weightValue = newValue
+                                        val weight = newValue.text.toFloatOrNull() ?: 0f
+                                        onUpdateSet(set.actualReps, weight, set.actualRpe)
+                                    },
+                                    fieldType = InputFieldType.WEIGHT,
+                                    placeholder = "",
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            } else {
+                                Text(
+                                    text = if (set.actualWeight > 0) WeightFormatter.formatWeight(set.actualWeight) else "-",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (set.isCompleted) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        
+                        // Show percentage of 1RM below the weight
+                        val displayWeight = if (set.actualWeight > 0) set.actualWeight else set.targetWeight ?: 0f
+                        if (oneRMEstimate != null && oneRMEstimate > 0 && displayWeight > 0) {
+                            val percentage = ((displayWeight / oneRMEstimate) * 100).toInt()
+                            Text(
+                                text = "$percentage% of 1RM",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            )
+                        }
+                    }
+                }
+                
+                // Reps input
+                Box(
+                    modifier = Modifier
+                        .weight(0.6f)
+                        .height(48.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (!set.isCompleted && !readOnly) {
+                        var repsValue by remember(set.id) { 
+                            mutableStateOf(TextFieldValue(
+                                text = if (set.actualReps > 0) set.actualReps.toString() else "",
+                                selection = TextRange.Zero
+                            ))
+                        }
+                        
+                        CenteredInputField(
+                            value = repsValue,
+                            onValueChange = { newValue ->
+                                repsValue = newValue
+                                val reps = newValue.text.toIntOrNull() ?: 0
+                                onUpdateSet(reps, set.actualWeight, set.actualRpe)
+                            },
+                            fieldType = InputFieldType.REPS,
+                            placeholder = "",
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        Text(
+                            text = if (set.actualReps > 0) set.actualReps.toString() else "-",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (set.isCompleted) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                
+                // RPE input  
+                Box(
+                    modifier = Modifier
+                        .weight(0.6f)
+                        .height(48.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (!set.isCompleted && !readOnly) {
+                        var rpeValue by remember(set.id) { 
+                            mutableStateOf(TextFieldValue(
+                                text = set.actualRpe?.toString() ?: "",
+                                selection = TextRange.Zero
+                            ))
+                        }
+                        
+                        CenteredInputField(
+                            value = rpeValue,
+                            onValueChange = { newValue ->
+                                rpeValue = newValue
+                                val rpe = newValue.text.toIntOrNull()?.toFloat()
+                                onUpdateSet(set.actualReps, set.actualWeight, rpe)
+                            },
+                            fieldType = InputFieldType.RPE,
+                            placeholder = "",
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else {
+                        Text(
+                            text = set.actualRpe?.toString() ?: "-",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (set.isCompleted) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                
+                // Checkbox
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clickable(
+                            enabled = !readOnly && (canMarkComplete || set.isCompleted),
+                            onClick = {
+                                val newChecked = !set.isCompleted
+                                if (!newChecked || canMarkComplete) {
+                                    onToggleCompleted(newChecked)
+                                }
+                            }
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Checkbox(
+                        checked = set.isCompleted,
+                        onCheckedChange = null,
+                        enabled = !readOnly && (canMarkComplete || set.isCompleted),
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = MaterialTheme.colorScheme.primary,
+                        ),
+                    )
+                }
+            }
         }
     }
 }

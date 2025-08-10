@@ -1,8 +1,5 @@
 package com.github.radupana.featherweight.ui.screens
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,8 +31,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -52,37 +48,27 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
-import com.github.radupana.featherweight.ui.components.CompactExerciseCard
 import com.github.radupana.featherweight.ui.components.CompactRestTimer
+import com.github.radupana.featherweight.ui.components.ExerciseCard
 import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.ui.dialogs.NotesInputModal
 import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
-import com.github.radupana.featherweight.ui.dialogs.SetEditingModal
-import com.github.radupana.featherweight.ui.dialogs.SmartEditSetDialog
-import com.github.radupana.featherweight.ui.utils.NavigationContext
-import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import com.github.radupana.featherweight.viewmodel.WorkoutState
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,6 +85,7 @@ fun WorkoutScreen(
     val sets by viewModel.selectedExerciseSets.collectAsState()
     val workoutState by viewModel.workoutState.collectAsState()
     val pendingOneRMUpdates by viewModel.pendingOneRMUpdates.collectAsState()
+    val expandedExerciseIds by viewModel.expandedExerciseIds.collectAsState()
 
     // Rest timer state
     val restTimerSeconds by viewModel.restTimerSeconds.collectAsState()
@@ -108,7 +95,6 @@ fun WorkoutScreen(
     val workoutTimerSeconds by viewModel.workoutTimerSeconds.collectAsState()
 
     // Dialog state
-    var showEditSetDialog by remember { mutableStateOf(false) }
     var showCompleteWorkoutDialog by remember { mutableStateOf(false) }
     var showWorkoutMenuDialog by remember { mutableStateOf(false) }
     var showEditWorkoutNameDialog by remember { mutableStateOf(false) }
@@ -119,12 +105,6 @@ fun WorkoutScreen(
     var showNotesModal by remember { mutableStateOf(false) }
     var currentNotes by remember { mutableStateOf("") }
 
-    var editingSet by remember { mutableStateOf<SetLog?>(null) }
-    var editingExerciseName by remember { mutableStateOf<String?>(null) }
-
-    // Set editing modal state
-    var showSetEditingModal by remember { mutableStateOf(false) }
-    var setEditingExercise by remember { mutableStateOf<ExerciseLog?>(null) }
 
     // Calculate progress stats
     val totalSets = exercises.sumOf { ex -> sets.count { it.exerciseLogId == ex.id } }
@@ -169,17 +149,13 @@ fun WorkoutScreen(
         }
     }
 
-    // Handle back press
-    val handleBack = {
-        onBack()
-    }
 
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
+            Column {
+                TopAppBar(
+                    title = {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -199,10 +175,11 @@ fun WorkoutScreen(
                                     overflow = TextOverflow.Ellipsis,
                                 )
 
-                                // Programme subtitle (if this is a programme workout)
+                                // Subtitle - programme info or "Freestyle Workout"
                                 if (workoutState.isProgrammeWorkout) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                                     ) {
                                         Icon(
                                             Icons.Filled.FitnessCenter,
@@ -210,22 +187,26 @@ fun WorkoutScreen(
                                             modifier = Modifier.size(12.dp),
                                             tint = MaterialTheme.colorScheme.primary,
                                         )
-                                        Spacer(modifier = Modifier.width(4.dp))
                                         Text(
-                                            text =
-                                                buildString {
-                                                    workoutState.programmeName?.let { append(it) }
-                                                    if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
-                                                        if (isNotEmpty()) append(" • ")
-                                                        append("Week ${workoutState.weekNumber}, Day ${workoutState.dayNumber}")
-                                                    }
-                                                },
+                                            text = buildString {
+                                                workoutState.programmeName?.let { append(it) }
+                                                if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
+                                                    if (isNotEmpty()) append(" • ")
+                                                    append("W${workoutState.weekNumber}D${workoutState.dayNumber}")
+                                                }
+                                            },
                                             style = MaterialTheme.typography.labelMedium,
                                             color = MaterialTheme.colorScheme.primary,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                         )
                                     }
+                                } else {
+                                    Text(
+                                        text = "Freestyle Workout",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
                                 }
                             }
 
@@ -235,10 +216,9 @@ fun WorkoutScreen(
                                 modifier = Modifier.padding(start = 8.dp),
                             )
                         }
-                    }
-                },
+                    },
                 navigationIcon = {
-                    IconButton(onClick = handleBack) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -281,99 +261,100 @@ fun WorkoutScreen(
                             if (!canEdit) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
                         titleContentColor = MaterialTheme.colorScheme.onSurface,
                     ),
-            )
-        },
-    ) { innerPadding ->
-        Box(
-            modifier =
-                Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize(),
-        ) {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
-            ) {
-                // Normal workout view
-
-                // Unified Progress Card
-                UnifiedProgressCard(
-                    completedSets = completedSets,
-                    totalSets = totalSets,
-                    workoutState = workoutState,
-                    viewModel = viewModel,
-                    modifier = Modifier.padding(16.dp),
                 )
-
-                // Removed rest timer from here - moved to bottom
-
-                // Exercises list or empty state
-                if (workoutState.isLoadingExercises) {
-                    // Show loading indicator while exercises are being loaded
-                    Box(
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .padding(bottom = if (restTimerSeconds > 0) 56.dp else 0.dp), // Add padding when timer is visible
-                        contentAlignment = Alignment.Center,
+                
+                // Progress bar below TopAppBar
+                if (totalSets > 0) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(48.dp),
-                            color = MaterialTheme.colorScheme.primary,
+                        LinearProgressIndicator(
+                            progress = { completedSets.toFloat() / totalSets },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(4.dp),
+                            color = if (completedSets == totalSets) {
+                                MaterialTheme.colorScheme.tertiary
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "$completedSets / $totalSets",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = if (completedSets == totalSets) {
+                                MaterialTheme.colorScheme.tertiary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                         )
                     }
-                } else if (exercises.isEmpty()) {
-                    // Empty state - show buttons
-                    Box(
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .padding(bottom = if (restTimerSeconds > 0) 56.dp else 0.dp), // Add padding when timer is visible
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (canEdit) {
-                            WorkoutActionButtons(
-                                canCompleteWorkout = false,
-                                onAddExercise = onSelectExercise,
-                                onCompleteWorkout = {},
-                                modifier = Modifier.padding(16.dp),
-                            )
-                        }
-                    }
-                } else {
-                    ExercisesList(
-                        exercises = exercises,
-                        sets = sets,
-                        canEdit = canEdit,
-                        canCompleteWorkout = workoutState.isActive,
-                        onDeleteExercise = { exerciseId ->
-                            if (canEdit) {
-                                viewModel.deleteExercise(exerciseId)
-                            }
-                        },
-                        onOpenSetEditingModal = { exerciseId ->
-                            val exercise = exercises.find { it.id == exerciseId }
-                            if (exercise != null) {
-                                setEditingExercise = exercise
-                                showSetEditingModal = true
-                                viewModel.loadSetsForExercise()
-                                viewModel.loadExerciseHistoryForName(exercise.exerciseName)
-                            }
-                        },
-                        onSelectExercise = onSelectExercise,
-                        onCompleteWorkout = { showCompleteWorkoutDialog = true },
-                        viewModel = viewModel,
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .padding(bottom = if (restTimerSeconds > 0) 56.dp else 0.dp),
-                        // Add padding when timer is visible
+                }
+            }
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize(),
+        ) {
+            // Exercises list or empty state
+            if (workoutState.isLoadingExercises) {
+                // Show loading indicator while exercises are being loaded
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(48.dp),
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
+            } else if (exercises.isEmpty()) {
+                // Empty state - show buttons
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (canEdit) {
+                        WorkoutActionButtons(
+                            canCompleteWorkout = false,
+                            onAddExercise = onSelectExercise,
+                            onCompleteWorkout = {},
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    }
+                }
+            } else {
+                ExercisesList(
+                    exercises = exercises,
+                    sets = sets,
+                    canEdit = canEdit,
+                    canCompleteWorkout = workoutState.isActive,
+                    expandedExerciseIds = expandedExerciseIds,
+                    onDeleteExercise = { exerciseId ->
+                        if (canEdit) {
+                            viewModel.deleteExercise(exerciseId)
+                        }
+                    },
+                    onSelectExercise = onSelectExercise,
+                    onCompleteWorkout = { showCompleteWorkoutDialog = true },
+                    viewModel = viewModel,
+                    modifier = Modifier
+                        .weight(1f)
+                        .imePadding() // Handle keyboard
+                )
             }
 
             // Rest timer at bottom (if active)
@@ -384,12 +365,7 @@ fun WorkoutScreen(
                     onSkip = { viewModel.skipRestTimer() },
                     onPresetSelected = { viewModel.selectRestTimerPreset(it) },
                     onAdjustTime = { viewModel.adjustRestTimer(it) },
-                    modifier =
-                        Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
-                    // Position above nav bar
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
@@ -485,86 +461,7 @@ fun WorkoutScreen(
         )
     }
 
-    // Edit Set Dialog
-    if (showEditSetDialog && editingExerciseName != null && canEdit) {
-        SmartEditSetDialog(
-            set = editingSet,
-            exerciseName = editingExerciseName!!,
-            onDismiss = {
-                showEditSetDialog = false
-                editingSet = null
-                editingExerciseName = null
-            },
-            onSave = { reps, weight, rpe ->
-                if (editingSet != null) {
-                    viewModel.updateSet(editingSet!!.id, reps, weight, rpe)
-                } else {
-                    val exercise = exercises.find { it.exerciseName == editingExerciseName }
-                    exercise?.let { viewModel.addSetToExercise(it.id, reps, weight, weight, reps, rpe) }
-                }
-                showEditSetDialog = false
-                editingSet = null
-                editingExerciseName = null
-            },
-            viewModel = viewModel,
-        )
-    }
 
-    // Set Editing Modal
-    if (showSetEditingModal && setEditingExercise != null) {
-        SetEditingModal(
-            exercise = setEditingExercise!!,
-            sets = sets.filter { it.exerciseLogId == setEditingExercise!!.id },
-            workoutTimerSeconds = workoutTimerSeconds,
-            onDismiss = {
-                showSetEditingModal = false
-                setEditingExercise = null
-            },
-            onNavigateBack = if (!canEdit) onBack else null,
-            onUpdateSet = { setId, reps, weight, rpe ->
-                if (canEdit) viewModel.updateSet(setId, reps, weight, rpe)
-            },
-            onAddSet = { onSetCreated ->
-                if (canEdit) viewModel.addSetToExercise(setEditingExercise!!.id, onSetCreated = onSetCreated)
-            },
-            onCopyLastSet = {
-                if (canEdit) {
-                    val lastSet =
-                        sets
-                            .filter { it.exerciseLogId == setEditingExercise!!.id }
-                            .maxByOrNull { it.setOrder }
-                    if (lastSet != null) {
-                        viewModel.addSetToExercise(
-                            setEditingExercise!!.id,
-                            lastSet.actualReps,
-                            lastSet.actualWeight,
-                            lastSet.actualWeight,
-                            lastSet.actualReps,
-                            lastSet.actualRpe,
-                        )
-                    } else {
-                        viewModel.addSetToExercise(setEditingExercise!!.id)
-                    }
-                }
-            },
-            onDeleteSet = { setId ->
-                if (canEdit) viewModel.deleteSet(setId)
-            },
-            onToggleCompleted = { setId, completed ->
-                if (canEdit) {
-                    viewModel.markSetCompleted(setId, completed)
-                }
-            },
-            onCompleteAllSets = {
-                if (canEdit) {
-                    viewModel.completeAllSetsInExercise(setEditingExercise!!.id)
-                }
-            },
-            viewModel = viewModel,
-            isProgrammeWorkout = workoutState.isProgrammeWorkout,
-            readOnly = !canEdit,
-        )
-    }
 
     // 1RM Update Dialog
     if (showOneRMUpdateDialog && pendingOneRMUpdates.isNotEmpty()) {
@@ -813,80 +710,30 @@ private fun ExercisesList(
     sets: List<SetLog>,
     canEdit: Boolean,
     canCompleteWorkout: Boolean,
+    expandedExerciseIds: Set<Long>,
     onDeleteExercise: (Long) -> Unit,
-    onOpenSetEditingModal: (Long) -> Unit,
     onSelectExercise: () -> Unit,
     onCompleteWorkout: () -> Unit,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
     val lazyListState = rememberLazyListState()
-    var draggedExerciseId by remember { mutableStateOf<Long?>(null) }
-    var draggedOffset by remember { mutableStateOf(0f) }
-    var targetIndex by remember { mutableStateOf<Int?>(null) }
-    var initialDragIndex by remember { mutableStateOf<Int?>(null) }
-    val density = LocalDensity.current
-
-    // Item measurements - CompactExerciseCard height + spacing
-    val cardHeightDp = 80.dp // Estimated height of CompactExerciseCard
-    val spacingDp = 8.dp // From verticalArrangement
-    val itemHeightDp = cardHeightDp + spacingDp
-    val itemHeightPx = with(density) { itemHeightDp.toPx() }
-
-    // Helper function to find current index of an exercise
-    fun findCurrentIndex(exerciseId: Long): Int = exercises.indexOfFirst { it.id == exerciseId }
 
     LazyColumn(
         state = lazyListState,
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp), // Reduced spacing
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier,
     ) {
         items(
             items = exercises,
             key = { exercise -> exercise.id },
         ) { exercise ->
-            // Find the current index dynamically
-            val currentPosition = findCurrentIndex(exercise.id)
-            val isDragged = draggedExerciseId == exercise.id
-
-            // Make sure dragged items observe the offset with derivedStateOf
-            val currentOffset by remember(isDragged) {
-                derivedStateOf { if (isDragged) draggedOffset else 0f }
-            }
-
-            // Calculate translation for non-dragged items
-            val shouldTranslate =
-                if (!isDragged && draggedExerciseId != null && targetIndex != null && initialDragIndex != null) {
-                    val fromIdx = initialDragIndex!!
-                    val toIdx = targetIndex!!
-
-                    // Only move items between the drag positions
-                    when {
-                        fromIdx < toIdx && currentPosition in (fromIdx + 1)..toIdx -> -itemHeightPx
-                        fromIdx > toIdx && currentPosition in toIdx..<fromIdx -> itemHeightPx
-                        else -> 0f
-                    }
-                } else {
-                    0f
-                }
-
-            val animatedTranslation by animateFloatAsState(
-                targetValue = shouldTranslate,
-                animationSpec =
-                    tween(
-                        durationMillis = 200,
-                        easing = FastOutSlowInEasing,
-                    ),
-                label = "translation_${exercise.id}",
-            )
-
-            CompactExerciseCard(
+            ExerciseCard(
                 exercise = exercise,
                 sets = sets.filter { it.exerciseLogId == exercise.id },
-                onEditSets = {
-                    onOpenSetEditingModal(exercise.id)
-                },
+                isExpanded = expandedExerciseIds.contains(exercise.id),
+                onToggleExpansion = { viewModel.toggleExerciseExpansion(exercise.id) },
                 onDeleteExercise = { exerciseId ->
                     if (canEdit) onDeleteExercise(exerciseId)
                 },
@@ -897,77 +744,7 @@ private fun ExercisesList(
                     }
                 },
                 viewModel = viewModel,
-                showDragHandle = canEdit,
-                onDragStart = {
-                    // Get the current exercises list from ViewModel to ensure we have the latest
-                    val currentExercisesList = viewModel.selectedWorkoutExercises.value
-                    val startIndex = currentExercisesList.indexOfFirst { it.id == exercise.id }
-
-                    if (startIndex == -1) {
-                        return@CompactExerciseCard
-                    }
-
-                    draggedExerciseId = exercise.id
-                    initialDragIndex = startIndex
-                    targetIndex = startIndex
-                    draggedOffset = 0f
-                },
-                onDragEnd = {
-                    val finalTarget = targetIndex
-                    val startIndex = initialDragIndex
-
-                    // Perform the reorder if needed
-                    if (startIndex != null && finalTarget != null && startIndex != finalTarget) {
-                        viewModel.reorderExercisesInstantly(startIndex, finalTarget)
-                    }
-
-                    // Reset state
-                    draggedExerciseId = null
-                    targetIndex = null
-                    initialDragIndex = null
-                    draggedOffset = 0f
-                },
-                onDrag = { delta ->
-                    // Only process drag for the item that initiated the drag
-                    if (draggedExerciseId == exercise.id && initialDragIndex != null) {
-                        draggedOffset += delta
-
-                        // Get current exercises count from ViewModel
-                        val currentCount = viewModel.selectedWorkoutExercises.value.size
-
-                        // Calculate target position based on drag offset
-                        val dragDirection = if (draggedOffset > 0) 1 else -1
-                        val absoluteOffset = kotlin.math.abs(draggedOffset)
-                        val positionsMovedFloat = absoluteOffset / itemHeightPx
-                        val positionsMoved = positionsMovedFloat.toInt()
-
-                        // Calculate new target index
-                        var newTargetIndex = initialDragIndex!! + (positionsMoved * dragDirection)
-
-                        // Add hysteresis to prevent jittery movement
-                        // Only change target if we're more than 60% into the next position
-                        val remainder = positionsMovedFloat - positionsMoved
-                        if (remainder > 0.6f && dragDirection > 0) {
-                            newTargetIndex++
-                        } else if (remainder > 0.6f && dragDirection < 0) {
-                            newTargetIndex--
-                        }
-
-                        newTargetIndex = newTargetIndex.coerceIn(0, currentCount - 1)
-
-                        // Only update when target changes
-                        if (newTargetIndex != targetIndex) {
-                            targetIndex = newTargetIndex
-                        }
-                    }
-                },
-                modifier =
-                    Modifier
-                        .graphicsLayer {
-                            translationY = if (isDragged) currentOffset else animatedTranslation
-                            this.shadowElevation = if (isDragged) 8.dp.toPx() else 0f
-                            alpha = if (isDragged) 0.9f else 1f
-                        }.zIndex(if (isDragged) 1f else 0f),
+                modifier = Modifier.animateItem(),
             )
         }
 
@@ -1032,108 +809,3 @@ private fun WorkoutActionButtons(
     }
 }
 
-@Composable
-private fun UnifiedProgressCard(
-    completedSets: Int,
-    totalSets: Int,
-    workoutState: WorkoutState,
-    viewModel: WorkoutViewModel,
-    modifier: Modifier = Modifier,
-) {
-    var programmeProgress by remember { mutableStateOf<Pair<Int, Int>?>(null) }
-
-    // Load programme progress if this is a programme workout
-    LaunchedEffect(workoutState.programmeId) {
-        if (workoutState.isProgrammeWorkout && workoutState.programmeId != null) {
-            programmeProgress = viewModel.getProgrammeProgress()
-        }
-    }
-
-    val workoutProgress = if (totalSets > 0) completedSets.toFloat() / totalSets.toFloat() else 0f
-
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(2.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-            ),
-        shape = RoundedCornerShape(12.dp),
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-        ) {
-            // Programme section (if applicable)
-            if (workoutState.isProgrammeWorkout) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        text = workoutState.programmeName ?: "Programme",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-
-                    programmeProgress?.let { (completed, total) ->
-                        if (total > 0) {
-                            Text(
-                                text = "$completed/$total workouts",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(top = 2.dp),
-                            )
-                        }
-                    }
-                }
-
-                if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
-                    Text(
-                        text = "Week ${workoutState.weekNumber} • Day ${workoutState.dayNumber} • ${workoutState.programmeWorkoutName ?: "Workout"}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            // Workout section
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    if (workoutState.isProgrammeWorkout) "Workout Progress" else "Freestyle Workout",
-                    style = if (workoutState.isProgrammeWorkout) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
-                    fontWeight = if (workoutState.isProgrammeWorkout) FontWeight.Medium else FontWeight.SemiBold,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LinearProgressIndicator(
-                progress = { workoutProgress },
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                "${(workoutProgress * 100).roundToInt()}% completed",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
-}

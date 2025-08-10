@@ -70,6 +70,10 @@ class WorkoutViewModel(
 ) : AndroidViewModel(application) {
     val repository = FeatherweightRepository(application)
     private val oneRMService = OneRMService()
+    
+    companion object {
+        private const val DEFAULT_REST_TIMER_SECONDS = 90
+    }
 
     // Cache for 1RM estimates by exercise ID
     private val _oneRMEstimates = MutableStateFlow<Map<Long, Float>>(emptyMap())
@@ -154,6 +158,10 @@ class WorkoutViewModel(
     val restTimerInitialSeconds: StateFlow<Int> = _restTimerInitialSeconds
 
     private var restTimerJob: Job? = null
+    
+    // Exercise card expansion state
+    private val _expandedExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
+    val expandedExerciseIds: StateFlow<Set<Long>> = _expandedExerciseIds
 
     // Workout timer state
     private val _workoutTimerSeconds = MutableStateFlow(0)
@@ -337,7 +345,7 @@ class WorkoutViewModel(
                 workoutTimerStartTime = null
 
                 // Load exercises and sets
-                loadExercisesForWorkout(workoutId)
+                loadExercisesForWorkout(workoutId, isInitialLoad = true)
                 loadInProgressWorkouts()
             }
         }
@@ -387,7 +395,7 @@ class WorkoutViewModel(
                     )
 
                 // Wait for exercises to load completely before UI renders
-                loadExercisesForWorkout(workoutId)
+                loadExercisesForWorkout(workoutId, isInitialLoad = true)
                 loadInProgressWorkouts()
 
                 // Handle workout timer
@@ -447,7 +455,7 @@ class WorkoutViewModel(
                         shouldShowPRCelebration = false,
                     )
 
-                loadExercisesForWorkout(workoutId)
+                loadExercisesForWorkout(workoutId, isInitialLoad = true)
                 loadInProgressWorkouts()
             } else {
                 val ongoingWorkout = repository.getOngoingWorkout()
@@ -605,7 +613,7 @@ class WorkoutViewModel(
         return result
     }
 
-    private suspend fun loadExercisesForWorkout(workoutId: Long) {
+    private suspend fun loadExercisesForWorkout(workoutId: Long, isInitialLoad: Boolean = false) {
         // Set loading state to true before starting
         _workoutState.value = _workoutState.value.copy(isLoadingExercises = true)
 
@@ -613,6 +621,15 @@ class WorkoutViewModel(
             _selectedWorkoutExercises.value = repository.getExercisesForWorkout(workoutId)
             // Wait for sets to be loaded completely
             loadAllSetsForCurrentExercisesAndWait()
+            
+            if (isInitialLoad) {
+                // Initial load: expand all exercises by default
+                _expandedExerciseIds.value = _selectedWorkoutExercises.value.map { it.id }.toSet()
+            } else {
+                // Refresh: only clean up deleted exercise IDs, preserve user's expansion choices
+                val currentExerciseIds = _selectedWorkoutExercises.value.map { it.id }.toSet()
+                _expandedExerciseIds.value = _expandedExerciseIds.value.filter { it in currentExerciseIds }.toSet()
+            }
         } finally {
             // Always set loading state to false when done
             _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
@@ -797,10 +814,23 @@ class WorkoutViewModel(
         }
     }
 
-    // Public method to load exercise history for SetEditingModal
+    // Public method to load exercise history
     fun loadExerciseHistoryForName(exerciseName: String) {
         loadExerciseHistory(exerciseName)
     }
+    
+    // ===== EXERCISE CARD EXPANSION MANAGEMENT =====
+    
+    fun toggleExerciseExpansion(exerciseId: Long) {
+        val current = _expandedExerciseIds.value.toMutableSet()
+        if (current.contains(exerciseId)) {
+            current.remove(exerciseId)
+        } else {
+            current.add(exerciseId)
+        }
+        _expandedExerciseIds.value = current
+    }
+    
 
     // ===== EXISTING SET MANAGEMENT METHODS =====
 
@@ -844,6 +874,44 @@ class WorkoutViewModel(
             loadAllSetsForCurrentExercises()
             loadInProgressWorkouts()
             onSetCreated(newSetId)
+        }
+    }
+    
+    fun addSet(exerciseLogId: Long) {
+        addSetToExercise(exerciseLogId) { }
+    }
+    
+    fun copyLastSet(exerciseLogId: Long) {
+        if (!canEditWorkout()) return
+        
+        viewModelScope.launch {
+            val sets = repository.getSetsForExercise(exerciseLogId)
+            val lastSet = sets.maxByOrNull { it.setOrder }
+            
+            if (lastSet != null && lastSet.actualReps > 0) {
+                val newSetOrder = (sets.maxOfOrNull { it.setOrder } ?: 0) + 1
+                val newSet = SetLog(
+                    exerciseLogId = exerciseLogId,
+                    setOrder = newSetOrder,
+                    targetReps = lastSet.targetReps,
+                    targetWeight = lastSet.targetWeight,
+                    actualReps = lastSet.actualReps,
+                    actualWeight = lastSet.actualWeight,
+                    actualRpe = lastSet.actualRpe,
+                    isCompleted = false
+                )
+                
+                val newSetId = repository.insertSetLog(newSet)
+                
+                // Update validation cache
+                val validationResult = canMarkSetCompleteInternal(newSet.copy(id = newSetId))
+                val validationMap = _setCompletionValidation.value.toMutableMap()
+                validationMap[newSetId] = validationResult
+                _setCompletionValidation.value = validationMap
+                
+                loadAllSetsForCurrentExercises()
+                loadInProgressWorkouts()
+            }
         }
     }
 
@@ -954,7 +1022,7 @@ class WorkoutViewModel(
 
             // Auto-start rest timer when set is completed
             if (completed) {
-                startRestTimer(90) // Hardcoded 90 seconds
+                startRestTimer(DEFAULT_REST_TIMER_SECONDS)
 
                 // Start workout timer on first set completion
                 if (workoutTimerStartTime == null) {
@@ -1198,18 +1266,6 @@ class WorkoutViewModel(
 
         val exercises = _selectedWorkoutExercises.value.toMutableList()
         if (fromIndex in exercises.indices && toIndex in exercises.indices && fromIndex != toIndex) {
-            // Log before reorder
-            Log.d(
-                "DragReorder",
-                "BEFORE reorder: ${
-                    exercises.mapIndexed {
-                        idx,
-                        ex,
-                        ->
-                        "$idx:${ex.exerciseName}(order=${ex.exerciseOrder})"
-                    }.joinToString()
-                }",
-            )
 
             // Move the item in the list
             val item = exercises.removeAt(fromIndex)
@@ -1221,18 +1277,6 @@ class WorkoutViewModel(
                     exercise.copy(exerciseOrder = index)
                 }
 
-            // Log after reorder
-            Log.d(
-                "DragReorder",
-                "AFTER reorder: ${
-                    updatedExercises.mapIndexed {
-                        idx,
-                        ex,
-                        ->
-                        "$idx:${ex.exerciseName}(order=${ex.exerciseOrder})"
-                    }.joinToString()
-                }",
-            )
 
             // Update the UI state immediately for smooth animation
             _selectedWorkoutExercises.value = updatedExercises
@@ -1398,7 +1442,7 @@ class WorkoutViewModel(
                 )
 
             // IMPORTANT: Wait for exercises to load completely before allowing navigation
-            loadExercisesForWorkout(workoutId)
+            loadExercisesForWorkout(workoutId, isInitialLoad = true)
             loadInProgressWorkouts()
 
             // Notify that workout is ready for navigation
