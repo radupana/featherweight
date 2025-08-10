@@ -240,6 +240,8 @@ class FeatherweightRepository(
     ) = setLogDao.markSetCompleted(setId, completed, completedAt)
 
     suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long = exerciseRepository.insertExerciseLog(exerciseLog)
+    
+    suspend fun incrementExerciseUsageCount(exerciseId: Long) = db.exerciseDao().incrementUsageCount(exerciseId)
 
     suspend fun insertSetLog(setLog: SetLog): Long {
         // Round all weight fields to nearest 0.25

@@ -147,7 +147,7 @@ private fun RepRangeChartCanvas(
 ) {
     var clickPosition by remember { mutableStateOf<Offset?>(null) }
     val textMeasurer = rememberTextMeasurer()
-    val primaryColor = ChartTheme.primaryChartColor()
+    val barColors = ChartTheme.repRangeColors
     val onSurfaceColor = ChartTheme.axisLabelColor()
     val surfaceVariantColor = ChartTheme.gridLineColor()
 
@@ -233,10 +233,13 @@ private fun RepRangeChartCanvas(
             val y = topPadding + chartHeight - barHeight
 
             val isSelected = range == selectedRange
+            
+            // Use different colors for different rep ranges
+            val barColor = barColors.getOrElse(index) { barColors.last() }
 
             // Bar
             drawRect(
-                color = primaryColor.copy(alpha = if (isSelected) 1f else 0.8f),
+                color = barColor.copy(alpha = if (isSelected) 1f else 0.9f),
                 topLeft = Offset(x, y),
                 size = Size(barWidth, barHeight),
             )
@@ -250,7 +253,7 @@ private fun RepRangeChartCanvas(
                         style =
                             TextStyle(
                                 fontSize = 12.sp,
-                                color = onSurfaceColor,
+                                color = ChartTheme.onColoredBackground,
                                 fontWeight = FontWeight.Bold,
                             ),
                     )

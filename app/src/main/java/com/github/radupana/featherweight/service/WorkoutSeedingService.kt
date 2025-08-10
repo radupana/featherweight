@@ -528,6 +528,7 @@ class WorkoutSeedingService(
                     )
 
                 val exerciseLogId = repository.insertExerciseLog(exerciseLog)
+                repository.incrementExerciseUsageCount(exercise.id)
 
                 // Get base 1RM for this exercise or use a default
                 val exerciseRM =

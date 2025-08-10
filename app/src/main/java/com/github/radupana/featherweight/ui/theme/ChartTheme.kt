@@ -58,4 +58,15 @@ object ChartTheme {
     // Chart-specific elevation and shadows
     const val tooltipElevation = 8f
     const val tooltipShadowAlpha = 0.25f
+    
+    // Rep range chart colors - vibrant colors for better visibility
+    val repRangeColors = listOf(
+        Color(0xFF4CAF50), // Green for low reps
+        Color(0xFF2196F3), // Blue for mid reps  
+        Color(0xFFFF9800), // Orange for high reps
+        Color(0xFFF44336), // Red for very high reps
+    )
+    
+    // High contrast text color for colored backgrounds
+    val onColoredBackground = Color.White
 }

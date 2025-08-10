@@ -481,25 +481,25 @@ private fun ExerciseInsightsContent(
                     // Pattern Type Selector
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         FilterChip(
                             selected = selectedPatternType == ExerciseProgressViewModel.PatternType.FREQUENCY,
                             onClick = { onPatternTypeChanged(ExerciseProgressViewModel.PatternType.FREQUENCY) },
-                            label = { Text("Frequency") },
-                            modifier = Modifier.weight(1f),
+                            label = { Text("Consistency", maxLines = 1) },
+                            modifier = Modifier.weight(1.3f),
                         )
                         FilterChip(
                             selected = selectedPatternType == ExerciseProgressViewModel.PatternType.REP_RANGES,
                             onClick = { onPatternTypeChanged(ExerciseProgressViewModel.PatternType.REP_RANGES) },
-                            label = { Text("Reps") },
-                            modifier = Modifier.weight(1f),
+                            label = { Text("Reps", maxLines = 1) },
+                            modifier = Modifier.weight(0.85f),
                         )
                         FilterChip(
                             selected = selectedPatternType == ExerciseProgressViewModel.PatternType.RPE_ZONES,
                             onClick = { onPatternTypeChanged(ExerciseProgressViewModel.PatternType.RPE_ZONES) },
-                            label = { Text("RPE") },
-                            modifier = Modifier.weight(1f),
+                            label = { Text("RPE", maxLines = 1) },
+                            modifier = Modifier.weight(0.85f),
                         )
                     }
 

@@ -679,20 +679,20 @@ class InsightsViewModel(
 
             OUTPUT FORMAT (JSON):
             {
-              "overall_assessment": "ONE sentence, 15-20 words max. Focus on the single most important trend.",
+              "overall_assessment": "ONE sentence, 50 words max. Focus on the single most important trend.",
               "key_insights": [
                 {"category": "PROGRESSION|RECOVERY|BALANCE", 
-                 "message": "Max 10 words. Just state the fact.",
+                 "message": "Max 20 words. Just state the fact.",
                  "severity": "SUCCESS|WARNING|CRITICAL"}
               ],
               "warnings": [],
-              "recommendations": ["Max 2 items. Each under 10 words. Ultra-specific actions."]
+              "recommendations": ["Max 3 items. Each under 20 words. Ultra-specific actions."]
             }
 
             RULES:
             - overall_assessment: ONE sentence only (e.g., "Strong progression with 3 PRs, but needs more tricep work")
             - key_insights: Maximum 3 items. Only include if truly important
-            - recommendations: Maximum 2 items. Must be ultra-specific (e.g., "Add 2x10 tricep extensions weekly")
+            - recommendations: Maximum 3 items. Must be ultra-specific (e.g., "Add 2x10 tricep extensions weekly")
             - Skip warnings array entirely (return empty)
             - Prioritize what matters most: PRs, overtraining risks, major imbalances
             - If everything looks good, just say so briefly
