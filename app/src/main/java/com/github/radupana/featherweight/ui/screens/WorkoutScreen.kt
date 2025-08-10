@@ -747,6 +747,17 @@ private fun ExercisesList(
                 },
                 viewModel = viewModel,
                 modifier = Modifier.animateItem(),
+                // Drag and drop parameters
+                showDragHandle = canEdit,
+                onDragStart = { exerciseId ->
+                    viewModel.onExerciseDragStart(exerciseId)
+                },
+                onDragEnd = {
+                    viewModel.onExerciseDragEnd()
+                },
+                onDrag = { exerciseId, dragAmount ->
+                    viewModel.onExerciseDrag(exerciseId, dragAmount)
+                },
             )
         }
 

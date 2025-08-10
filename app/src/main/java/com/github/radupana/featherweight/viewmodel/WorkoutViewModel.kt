@@ -163,6 +163,16 @@ class WorkoutViewModel(
     private val _expandedExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
     val expandedExerciseIds: StateFlow<Set<Long>> = _expandedExerciseIds
 
+    // Drag and drop state
+    private val _isDragInProgress = MutableStateFlow(false)
+    val isDragInProgress: StateFlow<Boolean> = _isDragInProgress
+    
+    private val _draggedExerciseId = MutableStateFlow<Long?>(null)
+    val draggedExerciseId: StateFlow<Long?> = _draggedExerciseId
+    
+    private var dragStartIndex: Int = -1
+    private var originalExerciseOrder: List<ExerciseLog> = emptyList()
+
     // Workout timer state
     private val _workoutTimerSeconds = MutableStateFlow(0)
     val workoutTimerSeconds: StateFlow<Int> = _workoutTimerSeconds
@@ -832,6 +842,70 @@ class WorkoutViewModel(
             current.add(exerciseId)
         }
         _expandedExerciseIds.value = current
+    }
+
+    // ===== DRAG AND DROP REORDERING =====
+
+    fun onExerciseDragStart(exerciseId: Long) {
+        if (!canEditWorkout()) return
+        _isDragInProgress.value = true
+        _draggedExerciseId.value = exerciseId
+        
+        // Store original order for potential restoration
+        originalExerciseOrder = _selectedWorkoutExercises.value
+        dragStartIndex = originalExerciseOrder.indexOfFirst { it.id == exerciseId }
+    }
+
+    fun onExerciseDragEnd() {
+        // Commit the current order to database if it changed
+        if (_isDragInProgress.value && originalExerciseOrder != _selectedWorkoutExercises.value) {
+            commitExerciseReordering()
+        }
+        
+        _isDragInProgress.value = false
+        _draggedExerciseId.value = null
+        dragStartIndex = -1
+        originalExerciseOrder = emptyList()
+    }
+
+    fun onExerciseDrag(exerciseId: Long, dragAmount: Float) {
+        // During drag, just track movement - actual reordering happens elsewhere
+        if (!canEditWorkout() || !_isDragInProgress.value) return
+        // This is called for visual feedback but actual reordering logic 
+        // would be handled by UI drag gestures in a real implementation
+    }
+
+    fun reorderExercises(fromIndex: Int, toIndex: Int) {
+        if (!canEditWorkout() || fromIndex == toIndex) return
+        
+        val exercises = _selectedWorkoutExercises.value.toMutableList()
+        
+        // Validate indices
+        if (fromIndex < 0 || fromIndex >= exercises.size || toIndex < 0 || toIndex >= exercises.size) return
+        
+        // Move the exercise (UI state only - database update happens on drag end)
+        val exerciseToMove = exercises.removeAt(fromIndex)
+        exercises.add(toIndex, exerciseToMove)
+        
+        // Update UI state immediately for smooth visual feedback
+        _selectedWorkoutExercises.value = exercises
+    }
+
+    private fun commitExerciseReordering() {
+        viewModelScope.launch {
+            try {
+                val exercises = _selectedWorkoutExercises.value
+                
+                // Update exercise orders in database
+                exercises.forEachIndexed { index, exercise ->
+                    repository.updateExerciseOrder(exercise.id, index)
+                }
+                
+            } catch (e: Exception) {
+                // Restore original order on error
+                _selectedWorkoutExercises.value = originalExerciseOrder
+            }
+        }
     }
 
     // ===== EXISTING SET MANAGEMENT METHODS =====

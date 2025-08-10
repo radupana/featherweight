@@ -66,6 +66,7 @@ import com.github.radupana.featherweight.ui.components.CenteredInputField
 import com.github.radupana.featherweight.ui.components.InputFieldType
 import com.github.radupana.featherweight.ui.theme.FeatherweightColors
 import com.github.radupana.featherweight.ui.theme.GlassCard
+import com.github.radupana.featherweight.ui.utils.DragHandle
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
@@ -80,6 +81,11 @@ fun ExerciseCard(
     onSwapExercise: (Long) -> Unit,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
+    // Drag and drop parameters
+    showDragHandle: Boolean = false,
+    onDragStart: (Long) -> Unit = {},
+    onDragEnd: () -> Unit = {},
+    onDrag: (Long, Float) -> Unit = { _, _ -> },
 ) {
     var showDeleteExerciseDialog by remember { mutableStateOf(false) }
     val completedSets = sets.count { it.isCompleted }
@@ -139,6 +145,16 @@ fun ExerciseCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // Drag handle (if enabled)
+            if (showDragHandle) {
+                DragHandle(
+                    onDragStart = { onDragStart(exercise.id) },
+                    onDragEnd = onDragEnd,
+                    onDrag = { dragAmount -> onDrag(exercise.id, dragAmount) },
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+            }
+            
             // Chevron icon for expand/collapse
             val rotationAngle by animateFloatAsState(
                 targetValue = if (isExpanded) 0f else -90f,
