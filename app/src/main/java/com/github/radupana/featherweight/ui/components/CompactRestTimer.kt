@@ -58,103 +58,104 @@ fun CompactRestTimer(
     ) {
         // Dark semi-transparent background for readability
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)),
         )
-        
+
         // Progress indicator at top
         LinearProgressIndicator(
-                progress = { if (initialSeconds > 0) seconds.toFloat() / initialSeconds else 0f },
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .align(Alignment.TopCenter),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            progress = { if (initialSeconds > 0) seconds.toFloat() / initialSeconds else 0f },
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .align(Alignment.TopCenter),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+        )
+
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Timer display
+            Text(
+                text = formatTime(seconds),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.width(50.dp),
+                color = if (seconds == 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
+            // Control buttons
             Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Timer display
-                Text(
-                    text = formatTime(seconds),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.width(50.dp),
-                    color = if (seconds == 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                // Control buttons
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                // Decrease time
+                IconButton(
+                    onClick = { onAdjustTime(-15) },
+                    modifier = Modifier.size(48.dp),
                 ) {
-                    // Decrease time
-                    IconButton(
-                        onClick = { onAdjustTime(-15) },
-                        modifier = Modifier.size(48.dp),
-                    ) {
-                        Icon(
-                            Icons.Default.Remove,
-                            contentDescription = "Decrease 15s",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-
-                    // Skip button (text only, no pill)
-                    TextButton(
-                        onClick = onSkip,
-                        modifier = Modifier.height(40.dp),
-                    ) {
-                        Text(
-                            text = "Skip",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Medium,
-                        )
-                    }
-
-                    // Increase time
-                    IconButton(
-                        onClick = { onAdjustTime(15) },
-                        modifier = Modifier.size(48.dp),
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "Increase 15s",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    Icon(
+                        Icons.Default.Remove,
+                        contentDescription = "Decrease 15s",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
 
-                // Preset buttons
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                // Skip button (text only, no pill)
+                TextButton(
+                    onClick = onSkip,
+                    modifier = Modifier.height(40.dp),
                 ) {
-                    TextButton(
-                        onClick = { onPresetSelected(90) },
-                        modifier = Modifier.height(40.dp),
-                    ) {
-                        Text("90s", style = MaterialTheme.typography.labelMedium)
-                    }
-                    TextButton(
-                        onClick = { onPresetSelected(180) },
-                        modifier = Modifier.height(40.dp),
-                    ) {
-                        Text("3m", style = MaterialTheme.typography.labelMedium)
-                    }
+                    Text(
+                        text = "Skip",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+
+                // Increase time
+                IconButton(
+                    onClick = { onAdjustTime(15) },
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Increase 15s",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            // Preset buttons
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(
+                    onClick = { onPresetSelected(90) },
+                    modifier = Modifier.height(40.dp),
+                ) {
+                    Text("90s", style = MaterialTheme.typography.labelMedium)
+                }
+                TextButton(
+                    onClick = { onPresetSelected(180) },
+                    modifier = Modifier.height(40.dp),
+                ) {
+                    Text("3m", style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
     }
+}
 
 private fun formatTime(seconds: Int): String {
     val minutes = seconds / 60
@@ -176,4 +177,3 @@ private fun vibrateCompletion(context: Context) {
     val effect = VibrationEffect.createWaveform(pattern, -1)
     vibrator.vibrate(effect)
 }
-

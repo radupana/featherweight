@@ -16,7 +16,10 @@ interface TrainingAnalysisDao {
     suspend fun getLatestAnalysis(userId: Long): TrainingAnalysis?
 
     @Query("DELETE FROM training_analysis WHERE userId = :userId AND analysisDate < :olderThan")
-    suspend fun deleteOldAnalyses(userId: Long, olderThan: LocalDateTime)
+    suspend fun deleteOldAnalyses(
+        userId: Long,
+        olderThan: LocalDateTime,
+    )
 
     @Query("DELETE FROM training_analysis WHERE userId = :userId")
     suspend fun deleteAllAnalyses(userId: Long)

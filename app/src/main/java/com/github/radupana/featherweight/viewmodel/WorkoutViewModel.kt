@@ -1558,7 +1558,7 @@ class WorkoutViewModel(
     private fun resumeWorkoutTimer(startTime: LocalDateTime) {
         // CRITICAL: Stop any existing timer first to prevent multiple timers
         stopWorkoutTimer()
-        
+
         workoutTimerStartTime = startTime
 
         // Calculate elapsed time

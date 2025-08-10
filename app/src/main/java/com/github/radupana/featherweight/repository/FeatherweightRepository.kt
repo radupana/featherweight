@@ -10,8 +10,8 @@ import com.github.radupana.featherweight.data.GlobalExerciseProgress
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.SetLog
-import com.github.radupana.featherweight.data.TrainingAnalysis
 import com.github.radupana.featherweight.data.SwapHistoryCount
+import com.github.radupana.featherweight.data.TrainingAnalysis
 import com.github.radupana.featherweight.data.UserPreferences
 import com.github.radupana.featherweight.data.VolumeLevel
 import com.github.radupana.featherweight.data.Workout

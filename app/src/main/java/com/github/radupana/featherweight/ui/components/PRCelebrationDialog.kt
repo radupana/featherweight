@@ -144,9 +144,10 @@ fun PRCelebrationDialog(
                     )
 
                     Column(
-                        modifier = Modifier
-                            .weight(1f, fill = false)
-                            .verticalScroll(rememberScrollState()),
+                        modifier =
+                            Modifier
+                                .weight(1f, fill = false)
+                                .verticalScroll(rememberScrollState()),
                     ) {
                         personalRecords.forEach { pr ->
                             PRDetailCard(

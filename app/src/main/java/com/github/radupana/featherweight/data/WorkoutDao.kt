@@ -223,14 +223,14 @@ interface WorkoutDao {
         AND status != :excludeStatus
         ORDER BY date DESC
         LIMIT :limit OFFSET :offset
-        """
+        """,
     )
     suspend fun getWorkoutsInDateRangePaged(
         startDate: LocalDateTime,
         endDate: LocalDateTime,
         excludeStatus: WorkoutStatus = WorkoutStatus.NOT_STARTED,
         limit: Int,
-        offset: Int
+        offset: Int,
     ): List<Workout>
 
     @Query(
@@ -238,12 +238,12 @@ interface WorkoutDao {
         SELECT COUNT(*) FROM Workout 
         WHERE date BETWEEN :startDate AND :endDate 
         AND status != :excludeStatus
-        """
+        """,
     )
     suspend fun getWorkoutCountInDateRange(
         startDate: LocalDateTime,
         endDate: LocalDateTime,
-        excludeStatus: WorkoutStatus = WorkoutStatus.NOT_STARTED
+        excludeStatus: WorkoutStatus = WorkoutStatus.NOT_STARTED,
     ): Int
 }
 

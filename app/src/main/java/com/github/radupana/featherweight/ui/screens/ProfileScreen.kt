@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -46,11 +47,10 @@ import com.github.radupana.featherweight.ui.components.OtherExerciseCard
 import com.github.radupana.featherweight.ui.components.SubSection
 import com.github.radupana.featherweight.ui.dialogs.Add1RMDialog
 import com.github.radupana.featherweight.ui.dialogs.ExerciseSelectorDialog
-import com.github.radupana.featherweight.ui.dialogs.ExportWorkoutsDialog
 import com.github.radupana.featherweight.ui.dialogs.ExportShareDialog
+import com.github.radupana.featherweight.ui.dialogs.ExportWorkoutsDialog
 import com.github.radupana.featherweight.viewmodel.ExerciseMaxWithName
 import com.github.radupana.featherweight.viewmodel.ProfileViewModel
-import androidx.compose.material.icons.filled.Download
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -244,7 +244,7 @@ fun ProfileScreen(
 
             // Data Management Section
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             CollapsibleSection(
                 title = "Data Management",
                 isExpanded = uiState.isDataManagementSectionExpanded,
@@ -258,9 +258,10 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             Text(
@@ -268,16 +269,16 @@ fun ProfileScreen(
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
-                            
+
                             Text(
                                 text = "Download your workout history as JSON for analysis with AI tools",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            
+
                             FilledTonalButton(
                                 onClick = { showExportDialog = true },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Icon(
                                     Icons.Filled.Download,
@@ -436,7 +437,7 @@ fun ProfileScreen(
                             )
 
                             FilledTonalButton(
-                                onClick = { 
+                                onClick = {
                                     insightsViewModel?.forceAnalysis()
                                 },
                                 modifier = Modifier.fillMaxWidth(),
@@ -486,7 +487,7 @@ fun ProfileScreen(
             onExport = { startDate, endDate ->
                 viewModel.exportWorkouts(startDate, endDate)
                 showExportDialog = false
-            }
+            },
         )
     }
 
@@ -494,7 +495,7 @@ fun ProfileScreen(
     uiState.exportedFilePath?.let { filePath ->
         ExportShareDialog(
             filePath = filePath,
-            onDismiss = { viewModel.clearExportedFile() }
+            onDismiss = { viewModel.clearExportedFile() },
         )
     }
 

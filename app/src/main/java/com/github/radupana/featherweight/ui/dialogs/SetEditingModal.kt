@@ -188,15 +188,11 @@ fun SetEditingModal(
                     .systemBarsPadding(),
             color = MaterialTheme.colorScheme.surface,
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .imePadding(),
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = if (restTimerSeconds > 0) 56.dp else 0.dp), // Add padding when timer is visible
-                ) {
-                // Header
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     tonalElevation = 4.dp,
@@ -311,18 +307,11 @@ fun SetEditingModal(
                     )
                 }
 
-                // Content area with optimal space usage
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                            .imePadding(), // Add IME padding to avoid keyboard overlap
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        // Show header only when there are sets
                         if (sets.isNotEmpty()) {
                             // Modal header for input fields
                             Row(
@@ -392,17 +381,19 @@ fun SetEditingModal(
                             )
                         }
 
-                        // Always show the LazyColumn
-                        Column(modifier = Modifier.weight(1f)) {
-                            // Sets list
-                            LazyColumn(
-                                modifier =
-                                    Modifier
-                                        .weight(1f)
-                                        .fillMaxWidth(),
+                        LazyColumn(
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
                                 state = listState,
                                 verticalArrangement = Arrangement.spacedBy(2.dp),
-                                contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = 8.dp),
+                                contentPadding = PaddingValues(
+                                    start = 0.dp, 
+                                    top = 8.dp, 
+                                    end = 0.dp, 
+                                    bottom = 80.dp
+                                ),
                             ) {
                                 // Always show action buttons first when there are no sets
                                 if (sets.isEmpty()) {
@@ -497,8 +488,7 @@ fun SetEditingModal(
                                         Card(
                                             modifier =
                                                 Modifier
-                                                    .fillMaxWidth()
-                                                    .imePadding(),
+                                                    .fillMaxWidth(),
                                             colors =
                                                 CardDefaults.cardColors(
                                                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -542,30 +532,27 @@ fun SetEditingModal(
                                         }
                                     }
                                 }
+
+                            if (restTimerSeconds > 0) {
+                                item {
+                                    CompactRestTimer(
+                                        seconds = restTimerSeconds,
+                                        initialSeconds = restTimerInitialSeconds,
+                                        onSkip = { viewModel.skipRestTimer() },
+                                        onPresetSelected = { viewModel.selectRestTimerPreset(it) },
+                                        onAdjustTime = { viewModel.adjustRestTimer(it) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 8.dp),
+                                    )
+                                }
                             }
                         }
                     }
                 }
-                } // End of Column
-                
-                // Rest timer at bottom (if active)
-                if (restTimerSeconds > 0) {
-                    CompactRestTimer(
-                        seconds = restTimerSeconds,
-                        initialSeconds = restTimerInitialSeconds,
-                        onSkip = { viewModel.skipRestTimer() },
-                        onPresetSelected = { viewModel.selectRestTimerPreset(it) },
-                        onAdjustTime = { viewModel.adjustRestTimer(it) },
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .padding(bottom = 80.dp), // Add padding to lift it above navigation
-                    )
-                }
             }
         }
     }
-}
 
 @Composable
 private fun ExpandedSetRow(

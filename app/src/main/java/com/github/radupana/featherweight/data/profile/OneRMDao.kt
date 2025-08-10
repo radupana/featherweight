@@ -306,11 +306,11 @@ interface OneRMDao {
         WHERE h.recordedAt >= :startDate
         AND h.recordedAt <= :endDate
         ORDER BY h.recordedAt DESC
-        """
+        """,
     )
     suspend fun getAllOneRMHistoryInRange(
         startDate: LocalDateTime,
-        endDate: LocalDateTime
+        endDate: LocalDateTime,
     ): List<OneRMHistoryWithName>
 
     @Query(
@@ -339,7 +339,7 @@ interface OneRMDao {
             GROUP BY exerciseId
         )
         ORDER BY e.name ASC
-        """
+        """,
     )
     suspend fun getAllCurrentMaxesForExport(userId: Long): List<UserExerciseMaxWithName>
 }
@@ -387,7 +387,7 @@ data class OneRMHistoryWithName(
     val exerciseName: String,
     val oneRMEstimate: Float,
     val context: String,
-    val recordedAt: LocalDateTime
+    val recordedAt: LocalDateTime,
 )
 
 data class UserExerciseMaxWithName(
@@ -404,5 +404,5 @@ data class UserExerciseMaxWithName(
     val oneRMConfidence: Float,
     val oneRMDate: LocalDateTime,
     val oneRMType: OneRMType,
-    val notes: String?
+    val notes: String?,
 )

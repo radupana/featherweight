@@ -3,24 +3,24 @@ package com.github.radupana.featherweight.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.radupana.featherweight.data.InsightCategory
+import com.github.radupana.featherweight.data.InsightSeverity
+import com.github.radupana.featherweight.data.TrainingAnalysis
+import com.github.radupana.featherweight.data.TrainingInsight
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.service.AIProgrammeService
+import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.LocalDateTime
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import com.github.radupana.featherweight.data.TrainingAnalysis
-import com.github.radupana.featherweight.data.TrainingInsight
-import com.github.radupana.featherweight.data.InsightCategory
-import com.github.radupana.featherweight.data.InsightSeverity
-import com.github.radupana.featherweight.service.AIProgrammeService
-import com.google.gson.Gson
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
 
 data class VolumeMetrics(
     val thisWeek: Float = 0f,
@@ -96,10 +96,10 @@ class InsightsViewModel(
 
     private val _analyticsState = MutableStateFlow(AnalyticsState())
     val analyticsState: StateFlow<AnalyticsState> = _analyticsState
-    
+
     private val _trainingAnalysis = MutableStateFlow<TrainingAnalysis?>(null)
     val trainingAnalysis: StateFlow<TrainingAnalysis?> = _trainingAnalysis
-    
+
     private val _isAnalyzing = MutableStateFlow(false)
     val isAnalyzing: StateFlow<Boolean> = _isAnalyzing
 
@@ -512,22 +512,23 @@ class InsightsViewModel(
             val prefs = getApplication<Application>().getSharedPreferences("training_analysis", 0)
             val lastCheckDate = prefs.getString("last_check_date", null)
             val today = LocalDate.now().toString()
-            
+
             if (lastCheckDate == today) {
                 // Already checked today, skip
                 return@launch
             }
-            
+
             // Update last check date
             prefs.edit().putString("last_check_date", today).apply()
-            
+
             val lastAnalysis = repository.getLatestTrainingAnalysis()
-            val shouldRunAnalysis = when {
-                lastAnalysis == null -> true // First time user
-                ChronoUnit.DAYS.between(lastAnalysis.analysisDate.toLocalDate(), LocalDate.now()) >= 7 -> true // Weekly
-                else -> false
-            }
-            
+            val shouldRunAnalysis =
+                when {
+                    lastAnalysis == null -> true // First time user
+                    ChronoUnit.DAYS.between(lastAnalysis.analysisDate.toLocalDate(), LocalDate.now()) >= 7 -> true // Weekly
+                    else -> false
+                }
+
             if (shouldRunAnalysis) {
                 runAnalysis()
             }
@@ -555,39 +556,54 @@ class InsightsViewModel(
         }
     }
 
-    private suspend fun performAnalysis(): TrainingAnalysis = withContext(Dispatchers.IO) {
-        // 1. Fetch raw workout data
-        val endDate = LocalDate.now()
-        val startDate = endDate.minusWeeks(12)
-        val workouts = repository.getWorkoutsByDateRange(startDate, endDate)
-        
-        // 2. Build JSON payload
-        val jsonPayload = buildAnalysisPayload(workouts)
-        
-        // 3. Call OpenAI API using gpt-4.1-mini
-        val response = callOpenAIAPI(jsonPayload)
-        
-        // 4. Parse response into TrainingAnalysis
-        parseAIResponse(response, startDate, endDate)
-    }
+    private suspend fun performAnalysis(): TrainingAnalysis =
+        withContext(Dispatchers.IO) {
+            // 1. Fetch raw workout data
+            val endDate = LocalDate.now()
+            val startDate = endDate.minusWeeks(12)
+            val workouts = repository.getWorkoutsByDateRange(startDate, endDate)
+
+            // 2. Build JSON payload
+            val jsonPayload = buildAnalysisPayload(workouts)
+
+            // 3. Call OpenAI API using gpt-4.1-mini
+            val response = callOpenAIAPI(jsonPayload)
+
+            // 4. Parse response into TrainingAnalysis
+            parseAIResponse(response, startDate, endDate)
+        }
 
     private suspend fun buildAnalysisPayload(workouts: List<com.github.radupana.featherweight.repository.WorkoutSummary>): String {
         val payload = JsonObject()
-        
+
         // Analysis period
         val period = JsonObject()
-        period.addProperty("start_date", workouts.firstOrNull()?.date?.toLocalDate().toString())
-        period.addProperty("end_date", workouts.lastOrNull()?.date?.toLocalDate().toString())
+        period.addProperty(
+            "start_date",
+            workouts
+                .firstOrNull()
+                ?.date
+                ?.toLocalDate()
+                .toString(),
+        )
+        period.addProperty(
+            "end_date",
+            workouts
+                .lastOrNull()
+                ?.date
+                ?.toLocalDate()
+                .toString(),
+        )
         period.addProperty("total_workouts", workouts.size)
         payload.add("analysis_period", period)
-        
+
         // Build SUMMARIZED workouts array to reduce token usage
         // Group by week and only include key metrics
         val workoutsArray = com.google.gson.JsonArray()
-        
+
         // Only include last 4 weeks of detailed data, older data as weekly summaries
         val fourWeeksAgo = LocalDate.now().minusWeeks(4)
-        
+
         for (workout in workouts) {
             val workoutObj = JsonObject()
             workoutObj.addProperty("id", workout.id)
@@ -595,19 +611,19 @@ class InsightsViewModel(
             workoutObj.addProperty("name", workout.name ?: "Workout")
             workoutObj.addProperty("duration_minutes", workout.duration?.div(60) ?: 0)
             workoutObj.addProperty("notes", "")
-            
+
             // Get exercises for this workout
             val exercises = repository.getExerciseLogsForWorkout(workout.id)
             val exercisesArray = com.google.gson.JsonArray()
-            
+
             for (exercise in exercises) {
                 val exerciseObj = JsonObject()
                 exerciseObj.addProperty("name", exercise.exerciseName)
-                
+
                 // Get sets for this exercise
                 val sets = repository.getSetLogsForExercise(exercise.id)
                 val setsArray = com.google.gson.JsonArray()
-                
+
                 for ((index, set) in sets.withIndex()) {
                     val setObj = JsonObject()
                     setObj.addProperty("set_number", index + 1)
@@ -618,28 +634,28 @@ class InsightsViewModel(
                     setObj.addProperty("completed", set.isCompleted)
                     setsArray.add(setObj)
                 }
-                
+
                 exerciseObj.add("sets", setsArray)
                 exercisesArray.add(exerciseObj)
             }
-            
+
             workoutObj.add("exercises", exercisesArray)
             workoutsArray.add(workoutObj)
         }
-        
+
         payload.add("workouts", workoutsArray)
-        
+
         // Add personal records
         val prs = repository.getRecentPRs(limit = 20)
         val prsArray = com.google.gson.JsonArray()
-        
+
         for (pr in prs) {
             val prObj = JsonObject()
             prObj.addProperty("exercise", pr.exerciseName)
             prObj.addProperty("date", pr.recordDate.toLocalDate().toString())
             prObj.addProperty("weight", pr.weight)
             prObj.addProperty("reps", pr.reps)
-            
+
             if (pr.previousWeight != null) {
                 val prevObj = JsonObject()
                 prevObj.addProperty("weight", pr.previousWeight)
@@ -647,84 +663,91 @@ class InsightsViewModel(
                 prevObj.addProperty("date", pr.previousDate?.toLocalDate().toString())
                 prObj.add("previous_best", prevObj)
             }
-            
+
             prsArray.add(prObj)
         }
-        
+
         payload.add("personal_records", prsArray)
-        
+
         return gson.toJson(payload)
     }
 
     private suspend fun callOpenAIAPI(jsonPayload: String): String {
-        val prompt = """
-        Analyze this training data and provide an EXTREMELY CONCISE analysis (readable in 10 seconds).
+        val prompt =
+            """
+            Analyze this training data and provide an EXTREMELY CONCISE analysis (readable in 10 seconds).
 
-        OUTPUT FORMAT (JSON):
-        {
-          "overall_assessment": "ONE sentence, 15-20 words max. Focus on the single most important trend.",
-          "key_insights": [
-            {"category": "PROGRESSION|RECOVERY|BALANCE", 
-             "message": "Max 10 words. Just state the fact.",
-             "severity": "SUCCESS|WARNING|CRITICAL"}
-          ],
-          "warnings": [],
-          "recommendations": ["Max 2 items. Each under 10 words. Ultra-specific actions."]
-        }
+            OUTPUT FORMAT (JSON):
+            {
+              "overall_assessment": "ONE sentence, 15-20 words max. Focus on the single most important trend.",
+              "key_insights": [
+                {"category": "PROGRESSION|RECOVERY|BALANCE", 
+                 "message": "Max 10 words. Just state the fact.",
+                 "severity": "SUCCESS|WARNING|CRITICAL"}
+              ],
+              "warnings": [],
+              "recommendations": ["Max 2 items. Each under 10 words. Ultra-specific actions."]
+            }
 
-        RULES:
-        - overall_assessment: ONE sentence only (e.g., "Strong progression with 3 PRs, but needs more tricep work")
-        - key_insights: Maximum 3 items. Only include if truly important
-        - recommendations: Maximum 2 items. Must be ultra-specific (e.g., "Add 2x10 tricep extensions weekly")
-        - Skip warnings array entirely (return empty)
-        - Prioritize what matters most: PRs, overtraining risks, major imbalances
-        - If everything looks good, just say so briefly
-        
-        Data: $jsonPayload
-        """.trimIndent()
-        
+            RULES:
+            - overall_assessment: ONE sentence only (e.g., "Strong progression with 3 PRs, but needs more tricep work")
+            - key_insights: Maximum 3 items. Only include if truly important
+            - recommendations: Maximum 2 items. Must be ultra-specific (e.g., "Add 2x10 tricep extensions weekly")
+            - Skip warnings array entirely (return empty)
+            - Prioritize what matters most: PRs, overtraining risks, major imbalances
+            - If everything looks good, just say so briefly
+            
+            Data: $jsonPayload
+            """.trimIndent()
+
         return aiService.analyzeTraining(prompt)
     }
 
-    private fun parseAIResponse(response: String, startDate: LocalDate, endDate: LocalDate): TrainingAnalysis {
+    private fun parseAIResponse(
+        response: String,
+        startDate: LocalDate,
+        endDate: LocalDate,
+    ): TrainingAnalysis {
         try {
             val jsonResponse = JsonParser.parseString(response).asJsonObject
-            
+
             val overallAssessment = jsonResponse.get("overall_assessment")?.asString ?: "Analysis complete."
-            
+
             val keyInsights = mutableListOf<TrainingInsight>()
             jsonResponse.getAsJsonArray("key_insights")?.forEach { element ->
                 val insight = element.asJsonObject
-                val category = try {
-                    InsightCategory.valueOf(insight.get("category").asString)
-                } catch (e: Exception) {
-                    InsightCategory.PROGRESSION
-                }
-                val severity = try {
-                    InsightSeverity.valueOf(insight.get("severity").asString)
-                } catch (e: Exception) {
-                    InsightSeverity.INFO
-                }
-                
+                val category =
+                    try {
+                        InsightCategory.valueOf(insight.get("category").asString)
+                    } catch (e: Exception) {
+                        InsightCategory.PROGRESSION
+                    }
+                val severity =
+                    try {
+                        InsightSeverity.valueOf(insight.get("severity").asString)
+                    } catch (e: Exception) {
+                        InsightSeverity.INFO
+                    }
+
                 keyInsights.add(
                     TrainingInsight(
                         category = category,
                         message = insight.get("message").asString,
-                        severity = severity
-                    )
+                        severity = severity,
+                    ),
                 )
             }
-            
+
             val warnings = mutableListOf<String>()
             jsonResponse.getAsJsonArray("warnings")?.forEach { element ->
                 warnings.add(element.asString)
             }
-            
+
             val recommendations = mutableListOf<String>()
             jsonResponse.getAsJsonArray("recommendations")?.forEach { element ->
                 recommendations.add(element.asString)
             }
-            
+
             return TrainingAnalysis(
                 analysisDate = LocalDateTime.now(),
                 periodStart = startDate,
@@ -733,17 +756,18 @@ class InsightsViewModel(
                 keyInsightsJson = gson.toJson(keyInsights),
                 recommendationsJson = gson.toJson(recommendations),
                 warningsJson = gson.toJson(warnings),
-                userId = 1
+                userId = 1,
             )
         } catch (e: Exception) {
             // Fallback to basic analysis if parsing fails
-            val fallbackInsights = listOf(
-                TrainingInsight(
-                    category = InsightCategory.PROGRESSION,
-                    message = "Training data analyzed",
-                    severity = InsightSeverity.INFO
+            val fallbackInsights =
+                listOf(
+                    TrainingInsight(
+                        category = InsightCategory.PROGRESSION,
+                        message = "Training data analyzed",
+                        severity = InsightSeverity.INFO,
+                    ),
                 )
-            )
             return TrainingAnalysis(
                 analysisDate = LocalDateTime.now(),
                 periodStart = startDate,
@@ -752,7 +776,7 @@ class InsightsViewModel(
                 keyInsightsJson = gson.toJson(fallbackInsights),
                 recommendationsJson = gson.toJson(listOf("Continue current training program")),
                 warningsJson = gson.toJson(emptyList<String>()),
-                userId = 1
+                userId = 1,
             )
         }
     }

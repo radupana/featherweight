@@ -41,12 +41,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.radupana.featherweight.ui.components.TrainingAnalysisCard
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.InsightsViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.radupana.featherweight.ui.components.TrainingAnalysisCard
 
 @Composable
 fun InsightsScreen(
@@ -59,7 +59,7 @@ fun InsightsScreen(
     var currentStreak by remember { mutableStateOf(0) }
     var isHighlightsLoading by remember { mutableStateOf(true) }
     var isDataInitialized by remember { mutableStateOf(false) }
-    
+
     val trainingAnalysis by viewModel.trainingAnalysis.collectAsStateWithLifecycle()
     val isAnalyzing by viewModel.isAnalyzing.collectAsStateWithLifecycle()
 
@@ -72,7 +72,7 @@ fun InsightsScreen(
             isHighlightsLoading = false
             isDataInitialized = true
         }
-        
+
         // Load cached analysis and check if we need to run a new one
         viewModel.loadCachedAnalysis()
         viewModel.checkAndRunScheduledAnalysis()
@@ -106,7 +106,7 @@ fun InsightsScreen(
             Spacer(modifier = Modifier.height(16.dp))
             TrainingAnalysisCard(
                 analysis = trainingAnalysis,
-                isLoading = isAnalyzing
+                isLoading = isAnalyzing,
             )
         }
 

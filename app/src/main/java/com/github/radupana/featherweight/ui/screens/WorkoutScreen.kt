@@ -291,9 +291,10 @@ fun WorkoutScreen(
                     .fillMaxSize(),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
             ) {
                 // Normal workout view
 
@@ -383,10 +384,12 @@ fun WorkoutScreen(
                     onSkip = { viewModel.skipRestTimer() },
                     onPresetSelected = { viewModel.selectRestTimerPreset(it) },
                     onAdjustTime = { viewModel.adjustRestTimer(it) },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION), // Position above nav bar
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
+                    // Position above nav bar
                 )
             }
         }

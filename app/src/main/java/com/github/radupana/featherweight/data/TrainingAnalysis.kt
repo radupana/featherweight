@@ -18,49 +18,67 @@ data class TrainingAnalysis(
     val keyInsightsJson: String, // Store as JSON string
     val recommendationsJson: String, // Store as JSON string
     val warningsJson: String, // Store as JSON string
-    val userId: Long = 1
+    val userId: Long = 1,
 ) {
     companion object {
         private val gson = Gson() // Single instance for performance
     }
-    
+
     // Helper properties to convert JSON strings
     val keyInsights: List<TrainingInsight>
-        get() = try {
-            gson.fromJson(keyInsightsJson, 
-                object : TypeToken<List<TrainingInsight>>() {}.type) ?: emptyList()
-        } catch (e: Exception) {
-            emptyList()
-        }
-    
+        get() =
+            try {
+                gson.fromJson(
+                    keyInsightsJson,
+                    object : TypeToken<List<TrainingInsight>>() {}.type,
+                ) ?: emptyList()
+            } catch (e: Exception) {
+                emptyList()
+            }
+
     val recommendations: List<String>
-        get() = try {
-            gson.fromJson(recommendationsJson,
-                object : TypeToken<List<String>>() {}.type) ?: emptyList()
-        } catch (e: Exception) {
-            emptyList()
-        }
-    
+        get() =
+            try {
+                gson.fromJson(
+                    recommendationsJson,
+                    object : TypeToken<List<String>>() {}.type,
+                ) ?: emptyList()
+            } catch (e: Exception) {
+                emptyList()
+            }
+
     val warnings: List<String>
-        get() = try {
-            gson.fromJson(warningsJson,
-                object : TypeToken<List<String>>() {}.type) ?: emptyList()
-        } catch (e: Exception) {
-            emptyList()
-        }
+        get() =
+            try {
+                gson.fromJson(
+                    warningsJson,
+                    object : TypeToken<List<String>>() {}.type,
+                ) ?: emptyList()
+            } catch (e: Exception) {
+                emptyList()
+            }
 }
 
 data class TrainingInsight(
     val category: InsightCategory,
     val message: String,
-    val severity: InsightSeverity
+    val severity: InsightSeverity,
 )
 
 enum class InsightCategory {
-    VOLUME, INTENSITY, FREQUENCY, PROGRESSION,
-    RECOVERY, CONSISTENCY, BALANCE, TECHNIQUE
+    VOLUME,
+    INTENSITY,
+    FREQUENCY,
+    PROGRESSION,
+    RECOVERY,
+    CONSISTENCY,
+    BALANCE,
+    TECHNIQUE,
 }
 
 enum class InsightSeverity {
-    SUCCESS, INFO, WARNING, CRITICAL
+    SUCCESS,
+    INFO,
+    WARNING,
+    CRITICAL,
 }

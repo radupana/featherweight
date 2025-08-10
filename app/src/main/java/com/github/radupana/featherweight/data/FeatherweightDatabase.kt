@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.github.radupana.featherweight.dao.TrainingAnalysisDao
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseAlias
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
@@ -21,7 +22,6 @@ import com.github.radupana.featherweight.data.programme.ProgrammeProgress
 import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
 import com.github.radupana.featherweight.data.programme.ProgrammeWeek
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
-import com.github.radupana.featherweight.dao.TrainingAnalysisDao
 
 @Database(
     entities = [
