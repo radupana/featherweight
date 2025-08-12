@@ -618,77 +618,77 @@ class WorkoutSeedingService(
                         .firstOrNull()
                         ?.oneRMEstimate
 
-                    // Find the best set that would actually update the 1RM
-                    var shouldUpdate = false
-                    var bestEstimated1RM = 0f
-                    var bestSet: SetLog? = null
+                // Find the best set that would actually update the 1RM
+                var shouldUpdate = false
+                var bestEstimated1RM = 0f
+                var bestSet: SetLog? = null
 
-                    sets.filter { it.isCompleted }.forEach { set ->
-                        // Check for PRs
-                        try {
-                            repository.checkForPR(set, exerciseLog.exerciseVariationId)
-                        } catch (e: Exception) {
-                            // Silently continue if PR check fails
-                        }
+                sets.filter { it.isCompleted }.forEach { set ->
+                    // Check for PRs
+                    try {
+                        repository.checkForPR(set, exerciseLog.exerciseVariationId)
+                    } catch (e: Exception) {
+                        // Silently continue if PR check fails
+                    }
 
-                        // Only calculate 1RM for meaningful sets (not warmups)
-                        if (set.actualWeight >= MIN_MEANINGFUL_WEIGHT && set.actualReps <= 10) {
-                            // Calculate estimated 1RM using the service
-                            val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps)
+                    // Only calculate 1RM for meaningful sets (not warmups)
+                    if (set.actualWeight >= MIN_MEANINGFUL_WEIGHT && set.actualReps <= 10) {
+                        // Calculate estimated 1RM using the service
+                        val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps)
 
-                            if (estimated1RM != null) {
-                                // Only update if this is truly better than current max
-                                // Add a threshold to avoid tiny improvements from seeded data
-                                val improvementThreshold = currentMax?.times(1 + MIN_IMPROVEMENT_THRESHOLD) ?: 0f
+                        if (estimated1RM != null) {
+                            // Only update if this is truly better than current max
+                            // Add a threshold to avoid tiny improvements from seeded data
+                            val improvementThreshold = currentMax?.times(1 + MIN_IMPROVEMENT_THRESHOLD) ?: 0f
 
-                                if (estimated1RM > improvementThreshold && estimated1RM > bestEstimated1RM) {
-                                    // Verify the set makes sense (not artificially inflated)
-                                    val expectedWeight =
-                                        when (set.actualReps) {
-                                            1 -> estimated1RM * ONE_REP_PERCENTAGE
-                                            3 -> estimated1RM * THREE_REP_PERCENTAGE
-                                            5 -> estimated1RM * FIVE_REP_PERCENTAGE
-                                            8 -> estimated1RM * EIGHT_REP_PERCENTAGE
-                                            else -> estimated1RM * 0.70f
-                                        }
-
-                                    // Only accept if the actual weight is within reasonable range
-                                    val tolerance = RPE_TOLERANCE
-                                    if (Math.abs(set.actualWeight - expectedWeight) / expectedWeight <= tolerance) {
-                                        bestEstimated1RM = estimated1RM
-                                        bestSet = set
-                                        shouldUpdate = true
+                            if (estimated1RM > improvementThreshold && estimated1RM > bestEstimated1RM) {
+                                // Verify the set makes sense (not artificially inflated)
+                                val expectedWeight =
+                                    when (set.actualReps) {
+                                        1 -> estimated1RM * ONE_REP_PERCENTAGE
+                                        3 -> estimated1RM * THREE_REP_PERCENTAGE
+                                        5 -> estimated1RM * FIVE_REP_PERCENTAGE
+                                        8 -> estimated1RM * EIGHT_REP_PERCENTAGE
+                                        else -> estimated1RM * 0.70f
                                     }
+
+                                // Only accept if the actual weight is within reasonable range
+                                val tolerance = RPE_TOLERANCE
+                                if (Math.abs(set.actualWeight - expectedWeight) / expectedWeight <= tolerance) {
+                                    bestEstimated1RM = estimated1RM
+                                    bestSet = set
+                                    shouldUpdate = true
                                 }
                             }
                         }
                     }
+                }
 
-                    // Only update 1RM if we found a valid update that passes all checks
-                    if (shouldUpdate && bestSet != null) {
-                        // Build context with ACTUAL weight from the set, not calculated values
-                        val context =
-                            "${bestSet!!.actualWeight}kg × ${bestSet!!.actualReps}" +
-                                if (bestSet!!.actualRpe != null && bestSet!!.actualRpe > 0) {
-                                    " @ RPE ${bestSet!!.actualRpe.toInt()}"
-                                } else {
-                                    ""
-                                }
+                // Only update 1RM if we found a valid update that passes all checks
+                if (shouldUpdate && bestSet != null) {
+                    // Build context with ACTUAL weight from the set, not calculated values
+                    val context =
+                        "${bestSet!!.actualWeight}kg × ${bestSet!!.actualReps}" +
+                            if (bestSet!!.actualRpe != null && bestSet!!.actualRpe > 0) {
+                                " @ RPE ${bestSet!!.actualRpe.toInt()}"
+                            } else {
+                                ""
+                            }
 
-                        try {
-                            repository.upsertExerciseMax(
-                                userId = userId,
-                                exerciseVariationId = exerciseLog.exerciseVariationId,
-                                oneRMEstimate = bestEstimated1RM,
-                                oneRMContext = context,
-                                oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
-                                notes = "Generated from seeded workout",
-                                workoutDate = workout.date,
-                            )
-                        } catch (e: Exception) {
-                            // Silently continue if 1RM update fails
-                        }
+                    try {
+                        repository.upsertExerciseMax(
+                            userId = userId,
+                            exerciseVariationId = exerciseLog.exerciseVariationId,
+                            oneRMEstimate = bestEstimated1RM,
+                            oneRMContext = context,
+                            oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
+                            notes = "Generated from seeded workout",
+                            workoutDate = workout.date,
+                        )
+                    } catch (e: Exception) {
+                        // Silently continue if 1RM update fails
                     }
+                }
             }
         }
 

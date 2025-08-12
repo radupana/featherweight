@@ -256,7 +256,7 @@ enum class InstructionType {
     BREATHING,
     CUES,
     VARIATIONS,
-    TIPS
+    TIPS,
 }
 
 enum class ExerciseRelationType {
@@ -267,5 +267,5 @@ enum class ExerciseRelationType {
     COMPOUND_PART,
     WARMUP_FOR,
     COOLDOWN_FOR,
-    SIMILAR_PATTERN
+    SIMILAR_PATTERN,
 }

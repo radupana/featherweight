@@ -19,7 +19,7 @@ data class ExerciseCore(
     val movementPattern: MovementPattern,
     val isCompound: Boolean,
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    val updatedAt: LocalDateTime = LocalDateTime.now()
+    val updatedAt: LocalDateTime = LocalDateTime.now(),
 )
 
 /**
@@ -32,14 +32,14 @@ data class ExerciseCore(
             entity = ExerciseCore::class,
             parentColumns = ["id"],
             childColumns = ["coreExerciseId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
     indices = [
         Index(value = ["coreExerciseId"]),
         Index(value = ["name"]),
-        Index(value = ["equipment"])
-    ]
+        Index(value = ["equipment"]),
+    ],
 )
 data class ExerciseVariation(
     @PrimaryKey(autoGenerate = true)
@@ -54,7 +54,7 @@ data class ExerciseVariation(
     val isCustom: Boolean = false,
     val createdBy: Long? = null,
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    val updatedAt: LocalDateTime = LocalDateTime.now()
+    val updatedAt: LocalDateTime = LocalDateTime.now(),
 )
 
 /**
@@ -68,19 +68,19 @@ data class ExerciseVariation(
             entity = ExerciseVariation::class,
             parentColumns = ["id"],
             childColumns = ["variationId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
     indices = [
         Index(value = ["variationId"]),
-        Index(value = ["muscle"])
-    ]
+        Index(value = ["muscle"]),
+    ],
 )
 data class VariationMuscle(
     val variationId: Long,
     val muscle: MuscleGroup,
     val isPrimary: Boolean,
-    val emphasisModifier: Float = 1.0f // How much this variation emphasizes this muscle
+    val emphasisModifier: Float = 1.0f, // How much this variation emphasizes this muscle
 )
 
 /**
@@ -93,13 +93,13 @@ data class VariationMuscle(
             entity = ExerciseVariation::class,
             parentColumns = ["id"],
             childColumns = ["variationId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
     indices = [
         Index(value = ["variationId"]),
-        Index(value = ["instructionType"])
-    ]
+        Index(value = ["instructionType"]),
+    ],
 )
 data class VariationInstruction(
     @PrimaryKey(autoGenerate = true)
@@ -108,7 +108,7 @@ data class VariationInstruction(
     val instructionType: InstructionType,
     val content: String,
     val orderIndex: Int = 0,
-    val languageCode: String = "en"
+    val languageCode: String = "en",
 )
 
 /**
@@ -121,14 +121,14 @@ data class VariationInstruction(
             entity = ExerciseVariation::class,
             parentColumns = ["id"],
             childColumns = ["variationId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
     indices = [
         Index(value = ["variationId"]),
         Index(value = ["alias"]),
-        Index(value = ["languageCode"])
-    ]
+        Index(value = ["languageCode"]),
+    ],
 )
 data class VariationAlias(
     @PrimaryKey(autoGenerate = true)
@@ -137,7 +137,7 @@ data class VariationAlias(
     val alias: String,
     val confidence: Float = 1.0f,
     val languageCode: String = "en",
-    val source: String = "manual"
+    val source: String = "manual",
 )
 
 /**
@@ -150,20 +150,20 @@ data class VariationAlias(
             entity = ExerciseVariation::class,
             parentColumns = ["id"],
             childColumns = ["fromVariationId"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
             entity = ExerciseVariation::class,
             parentColumns = ["id"],
             childColumns = ["toVariationId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
     indices = [
         Index(value = ["fromVariationId"]),
         Index(value = ["toVariationId"]),
-        Index(value = ["relationType"])
-    ]
+        Index(value = ["relationType"]),
+    ],
 )
 data class VariationRelation(
     @PrimaryKey(autoGenerate = true)
@@ -172,5 +172,5 @@ data class VariationRelation(
     val toVariationId: Long, // Non-null
     val relationType: ExerciseRelationType,
     val strength: Float = 1.0f,
-    val notes: String? = null
+    val notes: String? = null,
 )

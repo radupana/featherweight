@@ -102,7 +102,7 @@ class InsightsViewModel(
 
     private val _isAnalyzing = MutableStateFlow(false)
     val isAnalyzing: StateFlow<Boolean> = _isAnalyzing
-    
+
     // Reactive exercise name mapping
     private val _exerciseNames = MutableStateFlow<Map<Long, String>>(emptyMap())
     val exerciseNames: StateFlow<Map<Long, String>> = _exerciseNames
@@ -111,7 +111,7 @@ class InsightsViewModel(
         loadInsightsData()
         loadExerciseNames()
     }
-    
+
     private fun loadExerciseNames() {
         viewModelScope.launch {
             val exercises = repository.getAllExercises()

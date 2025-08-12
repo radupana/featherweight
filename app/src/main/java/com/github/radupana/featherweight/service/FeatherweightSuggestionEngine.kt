@@ -21,12 +21,13 @@ class FeatherweightSuggestionEngine(
 
         // Get exercise ID from name
         val exercise = repository.getExerciseByName(exerciseName)
-        val exerciseVariationId = exercise?.id ?: return WeightSuggestion(
-            weight = 20f,
-            confidence = 0f,
-            sources = emptyList(),
-            explanation = "Exercise not found"
-        )
+        val exerciseVariationId =
+            exercise?.id ?: return WeightSuggestion(
+                weight = 20f,
+                confidence = 0f,
+                sources = emptyList(),
+                explanation = "Exercise not found",
+            )
 
         // For freestyle workouts (null targetReps), use a default of 8-10 reps for calculations
         val effectiveTargetReps = targetReps ?: 8
@@ -145,12 +146,13 @@ class FeatherweightSuggestionEngine(
 
         // Get exercise ID from name
         val exercise = repository.getExerciseByName(exerciseName)
-        val exerciseVariationId = exercise?.id ?: return RepsSuggestion(
-            reps = 8,
-            confidence = 0f,
-            sources = emptyList(),
-            explanation = "Exercise not found"
-        )
+        val exerciseVariationId =
+            exercise?.id ?: return RepsSuggestion(
+                reps = 8,
+                confidence = 0f,
+                sources = emptyList(),
+                explanation = "Exercise not found",
+            )
 
         // 1. One RM calculation (if available)
         val oneRM = repository.getOneRMForExercise(exerciseVariationId)

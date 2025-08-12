@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Accessibility
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
@@ -203,7 +202,6 @@ fun UnmatchedExerciseDialog(
                             },
                         )
                     }
-
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -380,7 +378,6 @@ private fun ExerciseSelectionCard(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
                             ),
                     )
-
                 }
 
                 // Match confidence if available

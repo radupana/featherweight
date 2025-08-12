@@ -19,7 +19,6 @@ class ProgrammeSeeder(
             if (!existingNames.contains("2-Week Test Programme")) {
                 seed2WeekTestProgramme()
             }
-
         }
     }
 
@@ -58,7 +57,6 @@ class ProgrammeSeeder(
                     validationErrors.joinToString("\n") { "- ${it.providedName}" },
             )
         }
-
 
         val testProgrammeStructure =
             """

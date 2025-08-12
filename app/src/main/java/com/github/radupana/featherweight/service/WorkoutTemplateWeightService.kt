@@ -69,18 +69,18 @@ class WorkoutTemplateWeightService(
             val percentage = getIntensityPercentage(intensity)
             val weight = calculateWeightFromPercentage(exerciseMax.oneRMEstimate.toDouble(), percentage, targetReps)
             return WeightSuggestion(
-                    weight = weight.toFloat(),
-                    confidence = 0.9f,
-                    sources =
-                        listOf(
-                            SuggestionSourceData(
-                                source = SuggestionSource.ONE_RM_CALCULATION,
-                                value = exerciseMax.oneRMEstimate,
-                                weight = 1.0f,
-                                details = "Profile 1RM: ${exerciseMax.oneRMEstimate}kg at ${(percentage * 100).toInt()}%",
-                            ),
+                weight = weight.toFloat(),
+                confidence = 0.9f,
+                sources =
+                    listOf(
+                        SuggestionSourceData(
+                            source = SuggestionSource.ONE_RM_CALCULATION,
+                            value = exerciseMax.oneRMEstimate,
+                            weight = 1.0f,
+                            details = "Profile 1RM: ${exerciseMax.oneRMEstimate}kg at ${(percentage * 100).toInt()}%",
                         ),
-                    explanation = "Based on profile 1RM",
+                    ),
+                explanation = "Based on profile 1RM",
             )
         }
 

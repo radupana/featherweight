@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.repository
 
-import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.ExerciseSwapHistory
 import com.github.radupana.featherweight.data.FeatherweightDatabase
@@ -8,9 +7,8 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SwapHistoryCount
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.Equipment
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
-import com.github.radupana.featherweight.data.exercise.VariationAlias
+import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.programme.ExercisePerformanceData
 import com.github.radupana.featherweight.domain.ExerciseStats
 import kotlinx.coroutines.Dispatchers

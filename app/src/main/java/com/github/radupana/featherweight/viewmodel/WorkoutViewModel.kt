@@ -10,7 +10,6 @@ import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
-import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.SmartSuggestions
@@ -20,8 +19,8 @@ import com.github.radupana.featherweight.service.OneRMService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
@@ -149,7 +148,7 @@ class WorkoutViewModel(
     // Exercise-related state
 
     private val exerciseDetailsMap = MutableStateFlow<Map<Long, ExerciseVariation>>(emptyMap())
-    
+
     // Reactive exercise name mapping
     private val _exerciseNames = MutableStateFlow<Map<Long, String>>(emptyMap())
     val exerciseNames: StateFlow<Map<Long, String>> = _exerciseNames
@@ -157,20 +156,20 @@ class WorkoutViewModel(
     // Exercise swap state
     private val _swappingExercise = MutableStateFlow<ExerciseLog?>(null)
     val swappingExercise: StateFlow<ExerciseLog?> = _swappingExercise
-    
+
     // Helper to get exercise name for a specific exercise log
-    fun getExerciseNameForLog(exerciseLogId: Long): StateFlow<String> {
-        return _selectedWorkoutExercises.map { exercises ->
-            val exerciseLog = exercises.find { it.id == exerciseLogId }
-            exerciseLog?.let { log ->
-                _exerciseNames.value[log.exerciseVariationId] ?: "Unknown Exercise"
-            } ?: "Unknown Exercise"
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = "Loading..."
-        )
-    }
+    fun getExerciseNameForLog(exerciseLogId: Long): StateFlow<String> =
+        _selectedWorkoutExercises
+            .map { exercises ->
+                val exerciseLog = exercises.find { it.id == exerciseLogId }
+                exerciseLog?.let { log ->
+                    _exerciseNames.value[log.exerciseVariationId] ?: "Unknown Exercise"
+                } ?: "Unknown Exercise"
+            }.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = "Loading...",
+            )
 
     // Rest timer state
     private val _restTimerSeconds = MutableStateFlow(0)
@@ -658,7 +657,7 @@ class WorkoutViewModel(
 
         try {
             _selectedWorkoutExercises.value = repository.getExercisesForWorkout(workoutId)
-            
+
             // Load exercise names for all exercises
             val namesMap = mutableMapOf<Long, String>()
             _selectedWorkoutExercises.value.forEach { exerciseLog ->
@@ -668,7 +667,7 @@ class WorkoutViewModel(
                 }
             }
             _exerciseNames.value = namesMap
-            
+
             // Wait for sets to be loaded completely
             loadAllSetsForCurrentExercisesAndWait()
 

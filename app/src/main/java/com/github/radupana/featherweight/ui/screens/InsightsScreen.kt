@@ -96,12 +96,13 @@ fun InsightsScreen(
     ) {
         // Highlights section
         item {
-            val prExerciseNamesMap = remember(recentPRs, exerciseNames) {
-                recentPRs.take(3).associate { pr ->
-                    pr to (exerciseNames[pr.exerciseVariationId] ?: "Unknown Exercise")
+            val prExerciseNamesMap =
+                remember(recentPRs, exerciseNames) {
+                    recentPRs.take(3).associate { pr ->
+                        pr to (exerciseNames[pr.exerciseVariationId] ?: "Unknown Exercise")
+                    }
                 }
-            }
-            
+
             HighlightsSection(
                 recentPRs = recentPRs,
                 prExerciseNames = prExerciseNamesMap,

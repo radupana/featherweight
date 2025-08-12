@@ -8,53 +8,48 @@ data class ExerciseWithDetails(
     val variation: ExerciseVariation,
     val muscles: List<VariationMuscle> = emptyList(),
     val aliases: List<VariationAlias> = emptyList(),
-    val instructions: List<VariationInstruction> = emptyList()
+    val instructions: List<VariationInstruction> = emptyList(),
 ) {
     /**
      * Get primary muscles for this variation.
      */
-    fun getPrimaryMuscles(): List<MuscleGroup> {
-        return muscles
+    fun getPrimaryMuscles(): List<MuscleGroup> =
+        muscles
             .filter { it.isPrimary }
             .map { it.muscle }
-    }
-    
+
     /**
      * Get secondary muscles for this variation.
      */
-    fun getSecondaryMuscles(): List<MuscleGroup> {
-        return muscles
+    fun getSecondaryMuscles(): List<MuscleGroup> =
+        muscles
             .filter { !it.isPrimary }
             .map { it.muscle }
-    }
-    
+
     /**
      * Get instructions of a specific type.
      */
-    fun getInstructionsByType(type: InstructionType): List<VariationInstruction> {
-        return instructions
+    fun getInstructionsByType(type: InstructionType): List<VariationInstruction> =
+        instructions
             .filter { it.instructionType == type }
             .sortedBy { it.orderIndex }
-    }
-    
+
     /**
      * Get all aliases as strings.
      */
-    fun getAliasStrings(): List<String> {
-        return aliases.map { it.alias }
-    }
-    
+    fun getAliasStrings(): List<String> = aliases.map { it.alias }
+
     /**
      * Check if this exercise matches a search term (by name or alias).
      */
     fun matchesSearchTerm(searchTerm: String): Boolean {
         val lowerSearch = searchTerm.lowercase()
-        
+
         // Check variation name
         if (variation.name.lowercase().contains(lowerSearch)) {
             return true
         }
-        
+
         // Check aliases
         return aliases.any { it.alias.lowercase().contains(lowerSearch) }
     }
@@ -67,7 +62,7 @@ data class ExerciseSearchResult(
     val variation: ExerciseVariation,
     val matchType: SearchMatchType,
     val relevanceScore: Float,
-    val matchedText: String
+    val matchedText: String,
 )
 
 /**
@@ -77,7 +72,7 @@ data class ExerciseSuggestion(
     val variation: ExerciseVariation,
     val suggestionReason: SuggestionReason,
     val confidence: Float,
-    val alternatives: List<ExerciseVariation> = emptyList()
+    val alternatives: List<ExerciseVariation> = emptyList(),
 )
 
 enum class SearchMatchType {
@@ -87,7 +82,7 @@ enum class SearchMatchType {
     PARTIAL_ALIAS,
     MUSCLE_GROUP,
     CATEGORY,
-    EQUIPMENT
+    EQUIPMENT,
 }
 
 enum class SuggestionReason {
@@ -100,5 +95,5 @@ enum class SuggestionReason {
     FREQUENTLY_USED,
     USER_HISTORY,
     BEGINNER_FRIENDLY,
-    SUPERSET_PARTNER
+    SUPERSET_PARTNER,
 }

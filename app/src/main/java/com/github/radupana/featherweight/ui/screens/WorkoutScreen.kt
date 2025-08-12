@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -354,10 +356,7 @@ fun WorkoutScreen(
                     onSelectExercise = onSelectExercise,
                     onCompleteWorkout = { showCompleteWorkoutDialog = true },
                     viewModel = viewModel,
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .imePadding(), // Handle keyboard
+                    modifier = Modifier.weight(1f),
                 )
             }
 
@@ -727,9 +726,19 @@ private fun ExercisesList(
 ) {
     val lazyListState = rememberLazyListState()
 
+    val imeInsets = WindowInsets.ime.asPaddingValues()
+    val horizontalPadding = 16.dp
+    val verticalPadding = 8.dp
+
     LazyColumn(
         state = lazyListState,
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        contentPadding =
+            PaddingValues(
+                start = horizontalPadding,
+                end = horizontalPadding,
+                top = verticalPadding,
+                bottom = maxOf(imeInsets.calculateBottomPadding(), verticalPadding),
+            ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier,
     ) {

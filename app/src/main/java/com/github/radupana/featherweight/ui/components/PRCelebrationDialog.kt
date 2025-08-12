@@ -42,7 +42,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.runtime.remember
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.util.WeightFormatter

@@ -72,7 +72,6 @@ class ProgrammeGenerationWorker(
                 aiRequestDao.incrementAttemptCount(requestId)
                 val request = aiRequestDao.getRequestById(requestId) ?: return@withContext Result.failure()
 
-
                 // Parse the request payload
                 val simpleRequest = json.decodeFromString<SimpleRequest>(requestPayload)
 
@@ -116,7 +115,6 @@ class ProgrammeGenerationWorker(
                     Result.failure()
                 }
             } catch (e: SocketTimeoutException) {
-
                 // Check if we should retry
                 if (runAttemptCount < MAX_RETRY_COUNT - 1) {
                     Result.retry()
@@ -125,7 +123,6 @@ class ProgrammeGenerationWorker(
                     Result.failure()
                 }
             } catch (e: Exception) {
-
                 aiRequestDao.updateStatus(requestId, GenerationStatus.FAILED, e.message ?: "Unknown error")
                 Result.failure()
             }

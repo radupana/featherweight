@@ -78,7 +78,6 @@ class WorkoutTemplateGeneratorService(
         val result = mutableListOf<Triple<ExerciseVariation, Int, Int>>()
         val maxExercises = getMaxExercises(config.timeAvailable, template.name)
 
-
         // First, add all required exercises
         for (slot in template.exerciseSlots.filter { it.required }) {
             val exercise = findMatchingExercise(slot.exerciseOptions)

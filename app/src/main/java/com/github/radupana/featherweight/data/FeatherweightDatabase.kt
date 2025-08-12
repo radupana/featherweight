@@ -6,20 +6,20 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.github.radupana.featherweight.dao.TrainingAnalysisDao
-import com.github.radupana.featherweight.data.exercise.VariationAlias
-import com.github.radupana.featherweight.data.exercise.VariationAliasDao
 import com.github.radupana.featherweight.data.exercise.ExerciseCore
 import com.github.radupana.featherweight.data.exercise.ExerciseCoreDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
-import com.github.radupana.featherweight.data.exercise.VariationInstruction
-import com.github.radupana.featherweight.data.exercise.VariationInstructionDao
-import com.github.radupana.featherweight.data.exercise.VariationRelation
-import com.github.radupana.featherweight.data.exercise.VariationRelationDao
-import com.github.radupana.featherweight.data.exercise.VariationMuscle
-import com.github.radupana.featherweight.data.exercise.VariationMuscleDao
 import com.github.radupana.featherweight.data.exercise.ExerciseTypeConvertersNew
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
+import com.github.radupana.featherweight.data.exercise.VariationAlias
+import com.github.radupana.featherweight.data.exercise.VariationAliasDao
+import com.github.radupana.featherweight.data.exercise.VariationInstruction
+import com.github.radupana.featherweight.data.exercise.VariationInstructionDao
+import com.github.radupana.featherweight.data.exercise.VariationMuscle
+import com.github.radupana.featherweight.data.exercise.VariationMuscleDao
+import com.github.radupana.featherweight.data.exercise.VariationRelation
+import com.github.radupana.featherweight.data.exercise.VariationRelationDao
 import com.github.radupana.featherweight.data.profile.OneRMDao
 import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.ProfileDao
@@ -76,11 +76,17 @@ abstract class FeatherweightDatabase : RoomDatabase() {
 
     // Normalized exercise DAOs
     abstract fun exerciseDao(): ExerciseDao // Consolidated DAO
+
     abstract fun exerciseCoreDao(): ExerciseCoreDao
+
     abstract fun exerciseVariationDao(): ExerciseVariationDao
+
     abstract fun variationInstructionDao(): VariationInstructionDao
+
     abstract fun variationRelationDao(): VariationRelationDao
+
     abstract fun variationAliasDao(): VariationAliasDao
+
     abstract fun variationMuscleDao(): VariationMuscleDao
 
     abstract fun programmeDao(): ProgrammeDao

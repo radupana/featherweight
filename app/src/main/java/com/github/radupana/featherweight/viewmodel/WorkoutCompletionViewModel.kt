@@ -17,15 +17,15 @@ class WorkoutCompletionViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(WorkoutCompletionUiState())
     val uiState: StateFlow<WorkoutCompletionUiState> = _uiState.asStateFlow()
-    
+
     // Reactive exercise name mapping
     private val _exerciseNames = MutableStateFlow<Map<Long, String>>(emptyMap())
     val exerciseNames: StateFlow<Map<Long, String>> = _exerciseNames
-    
+
     init {
         loadExerciseNames()
     }
-    
+
     private fun loadExerciseNames() {
         viewModelScope.launch {
             val exercises = repository.getAllExercises()
@@ -108,9 +108,10 @@ class WorkoutCompletionViewModel(
         val heaviestSet =
             completedSets.maxByOrNull { it.actualWeight * it.actualReps }?.let { set ->
                 val exerciseLog = exercises.find { it.id == set.exerciseLogId }
-                val exerciseVariation = exerciseLog?.let { 
-                    repository.getExerciseById(it.exerciseVariationId)
-                }
+                val exerciseVariation =
+                    exerciseLog?.let {
+                        repository.getExerciseById(it.exerciseVariationId)
+                    }
                 SetInfo(
                     weight = set.actualWeight,
                     reps = set.actualReps,
@@ -123,9 +124,10 @@ class WorkoutCompletionViewModel(
             completedSets
                 .groupBy { set ->
                     val exerciseLog = exercises.find { it.id == set.exerciseLogId }
-                    val exerciseVariation = exerciseLog?.let { 
-                        repository.getExerciseById(it.exerciseVariationId)
-                    }
+                    val exerciseVariation =
+                        exerciseLog?.let {
+                            repository.getExerciseById(it.exerciseVariationId)
+                        }
                     exerciseVariation?.name ?: ""
                 }.mapValues { (_, sets) ->
                     sets.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
@@ -139,9 +141,10 @@ class WorkoutCompletionViewModel(
                     setCount =
                         completedSets.count { set ->
                             val exerciseLog = exercises.find { ex -> ex.id == set.exerciseLogId }
-                            val exerciseVariation = exerciseLog?.let { log ->
-                                repository.getExerciseById(log.exerciseVariationId)
-                            }
+                            val exerciseVariation =
+                                exerciseLog?.let { log ->
+                                    repository.getExerciseById(log.exerciseVariationId)
+                                }
                             exerciseVariation?.name == it.key
                         },
                 )

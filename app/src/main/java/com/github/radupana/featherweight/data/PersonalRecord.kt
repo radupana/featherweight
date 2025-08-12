@@ -17,9 +17,9 @@ enum class PRType {
             entity = com.github.radupana.featherweight.data.exercise.ExerciseVariation::class,
             parentColumns = ["id"],
             childColumns = ["exerciseVariationId"],
-            onDelete = androidx.room.ForeignKey.RESTRICT
-        )
-    ]
+            onDelete = androidx.room.ForeignKey.RESTRICT,
+        ),
+    ],
 )
 data class PersonalRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

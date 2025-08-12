@@ -189,14 +189,15 @@ class ExerciseSelectorViewModel(
                 // Load exercises efficiently (usage stats can be calculated on-demand)
                 val variations = repository.getAllExercises()
                 // Convert to ExerciseWithDetails (minimal conversion for now)
-                val exercises = variations.map { variation ->
-                    ExerciseWithDetails(
-                        variation = variation,
-                        muscles = emptyList(),
-                        aliases = emptyList(),
-                        instructions = emptyList()
-                    )
-                }
+                val exercises =
+                    variations.map { variation ->
+                        ExerciseWithDetails(
+                            variation = variation,
+                            muscles = emptyList(),
+                            aliases = emptyList(),
+                            instructions = emptyList(),
+                        )
+                    }
                 _allExercises.value = exercises
 
                 Log.d("ExerciseSelectorVM", "Loaded ${exercises.size} exercises from database")
@@ -377,14 +378,15 @@ class ExerciseSelectorViewModel(
                     repository.seedDatabaseIfEmpty()
                     val variations = repository.getAllExercises()
                     // Convert to ExerciseWithDetails (minimal conversion for now)
-                    val exercises = variations.map { variation ->
-                        ExerciseWithDetails(
-                            variation = variation,
-                            muscles = emptyList(),
-                            aliases = emptyList(),
-                            instructions = emptyList()
-                        )
-                    }
+                    val exercises =
+                        variations.map { variation ->
+                            ExerciseWithDetails(
+                                variation = variation,
+                                muscles = emptyList(),
+                                aliases = emptyList(),
+                                instructions = emptyList(),
+                            )
+                        }
                     _allExercises.value = exercises
                     Log.d("ExerciseSelectorVM", "Loaded ${exercises.size} exercises for swap")
                 }
@@ -400,12 +402,13 @@ class ExerciseSelectorViewModel(
                 swapHistory.forEach { historyCount ->
                     val variation = repository.getExerciseById(historyCount.swappedToExerciseId)
                     if (variation != null) {
-                        val exerciseWithDetails = ExerciseWithDetails(
-                            variation = variation,
-                            muscles = emptyList(),
-                            aliases = emptyList(),
-                            instructions = emptyList()
-                        )
+                        val exerciseWithDetails =
+                            ExerciseWithDetails(
+                                variation = variation,
+                                muscles = emptyList(),
+                                aliases = emptyList(),
+                                instructions = emptyList(),
+                            )
                         previouslySwapped.add(
                             ExerciseSuggestion(
                                 exercise = exerciseWithDetails,
@@ -421,12 +424,13 @@ class ExerciseSelectorViewModel(
                 // Get current exercise details for smart suggestions
                 val currentVariation = repository.getExerciseById(exerciseId)
                 if (currentVariation != null) {
-                    val currentExercise = ExerciseWithDetails(
-                        variation = currentVariation,
-                        muscles = emptyList(),
-                        aliases = emptyList(),
-                        instructions = emptyList()
-                    )
+                    val currentExercise =
+                        ExerciseWithDetails(
+                            variation = currentVariation,
+                            muscles = emptyList(),
+                            aliases = emptyList(),
+                            instructions = emptyList(),
+                        )
                     val suggestions = generateSmartSuggestions(currentExercise, previouslySwapped)
                     Log.d("ExerciseSelectorVM", "Generated ${suggestions.size} swap suggestions")
                     _swapSuggestions.value = suggestions
@@ -448,14 +452,16 @@ class ExerciseSelectorViewModel(
         // Ensure we have exercises loaded
         val allExercises =
             if (_allExercises.value.isEmpty()) {
-                repository.getAllExercises().map { variation ->
-                    ExerciseWithDetails(
-                        variation = variation,
-                        muscles = emptyList(),
-                        aliases = emptyList(),
-                        instructions = emptyList()
-                    )
-                }.also { _allExercises.value = it }
+                repository
+                    .getAllExercises()
+                    .map { variation ->
+                        ExerciseWithDetails(
+                            variation = variation,
+                            muscles = emptyList(),
+                            aliases = emptyList(),
+                            instructions = emptyList(),
+                        )
+                    }.also { _allExercises.value = it }
             } else {
                 _allExercises.value
             }

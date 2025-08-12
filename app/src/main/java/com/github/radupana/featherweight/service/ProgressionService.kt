@@ -192,12 +192,13 @@ class ProgressionService(
     ): ProgressionDecision {
         // Get exercise ID from name
         val exercise = repository.getExerciseByName(exerciseName)
-        val exerciseVariationId = exercise?.id ?: return ProgressionDecision(
-            weight = 20f,
-            action = ProgressionAction.MAINTAIN,
-            reason = "Exercise not found"
-        )
-        
+        val exerciseVariationId =
+            exercise?.id ?: return ProgressionDecision(
+                weight = 20f,
+                action = ProgressionAction.MAINTAIN,
+                reason = "Exercise not found",
+            )
+
         // Try to get 1RM
         val oneRM = repository.getOneRMForExercise(exerciseVariationId)
 

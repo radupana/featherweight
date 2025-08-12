@@ -107,7 +107,6 @@ fun AIProgrammeRequestCard(
                 val json = Json { ignoreUnknownKeys = true }
                 val payload = json.parseToJsonElement(request.requestPayload).jsonObject
 
-
                 RequestSummary(
                     goal =
                         payload["selectedGoal"]?.jsonPrimitive?.content?.let { goalValue ->

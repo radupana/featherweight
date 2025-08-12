@@ -8,5 +8,5 @@ import androidx.room.Embedded
  */
 data class ExerciseLogWithName(
     @Embedded val exerciseLog: ExerciseLog,
-    val exerciseName: String
+    val exerciseName: String,
 )

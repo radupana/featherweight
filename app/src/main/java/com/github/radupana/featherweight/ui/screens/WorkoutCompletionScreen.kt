@@ -268,7 +268,11 @@ private fun WorkoutStatsCard(summary: CompletionSummary) {
 }
 
 @Composable
-private fun PersonalRecordsCard(personalRecords: List<PersonalRecord>, repository: com.github.radupana.featherweight.repository.FeatherweightRepository, exerciseNames: Map<Long, String>) {
+private fun PersonalRecordsCard(
+    personalRecords: List<PersonalRecord>,
+    repository: com.github.radupana.featherweight.repository.FeatherweightRepository,
+    exerciseNames: Map<Long, String>,
+) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -312,7 +316,11 @@ private fun PersonalRecordsCard(personalRecords: List<PersonalRecord>, repositor
 }
 
 @Composable
-private fun PRItem(pr: PersonalRecord, repository: com.github.radupana.featherweight.repository.FeatherweightRepository, exerciseNames: Map<Long, String>) {
+private fun PRItem(
+    pr: PersonalRecord,
+    repository: com.github.radupana.featherweight.repository.FeatherweightRepository,
+    exerciseNames: Map<Long, String>,
+) {
     Column {
         val exerciseName = exerciseNames[pr.exerciseVariationId] ?: "Unknown Exercise"
         Text(

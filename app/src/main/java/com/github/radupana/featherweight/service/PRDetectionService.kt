@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.service
 
-import android.util.Log
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.PersonalRecordDao
@@ -30,7 +29,6 @@ class PRDetectionService(
         exerciseVariationId: Long,
     ): List<PersonalRecord> =
         withContext(Dispatchers.IO) {
-
             val newPRs = mutableListOf<PersonalRecord>()
 
             if (!setLog.isCompleted || setLog.actualReps <= 0 || setLog.actualWeight <= 0) {

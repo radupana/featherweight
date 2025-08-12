@@ -29,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,7 +46,6 @@ import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.ui.utils.DragHandle
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
-import androidx.compose.runtime.collectAsState
 
 @Composable
 fun CompactExerciseCard(
@@ -282,10 +282,10 @@ fun CompactExerciseCard(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Delete Exercise?") },
-            text = { 
+            text = {
                 val exerciseNames by viewModel.exerciseNames.collectAsState()
                 val exerciseName = exerciseNames[exercise.exerciseVariationId] ?: "this exercise"
-                Text("Remove $exerciseName and all its sets?") 
+                Text("Remove $exerciseName and all its sets?")
             },
             confirmButton = {
                 TextButton(

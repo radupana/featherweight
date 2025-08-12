@@ -233,7 +233,7 @@ private fun RepRangeChartCanvas(
             val y = topPadding + chartHeight - barHeight
 
             val isSelected = range == selectedRange
-            
+
             // Use different colors for different rep ranges
             val barColor = barColors.getOrElse(index) { barColors.last() }
 

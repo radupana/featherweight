@@ -28,33 +28,39 @@ interface ExerciseLogDao {
         exerciseLogId: Long,
         newOrder: Int,
     )
-    
+
     // Optimized queries with JOINs to get exercise names
-    @Query("""
+    @Query(
+        """
         SELECT el.*, ev.name as exerciseName 
         FROM ExerciseLog el 
         JOIN exercise_variations ev ON el.exerciseVariationId = ev.id 
         WHERE el.workoutId = :workoutId 
         ORDER BY el.exerciseOrder
-    """)
+    """,
+    )
     suspend fun getExerciseLogsWithNames(workoutId: Long): List<ExerciseLogWithName>
-    
-    @Query("""
+
+    @Query(
+        """
         SELECT el.*, ev.name as exerciseName 
         FROM ExerciseLog el 
         JOIN exercise_variations ev ON el.exerciseVariationId = ev.id 
         WHERE el.id = :exerciseLogId
-    """)
+    """,
+    )
     suspend fun getExerciseLogWithName(exerciseLogId: Long): ExerciseLogWithName?
-    
+
     // Flow versions for reactive UI
-    @Query("""
+    @Query(
+        """
         SELECT el.*, ev.name as exerciseName 
         FROM ExerciseLog el 
         JOIN exercise_variations ev ON el.exerciseVariationId = ev.id 
         WHERE el.workoutId = :workoutId 
         ORDER BY el.exerciseOrder
-    """)
+    """,
+    )
     fun getExerciseLogsWithNamesFlow(workoutId: Long): Flow<List<ExerciseLogWithName>>
 
     @Update
@@ -120,7 +126,7 @@ interface ExerciseLogDao {
         startDate: java.time.LocalDateTime,
         endDate: java.time.LocalDateTime,
     ): List<Workout>
-    
+
     @Query(
         """
         SELECT el.exerciseVariationId, COUNT(*) as count
@@ -139,5 +145,5 @@ interface ExerciseLogDao {
  */
 data class ExerciseUsageStatistic(
     val exerciseVariationId: Long,
-    val count: Int
+    val count: Int,
 )

@@ -23,9 +23,9 @@ enum class VolumeTrend {
             entity = com.github.radupana.featherweight.data.exercise.ExerciseVariation::class,
             parentColumns = ["id"],
             childColumns = ["exerciseVariationId"],
-            onDelete = androidx.room.ForeignKey.RESTRICT
-        )
-    ]
+            onDelete = androidx.room.ForeignKey.RESTRICT,
+        ),
+    ],
 )
 data class GlobalExerciseProgress(
     @PrimaryKey(autoGenerate = true)

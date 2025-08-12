@@ -171,7 +171,6 @@ class HistoryViewModel(
                 val allProgrammes = currentState.programmes + newProgrammes
                 val hasMoreProgrammes = newProgrammes.size == currentState.pageSize
 
-
                 _historyState.value =
                     currentState.copy(
                         programmes = allProgrammes,
@@ -231,7 +230,6 @@ class HistoryViewModel(
                         currentMonth.year,
                         currentMonth.monthValue,
                     )
-
 
                 _calendarState.value =
                     _calendarState.value.copy(

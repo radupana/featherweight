@@ -132,7 +132,7 @@ fun SetEditingModal(
     // Get exercise name from repository
     val exerciseNames by viewModel.exerciseNames.collectAsState()
     val exerciseName = exerciseNames[exercise.exerciseVariationId] ?: "Unknown Exercise"
-    
+
     // Load intelligent suggestions when modal opens
     LaunchedEffect(exercise.exerciseVariationId) {
         intelligentSuggestions = viewModel.getIntelligentSuggestions(exercise.exerciseVariationId)

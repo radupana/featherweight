@@ -170,7 +170,6 @@ interface ProgrammeDao {
         completedAt: LocalDateTime,
     )
 
-
     // Statistics and analytics
     @Query("SELECT COUNT(*) FROM programmes WHERE completedAt IS NOT NULL")
     suspend fun getCompletedProgrammeCount(): Int

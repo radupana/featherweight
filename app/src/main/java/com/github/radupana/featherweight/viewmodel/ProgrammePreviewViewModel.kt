@@ -102,7 +102,6 @@ class ProgrammePreviewViewModel(
                         // Show info about unmatched exercises
                         val unmatchedCount = validationResult.unmatchedExercises.size
                         val totalCount = validationResult.totalCount
-
                     }
 
                     // Get all available exercises for matching
@@ -131,16 +130,16 @@ class ProgrammePreviewViewModel(
 
                     // Process and validate the programme
                     // Convert ExerciseVariation to ExerciseWithDetails
-                    val exercisesWithDetails = allExercises.map { variation ->
-                        com.github.radupana.featherweight.data.exercise.ExerciseWithDetails(
-                            variation = variation,
-                            muscles = emptyList(),
-                            aliases = emptyList(),
-                            instructions = emptyList()
-                        )
-                    }
+                    val exercisesWithDetails =
+                        allExercises.map { variation ->
+                            com.github.radupana.featherweight.data.exercise.ExerciseWithDetails(
+                                variation = variation,
+                                muscles = emptyList(),
+                                aliases = emptyList(),
+                                instructions = emptyList(),
+                            )
+                        }
                     val preview = processGeneratedProgramme(generatedProgramme, exercisesWithDetails, validationResult, selectedGoal)
-
 
                     _currentPreview.value = preview
                     _previewState.value = PreviewState.Success(preview)
@@ -647,7 +646,6 @@ class ProgrammePreviewViewModel(
                 // Close dialog
                 _showUnmatchedDialog.value = false
                 _currentUnmatchedExercise.value = null
-
             } catch (e: Exception) {
             }
         }
@@ -721,7 +719,6 @@ class ProgrammePreviewViewModel(
                 // Delete the AI request if it exists
                 val aiRequestId = GeneratedProgrammeHolder.getAIRequestId()
                 if (aiRequestId != null) {
-
                     // Delete from database - this is a suspend function so it completes before proceeding
                     aiProgrammeRepository.deleteRequest(aiRequestId)
 
