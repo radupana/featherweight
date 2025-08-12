@@ -15,6 +15,16 @@
 ## Code Quality
 
 - **No TODOs**: Never leave `TODO` comments. Implement the functionality completely.
+- **Detekt Compliance**: 
+  - **MANDATORY**: Run `./gradlew detekt` before EVERY code change
+  - **NEW CODE**: Must have ZERO Detekt violations
+  - **Critical Issues - ALWAYS FIX**:
+    - Empty catch blocks: Add proper error handling or logging
+    - Empty else/if blocks: Remove or add logic
+    - Unused imports: Remove immediately
+    - Unused private members/properties: Remove immediately
+    - PrintStackTrace: Use proper logging instead
+  - **Configuration**: Detekt is configured with reasonable thresholds for Android/Compose
 - **Clean Code**: Immediately remove all unused imports, variables, and functions.
 - **Class References**: Use simple class names (e.g., `MyClass`) instead of fully qualified names (`com.example.MyClass`), unless there is a naming conflict.
 - **No Empty Blocks**: Never leave empty init blocks, else blocks, catch blocks, or `.also {}` chains. Remove them or add meaningful logic.

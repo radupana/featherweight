@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import java.time.LocalDateTime
 
@@ -40,10 +39,7 @@ class ProgressAnalyticsService(
     /**
      * Calculate weekly volume for an exercise
      */
-    suspend fun calculateWeeklyVolume(exerciseName: String): Float {
-        // For now, return 0 - will implement proper calculation later
-        return 0f
-    }
+    suspend fun calculateWeeklyVolume(exerciseName: String): Float = 0f
 
     /**
      * Get performance statistics for an exercise
@@ -58,24 +54,6 @@ class ProgressAnalyticsService(
             consistency = 0f,
             totalSessions = 0,
         )
-    }
-
-    private fun calculateProgressPercentage(dataPoints: List<ProgressDataPoint>): Float {
-        if (dataPoints.size < 2) return 0f
-
-        val start = dataPoints.first().weight
-        val end = dataPoints.last().weight
-
-        return if (start > 0) {
-            ((end - start) / start) * 100
-        } else {
-            0f
-        }
-    }
-
-    private fun generateMiniChartData(sets: List<SetLog>): List<Float> {
-        // For now, return empty list - will implement proper chart data later
-        return emptyList()
     }
 }
 

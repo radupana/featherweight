@@ -326,16 +326,18 @@ class ProgrammeValidator {
             week.workouts.forEach { workout ->
                 workout.exercises.forEach { exercise ->
                     // Check for unsafe rep ranges with heavy compounds
-                    if (isCompoundMovement(exercise.exerciseName)) {
-                        if (exercise.repsMax > 15 && exercise.rpe != null && exercise.rpe > 8.5f) {
-                            warnings.add(
-                                ValidationWarning(
-                                    message = "High RPE with high reps detected",
-                                    category = ValidationCategory.SAFETY,
-                                    suggestion = "Consider reducing RPE for high-rep sets",
-                                ),
-                            )
-                        }
+                    if (isCompoundMovement(exercise.exerciseName) &&
+                        exercise.repsMax > 15 &&
+                        exercise.rpe != null &&
+                        exercise.rpe > 8.5f
+                    ) {
+                        warnings.add(
+                            ValidationWarning(
+                                message = "High RPE with high reps detected",
+                                category = ValidationCategory.SAFETY,
+                                suggestion = "Consider reducing RPE for high-rep sets",
+                            ),
+                        )
                     }
 
                     // Check for excessive volume on single exercises

@@ -1,7 +1,16 @@
 package com.github.radupana.featherweight.service
 
 import com.github.radupana.featherweight.data.FeatherweightDatabase
-import com.github.radupana.featherweight.data.exercise.*
+import com.github.radupana.featherweight.data.exercise.Equipment
+import com.github.radupana.featherweight.data.exercise.ExerciseCategory
+import com.github.radupana.featherweight.data.exercise.ExerciseCore
+import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
+import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.InstructionType
+import com.github.radupana.featherweight.data.exercise.MovementPattern
+import com.github.radupana.featherweight.data.exercise.MuscleGroup
+import com.github.radupana.featherweight.data.exercise.VariationInstruction
+import com.github.radupana.featherweight.data.exercise.VariationMuscle
 
 /**
  * Seeds the database with the Core 100 exercises in normalized format.

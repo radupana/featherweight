@@ -28,8 +28,7 @@ class WorkoutTemplateWeightService(
 
         for (exerciseLog in exerciseLogs) {
             val sets = setLogDao.getSetLogsForExercise(exerciseLog.id)
-            val exercise = repository.getExerciseById(exerciseLog.exerciseVariationId)
-            val exerciseName = exercise?.name ?: "Unknown Exercise"
+            repository.getExerciseById(exerciseLog.exerciseVariationId)
 
             // Try to get weight suggestion
             val suggestedWeight =
@@ -202,8 +201,8 @@ class WorkoutTemplateWeightService(
                 else -> 1.0
             }
 
-        return (oneRM * percentage * repAdjustment).roundToNearest2_5()
+        return (oneRM * percentage * repAdjustment).roundToNearestTwoPointFive()
     }
 
-    private fun Double.roundToNearest2_5(): Double = (this / 2.5).roundToInt() * 2.5
+    private fun Double.roundToNearestTwoPointFive(): Double = (this / 2.5).roundToInt() * 2.5
 }

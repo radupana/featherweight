@@ -70,7 +70,7 @@ class ProgrammeGenerationWorker(
             try {
                 // Increment attempt count
                 aiRequestDao.incrementAttemptCount(requestId)
-                val request = aiRequestDao.getRequestById(requestId) ?: return@withContext Result.failure()
+                aiRequestDao.getRequestById(requestId) ?: return@withContext Result.failure()
 
                 // Parse the request payload
                 val simpleRequest = json.decodeFromString<SimpleRequest>(requestPayload)

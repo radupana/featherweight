@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.service
 
+import android.util.Log
 import com.github.radupana.featherweight.BuildConfig
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.coroutines.Dispatchers
@@ -109,15 +110,8 @@ class AIProgrammeService(
                 val systemPrompt = buildSystemPrompt(request)
                 val userPrompt = buildUserPromptWithMaxes(request)
 
-                // Log token estimation for cost tracking
-                val estimatedTokens = estimateTokens(systemPrompt + userPrompt)
-
                 val response = callOpenAI(systemPrompt, userPrompt)
                 val parsedResponse = parseAIResponse(response)
-
-                // Log successful generation for analytics
-                if (parsedResponse.success) {
-                }
 
                 parsedResponse
             } catch (e: Exception) {
@@ -315,7 +309,7 @@ class AIProgrammeService(
         userPrompt: String,
     ): String {
         if (OPENAI_API_KEY == "YOUR_API_KEY_HERE" || OPENAI_API_KEY.isBlank()) {
-            throw IllegalStateException(
+            error(
                 "AI service is not configured. Please configure your OpenAI API key to use AI programme generation.",
             )
         }
@@ -352,23 +346,23 @@ class AIProgrammeService(
 
                     // Check if response was truncated
                     if (finishReason == "length") {
-                        throw Exception(
+                        error(
                             "Programme generation incomplete - response was truncated. Please try a shorter programme duration.",
                         )
                     }
 
                     responseContent
                 } else {
-                    throw Exception("Empty response from OpenAI")
+                    error("Empty response from OpenAI")
                 }
             } else {
                 val errorBody = response.errorBody()?.string()
-                throw Exception("OpenAI API error: ${response.code()} - $errorBody")
+                error("OpenAI API error: ${response.code()} - $errorBody")
             }
         } catch (e: Exception) {
             // Log detailed error and throw exception instead of using mock
-            e.printStackTrace()
-            throw Exception("AI service is temporarily unavailable. Please try again later or use a template programme.")
+            Log.e("AIProgrammeService", "Error", e)
+            error("AI service is temporarily unavailable. Please try again later or use a template programme.")
         }
     }
 
@@ -455,6 +449,7 @@ class AIProgrammeService(
                     )
                 weeks.add(week)
             } catch (e: Exception) {
+                Log.e("AIProgrammeService", "Error parsing week", e)
             }
         }
 
@@ -531,12 +526,6 @@ class AIProgrammeService(
         }
 
         return workouts
-    }
-
-    // Simple token estimation for cost tracking
-    private fun estimateTokens(text: String): Int {
-        // Rough estimation: ~4 characters per token
-        return (text.length / 4).coerceAtLeast(1)
     }
 
     // Public method for training analysis

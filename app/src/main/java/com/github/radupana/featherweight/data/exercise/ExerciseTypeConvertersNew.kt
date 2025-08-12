@@ -2,16 +2,12 @@ package com.github.radupana.featherweight.data.exercise
 
 import androidx.room.TypeConverter
 import com.github.radupana.featherweight.data.profile.OneRMType
-import kotlinx.serialization.json.Json
 
 /**
  * Enhanced type converters for the normalized exercise schema.
  * Handles lists, maps, and complex types for Room database.
  */
 class ExerciseTypeConvertersNew {
-    // JSON instance for serialization
-    private val json = Json { ignoreUnknownKeys = true }
-
     // Existing simple enum converters
     @TypeConverter
     fun fromExerciseCategory(category: ExerciseCategory): String = category.name

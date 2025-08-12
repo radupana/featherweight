@@ -34,3 +34,15 @@ data class WorkoutTemplate(
     val muscleGroups: List<String>,
     val exerciseSlots: List<ExerciseSlot>,
 )
+
+enum class SkillLevel {
+    BEGINNER,
+    INTERMEDIATE,
+    ADVANCED,
+}
+
+data class WorkoutTemplateGenerationConfig(
+    val time: TimeAvailable,
+    val goal: TrainingGoal,
+    val skillLevel: SkillLevel,
+)

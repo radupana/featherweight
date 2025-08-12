@@ -8,7 +8,7 @@ import com.github.radupana.featherweight.data.SetLogDao
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutDao
 import com.github.radupana.featherweight.data.WorkoutStatus
-import com.github.radupana.featherweight.data.export.*
+import com.github.radupana.featherweight.data.export.ExportOptions
 import com.github.radupana.featherweight.data.profile.OneRMDao
 import com.github.radupana.featherweight.data.profile.ProfileDao
 import com.github.radupana.featherweight.repository.FeatherweightRepository

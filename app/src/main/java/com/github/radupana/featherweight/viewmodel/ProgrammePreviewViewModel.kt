@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.WorkManager
@@ -121,10 +122,11 @@ class ProgrammePreviewViewModel(
                                         ProgrammeGoal.values().find { it.name == goalName }
                                     }
                                 if (selectedGoal == null) {
-                                    throw IllegalStateException("Programme goal is mandatory but was not found in AI request")
+                                    error("Programme goal is mandatory but was not found in AI request")
                                 }
                             }
                         } catch (e: Exception) {
+                            Log.e("ProgrammePreview", "Error processing programme", e)
                         }
                     }
 
@@ -541,7 +543,6 @@ class ProgrammePreviewViewModel(
                             )
                         return@launch
                     }
-                } else {
                 }
 
                 // Create the programme in the database - only after successful deletion
@@ -647,6 +648,7 @@ class ProgrammePreviewViewModel(
                 _showUnmatchedDialog.value = false
                 _currentUnmatchedExercise.value = null
             } catch (e: Exception) {
+                Log.e("ProgrammePreview", "Error replacing unmatched exercise", e)
             }
         }
     }
@@ -709,6 +711,7 @@ class ProgrammePreviewViewModel(
                 val exercises = repository.getAllExercises()
                 _allExercises.value = exercises
             } catch (e: Exception) {
+                Log.e("ProgrammePreview", "Error replacing unmatched exercise", e)
             }
         }
     }

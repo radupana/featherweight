@@ -62,8 +62,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
-import com.github.radupana.featherweight.ui.components.CenteredInputField
-import com.github.radupana.featherweight.ui.components.InputFieldType
 import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.ui.utils.DragHandle
 import com.github.radupana.featherweight.util.WeightFormatter

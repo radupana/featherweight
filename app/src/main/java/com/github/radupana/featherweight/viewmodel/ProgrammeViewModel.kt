@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.WorkManager
@@ -105,10 +106,8 @@ class ProgrammeViewModel(
         viewModelScope.launch {
             val active = _activeProgramme.value
             if (active != null) {
-                println("🔄 Refreshing programme progress for: ${active.name}")
                 val progress = repository.getProgrammeWithDetails(active.id)?.progress
                 _programmeProgress.value = progress
-                println("✅ Programme progress refreshed: ${progress?.completedWorkouts}/${progress?.totalWorkouts}")
             }
         }
     }
@@ -118,44 +117,32 @@ class ProgrammeViewModel(
             if (showLoading) {
                 _uiState.value = _uiState.value.copy(isLoading = true)
             }
-            println("🔄 ProgrammeViewModel: Starting data load...")
 
             try {
                 // Try to load templates first without seeding
-                println("🔄 ProgrammeViewModel: Loading templates...")
                 val templates =
                     try {
                         repository.getAllProgrammeTemplates()
                     } catch (e: Exception) {
-                        println("❌ Error loading templates, trying to seed: ${e.message}")
                         // Only seed if loading fails
                         repository.seedDatabaseIfEmpty()
                         repository.getAllProgrammeTemplates()
                     }
-                println("✅ ProgrammeViewModel: Loaded ${templates.size} templates")
                 _allTemplates.value = templates
 
                 // Load active programme
-                println("🔄 ProgrammeViewModel: Loading active programme...")
                 val active = repository.getActiveProgramme()
-                println("✅ ProgrammeViewModel: Active programme: ${active?.name ?: "None"}")
                 _activeProgramme.value = active
 
                 // Load progress if there's an active programme
                 if (active != null) {
-                    println("🔄 ProgrammeViewModel: Loading progress...")
                     val progress = repository.getProgrammeWithDetails(active.id)?.progress
-                    println("✅ ProgrammeViewModel: Progress loaded")
                     _programmeProgress.value = progress
                 }
 
                 // Load all programmes (including inactive)
-                println("🔄 ProgrammeViewModel: Loading all programmes...")
                 val allProgs = repository.getAllProgrammes()
-                println("✅ ProgrammeViewModel: Loaded ${allProgs.size} programmes")
                 _allProgrammes.value = allProgs
-
-                println("✅ ProgrammeViewModel: Data loading complete")
 
                 // Force update the UI state to ensure loading is false and templates are shown
                 _uiState.value =
@@ -164,10 +151,8 @@ class ProgrammeViewModel(
                         isLoading = false,
                     )
                 hasLoadedInitialData = true
-                println("✅ ProgrammeViewModel: UI state updated with ${templates.size} templates, isLoading=false")
             } catch (e: Exception) {
-                println("❌ ProgrammeViewModel: Error loading data: ${e.message}")
-                e.printStackTrace()
+                Log.e("ProgrammeViewModel", "Error", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to load programmes: ${e.message}",
@@ -312,7 +297,6 @@ class ProgrammeViewModel(
             _uiState.value = _uiState.value.copy(isCreating = true)
 
             try {
-                println("🔄 Creating programme from template: ${template.name}")
                 val programmeId =
                     repository.createProgrammeFromTemplate(
                         templateId = template.id,
@@ -322,12 +306,9 @@ class ProgrammeViewModel(
                         deadliftMax = if (template.requiresMaxes) maxes.deadlift else null,
                         ohpMax = if (template.requiresMaxes) maxes.ohp else null,
                     )
-                println("✅ Programme created with ID: $programmeId")
 
                 // Activate the new programme
-                println("🔄 Activating programme...")
                 repository.activateProgramme(programmeId)
-                println("✅ Programme activated")
 
                 // Get the newly created and activated programme
                 val newActiveProgramme = repository.getActiveProgramme()
@@ -349,7 +330,6 @@ class ProgrammeViewModel(
                     _uiState.value.copy(
                         isCreating = false,
                     )
-                println("✅ Programme creation completed successfully")
 
                 // Check if we should update profile 1RMs BEFORE navigation
                 if (template.requiresMaxes) {
@@ -367,8 +347,7 @@ class ProgrammeViewModel(
                 // No profile updates needed, navigate immediately
                 onSuccess?.invoke()
             } catch (e: Exception) {
-                println("❌ Programme creation failed: ${e.message}")
-                e.printStackTrace()
+                Log.e("ProgrammeViewModel", "Error", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to create programme: ${e.message}",
@@ -385,14 +364,11 @@ class ProgrammeViewModel(
     fun deleteProgramme(programme: Programme) {
         viewModelScope.launch {
             try {
-                println("🗑️ Deleting programme: ${programme.name} (ID: ${programme.id})")
                 repository.deleteProgramme(programme)
-                println("✅ Programme deleted successfully")
                 // Programme deleted successfully - no notification needed
                 // Refresh data to update the UI
                 loadProgrammeData()
             } catch (e: Exception) {
-                println("❌ Failed to delete programme: ${e.message}")
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to delete programme: ${e.message}",
@@ -420,7 +396,6 @@ class ProgrammeViewModel(
     fun forceRefreshAIRequests() {
         // Force refresh AI requests when returning from preview
         viewModelScope.launch {
-            println("🔄 ProgrammeViewModel: Force refreshing AI requests")
             // This will trigger the Flow to re-emit
             aiProgrammeRepository.cleanupStaleRequests()
         }
@@ -479,15 +454,12 @@ class ProgrammeViewModel(
 
     fun confirmProfileUpdate() {
         viewModelScope.launch {
-            println("🔄 ProgrammeViewModel: Starting profile update")
             val updates = _uiState.value.pendingProfileUpdates
-            println("📊 ProgrammeViewModel: Updating ${updates.size} exercises")
 
             // Wait for all updates to complete
             val updateJobs =
                 updates.map { (exerciseName, newMax) ->
                     async {
-                        println("🔄 ProgrammeViewModel: Updating $exerciseName to $newMax kg")
                         // Call the suspend function directly instead of launching another coroutine
                         updateExerciseMaxDirectly(exerciseName, newMax)
                     }
@@ -495,7 +467,6 @@ class ProgrammeViewModel(
 
             // Wait for all updates to complete
             updateJobs.awaitAll()
-            println("✅ ProgrammeViewModel: All profile updates completed")
 
             // Execute pending navigation if any
             val callback = _uiState.value.pendingNavigationCallback
@@ -509,10 +480,8 @@ class ProgrammeViewModel(
         maxWeight: Float,
     ) {
         try {
-            println("🔄 Updating 1RM for $exerciseName to $maxWeight kg")
             val exercise = repository.getExerciseByName(exerciseName)
             if (exercise != null) {
-                println("✅ Found exercise ${exercise.name} with ID ${exercise.id}")
                 repository.upsertExerciseMax(
                     userId = repository.getCurrentUserId(),
                     exerciseVariationId = exercise.id,
@@ -521,13 +490,12 @@ class ProgrammeViewModel(
                     oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,
                     notes = "Updated from programme setup",
                 )
-                println("✅ Successfully updated 1RM for $exerciseName")
+                Log.d("ProgrammeViewModel", "Successfully updated 1RM for $exerciseName")
             } else {
-                println("❌ Exercise not found for name: $exerciseName")
+                Log.w("ProgrammeViewModel", "Exercise not found for name: $exerciseName")
             }
         } catch (e: Exception) {
-            println("❌ Error updating 1RM: ${e.message}")
-            e.printStackTrace()
+            Log.e("ProgrammeViewModel", "Error updating 1RM: ${e.message}", e)
         }
     }
 

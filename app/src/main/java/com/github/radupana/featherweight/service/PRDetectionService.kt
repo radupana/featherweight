@@ -74,7 +74,6 @@ class PRDetectionService(
                         if (pr.weight > existingPR.weight) {
                             personalRecordDao.deletePR(existingPR.id)
                             personalRecordDao.insertPersonalRecord(pr)
-                        } else {
                         }
                     } else {
                         // No existing PR for this exercise in this workout

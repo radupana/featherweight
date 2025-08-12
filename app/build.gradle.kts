@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.detekt)
 }
 
 configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
@@ -131,3 +132,11 @@ dependencies {
     androidTestImplementation(libs.cucumber.android)
     androidTestImplementation(libs.cucumber.junit)
 }
+
+// Make Detekt part of the build process
+tasks.named("check") {
+    dependsOn("detekt")
+}
+
+// Detekt runs on check task
+// Enable for preBuild once all issues are resolved

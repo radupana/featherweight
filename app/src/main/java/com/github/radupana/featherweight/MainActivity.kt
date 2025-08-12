@@ -3,6 +3,7 @@ package com.github.radupana.featherweight
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -135,7 +136,7 @@ class MainActivity : ComponentActivity() {
                             repository.seedDatabaseIfEmpty()
                             repository.seedTestUsers()
                         } catch (e: Exception) {
-                            e.printStackTrace()
+                            Log.e("MainActivity", "Error seeding database", e)
                         }
                     }
 
@@ -180,7 +181,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("MainActivity", "Error handling deeplink", e)
         }
     }
 }
@@ -252,16 +253,21 @@ fun MainAppWithNavigation(
             }
         },
         bottomBar = {
-            if (currentScreen != Screen.SPLASH &&
-                currentScreen != Screen.USER_SELECTION &&
-                currentScreen != Screen.ACTIVE_WORKOUT &&
-                currentScreen != Screen.EXERCISE_SELECTOR &&
-                currentScreen != Screen.PROGRAMME_GENERATOR &&
-                currentScreen != Screen.PROGRAMME_PREVIEW &&
-                currentScreen != Screen.PROGRAMME_HISTORY_DETAIL &&
-                currentScreen != Screen.WORKOUT_TEMPLATE_CONFIGURATION &&
-                currentScreen != Screen.WORKOUT_COMPLETION &&
-                currentScreen != Screen.PROGRAMME_COMPLETION
+            val shouldHideBottomBar =
+                currentScreen in
+                    setOf(
+                        Screen.SPLASH,
+                        Screen.USER_SELECTION,
+                        Screen.ACTIVE_WORKOUT,
+                        Screen.EXERCISE_SELECTOR,
+                        Screen.PROGRAMME_GENERATOR,
+                        Screen.PROGRAMME_PREVIEW,
+                        Screen.PROGRAMME_HISTORY_DETAIL,
+                        Screen.WORKOUT_TEMPLATE_CONFIGURATION,
+                        Screen.WORKOUT_COMPLETION,
+                        Screen.PROGRAMME_COMPLETION,
+                    )
+            if (!shouldHideBottomBar
             ) {
                 NavigationBar {
                     navigationItems.forEach { item ->

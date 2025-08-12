@@ -38,13 +38,9 @@ class AIProgrammeQuotaManager(
         )
     }
 
-    fun canGenerateProgramme(): Boolean {
-        return true // Unlimited for testing
-    }
+    fun canGenerateProgramme(): Boolean = true // Unlimited for testing
 
-    fun incrementUsage(): Boolean {
-        return true // Always allow for testing
-    }
+    fun incrementUsage(): Boolean = true // Always allow for testing
 
     private fun resetIfNewDay() {
         val today = LocalDate.now().format(dateFormatter)

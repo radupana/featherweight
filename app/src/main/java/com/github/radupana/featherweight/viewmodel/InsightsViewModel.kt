@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.InsightCategory
@@ -464,7 +465,7 @@ class InsightsViewModel(
             try {
                 repository.getExercisesSummary()
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("InsightsViewModel", "Error", e)
                 com.github.radupana.featherweight.service
                     .GroupedExerciseSummary(emptyList(), emptyList())
             }
@@ -507,7 +508,7 @@ class InsightsViewModel(
 
                 onComplete(recentPRs, weeklyWorkoutCount, currentStreak)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("InsightsViewModel", "Error", e)
                 onComplete(emptyList(), 0, 0)
             }
         }

@@ -55,7 +55,7 @@ class ExerciseSeeder(
             }
 
             if (context == null) {
-                throw IllegalStateException(
+                error(
                     "Cannot initialize exercise database: Context is null. App cannot function without proper exercise data.",
                 )
             }
@@ -168,7 +168,7 @@ class ExerciseSeeder(
                     }
                 }
             } catch (e: Exception) {
-                throw IllegalStateException(
+                error(
                     "Exercise database loading failed. App cannot function without proper exercise data. Error: ${e.message}",
                 )
             }

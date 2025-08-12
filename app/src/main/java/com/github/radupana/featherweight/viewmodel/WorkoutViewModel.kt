@@ -956,6 +956,7 @@ class WorkoutViewModel(
                     repository.updateExerciseOrder(exercise.id, index)
                 }
             } catch (e: Exception) {
+                Log.e("WorkoutViewModel", "Error reordering exercises", e)
                 // Restore original order on error
                 _selectedWorkoutExercises.value = originalExerciseOrder
             }
@@ -1594,6 +1595,7 @@ class WorkoutViewModel(
             // Notify that workout is ready for navigation
             onReady?.invoke()
         } catch (e: Exception) {
+            Log.e("WorkoutViewModel", "Error starting programme workout", e)
             _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
         }
     }

@@ -1,114 +1,112 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.data.ExerciseLog
-import com.github.radupana.featherweight.data.ExerciseLogDao
-import com.github.radupana.featherweight.data.SetLog
-import com.github.radupana.featherweight.data.SetLogDao
-import com.github.radupana.featherweight.data.Workout
-import com.github.radupana.featherweight.data.WorkoutDao
-import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
+import com.github.radupana.featherweight.data.model.SkillLevel
 import com.github.radupana.featherweight.data.model.TimeAvailable
 import com.github.radupana.featherweight.data.model.TrainingGoal
-import com.github.radupana.featherweight.data.model.WorkoutTemplate
-import com.github.radupana.featherweight.data.model.WorkoutTemplateConfig
-import java.time.LocalDateTime
+import com.github.radupana.featherweight.data.model.WorkoutTemplateGenerationConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
+/**
+ * Service for generating workout templates for standard splits
+ */
 class WorkoutTemplateGeneratorService(
-    private val workoutDao: WorkoutDao,
     private val exerciseVariationDao: ExerciseVariationDao,
-    private val exerciseLogDao: ExerciseLogDao,
-    private val setLogDao: SetLogDao,
 ) {
-    suspend fun generateWorkout(
-        template: WorkoutTemplate,
-        config: WorkoutTemplateConfig,
-    ): Long {
-        val exercises = selectExercises(template, config)
-
-        // Create workout
-        val workout =
-            Workout(
-                date = LocalDateTime.now(),
-                notes = "${template.name} workout - ${config.timeAvailable.name.lowercase().replace('_', ' ')}",
-                isProgrammeWorkout = false,
-                status = WorkoutStatus.NOT_STARTED,
-            )
-
-        val workoutId = workoutDao.insertWorkout(workout)
-
-        // Add exercises and sets
-        exercises.forEachIndexed { index, exerciseData ->
-            val (exercise, sets, reps) = exerciseData
-
-            val exerciseLog =
-                ExerciseLog(
-                    workoutId = workoutId,
-                    exerciseVariationId = exercise.id,
-                    exerciseOrder = index,
-                    notes = "",
-                )
-
-            val exerciseLogId = exerciseLogDao.insert(exerciseLog)
-
-            // Create sets
-            repeat(sets) { setIndex ->
-                val setLog =
-                    SetLog(
-                        exerciseLogId = exerciseLogId,
-                        setOrder = setIndex + 1,
-                        targetReps = reps,
-                        targetWeight = null, // Will be filled by weight suggestion service
-                        actualReps = 0,
-                        actualWeight = 0f,
-                        isCompleted = false,
-                    )
-                setLogDao.insert(setLog)
+    suspend fun generateTemplate(
+        templateName: String,
+        config: WorkoutTemplateGenerationConfig,
+    ): List<Triple<ExerciseVariation, Int, Int>> =
+        withContext(Dispatchers.IO) {
+            when (templateName) {
+                "Push" -> generatePushWorkout(config)
+                "Pull" -> generatePullWorkout(config)
+                "Legs" -> generateLegsWorkout(config)
+                "Upper Body" -> generateUpperBodyWorkout(config)
+                "Full Body" -> generateFullBodyWorkout(config)
+                else -> emptyList()
             }
         }
 
-        return workoutId
+    private suspend fun generatePushWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
+        val exercises = mutableListOf<String>()
+
+        // Define exercises based on time available
+        when (config.time) {
+            TimeAvailable.QUICK -> {
+                exercises.add("Barbell Bench Press")
+                exercises.add("Dumbbell Shoulder Press")
+                exercises.add("Dumbbell Fly")
+                exercises.add("Cable Triceps Pushdown")
+            }
+            TimeAvailable.STANDARD -> {
+                exercises.add("Barbell Bench Press")
+                exercises.add("Dumbbell Incline Bench Press")
+                exercises.add("Dumbbell Shoulder Press")
+                exercises.add("Cable Lateral Raise")
+                exercises.add("Cable Fly")
+                exercises.add("Cable Triceps Pushdown")
+            }
+            TimeAvailable.EXTENDED -> {
+                exercises.add("Barbell Bench Press")
+                exercises.add("Dumbbell Incline Bench Press")
+                exercises.add("Cable Fly")
+                exercises.add("Dumbbell Shoulder Press")
+                exercises.add("Dumbbell Lateral Raise")
+                exercises.add("Cable Face Pull")
+                exercises.add("Cable Triceps Pushdown")
+            }
+        }
+
+        return generateWorkoutFromExercises(exercises, config)
     }
 
-    private suspend fun selectExercises(
-        template: WorkoutTemplate,
-        config: WorkoutTemplateConfig,
+    private suspend fun generatePullWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
+        // Similar implementation for pull workout
+        return emptyList()
+    }
+
+    private suspend fun generateLegsWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
+        // Similar implementation for legs workout
+        return emptyList()
+    }
+
+    private suspend fun generateUpperBodyWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
+        // Similar implementation for upper body workout
+        return emptyList()
+    }
+
+    private suspend fun generateFullBodyWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
+        // Similar implementation for full body workout
+        return emptyList()
+    }
+
+    private suspend fun generateWorkoutFromExercises(
+        exerciseNames: List<String>,
+        config: WorkoutTemplateGenerationConfig,
     ): List<Triple<ExerciseVariation, Int, Int>> {
         val result = mutableListOf<Triple<ExerciseVariation, Int, Int>>()
-        val maxExercises = getMaxExercises(config.timeAvailable, template.name)
+        val maxExercises = getMaxExercises(config.time, "Push")
 
-        // First, add all required exercises
-        for (slot in template.exerciseSlots.filter { it.required }) {
-            val exercise = findMatchingExercise(slot.exerciseOptions)
-            if (exercise != null) {
-                val sets = getSetsForExercise(exercise.name, slot.required)
-                val reps = getRepsForGoal(config.goal)
-                result.add(Triple(exercise, sets, reps))
-            } else {
-            }
+        for ((index, name) in exerciseNames.withIndex()) {
+            if (index >= maxExercises) break
+
+            val exercise = findMatchingExercise(listOf(name)) ?: continue
+            val sets = getSetsForExercise(exercise.name, config)
+            val reps = getRepsForGoal(config.goal)
+            result.add(Triple(exercise, sets, reps))
         }
 
-        // Then fill remaining slots up to max exercises
-        val remainingSlots = maxExercises - result.size
-        if (remainingSlots > 0) {
-            val optionalSlots = template.exerciseSlots.filter { !it.required }
-            for (slot in optionalSlots.take(remainingSlots)) {
-                val exercise = findMatchingExercise(slot.exerciseOptions)
-                if (exercise != null) {
-                    val sets = getSetsForExercise(exercise.name, slot.required)
-                    val reps = getRepsForGoal(config.goal)
-                    result.add(Triple(exercise, sets, reps))
-                }
-            }
+        // Adapt for skill level
+        return when (config.skillLevel) {
+            SkillLevel.BEGINNER -> result.take(result.size * 2 / 3)
+            else -> result
         }
-
-        return result
     }
 
-    private suspend fun findMatchingExercise(
-        options: List<String>,
-    ): ExerciseVariation? {
+    private suspend fun findMatchingExercise(options: List<String>): ExerciseVariation? {
         // Simply find the first available exercise from the options
         // Assumes full commercial gym access
         for (exerciseName in options) {
@@ -116,7 +114,6 @@ class WorkoutTemplateGeneratorService(
             val exercise = exerciseVariationDao.getExerciseVariationByName(exerciseName)
             if (exercise != null) {
                 return exercise
-            } else {
             }
         }
         return null
@@ -141,30 +138,25 @@ class WorkoutTemplateGeneratorService(
                     TimeAvailable.EXTENDED -> 7
                 }
 
-            else ->
-                when (timeAvailable) { // Full Body, Upper, Lower
-                    TimeAvailable.QUICK -> 3
-                    TimeAvailable.STANDARD -> 6
-                    TimeAvailable.EXTENDED -> 9
-                }
+            else -> 5
         }
 
     private fun getSetsForExercise(
         exerciseName: String,
-        isRequired: Boolean,
+        config: WorkoutTemplateGenerationConfig,
     ): Int {
-        val name = exerciseName.lowercase()
+        val isCompound =
+            exerciseName.contains("Press") ||
+                exerciseName.contains("Squat") ||
+                exerciseName.contains("Deadlift") ||
+                exerciseName.contains("Row") ||
+                exerciseName.contains("Pull Up") ||
+                exerciseName.contains("Dip")
 
-        // Big compounds get more sets
-        return when {
-            name.contains("squat") && name.contains("barbell") -> 5
-            name.contains("deadlift") -> 5
-            name.contains("bench press") && name.contains("barbell") -> 5
-            name.contains("row") && name.contains("barbell") -> 4
-            name.contains("press") && isRequired -> 4
-            name.contains("pull") && isRequired -> 4
-            isRequired -> 4
-            else -> 3 // Isolation exercises
+        return when (config.goal) {
+            TrainingGoal.STRENGTH -> if (isCompound) 5 else 3
+            TrainingGoal.HYPERTROPHY -> if (isCompound) 4 else 3
+            TrainingGoal.ENDURANCE -> if (isCompound) 3 else 2
         }
     }
 

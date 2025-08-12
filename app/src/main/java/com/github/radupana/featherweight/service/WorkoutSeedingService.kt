@@ -64,7 +64,7 @@ class WorkoutSeedingService(
         withContext(Dispatchers.IO) {
             val userId = repository.getCurrentUserId()
             if (userId == -1L) {
-                throw IllegalStateException("No user selected")
+                error("No user selected")
             }
 
             // Get 1RMs from profile or use defaults
