@@ -73,7 +73,7 @@ class ProgrammePreviewViewModel(
     private val _currentUnmatchedExercise = MutableStateFlow<ExerciseMatchingService.UnmatchedExercise?>(null)
     val currentUnmatchedExercise = _currentUnmatchedExercise.asStateFlow()
 
-    private val _allExercises = MutableStateFlow<List<com.github.radupana.featherweight.data.exercise.Exercise>>(emptyList())
+    private val _allExercises = MutableStateFlow<List<com.github.radupana.featherweight.data.exercise.ExerciseVariation>>(emptyList())
     val allExercises = _allExercises.asStateFlow()
 
     private var hasLoadedProgramme = false
@@ -86,7 +86,6 @@ class ProgrammePreviewViewModel(
     ) {
         // Prevent re-loading if already loaded (e.g., configuration changes)
         if (hasLoadedProgramme) {
-            println("⚠️ Programme already loaded, skipping re-load")
             return
         }
         hasLoadedProgramme = true
@@ -104,7 +103,6 @@ class ProgrammePreviewViewModel(
                         val unmatchedCount = validationResult.unmatchedExercises.size
                         val totalCount = validationResult.totalCount
 
-                        println("📋 Programme has $unmatchedCount unmatched exercises out of $totalCount total")
                     }
 
                     // Get all available exercises for matching
@@ -124,25 +122,25 @@ class ProgrammePreviewViewModel(
                                         ProgrammeGoal.values().find { it.name == goalName }
                                     }
                                 if (selectedGoal == null) {
-                                    println("❌ ERROR: Failed to parse goal from AI request. Goal was: ${simpleRequest?.selectedGoal}")
                                     throw IllegalStateException("Programme goal is mandatory but was not found in AI request")
                                 }
-                                println("🎯 Parsed goal from AI request: $selectedGoal")
                             }
                         } catch (e: Exception) {
-                            println("⚠️ Failed to parse goal from AI request: ${e.message}")
                         }
                     }
 
                     // Process and validate the programme
-                    val preview = processGeneratedProgramme(generatedProgramme, allExercises, validationResult, selectedGoal)
-
-                    // Debug logging to understand week count
-                    println("🔍 ProgrammePreviewViewModel: Generated programme has ${generatedProgramme.weeks.size} weeks")
-                    println("🔍 ProgrammePreviewViewModel: Preview has ${preview.weeks.size} weeks")
-                    preview.weeks.forEach { week ->
-                        println("  - Week ${week.weekNumber}: ${week.workouts.size} workouts, ${week.weeklyVolume.totalSets} sets")
+                    // Convert ExerciseVariation to ExerciseWithDetails
+                    val exercisesWithDetails = allExercises.map { variation ->
+                        com.github.radupana.featherweight.data.exercise.ExerciseWithDetails(
+                            variation = variation,
+                            muscles = emptyList(),
+                            aliases = emptyList(),
+                            instructions = emptyList()
+                        )
                     }
+                    val preview = processGeneratedProgramme(generatedProgramme, exercisesWithDetails, validationResult, selectedGoal)
+
 
                     _currentPreview.value = preview
                     _previewState.value = PreviewState.Success(preview)
@@ -191,7 +189,7 @@ class ProgrammePreviewViewModel(
             val matches =
                 exerciseMatcher.findBestMatches(
                     exercise.exerciseName,
-                    allExercises.map { it.exercise.name },
+                    allExercises.map { it.variation.name },
                 )
             exerciseMatches.add(
                 ExerciseMatchInfo(
@@ -237,13 +235,13 @@ class ProgrammePreviewViewModel(
         val exercises =
             workout.exercises.map { exercise ->
                 val tempId = UUID.randomUUID().toString()
-                val matches = exerciseMatcher.findBestMatches(exercise.exerciseName, allExercises.map { it.exercise.name })
+                val matches = exerciseMatcher.findBestMatches(exercise.exerciseName, allExercises.map { it.variation.name })
                 val bestMatch = matches.firstOrNull()
 
                 ExercisePreview(
                     tempId = tempId,
                     exerciseName = exercise.exerciseName,
-                    matchedExerciseId = allExercises.find { it.exercise.name == bestMatch?.exerciseName }?.exercise?.id,
+                    matchedExerciseId = allExercises.find { it.variation.name == bestMatch?.exerciseName }?.variation?.id,
                     matchConfidence = bestMatch?.confidence ?: 0f,
                     sets = exercise.sets,
                     repsMin = exercise.repsMin,
@@ -256,7 +254,7 @@ class ProgrammePreviewViewModel(
                     alternatives =
                         matches.drop(1).take(2).map { match ->
                             ExerciseAlternative(
-                                exerciseId = allExercises.find { it.exercise.name == match.exerciseName }?.exercise?.id ?: 0L,
+                                exerciseId = allExercises.find { it.variation.name == match.exerciseName }?.variation?.id ?: 0L,
                                 name = match.exerciseName,
                                 confidence = match.confidence,
                                 reason = match.reason,
@@ -290,8 +288,8 @@ class ProgrammePreviewViewModel(
         return com.github.radupana.featherweight.data.VolumeMetrics(
             totalSets = totalSets,
             totalReps = totalReps,
-            muscleGroupVolume = emptyMap(), // TODO: Calculate
-            movementPatternVolume = emptyMap(), // TODO: Calculate
+            muscleGroupVolume = emptyMap(), // Muscle group calculation not implemented yet
+            movementPatternVolume = emptyMap(), // Movement pattern calculation not implemented yet
         )
     }
 
@@ -319,7 +317,7 @@ class ProgrammePreviewViewModel(
                     updateExerciseInPreview(currentPreview, tempId) { exercisePreview ->
                         exercisePreview.copy(
                             matchedExerciseId = exerciseId,
-                            exerciseName = exercise.exercise.name,
+                            exerciseName = exercise.name,
                             matchConfidence = 1.0f,
                         )
                     }
@@ -340,19 +338,19 @@ class ProgrammePreviewViewModel(
         viewModelScope.launch {
             val currentPreview = _currentPreview.value ?: return@launch
             val allExercises = repository.getAllExercises()
-            val matches = exerciseMatcher.findBestMatches(newExerciseName, allExercises.map { it.exercise.name })
+            val matches = exerciseMatcher.findBestMatches(newExerciseName, allExercises.map { it.name })
             val bestMatch = matches.firstOrNull()
 
             val updatedPreview =
                 updateExerciseInPreview(currentPreview, tempId) { exercisePreview ->
                     exercisePreview.copy(
                         exerciseName = newExerciseName,
-                        matchedExerciseId = allExercises.find { it.exercise.name == bestMatch?.exerciseName }?.exercise?.id,
+                        matchedExerciseId = allExercises.find { it.name == bestMatch?.exerciseName }?.id,
                         matchConfidence = bestMatch?.confidence ?: 0f,
                         alternatives =
                             matches.drop(1).take(2).map { match ->
                                 ExerciseAlternative(
-                                    exerciseId = allExercises.find { it.exercise.name == match.exerciseName }?.exercise?.id ?: 0L,
+                                    exerciseId = allExercises.find { it.name == match.exerciseName }?.id ?: 0L,
                                     name = match.exerciseName,
                                     confidence = match.confidence,
                                     reason = match.reason,
@@ -534,13 +532,10 @@ class ProgrammePreviewViewModel(
                 // Delete the AI request FIRST to prevent it from showing up as "Ready to preview"
                 val aiRequestId = GeneratedProgrammeHolder.getAIRequestId()
                 if (aiRequestId != null) {
-                    println("🗑️ Deleting AI request: $aiRequestId")
                     try {
                         // This is a suspend function, so it will complete before moving on
                         aiProgrammeRepository.deleteRequest(aiRequestId)
-                        println("✅ AI request deleted successfully")
                     } catch (e: Exception) {
-                        println("❌ Failed to delete AI request: ${e.message}")
                         _previewState.value =
                             PreviewState.Error(
                                 "Failed to delete AI request: ${e.message}",
@@ -548,12 +543,10 @@ class ProgrammePreviewViewModel(
                         return@launch
                     }
                 } else {
-                    println("⚠️ No AI request ID found to delete")
                 }
 
                 // Create the programme in the database - only after successful deletion
                 val programmeId = repository.createAIGeneratedProgramme(currentPreview)
-                println("✅ AI programme created and activated with ID: $programmeId")
 
                 // Clear the generated programme holder
                 GeneratedProgrammeHolder.clearGeneratedProgramme()
@@ -568,7 +561,6 @@ class ProgrammePreviewViewModel(
                 // Navigate to home screen
                 onSuccess()
             } catch (e: Exception) {
-                println("❌ Failed to activate programme: ${e.message}")
                 val currentPreview = _currentPreview.value
                 // If activation fails, go back to Success state
                 if (currentPreview != null) {
@@ -634,7 +626,7 @@ class ProgrammePreviewViewModel(
 
     fun selectExerciseForUnmatched(
         unmatchedExercise: ExerciseMatchingService.UnmatchedExercise,
-        selectedExercise: com.github.radupana.featherweight.data.exercise.Exercise,
+        selectedExercise: com.github.radupana.featherweight.data.exercise.ExerciseVariation,
     ) {
         viewModelScope.launch {
             try {
@@ -656,9 +648,7 @@ class ProgrammePreviewViewModel(
                 _showUnmatchedDialog.value = false
                 _currentUnmatchedExercise.value = null
 
-                println("✅ Replaced '${unmatchedExercise.aiSuggested}' with '${selectedExercise.name}'")
             } catch (e: Exception) {
-                println("❌ Failed to replace exercise: ${e.message}")
             }
         }
     }
@@ -676,7 +666,7 @@ class ProgrammePreviewViewModel(
     private fun replaceUnmatchedExercise(
         preview: GeneratedProgrammePreview,
         unmatchedExercise: ExerciseMatchingService.UnmatchedExercise,
-        selectedExercise: com.github.radupana.featherweight.data.exercise.Exercise,
+        selectedExercise: com.github.radupana.featherweight.data.exercise.ExerciseVariation,
     ): GeneratedProgrammePreview {
         val updatedWeeks =
             preview.weeks.mapIndexed { weekIndex, week ->
@@ -719,9 +709,8 @@ class ProgrammePreviewViewModel(
         viewModelScope.launch {
             try {
                 val exercises = repository.getAllExercises()
-                _allExercises.value = exercises.map { it.exercise }
+                _allExercises.value = exercises
             } catch (e: Exception) {
-                println("Failed to load exercises: ${e.message}")
             }
         }
     }
@@ -732,11 +721,9 @@ class ProgrammePreviewViewModel(
                 // Delete the AI request if it exists
                 val aiRequestId = GeneratedProgrammeHolder.getAIRequestId()
                 if (aiRequestId != null) {
-                    println("🗑️ Discarding AI programme with request ID: $aiRequestId")
 
                     // Delete from database - this is a suspend function so it completes before proceeding
                     aiProgrammeRepository.deleteRequest(aiRequestId)
-                    println("✅ AI request deleted successfully")
 
                     // Clear the generated programme holder only after successful deletion
                     GeneratedProgrammeHolder.clearGeneratedProgramme()
@@ -744,12 +731,10 @@ class ProgrammePreviewViewModel(
                     // Navigate back
                     onSuccess()
                 } else {
-                    println("⚠️ No AI request ID found to discard")
                     // Still navigate back even if no request to discard
                     onSuccess()
                 }
             } catch (e: Exception) {
-                println("❌ Failed to discard programme: ${e.message}")
                 _previewState.value =
                     PreviewState.Error(
                         "Failed to discard programme: ${e.message}",
@@ -862,15 +847,14 @@ class ProgrammePreviewViewModel(
     }
 
     fun autoFixValidationIssue() {
-        // Auto-fix functionality requires AI service to regenerate with specific constraints
-        // TODO: Implement when AI service supports targeted fixes
+        // Auto-fix functionality not implemented - requires AI service regeneration
+        throw UnsupportedOperationException("Auto-fix feature not yet available")
     }
 
     private fun parseSimpleRequest(requestPayload: String): SimpleRequest? =
         try {
             json.decodeFromString<SimpleRequest>(requestPayload)
         } catch (e: Exception) {
-            println("⚠️ Failed to parse SimpleRequest: ${e.message}")
             null
         }
 }

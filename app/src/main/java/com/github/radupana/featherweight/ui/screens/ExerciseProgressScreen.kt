@@ -42,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -86,12 +87,21 @@ fun ExerciseProgressScreen(
     val selectedPatternType by viewModel.selectedPatternType.collectAsState()
     val scope = rememberCoroutineScope()
 
+    // Convert exercise name to ID
+    var exerciseVariationId by remember { mutableLongStateOf(0L) }
+    
     LaunchedEffect(exerciseName) {
-        viewModel.loadExerciseData(exerciseName)
-        viewModel.loadChartData(exerciseName)
-        viewModel.loadMaxWeightChartData(exerciseName)
-        viewModel.loadVolumeChartData(exerciseName)
-        viewModel.loadTrainingPatternsData(exerciseName)
+        exerciseVariationId = viewModel.repository.getExerciseByName(exerciseName)?.id ?: 0L
+    }
+    
+    LaunchedEffect(exerciseVariationId) {
+        if (exerciseVariationId > 0) {
+            viewModel.loadExerciseData(exerciseVariationId)
+            viewModel.loadChartData(exerciseVariationId)
+            viewModel.loadMaxWeightChartData(exerciseVariationId)
+            viewModel.loadVolumeChartData(exerciseVariationId)
+            viewModel.loadTrainingPatternsData(exerciseVariationId)
+        }
     }
 
     Scaffold(
@@ -164,7 +174,7 @@ fun ExerciseProgressScreen(
                             text = "Error loading exercise data",
                             style = MaterialTheme.typography.bodyLarge,
                         )
-                        Button(onClick = { scope.launch { viewModel.loadExerciseData(exerciseName) } }) {
+                        Button(onClick = { scope.launch { viewModel.loadExerciseData(exerciseVariationId) } }) {
                             Text("Retry")
                         }
                     }

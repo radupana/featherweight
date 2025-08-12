@@ -4,7 +4,7 @@ import com.github.radupana.featherweight.data.SetLog
 import java.time.LocalDateTime
 
 data class ExerciseHistory(
-    val exerciseName: String,
+    val exerciseVariationId: Long,
     val lastWorkoutDate: LocalDateTime,
     val sets: List<SetLog>,
 )

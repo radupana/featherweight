@@ -326,10 +326,10 @@ fun MainAppWithNavigation(
                     onExerciseSelected = { exercise ->
                         if (swappingExercise != null) {
                             // We're in swap mode
-                            workoutViewModel.confirmExerciseSwap(exercise.exercise.id)
+                            workoutViewModel.confirmExerciseSwap(exercise.variation.id)
                         } else {
                             // Normal add mode
-                            workoutViewModel.addExerciseToCurrentWorkout(exercise)
+                            workoutViewModel.addExerciseToCurrentWorkout(exercise.variation)
                         }
                         onScreenChange(Screen.ACTIVE_WORKOUT)
                     },

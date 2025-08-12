@@ -190,8 +190,16 @@ class ProgressionService(
         exerciseName: String,
         programme: Programme,
     ): ProgressionDecision {
+        // Get exercise ID from name
+        val exercise = repository.getExerciseByName(exerciseName)
+        val exerciseVariationId = exercise?.id ?: return ProgressionDecision(
+            weight = 20f,
+            action = ProgressionAction.MAINTAIN,
+            reason = "Exercise not found"
+        )
+        
         // Try to get 1RM
-        val oneRM = repository.getOneRMForExercise(exerciseName)
+        val oneRM = repository.getOneRMForExercise(exerciseVariationId)
 
         val startingWeight =
             if (oneRM != null && oneRM > 0) {

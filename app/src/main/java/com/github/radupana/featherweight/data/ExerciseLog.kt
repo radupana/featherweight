@@ -13,21 +13,20 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
-            entity = com.github.radupana.featherweight.data.exercise.Exercise::class,
+            entity = com.github.radupana.featherweight.data.exercise.ExerciseVariation::class,
             parentColumns = ["id"],
-            childColumns = ["exerciseId"],
-            onDelete = ForeignKey.SET_NULL,
+            childColumns = ["exerciseVariationId"],
+            onDelete = ForeignKey.RESTRICT, // Prevent deletion of variations that have logs
         ),
     ],
 )
 data class ExerciseLog(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val workoutId: Long,
-    val exerciseName: String,
-    val exerciseId: Long? = null,
+    val exerciseVariationId: Long, // Non-null reference to ExerciseVariation
     val exerciseOrder: Int,
     val supersetGroup: Int? = null,
     val notes: String? = null,
-    val originalExerciseId: Long? = null, // Track original exercise if swapped
+    val originalVariationId: Long? = null, // Track original variation if swapped
     val isSwapped: Boolean = false, // Flag to indicate if exercise was swapped
 )

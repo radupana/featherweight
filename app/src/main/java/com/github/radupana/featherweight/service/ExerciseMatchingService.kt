@@ -1,7 +1,7 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.data.exercise.Exercise
-import com.github.radupana.featherweight.data.exercise.ExerciseAlias
+import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.VariationAlias
 
 /**
  * Service for matching AI-generated exercise names to our database exercises.
@@ -9,7 +9,7 @@ import com.github.radupana.featherweight.data.exercise.ExerciseAlias
  */
 class ExerciseMatchingService {
     data class ExerciseMatch(
-        val exercise: Exercise,
+        val exercise: ExerciseVariation,
         val confidence: Float, // 0.0 to 1.0
         val matchReasons: List<String>,
     )
@@ -115,8 +115,8 @@ class ExerciseMatchingService {
      */
     fun findExerciseMatch(
         aiName: String,
-        exercises: List<Exercise>,
-        aliases: List<ExerciseAlias>,
+        exercises: List<ExerciseVariation>,
+        aliases: List<VariationAlias>,
         minConfidence: Float = 0.5f,
     ): ExerciseMatch? {
         // Layer 1: Direct match
@@ -142,8 +142,8 @@ class ExerciseMatchingService {
      */
     fun findBestMatches(
         aiName: String,
-        exercises: List<Exercise>,
-        aliases: List<ExerciseAlias>,
+        exercises: List<ExerciseVariation>,
+        aliases: List<VariationAlias>,
         limit: Int = 10,
     ): List<ExerciseMatch> {
         val allMatches = mutableListOf<ExerciseMatch>()
@@ -246,8 +246,8 @@ class ExerciseMatchingService {
      */
     private fun directMatch(
         name: String,
-        exercises: List<Exercise>,
-        aliases: List<ExerciseAlias>,
+        exercises: List<ExerciseVariation>,
+        aliases: List<VariationAlias>,
     ): ExerciseMatch? {
         // Exact match
         exercises.find { it.name.equals(name, ignoreCase = true) }?.let {
@@ -260,7 +260,7 @@ class ExerciseMatchingService {
 
         // Alias match
         aliases.find { it.alias.equals(name, ignoreCase = true) }?.let { alias ->
-            exercises.find { it.id == alias.exerciseId }?.let { exercise ->
+            exercises.find { it.id == alias.variationId }?.let { exercise ->
                 return ExerciseMatch(
                     exercise = exercise,
                     confidence = 0.95f,
@@ -321,7 +321,7 @@ class ExerciseMatchingService {
      */
     private fun findComponentMatches(
         components: ExerciseComponents,
-        exercises: List<Exercise>,
+        exercises: List<ExerciseVariation>,
     ): List<ExerciseMatch> =
         exercises.mapNotNull { exercise ->
             val score = calculateComponentScore(components, exercise)
@@ -341,7 +341,7 @@ class ExerciseMatchingService {
      */
     private fun calculateComponentScore(
         components: ExerciseComponents,
-        exercise: Exercise,
+        exercise: ExerciseVariation,
     ): Float {
         val exerciseLower = exercise.name.lowercase()
         var score = 0f
@@ -361,10 +361,10 @@ class ExerciseMatchingService {
         }
 
         // Muscle group match (20%)
+        // Note: In new schema, muscles are in a separate table
+        // This scoring logic may need to be updated when muscle data is available
         components.muscleGroup?.let { muscle ->
-            if (exerciseLower.contains(muscle) ||
-                exercise.muscleGroup.lowercase().contains(muscle)
-            ) {
+            if (exerciseLower.contains(muscle)) {
                 score += 0.2f
             }
         }
@@ -385,7 +385,7 @@ class ExerciseMatchingService {
      */
     private fun buildMatchReasons(
         components: ExerciseComponents,
-        exercise: Exercise,
+        exercise: ExerciseVariation,
     ): List<String> {
         val reasons = mutableListOf<String>()
         val exerciseLower = exercise.name.lowercase()
@@ -403,7 +403,7 @@ class ExerciseMatchingService {
         }
 
         components.muscleGroup?.let { muscle ->
-            if (exercise.muscleGroup.lowercase().contains(muscle)) {
+            if (exerciseLower.contains(muscle)) {
                 reasons.add("Muscle group match: $muscle")
             }
         }

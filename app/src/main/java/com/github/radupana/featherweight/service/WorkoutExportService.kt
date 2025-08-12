@@ -11,6 +11,7 @@ import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.export.*
 import com.github.radupana.featherweight.data.profile.OneRMDao
 import com.github.radupana.featherweight.data.profile.ProfileDao
+import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -22,6 +23,7 @@ class WorkoutExportService(
     private val setLogDao: SetLogDao,
     private val oneRMDao: OneRMDao,
     private val profileDao: ProfileDao,
+    private val repository: FeatherweightRepository,
 ) {
     suspend fun exportWorkoutsToFile(
         context: Context,
@@ -124,7 +126,7 @@ class WorkoutExportService(
 
                 for (max in currentMaxes) {
                     writer.beginObject()
-                    writer.name("exerciseId").value(max.exerciseId)
+                    writer.name("exerciseId").value(max.exerciseVariationId)
                     writer.name("exerciseName").value(max.exerciseName)
                     writer.name("weight").value(max.oneRMEstimate)
                     writer.name("recordedDate").value(max.oneRMDate.toString())
@@ -187,8 +189,10 @@ class WorkoutExportService(
     ) {
         writer.beginObject()
 
-        exercise.exerciseId?.let { writer.name("exerciseId").value(it) }
-        writer.name("exerciseName").value(exercise.exerciseName)
+        writer.name("exerciseId").value(exercise.exerciseVariationId)
+        // Get exercise name from repository
+        val exerciseVariation = repository.getExerciseById(exercise.exerciseVariationId)
+        writer.name("exerciseName").value(exerciseVariation?.name ?: "Unknown Exercise")
         writer.name("order").value(exercise.exerciseOrder)
 
         exercise.supersetGroup?.let { writer.name("supersetGroup").value(it) }

@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ExerciseLogDao {
@@ -19,14 +20,42 @@ interface ExerciseLogDao {
     @Query("DELETE FROM ExerciseLog WHERE id = :exerciseLogId")
     suspend fun deleteExerciseLog(exerciseLogId: Long)
 
-    @Query("SELECT COUNT(*) FROM ExerciseLog WHERE exerciseName = :exerciseName")
-    suspend fun getExerciseUsageCount(exerciseName: String): Int
+    @Query("SELECT COUNT(*) FROM ExerciseLog WHERE exerciseVariationId = :exerciseVariationId")
+    suspend fun getExerciseUsageCount(exerciseVariationId: Long): Int
 
     @Query("UPDATE ExerciseLog SET exerciseOrder = :newOrder WHERE id = :exerciseLogId")
     suspend fun updateExerciseOrder(
         exerciseLogId: Long,
         newOrder: Int,
     )
+    
+    // Optimized queries with JOINs to get exercise names
+    @Query("""
+        SELECT el.*, ev.name as exerciseName 
+        FROM ExerciseLog el 
+        JOIN exercise_variations ev ON el.exerciseVariationId = ev.id 
+        WHERE el.workoutId = :workoutId 
+        ORDER BY el.exerciseOrder
+    """)
+    suspend fun getExerciseLogsWithNames(workoutId: Long): List<ExerciseLogWithName>
+    
+    @Query("""
+        SELECT el.*, ev.name as exerciseName 
+        FROM ExerciseLog el 
+        JOIN exercise_variations ev ON el.exerciseVariationId = ev.id 
+        WHERE el.id = :exerciseLogId
+    """)
+    suspend fun getExerciseLogWithName(exerciseLogId: Long): ExerciseLogWithName?
+    
+    // Flow versions for reactive UI
+    @Query("""
+        SELECT el.*, ev.name as exerciseName 
+        FROM ExerciseLog el 
+        JOIN exercise_variations ev ON el.exerciseVariationId = ev.id 
+        WHERE el.workoutId = :workoutId 
+        ORDER BY el.exerciseOrder
+    """)
+    fun getExerciseLogsWithNamesFlow(workoutId: Long): Flow<List<ExerciseLogWithName>>
 
     @Update
     suspend fun update(exerciseLog: ExerciseLog)
@@ -38,7 +67,7 @@ interface ExerciseLogDao {
         """
         SELECT el.* FROM ExerciseLog el
         INNER JOIN Workout w ON el.workoutId = w.id
-        WHERE el.exerciseName = :exerciseName
+        WHERE el.exerciseVariationId = :exerciseVariationId
         AND w.date >= :startDate
         AND w.date <= :endDate
         AND w.status = 'COMPLETED'
@@ -46,7 +75,7 @@ interface ExerciseLogDao {
     """,
     )
     suspend fun getExerciseLogsInDateRange(
-        exerciseName: String,
+        exerciseVariationId: Long,
         startDate: java.time.LocalDateTime,
         endDate: java.time.LocalDateTime,
     ): List<ExerciseLog>
@@ -55,21 +84,21 @@ interface ExerciseLogDao {
         """
         SELECT COUNT(DISTINCT w.id) FROM ExerciseLog el
         INNER JOIN Workout w ON el.workoutId = w.id
-        WHERE el.exerciseName = :exerciseName
+        WHERE el.exerciseVariationId = :exerciseVariationId
         AND w.status = 'COMPLETED'
     """,
     )
-    suspend fun getTotalSessionsForExercise(exerciseName: String): Int
+    suspend fun getTotalSessionsForExercise(exerciseVariationId: Long): Int
 
     @Query(
         """
-        SELECT DISTINCT el.exerciseName FROM ExerciseLog el
+        SELECT DISTINCT el.exerciseVariationId FROM ExerciseLog el
         INNER JOIN Workout w ON el.workoutId = w.id
         WHERE w.status = 'COMPLETED'
-        ORDER BY el.exerciseName
+        ORDER BY el.exerciseVariationId
     """,
     )
-    suspend fun getAllUniqueExercises(): List<String>
+    suspend fun getAllUniqueExerciseVariationIds(): List<Long>
 
     @Query("DELETE FROM ExerciseLog")
     suspend fun deleteAllExerciseLogs()
@@ -78,7 +107,7 @@ interface ExerciseLogDao {
         """
         SELECT w.* FROM ExerciseLog el
         INNER JOIN Workout w ON el.workoutId = w.id
-        WHERE el.exerciseName = :exerciseName
+        WHERE el.exerciseVariationId = :exerciseVariationId
         AND w.status = 'COMPLETED'
         AND w.date >= :startDate
         AND w.date <= :endDate
@@ -87,8 +116,28 @@ interface ExerciseLogDao {
     """,
     )
     suspend fun getDistinctWorkoutsForExercise(
-        exerciseName: String,
+        exerciseVariationId: Long,
         startDate: java.time.LocalDateTime,
         endDate: java.time.LocalDateTime,
     ): List<Workout>
+    
+    @Query(
+        """
+        SELECT el.exerciseVariationId, COUNT(*) as count
+        FROM ExerciseLog el
+        INNER JOIN Workout w ON el.workoutId = w.id
+        WHERE w.status = 'COMPLETED'
+        GROUP BY el.exerciseVariationId
+        ORDER BY count DESC
+    """,
+    )
+    suspend fun getExerciseVariationUsageStatistics(): List<ExerciseUsageStatistic>
 }
+
+/**
+ * Data class for exercise usage statistics.
+ */
+data class ExerciseUsageStatistic(
+    val exerciseVariationId: Long,
+    val count: Int
+)

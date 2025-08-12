@@ -45,6 +45,7 @@ import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.ui.utils.DragHandle
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import androidx.compose.runtime.collectAsState
 
 @Composable
 fun CompactExerciseCard(
@@ -106,8 +107,10 @@ fun CompactExerciseCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
+                        val exerciseNames by viewModel.exerciseNames.collectAsState()
+                        val exerciseName = exerciseNames[exercise.exerciseVariationId] ?: "Unknown Exercise"
                         Text(
-                            text = exercise.exerciseName,
+                            text = exerciseName,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
@@ -279,7 +282,11 @@ fun CompactExerciseCard(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Delete Exercise?") },
-            text = { Text("Remove ${exercise.exerciseName} and all its sets?") },
+            text = { 
+                val exerciseNames by viewModel.exerciseNames.collectAsState()
+                val exerciseName = exerciseNames[exercise.exerciseVariationId] ?: "this exercise"
+                Text("Remove $exerciseName and all its sets?") 
+            },
             confirmButton = {
                 TextButton(
                     onClick = {

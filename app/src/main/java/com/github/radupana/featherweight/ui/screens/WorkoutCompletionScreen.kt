@@ -110,7 +110,8 @@ fun WorkoutCompletionScreen(
 
                     // Personal Records (if any)
                     if (summary.personalRecords.isNotEmpty()) {
-                        PersonalRecordsCard(summary.personalRecords)
+                        val exerciseNames by viewModel.exerciseNames.collectAsState()
+                        PersonalRecordsCard(summary.personalRecords, repository, exerciseNames)
                     }
 
                     // Workout Insights
@@ -267,7 +268,7 @@ private fun WorkoutStatsCard(summary: CompletionSummary) {
 }
 
 @Composable
-private fun PersonalRecordsCard(personalRecords: List<PersonalRecord>) {
+private fun PersonalRecordsCard(personalRecords: List<PersonalRecord>, repository: com.github.radupana.featherweight.repository.FeatherweightRepository, exerciseNames: Map<Long, String>) {
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -296,7 +297,7 @@ private fun PersonalRecordsCard(personalRecords: List<PersonalRecord>) {
             Spacer(modifier = Modifier.height(16.dp))
 
             personalRecords.forEach { pr ->
-                PRItem(pr)
+                PRItem(pr, repository, exerciseNames)
                 if (pr != personalRecords.last()) {
                     Spacer(modifier = Modifier.height(12.dp))
                     HorizontalDivider(
@@ -311,10 +312,11 @@ private fun PersonalRecordsCard(personalRecords: List<PersonalRecord>) {
 }
 
 @Composable
-private fun PRItem(pr: PersonalRecord) {
+private fun PRItem(pr: PersonalRecord, repository: com.github.radupana.featherweight.repository.FeatherweightRepository, exerciseNames: Map<Long, String>) {
     Column {
+        val exerciseName = exerciseNames[pr.exerciseVariationId] ?: "Unknown Exercise"
         Text(
-            text = pr.exerciseName,
+            text = exerciseName,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )

@@ -155,9 +155,6 @@ fun CalendarView(
                 state = state,
                 dayContent = { calendarDay ->
                     val dayInfo = workoutDayInfo[calendarDay.date]
-                    if (dayInfo != null && calendarDay.position == DayPosition.MonthDate) {
-                        println("🔍 CalendarView: ${calendarDay.date} has workouts: C=${dayInfo.completedCount}, IP=${dayInfo.inProgressCount}")
-                    }
                     CalendarDayContent(
                         calendarDay = calendarDay,
                         isSelected = selectedDate == calendarDay.date,

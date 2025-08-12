@@ -37,15 +37,15 @@ class FreestyleIntelligenceService(
      * Get intelligent weight suggestions for an exercise with detailed reasoning
      */
     suspend fun getIntelligentSuggestions(
-        exerciseName: String,
+        exerciseVariationId: Long,
         userId: Long,
         targetReps: Int? = null,
     ): SmartSuggestions {
-        val progress = globalProgressDao.getProgressForExercise(userId, exerciseName)
+        val progress = globalProgressDao.getProgressForExercise(userId, exerciseVariationId)
 
         // If no progress data, fallback to basic suggestions
         if (progress == null) {
-            return getBasicSuggestions(exerciseName, targetReps)
+            return getBasicSuggestions(exerciseVariationId, targetReps)
         }
 
         // Analyze RPE trend
@@ -79,12 +79,12 @@ class FreestyleIntelligenceService(
      * Get real-time suggestions as user types different rep counts
      */
     fun getSuggestionsForReps(
-        exerciseName: String,
+        exerciseVariationId: Long,
         userId: Long,
         repsFlow: kotlinx.coroutines.flow.Flow<Int>,
     ): kotlinx.coroutines.flow.Flow<SmartSuggestions> =
         repsFlow.map { reps ->
-            getIntelligentSuggestions(exerciseName, userId, reps)
+            getIntelligentSuggestions(exerciseVariationId, userId, reps)
         }
 
     private fun analyzeRpeTrend(progress: GlobalExerciseProgress): RpeTrendAnalysis =
@@ -259,7 +259,7 @@ class FreestyleIntelligenceService(
     }
 
     private suspend fun getBasicSuggestions(
-        exerciseName: String,
+        exerciseVariationId: Long,
         targetReps: Int?,
     ): SmartSuggestions {
         // Return basic suggestions when no historical data exists

@@ -28,12 +28,13 @@ class WorkoutTemplateWeightService(
 
         for (exerciseLog in exerciseLogs) {
             val sets = setLogDao.getSetLogsForExercise(exerciseLog.id)
-            val exerciseName = exerciseLog.exerciseName
+            val exercise = repository.getExerciseById(exerciseLog.exerciseVariationId)
+            val exerciseName = exercise?.name ?: "Unknown Exercise"
 
             // Try to get weight suggestion
             val suggestedWeight =
                 getSuggestedWeight(
-                    exerciseName = exerciseName,
+                    exerciseVariationId = exerciseLog.exerciseVariationId,
                     targetReps = sets.firstOrNull()?.targetReps ?: 10,
                     intensity = config.intensity,
                     userId = userId,
@@ -57,20 +58,17 @@ class WorkoutTemplateWeightService(
     }
 
     private suspend fun getSuggestedWeight(
-        exerciseName: String,
+        exerciseVariationId: Long,
         targetReps: Int,
         intensity: IntensityLevel,
         userId: Long,
     ): WeightSuggestion {
         // First, check for profile 1RM
-        // Need to get exercise ID from exercise name
-        val exercise = repository.getExerciseByName(exerciseName)
-        if (exercise != null) {
-            val exerciseMax = oneRMDao.getCurrentMax(userId, exercise.id)
-            if (exerciseMax != null) {
-                val percentage = getIntensityPercentage(intensity)
-                val weight = calculateWeightFromPercentage(exerciseMax.oneRMEstimate.toDouble(), percentage, targetReps)
-                return WeightSuggestion(
+        val exerciseMax = oneRMDao.getCurrentMax(userId, exerciseVariationId)
+        if (exerciseMax != null) {
+            val percentage = getIntensityPercentage(intensity)
+            val weight = calculateWeightFromPercentage(exerciseMax.oneRMEstimate.toDouble(), percentage, targetReps)
+            return WeightSuggestion(
                     weight = weight.toFloat(),
                     confidence = 0.9f,
                     sources =
@@ -83,14 +81,13 @@ class WorkoutTemplateWeightService(
                             ),
                         ),
                     explanation = "Based on profile 1RM",
-                )
-            }
+            )
         }
 
         // Second, check recent workout history
         val recentSets =
             repository.getRecentSetLogsForExercise(
-                exerciseName = exerciseName,
+                exerciseVariationId = exerciseVariationId,
                 daysBack = 42, // 6 weeks
             )
 
@@ -111,7 +108,7 @@ class WorkoutTemplateWeightService(
                                 details = "Estimated 1RM: ${estimated1RM.toInt()}kg from recent history",
                             ),
                         ),
-                    explanation = "Based on recent $exerciseName performance",
+                    explanation = "Based on recent performance",
                 )
             }
         }
@@ -119,7 +116,7 @@ class WorkoutTemplateWeightService(
         // No data available - let FreestyleIntelligenceService handle it
         val smartSuggestions =
             freestyleIntelligenceService.getIntelligentSuggestions(
-                exerciseName = exerciseName,
+                exerciseVariationId = exerciseVariationId,
                 userId = userId,
                 targetReps = targetReps,
             )

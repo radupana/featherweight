@@ -106,7 +106,6 @@ object ProgrammeWorkoutParser {
         try {
             json.decodeFromString<ProgrammeStructure>(jsonString)
         } catch (e: Exception) {
-            println("❌ Error parsing programme structure: ${e.message}")
             null
         }
 

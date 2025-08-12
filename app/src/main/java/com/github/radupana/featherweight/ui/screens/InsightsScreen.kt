@@ -55,6 +55,7 @@ fun InsightsScreen(
     modifier: Modifier = Modifier,
 ) {
     var recentPRs by remember { mutableStateOf<List<com.github.radupana.featherweight.data.PersonalRecord>>(emptyList()) }
+    var prExerciseNames by remember { mutableStateOf<Map<com.github.radupana.featherweight.data.PersonalRecord, String>>(emptyMap()) }
     var weeklyWorkoutCount by remember { mutableStateOf(0) }
     var currentStreak by remember { mutableStateOf(0) }
     var isHighlightsLoading by remember { mutableStateOf(true) }
@@ -62,6 +63,7 @@ fun InsightsScreen(
 
     val trainingAnalysis by viewModel.trainingAnalysis.collectAsStateWithLifecycle()
     val isAnalyzing by viewModel.isAnalyzing.collectAsStateWithLifecycle()
+    val exerciseNames by viewModel.exerciseNames.collectAsStateWithLifecycle()
 
     // Load highlights data and check for scheduled analysis
     LaunchedEffect(Unit) {
@@ -94,8 +96,15 @@ fun InsightsScreen(
     ) {
         // Highlights section
         item {
+            val prExerciseNamesMap = remember(recentPRs, exerciseNames) {
+                recentPRs.take(3).associate { pr ->
+                    pr to (exerciseNames[pr.exerciseVariationId] ?: "Unknown Exercise")
+                }
+            }
+            
             HighlightsSection(
                 recentPRs = recentPRs,
+                prExerciseNames = prExerciseNamesMap,
                 weeklyWorkoutCount = weeklyWorkoutCount,
                 currentStreak = currentStreak,
             )
@@ -132,6 +141,7 @@ fun InsightsScreen(
 @Composable
 private fun HighlightsSection(
     recentPRs: List<com.github.radupana.featherweight.data.PersonalRecord>,
+    prExerciseNames: Map<com.github.radupana.featherweight.data.PersonalRecord, String>,
     weeklyWorkoutCount: Int,
     currentStreak: Int,
 ) {
@@ -174,6 +184,7 @@ private fun HighlightsSection(
                     }
 
                     recentPRs.take(3).forEach { pr ->
+                        val exerciseName = prExerciseNames[pr] ?: "Unknown Exercise"
                         Row(
                             modifier =
                                 Modifier
@@ -182,7 +193,7 @@ private fun HighlightsSection(
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
                             Text(
-                                text = pr.exerciseName,
+                                text = exerciseName,
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.weight(1f),
                             )

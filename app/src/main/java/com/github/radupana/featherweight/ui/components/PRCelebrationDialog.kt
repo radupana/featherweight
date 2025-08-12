@@ -42,7 +42,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.runtime.remember
 import com.github.radupana.featherweight.data.PersonalRecord
+import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.format.DateTimeFormatter
 import kotlin.math.sin
@@ -51,6 +53,8 @@ import kotlin.random.Random
 @Composable
 fun PRCelebrationDialog(
     personalRecords: List<PersonalRecord>,
+    repository: FeatherweightRepository,
+    exerciseNames: Map<Long, String>,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -152,6 +156,8 @@ fun PRCelebrationDialog(
                         personalRecords.forEach { pr ->
                             PRDetailCard(
                                 personalRecord = pr,
+                                repository = repository,
+                                exerciseNames = exerciseNames,
                                 modifier = Modifier.padding(vertical = 4.dp),
                             )
                         }
@@ -174,6 +180,8 @@ fun PRCelebrationDialog(
 @Composable
 private fun PRDetailCard(
     personalRecord: PersonalRecord,
+    repository: FeatherweightRepository,
+    exerciseNames: Map<Long, String>,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -192,8 +200,9 @@ private fun PRDetailCard(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Exercise name
+            val exerciseName = exerciseNames[personalRecord.exerciseVariationId] ?: "Unknown Exercise"
             Text(
-                text = personalRecord.exerciseName,
+                text = exerciseName,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,

@@ -278,8 +278,7 @@ class InputAnalyzer {
                         ),
                     )
                 }
-
-                else -> {}
+                else -> { /* Other goals not yet supported */ }
             }
         }
 

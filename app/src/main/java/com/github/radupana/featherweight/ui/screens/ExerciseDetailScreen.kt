@@ -55,7 +55,7 @@ fun ExerciseDetailScreen(
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(exerciseName) {
-        // TODO: Load data from repository
+        // Screen not implemented - placeholder only
         isLoading = false
     }
 

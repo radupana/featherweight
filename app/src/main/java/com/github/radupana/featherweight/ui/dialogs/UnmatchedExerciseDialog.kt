@@ -51,15 +51,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.github.radupana.featherweight.data.exercise.Exercise
+import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.service.ExerciseMatchingService.ExerciseMatch
 import com.github.radupana.featherweight.service.ExerciseMatchingService.UnmatchedExercise
 
 @Composable
 fun UnmatchedExerciseDialog(
     unmatchedExercise: UnmatchedExercise,
-    allExercises: List<Exercise>,
-    onExerciseSelected: (Exercise) -> Unit,
+    allExercises: List<ExerciseVariation>,
+    onExerciseSelected: (ExerciseVariation) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var searchQuery by remember {
@@ -68,15 +68,12 @@ fun UnmatchedExerciseDialog(
     var selectedEquipment by remember {
         mutableStateOf(unmatchedExercise.searchHints.detectedEquipment)
     }
-    var selectedMuscle by remember {
-        mutableStateOf(unmatchedExercise.searchHints.detectedMuscleGroup)
-    }
 
     val focusManager = LocalFocusManager.current
 
     // Filter exercises based on search and filters
     val filteredExercises =
-        remember(searchQuery, selectedEquipment, selectedMuscle) {
+        remember(searchQuery, selectedEquipment) {
             allExercises.filter { exercise ->
                 val matchesSearch =
                     searchQuery.isBlank() ||
@@ -87,12 +84,7 @@ fun UnmatchedExerciseDialog(
                     currentEquipment == null ||
                         exercise.equipment.name.equals(currentEquipment, ignoreCase = true)
 
-                val currentMuscle = selectedMuscle
-                val matchesMuscle =
-                    currentMuscle == null ||
-                        exercise.muscleGroup.contains(currentMuscle, ignoreCase = true)
-
-                matchesSearch && matchesEquipment && matchesMuscle
+                matchesSearch && matchesEquipment
             }
         }
 
@@ -212,23 +204,6 @@ fun UnmatchedExerciseDialog(
                         )
                     }
 
-                    // Muscle filter
-                    unmatchedExercise.searchHints.detectedMuscleGroup?.let { muscle ->
-                        FilterChip(
-                            selected = selectedMuscle == muscle,
-                            onClick = {
-                                selectedMuscle = if (selectedMuscle == muscle) null else muscle
-                            },
-                            label = { Text(muscle.capitalize()) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Accessibility,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            },
-                        )
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -352,7 +327,7 @@ fun UnmatchedExerciseDialog(
 
 @Composable
 private fun ExerciseSelectionCard(
-    exercise: Exercise,
+    exercise: ExerciseVariation,
     match: ExerciseMatch?,
     onClick: () -> Unit,
 ) {
@@ -395,7 +370,7 @@ private fun ExerciseSelectionCard(
                         onClick = { },
                         label = {
                             Text(
-                                text = exercise.equipment.displayName,
+                                text = exercise.equipment.name,
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         },
@@ -406,21 +381,6 @@ private fun ExerciseSelectionCard(
                             ),
                     )
 
-                    // Primary muscle chip
-                    AssistChip(
-                        onClick = { },
-                        label = {
-                            Text(
-                                text = exercise.muscleGroup,
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        },
-                        modifier = Modifier.height(24.dp),
-                        colors =
-                            AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            ),
-                    )
                 }
 
                 // Match confidence if available

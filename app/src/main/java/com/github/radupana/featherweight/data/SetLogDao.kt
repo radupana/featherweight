@@ -41,26 +41,26 @@ interface SetLogDao {
         SELECT s.* FROM SetLog s 
         INNER JOIN ExerciseLog e ON s.exerciseLogId = e.id 
         INNER JOIN Workout w ON e.workoutId = w.id
-        WHERE e.exerciseName = :exerciseName 
+        WHERE e.exerciseVariationId = :exerciseVariationId 
         AND s.isCompleted = 1 
         AND w.date >= :sinceDate 
         ORDER BY w.date DESC
     """,
     )
     suspend fun getSetsForExerciseSince(
-        exerciseName: String,
+        exerciseVariationId: Long,
         sinceDate: String,
     ): List<SetLog>
 
     @Query(
         """
-        SELECT DISTINCT e.exerciseName 
+        SELECT DISTINCT e.exerciseVariationId 
         FROM ExerciseLog e 
         INNER JOIN SetLog s ON e.id = s.exerciseLogId 
         WHERE s.isCompleted = 1
     """,
     )
-    suspend fun getAllCompletedExerciseNames(): List<String>
+    suspend fun getAllCompletedExerciseVariationIds(): List<Long>
 
     @Query(
         """
@@ -90,13 +90,13 @@ interface SetLogDao {
         FROM SetLog s 
         INNER JOIN ExerciseLog e ON s.exerciseLogId = e.id 
         INNER JOIN Workout w ON e.workoutId = w.id
-        WHERE e.exerciseName = :exerciseName 
+        WHERE e.exerciseVariationId = :exerciseVariationId 
         AND s.isCompleted = 1 
         AND w.date < :beforeDate
     """,
     )
     suspend fun getMaxWeightForExerciseBefore(
-        exerciseName: String,
+        exerciseVariationId: Long,
         beforeDate: String,
     ): Float?
 
@@ -109,7 +109,7 @@ interface SetLogDao {
         FROM SetLog s 
         INNER JOIN ExerciseLog e ON s.exerciseLogId = e.id 
         INNER JOIN Workout w ON e.workoutId = w.id
-        WHERE e.exerciseName = :exerciseName 
+        WHERE e.exerciseVariationId = :exerciseVariationId 
         AND s.isCompleted = 1 
         AND s.actualWeight > 0
         AND w.date >= :startDate
@@ -117,7 +117,7 @@ interface SetLogDao {
     """,
     )
     suspend fun getMaxWeightForExerciseInDateRange(
-        exerciseName: String,
+        exerciseVariationId: Long,
         startDate: String,
         endDate: String,
     ): Float?

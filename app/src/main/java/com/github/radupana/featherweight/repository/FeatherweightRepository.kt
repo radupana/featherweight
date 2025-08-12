@@ -16,8 +16,7 @@ import com.github.radupana.featherweight.data.UserPreferences
 import com.github.radupana.featherweight.data.VolumeLevel
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
-import com.github.radupana.featherweight.data.exercise.Exercise
-import com.github.radupana.featherweight.data.exercise.ExerciseAliasSeeder
+import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseCorrelationSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseSeeder
@@ -118,6 +117,11 @@ class FeatherweightRepository(
     private val exerciseLogDao = db.exerciseLogDao()
     private val setLogDao = db.setLogDao()
     private val exerciseDao = db.exerciseDao()
+    private val exerciseVariationDao = db.exerciseVariationDao()
+    private val exerciseCoreDao = db.exerciseCoreDao()
+    private val variationMuscleDao = db.variationMuscleDao()
+    private val variationAliasDao = db.variationAliasDao()
+    private val variationInstructionDao = db.variationInstructionDao()
     private val programmeDao = db.programmeDao()
 
     private val globalExerciseProgressDao = db.globalExerciseProgressDao()
@@ -129,7 +133,7 @@ class FeatherweightRepository(
     private val freestyleIntelligenceService = FreestyleIntelligenceService(this, db.globalExerciseProgressDao())
     private val prDetectionService = PRDetectionService(personalRecordDao, setLogDao)
     private val workoutTemplateGeneratorService =
-        WorkoutTemplateGeneratorService(workoutDao, exerciseDao, exerciseLogDao, setLogDao)
+        WorkoutTemplateGeneratorService(workoutDao, exerciseVariationDao, exerciseLogDao, setLogDao)
     private val workoutTemplateWeightService =
         WorkoutTemplateWeightService(this, db.oneRMDao(), setLogDao, exerciseLogDao, freestyleIntelligenceService)
 
@@ -150,7 +154,7 @@ class FeatherweightRepository(
 
         db.oneRMDao().upsertExerciseMax(
             userId = userId,
-            exerciseId = update.exerciseId,
+            exerciseVariationId = update.exerciseVariationId,
             maxWeight = roundedWeight,
             notes = "Updated from ${update.source}",
         )
@@ -158,8 +162,7 @@ class FeatherweightRepository(
         // Save to history with the correct date from the workout
         saveOneRMToHistory(
             userId = userId,
-            exerciseId = update.exerciseId,
-            exerciseName = update.exerciseName,
+            exerciseVariationId = update.exerciseVariationId,
             oneRM = roundedWeight,
             context = update.source, // Use the source from the update (e.g., "3×100kg @ RPE 9")
             recordedAt = update.workoutDate, // Use the workout date from the update
@@ -168,12 +171,19 @@ class FeatherweightRepository(
         // Remove this update from pending list
         _pendingOneRMUpdates.value =
             _pendingOneRMUpdates.value.filter {
-                it.exerciseId != update.exerciseId
+                it.exerciseVariationId != update.exerciseVariationId
             }
     }
 
-    private val exerciseSeeder = ExerciseSeeder(exerciseDao, application)
-    private val exerciseAliasSeeder = ExerciseAliasSeeder(exerciseDao)
+    private val exerciseSeeder = ExerciseSeeder(
+        exerciseDao = exerciseDao,
+        exerciseCoreDao = exerciseCoreDao,
+        exerciseVariationDao = exerciseVariationDao,
+        variationMuscleDao = variationMuscleDao,
+        variationAliasDao = variationAliasDao,
+        variationInstructionDao = variationInstructionDao,
+        context = application
+    )
     private val programmeSeeder = ProgrammeSeeder(programmeDao, exerciseDao)
 
     private val exerciseCorrelationSeeder = ExerciseCorrelationSeeder(exerciseCorrelationDao)
@@ -188,9 +198,6 @@ class FeatherweightRepository(
             // Always seed exercises if there are none
             if (exerciseCount == 0) {
                 exerciseSeeder.seedExercises()
-
-                // Seed aliases after exercises are created
-                exerciseAliasSeeder.seedExerciseAliases()
             }
 
             // Clean up StrongLifts programmes (we're removing it from the app)
@@ -208,13 +215,13 @@ class FeatherweightRepository(
 
     // ===== EXERCISE METHODS (Delegated to ExerciseRepository) =====
 
-    suspend fun getAllExercises(): List<ExerciseWithDetails> = exerciseRepository.getAllExercises()
+    suspend fun getAllExercises(): List<ExerciseVariation> = exerciseRepository.getAllExercises()
 
-    suspend fun getExerciseById(id: Long): ExerciseWithDetails? = exerciseRepository.getExerciseById(id)
+    suspend fun getExerciseById(id: Long): ExerciseVariation? = exerciseRepository.getExerciseById(id)
 
-    suspend fun searchExercises(query: String): List<Exercise> = exerciseRepository.searchExercises(query)
+    suspend fun searchExercises(query: String): List<ExerciseVariation> = exerciseRepository.searchExercises(query)
 
-    suspend fun getExercisesByCategory(category: ExerciseCategory): List<Exercise> = exerciseRepository.getExercisesByCategory(category)
+    suspend fun getExercisesByCategory(category: ExerciseCategory): List<ExerciseVariation> = exerciseRepository.getExercisesByCategory(category)
 
     // ===== EXISTING WORKOUT METHODS (Updated to work with new Exercise system) =====
 
@@ -270,7 +277,7 @@ class FeatherweightRepository(
     // Enhanced exercise log creation that links to Exercise entity
     suspend fun insertExerciseLogWithExerciseReference(
         workoutId: Long,
-        exercise: ExerciseWithDetails,
+        exercise: ExerciseVariation,
         exerciseOrder: Int,
         notes: String? = null,
     ): Long = exerciseRepository.insertExerciseLogWithExerciseReference(workoutId, exercise, exerciseOrder, notes)
@@ -442,7 +449,7 @@ class FeatherweightRepository(
 
     // Smart suggestions functionality (enhanced with exercise data)
     suspend fun getExerciseHistory(
-        exerciseName: String,
+        exerciseVariationId: Long,
         currentWorkoutId: Long,
     ): ExerciseHistory? {
         val allWorkouts =
@@ -455,7 +462,7 @@ class FeatherweightRepository(
             if (workout.id == currentWorkoutId) continue
 
             val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-            val matchingExercise = exercises.find { it.exerciseName == exerciseName }
+            val matchingExercise = exercises.find { it.exerciseVariationId == exerciseVariationId }
 
             if (matchingExercise != null) {
                 val sets =
@@ -465,7 +472,7 @@ class FeatherweightRepository(
 
                 if (sets.isNotEmpty()) {
                     return ExerciseHistory(
-                        exerciseName = exerciseName,
+                        exerciseVariationId = exerciseVariationId,
                         lastWorkoutDate = workout.date,
                         sets = sets,
                     )
@@ -475,14 +482,14 @@ class FeatherweightRepository(
         return null
     }
 
-    private suspend fun getExerciseStats(exerciseName: String): ExerciseStats? = exerciseRepository.getExerciseStats(exerciseName)
+    private suspend fun getExerciseStats(exerciseVariationId: Long): ExerciseStats? = exerciseRepository.getExerciseStats(exerciseVariationId)
 
     suspend fun getSmartSuggestions(
-        exerciseName: String,
+        exerciseVariationId: Long,
         currentWorkoutId: Long,
     ): SmartSuggestions? {
         // Try history first
-        val history = getExerciseHistory(exerciseName, currentWorkoutId)
+        val history = getExerciseHistory(exerciseVariationId, currentWorkoutId)
         if (history != null && history.sets.isNotEmpty()) {
             val lastCompletedSets = history.sets.filter { it.isCompleted }
             if (lastCompletedSets.isNotEmpty()) {
@@ -515,7 +522,7 @@ class FeatherweightRepository(
         }
 
         // Fallback to overall stats
-        val stats = getExerciseStats(exerciseName)
+        val stats = getExerciseStats(exerciseVariationId)
         if (stats != null) {
             return SmartSuggestions(
                 suggestedWeight = stats.avgWeight,
@@ -534,14 +541,14 @@ class FeatherweightRepository(
      * Enhanced smart suggestions using global progress tracking and RPE analysis
      */
     suspend fun getSmartSuggestionsEnhanced(
-        exerciseName: String,
+        exerciseVariationId: Long,
         targetReps: Int? = null,
     ): SmartSuggestions {
         val userId = getCurrentUserId()
 
         // Use the freestyle intelligence service for advanced suggestions
         return freestyleIntelligenceService.getIntelligentSuggestions(
-            exerciseName = exerciseName,
+            exerciseVariationId = exerciseVariationId,
             userId = userId,
             targetReps = targetReps,
         )
@@ -567,16 +574,15 @@ class FeatherweightRepository(
 
     suspend fun deleteSetsForExerciseLog(exerciseLogId: Long) = exerciseRepository.deleteSetsForExerciseLog(exerciseLogId)
 
-    // Get exercise by ID (returns basic Exercise)
-    suspend fun getExerciseEntityById(exerciseId: Long): Exercise? = exerciseRepository.getExerciseEntityById(exerciseId)
+    // Get exercise by ID (returns ExerciseVariation)
+    suspend fun getExerciseEntityById(exerciseId: Long): ExerciseVariation? = exerciseRepository.getExerciseEntityById(exerciseId)
 
     // Swap exercise
     suspend fun swapExercise(
         exerciseLogId: Long,
-        newExerciseId: Long,
-        newExerciseName: String,
-        originalExerciseId: Long,
-    ) = exerciseRepository.swapExercise(exerciseLogId, newExerciseId, newExerciseName, originalExerciseId)
+        newExerciseVariationId: Long,
+        originalExerciseVariationId: Long,
+    ) = exerciseRepository.swapExercise(exerciseLogId, newExerciseVariationId, originalExerciseVariationId)
 
     // Record an exercise swap in history
     suspend fun recordExerciseSwap(
@@ -641,10 +647,10 @@ class FeatherweightRepository(
         }
 
     // Strength progression analytics
-    suspend fun getPersonalRecords(exerciseName: String): List<Pair<Float, LocalDateTime>> =
+    suspend fun getPersonalRecords(exerciseVariationId: Long): List<Pair<Float, LocalDateTime>> =
         withContext(Dispatchers.IO) {
             // Get PRs from PersonalRecord table
-            val prs = personalRecordDao.getRecentPRsForExercise(exerciseName, 100) // Get up to 100 PRs
+            val prs = personalRecordDao.getRecentPRsForExercise(exerciseVariationId, 100) // Get up to 100 PRs
 
             // Convert to the expected format: List of (estimated1RM, date) pairs
             val records =
@@ -659,12 +665,12 @@ class FeatherweightRepository(
     // getEstimated1RM is defined above at line 2023
 
     suspend fun getRecentSetLogsForExercise(
-        exerciseName: String,
+        exerciseVariationId: Long,
         daysBack: Int,
     ): List<SetLog> =
         withContext(Dispatchers.IO) {
             val sinceDate = LocalDateTime.now().minusDays(daysBack.toLong())
-            setLogDao.getSetsForExerciseSince(exerciseName, sinceDate.toString())
+            setLogDao.getSetsForExerciseSince(exerciseVariationId, sinceDate.toString())
         }
 
     suspend fun generateWorkoutFromTemplate(
@@ -692,7 +698,7 @@ class FeatherweightRepository(
         }
 
     suspend fun getAverageRPE(
-        exerciseName: String? = null,
+        exerciseVariationId: Long? = null,
         daysSince: Int = 30,
     ): Float? =
         withContext(Dispatchers.IO) {
@@ -703,8 +709,8 @@ class FeatherweightRepository(
             allWorkouts.forEach { workout ->
                 val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
                 val targetExercises =
-                    if (exerciseName != null) {
-                        exercises.filter { it.exerciseName == exerciseName }
+                    if (exerciseVariationId != null) {
+                        exercises.filter { it.exerciseVariationId == exerciseVariationId }
                     } else {
                         exercises
                     }
@@ -768,9 +774,13 @@ class FeatherweightRepository(
 
             if (recentPRs.isNotEmpty()) {
                 val mostRecentPR = recentPRs.first()
+                
+                // Get exercise name from variation
+                val variation = exerciseVariationDao.getExerciseVariationById(mostRecentPR.exerciseVariationId)
+                val exerciseName = variation?.name ?: "Unknown Exercise"
 
                 // Return exercise name and the 1RM value (not the actual weight lifted)
-                return@withContext Pair(mostRecentPR.exerciseName, mostRecentPR.estimated1RM ?: mostRecentPR.weight)
+                return@withContext Pair(exerciseName, mostRecentPR.estimated1RM ?: mostRecentPR.weight)
             }
 
             return@withContext null
@@ -811,7 +821,9 @@ class FeatherweightRepository(
             val improvements = mutableListOf<Float>()
 
             exerciseNames.forEach { exerciseName ->
-                val records = getPersonalRecords(exerciseName)
+                val exercise = getExerciseByName(exerciseName)
+                if (exercise == null) return@forEach
+                val records = getPersonalRecords(exercise.id)
                 if (records.size >= 2) {
                     val recentRecords = records.filter { it.second >= cutoffDate }
                     if (recentRecords.isNotEmpty()) {
@@ -860,7 +872,7 @@ class FeatherweightRepository(
         programmeId: Long,
         weekNumber: Int,
         dayNumber: Int,
-        userMaxes: Map<String, Float> = emptyMap(),
+        userMaxes: Map<Long, Float> = emptyMap(),
     ): Long =
         withContext(Dispatchers.IO) {
             try {
@@ -945,7 +957,7 @@ class FeatherweightRepository(
         programmeId: Long,
         weekNumber: Int,
         dayNumber: Int,
-        userMaxes: Map<String, Float> = emptyMap(),
+        userMaxes: Map<Long, Float> = emptyMap(),
     ): Long {
         // Get the programme
         val programme =
@@ -1064,8 +1076,7 @@ class FeatherweightRepository(
 
         return ExerciseLog(
             workoutId = workoutId,
-            exerciseName = exerciseStructure.name,
-            exerciseId = exerciseId,
+            exerciseVariationId = exerciseId ?: 0L,
             exerciseOrder = exerciseOrder,
             notes = notes,
         )
@@ -1074,7 +1085,7 @@ class FeatherweightRepository(
     private suspend fun createSetsFromStructure(
         exerciseLogId: Long,
         exerciseStructure: ExerciseStructure,
-        userMaxes: Map<String, Float>,
+        userMaxes: Map<Long, Float>,
         programme: Programme? = null,
         weekNumber: Int? = null,
     ) {
@@ -1634,23 +1645,23 @@ class FeatherweightRepository(
             val endDate = programme.completedAt ?: LocalDateTime.now()
 
             // Get all exercises used in the programme
-            val exerciseNames =
+            val exerciseVariationIds =
                 workoutDao
                     .getWorkoutsByProgramme(programmeId)
                     .flatMap { workout ->
                         exerciseLogDao
                             .getExerciseLogsForWorkout(workout.id)
-                            .map { it.exerciseName }
+                            .map { it.exerciseVariationId }
                     }.distinct()
 
             // For each exercise, find 1RM improvements
             val improvements = mutableListOf<StrengthImprovement>()
 
-            for (exerciseName in exerciseNames) {
-                val exercise = getExerciseByName(exerciseName) ?: continue
+            for (exerciseVariationId in exerciseVariationIds) {
+                val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId) ?: continue
 
                 // Get 1RM history in programme date range
-                val history = db.oneRMDao().getOneRMHistoryInRange(exercise.id, startDate, endDate)
+                val history = db.oneRMDao().getOneRMHistoryInRange(exerciseVariationId, startDate, endDate)
                 if (history.isNotEmpty()) {
                     val startingMax = history.first().oneRMEstimate
                     val endingMax = history.last().oneRMEstimate
@@ -1661,7 +1672,7 @@ class FeatherweightRepository(
 
                         improvements.add(
                             StrengthImprovement(
-                                exerciseName = exerciseName,
+                                exerciseName = exercise.name,
                                 startingMax = startingMax,
                                 endingMax = endingMax,
                                 improvementKg = improvement,
@@ -1764,7 +1775,6 @@ class FeatherweightRepository(
                 // ATOMIC update - sets status=COMPLETED, isActive=false, and completedAt in one transaction
                 val completionTime = LocalDateTime.now()
                 programmeDao.completeProgrammeAtomic(programmeId, completionTime)
-            } else {
             }
         }
 
@@ -1806,7 +1816,7 @@ class FeatherweightRepository(
     }
 
     // Helper method to get exercise by name or alias
-    suspend fun getExerciseByName(name: String): Exercise? = exerciseRepository.getExerciseByName(name)
+    suspend fun getExerciseByName(name: String): ExerciseVariation? = exerciseRepository.getExerciseByName(name)
 
     // ========== Profile & 1RM Management ==========
 
@@ -1824,7 +1834,7 @@ class FeatherweightRepository(
 
     suspend fun upsertExerciseMax(
         userId: Long,
-        exerciseId: Long,
+        exerciseVariationId: Long,
         oneRMEstimate: Float,
         oneRMContext: String,
         oneRMType: OneRMType,
@@ -1838,7 +1848,7 @@ class FeatherweightRepository(
         val userExerciseMax =
             UserExerciseMax(
                 userId = userId,
-                exerciseId = exerciseId,
+                exerciseVariationId = exerciseVariationId,
                 mostWeightLifted = roundedWeight,
                 mostWeightReps = 1,
                 mostWeightRpe = null,
@@ -1853,17 +1863,13 @@ class FeatherweightRepository(
         db.oneRMDao().insertOrUpdateExerciseMax(userExerciseMax)
 
         // Also save to OneRMHistory for chart tracking with the correct date
-        val exercise = db.exerciseDao().getExerciseById(exerciseId)
-        if (exercise != null) {
-            saveOneRMToHistory(
-                userId = userId,
-                exerciseId = exerciseId,
-                exerciseName = exercise.name,
-                oneRM = roundedWeight,
-                context = oneRMContext,
-                recordedAt = dateToUse,
-            )
-        }
+        saveOneRMToHistory(
+            userId = userId,
+            exerciseVariationId = exerciseVariationId,
+            oneRM = roundedWeight,
+            context = oneRMContext,
+            recordedAt = dateToUse,
+        )
     }
 
     // Remove getAllCurrentMaxes - this should only be used in Insights
@@ -1886,7 +1892,7 @@ class FeatherweightRepository(
                 OneRMWithExerciseName(
                     id = max.id,
                     userId = max.userId,
-                    exerciseId = max.exerciseId,
+                    exerciseVariationId = max.exerciseVariationId,
                     exerciseName = max.exerciseName,
                     oneRMEstimate = max.oneRMEstimate,
                     oneRMDate = max.oneRMDate,
@@ -1906,25 +1912,24 @@ class FeatherweightRepository(
 
     fun getOtherExercisesWithMaxes(userId: Long): Flow<List<OneRMWithExerciseName>> = db.oneRMDao().getOtherExercisesWithMaxes(userId)
 
-    suspend fun getOneRMForExercise(exerciseName: String): Float? =
+    suspend fun getOneRMForExercise(exerciseVariationId: Long): Float? =
         withContext(Dispatchers.IO) {
-            val exercise = getExerciseByName(exerciseName) ?: return@withContext null
             val userId = getCurrentUserId()
-            val exerciseMax = db.oneRMDao().getCurrentMax(userId, exercise.id)
+            val exerciseMax = db.oneRMDao().getCurrentMax(userId, exerciseVariationId)
             return@withContext exerciseMax?.oneRMEstimate
         }
 
-    suspend fun getEstimated1RM(exerciseName: String): Float? =
+    suspend fun getEstimated1RM(exerciseVariationId: Long): Float? =
         withContext(Dispatchers.IO) {
             // Try to get from 1RM records first
-            val oneRM = getOneRMForExercise(exerciseName)
+            val oneRM = getOneRMForExercise(exerciseVariationId)
             if (oneRM != null) {
                 return@withContext oneRM
             }
 
             // If no 1RM record, calculate from recent workout history
             val recentSets =
-                getRecentSetLogsForExercise(exerciseName, daysBack = 30)
+                getRecentSetLogsForExercise(exerciseVariationId, daysBack = 30)
                     .filter { it.isCompleted && it.actualWeight > 0 && it.actualReps > 0 }
                     .sortedByDescending { it.actualWeight }
 
@@ -1952,7 +1957,7 @@ class FeatherweightRepository(
     suspend fun updateOrInsertOneRM(oneRMRecord: UserExerciseMax) =
         withContext(Dispatchers.IO) {
             // Check if we have an existing record for this user/exercise
-            val existing = db.oneRMDao().getCurrentMax(oneRMRecord.userId, oneRMRecord.exerciseId)
+            val existing = db.oneRMDao().getCurrentMax(oneRMRecord.userId, oneRMRecord.exerciseVariationId)
 
             val shouldSaveHistory =
                 if (existing != null) {
@@ -1971,16 +1976,12 @@ class FeatherweightRepository(
 
             // Save to history if we made a change
             if (shouldSaveHistory) {
-                val exercise = db.exerciseDao().getExerciseById(oneRMRecord.exerciseId)
-                exercise?.let {
-                    saveOneRMToHistory(
-                        userId = oneRMRecord.userId,
-                        exerciseId = oneRMRecord.exerciseId,
-                        exerciseName = it.name,
-                        oneRM = oneRMRecord.oneRMEstimate,
-                        context = oneRMRecord.oneRMContext,
-                    )
-                }
+                saveOneRMToHistory(
+                    userId = oneRMRecord.userId,
+                    exerciseVariationId = oneRMRecord.exerciseVariationId,
+                    oneRM = oneRMRecord.oneRMEstimate,
+                    context = oneRMRecord.oneRMContext,
+                )
             }
         }
 
@@ -2045,7 +2046,7 @@ class FeatherweightRepository(
                         db.oneRMDao().insertExerciseMax(
                             UserExerciseMax(
                                 userId = user1Id,
-                                exerciseId = exercise.id,
+                                exerciseVariationId = exercise.id,
                                 mostWeightLifted = maxWeight,
                                 mostWeightReps = 1,
                                 mostWeightRpe = null,
@@ -2073,7 +2074,7 @@ class FeatherweightRepository(
                         db.oneRMDao().insertExerciseMax(
                             UserExerciseMax(
                                 userId = user2Id,
-                                exerciseId = exercise.id,
+                                exerciseVariationId = exercise.id,
                                 mostWeightLifted = maxWeight,
                                 mostWeightReps = 1,
                                 mostWeightRpe = null,
@@ -2092,7 +2093,7 @@ class FeatherweightRepository(
     private suspend fun calculateIntelligentWeight(
         exerciseStructure: ExerciseStructure,
         reps: Int,
-        userMaxes: Map<String, Float>,
+        userMaxes: Map<Long, Float>,
         intensity: Int? = null,
         programme: Programme? = null,
     ): Float {
@@ -2101,7 +2102,9 @@ class FeatherweightRepository(
             val weightCalcRules = programme.getWeightCalculationRulesObject()
             if (weightCalcRules?.baseOn == WeightBasis.ONE_REP_MAX) {
                 // Get user's 1RM for this exercise
-                val user1RM = getUserMaxForExercise(exerciseStructure.name, userMaxes)
+                // First get the exercise variation ID for this exercise name
+                val exerciseVariation = exerciseVariationDao.getExerciseVariationByName(exerciseStructure.name)
+                val user1RM = exerciseVariation?.id?.let { userMaxes[it] }
                 if (user1RM != null && user1RM > 0) {
                     // Apply training max percentage if specified
                     val trainingMax = user1RM * (weightCalcRules.trainingMaxPercentage ?: 1.0f)
@@ -2176,7 +2179,8 @@ class FeatherweightRepository(
         val programmeType = ProgrammeType.GENERAL // Could be enhanced to detect from context
 
         // Get user's 1RM for this exercise
-        val user1RM = getUserMaxForExercise(exerciseStructure.name, userMaxes)
+        val exerciseVariation = exerciseVariationDao.getExerciseVariationByName(exerciseStructure.name)
+        val user1RM = exerciseVariation?.id?.let { userMaxes[it] }
 
         // Use the intelligent weight calculation
         val weightCalculation =
@@ -2209,53 +2213,44 @@ class FeatherweightRepository(
         for (exercise in exercises) {
             val sets = setLogDao.getSetLogsForExercise(exercise.id)
             if (sets.isNotEmpty()) {
+                // Get exercise name from variation for progression tracking
+                val variation = exerciseVariationDao.getExerciseVariationById(exercise.exerciseVariationId)
+                val exerciseName = variation?.name ?: "Unknown Exercise"
+                
                 progressionService.recordWorkoutPerformance(
                     workoutId = workoutId,
                     programmeId = programmeId,
-                    exerciseName = exercise.exerciseName,
+                    exerciseName = exerciseName,
                     sets = sets,
                 )
             }
         }
     }
 
-    private fun getUserMaxForExercise(
-        exerciseName: String,
-        userMaxes: Map<String, Float>,
-    ): Float? {
-        // Map exercise names to user max keys (similar to existing logic)
-        val maxKey =
-            when {
-                exerciseName.contains("Squat", ignoreCase = true) -> "squat"
-                exerciseName.contains("Bench", ignoreCase = true) -> "bench"
-                exerciseName.contains("Deadlift", ignoreCase = true) -> "deadlift"
-                exerciseName.contains("Press", ignoreCase = true) &&
-                    !exerciseName.contains("Bench", ignoreCase = true) -> "ohp"
-
-                else -> null
-            }
-
-        return maxKey?.let { userMaxes[it] }
-    }
 
     // ===== INTELLIGENT SUGGESTIONS SUPPORT =====
 
     // getOneRMForExercise is defined above at line 2015
 
     suspend fun getHistoricalPerformance(
-        exerciseName: String,
+        exerciseVariationId: Long,
         minReps: Int,
         maxReps: Int,
     ): List<com.github.radupana.featherweight.service.PerformanceData> =
         withContext(Dispatchers.IO) {
-            // Get exercise logs for this exercise
-            val exerciseLogs = db.workoutDao().getExerciseLogsByName(exerciseName)
-            val exerciseIds = exerciseLogs.map { it.id }
+            // Get all workouts and find exercise logs for this variation
+            val allWorkouts = db.workoutDao().getAllWorkouts()
+            val exerciseLogIds = mutableListOf<Long>()
+            
+            for (workout in allWorkouts) {
+                val logs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                exerciseLogIds.addAll(logs.filter { it.exerciseVariationId == exerciseVariationId }.map { it.id })
+            }
 
-            if (exerciseIds.isEmpty()) return@withContext emptyList()
+            if (exerciseLogIds.isEmpty()) return@withContext emptyList()
 
             // Get sets within rep range
-            val sets = db.workoutDao().getSetsForExercisesInRepRange(exerciseIds, minReps, maxReps)
+            val sets = db.workoutDao().getSetsForExercisesInRepRange(exerciseLogIds, minReps, maxReps)
 
             sets
                 .map { setLog ->
@@ -2271,18 +2266,23 @@ class FeatherweightRepository(
         }
 
     suspend fun getRecentPerformance(
-        exerciseName: String,
+        exerciseVariationId: Long,
         limit: Int = 10,
     ): List<com.github.radupana.featherweight.service.PerformanceData> =
         withContext(Dispatchers.IO) {
-            // Get recent exercise logs for this exercise
-            val exerciseLogs = db.workoutDao().getExerciseLogsByName(exerciseName)
-            val exerciseIds = exerciseLogs.map { it.id }
+            // Get all workouts and find exercise logs for this variation
+            val allWorkouts = db.workoutDao().getAllWorkouts()
+            val exerciseLogIds = mutableListOf<Long>()
+            
+            for (workout in allWorkouts) {
+                val logs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                exerciseLogIds.addAll(logs.filter { it.exerciseVariationId == exerciseVariationId }.map { it.id })
+            }
 
-            if (exerciseIds.isEmpty()) return@withContext emptyList()
+            if (exerciseLogIds.isEmpty()) return@withContext emptyList()
 
             // Get recent sets
-            val sets = db.workoutDao().getRecentSetsForExercises(exerciseIds, limit)
+            val sets = db.workoutDao().getRecentSetsForExercises(exerciseLogIds, limit)
 
             sets
                 .map { setLog ->
@@ -2298,19 +2298,19 @@ class FeatherweightRepository(
         }
 
     suspend fun getHistoricalPerformanceForWeight(
-        exerciseName: String,
+        exerciseVariationId: Long,
         minWeight: Float,
         maxWeight: Float,
     ): List<com.github.radupana.featherweight.service.PerformanceData> =
         withContext(Dispatchers.IO) {
             // Get exercise logs for this exercise
-            val exerciseLogs = db.workoutDao().getExerciseLogsByName(exerciseName)
-            val exerciseIds = exerciseLogs.map { it.id }
+            val exerciseLogs = db.workoutDao().getExerciseLogsByVariationId(exerciseVariationId)
+            val exerciseLogIds = exerciseLogs.map { it.id }
 
-            if (exerciseIds.isEmpty()) return@withContext emptyList()
+            if (exerciseLogIds.isEmpty()) return@withContext emptyList()
 
             // Get sets within weight range
-            val sets = db.workoutDao().getSetsForExercisesInWeightRange(exerciseIds, minWeight, maxWeight)
+            val sets = db.workoutDao().getSetsForExercisesInWeightRange(exerciseLogIds, minWeight, maxWeight)
 
             sets
                 .map { setLog ->
@@ -2327,10 +2327,10 @@ class FeatherweightRepository(
 
     suspend fun getGlobalExerciseProgress(
         userId: Long,
-        exerciseName: String,
+        exerciseVariationId: Long,
     ): GlobalExerciseProgress? =
         withContext(Dispatchers.IO) {
-            globalExerciseProgressDao.getProgressForExercise(userId, exerciseName)
+            globalExerciseProgressDao.getProgressForExercise(userId, exerciseVariationId)
         }
 
     /**
@@ -2339,10 +2339,10 @@ class FeatherweightRepository(
      */
     suspend fun checkForPR(
         setLog: SetLog,
-        exerciseName: String,
+        exerciseVariationId: Long,
     ): List<PersonalRecord> =
         withContext(Dispatchers.IO) {
-            prDetectionService.checkForPR(setLog, exerciseName)
+            prDetectionService.checkForPR(setLog, exerciseVariationId)
         }
 
     /**
@@ -2379,8 +2379,7 @@ class FeatherweightRepository(
 
     suspend fun saveOneRMToHistory(
         userId: Long,
-        exerciseId: Long,
-        exerciseName: String,
+        exerciseVariationId: Long,
         oneRM: Float,
         context: String,
         recordedAt: LocalDateTime? = null,
@@ -2388,8 +2387,7 @@ class FeatherweightRepository(
         db.oneRMDao().insertOneRMHistory(
             OneRMHistory(
                 userId = userId,
-                exerciseId = exerciseId,
-                exerciseName = exerciseName,
+                exerciseVariationId = exerciseVariationId,
                 oneRMEstimate = oneRM,
                 context = context,
                 recordedAt = recordedAt ?: LocalDateTime.now(),
@@ -2653,14 +2651,14 @@ class FeatherweightRepository(
     )
 
     suspend fun getExerciseWorkoutsInDateRange(
-        exerciseName: String,
+        exerciseVariationId: Long,
         startDate: LocalDate,
         endDate: LocalDate,
     ): List<ExerciseWorkoutSummary> =
         withContext(Dispatchers.IO) {
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.atTime(23, 59, 59)
-            val exerciseLogs = exerciseLogDao.getExerciseLogsInDateRange(exerciseName, startDateTime, endDateTime)
+            val exerciseLogs = exerciseLogDao.getExerciseLogsInDateRange(exerciseVariationId, startDateTime, endDateTime)
 
             val results =
                 exerciseLogs.mapNotNull { exerciseLog ->
@@ -2691,14 +2689,14 @@ class FeatherweightRepository(
         }
 
     suspend fun getSetLogsForExerciseInDateRange(
-        exerciseName: String,
+        exerciseVariationId: Long,
         startDate: LocalDate,
         endDate: LocalDate,
     ): List<SetLog> =
         withContext(Dispatchers.IO) {
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.atTime(23, 59, 59)
-            val exerciseLogs = exerciseLogDao.getExerciseLogsInDateRange(exerciseName, startDateTime, endDateTime)
+            val exerciseLogs = exerciseLogDao.getExerciseLogsInDateRange(exerciseVariationId, startDateTime, endDateTime)
 
             val allSets = mutableListOf<SetLog>()
             exerciseLogs.forEach { exerciseLog ->
@@ -2709,21 +2707,21 @@ class FeatherweightRepository(
         }
 
     suspend fun getPersonalRecordForExercise(
-        exerciseName: String,
+        exerciseVariationId: Long,
     ): PersonalRecord? =
         withContext(Dispatchers.IO) {
-            personalRecordDao.getLatestRecordForExercise(exerciseName)
+            personalRecordDao.getLatestRecordForExercise(exerciseVariationId)
         }
 
     private suspend fun getTotalSessionsForExercise(
-        exerciseName: String,
+        exerciseVariationId: Long,
     ): Int =
         withContext(Dispatchers.IO) {
-            exerciseLogDao.getTotalSessionsForExercise(exerciseName)
+            exerciseLogDao.getTotalSessionsForExercise(exerciseVariationId)
         }
 
     suspend fun getMaxWeightForExerciseInDateRange(
-        exerciseName: String,
+        exerciseVariationId: Long,
         startDate: LocalDate,
         endDate: LocalDate,
     ): Float? =
@@ -2731,14 +2729,14 @@ class FeatherweightRepository(
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.atTime(23, 59, 59)
             setLogDao.getMaxWeightForExerciseInDateRange(
-                exerciseName,
+                exerciseVariationId,
                 startDateTime.toString(),
                 endDateTime.toString(),
             )
         }
 
     suspend fun getDistinctWorkoutDatesForExercise(
-        exerciseName: String,
+        exerciseVariationId: Long,
         startDate: LocalDate,
         endDate: LocalDate,
     ): List<LocalDate> =
@@ -2746,13 +2744,13 @@ class FeatherweightRepository(
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.atTime(23, 59, 59)
             exerciseLogDao
-                .getDistinctWorkoutsForExercise(exerciseName, startDateTime, endDateTime)
+                .getDistinctWorkoutsForExercise(exerciseVariationId, startDateTime, endDateTime)
                 .map { it.date.toLocalDate() }
                 .distinct()
         }
 
     suspend fun getDateOfMaxWeightForExercise(
-        exerciseName: String,
+        exerciseVariationId: Long,
         weight: Float,
         startDate: LocalDate,
         endDate: LocalDate,
@@ -2762,7 +2760,7 @@ class FeatherweightRepository(
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.plusDays(1).atStartOfDay()
 
-            val workoutDate = workoutDao.getWorkoutDateForMaxWeight(exerciseName, weight, startDateTime, endDateTime)
+            val workoutDate = workoutDao.getWorkoutDateForMaxWeight(exerciseVariationId, weight, startDateTime, endDateTime)
 
             workoutDate?.toLocalDate()
         }
@@ -2785,21 +2783,25 @@ class FeatherweightRepository(
                 )
 
             // Get all unique exercises from completed workouts
-            val allExercises = exerciseLogDao.getAllUniqueExercises()
+            val allExerciseVariationIds = exerciseLogDao.getAllUniqueExerciseVariationIds()
 
             val allSummaries =
-                allExercises
-                    .mapNotNull { exerciseName ->
-                        val globalProgress = getGlobalExerciseProgress(userId, exerciseName)
+                allExerciseVariationIds
+                    .mapNotNull { exerciseVariationId ->
+                        val globalProgress = getGlobalExerciseProgress(userId, exerciseVariationId)
                         if (globalProgress != null) {
+                            // Get exercise name for display
+                            val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
+                            val exerciseName = exercise?.name ?: "Unknown Exercise"
+                            
                             // Get actual PR for this exercise (not estimated)
-                            val personalRecord = getPersonalRecordForExercise(exerciseName)
+                            val personalRecord = getPersonalRecordForExercise(exerciseVariationId)
                             val actualMaxWeight = personalRecord?.weight ?: globalProgress.currentWorkingWeight
 
                             // Get recent workout data for mini chart
                             val recentWorkouts =
                                 getExerciseWorkoutsInDateRange(
-                                    exerciseName = exerciseName,
+                                    exerciseVariationId = exerciseVariationId,
                                     startDate =
                                         LocalDate
                                             .now()
@@ -2840,7 +2842,7 @@ class FeatherweightRepository(
                                 currentMax = actualMaxWeight, // Show actual PR weight
                                 progressPercentage = progressPercentage,
                                 lastWorkout = globalProgress.lastUpdated,
-                                sessionCount = getTotalSessionsForExercise(exerciseName),
+                                sessionCount = getTotalSessionsForExercise(exerciseVariationId),
                                 miniChartData = miniChartData,
                             )
                         } else {
@@ -2980,7 +2982,9 @@ class FeatherweightRepository(
                                     id = workout.id,
                                     name = workout.programmeWorkoutName ?: "Workout",
                                     date = workout.date,
-                                    exerciseNames = exercises.take(3).map { it.exerciseName },
+                                    exerciseNames = exercises.take(3).mapNotNull { exerciseLog ->
+                                        exerciseVariationDao.getExerciseVariationById(exerciseLog.exerciseVariationId)?.name
+                                    },
                                     totalExercises = exercises.size,
                                     totalVolume =
                                         sets
@@ -3063,7 +3067,7 @@ class FeatherweightRepository(
                 val newExercise =
                     ExerciseLog(
                         workoutId = newWorkoutId,
-                        exerciseName = exercise.exerciseName,
+                        exerciseVariationId = exercise.exerciseVariationId,
                         exerciseOrder = exercise.exerciseOrder,
                         notes = exercise.notes,
                     )

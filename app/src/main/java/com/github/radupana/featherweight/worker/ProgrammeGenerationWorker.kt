@@ -72,14 +72,13 @@ class ProgrammeGenerationWorker(
                 aiRequestDao.incrementAttemptCount(requestId)
                 val request = aiRequestDao.getRequestById(requestId) ?: return@withContext Result.failure()
 
-                println("🔄 Starting programme generation attempt ${request.attemptCount} for request $requestId")
 
                 // Parse the request payload
                 val simpleRequest = json.decodeFromString<SimpleRequest>(requestPayload)
 
                 // Get exercise database
-                val exercises = database.exerciseDao().getAllExercisesWithDetails()
-                val exerciseNames = exercises.map { it.exercise.name }
+                val exercises = database.exerciseVariationDao().getAllExerciseVariations()
+                val exerciseNames = exercises.map { it.name }
 
                 // Create AI request
                 val aiRequest =
@@ -100,7 +99,6 @@ class ProgrammeGenerationWorker(
                     val programmeJson = json.encodeToString(response.programme)
                     aiRequestDao.saveGeneratedProgramme(requestId, programmeJson)
 
-                    println("✅ Programme generation successful for request $requestId")
                     Result.success()
                 } else if (response.clarificationNeeded != null) {
                     // Handle clarification needed case
@@ -110,17 +108,14 @@ class ProgrammeGenerationWorker(
                         response.clarificationNeeded,
                     )
 
-                    println("❓ Programme generation needs clarification for request $requestId: ${response.clarificationNeeded}")
                     Result.success()
                 } else {
                     val errorMessage = response.error ?: "Unknown error"
                     aiRequestDao.updateStatus(requestId, GenerationStatus.FAILED, errorMessage)
 
-                    println("❌ Programme generation failed: $errorMessage")
                     Result.failure()
                 }
             } catch (e: SocketTimeoutException) {
-                println("⏱️ Timeout for request $requestId, attempt ${runAttemptCount + 1}")
 
                 // Check if we should retry
                 if (runAttemptCount < MAX_RETRY_COUNT - 1) {
@@ -130,8 +125,6 @@ class ProgrammeGenerationWorker(
                     Result.failure()
                 }
             } catch (e: Exception) {
-                println("❌ Programme generation error: ${e.message}")
-                e.printStackTrace()
 
                 aiRequestDao.updateStatus(requestId, GenerationStatus.FAILED, e.message ?: "Unknown error")
                 Result.failure()

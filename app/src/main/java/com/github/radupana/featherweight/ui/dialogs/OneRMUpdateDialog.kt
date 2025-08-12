@@ -29,12 +29,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.remember
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
+import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlin.math.roundToInt
 
 @Composable
 fun OneRMUpdateDialog(
     pendingUpdates: List<PendingOneRMUpdate>,
+    repository: FeatherweightRepository,
+    exerciseNames: Map<Long, String>,
     onApply: (PendingOneRMUpdate) -> Unit,
     onDismiss: () -> Unit,
     onSkip: () -> Unit,
@@ -74,8 +78,9 @@ fun OneRMUpdateDialog(
                                     .fillMaxWidth()
                                     .padding(16.dp),
                         ) {
+                            val exerciseName = exerciseNames[update.exerciseVariationId] ?: "Unknown Exercise"
                             Text(
-                                text = update.exerciseName,
+                                text = exerciseName,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                             )

@@ -108,7 +108,7 @@ fun ExerciseCard(
                 title = { Text("Delete Exercise?") },
                 text = {
                     Text(
-                        "Are you sure you want to delete \"${exercise.exerciseName}\" and all its sets? This action cannot be undone.",
+                        "Are you sure you want to delete this exercise and all its sets? This action cannot be undone.",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 },
@@ -170,8 +170,10 @@ fun ExerciseCard(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             // Exercise name (no progress info for cleaner look)
+            val exerciseNames by viewModel.exerciseNames.collectAsState()
+            val exerciseName = exerciseNames[exercise.exerciseVariationId] ?: "Unknown Exercise"
             Text(
-                text = exercise.exerciseName,
+                text = exerciseName,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
@@ -319,7 +321,7 @@ fun ExerciseCard(
                 ) {
                     // Get 1RM for percentage calculations
                     val oneRMEstimates by viewModel.oneRMEstimates.collectAsState()
-                    val oneRMEstimate = exercise.exerciseId?.let { oneRMEstimates[it] }
+                    val oneRMEstimate = oneRMEstimates[exercise.exerciseVariationId]
                     val isProgrammeWorkout =
                         viewModel.workoutState
                             .collectAsState()

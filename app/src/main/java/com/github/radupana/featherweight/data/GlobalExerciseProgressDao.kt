@@ -19,25 +19,25 @@ interface GlobalExerciseProgressDao {
     @Query(
         """
         SELECT * FROM global_exercise_progress 
-        WHERE userId = :userId AND exerciseName = :exerciseName 
+        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId 
         LIMIT 1
     """,
     )
     suspend fun getProgressForExercise(
         userId: Long,
-        exerciseName: String,
+        exerciseVariationId: Long,
     ): GlobalExerciseProgress?
 
     @Query(
         """
         SELECT * FROM global_exercise_progress 
-        WHERE userId = :userId AND exerciseName = :exerciseName 
+        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId 
         LIMIT 1
     """,
     )
     fun observeProgressForExercise(
         userId: Long,
-        exerciseName: String,
+        exerciseVariationId: Long,
     ): Flow<GlobalExerciseProgress?>
 
     @Query(
@@ -112,12 +112,12 @@ interface GlobalExerciseProgressDao {
         """
         UPDATE global_exercise_progress 
         SET estimatedMax = :newMax, lastUpdated = :updateTime 
-        WHERE userId = :userId AND exerciseName = :exerciseName
+        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId
     """,
     )
     suspend fun updateEstimatedMax(
         userId: Long,
-        exerciseName: String,
+        exerciseVariationId: Long,
         newMax: Float,
         updateTime: LocalDateTime,
     )
@@ -126,12 +126,12 @@ interface GlobalExerciseProgressDao {
         """
         UPDATE global_exercise_progress 
         SET lastPrDate = :prDate, lastPrWeight = :prWeight, lastUpdated = :updateTime 
-        WHERE userId = :userId AND exerciseName = :exerciseName
+        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId
     """,
     )
     suspend fun recordNewPR(
         userId: Long,
-        exerciseName: String,
+        exerciseVariationId: Long,
         prWeight: Float,
         prDate: LocalDateTime,
         updateTime: LocalDateTime,
@@ -143,12 +143,12 @@ interface GlobalExerciseProgressDao {
         SET consecutiveStalls = consecutiveStalls + 1, 
             weeksAtCurrentWeight = :weeksAtWeight,
             lastUpdated = :updateTime 
-        WHERE userId = :userId AND exerciseName = :exerciseName
+        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId
     """,
     )
     suspend fun incrementStallCount(
         userId: Long,
-        exerciseName: String,
+        exerciseVariationId: Long,
         weeksAtWeight: Int,
         updateTime: LocalDateTime,
     )
@@ -161,12 +161,12 @@ interface GlobalExerciseProgressDao {
             lastProgressionDate = :progressDate,
             currentWorkingWeight = :newWeight,
             lastUpdated = :updateTime 
-        WHERE userId = :userId AND exerciseName = :exerciseName
+        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId
     """,
     )
     suspend fun recordProgression(
         userId: Long,
-        exerciseName: String,
+        exerciseVariationId: Long,
         newWeight: Float,
         progressDate: LocalDateTime,
         updateTime: LocalDateTime,
@@ -177,7 +177,7 @@ interface GlobalExerciseProgressDao {
 
     @Query(
         """
-        SELECT exerciseName, totalVolumeLast30Days 
+        SELECT exerciseVariationId, totalVolumeLast30Days 
         FROM global_exercise_progress 
         WHERE userId = :userId 
         ORDER BY totalVolumeLast30Days DESC
@@ -186,7 +186,7 @@ interface GlobalExerciseProgressDao {
     suspend fun getVolumeDistribution(userId: Long): List<ExerciseVolumeInfo>
 
     data class ExerciseVolumeInfo(
-        val exerciseName: String,
+        val exerciseVariationId: Long,
         val totalVolumeLast30Days: Float,
     )
 

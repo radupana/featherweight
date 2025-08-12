@@ -130,7 +130,7 @@ class OneRMService {
 
         return UserExerciseMax(
             userId = userId,
-            exerciseId = exerciseId,
+            exerciseVariationId = exerciseId,
             mostWeightLifted = mostWeight.weight,
             mostWeightReps = mostWeight.reps,
             mostWeightRpe = mostWeight.rpe,

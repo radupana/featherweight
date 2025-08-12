@@ -90,7 +90,7 @@ data class AnalyticsState(
 class InsightsViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
-    private val repository = FeatherweightRepository(application)
+    val repository = FeatherweightRepository(application)
     private val aiService = AIProgrammeService(application)
     private val gson = Gson()
 
@@ -102,9 +102,21 @@ class InsightsViewModel(
 
     private val _isAnalyzing = MutableStateFlow(false)
     val isAnalyzing: StateFlow<Boolean> = _isAnalyzing
+    
+    // Reactive exercise name mapping
+    private val _exerciseNames = MutableStateFlow<Map<Long, String>>(emptyMap())
+    val exerciseNames: StateFlow<Map<Long, String>> = _exerciseNames
 
     init {
         loadInsightsData()
+        loadExerciseNames()
+    }
+    
+    private fun loadExerciseNames() {
+        viewModelScope.launch {
+            val exercises = repository.getAllExercises()
+            _exerciseNames.value = exercises.associate { it.id to it.name }
+        }
     }
 
     fun loadInsightsData(forceRefresh: Boolean = false) {
@@ -378,8 +390,10 @@ class InsightsViewModel(
     }
 
     private suspend fun loadStrengthMetrics(exerciseName: String): StrengthMetrics {
-        val personalRecords = repository.getPersonalRecords(exerciseName)
-        val estimated1RM = repository.getEstimated1RM(exerciseName)
+        val exerciseVariation = repository.getExerciseByName(exerciseName)
+        val exerciseVariationId = exerciseVariation?.id ?: 0L
+        val personalRecords = repository.getPersonalRecords(exerciseVariationId)
+        val estimated1RM = repository.getEstimated1RM(exerciseVariationId)
         val currentMax = personalRecords.lastOrNull()?.first
 
         // Calculate recent progress (last 30 days vs previous 30 days)
@@ -618,7 +632,8 @@ class InsightsViewModel(
 
             for (exercise in exercises) {
                 val exerciseObj = JsonObject()
-                exerciseObj.addProperty("name", exercise.exerciseName)
+                val exerciseName = repository.getExerciseById(exercise.exerciseVariationId)?.name ?: "Unknown Exercise"
+                exerciseObj.addProperty("name", exerciseName)
 
                 // Get sets for this exercise
                 val sets = repository.getSetLogsForExercise(exercise.id)
@@ -651,7 +666,8 @@ class InsightsViewModel(
 
         for (pr in prs) {
             val prObj = JsonObject()
-            prObj.addProperty("exercise", pr.exerciseName)
+            val exerciseName = repository.getExerciseById(pr.exerciseVariationId)?.name ?: "Unknown Exercise"
+            prObj.addProperty("exercise", exerciseName)
             prObj.addProperty("date", pr.recordDate.toLocalDate().toString())
             prObj.addProperty("weight", pr.weight)
             prObj.addProperty("reps", pr.reps)

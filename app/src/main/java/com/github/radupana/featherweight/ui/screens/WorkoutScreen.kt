@@ -467,8 +467,11 @@ fun WorkoutScreen(
 
     // 1RM Update Dialog
     if (showOneRMUpdateDialog && pendingOneRMUpdates.isNotEmpty()) {
+        val exerciseNames by viewModel.exerciseNames.collectAsState()
         OneRMUpdateDialog(
             pendingUpdates = pendingOneRMUpdates,
+            repository = viewModel.repository,
+            exerciseNames = exerciseNames,
             onApply = { update ->
                 viewModel.applyOneRMUpdate(update)
             },
@@ -492,8 +495,11 @@ fun WorkoutScreen(
 
     // PR Celebration Dialog
     if (showPRCelebration && workoutState.pendingPRs.isNotEmpty()) {
+        val prExerciseNames by viewModel.exerciseNames.collectAsState()
         PRCelebrationDialog(
             personalRecords = workoutState.pendingPRs,
+            repository = viewModel.repository,
+            exerciseNames = prExerciseNames,
             onDismiss = {
                 showPRCelebration = false
                 viewModel.clearPendingPRs()

@@ -107,56 +107,31 @@ fun AIProgrammeRequestCard(
                 val json = Json { ignoreUnknownKeys = true }
                 val payload = json.parseToJsonElement(request.requestPayload).jsonObject
 
-                // Log the payload for debugging
-                println("🔍 AIProgrammeRequestCard: Parsing request payload")
-                println("📦 Raw payload: $payload")
 
                 RequestSummary(
                     goal =
                         payload["selectedGoal"]?.jsonPrimitive?.content?.let { goalValue ->
-                            println("🎯 Goal value from JSON: $goalValue")
                             ProgrammeGoal.values().find { it.name == goalValue }?.displayName
-                        } ?: run {
-                            println("❌ Goal not found in payload")
-                            "Unknown"
-                        },
+                        } ?: "Unknown",
                     experience =
                         payload["selectedExperience"]?.jsonPrimitive?.content?.let { expValue ->
-                            println("💪 Experience value from JSON: $expValue")
                             ExperienceLevel.values().find { it.name == expValue }?.displayName
-                        } ?: run {
-                            println("❌ Experience not found in payload")
-                            "Unknown"
-                        },
+                        } ?: "Unknown",
                     frequency =
                         payload["selectedFrequency"]?.jsonPrimitive?.intOrNull?.let { freqValue ->
-                            println("📅 Frequency value from JSON: $freqValue")
                             "$freqValue days/week"
-                        } ?: run {
-                            println("❌ Frequency not found in payload")
-                            "Unknown"
-                        },
+                        } ?: "Unknown",
                     duration =
                         payload["selectedDuration"]?.jsonPrimitive?.content?.let { durValue ->
-                            println("⏱️ Duration value from JSON: $durValue")
                             SessionDuration.values().find { it.name == durValue }?.displayName
-                        } ?: run {
-                            println("❌ Duration not found in payload")
-                            "Unknown"
-                        },
+                        } ?: "Unknown",
                     equipment =
                         payload["selectedEquipment"]?.jsonPrimitive?.content?.let { equipValue ->
-                            println("🏋️ Equipment value from JSON: $equipValue")
                             EquipmentAvailability.values().find { it.name == equipValue }?.displayName
-                        } ?: run {
-                            println("❌ Equipment not found in payload")
-                            "Unknown"
-                        },
+                        } ?: "Unknown",
                     customInstructions = payload["userInput"]?.jsonPrimitive?.content,
                 )
             } catch (e: Exception) {
-                println("❌ ERROR parsing request payload: ${e.message}")
-                e.printStackTrace()
                 null
             }
         }

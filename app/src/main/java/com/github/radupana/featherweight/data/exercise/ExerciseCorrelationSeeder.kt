@@ -9,7 +9,6 @@ class ExerciseCorrelationSeeder(
     suspend fun seedExerciseCorrelations() {
         // Check if already seeded
         if (exerciseCorrelationDao.getCount() > 0) {
-            println("Exercise correlations already seeded")
             return
         }
 
@@ -242,6 +241,5 @@ class ExerciseCorrelationSeeder(
 
         // Insert all correlations
         exerciseCorrelationDao.insertAll(correlations)
-        println("Seeded ${correlations.size} exercise correlations")
     }
 }

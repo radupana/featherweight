@@ -20,9 +20,8 @@ class ExerciseValidator(
     suspend fun initialize() =
         withContext(Dispatchers.IO) {
             val exercises = exerciseDao.getAllExercisesWithDetails()
-            validExerciseNames = exercises.map { it.exercise.name }.toSet()
-            validExerciseIds = exercises.map { it.exercise.id }.toSet()
-            println("ExerciseValidator initialized with ${validExerciseNames.size} exercises")
+            validExerciseNames = exercises.map { it.variation.name }.toSet()
+            validExerciseIds = exercises.map { it.variation.id }.toSet()
         }
 
     /**

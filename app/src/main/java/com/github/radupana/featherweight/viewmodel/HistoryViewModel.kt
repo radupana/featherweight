@@ -88,17 +88,14 @@ class HistoryViewModel(
     private suspend fun loadInitialData() {
         val currentState = _historyState.value
         if (currentState.programmes.isNotEmpty()) {
-            println("🔍 HistoryViewModel: Already loaded programmes, skipping")
             return // Already loaded
         }
 
-        println("🔍 HistoryViewModel: Loading initial data...")
         _historyState.value = currentState.copy(isLoading = true, error = null)
 
         try {
             // Load programmes
             val firstPageProgrammes = repository.getCompletedProgrammesPaged(page = 0, pageSize = currentState.pageSize)
-            println("🔍 HistoryViewModel: Received ${firstPageProgrammes.size} programmes from repository")
 
             val hasMoreProgrammes = firstPageProgrammes.size == currentState.pageSize
 
@@ -111,8 +108,6 @@ class HistoryViewModel(
                     hasMoreProgrammes = hasMoreProgrammes,
                 )
         } catch (e: Exception) {
-            println("🔍 HistoryViewModel: Error loading initial data: ${e.message}")
-            e.printStackTrace()
             _historyState.value =
                 currentState.copy(
                     isLoading = false,
@@ -155,19 +150,14 @@ class HistoryViewModel(
     }
 
     fun loadNextProgrammePage() {
-        println("🔍 HistoryViewModel: loadNextProgrammePage() called")
         viewModelScope.launch {
             val currentState = _historyState.value
 
             // Don't load if already loading, no more data, or error state
             if (currentState.isLoadingMoreProgrammes || !currentState.hasMoreProgrammes || currentState.error != null) {
-                println(
-                    "🔍 HistoryViewModel: Skipping loadNextProgrammePage - isLoadingMoreProgrammes: ${currentState.isLoadingMoreProgrammes}, hasMoreProgrammes: ${currentState.hasMoreProgrammes}, error: ${currentState.error}",
-                )
                 return@launch
             }
 
-            println("🔍 HistoryViewModel: Starting to load next programme page ${currentState.currentProgrammePage + 1}")
             _historyState.value = currentState.copy(isLoadingMoreProgrammes = true)
 
             try {
@@ -181,7 +171,6 @@ class HistoryViewModel(
                 val allProgrammes = currentState.programmes + newProgrammes
                 val hasMoreProgrammes = newProgrammes.size == currentState.pageSize
 
-                println("🔍 HistoryViewModel: Loaded ${newProgrammes.size} new programmes, hasMoreProgrammes: $hasMoreProgrammes")
 
                 _historyState.value =
                     currentState.copy(
@@ -243,12 +232,6 @@ class HistoryViewModel(
                         currentMonth.monthValue,
                     )
 
-                println("🔍 HistoryViewModel: Loaded calendar data for ${currentMonth.year}-${currentMonth.monthValue}")
-                println("  📊 workoutCounts size: ${workoutCounts.size}")
-                println("  📊 workoutDayInfo size: ${workoutDayInfo.size}")
-                workoutDayInfo.forEach { (date, info) ->
-                    println("    📅 $date: C=${info.completedCount}, IP=${info.inProgressCount}, NS=${info.notStartedCount}")
-                }
 
                 _calendarState.value =
                     _calendarState.value.copy(
@@ -257,7 +240,6 @@ class HistoryViewModel(
                         isLoading = false,
                     )
             } catch (e: Exception) {
-                println("Error loading calendar data: ${e.message}")
                 _calendarState.value = _calendarState.value.copy(isLoading = false)
             }
         }
@@ -345,7 +327,6 @@ class HistoryViewModel(
                         isLoading = false,
                     )
             } catch (e: Exception) {
-                println("Error loading week groups: ${e.message}")
                 _weekGroupState.value = _weekGroupState.value.copy(isLoading = false)
             }
         }

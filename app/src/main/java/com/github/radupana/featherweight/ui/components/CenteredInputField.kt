@@ -54,18 +54,14 @@ fun CenteredInputField(
     // Show placeholder only when not focused AND value is empty
     val showPlaceholder = !isFocused && value.text.isEmpty()
 
-    // Debug logging for focus events
+    // Handle focus events
     LaunchedEffect(isFocused) {
-        println("FOCUS Debug [${fieldType.name}] - Focus state: $isFocused, Text: '${value.text}', Selection: ${value.selection}")
-
         // Detect focus gain transition
         if (isFocused && !lastFocusState && value.text.isNotEmpty()) {
-            println("FOCUS Debug [${fieldType.name}] - FOCUS GAINED! Selecting all text")
             // Use coroutine to ensure the selection happens after the field is ready
             coroutineScope.launch {
                 // Very small delay to ensure field is fully focused
                 delay(5) // 5ms delay - minimal but reliable
-                println("FOCUS Debug [${fieldType.name}] - Applying selection after delay")
                 onValueChange(
                     value.copy(selection = TextRange(0, value.text.length)),
                 )
@@ -78,8 +74,6 @@ fun CenteredInputField(
     OutlinedTextField(
         value = value,
         onValueChange = { newValue ->
-            println("Input Debug [${fieldType.name}] - Before: '${value.text}', Selection: ${value.selection}")
-            println("Input Debug [${fieldType.name}] - New Input: '${newValue.text}', Selection: ${newValue.selection}")
 
             // HARD LIMITS - reject input if it exceeds maximum length or contains invalid chars
             val isValid =
@@ -126,7 +120,6 @@ fun CenteredInputField(
                         val rpeValue = newValue.text.toIntOrNull()
                         if (rpeValue != null && rpeValue > 10) {
                             // Clamp to 10
-                            println("Input Debug [${fieldType.name}] - CLAMPED: '${newValue.text}' -> '10'")
                             newValue.copy(text = "10", selection = TextRange(2))
                         } else {
                             newValue
@@ -136,11 +129,9 @@ fun CenteredInputField(
                     }
                 } else {
                     // Input is invalid, reject it and keep old value
-                    println("Input Debug [${fieldType.name}] - REJECTED: '${newValue.text}'")
                     value
                 }
 
-            println("Input Debug [${fieldType.name}] - Final: '${finalValue.text}', Selection: ${finalValue.selection}")
             onValueChange(finalValue)
         },
         placeholder =

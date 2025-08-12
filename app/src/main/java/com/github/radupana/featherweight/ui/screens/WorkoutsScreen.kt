@@ -62,6 +62,7 @@ fun WorkoutsScreen(
     val lastCompletedWorkoutExercises by workoutViewModel.lastCompletedWorkoutExercises.collectAsState()
     val activeProgramme by programmeViewModel.activeProgramme.collectAsState()
     val programmeProgress by programmeViewModel.programmeProgress.collectAsState()
+    val exerciseNames by workoutViewModel.exerciseNames.collectAsState()
     val scope = rememberCoroutineScope()
 
     // Determine if there's ANY in-progress workout (most recent will be used)
@@ -101,7 +102,7 @@ fun WorkoutsScreen(
     // Format last workout info
     var lastWorkoutInfo by remember { mutableStateOf<WorkoutInfo?>(null) }
 
-    LaunchedEffect(lastCompletedWorkout, lastCompletedWorkoutExercises) {
+    LaunchedEffect(lastCompletedWorkout, lastCompletedWorkoutExercises, exerciseNames) {
         lastCompletedWorkout?.let { workout ->
             val daysAgoText =
                 when (val daysAgo = ChronoUnit.DAYS.between(workout.date.toLocalDate(), LocalDateTime.now().toLocalDate()).toInt()) {
@@ -110,15 +111,17 @@ fun WorkoutsScreen(
                     else -> "$daysAgo days ago"
                 }
 
-            val exerciseNames =
-                lastCompletedWorkoutExercises.take(3).joinToString(", ") { it.exerciseName } +
+            val exerciseNamesStr =
+                lastCompletedWorkoutExercises.take(3).joinToString(", ") { exercise ->
+                    exerciseNames[exercise.exerciseVariationId] ?: "Unknown"
+                } +
                     if (lastCompletedWorkoutExercises.size > 3) " +${lastCompletedWorkoutExercises.size - 3} more" else ""
 
             lastWorkoutInfo =
                 WorkoutInfo(
                     name = workout.programmeWorkoutName ?: "Freestyle Workout",
                     daysAgo = daysAgoText,
-                    exercises = exerciseNames,
+                    exercises = exerciseNamesStr,
                 )
         }
     }
@@ -235,17 +238,12 @@ fun WorkoutsScreen(
                                     val programme = activeProgramme
                                     val workoutInfo = nextWorkoutInfo
                                     if (workoutInfo != null && programme != null) {
+                                        val userMaxes = workoutViewModel.oneRMEstimates.value
                                         workoutViewModel.startProgrammeWorkout(
                                             programmeId = programme.id,
                                             weekNumber = workoutInfo.actualWeekNumber,
                                             dayNumber = workoutInfo.workoutStructure.day,
-                                            userMaxes =
-                                                mapOf(
-                                                    "squat" to (programme.squatMax ?: 100f),
-                                                    "bench" to (programme.benchMax ?: 80f),
-                                                    "deadlift" to (programme.deadliftMax ?: 120f),
-                                                    "ohp" to (programme.ohpMax ?: 60f),
-                                                ),
+                                            userMaxes = userMaxes,
                                             onReady = {
                                                 onStartProgrammeWorkout()
                                             },

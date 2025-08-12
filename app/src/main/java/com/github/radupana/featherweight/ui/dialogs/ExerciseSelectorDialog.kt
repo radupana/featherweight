@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.ui.components.CompactSearchField
 import com.github.radupana.featherweight.ui.utils.NavigationContext
@@ -47,7 +46,7 @@ import com.github.radupana.featherweight.viewmodel.ExerciseSelectorViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseSelectorDialog(
-    onExerciseSelected: (Exercise) -> Unit,
+    onExerciseSelected: (ExerciseWithDetails) -> Unit,
     onDismiss: () -> Unit,
     excludeExerciseIds: Set<Long> = emptySet(),
     viewModel: ExerciseSelectorViewModel = viewModel(),
@@ -145,13 +144,13 @@ fun ExerciseSelectorDialog(
                     ) {
                         items(
                             filteredExercises.filter { exerciseWithDetails ->
-                                exerciseWithDetails.exercise.id !in excludeExerciseIds
+                                exerciseWithDetails.variation.id !in excludeExerciseIds
                             },
                         ) { exerciseWithDetails ->
                             ExerciseItem(
                                 exerciseWithDetails = exerciseWithDetails,
                                 onClick = {
-                                    onExerciseSelected(exerciseWithDetails.exercise)
+                                    onExerciseSelected(exerciseWithDetails)
                                     onDismiss()
                                 },
                                 isCompact = false,
@@ -170,7 +169,7 @@ private fun ExerciseItem(
     onClick: () -> Unit,
     isCompact: Boolean = false,
 ) {
-    val exercise = exerciseWithDetails.exercise
+    val exercise = exerciseWithDetails.variation
     val itemPadding = 16.dp
 
     Card(

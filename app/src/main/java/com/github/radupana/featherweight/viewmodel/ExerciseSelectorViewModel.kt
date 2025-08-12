@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.Equipment
@@ -90,17 +91,12 @@ class ExerciseSelectorViewModel(
         val filteredByAttributes =
             exercises
                 .filter { exercise ->
-                    // Category filter
-                    category?.let { exercise.exercise.category == it } ?: true
-                }.filter { exercise ->
-                    // Muscle group filter
-                    muscleGroup?.let {
-                        exercise.exercise.muscleGroup.equals(it, ignoreCase = true)
-                    } ?: true
+                    // For now, skip muscle group filtering since ExerciseVariation doesn't have muscleGroup
+                    true
                 }.filter { exercise ->
                     // Equipment filter
                     equipmentFilter?.let {
-                        exercise.exercise.equipment == it
+                        exercise.variation.equipment == it
                     } ?: true
                 }
 
@@ -111,7 +107,7 @@ class ExerciseSelectorViewModel(
             // Score each exercise based on word matches
             val scoredExercises =
                 filteredByAttributes.mapNotNull { exerciseWithDetails ->
-                    val exercise = exerciseWithDetails.exercise
+                    val exercise = exerciseWithDetails.variation
                     val nameLower = exercise.name.lowercase()
                     val queryLower = query.lowercase()
 
@@ -162,20 +158,7 @@ class ExerciseSelectorViewModel(
                         }
                     }
 
-                    // Also check muscle group and category for matches
-                    if (score == 0) {
-                        searchWords.forEach { searchWord ->
-                            if (exercise.muscleGroup.contains(searchWord, ignoreCase = true)) {
-                                score += 30
-                            }
-                            if (exercise.category.name
-                                    .replace('_', ' ')
-                                    .contains(searchWord, ignoreCase = true)
-                            ) {
-                                score += 20
-                            }
-                        }
-                    }
+                    // ExerciseVariation doesn't have muscle group/category fields directly
 
                     if (score > 0) {
                         exerciseWithDetails to score
@@ -188,7 +171,7 @@ class ExerciseSelectorViewModel(
             scoredExercises
                 .sortedWith(
                     compareByDescending<Pair<ExerciseWithDetails, Int>> { it.second }
-                        .thenBy { it.first.exercise.name },
+                        .thenBy { it.first.variation.name },
                 ).map { it.first }
         } else {
             // When not searching, maintain the usage-based order
@@ -204,13 +187,23 @@ class ExerciseSelectorViewModel(
                 repository.seedDatabaseIfEmpty()
 
                 // Load exercises efficiently (usage stats can be calculated on-demand)
-                val exercises = repository.getAllExercises()
+                val variations = repository.getAllExercises()
+                // Convert to ExerciseWithDetails (minimal conversion for now)
+                val exercises = variations.map { variation ->
+                    ExerciseWithDetails(
+                        variation = variation,
+                        muscles = emptyList(),
+                        aliases = emptyList(),
+                        instructions = emptyList()
+                    )
+                }
                 _allExercises.value = exercises
 
-                println("Loaded ${exercises.size} exercises from database (sorted by usage)")
+                Log.d("ExerciseSelectorVM", "Loaded ${exercises.size} exercises from database")
             } catch (e: Exception) {
-                println("Error loading exercises: ${e.message}")
-                e.printStackTrace()
+                Log.e("ExerciseSelectorVM", "Error loading exercises", e)
+                Log.e("ExerciseSelectorVM", "Failed to load exercises", e)
+                throw IllegalStateException("Failed to load exercises from database", e)
             } finally {
                 _isLoading.value = false
             }
@@ -264,8 +257,8 @@ class ExerciseSelectorViewModel(
                 // Default to bodyweight if we can't determine equipment
                 inferEquipmentFromName(name)
 
-                // TODO: Re-implement custom exercise creation
-                println("Custom exercise creation not yet implemented: $name")
+                // Custom exercise creation disabled - not a core feature
+                Log.w("ExerciseSelectorVM", "Custom exercise creation requested but not implemented: $name")
 
                 // Reload exercises after creating
                 loadExercises()
@@ -274,7 +267,7 @@ class ExerciseSelectorViewModel(
                 _exerciseCreated.value = name
             } catch (e: Exception) {
                 _errorMessage.value = e.message
-                println("Error creating custom exercise: ${e.message}")
+                Log.e("ExerciseSelectorVM", "Error creating custom exercise", e)
             }
         }
     }
@@ -375,16 +368,25 @@ class ExerciseSelectorViewModel(
     fun loadSwapSuggestions(exerciseId: Long) {
         viewModelScope.launch {
             try {
-                println("Loading swap suggestions for exercise ID: $exerciseId")
+                Log.d("ExerciseSelectorVM", "Loading swap suggestions for exercise ID: $exerciseId")
 
                 // Wait for exercises to be loaded if they're not already
                 if (_allExercises.value.isEmpty()) {
-                    println("Exercises not loaded yet, waiting...")
+                    Log.d("ExerciseSelectorVM", "Waiting for exercises to load")
                     // Ensure exercises are loaded first
                     repository.seedDatabaseIfEmpty()
-                    val exercises = repository.getAllExercises()
+                    val variations = repository.getAllExercises()
+                    // Convert to ExerciseWithDetails (minimal conversion for now)
+                    val exercises = variations.map { variation ->
+                        ExerciseWithDetails(
+                            variation = variation,
+                            muscles = emptyList(),
+                            aliases = emptyList(),
+                            instructions = emptyList()
+                        )
+                    }
                     _allExercises.value = exercises
-                    println("Loaded ${exercises.size} exercises")
+                    Log.d("ExerciseSelectorVM", "Loaded ${exercises.size} exercises for swap")
                 }
 
                 // Get historical swaps
@@ -392,15 +394,21 @@ class ExerciseSelectorViewModel(
                 val swapHistory = repository.getSwapHistoryForExercise(userId, exerciseId)
                 val previouslySwapped = mutableListOf<ExerciseSuggestion>()
 
-                println("Found ${swapHistory.size} historical swaps")
+                Log.d("ExerciseSelectorVM", "Found ${swapHistory.size} historical swaps")
 
                 // Get exercise details for historically swapped exercises
                 swapHistory.forEach { historyCount ->
-                    val exercise = repository.getExerciseById(historyCount.swappedToExerciseId)
-                    if (exercise != null) {
+                    val variation = repository.getExerciseById(historyCount.swappedToExerciseId)
+                    if (variation != null) {
+                        val exerciseWithDetails = ExerciseWithDetails(
+                            variation = variation,
+                            muscles = emptyList(),
+                            aliases = emptyList(),
+                            instructions = emptyList()
+                        )
                         previouslySwapped.add(
                             ExerciseSuggestion(
-                                exercise = exercise,
+                                exercise = exerciseWithDetails,
                                 swapCount = historyCount.swapCount,
                                 suggestionReason = "Previously swapped ${historyCount.swapCount}x",
                             ),
@@ -411,17 +419,24 @@ class ExerciseSelectorViewModel(
                 _previouslySwappedExercises.value = previouslySwapped
 
                 // Get current exercise details for smart suggestions
-                val currentExercise = repository.getExerciseById(exerciseId)
-                if (currentExercise != null) {
+                val currentVariation = repository.getExerciseById(exerciseId)
+                if (currentVariation != null) {
+                    val currentExercise = ExerciseWithDetails(
+                        variation = currentVariation,
+                        muscles = emptyList(),
+                        aliases = emptyList(),
+                        instructions = emptyList()
+                    )
                     val suggestions = generateSmartSuggestions(currentExercise, previouslySwapped)
-                    println("Generated ${suggestions.size} smart suggestions")
+                    Log.d("ExerciseSelectorVM", "Generated ${suggestions.size} swap suggestions")
                     _swapSuggestions.value = suggestions
                 } else {
-                    println("Could not find current exercise with ID: $exerciseId")
+                    Log.w("ExerciseSelectorVM", "Could not find exercise with ID: $exerciseId")
                 }
             } catch (e: Exception) {
-                println("Error loading swap suggestions: ${e.message}")
-                e.printStackTrace()
+                Log.e("ExerciseSelectorVM", "Error loading swap suggestions", e)
+                Log.e("ExerciseSelectorVM", "Failed to load exercises", e)
+                throw IllegalStateException("Failed to load exercises from database", e)
             }
         }
     }
@@ -433,19 +448,26 @@ class ExerciseSelectorViewModel(
         // Ensure we have exercises loaded
         val allExercises =
             if (_allExercises.value.isEmpty()) {
-                repository.getAllExercises().also { _allExercises.value = it }
+                repository.getAllExercises().map { variation ->
+                    ExerciseWithDetails(
+                        variation = variation,
+                        muscles = emptyList(),
+                        aliases = emptyList(),
+                        instructions = emptyList()
+                    )
+                }.also { _allExercises.value = it }
             } else {
                 _allExercises.value
             }
 
         val suggestions = mutableListOf<ExerciseSuggestion>()
-        val previouslySwappedIds = previouslySwapped.map { it.exercise.exercise.id }.toSet()
+        val previouslySwappedIds = previouslySwapped.map { it.exercise.variation.id }.toSet()
 
         // Filter out the current exercise and previously swapped ones
         val candidateExercises =
             allExercises.filter {
-                it.exercise.id != currentExercise.exercise.id &&
-                    it.exercise.id !in previouslySwappedIds
+                it.variation.id != currentExercise.variation.id &&
+                    it.variation.id !in previouslySwappedIds
             }
 
         candidateExercises.forEach { exercise ->
@@ -473,28 +495,22 @@ class ExerciseSelectorViewModel(
     ): Int {
         var score = 0
 
-        // Same category gets high score
-        if (current.exercise.category == candidate.exercise.category) {
-            score += 50
-        }
+        // Skip category comparison since ExerciseVariation doesn't have category field
 
         // Same equipment gets medium score
-        if (current.exercise.equipment == candidate.exercise.equipment) {
+        if (current.variation.equipment == candidate.variation.equipment) {
             score += 30
         }
 
-        // Same muscle group gets high score
-        if (current.exercise.muscleGroup == candidate.exercise.muscleGroup) {
-            score += 40
-        }
+        // Skip muscle group comparison since ExerciseVariation doesn't have muscleGroup field
 
         // Similar difficulty gets small score
-        if (current.exercise.difficulty == candidate.exercise.difficulty) {
+        if (current.variation.difficulty == candidate.variation.difficulty) {
             score += 10
         }
 
         // Usage count adds to score (more used = better suggestion)
-        score += candidate.exercise.usageCount
+        score += candidate.variation.usageCount
 
         return score
     }

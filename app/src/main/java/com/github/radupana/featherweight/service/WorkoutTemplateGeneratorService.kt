@@ -7,8 +7,8 @@ import com.github.radupana.featherweight.data.SetLogDao
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutDao
 import com.github.radupana.featherweight.data.WorkoutStatus
-import com.github.radupana.featherweight.data.exercise.Exercise
-import com.github.radupana.featherweight.data.exercise.ExerciseDao
+import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
 import com.github.radupana.featherweight.data.model.TimeAvailable
 import com.github.radupana.featherweight.data.model.TrainingGoal
 import com.github.radupana.featherweight.data.model.WorkoutTemplate
@@ -17,7 +17,7 @@ import java.time.LocalDateTime
 
 class WorkoutTemplateGeneratorService(
     private val workoutDao: WorkoutDao,
-    private val exerciseDao: ExerciseDao,
+    private val exerciseVariationDao: ExerciseVariationDao,
     private val exerciseLogDao: ExerciseLogDao,
     private val setLogDao: SetLogDao,
 ) {
@@ -45,8 +45,7 @@ class WorkoutTemplateGeneratorService(
             val exerciseLog =
                 ExerciseLog(
                     workoutId = workoutId,
-                    exerciseName = exercise.name,
-                    exerciseId = exercise.id,
+                    exerciseVariationId = exercise.id,
                     exerciseOrder = index,
                     notes = "",
                 )
@@ -75,11 +74,10 @@ class WorkoutTemplateGeneratorService(
     private suspend fun selectExercises(
         template: WorkoutTemplate,
         config: WorkoutTemplateConfig,
-    ): List<Triple<Exercise, Int, Int>> {
-        val result = mutableListOf<Triple<Exercise, Int, Int>>()
+    ): List<Triple<ExerciseVariation, Int, Int>> {
+        val result = mutableListOf<Triple<ExerciseVariation, Int, Int>>()
         val maxExercises = getMaxExercises(config.timeAvailable, template.name)
 
-        println("FeatherweightDebug: Generating ${template.name} workout with max $maxExercises exercises")
 
         // First, add all required exercises
         for (slot in template.exerciseSlots.filter { it.required }) {
@@ -88,9 +86,7 @@ class WorkoutTemplateGeneratorService(
                 val sets = getSetsForExercise(exercise.name, slot.required)
                 val reps = getRepsForGoal(config.goal)
                 result.add(Triple(exercise, sets, reps))
-                println("FeatherweightDebug: Added required exercise: ${exercise.name}")
             } else {
-                println("FeatherweightDebug: FAILED to find required exercise from options: ${slot.exerciseOptions}")
             }
         }
 
@@ -113,27 +109,17 @@ class WorkoutTemplateGeneratorService(
 
     private suspend fun findMatchingExercise(
         options: List<String>,
-    ): Exercise? {
+    ): ExerciseVariation? {
         // Simply find the first available exercise from the options
         // Assumes full commercial gym access
         for (exerciseName in options) {
             // First try exact name match
-            var exercise = exerciseDao.findExerciseByExactName(exerciseName)
+            val exercise = exerciseVariationDao.getExerciseVariationByName(exerciseName)
             if (exercise != null) {
-                return exercise
-            }
-
-            // If not found, try alias match
-            exercise = exerciseDao.findExerciseByAlias(exerciseName)
-            if (exercise != null) {
-                println("FeatherweightDebug: Found exercise via alias: '$exerciseName' -> '${exercise.name}'")
                 return exercise
             } else {
-                // Log when an exercise isn't found
-                println("FeatherweightDebug: Exercise not found in database: '$exerciseName'")
             }
         }
-        println("FeatherweightDebug: No matching exercise found from options: $options")
         return null
     }
 

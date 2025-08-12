@@ -170,13 +170,6 @@ interface ProgrammeDao {
         completedAt: LocalDateTime,
     )
 
-    // Legacy method - DO NOT USE
-    @Deprecated("Use completeProgrammeAtomic instead for atomic updates")
-    @Query("UPDATE programmes SET completedAt = :completedAt WHERE id = :programmeId")
-    suspend fun completeProgramme(
-        programmeId: Long,
-        completedAt: LocalDateTime,
-    )
 
     // Statistics and analytics
     @Query("SELECT COUNT(*) FROM programmes WHERE completedAt IS NOT NULL")

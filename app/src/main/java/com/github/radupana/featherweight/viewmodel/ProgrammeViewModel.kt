@@ -59,7 +59,6 @@ class ProgrammeViewModel(
     val userMaxes: StateFlow<UserMaxes> = _userMaxes
 
     init {
-        println("🔄 ProgrammeViewModel: Initializing...")
         // Start with immediate loading
         _uiState.value = _uiState.value.copy(isLoading = true)
 
@@ -67,7 +66,6 @@ class ProgrammeViewModel(
         viewModelScope.launch {
             kotlinx.coroutines.delay(10000) // 10 seconds
             if (_uiState.value.isLoading) {
-                println("⚠️ ProgrammeViewModel: Loading timeout - forcing completion")
                 _uiState.value =
                     _uiState.value.copy(
                         isLoading = false,
@@ -84,23 +82,17 @@ class ProgrammeViewModel(
         // Monitor AI programme requests flow for debugging
         viewModelScope.launch {
             aiProgrammeRequests.collect { requests ->
-                println("📊 ProgrammeViewModel: AI requests updated, count: ${requests.size}")
-                requests.forEach { request ->
-                    println("  - ${request.id}: ${request.status}")
-                }
             }
         }
 
         // Update templates directly without filtering
         viewModelScope.launch {
             _allTemplates.collect { templates ->
-                println("🔄 ProgrammeViewModel: Templates flow triggered with ${templates.size} templates")
                 _filteredTemplates.value = templates
                 _uiState.value =
                     _uiState.value.copy(
                         templates = templates,
                     )
-                println("✅ ProgrammeViewModel: Templates updated in UI state")
             }
         }
 
@@ -523,7 +515,7 @@ class ProgrammeViewModel(
                 println("✅ Found exercise ${exercise.name} with ID ${exercise.id}")
                 repository.upsertExerciseMax(
                     userId = repository.getCurrentUserId(),
-                    exerciseId = exercise.id,
+                    exerciseVariationId = exercise.id,
                     oneRMEstimate = maxWeight,
                     oneRMContext = "Manually set",
                     oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,

@@ -114,8 +114,9 @@ fun HomeScreen(
 
     // Format last workout info
     var lastWorkoutInfo by remember { mutableStateOf<LastWorkoutInfo?>(null) }
+    val exerciseNamesMap by workoutViewModel.exerciseNames.collectAsState()
 
-    LaunchedEffect(lastCompletedWorkout, lastCompletedWorkoutExercises) {
+    LaunchedEffect(lastCompletedWorkout, lastCompletedWorkoutExercises, exerciseNamesMap) {
         lastCompletedWorkout?.let { workout ->
             val daysAgo = ChronoUnit.DAYS.between(workout.date, LocalDateTime.now()).toInt()
             val daysAgoText =
@@ -126,7 +127,9 @@ fun HomeScreen(
                 }
 
             val exerciseNames =
-                lastCompletedWorkoutExercises.take(3).joinToString(", ") { it.exerciseName } +
+                lastCompletedWorkoutExercises.take(3).joinToString(", ") { exercise ->
+                    exerciseNamesMap[exercise.exerciseVariationId] ?: "Unknown"
+                } +
                     if (lastCompletedWorkoutExercises.size > 3) " +${lastCompletedWorkoutExercises.size - 3} more" else ""
 
             lastWorkoutInfo =

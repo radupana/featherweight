@@ -11,12 +11,12 @@ interface PersonalRecordDao {
     @Insert
     suspend fun insertPersonalRecord(personalRecord: PersonalRecord): Long
 
-    @Query("SELECT * FROM PersonalRecord WHERE exerciseName = :exerciseName ORDER BY recordDate DESC")
-    fun getPRHistoryForExercise(exerciseName: String): Flow<List<PersonalRecord>>
+    @Query("SELECT * FROM PersonalRecord WHERE exerciseVariationId = :exerciseVariationId ORDER BY recordDate DESC")
+    fun getPRHistoryForExercise(exerciseVariationId: Long): Flow<List<PersonalRecord>>
 
-    @Query("SELECT * FROM PersonalRecord WHERE exerciseName = :exerciseName ORDER BY recordDate DESC LIMIT :limit")
+    @Query("SELECT * FROM PersonalRecord WHERE exerciseVariationId = :exerciseVariationId ORDER BY recordDate DESC LIMIT :limit")
     suspend fun getRecentPRsForExercise(
-        exerciseName: String,
+        exerciseVariationId: Long,
         limit: Int = 5,
     ): List<PersonalRecord>
 
@@ -24,7 +24,7 @@ interface PersonalRecordDao {
         """
         WITH RankedPRs AS (
             SELECT *,
-                   ROW_NUMBER() OVER (PARTITION BY exerciseName ORDER BY estimated1RM DESC, recordDate DESC) as rn
+                   ROW_NUMBER() OVER (PARTITION BY exerciseVariationId ORDER BY estimated1RM DESC, recordDate DESC) as rn
             FROM PersonalRecord
             WHERE recordDate >= date('now', '-30 days')
         )
@@ -42,14 +42,14 @@ interface PersonalRecordDao {
     @Query(
         """
         SELECT * FROM PersonalRecord 
-        WHERE exerciseName = :exerciseName 
+        WHERE exerciseVariationId = :exerciseVariationId 
         AND recordType = :recordType 
         ORDER BY recordDate DESC 
         LIMIT 1
     """,
     )
     suspend fun getLatestPRForExerciseAndType(
-        exerciseName: String,
+        exerciseVariationId: Long,
         recordType: PRType,
     ): PersonalRecord?
 
@@ -57,24 +57,24 @@ interface PersonalRecordDao {
         """
         SELECT MAX(weight) 
         FROM PersonalRecord 
-        WHERE exerciseName = :exerciseName 
+        WHERE exerciseVariationId = :exerciseVariationId 
         AND recordType = 'WEIGHT'
     """,
     )
-    suspend fun getMaxWeightForExercise(exerciseName: String): Float?
+    suspend fun getMaxWeightForExercise(exerciseVariationId: Long): Float?
 
     @Query(
         """
         SELECT MAX(volume) 
         FROM PersonalRecord 
-        WHERE exerciseName = :exerciseName 
+        WHERE exerciseVariationId = :exerciseVariationId 
         AND recordType = 'VOLUME'
     """,
     )
-    suspend fun getMaxVolumeForExercise(exerciseName: String): Float?
+    suspend fun getMaxVolumeForExercise(exerciseVariationId: Long): Float?
 
-    @Query("SELECT COUNT(*) FROM PersonalRecord WHERE exerciseName = :exerciseName")
-    suspend fun getPRCountForExercise(exerciseName: String): Int
+    @Query("SELECT COUNT(*) FROM PersonalRecord WHERE exerciseVariationId = :exerciseVariationId")
+    suspend fun getPRCountForExercise(exerciseVariationId: Long): Int
 
     @Query("SELECT COUNT(*) FROM PersonalRecord WHERE recordDate >= :sinceDate")
     suspend fun getPRCountSince(sinceDate: String): Int
@@ -85,12 +85,12 @@ interface PersonalRecordDao {
     @Query(
         """
         SELECT * FROM PersonalRecord 
-        WHERE exerciseName = :exerciseName 
+        WHERE exerciseVariationId = :exerciseVariationId 
         ORDER BY weight DESC, recordDate DESC 
         LIMIT 1
     """,
     )
-    suspend fun getLatestRecordForExercise(exerciseName: String): PersonalRecord?
+    suspend fun getLatestRecordForExercise(exerciseVariationId: Long): PersonalRecord?
 
     @Query("DELETE FROM PersonalRecord")
     suspend fun clearAllPersonalRecords()
@@ -123,14 +123,14 @@ interface PersonalRecordDao {
         """
         SELECT * FROM PersonalRecord 
         WHERE workoutId = :workoutId 
-        AND exerciseName = :exerciseName
+        AND exerciseVariationId = :exerciseVariationId
         AND recordType = :recordType
         LIMIT 1
     """,
     )
     suspend fun getPRForExerciseInWorkout(
         workoutId: Long,
-        exerciseName: String,
+        exerciseVariationId: Long,
         recordType: PRType,
     ): PersonalRecord?
 

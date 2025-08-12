@@ -352,11 +352,6 @@ private fun SuccessPreviewContent(
 
         // Validation Results removed for simpler UX
 
-        // Debug log to check weeks count
-        item {
-            println("🔍 ProgrammePreviewScreen: Displaying ${preview.weeks.size} weeks in UI")
-        }
-
         // All Weeks with Collapsible UI
         items(preview.weeks) { week ->
             CollapsibleWeekCard(

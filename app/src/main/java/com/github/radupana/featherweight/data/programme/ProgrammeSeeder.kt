@@ -18,10 +18,8 @@ class ProgrammeSeeder(
 
             if (!existingNames.contains("2-Week Test Programme")) {
                 seed2WeekTestProgramme()
-                println("Seeded 2-Week Test Programme")
             }
 
-            println("Total programme templates: ${programmeDao.getAllTemplates().size}")
         }
     }
 
@@ -46,10 +44,6 @@ class ProgrammeSeeder(
             requiredExercises.mapNotNull { exercise ->
                 when (val result = validator.validateExerciseName(exercise)) {
                     is ValidationResult.Invalid -> {
-                        println("❌ Exercise validation failed: ${result.reason}")
-                        if (result.suggestion != null) {
-                            println("   Suggestion: Use '${result.suggestion}' instead")
-                        }
                         result
                     }
 
@@ -65,7 +59,6 @@ class ProgrammeSeeder(
             )
         }
 
-        println("✅ All 2-Week Test Programme exercises validated successfully")
 
         val testProgrammeStructure =
             """

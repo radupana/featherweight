@@ -105,10 +105,10 @@ fun ExerciseSelectorScreen(
 
     // Load swap suggestions when in swap mode
     LaunchedEffect(isSwapMode, currentExercise) {
-        if (isSwapMode && currentExercise != null && currentExercise.exerciseId != null) {
+        if (isSwapMode && currentExercise != null) {
             viewModel.clearSearchQuery() // Clear search when entering swap mode
             viewModel.clearSwapSuggestions() // Clear previous suggestions
-            viewModel.loadSwapSuggestions(currentExercise.exerciseId)
+            viewModel.loadSwapSuggestions(currentExercise.exerciseVariationId)
         } else if (!isSwapMode) {
             // Clear suggestions when not in swap mode
             viewModel.clearSwapSuggestions()
@@ -166,7 +166,7 @@ fun ExerciseSelectorScreen(
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                         Text(
-                            text = currentExercise.exerciseName,
+                            text = "Current Exercise",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -419,7 +419,7 @@ private fun filterSuggestions(
     val searchWords = searchQuery.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
 
     return suggestions.filter { suggestion ->
-        val exercise = suggestion.exercise.exercise
+        val exercise = suggestion.exercise.variation
         val nameLower = exercise.name.lowercase()
         val queryLower = searchQuery.lowercase()
 
@@ -431,11 +431,7 @@ private fun filterSuggestions(
         // Check individual words
         searchWords.any { searchWord ->
             val searchWordLower = searchWord.lowercase()
-            nameLower.contains(searchWordLower) ||
-                exercise.muscleGroup.contains(searchWordLower, ignoreCase = true) ||
-                exercise.category.name
-                    .replace('_', ' ')
-                    .contains(searchWordLower, ignoreCase = true)
+            nameLower.contains(searchWordLower)
         }
     }
 }
@@ -494,20 +490,20 @@ private fun ExerciseCard(
             ) {
                 // Exercise name
                 Text(
-                    text = exercise.exercise.name,
+                    text = exercise.variation.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f, fill = false),
                 )
 
                 // Usage count indicator - only show if > 0
-                if (exercise.exercise.usageCount > 0) {
+                if (exercise.variation.usageCount > 0) {
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
                         shape = RoundedCornerShape(12.dp),
                     ) {
                         Text(
-                            text = "${exercise.exercise.usageCount}×",
+                            text = "${exercise.variation.usageCount}×",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
@@ -518,7 +514,7 @@ private fun ExerciseCard(
             }
 
             // Muscle group and equipment info
-            if (exercise.exercise.muscleGroup.isNotEmpty() || exercise.exercise.equipment != Equipment.BODYWEIGHT) {
+            if (exercise.variation.equipment != Equipment.BODYWEIGHT) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -528,23 +524,9 @@ private fun ExerciseCard(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (exercise.exercise.muscleGroup.isNotEmpty()) {
+                        if (exercise.variation.equipment != Equipment.BODYWEIGHT) {
                             Text(
-                                text = exercise.exercise.muscleGroup,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            if (exercise.exercise.equipment != Equipment.BODYWEIGHT) {
-                                Text(
-                                    text = " • ",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                        if (exercise.exercise.equipment != Equipment.BODYWEIGHT) {
-                            Text(
-                                text = exercise.exercise.equipment.displayName,
+                                text = exercise.variation.equipment.name,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -815,7 +797,7 @@ private fun SuggestionCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = suggestion.exercise.exercise.name,
+                        text = suggestion.exercise.variation.name,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f, fill = false),
@@ -855,7 +837,7 @@ private fun SuggestionCard(
                     shape = RoundedCornerShape(6.dp),
                 ) {
                     Text(
-                        text = suggestion.exercise.exercise.category.displayName,
+                        text = "Exercise",
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -864,10 +846,7 @@ private fun SuggestionCard(
             }
 
             // Muscle group and equipment info
-            if (suggestion.exercise.exercise.muscleGroup
-                    .isNotEmpty() ||
-                suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT
-            ) {
+            if (suggestion.exercise.variation.equipment != Equipment.BODYWEIGHT) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -877,25 +856,9 @@ private fun SuggestionCard(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (suggestion.exercise.exercise.muscleGroup
-                                .isNotEmpty()
-                        ) {
+                        if (suggestion.exercise.variation.equipment != Equipment.BODYWEIGHT) {
                             Text(
-                                text = suggestion.exercise.exercise.muscleGroup,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            if (suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT) {
-                                Text(
-                                    text = " • ",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                        if (suggestion.exercise.exercise.equipment != Equipment.BODYWEIGHT) {
-                            Text(
-                                text = suggestion.exercise.exercise.equipment.displayName,
+                                text = suggestion.exercise.variation.equipment.name,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

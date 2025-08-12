@@ -456,7 +456,7 @@ fun ProfileScreen(
         ExerciseSelectorDialog(
             onExerciseSelected = { exercise ->
                 // Check if we already have a max for this exercise
-                val existingMax = uiState.currentMaxes.find { it.exerciseId == exercise.id }
+                val existingMax = uiState.currentMaxes.find { it.exerciseId == exercise.variation.id }
                 if (existingMax != null) {
                     editingMax = existingMax
                 } else {
@@ -464,8 +464,8 @@ fun ProfileScreen(
                     editingMax =
                         ExerciseMaxWithName(
                             id = 0,
-                            exerciseId = exercise.id,
-                            exerciseName = exercise.name,
+                            exerciseId = exercise.variation.id,
+                            exerciseName = exercise.variation.name,
                             oneRMEstimate = 0f,
                             oneRMDate = java.time.LocalDateTime.now(),
                             oneRMContext = "Manually set",

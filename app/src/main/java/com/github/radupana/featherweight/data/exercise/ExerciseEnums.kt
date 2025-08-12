@@ -5,11 +5,14 @@ enum class MuscleGroup(
 ) {
     // Upper Body
     CHEST("Chest"),
+    BACK("Back"),
     UPPER_BACK("Upper Back"),
+    MIDDLE_BACK("Middle Back"),
     LATS("Lats"),
     LOWER_BACK("Lower Back"),
     TRAPS("Traps"),
     RHOMBOIDS("Rhomboids"),
+    SHOULDERS("Shoulders"),
 
     // Shoulders
     FRONT_DELTS("Front Delts"),
@@ -28,6 +31,7 @@ enum class MuscleGroup(
     CALVES("Calves"),
 
     // Core
+    CORE("Core"),
     ABS("Abs"),
     OBLIQUES("Obliques"),
 
@@ -242,4 +246,26 @@ enum class ExerciseType(
     COOLDOWN("Cool-down"),
     CONDITIONING("Conditioning"),
     SKILL("Skill Work"),
+}
+
+enum class InstructionType {
+    SETUP,
+    EXECUTION,
+    COMMON_MISTAKES,
+    SAFETY,
+    BREATHING,
+    CUES,
+    VARIATIONS,
+    TIPS
+}
+
+enum class ExerciseRelationType {
+    PROGRESSION,
+    REGRESSION,
+    ALTERNATIVE,
+    SUPERSET_PARTNER,
+    COMPOUND_PART,
+    WARMUP_FOR,
+    COOLDOWN_FOR,
+    SIMILAR_PATTERN
 }

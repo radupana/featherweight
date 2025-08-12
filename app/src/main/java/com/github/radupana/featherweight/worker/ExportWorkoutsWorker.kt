@@ -16,6 +16,7 @@ import com.github.radupana.featherweight.MainActivity
 import com.github.radupana.featherweight.R
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.export.ExportOptions
+import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.WorkoutExportService
 import java.time.LocalDateTime
 
@@ -30,6 +31,7 @@ class ExportWorkoutsWorker(
     }
 
     private val database = FeatherweightDatabase.getDatabase(applicationContext)
+    private val repository = FeatherweightRepository(applicationContext.applicationContext as android.app.Application)
     private val exportService =
         WorkoutExportService(
             workoutDao = database.workoutDao(),
@@ -37,6 +39,7 @@ class ExportWorkoutsWorker(
             setLogDao = database.setLogDao(),
             oneRMDao = database.oneRMDao(),
             profileDao = database.profileDao(),
+            repository = repository,
         )
 
     override suspend fun doWork(): Result {

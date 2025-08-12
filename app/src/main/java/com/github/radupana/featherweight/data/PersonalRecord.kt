@@ -11,10 +11,19 @@ enum class PRType {
     ESTIMATED_1RM, // Estimated 1RM improvement
 }
 
-@Entity
+@Entity(
+    foreignKeys = [
+        androidx.room.ForeignKey(
+            entity = com.github.radupana.featherweight.data.exercise.ExerciseVariation::class,
+            parentColumns = ["id"],
+            childColumns = ["exerciseVariationId"],
+            onDelete = androidx.room.ForeignKey.RESTRICT
+        )
+    ]
+)
 data class PersonalRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val exerciseName: String,
+    val exerciseVariationId: Long,
     val weight: Float,
     val reps: Int,
     val recordDate: LocalDateTime,
@@ -23,8 +32,8 @@ data class PersonalRecord(
     val previousDate: LocalDateTime?,
     val improvementPercentage: Float,
     val recordType: PRType,
-    val volume: Float = weight * reps, // Calculated field for convenience
-    val estimated1RM: Float? = null, // Optional 1RM calculation
-    val notes: String? = null, // Optional context about the PR
-    val workoutId: Long? = null, // Link to specific workout
+    val volume: Float = weight * reps,
+    val estimated1RM: Float? = null,
+    val notes: String? = null,
+    val workoutId: Long? = null,
 )

@@ -81,8 +81,8 @@ interface WorkoutDao {
 
     // ===== INTELLIGENT SUGGESTIONS QUERIES =====
 
-    @Query("SELECT * FROM ExerciseLog WHERE exerciseName = :exerciseName ORDER BY id DESC")
-    suspend fun getExerciseLogsByName(exerciseName: String): List<ExerciseLog>
+    @Query("SELECT * FROM ExerciseLog WHERE exerciseVariationId = :exerciseVariationId ORDER BY id DESC")
+    suspend fun getExerciseLogsByVariationId(exerciseVariationId: Long): List<ExerciseLog>
 
     @Query(
         """
@@ -153,7 +153,7 @@ interface WorkoutDao {
         SELECT w.date FROM Workout w
         INNER JOIN ExerciseLog el ON el.workoutId = w.id
         INNER JOIN SetLog sl ON sl.exerciseLogId = el.id
-        WHERE el.exerciseName = :exerciseName
+        WHERE el.exerciseVariationId = :exerciseVariationId
         AND sl.actualWeight = :weight
         AND sl.isCompleted = 1
         AND w.date BETWEEN :startDateTime AND :endDateTime
@@ -162,7 +162,7 @@ interface WorkoutDao {
     """,
     )
     suspend fun getWorkoutDateForMaxWeight(
-        exerciseName: String,
+        exerciseVariationId: Long,
         weight: Float,
         startDateTime: java.time.LocalDateTime,
         endDateTime: java.time.LocalDateTime,

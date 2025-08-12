@@ -111,7 +111,7 @@ fun ActiveProgrammeScreen(
                 }
             }
         } catch (e: Exception) {
-            println("❌ Error loading next workout: ${e.message}")
+            // Error loading next workout
         } finally {
             isLoading = false
         }
@@ -333,12 +333,6 @@ fun ActiveProgrammeScreen(
                                 Button(
                                     onClick = {
                                         // Start the programme workout
-                                        println("🎯 Starting programme workout from ActiveProgrammeScreen:")
-                                        println("  - Programme: ${programme.name} (id=${programme.id})")
-                                        println("  - Week: $nextWorkoutWeek")
-                                        println("  - Workout day: ${nextWorkout!!.day}")
-                                        println("  - Workout name: ${nextWorkout!!.name}")
-
                                         // Launch coroutine to handle async workout creation
                                         scope.launch {
                                             val workout = existingWorkout
@@ -347,18 +341,13 @@ fun ActiveProgrammeScreen(
                                                 workoutViewModel.resumeWorkout(workout.id)
                                                 onStartProgrammeWorkout()
                                             } else {
-                                                // Start new workout
+                                                // Start new workout with user's current 1RMs
+                                                val userMaxes = workoutViewModel.oneRMEstimates.value
                                                 workoutViewModel.startProgrammeWorkout(
                                                     programmeId = programme.id,
                                                     weekNumber = nextWorkoutWeek,
                                                     dayNumber = nextWorkout!!.day,
-                                                    userMaxes =
-                                                        mapOf(
-                                                            "squat" to (programme.squatMax ?: 100f),
-                                                            "bench" to (programme.benchMax ?: 80f),
-                                                            "deadlift" to (programme.deadliftMax ?: 120f),
-                                                            "ohp" to (programme.ohpMax ?: 60f),
-                                                        ),
+                                                    userMaxes = userMaxes,
                                                     onReady = {
                                                         // Navigate only after workout is fully created
                                                         onStartProgrammeWorkout()

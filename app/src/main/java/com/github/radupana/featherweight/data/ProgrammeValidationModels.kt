@@ -1,6 +1,6 @@
 package com.github.radupana.featherweight.data
 
-import com.github.radupana.featherweight.data.exercise.Exercise
+import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.service.ExerciseMatchingService.UnmatchedExercise
 
 /**
@@ -8,7 +8,7 @@ import com.github.radupana.featherweight.service.ExerciseMatchingService.Unmatch
  */
 data class ProgrammeValidationResult(
     val isValid: Boolean,
-    val validatedExercises: Map<String, Exercise>, // AI name -> matched exercise
+    val validatedExercises: Map<String, ExerciseVariation>, // AI name -> matched exercise variation
     val unmatchedExercises: List<UnmatchedExercise>,
     val validationScore: Float, // 0.0 to 1.0
     val canProceedWithPartial: Boolean,
@@ -35,5 +35,5 @@ enum class ValidationAction {
  */
 data class ExerciseReplacement(
     val unmatchedExercise: UnmatchedExercise,
-    val selectedExercise: Exercise,
+    val selectedExercise: ExerciseVariation,
 )

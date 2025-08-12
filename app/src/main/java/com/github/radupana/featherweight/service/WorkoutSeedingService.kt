@@ -521,8 +521,7 @@ class WorkoutSeedingService(
                 val exerciseLog =
                     ExerciseLog(
                         workoutId = workoutId,
-                        exerciseId = exercise.id,
-                        exerciseName = plannedExercise.name,
+                        exerciseVariationId = exercise.id,
                         exerciseOrder = allExercises.indexOf(plannedExercise) + 1,
                         notes = null,
                     )
@@ -610,15 +609,14 @@ class WorkoutSeedingService(
             val exerciseLogs = repository.getExerciseLogsForWorkout(workoutId)
 
             exerciseLogs.forEach { exerciseLog ->
-                if (exerciseLog.exerciseId != null) {
-                    val sets = repository.getSetLogsForExercise(exerciseLog.id)
+                val sets = repository.getSetLogsForExercise(exerciseLog.id)
 
-                    // Get current 1RM for this exercise
-                    val currentMax =
-                        repository
-                            .getCurrentMaxesForExercises(userId, listOf(exerciseLog.exerciseId))
-                            .firstOrNull()
-                            ?.oneRMEstimate
+                // Get current 1RM for this exercise
+                val currentMax =
+                    repository
+                        .getCurrentMaxesForExercises(userId, listOf(exerciseLog.exerciseVariationId))
+                        .firstOrNull()
+                        ?.oneRMEstimate
 
                     // Find the best set that would actually update the 1RM
                     var shouldUpdate = false
@@ -628,7 +626,7 @@ class WorkoutSeedingService(
                     sets.filter { it.isCompleted }.forEach { set ->
                         // Check for PRs
                         try {
-                            repository.checkForPR(set, exerciseLog.exerciseName)
+                            repository.checkForPR(set, exerciseLog.exerciseVariationId)
                         } catch (e: Exception) {
                             // Silently continue if PR check fails
                         }
@@ -680,7 +678,7 @@ class WorkoutSeedingService(
                         try {
                             repository.upsertExerciseMax(
                                 userId = userId,
-                                exerciseId = exerciseLog.exerciseId,
+                                exerciseVariationId = exerciseLog.exerciseVariationId,
                                 oneRMEstimate = bestEstimated1RM,
                                 oneRMContext = context,
                                 oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
@@ -691,7 +689,6 @@ class WorkoutSeedingService(
                             // Silently continue if 1RM update fails
                         }
                     }
-                }
             }
         }
 

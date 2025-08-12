@@ -229,8 +229,7 @@ class ProgrammeGeneratorViewModel(
                         EquipmentAvailability.BODYWEIGHT -> {
                             hints.add("Mention if you have access to pull-up bars or dip stations")
                         }
-
-                        else -> {}
+                        else -> { /* Other equipment types don't need specific hints */ }
                     }
                 }
 
@@ -238,8 +237,7 @@ class ProgrammeGeneratorViewModel(
                 hints.add("Mention any injuries or areas to work around")
                 hints.add("Note your schedule preferences or time constraints")
             }
-
-            else -> {}
+            else -> { /* Other steps don't need hints */ }
         }
 
         return hints
@@ -426,8 +424,8 @@ class ProgrammeGeneratorViewModel(
 
     private suspend fun validateAndMatchExercises(
         response: AIProgrammeResponse,
-        exercises: List<com.github.radupana.featherweight.data.exercise.Exercise>,
-        aliases: List<com.github.radupana.featherweight.data.exercise.ExerciseAlias>,
+        exercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariation>,
+        aliases: List<com.github.radupana.featherweight.data.exercise.VariationAlias>,
     ): ProgrammeValidationResult {
         if (!response.success || response.programme == null) {
             return ProgrammeValidationResult(
@@ -440,7 +438,7 @@ class ProgrammeGeneratorViewModel(
             )
         }
 
-        val validatedExercises = mutableMapOf<String, com.github.radupana.featherweight.data.exercise.Exercise>()
+        val validatedExercises = mutableMapOf<String, com.github.radupana.featherweight.data.exercise.ExerciseVariation>()
         val unmatchedExercises = mutableListOf<ExerciseMatchingService.UnmatchedExercise>()
 
         // Process all exercises in the programme

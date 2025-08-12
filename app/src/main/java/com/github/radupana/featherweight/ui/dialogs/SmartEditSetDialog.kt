@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SmartEditSetDialog(
     set: SetLog?, // null for new set
-    exerciseName: String,
+    exerciseVariationId: Long,
     onDismiss: () -> Unit,
     onSave: (reps: Int, weight: Float, rpe: Float?) -> Unit,
     viewModel: WorkoutViewModel,
@@ -53,10 +53,10 @@ fun SmartEditSetDialog(
     val scope = rememberCoroutineScope()
 
     // Load smart suggestions for new sets
-    LaunchedEffect(exerciseName) {
+    LaunchedEffect(exerciseVariationId) {
         if (set == null) {
             scope.launch {
-                val suggestions = viewModel.getSmartSuggestions(exerciseName)
+                val suggestions = viewModel.getSmartSuggestions(exerciseVariationId)
                 smartSuggestions = suggestions
 
                 // Pre-fill with suggestions if empty

@@ -27,8 +27,17 @@ data class ExercisesJson(
     val exercises: List<ExerciseData>,
 )
 
+/**
+ * Seeds exercise data into the new normalized database schema.
+ * Creates ExerciseCore, ExerciseVariation, VariationMuscle, and VariationAlias entries.
+ */
 class ExerciseSeeder(
     private val exerciseDao: ExerciseDao,
+    private val exerciseCoreDao: ExerciseCoreDao,
+    private val exerciseVariationDao: ExerciseVariationDao,
+    private val variationMuscleDao: VariationMuscleDao,
+    private val variationAliasDao: VariationAliasDao,
+    private val variationInstructionDao: VariationInstructionDao,
     private val context: Context? = null,
 ) {
     private val json =
@@ -40,14 +49,12 @@ class ExerciseSeeder(
     suspend fun seedExercises() =
         withContext(Dispatchers.IO) {
             // Check if already seeded
-            val existingCount = exerciseDao.getAllExercisesWithDetails().size
+            val existingCount = exerciseDao.getAllExercises().size
             if (existingCount > 0) {
-                println("Exercises already seeded (count: $existingCount), skipping")
                 return@withContext
             }
 
             if (context == null) {
-                println("❌ FATAL: Context not available for exercise seeding")
                 throw IllegalStateException(
                     "Cannot initialize exercise database: Context is null. App cannot function without proper exercise data.",
                 )
@@ -59,58 +66,142 @@ class ExerciseSeeder(
                 val jsonString = inputStream.bufferedReader().use { it.readText() }
                 val exercisesData = json.decodeFromString<ExercisesJson>(jsonString)
 
-                println("Loading ${exercisesData.exercises.size} exercises from assets")
 
-                // Convert and insert exercises
-                val exercises =
-                    exercisesData.exercises.map { data ->
-                        Exercise(
+                // Group exercises by base movement pattern to create cores
+                val coreGroups = exercisesData.exercises.groupBy { data ->
+                    // Extract core exercise name (e.g., "Barbell Bench Press" -> "Bench Press")
+                    extractCoreExerciseName(data.name)
+                }
+
+                // Process each core group
+                coreGroups.forEach { (coreName, variations) ->
+                    if (coreName.isNotBlank()) {
+                        // Get the first variation to extract core properties
+                        val firstVariation = variations.first()
+                        
+                        // Create the core exercise
+                        val coreExercise = ExerciseCore(
                             id = 0, // Auto-generate
-                            name = data.name,
-                            category = ExerciseCategory.valueOf(data.category.uppercase().replace(" ", "_")),
-                            equipment = parseEquipment(data.equipment),
-                            muscleGroup = data.muscleGroup,
-                            movementPattern = data.movementPattern,
-                            type = ExerciseType.valueOf(data.type.uppercase()),
-                            difficulty = ExerciseDifficulty.valueOf(data.difficulty.uppercase()),
-                            requiresWeight = data.requiresWeight,
-                            instructions = data.instructions,
-                            usageCount = 0,
+                            name = coreName,
+                            category = ExerciseCategory.valueOf(firstVariation.category.uppercase().replace(" ", "_")),
+                            movementPattern = parseMovementPattern(firstVariation.movementPattern),
+                            isCompound = isCompoundExercise(coreName),
                             createdAt = LocalDateTime.now(),
-                            updatedAt = LocalDateTime.now(),
+                            updatedAt = LocalDateTime.now()
                         )
-                    }
-
-                // Insert exercises and aliases
-                exercises.forEachIndexed { index, exercise ->
-                    val exerciseId = exerciseDao.insertExercise(exercise)
-
-                    // Insert aliases for fuzzy matching
-                    val data = exercisesData.exercises[index]
-                    if (data.aliases.isNotEmpty()) {
-                        val aliases =
-                            data.aliases.map { alias ->
-                                ExerciseAlias(
-                                    exerciseId = exerciseId,
-                                    alias = alias,
-                                    confidence = 1.0f,
-                                    exactMatchOnly = false,
-                                    source = "static",
+                        
+                        val coreId = exerciseCoreDao.insertExerciseCore(coreExercise)
+                        
+                        // Create variations for this core
+                        variations.forEach { data ->
+                            val variation = ExerciseVariation(
+                                id = 0, // Auto-generate
+                                coreExerciseId = coreId,
+                                name = data.name,
+                                equipment = parseEquipment(data.equipment),
+                                difficulty = ExerciseDifficulty.valueOf(data.difficulty.uppercase()),
+                                requiresWeight = data.requiresWeight,
+                                recommendedRepRange = getRecommendedRepRange(data.difficulty),
+                                usageCount = 0,
+                                isCustom = false,
+                                createdBy = null,
+                                createdAt = LocalDateTime.now(),
+                                updatedAt = LocalDateTime.now()
+                            )
+                            
+                            val variationId = exerciseVariationDao.insertExerciseVariation(variation)
+                            
+                            // Add muscle mappings
+                            val muscleGroup = parseMuscleGroup(data.muscleGroup)
+                            val variationMuscle = VariationMuscle(
+                                variationId = variationId,
+                                muscle = muscleGroup,
+                                isPrimary = true,
+                                emphasisModifier = 1.0f
+                            )
+                            variationMuscleDao.insertVariationMuscle(variationMuscle)
+                            
+                            // Add secondary muscles based on movement pattern
+                            val secondaryMuscles = getSecondaryMuscles(firstVariation.movementPattern, muscleGroup)
+                            secondaryMuscles.forEach { secondaryMuscle ->
+                                val secondaryVariationMuscle = VariationMuscle(
+                                    variationId = variationId,
+                                    muscle = secondaryMuscle,
+                                    isPrimary = false,
+                                    emphasisModifier = 0.5f
                                 )
+                                variationMuscleDao.insertVariationMuscle(secondaryVariationMuscle)
                             }
-                        exerciseDao.insertAliases(aliases)
+                            
+                            // Add instructions if available
+                            data.instructions?.let { instructionText ->
+                                val instruction = VariationInstruction(
+                                    id = 0,
+                                    variationId = variationId,
+                                    instructionType = InstructionType.EXECUTION,
+                                    content = instructionText,
+                                    orderIndex = 0,
+                                    languageCode = "en"
+                                )
+                                variationInstructionDao.insertInstruction(instruction)
+                            }
+                            
+                            // Add aliases
+                            data.aliases.forEach { aliasText ->
+                                val alias = VariationAlias(
+                                    id = 0,
+                                    variationId = variationId,
+                                    alias = aliasText,
+                                    confidence = 1.0f,
+                                    languageCode = "en",
+                                    source = "seed"
+                                )
+                                variationAliasDao.insertAlias(alias)
+                            }
+                        }
                     }
                 }
 
-                println("Successfully seeded ${exercises.size} exercises")
             } catch (e: Exception) {
-                println("❌ FATAL: Failed to load exercise database: ${e.message}")
-                e.printStackTrace()
                 throw IllegalStateException(
                     "Exercise database loading failed. App cannot function without proper exercise data. Error: ${e.message}",
                 )
             }
         }
+
+    private fun extractCoreExerciseName(fullName: String): String {
+        // Remove equipment prefixes to get core movement
+        val withoutEquipment = fullName
+            .replace("Barbell ", "")
+            .replace("Dumbbell ", "")
+            .replace("Cable ", "")
+            .replace("Machine ", "")
+            .replace("Smith Machine ", "")
+            .replace("EZ Bar ", "")
+            .replace("Kettlebell ", "")
+            .replace("Resistance Band ", "")
+            .replace("Bodyweight ", "")
+            .replace("Weighted ", "")
+        
+        return withoutEquipment.trim()
+    }
+
+    private fun isCompoundExercise(coreName: String): Boolean {
+        val compoundExercises = listOf(
+            "Squat", "Deadlift", "Bench Press", "Press", "Row", 
+            "Pull Up", "Dip", "Lunge", "Clean", "Snatch", "Thruster"
+        )
+        return compoundExercises.any { coreName.contains(it, ignoreCase = true) }
+    }
+
+    private fun parseMovementPattern(value: String): MovementPattern {
+        return try {
+            MovementPattern.valueOf(value.uppercase().replace(" ", "_"))
+        } catch (e: Exception) {
+            // Default to PUSH if pattern not recognized
+            MovementPattern.PUSH
+        }
+    }
 
     private fun parseEquipment(value: String): Equipment {
         // Special cases that don't follow simple transformation rules
@@ -119,6 +210,45 @@ class ExerciseSeeder(
             "Ghd Machine" -> Equipment.GHD_MACHINE
             "Trx" -> Equipment.TRX
             else -> Equipment.valueOf(value.uppercase().replace(" ", "_"))
+        }
+    }
+    
+    private fun parseMuscleGroup(value: String): MuscleGroup {
+        return try {
+            MuscleGroup.valueOf(value.uppercase().replace(" ", "_"))
+        } catch (e: Exception) {
+            // Default to CHEST if not recognized
+            MuscleGroup.CHEST
+        }
+    }
+    
+    private fun getRecommendedRepRange(difficulty: String): String {
+        return when (difficulty.uppercase()) {
+            "BEGINNER" -> "8-12"
+            "INTERMEDIATE" -> "6-10"
+            "ADVANCED" -> "4-8"
+            "ELITE" -> "1-5"
+            else -> "8-12"
+        }
+    }
+    
+    private fun getSecondaryMuscles(movementPattern: String, primaryMuscle: MuscleGroup): List<MuscleGroup> {
+        return when (movementPattern.uppercase()) {
+            "PUSH" -> when (primaryMuscle) {
+                MuscleGroup.CHEST -> listOf(MuscleGroup.TRICEPS, MuscleGroup.SHOULDERS)
+                MuscleGroup.SHOULDERS -> listOf(MuscleGroup.TRICEPS)
+                MuscleGroup.TRICEPS -> listOf(MuscleGroup.CHEST, MuscleGroup.SHOULDERS)
+                else -> emptyList()
+            }
+            "PULL" -> when (primaryMuscle) {
+                MuscleGroup.BACK -> listOf(MuscleGroup.BICEPS, MuscleGroup.REAR_DELTS)
+                MuscleGroup.BICEPS -> listOf(MuscleGroup.BACK)
+                MuscleGroup.LATS -> listOf(MuscleGroup.BICEPS, MuscleGroup.MIDDLE_BACK)
+                else -> emptyList()
+            }
+            "SQUAT" -> listOf(MuscleGroup.GLUTES, MuscleGroup.CORE)
+            "HINGE" -> listOf(MuscleGroup.GLUTES, MuscleGroup.CORE)
+            else -> emptyList()
         }
     }
 }

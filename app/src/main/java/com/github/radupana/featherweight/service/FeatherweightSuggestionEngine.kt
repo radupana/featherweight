@@ -19,11 +19,20 @@ class FeatherweightSuggestionEngine(
         val weights = mutableListOf<Float>()
         val confidences = mutableListOf<Float>()
 
+        // Get exercise ID from name
+        val exercise = repository.getExerciseByName(exerciseName)
+        val exerciseVariationId = exercise?.id ?: return WeightSuggestion(
+            weight = 20f,
+            confidence = 0f,
+            sources = emptyList(),
+            explanation = "Exercise not found"
+        )
+
         // For freestyle workouts (null targetReps), use a default of 8-10 reps for calculations
         val effectiveTargetReps = targetReps ?: 8
 
         // 1. One RM calculation (if available)
-        val oneRM = repository.getOneRMForExercise(exerciseName)
+        val oneRM = repository.getOneRMForExercise(exerciseVariationId)
         if (oneRM != null) {
             val percentage = calculatePercentageForReps(effectiveTargetReps)
             val weight = oneRM * percentage
@@ -46,7 +55,7 @@ class FeatherweightSuggestionEngine(
         }
 
         // 2. Historical average for similar rep ranges
-        val historicalData = repository.getHistoricalPerformance(exerciseName, effectiveTargetReps - 1, effectiveTargetReps + 1)
+        val historicalData = repository.getHistoricalPerformance(exerciseVariationId, effectiveTargetReps - 1, effectiveTargetReps + 1)
         if (historicalData.isNotEmpty()) {
             val avgWeight = historicalData.map { it.actualWeight }.average().toFloat()
             val confidence = if (targetReps != null) 0.7f else 0.6f // Lower confidence for freestyle
@@ -68,7 +77,7 @@ class FeatherweightSuggestionEngine(
         }
 
         // 3. Recent performance trend
-        val recentSets = repository.getRecentPerformance(exerciseName, limit = 5)
+        val recentSets = repository.getRecentPerformance(exerciseVariationId, limit = 5)
         if (recentSets.isNotEmpty()) {
             val trendWeight = calculateTrendWeight(recentSets, effectiveTargetReps)
             sources.add(
@@ -134,14 +143,23 @@ class FeatherweightSuggestionEngine(
     ): RepsSuggestion {
         val sources = mutableListOf<SuggestionSourceData>()
 
+        // Get exercise ID from name
+        val exercise = repository.getExerciseByName(exerciseName)
+        val exerciseVariationId = exercise?.id ?: return RepsSuggestion(
+            reps = 8,
+            confidence = 0f,
+            sources = emptyList(),
+            explanation = "Exercise not found"
+        )
+
         // 1. One RM calculation (if available)
-        val oneRM = repository.getOneRMForExercise(exerciseName)
+        val oneRM = repository.getOneRMForExercise(exerciseVariationId)
         val suggestedReps =
             if (oneRM != null && oneRM > 0) {
                 calculateRepsForWeight(targetWeight, oneRM)
             } else {
                 // Look at historical data for this weight
-                val historicalData = repository.getHistoricalPerformanceForWeight(exerciseName, targetWeight - 2.5f, targetWeight + 2.5f)
+                val historicalData = repository.getHistoricalPerformanceForWeight(exerciseVariationId, targetWeight - 2.5f, targetWeight + 2.5f)
                 if (historicalData.isNotEmpty()) {
                     historicalData.map { it.actualReps }.average().roundToInt()
                 } else {
@@ -274,12 +292,14 @@ class FeatherweightSuggestionEngine(
         // Basic correlation logic - can be enhanced with more sophisticated analysis
         return when (exerciseName.lowercase()) {
             "barbell bench press" -> {
-                val shoulderPress = repository.getOneRMForExercise("Barbell Overhead Press")
+                val shoulderPressExercise = repository.getExerciseByName("Barbell Overhead Press")
+                val shoulderPress = shoulderPressExercise?.id?.let { repository.getOneRMForExercise(it) }
                 shoulderPress?.let { it * 1.3f * calculatePercentageForReps(targetReps) }
             }
 
             "barbell back squat" -> {
-                val deadlift = repository.getOneRMForExercise("Barbell Deadlift")
+                val deadliftExercise = repository.getExerciseByName("Barbell Deadlift")
+                val deadlift = deadliftExercise?.id?.let { repository.getOneRMForExercise(it) }
                 deadlift?.let { it * 0.85f * calculatePercentageForReps(targetReps) }
             }
 

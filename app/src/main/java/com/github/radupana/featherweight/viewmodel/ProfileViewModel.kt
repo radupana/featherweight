@@ -86,7 +86,6 @@ class ProfileViewModel(
     }
 
     fun refreshData() {
-        println("🔄 ProfileViewModel: Refreshing profile data")
         loadProfileData()
     }
 
@@ -119,7 +118,7 @@ class ProfileViewModel(
                             maxes.map { max ->
                                 ExerciseMaxWithName(
                                     id = max.id,
-                                    exerciseId = max.exerciseId,
+                                    exerciseId = max.exerciseVariationId,
                                     exerciseName = max.exerciseName,
                                     oneRMEstimate = max.oneRMEstimate,
                                     oneRMDate = max.oneRMDate,
@@ -146,7 +145,7 @@ class ProfileViewModel(
                             big4Exercises =
                                 big4.map { max ->
                                     Big4Exercise(
-                                        exerciseId = max.exerciseId,
+                                        exerciseId = max.exerciseVariationId,
                                         exerciseName = max.exerciseName,
                                         oneRMValue = max.oneRMEstimate,
                                         oneRMType = max.oneRMType,
@@ -168,7 +167,7 @@ class ProfileViewModel(
                                 others.map { max ->
                                     ExerciseMaxWithName(
                                         id = max.id,
-                                        exerciseId = max.exerciseId,
+                                        exerciseId = max.exerciseVariationId,
                                         exerciseName = max.exerciseName,
                                         oneRMEstimate = max.oneRMEstimate,
                                         oneRMDate = max.oneRMDate,
@@ -202,7 +201,7 @@ class ProfileViewModel(
                 val userId = repository.getCurrentUserId()
                 repository.upsertExerciseMax(
                     userId = userId,
-                    exerciseId = exerciseId,
+                    exerciseVariationId = exerciseId,
                     oneRMEstimate = newMax,
                     oneRMContext = "Manually set",
                     oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,

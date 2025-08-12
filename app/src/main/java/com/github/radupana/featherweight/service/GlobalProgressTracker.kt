@@ -33,7 +33,7 @@ class GlobalProgressTracker(
             val pendingUpdate =
                 updateExerciseProgress(
                     userId = userId,
-                    exerciseName = exercise.exerciseName,
+                    exerciseVariationId = exercise.exerciseVariationId,
                     workoutId = workoutId,
                     isProgrammeWorkout = workout.programmeId != null,
                     workoutDate = workout.date,
@@ -46,7 +46,7 @@ class GlobalProgressTracker(
 
     private suspend fun updateExerciseProgress(
         userId: Long,
-        exerciseName: String,
+        exerciseVariationId: Long,
         workoutId: Long,
         isProgrammeWorkout: Boolean,
         workoutDate: LocalDateTime? = null,
@@ -55,7 +55,7 @@ class GlobalProgressTracker(
             database
                 .exerciseLogDao()
                 .getExerciseLogsForWorkout(workoutId)
-                .filter { it.exerciseName == exerciseName }
+                .filter { it.exerciseVariationId == exerciseVariationId }
 
         if (exerciseLogs.isEmpty()) return null
 
@@ -82,8 +82,8 @@ class GlobalProgressTracker(
 
         // Get or create progress record
         var progress =
-            globalProgressDao.getProgressForExercise(userId, exerciseName)
-                ?: createInitialProgress(userId, exerciseName)
+            globalProgressDao.getProgressForExercise(userId, exerciseVariationId)
+                ?: createInitialProgress(userId, exerciseVariationId)
 
         // Update working weight
         val previousWeight = progress.currentWorkingWeight
@@ -136,16 +136,15 @@ class GlobalProgressTracker(
 
     private suspend fun createInitialProgress(
         userId: Long,
-        exerciseName: String,
+        exerciseVariationId: Long,
     ): GlobalExerciseProgress {
         // Try to get 1RM from UserExerciseMax
-        val exercise = database.exerciseDao().findExerciseByExactName(exerciseName)
-        val userMax = exercise?.let { database.oneRMDao().getCurrentMax(userId, it.id) }
+        val userMax = database.oneRMDao().getCurrentMax(userId, exerciseVariationId)
         val estimatedMax = userMax?.oneRMEstimate ?: 0f
 
         return GlobalExerciseProgress(
             userId = userId,
-            exerciseName = exerciseName,
+            exerciseVariationId = exerciseVariationId,
             currentWorkingWeight = 0f,
             estimatedMax = estimatedMax,
             lastUpdated = LocalDateTime.now(),
@@ -312,8 +311,7 @@ class GlobalProgressTracker(
         if (estimableSets.isEmpty()) return Pair(progress, null)
 
         // Get current stored max from profile FIRST for confidence calculation
-        val exercise = database.exerciseDao().findExerciseByExactName(progress.exerciseName)
-        val currentUserMax = exercise?.let { database.oneRMDao().getCurrentMax(userId, it.id) }
+        val currentUserMax = database.oneRMDao().getCurrentMax(userId, progress.exerciseVariationId)
         val storedMaxWeight = currentUserMax?.oneRMEstimate
 
         // Find the best set for 1RM calculation
@@ -361,8 +359,9 @@ class GlobalProgressTracker(
         val estimated1RM = bestEstimate.estimatedMax
 
         // Check if this is a Big 4 exercise
+        val exerciseVariation = database.exerciseVariationDao().getExerciseVariationById(progress.exerciseVariationId)
         val isBig4Exercise =
-            progress.exerciseName in
+            exerciseVariation?.name in
                 listOf(
                     "Barbell Back Squat",
                     "Barbell Deadlift",
@@ -382,32 +381,26 @@ class GlobalProgressTracker(
                         (bestEstimate.source.contains("1 rep") && estimated1RM > currentUserMax.oneRMEstimate) ||
                             (estimated1RM > currentUserMax.oneRMEstimate * 1.02)
                     ) -> {
-                    exercise?.let {
-                        PendingOneRMUpdate(
-                            exerciseId = it.id,
-                            exerciseName = progress.exerciseName,
-                            currentMax = currentUserMax.oneRMEstimate,
-                            suggestedMax = estimated1RM,
-                            confidence = bestEstimate.confidence,
-                            source = bestEstimate.source,
-                            workoutDate = workoutDate,
-                        )
-                    }
+                    PendingOneRMUpdate(
+                        exerciseVariationId = progress.exerciseVariationId,
+                        currentMax = currentUserMax.oneRMEstimate,
+                        suggestedMax = estimated1RM,
+                        confidence = bestEstimate.confidence,
+                        source = bestEstimate.source,
+                        workoutDate = workoutDate,
+                    )
                 }
 
                 // No stored max but high confidence estimate - suggest adding
                 currentUserMax == null && bestEstimate.confidence >= 0.85f && isBig4Exercise -> {
-                    exercise?.let {
-                        PendingOneRMUpdate(
-                            exerciseId = it.id,
-                            exerciseName = progress.exerciseName,
-                            currentMax = null,
-                            suggestedMax = estimated1RM,
-                            confidence = bestEstimate.confidence,
-                            source = bestEstimate.source,
-                            workoutDate = workoutDate,
-                        )
-                    }
+                    PendingOneRMUpdate(
+                        exerciseVariationId = progress.exerciseVariationId,
+                        currentMax = null,
+                        suggestedMax = estimated1RM,
+                        confidence = bestEstimate.confidence,
+                        source = bestEstimate.source,
+                        workoutDate = workoutDate,
+                    )
                 }
 
                 else -> null

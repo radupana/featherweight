@@ -117,7 +117,7 @@ fun SetEditingModal(
 
     // Get 1RM estimate for this exercise
     val oneRMEstimates by viewModel.oneRMEstimates.collectAsState()
-    val oneRMEstimate = oneRMEstimates[exercise.exerciseId]
+    val oneRMEstimate = oneRMEstimates[exercise.exerciseVariationId]
 
     // Intelligent suggestions state
     var intelligentSuggestions by remember { mutableStateOf<SmartSuggestions?>(null) }
@@ -129,9 +129,13 @@ fun SetEditingModal(
     val restTimerSeconds by viewModel.restTimerSeconds.collectAsState()
     val restTimerInitialSeconds by viewModel.restTimerInitialSeconds.collectAsState()
 
+    // Get exercise name from repository
+    val exerciseNames by viewModel.exerciseNames.collectAsState()
+    val exerciseName = exerciseNames[exercise.exerciseVariationId] ?: "Unknown Exercise"
+    
     // Load intelligent suggestions when modal opens
-    LaunchedEffect(exercise.exerciseName) {
-        intelligentSuggestions = viewModel.getIntelligentSuggestions(exercise.exerciseName)
+    LaunchedEffect(exercise.exerciseVariationId) {
+        intelligentSuggestions = viewModel.getIntelligentSuggestions(exercise.exerciseVariationId)
     }
 
     // Ensure validation cache is updated when sets change
@@ -225,7 +229,7 @@ fun SetEditingModal(
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
-                                exercise.exerciseName,
+                                exerciseName,
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 textAlign = TextAlign.Center,
@@ -258,12 +262,12 @@ fun SetEditingModal(
 
                 // Collapsible Insights Section
                 val exerciseHistory by viewModel.exerciseHistory.collectAsState()
-                val previousSets = exerciseHistory[exercise.exerciseName]?.sets ?: emptyList()
+                val previousSets = exerciseHistory[exercise.exerciseVariationId]?.sets ?: emptyList()
                 var showInsights by remember { mutableStateOf(false) }
 
                 if (previousSets.isNotEmpty() || (!isProgrammeWorkout && intelligentSuggestions != null)) {
                     InsightsSection(
-                        exerciseName = exercise.exerciseName,
+                        exerciseName = exerciseName,
                         previousSets = previousSets,
                         intelligentSuggestions = if (!isProgrammeWorkout) intelligentSuggestions else null,
                         isExpanded = showInsights,
