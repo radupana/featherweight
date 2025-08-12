@@ -305,7 +305,7 @@ fun WorkoutScreen(
         Column(
             modifier =
                 Modifier
-                    .padding(innerPadding)
+                    .padding(top = innerPadding.calculateTopPadding())  // Only apply top padding
                     .fillMaxSize(),
         ) {
             // Exercises list or empty state
@@ -360,7 +360,7 @@ fun WorkoutScreen(
                 )
             }
 
-            // Rest timer at bottom (if active)
+            // Rest timer at bottom (if active) - positioned at absolute bottom
             if (restTimerSeconds > 0) {
                 CompactRestTimer(
                     seconds = restTimerSeconds,
@@ -368,7 +368,7 @@ fun WorkoutScreen(
                     onSkip = { viewModel.skipRestTimer() },
                     onPresetSelected = { viewModel.selectRestTimerPreset(it) },
                     onAdjustTime = { viewModel.adjustRestTimer(it) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),  // No bottom padding - sits right at bottom
                 )
             }
         }
