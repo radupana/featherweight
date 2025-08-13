@@ -17,11 +17,15 @@ import com.github.radupana.featherweight.data.UserPreferences
 import com.github.radupana.featherweight.data.VolumeLevel
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
+import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseCorrelationSeeder
+import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.ExerciseSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
+import com.github.radupana.featherweight.data.exercise.MovementPattern
+import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.data.model.WorkoutTemplate
 import com.github.radupana.featherweight.data.model.WorkoutTemplateConfig
@@ -243,6 +247,35 @@ class FeatherweightRepository(
     // Get muscles for a variation
     suspend fun getMusclesForVariation(variationId: Long): List<VariationMuscle> =
         variationMuscleDao.getMusclesForVariation(variationId)
+    
+    // Delete custom exercise
+    suspend fun canDeleteExercise(exerciseVariationId: Long): Result<Boolean> = 
+        exerciseRepository.canDeleteExercise(exerciseVariationId)
+    
+    suspend fun deleteCustomExercise(exerciseVariationId: Long): Result<Unit> = 
+        exerciseRepository.deleteCustomExercise(exerciseVariationId)
+    
+    // Create custom exercise
+    suspend fun createCustomExercise(
+        name: String,
+        category: ExerciseCategory,
+        primaryMuscles: Set<MuscleGroup>,
+        secondaryMuscles: Set<MuscleGroup> = emptySet(),
+        equipment: Equipment,
+        difficulty: ExerciseDifficulty = ExerciseDifficulty.BEGINNER,
+        requiresWeight: Boolean = true,
+        movementPattern: MovementPattern = MovementPattern.PUSH
+    ): Result<ExerciseVariation> = exerciseRepository.createCustomExercise(
+        name = name,
+        category = category,
+        primaryMuscles = primaryMuscles,
+        secondaryMuscles = secondaryMuscles,
+        equipment = equipment,
+        difficulty = difficulty,
+        requiresWeight = requiresWeight,
+        movementPattern = movementPattern,
+        userId = getCurrentUserId()
+    )
 
     // ===== EXISTING WORKOUT METHODS (Updated to work with new Exercise system) =====
 

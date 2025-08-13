@@ -1,15 +1,17 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
+import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.service.ExerciseNamingService
+import com.github.radupana.featherweight.service.ValidationResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -19,6 +21,7 @@ class ExerciseSelectorViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
+    private val namingService = ExerciseNamingService()
 
     // Raw data
     private val _allExercises = MutableStateFlow<List<ExerciseWithDetails>>(emptyList())
@@ -31,6 +34,20 @@ class ExerciseSelectorViewModel(
     // Success state for creation
     private val _exerciseCreated = MutableStateFlow<String?>(null)
     val exerciseCreated: StateFlow<String?> = _exerciseCreated
+    
+    // Name validation state
+    private val _nameValidationError = MutableStateFlow<String?>(null)
+    val nameValidationError: StateFlow<String?> = _nameValidationError
+    
+    private val _nameSuggestion = MutableStateFlow<String?>(null)
+    val nameSuggestion: StateFlow<String?> = _nameSuggestion
+    
+    // Delete state
+    private val _exerciseToDelete = MutableStateFlow<ExerciseWithDetails?>(null)
+    val exerciseToDelete: StateFlow<ExerciseWithDetails?> = _exerciseToDelete
+    
+    private val _deleteError = MutableStateFlow<String?>(null)
+    val deleteError: StateFlow<String?> = _deleteError
 
     // Filter state
     private val _searchQuery = MutableStateFlow("")
@@ -199,10 +216,7 @@ class ExerciseSelectorViewModel(
                         loadExerciseWithDetails(variation)
                     }
                 _allExercises.value = exercises
-
-                Log.d("ExerciseSelectorVM", "Loaded ${exercises.size} exercises from database")
             } catch (e: Exception) {
-                Log.e("ExerciseSelectorVM", "Failed to load exercises from database", e)
                 throw IllegalStateException("Failed to load exercises from database", e)
             } finally {
                 _isLoading.value = false
@@ -243,32 +257,79 @@ class ExerciseSelectorViewModel(
         _searchQuery.value = ""
     }
 
-    fun createCustomExercise(name: String) {
+    fun createCustomExercise(
+        name: String,
+        category: ExerciseCategory? = null,
+        primaryMuscles: Set<MuscleGroup> = emptySet(),
+        secondaryMuscles: Set<MuscleGroup> = emptySet(),
+        equipment: Set<Equipment> = emptySet(),
+        difficulty: ExerciseDifficulty = ExerciseDifficulty.BEGINNER,
+        requiresWeight: Boolean = true
+    ) {
         viewModelScope.launch {
             try {
-                _errorMessage.value = null // Clear any previous errors
-                _exerciseCreated.value = null // Clear any previous success
-
-                // Try to determine category from name
-                inferCategoryFromName(name)
-
-                // Basic muscle groups based on common exercise patterns
-                inferMusclesFromName(name)
-
-                // Default to bodyweight if we can't determine equipment
-                inferEquipmentFromName(name)
-
-                // Custom exercise creation disabled - not a core feature
-                Log.w("ExerciseSelectorVM", "Custom exercise creation requested but not implemented: $name")
-
-                // Reload exercises after creating
-                loadExercises()
-
-                // Signal success
-                _exerciseCreated.value = name
+                _errorMessage.value = null
+                _exerciseCreated.value = null
+                
+                // Validate and format the exercise name
+                val formattedName = namingService.formatExerciseName(name)
+                val validationResult = namingService.validateExerciseName(formattedName)
+                
+                if (validationResult is ValidationResult.Invalid) {
+                    _errorMessage.value = validationResult.reason
+                    // If there's a suggestion, we could offer to use it
+                    return@launch
+                }
+                
+                // Extract components from the name if not provided
+                val components = namingService.extractComponents(formattedName)
+                
+                // Use provided values or fall back to extracted/inferred values
+                val finalCategory = category ?: components.category
+                val finalPrimaryMuscles = if (primaryMuscles.isNotEmpty()) {
+                    primaryMuscles
+                } else if (components.muscleGroup != null) {
+                    setOf(components.muscleGroup)
+                } else {
+                    inferMusclesFromName(formattedName)
+                }
+                
+                val finalEquipment = if (equipment.isNotEmpty()) {
+                    equipment.first()
+                } else {
+                    components.equipment ?: Equipment.BODYWEIGHT
+                }
+                
+                val finalMovementPattern = components.movementPattern
+                
+                // Create the exercise using the repository
+                val result = repository.createCustomExercise(
+                    name = formattedName,
+                    category = finalCategory,
+                    primaryMuscles = finalPrimaryMuscles,
+                    secondaryMuscles = secondaryMuscles,
+                    equipment = finalEquipment,
+                    difficulty = difficulty,
+                    requiresWeight = requiresWeight,
+                    movementPattern = finalMovementPattern
+                )
+                
+                result.fold(
+                    onSuccess = { createdExercise ->
+                        // Reload exercises to include the new one
+                        loadExercises()
+                        // Signal success
+                        _exerciseCreated.value = createdExercise.name
+                    },
+                    onFailure = { error ->
+                        _errorMessage.value = when (error) {
+                            is IllegalArgumentException -> error.message
+                            else -> "Failed to create exercise: ${error.message}"
+                        }
+                    }
+                )
             } catch (e: Exception) {
-                _errorMessage.value = e.message
-                Log.e("ExerciseSelectorVM", "Error creating custom exercise", e)
+                _errorMessage.value = "Unexpected error: ${e.message}"
             }
         }
     }
@@ -364,16 +425,88 @@ class ExerciseSelectorViewModel(
     fun refreshExercises() {
         loadExercises()
     }
+    
+    fun validateExerciseName(name: String) {
+        if (name.isBlank()) {
+            _nameValidationError.value = null
+            _nameSuggestion.value = null
+            return
+        }
+        
+        val formattedName = namingService.formatExerciseName(name)
+        val validationResult = namingService.validateExerciseName(formattedName)
+        
+        when (validationResult) {
+            is ValidationResult.Valid -> {
+                _nameValidationError.value = null
+                _nameSuggestion.value = if (formattedName != name) formattedName else null
+            }
+            is ValidationResult.Invalid -> {
+                _nameValidationError.value = validationResult.reason
+                _nameSuggestion.value = validationResult.suggestion ?: namingService.suggestCorrection(name)
+            }
+        }
+    }
+    
+    fun clearNameValidation() {
+        _nameValidationError.value = null
+        _nameSuggestion.value = null
+    }
+    
+    fun requestDeleteExercise(exercise: ExerciseWithDetails) {
+        _exerciseToDelete.value = exercise
+        _deleteError.value = null
+    }
+    
+    fun cancelDelete() {
+        _exerciseToDelete.value = null
+        _deleteError.value = null
+    }
+    
+    fun confirmDeleteExercise() {
+        viewModelScope.launch {
+            val exercise = _exerciseToDelete.value ?: return@launch
+            
+            try {
+                _deleteError.value = null
+                
+                // First check if we can delete it
+                val canDelete = repository.canDeleteExercise(exercise.variation.id)
+                canDelete.fold(
+                    onSuccess = {
+                        // Proceed with deletion
+                        val deleteResult = repository.deleteCustomExercise(exercise.variation.id)
+                        deleteResult.fold(
+                            onSuccess = {
+                                // Reload exercises to reflect the deletion
+                                loadExercises()
+                                // Clear the delete state
+                                _exerciseToDelete.value = null
+                                _deleteError.value = null
+                                // Show success message
+                                _errorMessage.value = "Exercise deleted successfully"
+                            },
+                            onFailure = { error ->
+                                _deleteError.value = error.message ?: "Failed to delete exercise"
+                            }
+                        )
+                    },
+                    onFailure = { error ->
+                        _deleteError.value = error.message ?: "Cannot delete this exercise"
+                    }
+                )
+            } catch (e: Exception) {
+                _deleteError.value = "Unexpected error: ${e.message}"
+            }
+        }
+    }
 
     // Load swap suggestions for the given exercise
     fun loadSwapSuggestions(exerciseId: Long) {
         viewModelScope.launch {
             try {
-                Log.d("ExerciseSelectorVM", "Loading swap suggestions for exercise ID: $exerciseId")
-
                 // Wait for exercises to be loaded if they're not already
                 if (_allExercises.value.isEmpty()) {
-                    Log.d("ExerciseSelectorVM", "Waiting for exercises to load")
                     // Ensure exercises are loaded first
                     repository.seedDatabaseIfEmpty()
                     val variations = repository.getAllExercises()
@@ -383,15 +516,12 @@ class ExerciseSelectorViewModel(
                             loadExerciseWithDetails(variation)
                         }
                     _allExercises.value = exercises
-                    Log.d("ExerciseSelectorVM", "Loaded ${exercises.size} exercises for swap")
                 }
 
                 // Get historical swaps
                 val userId = repository.getCurrentUserId()
                 val swapHistory = repository.getSwapHistoryForExercise(userId, exerciseId)
                 val previouslySwapped = mutableListOf<ExerciseSuggestion>()
-
-                Log.d("ExerciseSelectorVM", "Found ${swapHistory.size} historical swaps")
 
                 // Get exercise details for historically swapped exercises
                 swapHistory.forEach { historyCount ->
@@ -418,14 +548,11 @@ class ExerciseSelectorViewModel(
                     
                     val currentExercise = loadExerciseWithDetails(currentVariation)
                     val suggestions = generateSmartSuggestions(currentExercise, previouslySwapped)
-                    Log.d("ExerciseSelectorVM", "Generated ${suggestions.size} swap suggestions")
                     _swapSuggestions.value = suggestions
                 } else {
-                    Log.w("ExerciseSelectorVM", "Could not find exercise with ID: $exerciseId")
                     _currentSwapExerciseName.value = null
                 }
             } catch (e: Exception) {
-                Log.e("ExerciseSelectorVM", "Failed to load swap suggestions", e)
                 throw IllegalStateException("Failed to load swap suggestions", e)
             }
         }
