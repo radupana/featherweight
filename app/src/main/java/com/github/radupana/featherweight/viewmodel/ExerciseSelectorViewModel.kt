@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
+import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.repository.FeatherweightRepository
@@ -62,6 +63,10 @@ class ExerciseSelectorViewModel(
 
     private val _previouslySwappedExercises = MutableStateFlow<List<ExerciseSuggestion>>(emptyList())
     val previouslySwappedExercises: StateFlow<List<ExerciseSuggestion>> = _previouslySwappedExercises
+
+    // Current exercise being swapped
+    private val _currentSwapExerciseName = MutableStateFlow<String?>(null)
+    val currentSwapExerciseName: StateFlow<String?> = _currentSwapExerciseName
 
     init {
         // Combine all filter states and update filtered exercises
@@ -188,22 +193,16 @@ class ExerciseSelectorViewModel(
 
                 // Load exercises efficiently (usage stats can be calculated on-demand)
                 val variations = repository.getAllExercises()
-                // Convert to ExerciseWithDetails (minimal conversion for now)
+                // Load exercises with full muscle data
                 val exercises =
                     variations.map { variation ->
-                        ExerciseWithDetails(
-                            variation = variation,
-                            muscles = emptyList(),
-                            aliases = emptyList(),
-                            instructions = emptyList(),
-                        )
+                        loadExerciseWithDetails(variation)
                     }
                 _allExercises.value = exercises
 
                 Log.d("ExerciseSelectorVM", "Loaded ${exercises.size} exercises from database")
             } catch (e: Exception) {
-                Log.e("ExerciseSelectorVM", "Error loading exercises", e)
-                Log.e("ExerciseSelectorVM", "Failed to load exercises", e)
+                Log.e("ExerciseSelectorVM", "Failed to load exercises from database", e)
                 throw IllegalStateException("Failed to load exercises from database", e)
             } finally {
                 _isLoading.value = false
@@ -222,6 +221,7 @@ class ExerciseSelectorViewModel(
     fun clearSwapSuggestions() {
         _swapSuggestions.value = emptyList()
         _previouslySwappedExercises.value = emptyList()
+        _currentSwapExerciseName.value = null
     }
 
     fun selectCategory(category: ExerciseCategory?) {
@@ -377,15 +377,10 @@ class ExerciseSelectorViewModel(
                     // Ensure exercises are loaded first
                     repository.seedDatabaseIfEmpty()
                     val variations = repository.getAllExercises()
-                    // Convert to ExerciseWithDetails (minimal conversion for now)
+                    // Load exercises with muscle data
                     val exercises =
                         variations.map { variation ->
-                            ExerciseWithDetails(
-                                variation = variation,
-                                muscles = emptyList(),
-                                aliases = emptyList(),
-                                instructions = emptyList(),
-                            )
+                            loadExerciseWithDetails(variation)
                         }
                     _allExercises.value = exercises
                     Log.d("ExerciseSelectorVM", "Loaded ${exercises.size} exercises for swap")
@@ -402,18 +397,12 @@ class ExerciseSelectorViewModel(
                 swapHistory.forEach { historyCount ->
                     val variation = repository.getExerciseById(historyCount.swappedToExerciseId)
                     if (variation != null) {
-                        val exerciseWithDetails =
-                            ExerciseWithDetails(
-                                variation = variation,
-                                muscles = emptyList(),
-                                aliases = emptyList(),
-                                instructions = emptyList(),
-                            )
+                        val exerciseWithDetails = loadExerciseWithDetails(variation)
                         previouslySwapped.add(
                             ExerciseSuggestion(
                                 exercise = exerciseWithDetails,
                                 swapCount = historyCount.swapCount,
-                                suggestionReason = "Previously swapped ${historyCount.swapCount}x",
+                                suggestionReason = "", // Empty - the swap count badge already shows this info
                             ),
                         )
                     }
@@ -424,23 +413,20 @@ class ExerciseSelectorViewModel(
                 // Get current exercise details for smart suggestions
                 val currentVariation = repository.getExerciseById(exerciseId)
                 if (currentVariation != null) {
-                    val currentExercise =
-                        ExerciseWithDetails(
-                            variation = currentVariation,
-                            muscles = emptyList(),
-                            aliases = emptyList(),
-                            instructions = emptyList(),
-                        )
+                    // Set the current exercise name for display
+                    _currentSwapExerciseName.value = currentVariation.name
+                    
+                    val currentExercise = loadExerciseWithDetails(currentVariation)
                     val suggestions = generateSmartSuggestions(currentExercise, previouslySwapped)
                     Log.d("ExerciseSelectorVM", "Generated ${suggestions.size} swap suggestions")
                     _swapSuggestions.value = suggestions
                 } else {
                     Log.w("ExerciseSelectorVM", "Could not find exercise with ID: $exerciseId")
+                    _currentSwapExerciseName.value = null
                 }
             } catch (e: Exception) {
-                Log.e("ExerciseSelectorVM", "Error loading swap suggestions", e)
-                Log.e("ExerciseSelectorVM", "Failed to load exercises", e)
-                throw IllegalStateException("Failed to load exercises from database", e)
+                Log.e("ExerciseSelectorVM", "Failed to load swap suggestions", e)
+                throw IllegalStateException("Failed to load swap suggestions", e)
             }
         }
     }
@@ -455,12 +441,7 @@ class ExerciseSelectorViewModel(
                 repository
                     .getAllExercises()
                     .map { variation ->
-                        ExerciseWithDetails(
-                            variation = variation,
-                            muscles = emptyList(),
-                            aliases = emptyList(),
-                            instructions = emptyList(),
-                        )
+                        loadExerciseWithDetails(variation)
                     }.also { _allExercises.value = it }
             } else {
                 _allExercises.value
@@ -501,22 +482,47 @@ class ExerciseSelectorViewModel(
     ): Int {
         var score = 0
 
-        // Skip category comparison since ExerciseVariation doesn't have category field
+        // Primary muscle match (highest priority)
+        val currentPrimary = current.getPrimaryMuscles().toSet()
+        val candidatePrimary = candidate.getPrimaryMuscles().toSet()
+        if (currentPrimary.isNotEmpty() && candidatePrimary.isNotEmpty()) {
+            val primaryOverlap = currentPrimary.intersect(candidatePrimary).size
+            score += primaryOverlap * 100  // High score for primary muscle matches
+            
+            // Extra bonus if the main primary muscle matches
+            if (currentPrimary.first() == candidatePrimary.first()) {
+                score += 50
+            }
+        }
 
-        // Same equipment gets medium score
+        // Secondary muscle match
+        val currentSecondary = current.getSecondaryMuscles().toSet()
+        val candidateSecondary = candidate.getSecondaryMuscles().toSet()
+        if (currentSecondary.isNotEmpty() && candidateSecondary.isNotEmpty()) {
+            val secondaryOverlap = currentSecondary.intersect(candidateSecondary).size
+            score += secondaryOverlap * 30  // Medium score for secondary muscle matches
+        }
+
+        // Same equipment (important for home workouts)
         if (current.variation.equipment == candidate.variation.equipment) {
-            score += 30
+            score += 50
+        }
+        
+        // Similar movement pattern (inferred from exercise name patterns)
+        val currentPattern = inferMovementPattern(current.variation.name)
+        val candidatePattern = inferMovementPattern(candidate.variation.name)
+        if (currentPattern != null && currentPattern == candidatePattern) {
+            score += 40
         }
 
-        // Skip muscle group comparison since ExerciseVariation doesn't have muscleGroup field
+        // Similar difficulty
+        val difficultyDiff = kotlin.math.abs(
+            current.variation.difficulty.level - candidate.variation.difficulty.level
+        )
+        score += (5 - difficultyDiff) * 10  // Closer difficulty = higher score
 
-        // Similar difficulty gets small score
-        if (current.variation.difficulty == candidate.variation.difficulty) {
-            score += 10
-        }
-
-        // Usage count adds to score (more used = better suggestion)
-        score += candidate.variation.usageCount
+        // Usage count (popular exercises are good alternatives)
+        score += candidate.variation.usageCount.coerceAtMost(20)
 
         return score
     }
@@ -525,9 +531,74 @@ class ExerciseSelectorViewModel(
         current: ExerciseWithDetails,
         candidate: ExerciseWithDetails,
     ): String {
-        // For smart suggestions, we'll build details in the UI
-        // This is kept for backwards compatibility but won't be displayed
-        return ""
+        val reasons = mutableListOf<String>()
+        
+        val currentPrimary = current.getPrimaryMuscles()
+        val candidatePrimary = candidate.getPrimaryMuscles()
+        
+        // Check primary muscle match
+        if (currentPrimary.isNotEmpty() && candidatePrimary.isNotEmpty() &&
+            currentPrimary.first() == candidatePrimary.first()) {
+            reasons.add("Same primary muscle")
+        }
+        
+        // Check equipment match
+        if (current.variation.equipment == candidate.variation.equipment) {
+            reasons.add("Same equipment")
+        }
+        
+        // Check movement pattern
+        val currentPattern = inferMovementPattern(current.variation.name)
+        val candidatePattern = inferMovementPattern(candidate.variation.name)
+        if (currentPattern != null && currentPattern == candidatePattern) {
+            reasons.add("Similar movement")
+        }
+        
+        return reasons.joinToString(" • ")
+    }
+    
+    // Helper to infer movement pattern from exercise name
+    private fun inferMovementPattern(exerciseName: String): String? {
+        val name = exerciseName.lowercase()
+        
+        // Map of keywords to movement patterns
+        val patterns = mapOf(
+            "squat" to "squat",
+            "deadlift" to "hinge",
+            "row" to "horizontal_pull",
+            "curl" to "isolation_pull",
+            "lunge" to "lunge",
+            "step" to "unilateral_leg",
+            "plank" to "isometric",
+            "crunch" to "core_flexion"
+        )
+        
+        // Check simple patterns first
+        for ((keyword, pattern) in patterns) {
+            if (name.contains(keyword)) return pattern
+        }
+        
+        // Check compound patterns
+        return when {
+            name.contains("bench") && name.contains("press") -> "horizontal_push"
+            name.contains("press") -> "vertical_push"
+            name.contains("pull") -> "vertical_pull"
+            name.contains("extension") || name.contains("tricep") -> "isolation_push"
+            name.contains("fly") || name.contains("flye") -> "isolation_chest"
+            name.contains("raise") -> "isolation_shoulders"
+            else -> null
+        }
+    }
+    
+    // Helper method to load exercise with full details including muscles
+    private suspend fun loadExerciseWithDetails(variation: ExerciseVariation): ExerciseWithDetails {
+        val muscles = repository.getMusclesForVariation(variation.id)
+        return ExerciseWithDetails(
+            variation = variation,
+            muscles = muscles,
+            aliases = emptyList(), // Can load if needed
+            instructions = emptyList() // Can load if needed
+        )
     }
 }
 

@@ -21,6 +21,8 @@ import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseCorrelationSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
+import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.data.model.WorkoutTemplate
 import com.github.radupana.featherweight.data.model.WorkoutTemplateConfig
 import com.github.radupana.featherweight.data.profile.OneRMHistory
@@ -223,6 +225,24 @@ class FeatherweightRepository(
     suspend fun searchExercises(query: String): List<ExerciseVariation> = exerciseRepository.searchExercises(query)
 
     suspend fun getExercisesByCategory(category: ExerciseCategory): List<ExerciseVariation> = exerciseRepository.getExercisesByCategory(category)
+
+    // Get exercise with full details including muscles
+    suspend fun getExerciseWithDetails(id: Long): ExerciseWithDetails? {
+        val variation = exerciseRepository.getExerciseById(id) ?: return null
+        val muscles = variationMuscleDao.getMusclesForVariation(id)
+        val aliases = variationAliasDao.getAliasesForVariation(id)
+        val instructions = variationInstructionDao.getInstructionsForVariation(id)
+        return ExerciseWithDetails(
+            variation = variation,
+            muscles = muscles,
+            aliases = aliases,
+            instructions = instructions
+        )
+    }
+
+    // Get muscles for a variation
+    suspend fun getMusclesForVariation(variationId: Long): List<VariationMuscle> =
+        variationMuscleDao.getMusclesForVariation(variationId)
 
     // ===== EXISTING WORKOUT METHODS (Updated to work with new Exercise system) =====
 

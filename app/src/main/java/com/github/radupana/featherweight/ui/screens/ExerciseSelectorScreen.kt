@@ -53,6 +53,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -85,6 +86,7 @@ fun ExerciseSelectorScreen(
     val exerciseCreated by viewModel.exerciseCreated.collectAsState()
     val swapSuggestions by viewModel.swapSuggestions.collectAsState()
     val previouslySwappedExercises by viewModel.previouslySwappedExercises.collectAsState()
+    val currentSwapExerciseName by viewModel.currentSwapExerciseName.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
 
@@ -166,7 +168,7 @@ fun ExerciseSelectorScreen(
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                         Text(
-                            text = "Current Exercise",
+                            text = currentSwapExerciseName ?: "Loading...",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -513,25 +515,54 @@ private fun ExerciseCard(
                 }
             }
 
-            // Muscle group and equipment info
-            if (exercise.variation.equipment != Equipment.BODYWEIGHT) {
-                Spacer(modifier = Modifier.height(4.dp))
+            // Details row with equipment and muscles
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                // Equipment badge
+                if (exercise.variation.equipment != Equipment.BODYWEIGHT) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text(
+                            text = exercise.variation.equipment.displayName,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                
+                // Primary muscles badge (if available)
+                val primaryMuscles = exercise.getPrimaryMuscles()
+                if (primaryMuscles.isNotEmpty()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text(
+                            text = primaryMuscles.take(2).joinToString(", ") { it.displayName },
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                
+                // Difficulty badge
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(16.dp),
                 ) {
-                    Row(
+                    Text(
+                        text = exercise.variation.difficulty.displayName,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        if (exercise.variation.equipment != Equipment.BODYWEIGHT) {
-                            Text(
-                                text = exercise.variation.equipment.name,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -830,41 +861,68 @@ private fun SuggestionCard(
                         }
                     }
                 }
-
-                // Category badge
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(6.dp),
-                ) {
-                    Text(
-                        text = "Exercise",
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                }
             }
 
-            // Muscle group and equipment info
-            if (suggestion.exercise.variation.equipment != Equipment.BODYWEIGHT) {
-                Spacer(modifier = Modifier.height(4.dp))
+            // Details row with equipment, muscles, and reason
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                // Equipment badge
+                if (suggestion.exercise.variation.equipment != Equipment.BODYWEIGHT) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text(
+                            text = suggestion.exercise.variation.equipment.displayName,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                
+                // Primary muscles badge
+                val primaryMuscles = suggestion.exercise.getPrimaryMuscles()
+                if (primaryMuscles.isNotEmpty()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text(
+                            text = primaryMuscles.take(2).joinToString(", ") { it.displayName },
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                
+                // Difficulty badge
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(16.dp),
                 ) {
-                    Row(
+                    Text(
+                        text = suggestion.exercise.variation.difficulty.displayName,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        if (suggestion.exercise.variation.equipment != Equipment.BODYWEIGHT) {
-                            Text(
-                                text = suggestion.exercise.variation.equipment.name,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
+            }
+            
+            // Show suggestion reason only for smart suggestions (not for previously swapped)
+            if (suggestion.suggestionReason.isNotEmpty() && suggestion.swapCount == 0) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = suggestion.suggestionReason,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontStyle = FontStyle.Italic,
+                )
             }
         }
     }
