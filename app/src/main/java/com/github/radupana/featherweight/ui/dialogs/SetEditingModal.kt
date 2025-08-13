@@ -490,7 +490,7 @@ fun SetEditingModal(
                         if (sets.isNotEmpty() && !readOnly) {
                             item {
                                 val lastSet = sets.maxByOrNull { it.setOrder }
-                                val canCopyLast = lastSet != null && lastSet.actualReps > 0
+                                val canCopyLast = lastSet != null && (lastSet.actualReps > 0 || lastSet.actualWeight > 0)
 
                                 Card(
                                     modifier =

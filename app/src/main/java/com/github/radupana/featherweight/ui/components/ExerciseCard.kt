@@ -366,7 +366,7 @@ fun ExerciseCard(
                     // Action buttons for adding sets
                     if (viewModel.canEditWorkout()) {
                         val lastSet = sets.maxByOrNull { it.setOrder }
-                        val canCopyLast = lastSet != null && lastSet.actualReps > 0
+                        val canCopyLast = lastSet != null && (lastSet.actualReps > 0 || lastSet.actualWeight > 0)
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),

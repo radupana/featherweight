@@ -968,7 +968,7 @@ class WorkoutViewModel(
             val sets = repository.getSetsForExercise(exerciseLogId)
             val lastSet = sets.maxByOrNull { it.setOrder }
 
-            if (lastSet != null && lastSet.actualReps > 0) {
+            if (lastSet != null && (lastSet.actualReps > 0 || lastSet.actualWeight > 0)) {
                 val newSetOrder = (sets.maxOfOrNull { it.setOrder } ?: 0) + 1
                 val isProgrammeWorkout = _workoutState.value.isProgrammeWorkout
                 val newSet =
