@@ -192,6 +192,21 @@ fun ExerciseCard(
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
             )
+            
+            // Set completion counter
+            if (sets.isNotEmpty()) {
+                Text(
+                    text = "$completedSets/${sets.size}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = when {
+                        completedSets == 0 -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        completedSets == sets.size -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    fontWeight = if (completedSets > 0) FontWeight.Medium else FontWeight.Normal,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+            }
 
             // Action buttons (swap and delete) - only show when editable
             if (viewModel.canEditWorkout()) {
