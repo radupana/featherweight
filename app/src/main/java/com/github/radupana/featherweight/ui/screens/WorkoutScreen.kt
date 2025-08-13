@@ -59,6 +59,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.CompactRestTimer
@@ -85,6 +87,7 @@ fun WorkoutScreen(
     val workoutState by viewModel.workoutState.collectAsState()
     val pendingOneRMUpdates by viewModel.pendingOneRMUpdates.collectAsState()
     val expandedExerciseIds by viewModel.expandedExerciseIds.collectAsState()
+    
 
     // Rest timer state
     val restTimerSeconds by viewModel.restTimerSeconds.collectAsState()
@@ -725,6 +728,12 @@ private fun ExercisesList(
     modifier: Modifier = Modifier,
 ) {
     val lazyListState = rememberLazyListState()
+    
+    // Add Reorderable state
+    val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
+        // This callback is called when items are reordered
+        viewModel.reorderExercises(from.index, to.index)
+    }
 
     val imeInsets = WindowInsets.ime.asPaddingValues()
     val horizontalPadding = 16.dp
@@ -746,34 +755,41 @@ private fun ExercisesList(
             items = exercises,
             key = { exercise -> exercise.id },
         ) { exercise ->
-            ExerciseCard(
-                exercise = exercise,
-                sets = sets.filter { it.exerciseLogId == exercise.id },
-                isExpanded = expandedExerciseIds.contains(exercise.id),
-                onToggleExpansion = { viewModel.toggleExerciseExpansion(exercise.id) },
-                onDeleteExercise = { exerciseId ->
-                    if (canEdit) onDeleteExercise(exerciseId)
-                },
-                onSwapExercise = { exerciseId ->
-                    if (canEdit) {
-                        viewModel.initiateExerciseSwap(exerciseId)
-                        onSelectExercise()
-                    }
-                },
-                viewModel = viewModel,
-                modifier = Modifier.animateItem(),
-                // Drag and drop parameters
-                showDragHandle = canEdit,
-                onDragStart = { exerciseId ->
-                    viewModel.onExerciseDragStart(exerciseId)
-                },
-                onDragEnd = {
-                    viewModel.onExerciseDragEnd()
-                },
-                onDrag = { exerciseId, dragAmount ->
-                    viewModel.onExerciseDrag(exerciseId, dragAmount)
-                },
-            )
+            ReorderableItem(
+                state = reorderableLazyListState,
+                key = exercise.id,
+                enabled = canEdit, // Only allow reordering when workout is editable
+            ) { isDragging ->
+                ExerciseCard(
+                    exercise = exercise,
+                    sets = sets.filter { it.exerciseLogId == exercise.id },
+                    isExpanded = expandedExerciseIds.contains(exercise.id),
+                    isDragging = isDragging, // Pass dragging state for visual feedback
+                    onToggleExpansion = { viewModel.toggleExerciseExpansion(exercise.id) },
+                    onDeleteExercise = { exerciseId ->
+                        if (canEdit) onDeleteExercise(exerciseId)
+                    },
+                    onSwapExercise = { exerciseId ->
+                        if (canEdit) {
+                            viewModel.initiateExerciseSwap(exerciseId)
+                            onSelectExercise()
+                        }
+                    },
+                    viewModel = viewModel,
+                    showDragHandle = canEdit,
+                    dragHandleModifier = if (canEdit) {
+                        Modifier.draggableHandle(
+                            onDragStarted = {
+                                // Collapse all exercises when dragging starts for easier reordering
+                                viewModel.collapseAllExercises()
+                            }
+                        )
+                    } else {
+                        Modifier
+                    },
+                    modifier = Modifier.animateItem(),
+                )
+            }
         }
 
         // Action buttons at the end of the list

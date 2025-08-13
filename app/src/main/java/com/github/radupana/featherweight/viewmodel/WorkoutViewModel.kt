@@ -184,16 +184,6 @@ class WorkoutViewModel(
     private val _expandedExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
     val expandedExerciseIds: StateFlow<Set<Long>> = _expandedExerciseIds
 
-    // Drag and drop state
-    private val _isDragInProgress = MutableStateFlow(false)
-    val isDragInProgress: StateFlow<Boolean> = _isDragInProgress
-
-    private val _draggedExerciseId = MutableStateFlow<Long?>(null)
-    val draggedExerciseId: StateFlow<Long?> = _draggedExerciseId
-
-    private var dragStartIndex: Int = -1
-    private var originalExerciseOrder: List<ExerciseLog> = emptyList()
-    private var accumulatedDragAmount: Float = 0f
 
     // Workout timer state
     private val _workoutTimerSeconds = MutableStateFlow(0)
@@ -874,58 +864,13 @@ class WorkoutViewModel(
         }
         _expandedExerciseIds.value = current
     }
-
-    // ===== DRAG AND DROP REORDERING =====
-
-    fun onExerciseDragStart(exerciseId: Long) {
-        if (!canEditWorkout()) return
-        _isDragInProgress.value = true
-        _draggedExerciseId.value = exerciseId
-
-        // Store original order for potential restoration
-        originalExerciseOrder = _selectedWorkoutExercises.value
-        dragStartIndex = originalExerciseOrder.indexOfFirst { it.id == exerciseId }
-        accumulatedDragAmount = 0f
-
-        // Collapse all exercises for smoother drag animation
+    
+    fun collapseAllExercises() {
+        // Collapse all exercises - useful when starting to drag
         _expandedExerciseIds.value = emptySet()
     }
 
-    fun onExerciseDragEnd() {
-        // Commit the current order to database if it changed
-        if (_isDragInProgress.value && originalExerciseOrder != _selectedWorkoutExercises.value) {
-            commitExerciseReordering()
-        }
-
-        _isDragInProgress.value = false
-        _draggedExerciseId.value = null
-        dragStartIndex = -1
-        originalExerciseOrder = emptyList()
-        accumulatedDragAmount = 0f
-    }
-
-    fun onExerciseDrag(
-        exerciseId: Long,
-        dragAmount: Float,
-    ) {
-        if (!canEditWorkout() || !_isDragInProgress.value) return
-
-        // Accumulate drag amount
-        accumulatedDragAmount += dragAmount
-
-        // Calculate target index based on accumulated drag from start position
-        val cardHeight = 100f // Approximate height per exercise card in dp
-        val indexOffset = (accumulatedDragAmount / cardHeight).toInt()
-        val targetIndex = (dragStartIndex + indexOffset).coerceIn(0, originalExerciseOrder.size - 1)
-
-        // Only reorder if target index is different from current position
-        val currentExercises = _selectedWorkoutExercises.value
-        val currentIndex = currentExercises.indexOfFirst { it.id == exerciseId }
-
-        if (targetIndex != currentIndex && currentIndex != -1) {
-            reorderExercises(currentIndex, targetIndex)
-        }
-    }
+    // ===== EXERCISE REORDERING =====
 
     fun reorderExercises(
         fromIndex: Int,
@@ -938,12 +883,15 @@ class WorkoutViewModel(
         // Validate indices
         if (fromIndex < 0 || fromIndex >= exercises.size || toIndex < 0 || toIndex >= exercises.size) return
 
-        // Move the exercise (UI state only - database update happens on drag end)
+        // Move the exercise
         val exerciseToMove = exercises.removeAt(fromIndex)
         exercises.add(toIndex, exerciseToMove)
 
         // Update UI state immediately for smooth visual feedback
         _selectedWorkoutExercises.value = exercises
+        
+        // Commit to database immediately
+        commitExerciseReordering()
     }
 
     private fun commitExerciseReordering() {
@@ -957,8 +905,7 @@ class WorkoutViewModel(
                 }
             } catch (e: Exception) {
                 Log.e("WorkoutViewModel", "Error reordering exercises", e)
-                // Restore original order on error
-                _selectedWorkoutExercises.value = originalExerciseOrder
+                // Error is logged but order remains as-is in UI
             }
         }
     }

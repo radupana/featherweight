@@ -43,7 +43,6 @@ import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.theme.FeatherweightColors
 import com.github.radupana.featherweight.ui.theme.GlassCard
-import com.github.radupana.featherweight.ui.utils.DragHandle
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 
@@ -55,10 +54,6 @@ fun CompactExerciseCard(
     onDeleteExercise: (Long) -> Unit,
     onSwapExercise: (Long) -> Unit,
     viewModel: WorkoutViewModel,
-    showDragHandle: Boolean = false,
-    onDragStart: () -> Unit = {},
-    onDragEnd: () -> Unit = {},
-    onDrag: (Float) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -82,14 +77,7 @@ fun CompactExerciseCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Drag handle on the left
-            if (showDragHandle) {
-                DragHandle(
-                    onDragStart = onDragStart,
-                    onDragEnd = onDragEnd,
-                    onDrag = onDrag,
-                )
-            }
+            // Drag handle removed - CompactExerciseCard is not used for reorderable lists
 
             // Main content
             Column(

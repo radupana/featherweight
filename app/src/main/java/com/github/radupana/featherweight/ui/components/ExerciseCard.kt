@@ -63,9 +63,11 @@ import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.theme.GlassCard
-import com.github.radupana.featherweight.ui.utils.DragHandle
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -73,24 +75,32 @@ fun ExerciseCard(
     exercise: ExerciseLog,
     sets: List<SetLog>,
     isExpanded: Boolean,
+    isDragging: Boolean = false, // Add this parameter for visual feedback
     onToggleExpansion: () -> Unit,
     onDeleteExercise: (Long) -> Unit,
     onSwapExercise: (Long) -> Unit,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
-    // Drag and drop parameters
     showDragHandle: Boolean = false,
-    onDragStart: (Long) -> Unit = {},
-    onDragEnd: () -> Unit = {},
-    onDrag: (Long, Float) -> Unit = { _, _ -> },
+    dragHandleModifier: Modifier = Modifier, // Modifier for the drag handle
 ) {
     var showDeleteExerciseDialog by remember { mutableStateOf(false) }
     val completedSets = sets.count { it.isCompleted }
 
     GlassCard(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (isDragging) {
+                    Modifier
+                        .scale(1.02f)
+                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp))
+                } else {
+                    Modifier
+                }
+            ),
         onClick = null,
-        elevation = 2.dp,
+        elevation = if (isDragging) 4.dp else 2.dp,
     ) {
         // Delete confirmation dialog
         if (showDeleteExerciseDialog) {
@@ -144,11 +154,17 @@ fun ExerciseCard(
         ) {
             // Drag handle (if enabled)
             if (showDragHandle) {
-                DragHandle(
-                    onDragStart = { onDragStart(exercise.id) },
-                    onDragEnd = onDragEnd,
-                    onDrag = { dragAmount -> onDrag(exercise.id, dragAmount) },
-                    modifier = Modifier.padding(end = 8.dp),
+                Icon(
+                    Icons.Filled.DragHandle,
+                    contentDescription = "Drag to reorder",
+                    modifier = dragHandleModifier
+                        .padding(end = 8.dp)
+                        .size(24.dp),
+                    tint = if (isDragging) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    }
                 )
             }
 
