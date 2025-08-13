@@ -1217,6 +1217,27 @@ class WorkoutViewModel(
             } catch (e: Exception) {
                 Log.e("WorkoutViewModel", "Failed to update 1RM estimate", e)
             }
+            
+            // Auto-collapse exercise when all sets are completed
+            if (completed) {
+                // Find which exercise this set belongs to
+                val exerciseLogId = updatedSets.find { it.id == setId }?.exerciseLogId
+                if (exerciseLogId != null) {
+                    // Check if all sets in this exercise are now completed
+                    val exerciseSets = updatedSets.filter { it.exerciseLogId == exerciseLogId }
+                    val allSetsCompleted = exerciseSets.isNotEmpty() && 
+                        exerciseSets.all { set -> 
+                            set.isCompleted || !canMarkSetCompleteInternal(set)
+                        }
+                    
+                    // If all sets are completed, collapse the exercise
+                    if (allSetsCompleted) {
+                        val currentExpanded = _expandedExerciseIds.value.toMutableSet()
+                        currentExpanded.remove(exerciseLogId)
+                        _expandedExerciseIds.value = currentExpanded
+                    }
+                }
+            }
         }
 
         loadInProgressWorkouts()
@@ -1233,6 +1254,13 @@ class WorkoutViewModel(
             // Complete each set sequentially to avoid race conditions
             setsToComplete.forEach { set ->
                 completeSetInternal(set.id, true)
+            }
+            
+            // Auto-collapse the exercise after completing all sets
+            if (setsToComplete.isNotEmpty()) {
+                val currentExpanded = _expandedExerciseIds.value.toMutableSet()
+                currentExpanded.remove(exerciseLogId)
+                _expandedExerciseIds.value = currentExpanded
             }
 
             loadAllSetsForCurrentExercises()
