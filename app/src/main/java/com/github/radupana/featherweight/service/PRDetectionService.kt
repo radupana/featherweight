@@ -123,6 +123,7 @@ class PRDetectionService(
                 exerciseVariationId = exerciseVariationId,
                 weight = roundedWeight,
                 reps = reps,
+                rpe = rpe,
                 recordDate = date,
                 previousWeight = previousPR?.weight,
                 previousReps = previousPR?.reps,

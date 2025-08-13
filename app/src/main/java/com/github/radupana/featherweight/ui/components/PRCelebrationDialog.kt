@@ -264,7 +264,14 @@ private fun PRDetailCard(
     }
 }
 
-private fun formatPRText(pr: PersonalRecord): String = "${WeightFormatter.formatWeightWithUnit(pr.weight)} × ${pr.reps}"
+private fun formatPRText(pr: PersonalRecord): String {
+    val baseText = "${WeightFormatter.formatWeightWithUnit(pr.weight)} × ${pr.reps}"
+    return if (pr.rpe != null) {
+        "$baseText @ RPE ${pr.rpe.toInt()}"
+    } else {
+        baseText
+    }
+}
 
 // Confetti particle data class
 private data class ConfettiParticle(

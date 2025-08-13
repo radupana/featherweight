@@ -26,6 +26,7 @@ data class PersonalRecord(
     val exerciseVariationId: Long,
     val weight: Float,
     val reps: Int,
+    val rpe: Float? = null,
     val recordDate: LocalDateTime,
     val previousWeight: Float?,
     val previousReps: Int?,
