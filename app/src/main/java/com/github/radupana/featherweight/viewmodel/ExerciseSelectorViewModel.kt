@@ -32,8 +32,8 @@ class ExerciseSelectorViewModel(
     val errorMessage: StateFlow<String?> = _errorMessage
 
     // Success state for creation
-    private val _exerciseCreated = MutableStateFlow<String?>(null)
-    val exerciseCreated: StateFlow<String?> = _exerciseCreated
+    private val _exerciseCreated = MutableStateFlow<ExerciseVariation?>(null)
+    val exerciseCreated: StateFlow<ExerciseVariation?> = _exerciseCreated
     
     // Name validation state
     private val _nameValidationError = MutableStateFlow<String?>(null)
@@ -319,7 +319,7 @@ class ExerciseSelectorViewModel(
                         // Reload exercises to include the new one
                         loadExercises()
                         // Signal success
-                        _exerciseCreated.value = createdExercise.name
+                        _exerciseCreated.value = createdExercise
                     },
                     onFailure = { error ->
                         _errorMessage.value = when (error) {

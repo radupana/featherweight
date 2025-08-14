@@ -334,13 +334,9 @@ fun MainAppWithNavigation(
                             // We're in swap mode
                             workoutViewModel.confirmExerciseSwap(exercise.variation.id)
                         } else {
-                            // Normal add mode
+                            // Normal add mode (works for both existing and newly created exercises)
                             workoutViewModel.addExerciseToCurrentWorkout(exercise.variation)
                         }
-                        onScreenChange(Screen.ACTIVE_WORKOUT)
-                    },
-                    onCreateCustomExercise = { name ->
-                        workoutViewModel.addExerciseToCurrentWorkout(name)
                         onScreenChange(Screen.ACTIVE_WORKOUT)
                     },
                     onBack = {

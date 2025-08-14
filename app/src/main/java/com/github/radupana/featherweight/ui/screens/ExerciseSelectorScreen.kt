@@ -74,7 +74,6 @@ import com.github.radupana.featherweight.viewmodel.ExerciseSuggestion
 @Composable
 fun ExerciseSelectorScreen(
     onExerciseSelected: (ExerciseWithDetails) -> Unit,
-    onCreateCustomExercise: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ExerciseSelectorViewModel = viewModel(),
@@ -98,8 +97,15 @@ fun ExerciseSelectorScreen(
 
     // Handle successful exercise creation
     LaunchedEffect(exerciseCreated) {
-        exerciseCreated?.let { exerciseName ->
-            onCreateCustomExercise(exerciseName)
+        exerciseCreated?.let { exercise ->
+            // Convert to ExerciseWithDetails and pass to the regular selection handler
+            val exerciseWithDetails = ExerciseWithDetails(
+                variation = exercise,
+                muscles = emptyList(), // These will be loaded separately
+                aliases = emptyList(),
+                instructions = emptyList()
+            )
+            onExerciseSelected(exerciseWithDetails)
             viewModel.clearExerciseCreated()
         }
     }

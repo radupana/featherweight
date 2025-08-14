@@ -756,8 +756,8 @@ class WorkoutViewModel(
             val firstSet = SetLog(
                 exerciseLogId = exerciseLogId,
                 setOrder = 1,
-                targetReps = 0,
-                targetWeight = 0f,
+                targetReps = null,
+                targetWeight = null,
                 actualReps = 0,
                 actualWeight = 0f,
                 isCompleted = false
@@ -775,56 +775,6 @@ class WorkoutViewModel(
         }
     }
 
-    // Simple exercise addition by name
-    fun addExerciseToCurrentWorkout(exerciseName: String) {
-        if (!canEditWorkout()) return
-
-        val currentId = _currentWorkoutId.value ?: return
-        viewModelScope.launch {
-            // Try to find existing exercise by name
-            val matchingExercises = repository.searchExercises(exerciseName)
-            val existingExercise =
-                matchingExercises.firstOrNull {
-                    it.name.equals(exerciseName, ignoreCase = true)
-                }
-
-            val exerciseLog =
-                if (existingExercise != null) {
-                    ExerciseLog(
-                        workoutId = currentId,
-                        exerciseVariationId = existingExercise.id,
-                        exerciseOrder = selectedWorkoutExercises.value.size,
-                    )
-                } else {
-                    // Create as legacy exercise log - need to find or create variation
-                    // For now, skip if no exercise found
-                    return@launch
-                }
-
-            val exerciseLogId = repository.insertExerciseLog(exerciseLog)
-            
-            // Auto-add first empty set for better UX
-            val firstSet = SetLog(
-                exerciseLogId = exerciseLogId,
-                setOrder = 1,
-                targetReps = 0,
-                targetWeight = 0f,
-                actualReps = 0,
-                actualWeight = 0f,
-                isCompleted = false
-            )
-            repository.insertSetLog(firstSet)
-            
-            loadExercisesForWorkout(currentId)
-            existingExercise?.let { loadExerciseHistory(it.id) }
-            loadInProgressWorkouts()
-            
-            // Auto-expand the newly added exercise
-            val currentExpanded = _expandedExerciseIds.value.toMutableSet()
-            currentExpanded.add(exerciseLogId)
-            _expandedExerciseIds.value = currentExpanded
-        }
-    }
 
     private fun getComplementaryMuscleGroups(currentMuscles: Set<String>): List<String> {
         val complementary = mutableListOf<String>()
