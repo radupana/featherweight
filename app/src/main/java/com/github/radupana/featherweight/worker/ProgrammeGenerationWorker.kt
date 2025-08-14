@@ -59,7 +59,7 @@ class ProgrammeGenerationWorker(
 
     private val database = FeatherweightDatabase.getDatabase(applicationContext)
     private val aiRequestDao = database.aiProgrammeRequestDao()
-    private val aiService = AIProgrammeService(applicationContext)
+    private val aiService = AIProgrammeService()
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun doWork(): Result =

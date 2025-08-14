@@ -52,7 +52,7 @@ class ProgrammePreviewViewModel(
         )
     private val validator = ProgrammeValidator()
     private val exerciseMatcher = ExerciseNameMatcher()
-    private val aiService = AIProgrammeService(application)
+    private val aiService = AIProgrammeService()
 
     private val _previewState = MutableStateFlow<PreviewState>(PreviewState.Loading)
     val previewState = _previewState.asStateFlow()
@@ -101,8 +101,6 @@ class ProgrammePreviewViewModel(
                         _unmatchedExercises.value = validationResult.unmatchedExercises
 
                         // Show info about unmatched exercises
-                        val unmatchedCount = validationResult.unmatchedExercises.size
-                        val totalCount = validationResult.totalCount
                     }
 
                     // Get all available exercises for matching
@@ -126,7 +124,8 @@ class ProgrammePreviewViewModel(
                                 }
                             }
                         } catch (e: Exception) {
-                            Log.e("ProgrammePreview", "Error processing programme", e)
+                            Log.e("ProgrammePreviewViewModel", "Error processing programme request", e)
+                            // Error processing programme - continue with default values
                         }
                     }
 
@@ -152,6 +151,7 @@ class ProgrammePreviewViewModel(
                         )
                 }
             } catch (e: Exception) {
+                Log.e("ProgrammePreviewViewModel", "Error processing programme", e)
                 _previewState.value =
                     PreviewState.Error(
                         "Error processing programme: ${e.message}",
@@ -504,6 +504,7 @@ class ProgrammePreviewViewModel(
                         "Programme regeneration is not yet implemented. Please generate a new programme instead.",
                     )
             } catch (e: Exception) {
+                Log.e("ProgrammePreviewViewModel", "Failed to regenerate programme", e)
                 _previewState.value =
                     PreviewState.Error(
                         "Failed to regenerate: ${e.message}",
@@ -537,6 +538,7 @@ class ProgrammePreviewViewModel(
                         // This is a suspend function, so it will complete before moving on
                         aiProgrammeRepository.deleteRequest(aiRequestId)
                     } catch (e: Exception) {
+                        Log.e("ProgrammePreviewViewModel", "Failed to delete AI request", e)
                         _previewState.value =
                             PreviewState.Error(
                                 "Failed to delete AI request: ${e.message}",
@@ -825,7 +827,6 @@ class ProgrammePreviewViewModel(
     private fun addProgressiveOverload(preview: GeneratedProgrammePreview): GeneratedProgrammePreview {
         val updatedWeeks =
             preview.weeks.mapIndexed { weekIndex, week ->
-                1.0f + (weekIndex * 0.05f) // 5% increase per week
                 week.copy(
                     workouts =
                         week.workouts.map { workout ->

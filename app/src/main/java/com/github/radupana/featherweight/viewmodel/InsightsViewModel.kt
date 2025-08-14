@@ -92,7 +92,7 @@ class InsightsViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     val repository = FeatherweightRepository(application)
-    private val aiService = AIProgrammeService(application)
+    private val aiService = AIProgrammeService()
     private val gson = Gson()
 
     private val _analyticsState = MutableStateFlow(AnalyticsState())
@@ -177,7 +177,9 @@ class InsightsViewModel(
                 refreshWithNewData(newWorkouts.map { it.id })
             }
         } catch (e: Exception) {
-            // Silent failure for background refresh
+            Log.e("InsightsViewModel", "Background refresh failed", e)
+            // Background refresh failed - this is expected behavior for offline scenarios
+            _analyticsState.value = _analyticsState.value.copy(error = "Background refresh failed")
         } finally {
             _analyticsState.value = _analyticsState.value.copy(isRefreshing = false)
         }
@@ -215,7 +217,9 @@ class InsightsViewModel(
                     cachedData = newCachedData,
                 )
         } catch (e: Exception) {
-            // Handle refresh error
+            Log.e("InsightsViewModel", "Data refresh failed", e)
+            // Refresh failed - update error state for user awareness
+            _analyticsState.value = _analyticsState.value.copy(error = "Data refresh failed: ${e.message}")
         }
     }
 
@@ -283,7 +287,7 @@ class InsightsViewModel(
                     cachedData = newCachedData,
                 )
         } catch (e: Exception) {
-            android.util.Log.e("InsightsViewModel", "Error loading analytics", e)
+            Log.e("InsightsViewModel", "Failed to load analytics data", e)
             _analyticsState.value =
                 _analyticsState.value.copy(
                     isLoading = false,
@@ -412,7 +416,6 @@ class InsightsViewModel(
     private suspend fun loadPerformanceMetrics(): PerformanceMetrics {
         val now = LocalDateTime.now()
         val weekStart = now.minusDays(7)
-        now.minusDays(30)
 
         val trainingFrequency = repository.getTrainingFrequency(weekStart, now)
         val averageRPE = repository.getAverageRPE(daysSince = 30)
@@ -563,7 +566,7 @@ class InsightsViewModel(
             repository.saveTrainingAnalysis(analysis)
             _trainingAnalysis.value = analysis
         } catch (e: Exception) {
-            android.util.Log.e("InsightsViewModel", "Training analysis failed", e)
+            Log.e("InsightsViewModel", "Training analysis failed", e)
             // Keep existing cached analysis if API fails
             _trainingAnalysis.value = repository.getLatestTrainingAnalysis()
         } finally {

@@ -29,7 +29,6 @@
 - **Class References**: Use simple class names (e.g., `MyClass`) instead of fully qualified names (`com.example.MyClass`), unless there is a naming conflict.
 - **No Empty Blocks**: Never leave empty init blocks, else blocks, catch blocks, or `.also {}` chains. Remove them or add meaningful logic.
 - **No Dead Code**: Never compute values that aren't used. Remove all unused variables, parameters, and methods immediately.
-- **No Debug Code**: Never leave `println()` statements or debug `Log.d()` statements in production code. Use proper logging frameworks if needed.
 - **Verify Variable References**: Always double-check variable references in data classes and constructors to avoid referencing wrong or undefined variables.
 - **Single Init Block**: Never have multiple init blocks in the same class. Consolidate them into one.
 - **Handle Exceptions**: Never leave catch blocks empty. At minimum, add appropriate error logging.

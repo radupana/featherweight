@@ -154,12 +154,6 @@ fun SetEditingModal(
         }
     }
 
-    // Auto-scroll to focused input field when keyboard appears
-    LaunchedEffect(keyboardController) {
-        // Listen for keyboard state changes and auto-scroll if needed
-        // This helps ensure that the currently focused input field remains visible
-        // when the keyboard appears by scrolling the list appropriately
-    }
 
     // Handle back button and outside tap to dismiss
     BackHandler {
@@ -1138,7 +1132,7 @@ fun CleanSetLayout(
                             onValueChange = { textFieldValue ->
                                 if (!readOnly) {
                                     rpeInput = textFieldValue
-                                    val rpe = textFieldValue.text.toIntOrNull()?.toFloat()
+                                    val rpe = textFieldValue.text.toFloatOrNull()
                                     onUpdateSet(set.actualReps, set.actualWeight, rpe)
                                 }
                             },

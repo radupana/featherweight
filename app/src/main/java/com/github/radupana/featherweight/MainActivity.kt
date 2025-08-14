@@ -1,9 +1,9 @@
 package com.github.radupana.featherweight
 
 import android.Manifest
+import android.util.Log
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -94,7 +94,7 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(
             ActivityResultContracts.RequestPermission(),
         ) { isGranted: Boolean ->
-            // Permission result handled
+            // Permission result handled in UI - no action needed as notification permission is optional
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -136,7 +136,8 @@ class MainActivity : ComponentActivity() {
                             repository.seedDatabaseIfEmpty()
                             repository.seedTestUsers()
                         } catch (e: Exception) {
-                            Log.e("MainActivity", "Error seeding database", e)
+                            Log.e("MainActivity", "Database seeding error", e)
+                            // Database seeding errors are non-critical - app continues to function
                         }
                     }
 
@@ -181,7 +182,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
         } catch (e: Exception) {
-            Log.e("MainActivity", "Error handling deeplink", e)
+            Log.e("MainActivity", "UI initialization error", e)
+            // UI initialization errors are handled gracefully by the framework
         }
     }
 }

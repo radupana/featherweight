@@ -94,6 +94,7 @@ class WorkoutViewModel(
                 loadOneRMEstimatesForCurrentExercises()
             } catch (e: Exception) {
                 Log.e("WorkoutViewModel", "Failed to apply 1RM update", e)
+                // Failed to apply 1RM update - operation will be retried
             }
         }
     }
@@ -184,7 +185,6 @@ class WorkoutViewModel(
     private val _expandedExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
     val expandedExerciseIds: StateFlow<Set<Long>> = _expandedExerciseIds
 
-
     // Workout timer state
     private val _workoutTimerSeconds = MutableStateFlow(0)
     val workoutTimerSeconds: StateFlow<Int> = _workoutTimerSeconds
@@ -212,21 +212,10 @@ class WorkoutViewModel(
                 exerciseDetailsMap.value = detailsMap
             } catch (e: Exception) {
                 Log.e("WorkoutViewModel", "Failed to load exercises", e)
+                // Failed to load exercises - will retry on next navigation
             }
         }
     }
-
-    suspend fun getExercisesByMuscleGroup(muscleGroup: String): List<ExerciseVariation> {
-        val allExercises = repository.getAllExercises()
-        return allExercises.filter { exercise ->
-            // For now, return empty list since we need to get muscle groups from the variation
-            false
-        }
-    }
-
-    fun getExerciseDetails(exerciseId: Long): ExerciseVariation? = exerciseDetailsMap.value[exerciseId]
-
-    // ===== EXISTING WORKOUT METHODS (Updated to work with exercises) =====
 
     // Check if there's an ongoing workout when the app starts
     private fun checkForOngoingWorkout() {
@@ -259,7 +248,7 @@ class WorkoutViewModel(
                                     sets.count { it.isCompleted }
                                 }
                             } catch (e: Exception) {
-                                Log.e("WorkoutViewModel", "Failed to calculate completed sets", e)
+                                // Failed to calculate completed sets, show 0 for now
                                 0
                             }
 
@@ -337,7 +326,7 @@ class WorkoutViewModel(
         viewModelScope.launch {
             repository.getWorkoutById(workoutId)?.let { workout ->
                 if (workout.status != WorkoutStatus.COMPLETED) {
-                    Log.w("WorkoutViewModel", "viewCompletedWorkout called on non-completed workout")
+                    // viewCompletedWorkout called on non-completed workout
                     return@let
                 }
 
@@ -390,7 +379,7 @@ class WorkoutViewModel(
                     try {
                         repository.getProgrammeById(workout.programmeId)?.name
                     } catch (e: Exception) {
-                        Log.e("WorkoutViewModel", "Failed to get programme name", e)
+                        // Failed to get programme name
                         null
                     }
                 } else {
@@ -724,6 +713,7 @@ class WorkoutViewModel(
                 _oneRMEstimates.value = estimatesMap
             } catch (e: Exception) {
                 Log.e("WorkoutViewModel", "Failed to load 1RM estimates", e)
+                // Failed to load 1RM estimates - will show without estimates
             }
         }
     }
@@ -746,80 +736,35 @@ class WorkoutViewModel(
 
         val currentId = _currentWorkoutId.value ?: return
         viewModelScope.launch {
-            val exerciseLogId = repository.insertExerciseLogWithExerciseReference(
-                workoutId = currentId,
-                exercise = exercise,
-                exerciseOrder = selectedWorkoutExercises.value.size,
-            )
-            
+            val exerciseLogId =
+                repository.insertExerciseLogWithExerciseReference(
+                    workoutId = currentId,
+                    exercise = exercise,
+                    exerciseOrder = selectedWorkoutExercises.value.size,
+                )
+
             // Auto-add first empty set for better UX
-            val firstSet = SetLog(
-                exerciseLogId = exerciseLogId,
-                setOrder = 1,
-                targetReps = null,
-                targetWeight = null,
-                actualReps = 0,
-                actualWeight = 0f,
-                isCompleted = false
-            )
+            val firstSet =
+                SetLog(
+                    exerciseLogId = exerciseLogId,
+                    setOrder = 1,
+                    targetReps = null,
+                    targetWeight = null,
+                    actualReps = 0,
+                    actualWeight = 0f,
+                    isCompleted = false,
+                )
             repository.insertSetLog(firstSet)
-            
+
             loadExercisesForWorkout(currentId)
             loadExerciseHistory(exercise.id)
             loadInProgressWorkouts()
-            
+
             // Auto-expand the newly added exercise
             val currentExpanded = _expandedExerciseIds.value.toMutableSet()
             currentExpanded.add(exerciseLogId)
             _expandedExerciseIds.value = currentExpanded
         }
-    }
-
-
-    private fun getComplementaryMuscleGroups(currentMuscles: Set<String>): List<String> {
-        val complementary = mutableListOf<String>()
-
-        // Basic push/pull balance
-        val hasPush =
-            currentMuscles.any {
-                it.contains("Chest", ignoreCase = true) ||
-                    it.contains("Tricep", ignoreCase = true) ||
-                    it.contains("Shoulder", ignoreCase = true)
-            }
-        val hasPull =
-            currentMuscles.any {
-                it.contains("Back", ignoreCase = true) ||
-                    it.contains("Lat", ignoreCase = true) ||
-                    it.contains("Bicep", ignoreCase = true)
-            }
-
-        if (hasPush && !hasPull) {
-            complementary.addAll(listOf("Lats", "Biceps"))
-        } else if (hasPull && !hasPush) {
-            complementary.addAll(listOf("Chest", "Triceps"))
-        }
-
-        // Upper/lower balance
-        val hasUpper =
-            currentMuscles.any {
-                it.contains("Chest", ignoreCase = true) ||
-                    it.contains("Back", ignoreCase = true) ||
-                    it.contains("Shoulder", ignoreCase = true)
-            }
-        val hasLower =
-            currentMuscles.any {
-                it.contains("Quad", ignoreCase = true) ||
-                    it.contains("Hamstring", ignoreCase = true) ||
-                    it.contains("Glute", ignoreCase = true)
-            }
-
-        if (hasUpper && !hasLower) {
-            complementary.addAll(listOf("Quadriceps", "Hamstrings", "Glutes"))
-        } else if (hasLower && !hasUpper) {
-            complementary.addAll(listOf("Chest", "Lats", "Shoulders"))
-        }
-
-        return complementary.distinct()
     }
 
     private fun loadExerciseHistory(exerciseVariationId: Long) {
@@ -850,7 +795,7 @@ class WorkoutViewModel(
         }
         _expandedExerciseIds.value = current
     }
-    
+
     fun collapseAllExercises() {
         // Collapse all exercises - useful when starting to drag
         _expandedExerciseIds.value = emptySet()
@@ -875,7 +820,7 @@ class WorkoutViewModel(
 
         // Update UI state immediately for smooth visual feedback
         _selectedWorkoutExercises.value = exercises
-        
+
         // Commit to database immediately
         commitExerciseReordering()
     }
@@ -890,8 +835,7 @@ class WorkoutViewModel(
                     repository.updateExerciseOrder(exercise.id, index)
                 }
             } catch (e: Exception) {
-                Log.e("WorkoutViewModel", "Error reordering exercises", e)
-                // Error is logged but order remains as-is in UI
+                // Error reordering exercises - order remains as-is in UI
             }
         }
     }
@@ -1138,8 +1082,7 @@ class WorkoutViewModel(
                     }
                 }
             } catch (e: Exception) {
-                // Log error but don't fail set completion
-                Log.e("WorkoutViewModel", "PR detection failed", e)
+                // PR detection failed but don't fail set completion
             }
 
             // Check if we should update 1RM estimate
@@ -1154,14 +1097,14 @@ class WorkoutViewModel(
                     // Get the exercise variation to determine scaling type
                     val exerciseVariation = repository.getExerciseById(exerciseLog.exerciseVariationId)
                     val scalingType = exerciseVariation?.rmScalingType ?: com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
-                    
+
                     val currentEstimate = _oneRMEstimates.value[exerciseLog.exerciseVariationId]
                     val newEstimate =
                         oneRMService.calculateEstimated1RM(
                             completedSet.actualWeight,
                             completedSet.actualReps,
                             completedSet.actualRpe, // Pass the RPE!
-                            scalingType // Pass the correct scaling type!
+                            scalingType, // Pass the correct scaling type!
                         )
 
                     if (newEstimate != null &&
@@ -1209,18 +1152,18 @@ class WorkoutViewModel(
             } catch (e: Exception) {
                 Log.e("WorkoutViewModel", "Failed to update 1RM estimate", e)
             }
-            
+
             // Auto-collapse exercise when ALL sets are completed
             // Find which exercise this set belongs to
             val exerciseLogId = updatedSets.find { it.id == setId }?.exerciseLogId
             if (exerciseLogId != null) {
                 // Get all sets for this exercise
                 val exerciseSets = updatedSets.filter { it.exerciseLogId == exerciseLogId }
-                
+
                 // Only collapse if ALL sets are marked as completed
                 // Don't care if they have data or not - if they exist and aren't completed, don't collapse
                 val allSetsCompleted = exerciseSets.isNotEmpty() && exerciseSets.all { it.isCompleted }
-                
+
                 if (allSetsCompleted) {
                     val currentExpanded = _expandedExerciseIds.value.toMutableSet()
                     currentExpanded.remove(exerciseLogId)
@@ -1244,7 +1187,7 @@ class WorkoutViewModel(
             setsToComplete.forEach { set ->
                 completeSetInternal(set.id, true)
             }
-            
+
             // Auto-collapse the exercise after completing all sets
             if (setsToComplete.isNotEmpty()) {
                 val currentExpanded = _expandedExerciseIds.value.toMutableSet()
@@ -1752,7 +1695,7 @@ class WorkoutViewModel(
             // Get exercise info
             val exercise = _selectedWorkoutExercises.value.find { it.id == set.exerciseLogId } ?: return@launch
             val exerciseVariationId = exercise.exerciseVariationId
-            
+
             // Get the exercise variation to determine scaling type
             val exerciseVariation = repository.getExerciseById(exerciseVariationId)
             val scalingType = exerciseVariation?.rmScalingType ?: com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD

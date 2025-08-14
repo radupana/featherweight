@@ -510,23 +510,4 @@ class GlobalProgressTracker(
 
         return result
     }
-
-    private fun calculateConfidence(progress: GlobalExerciseProgress): Float {
-        // Higher confidence with more data points and consistent RPE
-        val dataPoints = minOf(progress.sessionsTracked / 10f, 1f)
-        val rpeConsistency = if (progress.recentAvgRpe != null) 0.2f else 0f
-        return (dataPoints * 0.8f + rpeConsistency).coerceIn(0f, 1f)
-    }
 }
-
-data class ProgressAnalysis(
-    val exerciseName: String,
-    val hasData: Boolean,
-    val currentWeight: Float = 0f,
-    val estimatedMax: Float = 0f,
-    val trend: ProgressTrend? = null,
-    val suggestion: String,
-    val confidence: Float,
-    val lastPR: LocalDateTime? = null,
-    val stalledSessions: Int = 0,
-)

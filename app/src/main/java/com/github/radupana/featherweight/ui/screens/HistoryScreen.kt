@@ -65,12 +65,6 @@ import java.util.Locale
 
 // WorkoutSummary now imported from repository
 
-data class Quadruple<A, B, C, D>(
-    val first: A,
-    val second: B,
-    val third: C,
-    val fourth: D,
-)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -282,34 +276,19 @@ fun WorkoutHistoryCard(
     onDeleteWorkout: (Long) -> Unit = {},
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
-    // Improved color scheme based on workout status
-    val (containerColor, _, _, _) =
+    // Color scheme based on workout status
+    val containerColor =
         when (workout.status) {
             com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED -> {
-                Quadruple(
-                    MaterialTheme.colorScheme.surface,
-                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f),
-                    MaterialTheme.colorScheme.tertiary,
-                    "Completed",
-                )
+                MaterialTheme.colorScheme.surface
             }
 
             com.github.radupana.featherweight.data.WorkoutStatus.IN_PROGRESS -> {
-                Quadruple(
-                    Color(0xFFFFFBE6), // Very light yellow background for in-progress
-                    Color(0xFFFFF3C4).copy(alpha = 0.8f), // Light yellow for status
-                    Color(0xFF8B5A2B), // Warm brown for text
-                    "In Progress",
-                )
+                Color(0xFFFFFBE6) // Very light yellow background for in-progress
             }
 
             com.github.radupana.featherweight.data.WorkoutStatus.NOT_STARTED -> {
-                Quadruple(
-                    Color(0xFFF5F5F5), // Light gray background for not started
-                    Color(0xFFE0E0E0).copy(alpha = 0.8f), // Light gray for status
-                    Color(0xFF616161), // Dark gray for text
-                    "Not Started",
-                )
+                Color(0xFFF5F5F5) // Light gray background for not started
             }
         }
 

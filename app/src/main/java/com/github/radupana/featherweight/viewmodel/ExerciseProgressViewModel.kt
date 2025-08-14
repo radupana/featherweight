@@ -283,6 +283,7 @@ class ExerciseProgressViewModel(
 
                 _state.value = ExerciseProgressState.Success(data)
             } catch (e: Exception) {
+                android.util.Log.e("ExerciseProgressViewModel", "Error loading exercise data", e)
                 _state.value = ExerciseProgressState.Error(e.message ?: "Unknown error")
             }
         }
@@ -344,7 +345,7 @@ class ExerciseProgressViewModel(
 
                 _chartData.value = dataWithPRs
             } catch (e: Exception) {
-                android.util.Log.e("ExerciseProgress", "Error loading 1RM history", e)
+                android.util.Log.e("ExerciseProgressViewModel", "Error loading chart data", e)
                 _chartData.value = emptyList()
             }
         }
@@ -403,7 +404,7 @@ class ExerciseProgressViewModel(
 
                 _maxWeightChartData.value = dataWithPRs
             } catch (e: Exception) {
-                android.util.Log.e("ExerciseProgress", "Error loading max weight history", e)
+                android.util.Log.e("ExerciseProgressViewModel", "Error loading max weight chart data", e)
                 _maxWeightChartData.value = emptyList()
             }
         }
@@ -451,7 +452,7 @@ class ExerciseProgressViewModel(
 
                 _volumeChartData.value = chartPoints
             } catch (e: Exception) {
-                android.util.Log.e("ExerciseProgress", "Error loading volume data", e)
+                android.util.Log.e("ExerciseProgressViewModel", "Error loading volume chart data", e)
                 _volumeChartData.value = emptyList()
             }
         }

@@ -34,8 +34,6 @@ class ProgrammeViewModel(
     val uiState: StateFlow<ProgrammeUiState> = _uiState
 
     // Programme Templates
-    private val _allTemplates = MutableStateFlow<List<ProgrammeTemplate>>(emptyList())
-    private val _filteredTemplates = MutableStateFlow<List<ProgrammeTemplate>>(emptyList())
 
     // Active Programme
     private val _activeProgramme = MutableStateFlow<Programme?>(null)
@@ -80,22 +78,7 @@ class ProgrammeViewModel(
             aiProgrammeRepository.cleanupStaleRequests()
         }
 
-        // Monitor AI programme requests flow for debugging
-        viewModelScope.launch {
-            aiProgrammeRequests.collect { requests ->
-            }
-        }
 
-        // Update templates directly without filtering
-        viewModelScope.launch {
-            _allTemplates.collect { templates ->
-                _filteredTemplates.value = templates
-                _uiState.value =
-                    _uiState.value.copy(
-                        templates = templates,
-                    )
-            }
-        }
 
         // Load data immediately
         loadProgrammeData()
@@ -128,7 +111,6 @@ class ProgrammeViewModel(
                         repository.seedDatabaseIfEmpty()
                         repository.getAllProgrammeTemplates()
                     }
-                _allTemplates.value = templates
 
                 // Load active programme
                 val active = repository.getActiveProgramme()
@@ -537,7 +519,7 @@ class ProgrammeViewModel(
                     // Parse the generated programme JSON
                     val aiService =
                         com.github.radupana.featherweight.service
-                            .AIProgrammeService(getApplication())
+                            .AIProgrammeService()
                     val response = aiService.parseAIProgrammeResponse(request.generatedProgrammeJson)
 
                     if (response.programme != null) {

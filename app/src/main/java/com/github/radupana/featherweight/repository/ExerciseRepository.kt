@@ -164,8 +164,6 @@ class ExerciseRepository(
 
     suspend fun deleteSetsForExercise(exerciseLogId: Long) = setLogDao.deleteAllSetsForExercise(exerciseLogId)
 
-    suspend fun deleteSetsForExerciseLog(exerciseLogId: Long) = setLogDao.deleteAllSetsForExercise(exerciseLogId)
-
     suspend fun updateExerciseOrder(
         exerciseLogId: Long,
         newOrder: Int,

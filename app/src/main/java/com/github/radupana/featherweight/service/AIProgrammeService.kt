@@ -64,13 +64,11 @@ data class GeneratedExercise(
     val weightSource: String? = null,
 )
 
-class AIProgrammeService(
-    private val context: android.content.Context,
-) {
+class AIProgrammeService {
     companion object {
         private val OPENAI_API_KEY = BuildConfig.OPENAI_API_KEY
         private const val BASE_URL = "https://api.openai.com/"
-        private const val MODEL = "gpt-5-mini" // NOTE: This is correct - new model name
+        private const val MODEL = "gpt-4.1-mini" // NOTE: This is correct - new model name
         private const val MAX_TOKENS = 32768 // Increased to support 8-week programmes
         private const val TEMPERATURE = 1.0 // 5-mini only supports 1
     }

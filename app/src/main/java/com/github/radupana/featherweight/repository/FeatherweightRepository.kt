@@ -209,9 +209,6 @@ class FeatherweightRepository(
                 exerciseSeeder.seedExercises()
             }
 
-            // Clean up StrongLifts programmes (we're removing it from the app)
-            cleanupStrongLiftsProgrammes()
-
             // Always check and seed missing programme templates
             programmeSeeder.seedPopularProgrammes()
 
@@ -242,21 +239,18 @@ class FeatherweightRepository(
             variation = variation,
             muscles = muscles,
             aliases = aliases,
-            instructions = instructions
+            instructions = instructions,
         )
     }
 
     // Get muscles for a variation
-    suspend fun getMusclesForVariation(variationId: Long): List<VariationMuscle> =
-        variationMuscleDao.getMusclesForVariation(variationId)
-    
+    suspend fun getMusclesForVariation(variationId: Long): List<VariationMuscle> = variationMuscleDao.getMusclesForVariation(variationId)
+
     // Delete custom exercise
-    suspend fun canDeleteExercise(exerciseVariationId: Long): Result<Boolean> = 
-        exerciseRepository.canDeleteExercise(exerciseVariationId)
-    
-    suspend fun deleteCustomExercise(exerciseVariationId: Long): Result<Unit> = 
-        exerciseRepository.deleteCustomExercise(exerciseVariationId)
-    
+    suspend fun canDeleteExercise(exerciseVariationId: Long): Result<Boolean> = exerciseRepository.canDeleteExercise(exerciseVariationId)
+
+    suspend fun deleteCustomExercise(exerciseVariationId: Long): Result<Unit> = exerciseRepository.deleteCustomExercise(exerciseVariationId)
+
     // Create custom exercise
     suspend fun createCustomExercise(
         name: String,
@@ -266,18 +260,19 @@ class FeatherweightRepository(
         equipment: Equipment,
         difficulty: ExerciseDifficulty = ExerciseDifficulty.BEGINNER,
         requiresWeight: Boolean = true,
-        movementPattern: MovementPattern = MovementPattern.PUSH
-    ): Result<ExerciseVariation> = exerciseRepository.createCustomExercise(
-        name = name,
-        category = category,
-        primaryMuscles = primaryMuscles,
-        secondaryMuscles = secondaryMuscles,
-        equipment = equipment,
-        difficulty = difficulty,
-        requiresWeight = requiresWeight,
-        movementPattern = movementPattern,
-        userId = getCurrentUserId()
-    )
+        movementPattern: MovementPattern = MovementPattern.PUSH,
+    ): Result<ExerciseVariation> =
+        exerciseRepository.createCustomExercise(
+            name = name,
+            category = category,
+            primaryMuscles = primaryMuscles,
+            secondaryMuscles = secondaryMuscles,
+            equipment = equipment,
+            difficulty = difficulty,
+            requiresWeight = requiresWeight,
+            movementPattern = movementPattern,
+            userId = getCurrentUserId(),
+        )
 
     // ===== EXISTING WORKOUT METHODS (Updated to work with new Exercise system) =====
 
@@ -449,7 +444,8 @@ class FeatherweightRepository(
                 programmeDao.insertOrUpdateProgress(updatedProgress)
             }
         } catch (e: Exception) {
-            Log.e("FeatherweightRepository", "Error", e)
+            Log.e("FeatherweightRepository", "Programme progress update failed", e)
+            // Programme progress update failed - this is not critical for app functionality
         }
     }
 
@@ -628,7 +624,7 @@ class FeatherweightRepository(
     // Delete an entire workout (will cascade delete all exercises and sets)
     suspend fun deleteWorkout(workoutId: Long) = workoutDao.deleteWorkout(workoutId)
 
-    suspend fun deleteSetsForExerciseLog(exerciseLogId: Long) = exerciseRepository.deleteSetsForExerciseLog(exerciseLogId)
+    suspend fun deleteSetsForExerciseLog(exerciseLogId: Long) = exerciseRepository.deleteSetsForExercise(exerciseLogId)
 
     // Get exercise by ID (returns ExerciseVariation)
     suspend fun getExerciseEntityById(exerciseId: Long): ExerciseVariation? = exerciseRepository.getExerciseEntityById(exerciseId)
@@ -944,82 +940,77 @@ class FeatherweightRepository(
         userMaxes: Map<Long, Float> = emptyMap(),
     ): Long =
         withContext(Dispatchers.IO) {
-            try {
-                val programme =
-                    programmeDao.getProgrammeById(programmeId)
-                        ?: throw IllegalArgumentException("Programme not found")
+            val programme =
+                programmeDao.getProgrammeById(programmeId)
+                    ?: throw IllegalArgumentException("Programme not found")
 
-                // Check if this is a custom programme (AI-generated or user-created)
-                if (programme.isCustom) {
-                    return@withContext createWorkoutFromCustomProgramme(
-                        programmeId = programmeId,
-                        weekNumber = weekNumber,
-                        dayNumber = dayNumber,
-                        userMaxes = userMaxes,
-                    )
-                }
-
-                // Find the template this programme was created from
-                val template =
-                    programmeDao.getAllTemplates().find { it.name == programme.name }
-                        ?: throw IllegalArgumentException("Programme template not found")
-
-                // Parse the JSON structure
-                val structure =
-                    ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
-                        ?: throw IllegalArgumentException("Invalid programme structure")
-
-                // For programmes with single week templates that repeat (like Starting Strength)
-                // Use modulo to find the template week
-                val templateWeekNumber =
-                    if (structure.weeks.size == 1) {
-                        1 // Always use week 1 if only one week is defined
-                    } else {
-                        ((weekNumber - 1) % structure.weeks.size) + 1
-                    }
-
-                // Find the specific workout for this week and day
-                // All programmes MUST have sequential days (1,2,3,4...)
-                val workoutStructure =
-                    ProgrammeWorkoutParser.getWorkoutForWeekAndDay(
-                        structure,
-                        templateWeekNumber,
-                        dayNumber,
-                    ) ?: throw IllegalArgumentException("Workout not found for template week $templateWeekNumber, day $dayNumber")
-
-                // Create the workout entry
-                // Store actual programme week, not template week
-                val workout =
-                    Workout(
-                        date = LocalDateTime.now(),
-                        programmeId = programmeId,
-                        weekNumber = weekNumber,
-                        dayNumber = dayNumber,
-                        programmeWorkoutName = workoutStructure.name,
-                        isProgrammeWorkout = true,
-                        notes = null,
-                    )
-                val workoutId = workoutDao.insertWorkout(workout)
-
-                // Create exercises and sets from the structure
-                workoutStructure.exercises.forEachIndexed { exerciseIndex, exerciseStructure ->
-                    val exerciseLog =
-                        createExerciseLogFromStructure(
-                            workoutId = workoutId,
-                            exerciseStructure = exerciseStructure,
-                            exerciseOrder = exerciseIndex,
-                        )
-                    val exerciseLogId = exerciseLogDao.insertExerciseLog(exerciseLog)
-
-                    // Create sets for this exercise
-                    createSetsFromStructure(exerciseLogId, exerciseStructure, userMaxes, programme, weekNumber)
-                }
-
-                workoutId
-            } catch (e: Exception) {
-                Log.e("FeatherweightRepository", "Error", e)
-                throw e
+            // Check if this is a custom programme (AI-generated or user-created)
+            if (programme.isCustom) {
+                return@withContext createWorkoutFromCustomProgramme(
+                    programmeId = programmeId,
+                    weekNumber = weekNumber,
+                    dayNumber = dayNumber,
+                    userMaxes = userMaxes,
+                )
             }
+
+            // Find the template this programme was created from
+            val template =
+                programmeDao.getAllTemplates().find { it.name == programme.name }
+                    ?: throw IllegalArgumentException("Programme template not found")
+
+            // Parse the JSON structure
+            val structure =
+                ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
+                    ?: throw IllegalArgumentException("Invalid programme structure")
+
+            // For programmes with single week templates that repeat (like Starting Strength)
+            // Use modulo to find the template week
+            val templateWeekNumber =
+                if (structure.weeks.size == 1) {
+                    1 // Always use week 1 if only one week is defined
+                } else {
+                    ((weekNumber - 1) % structure.weeks.size) + 1
+                }
+
+            // Find the specific workout for this week and day
+            // All programmes MUST have sequential days (1,2,3,4...)
+            val workoutStructure =
+                ProgrammeWorkoutParser.getWorkoutForWeekAndDay(
+                    structure,
+                    templateWeekNumber,
+                    dayNumber,
+                ) ?: throw IllegalArgumentException("Workout not found for template week $templateWeekNumber, day $dayNumber")
+
+            // Create the workout entry
+            // Store actual programme week, not template week
+            val workout =
+                Workout(
+                    date = LocalDateTime.now(),
+                    programmeId = programmeId,
+                    weekNumber = weekNumber,
+                    dayNumber = dayNumber,
+                    programmeWorkoutName = workoutStructure.name,
+                    isProgrammeWorkout = true,
+                    notes = null,
+                )
+            val workoutId = workoutDao.insertWorkout(workout)
+
+            // Create exercises and sets from the structure
+            workoutStructure.exercises.forEachIndexed { exerciseIndex, exerciseStructure ->
+                val exerciseLog =
+                    createExerciseLogFromStructure(
+                        workoutId = workoutId,
+                        exerciseStructure = exerciseStructure,
+                        exerciseOrder = exerciseIndex,
+                    )
+                val exerciseLogId = exerciseLogDao.insertExerciseLog(exerciseLog)
+
+                // Create sets for this exercise
+                createSetsFromStructure(exerciseLogId, exerciseStructure, userMaxes, programme, weekNumber)
+            }
+
+            workoutId
         }
 
     private suspend fun createWorkoutFromCustomProgramme(
@@ -2052,24 +2043,6 @@ class FeatherweightRepository(
             }
         }
 
-    private suspend fun cleanupStrongLiftsProgrammes() =
-        withContext(Dispatchers.IO) {
-            try {
-                // Delete StrongLifts template
-                programmeDao.deleteProgrammeTemplateByName("StrongLifts 5x5")
-
-                // Delete any active StrongLifts programmes
-                val programmes = programmeDao.getAllProgrammes()
-                programmes
-                    .filter { it.templateName == "StrongLifts 5x5" || it.name == "StrongLifts 5x5" }
-                    .forEach { programme ->
-                        programmeDao.deleteProgrammeById(programme.id)
-                    }
-            } catch (e: Exception) {
-                // Silently ignore cleanup errors
-            }
-        }
-
     // ========== Test User Management ==========
 
     suspend fun seedTestUsers() =
@@ -2409,33 +2382,29 @@ class FeatherweightRepository(
     ): List<PersonalRecord> =
         withContext(Dispatchers.IO) {
             val prs = prDetectionService.checkForPR(setLog, exerciseVariationId)
-            
+
             // If we detected an estimated 1RM PR, update the UserExerciseMax table
             val oneRMPR = prs.find { it.recordType == PRType.ESTIMATED_1RM }
             if (oneRMPR != null && oneRMPR.estimated1RM != null) {
                 val userId = getCurrentUserId()
                 val oneRMService = OneRMService()
-                
-                Log.d("Repository", "Updating UserExerciseMax with new 1RM: ${oneRMPR.estimated1RM}kg for exercise $exerciseVariationId")
-                
+
                 // Create UserExerciseMax record from the PR
-                val userExerciseMax = oneRMService.createOneRMRecord(
-                    userId = userId,
-                    exerciseId = exerciseVariationId,
-                    set = setLog,
-                    estimate = oneRMPR.estimated1RM,
-                    confidence = 1.0f // High confidence since it's a PR
-                )
-                
+                val userExerciseMax =
+                    oneRMService.createOneRMRecord(
+                        userId = userId,
+                        exerciseId = exerciseVariationId,
+                        set = setLog,
+                        estimate = oneRMPR.estimated1RM,
+                        confidence = 1.0f, // High confidence since it's a PR
+                    )
+
                 // Update or insert the 1RM record
                 updateOrInsertOneRM(userExerciseMax)
-                Log.d("Repository", "UserExerciseMax updated successfully")
             } else if (prs.isNotEmpty()) {
-                // Only log this if we have PRs but NO 1RM PR (e.g., just a weight or rep PR)
-                val prTypes = prs.map { it.recordType }.distinct().joinToString(", ")
-                Log.d("Repository", "PRs detected ($prTypes) but no 1RM update needed")
+                // PRs detected but no 1RM update needed
             }
-            
+
             prs
         }
 

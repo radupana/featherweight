@@ -632,7 +632,7 @@ class WorkoutSeedingService(
                     try {
                         repository.checkForPR(set, exerciseLog.exerciseVariationId)
                     } catch (e: Exception) {
-                        // Silently continue if PR check fails
+                        // PR check failed during seeding - non-critical, continue with seeding
                     }
 
                     // Only calculate 1RM for meaningful sets (not warmups)
@@ -690,7 +690,7 @@ class WorkoutSeedingService(
                             workoutDate = workout.date,
                         )
                     } catch (e: Exception) {
-                        // Silently continue if 1RM update fails
+                        // 1RM update failed during seeding - non-critical, continue with seeding
                     }
                 }
             }

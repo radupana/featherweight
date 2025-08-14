@@ -37,7 +37,7 @@ class ProgrammeGeneratorViewModel(
             database.aiProgrammeRequestDao(),
             WorkManager.getInstance(application),
         )
-    private val aiService = AIProgrammeService(application)
+    private val aiService = AIProgrammeService()
     private val quotaManager = AIProgrammeQuotaManager(application)
     private val inputAnalyzer = InputAnalyzer()
     private val exerciseMatchingService = ExerciseMatchingService()
