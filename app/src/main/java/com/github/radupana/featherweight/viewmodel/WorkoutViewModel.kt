@@ -746,14 +746,32 @@ class WorkoutViewModel(
 
         val currentId = _currentWorkoutId.value ?: return
         viewModelScope.launch {
-            repository.insertExerciseLogWithExerciseReference(
+            val exerciseLogId = repository.insertExerciseLogWithExerciseReference(
                 workoutId = currentId,
                 exercise = exercise,
                 exerciseOrder = selectedWorkoutExercises.value.size,
             )
+            
+            // Auto-add first empty set for better UX
+            val firstSet = SetLog(
+                exerciseLogId = exerciseLogId,
+                setOrder = 1,
+                targetReps = 0,
+                targetWeight = 0f,
+                actualReps = 0,
+                actualWeight = 0f,
+                isCompleted = false
+            )
+            repository.insertSetLog(firstSet)
+            
             loadExercisesForWorkout(currentId)
             loadExerciseHistory(exercise.id)
             loadInProgressWorkouts()
+            
+            // Auto-expand the newly added exercise
+            val currentExpanded = _expandedExerciseIds.value.toMutableSet()
+            currentExpanded.add(exerciseLogId)
+            _expandedExerciseIds.value = currentExpanded
         }
     }
 
@@ -783,10 +801,28 @@ class WorkoutViewModel(
                     return@launch
                 }
 
-            repository.insertExerciseLog(exerciseLog)
+            val exerciseLogId = repository.insertExerciseLog(exerciseLog)
+            
+            // Auto-add first empty set for better UX
+            val firstSet = SetLog(
+                exerciseLogId = exerciseLogId,
+                setOrder = 1,
+                targetReps = 0,
+                targetWeight = 0f,
+                actualReps = 0,
+                actualWeight = 0f,
+                isCompleted = false
+            )
+            repository.insertSetLog(firstSet)
+            
             loadExercisesForWorkout(currentId)
             existingExercise?.let { loadExerciseHistory(it.id) }
             loadInProgressWorkouts()
+            
+            // Auto-expand the newly added exercise
+            val currentExpanded = _expandedExerciseIds.value.toMutableSet()
+            currentExpanded.add(exerciseLogId)
+            _expandedExerciseIds.value = currentExpanded
         }
     }
 
@@ -1224,24 +1260,21 @@ class WorkoutViewModel(
                 Log.e("WorkoutViewModel", "Failed to update 1RM estimate", e)
             }
             
-            // Auto-collapse exercise when all sets are completed
-            if (completed) {
-                // Find which exercise this set belongs to
-                val exerciseLogId = updatedSets.find { it.id == setId }?.exerciseLogId
-                if (exerciseLogId != null) {
-                    // Check if all sets in this exercise are now completed
-                    val exerciseSets = updatedSets.filter { it.exerciseLogId == exerciseLogId }
-                    val allSetsCompleted = exerciseSets.isNotEmpty() && 
-                        exerciseSets.all { set -> 
-                            set.isCompleted || !canMarkSetCompleteInternal(set)
-                        }
-                    
-                    // If all sets are completed, collapse the exercise
-                    if (allSetsCompleted) {
-                        val currentExpanded = _expandedExerciseIds.value.toMutableSet()
-                        currentExpanded.remove(exerciseLogId)
-                        _expandedExerciseIds.value = currentExpanded
-                    }
+            // Auto-collapse exercise when ALL sets are completed
+            // Find which exercise this set belongs to
+            val exerciseLogId = updatedSets.find { it.id == setId }?.exerciseLogId
+            if (exerciseLogId != null) {
+                // Get all sets for this exercise
+                val exerciseSets = updatedSets.filter { it.exerciseLogId == exerciseLogId }
+                
+                // Only collapse if ALL sets are marked as completed
+                // Don't care if they have data or not - if they exist and aren't completed, don't collapse
+                val allSetsCompleted = exerciseSets.isNotEmpty() && exerciseSets.all { it.isCompleted }
+                
+                if (allSetsCompleted) {
+                    val currentExpanded = _expandedExerciseIds.value.toMutableSet()
+                    currentExpanded.remove(exerciseLogId)
+                    _expandedExerciseIds.value = currentExpanded
                 }
             }
         }
