@@ -581,7 +581,7 @@ class InsightsViewModel(
             // 2. Build JSON payload
             val jsonPayload = buildAnalysisPayload(workouts)
 
-            // 3. Call OpenAI API using gpt-4.1-mini
+            // 3. Call OpenAI API
             val response = callOpenAIAPI(jsonPayload)
 
             // 4. Parse response into TrainingAnalysis

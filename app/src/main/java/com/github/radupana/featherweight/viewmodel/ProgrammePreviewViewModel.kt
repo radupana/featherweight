@@ -215,7 +215,7 @@ class ProgrammePreviewViewModel(
                 metadata =
                     GenerationMetadata(
                         generatedAt = System.currentTimeMillis(),
-                        modelUsed = "gpt-4.1-mini",
+                        modelUsed = "gpt-5-mini", // CORRECT, DO NOT CHANGE
                         tokensUsed = 0, // Would need to be passed from AI service
                         generationTimeMs = 0, // Would need to be tracked by AI service
                         userInputSummary = "AI Generated Programme",

@@ -68,7 +68,7 @@ Common pitfall: When field A shows value from field B, the bug is usually where 
 
 ## CRITICAL RULES
 
-1.  **OpenAI Model Name**: The model name in `AIProgrammeService.kt` **must** be `gpt-4.1-mini`. This is not a typo. Do not change it to `gpt-4o-mini` or any other value.
+1.  **OpenAI Model Name**: The model name in `AIProgrammeService.kt` **must** be `gpt-5-mini`. This is not a typo. Do not change it to `gpt-4o-mini` or any other value.
 2.  **Exercise Naming**: Adhere strictly to the following naming convention for exercises:
     - **Format**: `[Equipment] [Muscle] [Movement]` (e.g., "Barbell Bench Press").
     - **Equipment First**: Always start with the equipment (e.g., "Dumbbell", "Cable", "Machine").
