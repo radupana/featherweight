@@ -8085,6 +8085,23 @@
         "BB Box Squat",
         "Barbell Box Squats"
       ]
+    },
+    {
+      "id": 505,
+      "name": "Weighted Chin Up",
+      "category": "Back",
+      "equipment": "Dumbbell",
+      "muscleGroup": "Lats",
+      "movementPattern": "Pull",
+      "type": "Strength",
+      "difficulty": "Advanced",
+      "requiresWeight": true,
+      "instructions": "Attach weight to dipping belt or hold dumbbell between feet. Use underhand grip and pull up until chin over bar.",
+      "aliases": [
+        "Weighted Chin-Up",
+        "Weighted Chinup",
+        "Chin Up with Weight"
+      ]
     }
   ]
 }

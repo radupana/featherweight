@@ -95,6 +95,8 @@ class ExerciseSeeder(
 
                         // Create variations for this core
                         variations.forEach { data ->
+                            val rmScalingType = determineRMScalingType(data.name)
+                            
                             val variation =
                                 ExerciseVariation(
                                     id = 0, // Auto-generate
@@ -104,6 +106,7 @@ class ExerciseSeeder(
                                     difficulty = ExerciseDifficulty.valueOf(data.difficulty.uppercase()),
                                     requiresWeight = data.requiresWeight,
                                     recommendedRepRange = getRecommendedRepRange(data.difficulty),
+                                    rmScalingType = rmScalingType,
                                     usageCount = 0,
                                     isCustom = false,
                                     createdBy = null,
@@ -244,6 +247,54 @@ class ExerciseSeeder(
             "ELITE" -> "1-5"
             else -> "8-12"
         }
+
+    private fun determineRMScalingType(exerciseName: String): RMScalingType {
+        val nameLower = exerciseName.lowercase()
+        
+        // Check for weighted bodyweight exercises
+        if (isWeightedBodyweightExercise(nameLower)) {
+            return RMScalingType.WEIGHTED_BODYWEIGHT
+        }
+        
+        // Check for isolation exercises
+        if (isIsolationExercise(nameLower)) {
+            return RMScalingType.ISOLATION
+        }
+        
+        // Default to standard for compound movements
+        return RMScalingType.STANDARD
+    }
+    
+    private fun isWeightedBodyweightExercise(nameLower: String): Boolean {
+        if (!nameLower.contains("weighted")) return false
+        
+        val bodyweightExercises = listOf(
+            "pull up", "pull-up", "chin up", "chin-up",
+            "dip", "muscle up", "muscle-up"
+        )
+        
+        return bodyweightExercises.any { nameLower.contains(it) }
+    }
+    
+    private fun isIsolationExercise(nameLower: String): Boolean {
+        val isolationKeywords = listOf(
+            "curl", "extension", "fly", "flye", "raise", "shrug",
+            "kickback", "pullover", "calf", "preacher",
+            "concentration", "hammer"
+        )
+        
+        // Check for standard isolation keywords
+        if (isolationKeywords.any { nameLower.contains(it) }) {
+            return true
+        }
+        
+        // Special case for cable exercises
+        if (nameLower.contains("cable")) {
+            return nameLower.contains("crossover") || nameLower.contains("lateral")
+        }
+        
+        return false
+    }
 
     private fun getSecondaryMuscles(
         movementPattern: String,

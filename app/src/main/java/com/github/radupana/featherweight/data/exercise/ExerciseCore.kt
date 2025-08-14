@@ -50,6 +50,7 @@ data class ExerciseVariation(
     val difficulty: ExerciseDifficulty,
     val requiresWeight: Boolean,
     val recommendedRepRange: String? = null,
+    val rmScalingType: RMScalingType = RMScalingType.STANDARD,
     val usageCount: Int = 0,
     val isCustom: Boolean = false,
     val createdBy: Long? = null,

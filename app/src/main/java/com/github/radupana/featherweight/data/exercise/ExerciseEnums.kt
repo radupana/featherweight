@@ -269,3 +269,21 @@ enum class ExerciseRelationType {
     COOLDOWN_FOR,
     SIMILAR_PATTERN,
 }
+
+enum class RMScalingType(
+    val displayName: String,
+    val description: String,
+) {
+    STANDARD(
+        "Standard",
+        "Most exercises - bench press, squat, rows, etc.",
+    ),
+    WEIGHTED_BODYWEIGHT(
+        "Weighted Bodyweight",
+        "Pull-ups, dips, muscle-ups where you add weight to your body",
+    ),
+    ISOLATION(
+        "Isolation",
+        "Single-joint movements like curls, extensions, lateral raises",
+    ),
+}

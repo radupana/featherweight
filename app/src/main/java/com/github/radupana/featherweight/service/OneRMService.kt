@@ -1,10 +1,13 @@
 package com.github.radupana.featherweight.service
 
+import android.util.Log
 import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.data.profile.OneRMType
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.LocalDateTime
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
 class OneRMService {
@@ -16,33 +19,83 @@ class OneRMService {
     }
 
     /**
-     * Calculate estimated 1RM using Brzycki formula
+     * Calculate estimated 1RM using appropriate formula based on exercise type
      * Only valid for reps <= 15
-     * For singles with RPE, adjusts based on reps in reserve
+     * Properly converts RPE to total rep capacity
+     * Skips calculation for RPE <= 6 (too unreliable)
      */
     fun calculateEstimated1RM(
         weight: Float,
         reps: Int,
         rpe: Float? = null,
+        scalingType: RMScalingType = RMScalingType.STANDARD,
     ): Float? {
-        if (reps <= 0 || reps > MAX_REPS_FOR_ESTIMATE) return null
+        Log.d("OneRMService", "calculateEstimated1RM: weight=$weight, reps=$reps, rpe=$rpe, scalingType=$scalingType")
+        
+        if (reps <= 0 || reps > MAX_REPS_FOR_ESTIMATE) {
+            Log.d("OneRMService", "Skipping 1RM calc: reps out of range ($reps)")
+            return null
+        }
+        
+        // Skip calculation if RPE is 6 or below - too unreliable
+        if (rpe != null && rpe <= 6.0f) {
+            Log.d("OneRMService", "Skipping 1RM calc: RPE too low ($rpe <= 6.0) - unreliable estimate")
+            return null
+        }
 
-        // Calculate effective reps based on RPE for singles
-        val effectiveReps =
+        // Calculate total rep capacity based on RPE
+        val totalRepCapacity =
             when {
-                reps == 1 && rpe != null -> {
-                    // For singles with RPE, calculate total possible reps
+                rpe != null && rpe > 6.0f -> {
+                    // Convert RPE to reps in reserve for ANY rep count
                     val repsInReserve = (10f - rpe).coerceAtLeast(0f).toInt()
-                    reps + repsInReserve // Total reps possible at this weight
+                    val total = reps + repsInReserve
+                    Log.d("OneRMService", "RPE conversion: $reps reps @ RPE $rpe = $total total rep capacity ($repsInReserve RIR)")
+                    total
                 }
-                else -> reps
+                rpe == null -> {
+                    Log.d("OneRMService", "No RPE provided, assuming maximal effort: $reps reps")
+                    reps // No RPE means assume maximal effort
+                }
+                else -> {
+                    // This shouldn't happen due to the check above, but just in case
+                    Log.d("OneRMService", "Unexpected RPE state: $rpe")
+                    reps
+                }
             }
 
-        // If it's a true max (RPE 10 or no RPE adjustment needed)
-        if (effectiveReps == 1) return weight
+        // If it's a true max (1 rep capacity)
+        if (totalRepCapacity == 1) {
+            Log.d("OneRMService", "True 1RM detected: $weight kg")
+            return weight
+        }
 
-        // Brzycki formula: 1RM = weight / (1.0278 - 0.0278 × reps)
-        return weight / (1.0278f - 0.0278f * effectiveReps)
+        // Apply formula based on scaling type
+        val result = when (scalingType) {
+            RMScalingType.WEIGHTED_BODYWEIGHT -> {
+                // More aggressive scaling for weighted bodyweight movements
+                // Use modified Epley formula with adjusted coefficient
+                val calc = weight * (1 + totalRepCapacity * 0.035f)
+                Log.d("OneRMService", "Weighted BW formula: $weight × (1 + $totalRepCapacity × 0.035) = $calc")
+                calc
+            }
+            RMScalingType.ISOLATION -> {
+                // More conservative scaling for isolation exercises
+                // Use Lombardi formula which is more conservative at higher reps
+                val calc = weight * totalRepCapacity.toFloat().pow(0.10f)
+                Log.d("OneRMService", "Isolation formula: $weight × $totalRepCapacity^0.10 = $calc")
+                calc
+            }
+            RMScalingType.STANDARD -> {
+                // Standard Brzycki formula for compound movements
+                val calc = weight / (1.0278f - 0.0278f * totalRepCapacity)
+                Log.d("OneRMService", "Standard Brzycki: $weight / (1.0278 - 0.0278 × $totalRepCapacity) = $calc")
+                calc
+            }
+        }
+        
+        Log.d("OneRMService", "Final 1RM estimate: ${WeightFormatter.formatDecimal(result, 2)}kg")
+        return result
     }
 
     /**

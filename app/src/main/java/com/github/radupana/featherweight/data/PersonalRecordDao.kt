@@ -73,6 +73,16 @@ interface PersonalRecordDao {
     )
     suspend fun getMaxVolumeForExercise(exerciseVariationId: Long): Float?
 
+    @Query(
+        """
+        SELECT MAX(estimated1RM) 
+        FROM PersonalRecord 
+        WHERE exerciseVariationId = :exerciseVariationId 
+        AND estimated1RM IS NOT NULL
+    """,
+    )
+    suspend fun getMaxEstimated1RMForExercise(exerciseVariationId: Long): Float?
+
     @Query("SELECT COUNT(*) FROM PersonalRecord WHERE exerciseVariationId = :exerciseVariationId")
     suspend fun getPRCountForExercise(exerciseVariationId: Long): Int
 

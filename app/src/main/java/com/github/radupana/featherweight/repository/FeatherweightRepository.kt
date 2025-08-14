@@ -8,6 +8,7 @@ import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.GeneratedProgrammePreview
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
+import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.SetLog
@@ -55,6 +56,7 @@ import com.github.radupana.featherweight.domain.ExerciseStats
 import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.service.FreestyleIntelligenceService
 import com.github.radupana.featherweight.service.GlobalProgressTracker
+import com.github.radupana.featherweight.service.OneRMService
 import com.github.radupana.featherweight.service.PRDetectionService
 import com.github.radupana.featherweight.service.ProgressionService
 import com.github.radupana.featherweight.service.WorkoutTemplateGeneratorService
@@ -137,7 +139,7 @@ class FeatherweightRepository(
     // Initialize GlobalProgressTracker
     private val globalProgressTracker = GlobalProgressTracker(this, db)
     private val freestyleIntelligenceService = FreestyleIntelligenceService(this, db.globalExerciseProgressDao())
-    private val prDetectionService = PRDetectionService(personalRecordDao, setLogDao)
+    private val prDetectionService = PRDetectionService(personalRecordDao, setLogDao, exerciseVariationDao)
     private val workoutTemplateGeneratorService =
         WorkoutTemplateGeneratorService(exerciseVariationDao)
     private val workoutTemplateWeightService =
@@ -2406,7 +2408,35 @@ class FeatherweightRepository(
         exerciseVariationId: Long,
     ): List<PersonalRecord> =
         withContext(Dispatchers.IO) {
-            prDetectionService.checkForPR(setLog, exerciseVariationId)
+            val prs = prDetectionService.checkForPR(setLog, exerciseVariationId)
+            
+            // If we detected an estimated 1RM PR, update the UserExerciseMax table
+            val oneRMPR = prs.find { it.recordType == PRType.ESTIMATED_1RM }
+            if (oneRMPR != null && oneRMPR.estimated1RM != null) {
+                val userId = getCurrentUserId()
+                val oneRMService = OneRMService()
+                
+                Log.d("Repository", "Updating UserExerciseMax with new 1RM: ${oneRMPR.estimated1RM}kg for exercise $exerciseVariationId")
+                
+                // Create UserExerciseMax record from the PR
+                val userExerciseMax = oneRMService.createOneRMRecord(
+                    userId = userId,
+                    exerciseId = exerciseVariationId,
+                    set = setLog,
+                    estimate = oneRMPR.estimated1RM,
+                    confidence = 1.0f // High confidence since it's a PR
+                )
+                
+                // Update or insert the 1RM record
+                updateOrInsertOneRM(userExerciseMax)
+                Log.d("Repository", "UserExerciseMax updated successfully")
+            } else if (prs.isNotEmpty()) {
+                // Only log this if we have PRs but NO 1RM PR (e.g., just a weight or rep PR)
+                val prTypes = prs.map { it.recordType }.distinct().joinToString(", ")
+                Log.d("Repository", "PRs detected ($prTypes) but no 1RM update needed")
+            }
+            
+            prs
         }
 
     /**

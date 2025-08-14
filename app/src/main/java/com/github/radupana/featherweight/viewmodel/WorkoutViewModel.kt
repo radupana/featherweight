@@ -1165,11 +1165,17 @@ class WorkoutViewModel(
                     }
 
                 if (exerciseLog != null && completedSet != null) {
+                    // Get the exercise variation to determine scaling type
+                    val exerciseVariation = repository.getExerciseById(exerciseLog.exerciseVariationId)
+                    val scalingType = exerciseVariation?.rmScalingType ?: com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
+                    
                     val currentEstimate = _oneRMEstimates.value[exerciseLog.exerciseVariationId]
                     val newEstimate =
                         oneRMService.calculateEstimated1RM(
                             completedSet.actualWeight,
                             completedSet.actualReps,
+                            completedSet.actualRpe, // Pass the RPE!
+                            scalingType // Pass the correct scaling type!
                         )
 
                     if (newEstimate != null &&
@@ -1763,9 +1769,13 @@ class WorkoutViewModel(
             // Get exercise info
             val exercise = _selectedWorkoutExercises.value.find { it.id == set.exerciseLogId } ?: return@launch
             val exerciseVariationId = exercise.exerciseVariationId
+            
+            // Get the exercise variation to determine scaling type
+            val exerciseVariation = repository.getExerciseById(exerciseVariationId)
+            val scalingType = exerciseVariation?.rmScalingType ?: com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
 
             // Calculate estimated 1RM from this set (now with RPE consideration)
-            val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps, set.actualRpe) ?: return@launch
+            val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps, set.actualRpe, scalingType) ?: return@launch
 
             // Get current 1RM
             val userId = repository.getCurrentUserId()

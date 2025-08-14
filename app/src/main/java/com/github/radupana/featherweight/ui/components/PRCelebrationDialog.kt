@@ -1,5 +1,7 @@
 package com.github.radupana.featherweight.ui.components
 
+import com.github.radupana.featherweight.data.PRType
+
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -137,8 +139,23 @@ fun PRCelebrationDialog(
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
 
+                    val prTypeCounts = personalRecords.groupBy { it.recordType }.mapValues { it.value.size }
+                    val hasWeightPR = prTypeCounts.containsKey(PRType.WEIGHT)
+                    val hasOneRMPR = prTypeCounts.containsKey(PRType.ESTIMATED_1RM)
+                    
+                    val titleText = when {
+                        personalRecords.size == 1 -> when (personalRecords.first().recordType) {
+                            PRType.WEIGHT -> "NEW WEIGHT PR!"
+                            PRType.ESTIMATED_1RM -> "NEW ESTIMATED 1RM!"
+                            else -> "PERSONAL RECORD!"
+                        }
+                        hasWeightPR && hasOneRMPR -> "DOUBLE PR!"
+                        personalRecords.size > 1 -> "Multiple PRs!"
+                        else -> "PERSONAL RECORD!"
+                    }
+                    
                     Text(
-                        text = if (personalRecords.size == 1) "PERSONAL RECORD!" else "Multiple PRs!",
+                        text = titleText,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -209,25 +226,62 @@ private fun PRDetailCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // PR achievement
+            // PR achievement - show different text based on PR type
+            val prText = when (personalRecord.recordType) {
+                PRType.WEIGHT -> {
+                    formatPRText(personalRecord)
+                }
+                PRType.ESTIMATED_1RM -> {
+                    "Est. 1RM: ${WeightFormatter.formatWeightWithUnit(personalRecord.estimated1RM ?: 0f)}"
+                }
+                else -> formatPRText(personalRecord)
+            }
+            
             Text(
-                text = formatPRText(personalRecord),
+                text = prText,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
             )
 
-            // Show estimated 1RM if available
-            if (personalRecord.estimated1RM != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-
+            // Show context for 1RM PRs (what lift achieved it)
+            if (personalRecord.recordType == PRType.ESTIMATED_1RM) {
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Est. 1RM: ${WeightFormatter.formatWeightWithUnit(personalRecord.estimated1RM)}",
+                    text = "From: ${formatPRText(personalRecord)}",
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            
+            // For weight PRs, check if we should show 1RM or potential message
+            if (personalRecord.recordType == PRType.WEIGHT) {
+                // Check if notes contain the "could potentially lift more" message
+                val notes = personalRecord.notes ?: ""
+                if (notes.contains("could potentially lift")) {
+                    // Extract and show the potential message
+                    val potentialMatch = "\\(Based on your ([0-9.]+)kg 1RM.*\\)".toRegex().find(notes)
+                    if (potentialMatch != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Your ${potentialMatch.groupValues[1]}kg 1RM suggests you could lift more!",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.tertiary,
+                        )
+                    }
+                } else if (personalRecord.estimated1RM != null) {
+                    // Only show 1RM if it's actually a new 1RM (no "potential" message)
+                    // This means the 1RM improved along with the weight PR
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "New Est. 1RM: ${WeightFormatter.formatWeightWithUnit(personalRecord.estimated1RM)}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.secondary,
+                    )
+                }
             }
 
             // Previous record comparison

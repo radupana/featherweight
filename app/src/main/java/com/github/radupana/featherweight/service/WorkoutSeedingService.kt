@@ -610,6 +610,10 @@ class WorkoutSeedingService(
 
             exerciseLogs.forEach { exerciseLog ->
                 val sets = repository.getSetLogsForExercise(exerciseLog.id)
+                
+                // Get the exercise variation to determine scaling type
+                val exerciseVariation = repository.getExerciseById(exerciseLog.exerciseVariationId)
+                val scalingType = exerciseVariation?.rmScalingType ?: com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
 
                 // Get current 1RM for this exercise
                 val currentMax =
@@ -633,8 +637,8 @@ class WorkoutSeedingService(
 
                     // Only calculate 1RM for meaningful sets (not warmups)
                     if (set.actualWeight >= MIN_MEANINGFUL_WEIGHT && set.actualReps <= 10) {
-                        // Calculate estimated 1RM using the service
-                        val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps)
+                        // Calculate estimated 1RM using the service with correct scaling type
+                        val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps, scalingType = scalingType)
 
                         if (estimated1RM != null) {
                             // Only update if this is truly better than current max
