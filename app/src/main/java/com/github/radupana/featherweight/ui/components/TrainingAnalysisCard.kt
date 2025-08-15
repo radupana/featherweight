@@ -25,6 +25,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,6 +46,7 @@ import java.time.temporal.ChronoUnit
 fun TrainingAnalysisCard(
     analysis: TrainingAnalysis?,
     isLoading: Boolean,
+    currentWorkoutCount: Int = 0,
     modifier: Modifier = Modifier,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -135,15 +137,47 @@ fun TrainingAnalysisCard(
                 else -> {
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Overall Assessment (always visible)
-                    Text(
-                        text = analysis.overallAssessment,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                    // Check if this is an insufficient data analysis
+                    if (analysis.overallAssessment.startsWith("INSUFFICIENT_DATA:")) {
+                        val parts = analysis.overallAssessment.split(":")
+                        val required = parts.getOrNull(2)?.toIntOrNull() ?: 16
+                        // Use the live currentWorkoutCount instead of the cached value
+                        val current = currentWorkoutCount
 
-                    // Expanded content
+                        Column {
+                            Text(
+                                text = "Building training history...",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Need at least $required workouts for analysis " +
+                                    "($current/$required completed)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LinearProgressIndicator(
+                                progress = { (current.toFloat() / required).coerceIn(0f, 1f) },
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                            )
+                        }
+                    } else {
+                        // Overall Assessment (always visible)
+                        Text(
+                            text = analysis.overallAssessment,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+
+                    // Expanded content (only show if not insufficient data)
+                    val isInsufficientData = analysis.overallAssessment.startsWith("INSUFFICIENT_DATA:")
                     AnimatedVisibility(
-                        visible = isExpanded,
+                        visible = isExpanded && !isInsufficientData,
                         enter = expandVertically(),
                         exit = shrinkVertically(),
                     ) {

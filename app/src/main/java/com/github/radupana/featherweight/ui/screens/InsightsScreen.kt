@@ -63,6 +63,7 @@ fun InsightsScreen(
 
     val trainingAnalysis by viewModel.trainingAnalysis.collectAsStateWithLifecycle()
     val isAnalyzing by viewModel.isAnalyzing.collectAsStateWithLifecycle()
+    val currentWorkoutCount by viewModel.currentWorkoutCount.collectAsStateWithLifecycle()
     val exerciseNames by viewModel.exerciseNames.collectAsStateWithLifecycle()
 
     // Load highlights data and check for scheduled analysis
@@ -117,6 +118,7 @@ fun InsightsScreen(
             TrainingAnalysisCard(
                 analysis = trainingAnalysis,
                 isLoading = isAnalyzing,
+                currentWorkoutCount = currentWorkoutCount,
             )
         }
 

@@ -95,6 +95,11 @@ class InsightsViewModel(
     private val aiService = AIProgrammeService()
     private val gson = Gson()
 
+    companion object {
+        private const val MINIMUM_WORKOUTS_FOR_ANALYSIS = 16
+        private const val ANALYSIS_PERIOD_WEEKS = 12
+    }
+
     private val _analyticsState = MutableStateFlow(AnalyticsState())
     val analyticsState: StateFlow<AnalyticsState> = _analyticsState
 
@@ -103,6 +108,9 @@ class InsightsViewModel(
 
     private val _isAnalyzing = MutableStateFlow(false)
     val isAnalyzing: StateFlow<Boolean> = _isAnalyzing
+
+    private val _currentWorkoutCount = MutableStateFlow(0)
+    val currentWorkoutCount: StateFlow<Int> = _currentWorkoutCount
 
     // Reactive exercise name mapping
     private val _exerciseNames = MutableStateFlow<Map<Long, String>>(emptyMap())
@@ -122,6 +130,11 @@ class InsightsViewModel(
 
     fun loadInsightsData(forceRefresh: Boolean = false) {
         viewModelScope.launch {
+            // Always update current workout count for accurate display
+            val endDate = LocalDate.now()
+            val startDate = endDate.minusWeeks(ANALYSIS_PERIOD_WEEKS.toLong())
+            _currentWorkoutCount.value = repository.getWorkoutCountByDateRange(startDate, endDate)
+            
             val currentState = _analyticsState.value
             val cachedData = currentState.cachedData
             val now = System.currentTimeMillis()
@@ -460,7 +473,7 @@ class InsightsViewModel(
     }
 
     fun refreshData() {
-        loadInsightsData()
+        loadInsightsData() // This already updates workout count
     }
 
     suspend fun getGroupedExercisesSummary(): com.github.radupana.featherweight.service.GroupedExerciseSummary =
@@ -521,11 +534,20 @@ class InsightsViewModel(
     fun loadCachedAnalysis() {
         viewModelScope.launch {
             _trainingAnalysis.value = repository.getLatestTrainingAnalysis()
+            // Always calculate current workout count for accurate display
+            val endDate = LocalDate.now()
+            val startDate = endDate.minusWeeks(ANALYSIS_PERIOD_WEEKS.toLong())
+            _currentWorkoutCount.value = repository.getWorkoutCountByDateRange(startDate, endDate)
         }
     }
 
     fun checkAndRunScheduledAnalysis() {
         viewModelScope.launch {
+            // Always update current workout count
+            val endDate = LocalDate.now()
+            val startDate = endDate.minusWeeks(ANALYSIS_PERIOD_WEEKS.toLong())
+            _currentWorkoutCount.value = repository.getWorkoutCountByDateRange(startDate, endDate)
+            
             // Check if we've already checked today using SharedPreferences
             val prefs = getApplication<Application>().getSharedPreferences("training_analysis", 0)
             val lastCheckDate = prefs.getString("last_check_date", null)
@@ -562,9 +584,42 @@ class InsightsViewModel(
     private suspend fun runAnalysis() {
         _isAnalyzing.value = true
         try {
-            val analysis = performAnalysis()
-            repository.saveTrainingAnalysis(analysis)
-            _trainingAnalysis.value = analysis
+            // Check if we have enough data
+            val endDate = LocalDate.now()
+            val startDate = endDate.minusWeeks(ANALYSIS_PERIOD_WEEKS.toLong())
+            val workoutCount = repository.getWorkoutCountByDateRange(startDate, endDate)
+            _currentWorkoutCount.value = workoutCount
+
+            if (workoutCount < MINIMUM_WORKOUTS_FOR_ANALYSIS) {
+                // Save a placeholder analysis indicating insufficient data
+                val insufficientDataAnalysis = TrainingAnalysis(
+                    analysisDate = LocalDateTime.now(),
+                    periodStart = startDate,
+                    periodEnd = endDate,
+                    overallAssessment = "INSUFFICIENT_DATA:$workoutCount:$MINIMUM_WORKOUTS_FOR_ANALYSIS",
+                    keyInsightsJson = gson.toJson(
+                        listOf(
+                            TrainingInsight(
+                                category = InsightCategory.PROGRESSION,
+                                message = "Continue building training history",
+                                severity = InsightSeverity.INFO
+                            )
+                        )
+                    ),
+                    recommendationsJson = gson.toJson(
+                        listOf("Complete more workouts to enable analysis")
+                    ),
+                    warningsJson = gson.toJson(emptyList<String>()),
+                    userId = 1
+                )
+                repository.saveTrainingAnalysis(insufficientDataAnalysis)
+                _trainingAnalysis.value = insufficientDataAnalysis
+            } else {
+                // Proceed with normal analysis
+                val analysis = performAnalysis()
+                repository.saveTrainingAnalysis(analysis)
+                _trainingAnalysis.value = analysis
+            }
         } catch (e: Exception) {
             Log.e("InsightsViewModel", "Training analysis failed", e)
             // Keep existing cached analysis if API fails
@@ -578,7 +633,7 @@ class InsightsViewModel(
         withContext(Dispatchers.IO) {
             // 1. Fetch raw workout data
             val endDate = LocalDate.now()
-            val startDate = endDate.minusWeeks(12)
+            val startDate = endDate.minusWeeks(ANALYSIS_PERIOD_WEEKS.toLong())
             val workouts = repository.getWorkoutsByDateRange(startDate, endDate)
 
             // 2. Build JSON payload

@@ -2660,6 +2660,17 @@ class FeatherweightRepository(
             }
         }
 
+    suspend fun getWorkoutCountByDateRange(
+        startDate: LocalDate,
+        endDate: LocalDate,
+    ): Int =
+        withContext(Dispatchers.IO) {
+            workoutDao.getWorkoutsInDateRange(
+                startDate = startDate.atStartOfDay(),
+                endDate = endDate.atTime(23, 59, 59),
+            ).count { it.status == WorkoutStatus.COMPLETED }
+        }
+
     /**
      * Get exercise 1RM from user profile
      */
