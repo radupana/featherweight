@@ -60,10 +60,9 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         GlobalExerciseProgress::class,
         ExerciseCorrelation::class,
         PersonalRecord::class,
-        AIProgrammeRequest::class,
         TrainingAnalysis::class,
     ],
-    version = 69,
+    version = 71,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConvertersNew::class)
@@ -104,8 +103,6 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun exerciseCorrelationDao(): ExerciseCorrelationDao
 
     abstract fun personalRecordDao(): PersonalRecordDao
-
-    abstract fun aiProgrammeRequestDao(): AIProgrammeRequestDao
 
     abstract fun trainingAnalysisDao(): TrainingAnalysisDao
 

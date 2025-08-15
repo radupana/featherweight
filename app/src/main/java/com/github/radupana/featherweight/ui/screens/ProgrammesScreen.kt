@@ -12,13 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Schedule
@@ -51,13 +49,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.radupana.featherweight.data.AIProgrammeRequest
-import com.github.radupana.featherweight.data.GenerationStatus
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
 import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
-import com.github.radupana.featherweight.ui.components.AIProgrammeRequestCard
-import com.github.radupana.featherweight.ui.components.ClarificationDialog
 import com.github.radupana.featherweight.ui.dialogs.ProgrammeSetupDialog
 import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.ui.utils.NavigationContext
@@ -70,26 +64,16 @@ fun ProgrammesScreen(
     modifier: Modifier = Modifier,
     viewModel: ProgrammeViewModel = viewModel(),
     onNavigateToActiveProgramme: (() -> Unit)? = null,
-    onNavigateToAIGenerator: (() -> Unit)? = null,
-    onNavigateToAIProgrammePreview: (() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val activeProgramme by viewModel.activeProgramme.collectAsState()
     val programmeProgress by viewModel.programmeProgress.collectAsState()
-    val aiProgrammeRequests by viewModel.aiProgrammeRequests.collectAsState(initial = emptyList())
     val isKeyboardVisible by rememberKeyboardState()
     val compactPadding = if (isKeyboardVisible) 8.dp else 16.dp
 
     // Confirmation dialog states
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
-    var showClarificationDialog by remember { mutableStateOf(false) }
-    var clarificationRequest by remember { mutableStateOf<AIProgrammeRequest?>(null) }
-    var showAIGenerationBlockedDialog by remember { mutableStateOf(false) }
 
-    // Force refresh AI requests when screen becomes visible
-    LaunchedEffect(Unit) {
-        viewModel.forceRefreshAIRequests()
-    }
 
     // Handle error messages
     LaunchedEffect(uiState.error) {
@@ -151,51 +135,6 @@ fun ProgrammesScreen(
                         .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
                 contentPadding = PaddingValues(bottom = compactPadding),
             ) {
-                // AI Programme Generation Button - Always at the top
-                item {
-                    Card(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = compactPadding / 2)
-                                .clickable {
-                                    if (activeProgramme != null) {
-                                        // Show dialog that user must delete active programme first
-                                        showAIGenerationBlockedDialog = true
-                                    } else {
-                                        onNavigateToAIGenerator?.invoke()
-                                    }
-                                },
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                            ),
-                    ) {
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(compactPadding),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = "AI Generate",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp),
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Generate Custom Programme with AI",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
-                }
-
                 // Active Programme Section
                 activeProgramme?.let { programme ->
                     item {
@@ -204,43 +143,6 @@ fun ProgrammesScreen(
                             progress = programmeProgress,
                             onDelete = { showDeleteConfirmDialog = true },
                             onNavigateToProgramme = onNavigateToActiveProgramme,
-                            isCompact = isKeyboardVisible,
-                        )
-                    }
-                }
-
-                // AI Programme Requests Section
-                if (aiProgrammeRequests.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "AI Generated Programmes",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(vertical = compactPadding / 2),
-                        )
-                    }
-
-                    items(aiProgrammeRequests) { request ->
-                        AIProgrammeRequestCard(
-                            request = request,
-                            onPreview = {
-                                viewModel.previewAIProgramme(request.id) { success ->
-                                    if (success) {
-                                        onNavigateToAIProgrammePreview?.invoke()
-                                    }
-                                }
-                            },
-                            onRetry = {
-                                if (request.status == GenerationStatus.NEEDS_CLARIFICATION) {
-                                    clarificationRequest = request
-                                    showClarificationDialog = true
-                                } else {
-                                    viewModel.retryAIGeneration(request.id)
-                                }
-                            },
-                            onDelete = {
-                                viewModel.deleteAIRequest(request.id)
-                            },
                             isCompact = isKeyboardVisible,
                         )
                     }
@@ -427,55 +329,6 @@ fun ProgrammesScreen(
         )
     }
 
-    // Clarification Dialog
-    if (showClarificationDialog && clarificationRequest != null) {
-        ClarificationDialog(
-            clarificationMessage = clarificationRequest!!.clarificationMessage ?: "Please provide additional information.",
-            onSubmit = { clarificationText ->
-                viewModel.submitClarification(clarificationRequest!!.id, clarificationText)
-                showClarificationDialog = false
-                clarificationRequest = null
-            },
-            onDismiss = {
-                showClarificationDialog = false
-                clarificationRequest = null
-            },
-        )
-    }
-
-    // AI Generation Blocked Dialog
-    if (showAIGenerationBlockedDialog) {
-        AlertDialog(
-            onDismissRequest = { showAIGenerationBlockedDialog = false },
-            title = { Text("Active Programme Detected") },
-            text = {
-                Column {
-                    Text(
-                        text = "You already have an active programme: ${activeProgramme?.name}",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "To generate a new AI programme, you must first delete your current programme.",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "This ensures you can focus on one programme at a time for optimal results.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { showAIGenerationBlockedDialog = false },
-                ) {
-                    Text("OK")
-                }
-            },
-        )
-    }
 }
 
 @Composable

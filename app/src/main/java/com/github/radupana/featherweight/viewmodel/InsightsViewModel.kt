@@ -9,7 +9,7 @@ import com.github.radupana.featherweight.data.InsightSeverity
 import com.github.radupana.featherweight.data.TrainingAnalysis
 import com.github.radupana.featherweight.data.TrainingInsight
 import com.github.radupana.featherweight.repository.FeatherweightRepository
-import com.github.radupana.featherweight.service.AIProgrammeService
+import com.github.radupana.featherweight.service.TrainingAnalysisService
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
@@ -92,7 +92,7 @@ class InsightsViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     val repository = FeatherweightRepository(application)
-    private val aiService = AIProgrammeService()
+    private val analysisService = TrainingAnalysisService()
     private val gson = Gson()
 
     companion object {
@@ -775,7 +775,7 @@ class InsightsViewModel(
             Data: $jsonPayload
             """.trimIndent()
 
-        return aiService.analyzeTraining(prompt)
+        return analysisService.analyzeTraining(prompt)
     }
 
     private fun parseAIResponse(

@@ -73,8 +73,6 @@ enum class Screen {
     INSIGHTS,
     PROGRAMMES,
     ACTIVE_PROGRAMME,
-    PROGRAMME_GENERATOR,
-    PROGRAMME_PREVIEW,
     PROFILE,
     EXERCISE_PROGRESS,
     PROGRAMME_HISTORY_DETAIL,
@@ -262,8 +260,6 @@ fun MainAppWithNavigation(
                         Screen.USER_SELECTION,
                         Screen.ACTIVE_WORKOUT,
                         Screen.EXERCISE_SELECTOR,
-                        Screen.PROGRAMME_GENERATOR,
-                        Screen.PROGRAMME_PREVIEW,
                         Screen.PROGRAMME_HISTORY_DETAIL,
                         Screen.WORKOUT_TEMPLATE_CONFIGURATION,
                         Screen.WORKOUT_COMPLETION,
@@ -464,18 +460,10 @@ fun MainAppWithNavigation(
             Screen.PROGRAMMES -> {
                 val programmeViewModel: ProgrammeViewModel = viewModel()
 
-                // Force refresh AI requests when returning from preview screen
-                LaunchedEffect(currentScreen) {
-                    if (currentScreen == Screen.PROGRAMMES && previousScreen == Screen.PROGRAMME_PREVIEW) {
-                        programmeViewModel.forceRefreshAIRequests()
-                    }
-                }
 
                 com.github.radupana.featherweight.ui.screens.ProgrammesScreen(
                     viewModel = programmeViewModel,
                     onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
-                    onNavigateToAIGenerator = { onScreenChange(Screen.PROGRAMME_GENERATOR) },
-                    onNavigateToAIProgrammePreview = { onScreenChange(Screen.PROGRAMME_PREVIEW) },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -507,25 +495,6 @@ fun MainAppWithNavigation(
 
             Screen.USER_SELECTION -> {
                 // Should not reach here - handled in parent
-            }
-
-            Screen.PROGRAMME_GENERATOR -> {
-                val programmeViewModel: ProgrammeViewModel = viewModel()
-                com.github.radupana.featherweight.ui.screens.ProgrammeGeneratorScreen(
-                    onNavigateBack = { onScreenChange(Screen.PROGRAMMES) },
-                    programmeViewModel = programmeViewModel,
-                )
-            }
-
-            Screen.PROGRAMME_PREVIEW -> {
-                com.github.radupana.featherweight.ui.screens.ProgrammePreviewScreen(
-                    onBack = { onScreenChange(Screen.PROGRAMMES) },
-                    onActivated = {
-                        // Navigate to active programme after successful activation
-                        onScreenChange(Screen.ACTIVE_PROGRAMME)
-                    },
-                    modifier = Modifier.padding(innerPadding),
-                )
             }
 
             Screen.PROFILE -> {

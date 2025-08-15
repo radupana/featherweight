@@ -4,12 +4,10 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.work.WorkManager
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
 import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
-import com.github.radupana.featherweight.repository.AIProgrammeRepository
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -23,11 +21,6 @@ class ProgrammeViewModel(
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
     private val database = FeatherweightDatabase.getDatabase(application)
-    private val aiProgrammeRepository =
-        AIProgrammeRepository(
-            database.aiProgrammeRequestDao(),
-            WorkManager.getInstance(application),
-        )
 
     // UI State
     private val _uiState = MutableStateFlow(ProgrammeUiState())
@@ -46,9 +39,6 @@ class ProgrammeViewModel(
     // All user programmes (including inactive)
     private val _allProgrammes = MutableStateFlow<List<Programme>>(emptyList())
     val allProgrammes: StateFlow<List<Programme>> = _allProgrammes
-
-    // AI programme requests
-    val aiProgrammeRequests = aiProgrammeRepository.getAllRequests()
 
     // Track if initial load is complete to avoid flashing on refresh
     private var hasLoadedInitialData = false
@@ -72,12 +62,6 @@ class ProgrammeViewModel(
                     )
             }
         }
-
-        // Cleanup stale AI requests on startup
-        viewModelScope.launch {
-            aiProgrammeRepository.cleanupStaleRequests()
-        }
-
 
 
         // Load data immediately
@@ -375,13 +359,6 @@ class ProgrammeViewModel(
         }
     }
 
-    fun forceRefreshAIRequests() {
-        // Force refresh AI requests when returning from preview
-        viewModelScope.launch {
-            // This will trigger the Flow to re-emit
-            aiProgrammeRepository.cleanupStaleRequests()
-        }
-    }
 
     private suspend fun checkAndPromptForProfileUpdate(
         enteredMaxes: UserMaxes,
@@ -495,78 +472,6 @@ class ProgrammeViewModel(
         callback?.invoke()
     }
 
-    // Public methods for AI programme management
-    fun retryAIGeneration(requestId: String) {
-        viewModelScope.launch {
-            aiProgrammeRepository.retryGeneration(requestId)
-        }
-    }
-
-    fun deleteAIRequest(requestId: String) {
-        viewModelScope.launch {
-            aiProgrammeRepository.deleteRequest(requestId)
-        }
-    }
-
-    fun previewAIProgramme(
-        requestId: String,
-        onResult: (Boolean) -> Unit,
-    ) {
-        viewModelScope.launch {
-            try {
-                val request = aiProgrammeRepository.getRequestById(requestId)
-                if (request != null && request.generatedProgrammeJson != null) {
-                    // Parse the generated programme JSON
-                    val aiService =
-                        com.github.radupana.featherweight.service
-                            .AIProgrammeService()
-                    val response = aiService.parseAIProgrammeResponse(request.generatedProgrammeJson)
-
-                    if (response.programme != null) {
-                        // Store in holder for preview screen with request ID
-                        GeneratedProgrammeHolder.setGeneratedProgramme(response, requestId)
-
-                        // Validation will be done in ProgrammePreviewViewModel
-                        onResult(true)
-                    } else {
-                        _uiState.value =
-                            _uiState.value.copy(
-                                error = "Failed to parse programme data",
-                            )
-                        onResult(false)
-                    }
-                } else {
-                    _uiState.value =
-                        _uiState.value.copy(
-                            error = "Programme not found or still generating",
-                        )
-                    onResult(false)
-                }
-            } catch (e: Exception) {
-                _uiState.value =
-                    _uiState.value.copy(
-                        error = "Error loading programme: ${e.message}",
-                    )
-                onResult(false)
-            }
-        }
-    }
-
-    fun submitClarification(
-        requestId: String,
-        clarificationText: String,
-    ) {
-        viewModelScope.launch {
-            try {
-                aiProgrammeRepository.submitClarification(requestId, clarificationText)
-            } catch (e: Exception) {
-                _uiState.value =
-                    _uiState.value.copy(
-                        error = "Failed to submit clarification: ${e.message}",
-                    )
-            }
-        }
-    }
 }
 
 // Data classes for UI state

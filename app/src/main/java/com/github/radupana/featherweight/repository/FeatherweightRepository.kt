@@ -6,7 +6,6 @@ import com.github.radupana.featherweight.ai.ProgrammeType
 import com.github.radupana.featherweight.ai.WeightCalculator
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.FeatherweightDatabase
-import com.github.radupana.featherweight.data.GeneratedProgrammePreview
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
@@ -15,7 +14,6 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SwapHistoryCount
 import com.github.radupana.featherweight.data.TrainingAnalysis
 import com.github.radupana.featherweight.data.UserPreferences
-import com.github.radupana.featherweight.data.VolumeLevel
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.Equipment
@@ -1503,115 +1501,6 @@ class FeatherweightRepository(
             programmeId
         }
 
-    suspend fun createAIGeneratedProgramme(preview: GeneratedProgrammePreview): Long =
-        withContext(Dispatchers.IO) {
-            // Deactivate any currently active programme
-            programmeDao.deactivateAllProgrammes()
-
-            // Create the main programme
-            val programme =
-                Programme(
-                    name = preview.name,
-                    description = preview.description,
-                    durationWeeks = preview.durationWeeks,
-                    programmeType = DataProgrammeType.GENERAL_FITNESS,
-                    difficulty =
-                        when (preview.volumeLevel) {
-                            VolumeLevel.LOW -> ProgrammeDifficulty.BEGINNER
-                            VolumeLevel.MODERATE -> ProgrammeDifficulty.INTERMEDIATE
-                            VolumeLevel.HIGH, VolumeLevel.VERY_HIGH -> ProgrammeDifficulty.ADVANCED
-                        },
-                    isCustom = true,
-                    isActive = true,
-                    status = ProgrammeStatus.IN_PROGRESS,
-                    startedAt = LocalDateTime.now(),
-                )
-
-            val programmeId = programmeDao.insertProgramme(programme)
-
-            // Create weeks and workouts
-            preview.weeks.forEach { weekPreview ->
-                val week =
-                    ProgrammeWeek(
-                        programmeId = programmeId,
-                        weekNumber = weekPreview.weekNumber,
-                        name = "Week ${weekPreview.weekNumber}",
-                        description = weekPreview.progressionNotes,
-                        focusAreas = null,
-                        intensityLevel = weekPreview.intensityLevel,
-                        volumeLevel = weekPreview.volumeLevel,
-                        isDeload = weekPreview.isDeload,
-                        phase = weekPreview.progressionNotes?.substringBefore(":")?.trim(),
-                    )
-
-                val weekId = programmeDao.insertProgrammeWeek(week)
-
-                // Create workouts for this week
-                weekPreview.workouts.forEach { workoutPreview ->
-                    // Build workout structure JSON
-                    val workoutStructure =
-                        WorkoutStructure(
-                            day = workoutPreview.dayNumber,
-                            name = workoutPreview.name,
-                            exercises =
-                                workoutPreview.exercises.map { exercisePreview ->
-                                    ExerciseStructure(
-                                        name = exercisePreview.exerciseName,
-                                        sets = exercisePreview.sets,
-                                        reps =
-                                            RepsStructure.Range(
-                                                min = exercisePreview.repsMin,
-                                                max = exercisePreview.repsMax,
-                                            ),
-                                        note = exercisePreview.notes,
-                                        suggestedWeight = exercisePreview.suggestedWeight,
-                                        weightSource = exercisePreview.weightSource,
-                                    )
-                                },
-                            estimatedDuration = workoutPreview.estimatedDuration,
-                        )
-
-                    val workout =
-                        ProgrammeWorkout(
-                            weekId = weekId,
-                            dayNumber = workoutPreview.dayNumber,
-                            name = workoutPreview.name,
-                            description = null,
-                            estimatedDuration = workoutPreview.estimatedDuration,
-                            workoutStructure =
-                                kotlinx.serialization.json
-                                    .Json {
-                                        ignoreUnknownKeys = true
-                                        isLenient = true
-                                    }.encodeToString(
-                                        WorkoutStructure.serializer(),
-                                        workoutStructure,
-                                    ),
-                        )
-
-                    programmeDao.insertProgrammeWorkout(workout)
-                }
-            }
-
-            // Initialize progress tracking for the new programme
-            // CRITICAL FIX: Calculate total workouts based on programme duration, not just preview data
-            val totalWorkouts = preview.daysPerWeek * preview.durationWeeks
-            val progress =
-                ProgrammeProgress(
-                    programmeId = programmeId,
-                    currentWeek = 1,
-                    currentDay = 1,
-                    completedWorkouts = 0,
-                    totalWorkouts = totalWorkouts,
-                    lastWorkoutDate = null,
-                    adherencePercentage = 0f,
-                    strengthProgress = null,
-                )
-
-            programmeDao.insertOrUpdateProgress(progress)
-
-            programmeId
-        }
 
     suspend fun getAllProgrammes() =
         withContext(Dispatchers.IO) {

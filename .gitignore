@@ -13,4 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+.idea/revamp_ai.md
+nuke_ai_system.md
 .idea/
