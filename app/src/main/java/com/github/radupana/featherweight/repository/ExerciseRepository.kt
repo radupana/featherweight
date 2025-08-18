@@ -11,6 +11,7 @@ import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseCore
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.data.exercise.VariationMuscle
@@ -36,6 +37,18 @@ class ExerciseRepository(
     suspend fun getAllExercises(): List<ExerciseVariation> =
         withContext(Dispatchers.IO) {
             exerciseDao.getAllExercises()
+        }
+    
+    suspend fun getAllExercisesWithAliases(): List<ExerciseVariationWithAliases> =
+        withContext(Dispatchers.IO) {
+            val variations = exerciseDao.getAllExercises()
+            variations.map { variation ->
+                val aliases = exerciseDao.getAliasesForVariation(variation.id)
+                ExerciseVariationWithAliases(
+                    variation = variation,
+                    aliases = aliases.map { it.alias }
+                )
+            }
         }
 
     suspend fun getAllExerciseNamesIncludingAliases(): List<String> =

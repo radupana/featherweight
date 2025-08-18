@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,12 +14,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SearchOff
@@ -52,8 +57,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
 import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
+import com.github.radupana.featherweight.ui.components.ParseRequestCard
 import com.github.radupana.featherweight.ui.dialogs.ProgrammeSetupDialog
-import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.ui.utils.NavigationContext
 import com.github.radupana.featherweight.ui.utils.rememberKeyboardState
 import com.github.radupana.featherweight.ui.utils.systemBarsPadding
@@ -64,16 +69,27 @@ fun ProgrammesScreen(
     modifier: Modifier = Modifier,
     viewModel: ProgrammeViewModel = viewModel(),
     onNavigateToActiveProgramme: (() -> Unit)? = null,
+    onNavigateToImport: (() -> Unit)? = null,
+    onNavigateToImportWithText: ((String) -> Unit)? = null,
+    onNavigateToImportWithParsedProgramme: ((com.github.radupana.featherweight.data.ParsedProgramme, Long) -> Unit)? = null,
+    onClearImportedProgramme: (() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val activeProgramme by viewModel.activeProgramme.collectAsState()
     val programmeProgress by viewModel.programmeProgress.collectAsState()
+    val parseRequests by viewModel.parseRequests.collectAsState()
     val isKeyboardVisible by rememberKeyboardState()
     val compactPadding = if (isKeyboardVisible) 8.dp else 16.dp
+    
+    // Check if any parse request is currently being processed
+    val isParsingInProgress = parseRequests.any { it.status == com.github.radupana.featherweight.data.ParseStatus.PROCESSING }
+    val hasPendingParseRequests = parseRequests.any { 
+        it.status != com.github.radupana.featherweight.data.ParseStatus.IMPORTED 
+    }
 
-    // Confirmation dialog states
+    // Dialog states
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
-
+    var showRawTextDialog by remember { mutableStateOf<String?>(null) }
 
     // Handle error messages
     LaunchedEffect(uiState.error) {
@@ -107,7 +123,27 @@ fun ProgrammesScreen(
         ) {
             // Header - outside the scrollable area
 
-            // Error/Success Messages
+            // Success Messages
+            uiState.successMessage?.let { message ->
+                Card(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = compactPadding),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        ),
+                ) {
+                    Text(
+                        text = message,
+                        modifier = Modifier.padding(compactPadding),
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                }
+            }
+            
+            // Error Messages
             uiState.error?.let { error ->
                 Card(
                     modifier =
@@ -135,6 +171,104 @@ fun ProgrammesScreen(
                         .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
                 contentPadding = PaddingValues(bottom = compactPadding),
             ) {
+                // Import Programme Button - Prominent placement at the top
+                if (activeProgramme == null) {
+                    item {
+                        Card(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable(enabled = !hasPendingParseRequests) { 
+                                        if (!hasPendingParseRequests) {
+                                            onNavigateToImport?.invoke()
+                                        }
+                                    },
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                        ) {
+                            Column(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                if (hasPendingParseRequests) {
+                                    // Show why import is disabled
+                                    if (isParsingInProgress) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(24.dp),
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                text = "Parsing in progress...",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Please wait while we process your programme",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            textAlign = TextAlign.Center,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Filled.CheckCircle,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(32.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Review pending programme",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Complete the review below before importing another",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            textAlign = TextAlign.Center,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                                        )
+                                    }
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Filled.AutoAwesome,
+                                        contentDescription = "Import",
+                                        modifier = Modifier.size(48.dp),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        text = "Import Your Programme",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Paste any workout programme text and we'll parse it for you",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 // Active Programme Section
                 activeProgramme?.let { programme ->
                     item {
@@ -144,6 +278,50 @@ fun ProgrammesScreen(
                             onDelete = { showDeleteConfirmDialog = true },
                             onNavigateToProgramme = onNavigateToActiveProgramme,
                             isCompact = isKeyboardVisible,
+                        )
+                    }
+                    
+                    // Removed secondary import button - users should not import when active programme exists
+                }
+                
+                // Parse Requests Section
+                if (parseRequests.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Imported Programmes Review",
+                            style = if (isKeyboardVisible) {
+                                MaterialTheme.typography.titleMedium
+                            } else {
+                                MaterialTheme.typography.titleLarge
+                            },
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(vertical = compactPadding / 2),
+                        )
+                    }
+                    
+                    items(parseRequests) { request ->
+                        ParseRequestCard(
+                            request = request,
+                            onView = { parsedProgramme, requestId ->
+                                // Navigate to import screen with the parsed programme for preview
+                                onNavigateToImportWithParsedProgramme?.invoke(parsedProgramme, requestId)
+                            },
+                            onViewRawText = { rawText ->
+                                showRawTextDialog = rawText
+                            },
+                            onEditAndRetry = { rawText ->
+                                // Navigate to import screen with pre-filled text
+                                if (onNavigateToImportWithText != null) {
+                                    onNavigateToImportWithText(rawText)
+                                } else {
+                                    onNavigateToImport?.invoke()
+                                }
+                            },
+                            onDelete = {
+                                viewModel.deleteParseRequest(request)
+                                // Clear any imported programme state when deleting the parse request
+                                onClearImportedProgramme?.invoke()
+                            },
                         )
                     }
                 }
@@ -167,8 +345,9 @@ fun ProgrammesScreen(
                     ProgrammeTemplateCard(
                         template = template,
                         isActive = activeProgramme?.name == template.name,
+                        isDisabled = isParsingInProgress,
                         onClick = {
-                            if (activeProgramme?.name != template.name) {
+                            if (!isParsingInProgress && activeProgramme?.name != template.name) {
                                 viewModel.selectTemplate(template)
                             }
                         },
@@ -176,7 +355,7 @@ fun ProgrammesScreen(
                     )
                 }
 
-                if (uiState.templates.isEmpty() && !uiState.isLoading) {
+                if (uiState.templates.isEmpty()) {
                     item {
                         EmptyStateCard()
                     }
@@ -328,7 +507,60 @@ fun ProgrammesScreen(
             },
         )
     }
-
+    
+    // Raw Text Dialog - Now scrollable!
+    showRawTextDialog?.let { rawText ->
+        AlertDialog(
+            onDismissRequest = { showRawTextDialog = null },
+            title = { Text("Submitted Programme Text") },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(400.dp) // Fixed height so it doesn't take full screen
+                ) {
+                    Text(
+                        text = "This is what was sent for parsing:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f) // Take remaining space
+                    ) {
+                        Text(
+                            text = rawText,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .verticalScroll(rememberScrollState()), // Make text scrollable
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Length: ${rawText.length} characters",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { 
+                        // Copy to clipboard would be nice here
+                        showRawTextDialog = null 
+                    }
+                ) {
+                    Text("Close")
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -340,13 +572,21 @@ private fun ActiveProgrammeCard(
     isCompact: Boolean = false,
 ) {
     val cardPadding = if (isCompact) 16.dp else 20.dp
-    GlassCard(
+    Card(
         modifier =
-            if (onNavigateToProgramme != null) {
-                Modifier.clickable { onNavigateToProgramme() }
-            } else {
-                Modifier
-            },
+            Modifier
+                .fillMaxWidth()
+                .then(
+                    if (onNavigateToProgramme != null) {
+                        Modifier.clickable { onNavigateToProgramme() }
+                    } else {
+                        Modifier
+                    }
+                ),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier =
@@ -475,26 +715,29 @@ private fun formatEnumName(enumName: String): String =
 private fun ProgrammeTemplateCard(
     template: ProgrammeTemplate,
     isActive: Boolean,
+    isDisabled: Boolean = false,
     onClick: () -> Unit,
     isCompact: Boolean = false,
 ) {
     val cardPadding = if (isCompact) 16.dp else 20.dp
-    val cardColors =
-        if (isActive) {
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-            )
-        } else {
-            CardDefaults.cardColors()
-        }
+    val cardColors = when {
+        isDisabled -> CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+            contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+        )
+        isActive -> CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+        )
+        else -> CardDefaults.cardColors()
+    }
 
     Card(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable(enabled = !isActive) { onClick() },
+                .clickable(enabled = !isActive && !isDisabled) { onClick() },
         colors = cardColors,
-        elevation = CardDefaults.cardElevation(if (isActive) 0.dp else 4.dp),
+        elevation = CardDefaults.cardElevation(if (isActive || isDisabled) 0.dp else 4.dp),
     ) {
         Column(
             modifier = Modifier.padding(cardPadding),
@@ -520,18 +763,34 @@ private fun ProgrammeTemplateCard(
                     )
                 }
 
-                if (isActive) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text(
-                            text = "ACTIVE",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            fontWeight = FontWeight.Bold,
-                        )
+                when {
+                    isDisabled -> {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text(
+                                text = "UNAVAILABLE",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                    }
+                    isActive -> {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text(
+                                text = "ACTIVE",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
                     }
                 }
             }

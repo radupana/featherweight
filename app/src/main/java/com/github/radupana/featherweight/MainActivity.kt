@@ -56,6 +56,7 @@ import com.github.radupana.featherweight.ui.screens.WorkoutTemplateConfiguration
 import com.github.radupana.featherweight.ui.screens.WorkoutsScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
+import com.github.radupana.featherweight.viewmodel.ImportProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.InsightsViewModel
 import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
@@ -79,6 +80,8 @@ enum class Screen {
     WORKOUT_TEMPLATE_CONFIGURATION,
     WORKOUT_COMPLETION,
     PROGRAMME_COMPLETION,
+    IMPORT_PROGRAMME,
+    EXERCISE_MAPPING,
 }
 
 data class NavigationItem(
@@ -201,6 +204,10 @@ fun MainAppWithNavigation(
 ) {
     // Track selected template
     var selectedTemplate by remember { mutableStateOf<String?>(null) }
+    // Track initial text for import programme screen
+    var importProgrammeInitialText by remember { mutableStateOf<String?>(null) }
+    // Track parsed programme for import screen
+    var importParsedProgramme by remember { mutableStateOf<com.github.radupana.featherweight.data.ParsedProgramme?>(null) }
 
     val navigationItems =
         listOf(
@@ -264,6 +271,7 @@ fun MainAppWithNavigation(
                         Screen.WORKOUT_TEMPLATE_CONFIGURATION,
                         Screen.WORKOUT_COMPLETION,
                         Screen.PROGRAMME_COMPLETION,
+                        Screen.EXERCISE_MAPPING,
                     )
             if (!shouldHideBottomBar
             ) {
@@ -290,6 +298,8 @@ fun MainAppWithNavigation(
             Screen.ACTIVE_WORKOUT -> {
                 val workoutViewModel: WorkoutViewModel = viewModel()
                 val programmeViewModel: ProgrammeViewModel = viewModel()
+                val importViewModel: ImportProgrammeViewModel = viewModel()
+                val coroutineScope = rememberCoroutineScope()
                 WorkoutScreen(
                     onBack = {
                         // Refresh programme data if this was a programme workout
@@ -298,10 +308,13 @@ fun MainAppWithNavigation(
                             programmeViewModel.refreshData()
                         }
 
-                        // If we're in read-only mode and came from History or Programme History Detail, go back
-                        if (workoutState.isReadOnly &&
+                        // If we're in template edit mode, go back to import screen
+                        if (workoutState.mode == com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
+                            onScreenChange(Screen.IMPORT_PROGRAMME)
+                        } else if (workoutState.isReadOnly &&
                             (previousScreen == Screen.HISTORY || previousScreen == Screen.PROGRAMME_HISTORY_DETAIL)
                         ) {
+                            // If we're in read-only mode and came from History or Programme History Detail, go back
                             onScreenChange(previousScreen)
                         } else {
                             // Otherwise navigate to Workouts screen
@@ -316,6 +329,60 @@ fun MainAppWithNavigation(
                     onProgrammeComplete = { programmeId ->
                         onCompletedProgrammeIdChange(programmeId)
                         onScreenChange(Screen.PROGRAMME_COMPLETION)
+                    },
+                    onTemplateSaved = {
+                        Log.d("MainActivity", "onTemplateSaved called")
+                        // Get the saved workout from WorkoutViewModel
+                        val workoutState = workoutViewModel.workoutState.value
+                        val weekIndex = workoutState.templateWeekIndex
+                        val workoutIndex = workoutState.templateWorkoutIndex
+                        
+                        Log.d("MainActivity", "Week index: $weekIndex, Workout index: $workoutIndex")
+                        
+                        if (weekIndex != null && workoutIndex != null) {
+                            // Get current workout data
+                            val exercises = workoutViewModel.selectedWorkoutExercises.value
+                            val sets = workoutViewModel.selectedExerciseSets.value
+                            val exerciseNames = workoutViewModel.exerciseNames.value
+                            
+                            // Create updated ParsedWorkout
+                            val parsedExercises = exercises.map { exerciseLog ->
+                                val exerciseSets = sets.filter { it.exerciseLogId == exerciseLog.id }
+                                com.github.radupana.featherweight.data.ParsedExercise(
+                                    exerciseName = exerciseNames[exerciseLog.exerciseVariationId] ?: "Unknown Exercise",
+                                    sets = exerciseSets.map { setLog ->
+                                        com.github.radupana.featherweight.data.ParsedSet(
+                                            // In template edit mode, we're editing TARGET values (what the programme prescribes)
+                                            reps = setLog.targetReps,
+                                            weight = setLog.targetWeight,
+                                            rpe = null
+                                        )
+                                    },
+                                    notes = exerciseLog.notes
+                                )
+                            }
+                            
+                            val updatedWorkout = com.github.radupana.featherweight.data.ParsedWorkout(
+                                dayOfWeek = null,  // Use null for numbered days
+                                name = workoutState.workoutName ?: "",
+                                exercises = parsedExercises,
+                                estimatedDurationMinutes = exercises.size * 15
+                            )
+                            
+                            // Update the parsed programme in ImportProgrammeViewModel
+                            importViewModel.updateParsedWorkout(weekIndex, workoutIndex, updatedWorkout)
+                        } else {
+                            Log.e("MainActivity", "Week or workout index is null!")
+                        }
+                        
+                        // Delay navigation to show the "Saved" feedback
+                        Log.d("MainActivity", "Starting navigation delay...")
+                        coroutineScope.launch {
+                            kotlinx.coroutines.delay(800)
+                            Log.d("MainActivity", "Navigation delay complete, navigating to IMPORT_PROGRAMME")
+                            // Navigate back to import screen
+                            onScreenChange(Screen.IMPORT_PROGRAMME)
+                        }
                     },
                     viewModel = workoutViewModel,
                     modifier = Modifier.padding(innerPadding),
@@ -459,11 +526,35 @@ fun MainAppWithNavigation(
 
             Screen.PROGRAMMES -> {
                 val programmeViewModel: ProgrammeViewModel = viewModel()
-
+                val importViewModel: ImportProgrammeViewModel = viewModel()
+                
+                // Refresh data when navigating to this screen
+                LaunchedEffect(currentScreen) {
+                    if (currentScreen == Screen.PROGRAMMES) {
+                        programmeViewModel.refreshData()
+                    }
+                }
 
                 com.github.radupana.featherweight.ui.screens.ProgrammesScreen(
                     viewModel = programmeViewModel,
                     onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
+                    onNavigateToImport = { onScreenChange(Screen.IMPORT_PROGRAMME) },
+                    onNavigateToImportWithText = { text ->
+                        importProgrammeInitialText = text
+                        onScreenChange(Screen.IMPORT_PROGRAMME)
+                    },
+                    onNavigateToImportWithParsedProgramme = { programme, requestId ->
+                        importParsedProgramme = programme
+                        // Store the request ID so we can mark it as IMPORTED later
+                        importViewModel.setParsedProgramme(programme, requestId)
+                        onScreenChange(Screen.IMPORT_PROGRAMME)
+                    },
+                    onClearImportedProgramme = {
+                        // Clear all programme import state when parse request is deleted
+                        importParsedProgramme = null
+                        importProgrammeInitialText = null
+                        importViewModel.clearAll() // Clear the view model state too
+                    },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -546,6 +637,86 @@ fun MainAppWithNavigation(
                         onScreenChange(Screen.WORKOUTS)
                     }
                 } ?: onScreenChange(Screen.WORKOUTS)
+            }
+            
+            Screen.IMPORT_PROGRAMME -> {
+                val importViewModel: ImportProgrammeViewModel = viewModel()
+                val workoutViewModel: WorkoutViewModel = viewModel()
+                
+                // Set parsed programme if we have one AND the view model doesn't already have one
+                // This prevents overwriting edits when navigating back from workout edit
+                LaunchedEffect(importParsedProgramme) {
+                    importParsedProgramme?.let {
+                        val currentProgramme = importViewModel.uiState.value.parsedProgramme
+                        if (currentProgramme == null) {
+                            importViewModel.setParsedProgramme(it)
+                        }
+                    }
+                }
+                
+                com.github.radupana.featherweight.ui.screens.ImportProgrammeScreen(
+                    onBack = { 
+                        importProgrammeInitialText = null // Clear the text when navigating back
+                        importParsedProgramme = null // Clear the parsed programme
+                        onScreenChange(Screen.PROGRAMMES) 
+                    },
+                    onProgrammeCreated = {
+                        importProgrammeInitialText = null // Clear the text after creation
+                        importParsedProgramme = null // Clear the parsed programme
+                        onScreenChange(Screen.PROGRAMMES) 
+                    },
+                    onNavigateToProgrammes = { 
+                        importProgrammeInitialText = null // Clear the text when navigating
+                        importParsedProgramme = null // Clear the parsed programme
+                        onScreenChange(Screen.PROGRAMMES) 
+                    },
+                    onNavigateToWorkoutEdit = { weekIndex, workoutIndex ->
+                        Log.d("MainActivity", "onNavigateToWorkoutEdit: week=$weekIndex, workout=$workoutIndex")
+                        // Get the workout to edit
+                        val parsedWorkout = importViewModel.getParsedWorkout(weekIndex, workoutIndex)
+                        if (parsedWorkout != null) {
+                            Log.d("MainActivity", "Retrieved parsedWorkout: $parsedWorkout")
+                            // Start template edit mode in workout view model
+                            workoutViewModel.startTemplateEdit(weekIndex, workoutIndex, parsedWorkout)
+                            // Navigate to workout screen
+                            onScreenChange(Screen.ACTIVE_WORKOUT)
+                        } else {
+                            Log.e("MainActivity", "Failed to get parsed workout!")
+                        }
+                    },
+                    onNavigateToExerciseMapping = {
+                        // Navigate to exercise mapping screen
+                        onScreenChange(Screen.EXERCISE_MAPPING)
+                    },
+                    initialText = importProgrammeInitialText,
+                    modifier = Modifier.padding(innerPadding),
+                    viewModel = importViewModel
+                )
+            }
+            
+            Screen.EXERCISE_MAPPING -> {
+                val importViewModel: ImportProgrammeViewModel = viewModel()
+                val uiState by importViewModel.uiState.collectAsState()
+                val programme = uiState.parsedProgramme
+                
+                if (programme != null && programme.unmatchedExercises.isNotEmpty()) {
+                    com.github.radupana.featherweight.ui.screens.ExerciseMappingScreen(
+                        unmatchedExercises = programme.unmatchedExercises,
+                        onMappingComplete = { mappings ->
+                            // Store the mappings and navigate back
+                            importViewModel.setExerciseMappings(mappings)
+                            importViewModel.applyExerciseMappings()
+                            onScreenChange(Screen.IMPORT_PROGRAMME)
+                        },
+                        onBack = {
+                            onScreenChange(Screen.IMPORT_PROGRAMME)
+                        },
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                } else {
+                    // No unmatched exercises, go back
+                    onScreenChange(Screen.IMPORT_PROGRAMME)
+                }
             }
         }
     }

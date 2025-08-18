@@ -5,6 +5,8 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.FeatherweightDatabase
+import com.github.radupana.featherweight.data.ParseRequest
+import com.github.radupana.featherweight.data.ParseStatus
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
 import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
@@ -47,6 +49,10 @@ class ProgrammeViewModel(
     private val _userMaxes = MutableStateFlow(UserMaxes())
     val userMaxes: StateFlow<UserMaxes> = _userMaxes
 
+    // Parse requests
+    private val _parseRequests = MutableStateFlow<List<ParseRequest>>(emptyList())
+    val parseRequests: StateFlow<List<ParseRequest>> = _parseRequests
+
     init {
         // Start with immediate loading
         _uiState.value = _uiState.value.copy(isLoading = true)
@@ -63,9 +69,11 @@ class ProgrammeViewModel(
             }
         }
 
-
         // Load data immediately
         loadProgrammeData()
+
+        // Observe parse requests
+        observeParseRequests()
     }
 
     // Public method to refresh programme progress
@@ -359,7 +367,6 @@ class ProgrammeViewModel(
         }
     }
 
-
     private suspend fun checkAndPromptForProfileUpdate(
         enteredMaxes: UserMaxes,
     ): Boolean {
@@ -472,6 +479,46 @@ class ProgrammeViewModel(
         callback?.invoke()
     }
 
+    private fun observeParseRequests() {
+        viewModelScope.launch {
+            repository.getAllParseRequests().collect { requests ->
+                // Filter out IMPORTED requests - those have already been converted to programmes
+                _parseRequests.value = requests.filter { it.status != ParseStatus.IMPORTED }
+            }
+        }
+    }
+
+    fun deleteParseRequest(request: ParseRequest) {
+        viewModelScope.launch {
+            try {
+                Log.d("ProgrammeViewModel", "Attempting to delete parse request: ${request.id}")
+                repository.deleteParseRequest(request)
+
+                // Force immediate UI update by removing from local state
+                _parseRequests.value = _parseRequests.value.filter { it.id != request.id }
+                Log.d("ProgrammeViewModel", "Parse request ${request.id} deleted and removed from UI")
+
+                // Show success feedback
+                _uiState.value =
+                    _uiState.value.copy(
+                        successMessage = "Parse request deleted",
+                    )
+
+                // Clear message after 2 seconds
+                kotlinx.coroutines.delay(2000)
+                _uiState.value =
+                    _uiState.value.copy(
+                        successMessage = null,
+                    )
+            } catch (e: Exception) {
+                Log.e("ProgrammeViewModel", "Failed to delete parse request ${request.id}", e)
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Failed to delete: ${e.message}",
+                    )
+            }
+        }
+    }
 }
 
 // Data classes for UI state

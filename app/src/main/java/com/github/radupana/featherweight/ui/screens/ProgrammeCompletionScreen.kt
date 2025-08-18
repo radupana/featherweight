@@ -1,7 +1,7 @@
 package com.github.radupana.featherweight.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.EaseOutBack
+import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -98,7 +98,7 @@ fun ProgrammeCompletionScreen(
             enter =
                 slideInVertically(
                     initialOffsetY = { it },
-                    animationSpec = tween(500, easing = EaseOutBack),
+                    animationSpec = tween(500, easing = EaseOutCubic),
                 ) + fadeIn(),
             exit = fadeOut(),
         ) {

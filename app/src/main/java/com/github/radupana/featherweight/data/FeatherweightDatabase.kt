@@ -9,7 +9,7 @@ import com.github.radupana.featherweight.dao.TrainingAnalysisDao
 import com.github.radupana.featherweight.data.exercise.ExerciseCore
 import com.github.radupana.featherweight.data.exercise.ExerciseCoreDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
-import com.github.radupana.featherweight.data.exercise.ExerciseTypeConvertersNew
+import com.github.radupana.featherweight.data.exercise.ExerciseTypeConverters
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
 import com.github.radupana.featherweight.data.exercise.VariationAlias
@@ -61,11 +61,12 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         ExerciseCorrelation::class,
         PersonalRecord::class,
         TrainingAnalysis::class,
+        ParseRequest::class,
     ],
-    version = 71,
+    version = 74,
     exportSchema = false,
 )
-@TypeConverters(DateConverters::class, ExerciseTypeConvertersNew::class)
+@TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
 abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun workoutDao(): WorkoutDao
 
@@ -105,6 +106,8 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun personalRecordDao(): PersonalRecordDao
 
     abstract fun trainingAnalysisDao(): TrainingAnalysisDao
+
+    abstract fun parseRequestDao(): ParseRequestDao
 
     companion object {
         @Volatile

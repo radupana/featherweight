@@ -5,9 +5,10 @@
 
 ## Core Directives
 
+- **SIMPLICITY ABOVE ALL**: DO NOT OVERCOMPLICATE. Only implement what is explicitly needed and will be used.
 - **Planning First**: Unless explicitly told to "implement" or "code," assume we are in a planning phase. Do not write code during discussions.
 - **Clarify Ambiguity**: Always ask for clarification on requirements before implementing. Do not make assumptions.
-- **No Unrequested Features**: Only build what has been explicitly requested.
+- **No Unrequested Features**: Only build what has been explicitly requested. DO NOT add fields, features, or complexity that isn't actively used.
 - **Fail-Fast**: Do not write fallback or degraded functionality. If a feature fails, it should fail visibly.
 - **Complete Work**: Solve problems completely. Do not use a phased approach (e.g., "phase 1, phase 2").
 - Never run the App yourself, always prompt the user to do it, if you need something tested.

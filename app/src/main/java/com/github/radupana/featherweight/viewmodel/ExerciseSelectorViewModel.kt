@@ -140,24 +140,40 @@ class ExerciseSelectorViewModel(
                     val exercise = exerciseWithDetails.variation
                     val nameLower = exercise.name.lowercase()
                     val queryLower = query.lowercase()
+                    val aliasesLower = exerciseWithDetails.aliases.map { it.alias.lowercase() }
 
                     // Calculate score
                     var score = 0
 
-                    // Exact match gets highest score
+                    // 1. Exact match on name gets highest score
                     if (nameLower == queryLower) {
                         score = 1000
-                    } else if (nameLower.contains(queryLower)) {
-                        // Full query as substring gets high score
+                    }
+                    // 2. Exact match on alias gets second highest score
+                    else if (aliasesLower.any { it == queryLower }) {
+                        score = 900
+                    }
+                    // 3. Name contains full query
+                    else if (nameLower.contains(queryLower)) {
                         score = 800
                         // Bonus if it starts with the query
                         if (nameLower.startsWith(queryLower)) {
                             score += 100
                         }
-                    } else {
-                        // Multi-word matching
+                    }
+                    // 4. Alias contains full query
+                    else if (aliasesLower.any { it.contains(queryLower) }) {
+                        score = 700
+                        // Bonus if any alias starts with the query
+                        if (aliasesLower.any { it.startsWith(queryLower) }) {
+                            score += 50
+                        }
+                    }
+                    // 5. Multi-word matching
+                    else {
                         val nameWords = nameLower.split("\\s+".toRegex())
-                        var matchedWords = 0
+                        var matchedWordsInName = 0
+                        var matchedWordsInAliases = 0
                         var positionBonus = 0
 
                         searchWords.forEachIndexed { index, searchWord ->
@@ -165,20 +181,28 @@ class ExerciseSelectorViewModel(
 
                             // Check if any word in the exercise name contains this search word
                             if (nameWords.any { it.contains(searchWordLower) }) {
-                                matchedWords++
+                                matchedWordsInName++
                                 // Bonus for words at the beginning
                                 if (index == 0 && nameWords.first().startsWith(searchWordLower)) {
                                     positionBonus += 50
                                 }
                             }
+                            // Check aliases if not found in name
+                            else if (aliasesLower.any { alias ->
+                                alias.split("\\s+".toRegex()).any { it.contains(searchWordLower) }
+                            }) {
+                                matchedWordsInAliases++
+                            }
                         }
 
+                        val totalMatchedWords = matchedWordsInName + matchedWordsInAliases
+                        
                         // Only include if at least one word matches
-                        if (matchedWords > 0) {
-                            // Base score for partial matches
-                            score = 100 * matchedWords
+                        if (totalMatchedWords > 0) {
+                            // Higher base score for name matches than alias matches
+                            score = (matchedWordsInName * 100) + (matchedWordsInAliases * 50)
                             // Bonus for matching all search words
-                            if (matchedWords == searchWords.size) {
+                            if (totalMatchedWords == searchWords.size) {
                                 score += 200
                             }
                             // Add position bonus
@@ -208,14 +232,28 @@ class ExerciseSelectorViewModel(
     }
 
     fun loadExercises() {
+        loadExercisesInternal(null, seedIfEmpty = true)
+    }
+    
+    private fun loadExercisesByCategory(category: ExerciseCategory?) {
+        loadExercisesInternal(category, seedIfEmpty = false)
+    }
+    
+    private fun loadExercisesInternal(category: ExerciseCategory?, seedIfEmpty: Boolean) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Ensure database is seeded first
-                repository.seedDatabaseIfEmpty()
+                // Ensure database is seeded first (only for initial load)
+                if (seedIfEmpty) {
+                    repository.seedDatabaseIfEmpty()
+                }
 
-                // Load exercises efficiently (usage stats can be calculated on-demand)
-                val variations = repository.getAllExercises()
+                val variations = if (category != null) {
+                    repository.getExercisesByCategory(category)
+                } else {
+                    repository.getAllExercises()
+                }
+                
                 // Load exercises with full muscle data
                 val exercises =
                     variations.map { variation ->
@@ -223,7 +261,7 @@ class ExerciseSelectorViewModel(
                     }
                 _allExercises.value = exercises
             } catch (e: Exception) {
-                throw IllegalStateException("Failed to load exercises from database", e)
+                _errorMessage.value = "Failed to load exercises: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
@@ -246,6 +284,8 @@ class ExerciseSelectorViewModel(
 
     fun selectCategory(category: ExerciseCategory?) {
         _selectedCategory.value = category
+        // Reload exercises from database when category changes
+        loadExercisesByCategory(category)
     }
 
     fun selectMuscleGroup(muscleGroup: String?) {
@@ -675,10 +715,11 @@ class ExerciseSelectorViewModel(
     // Helper method to load exercise with full details including muscles
     private suspend fun loadExerciseWithDetails(variation: ExerciseVariation): ExerciseWithDetails {
         val muscles = repository.getMusclesForVariation(variation.id)
+        val aliases = repository.getAliasesForVariation(variation.id)
         return ExerciseWithDetails(
             variation = variation,
             muscles = muscles,
-            aliases = emptyList(), // Can load if needed
+            aliases = aliases,
             instructions = emptyList(), // Can load if needed
         )
     }

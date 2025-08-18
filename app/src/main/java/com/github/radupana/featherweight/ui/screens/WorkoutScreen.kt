@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -52,6 +53,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,6 +72,8 @@ import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.ui.dialogs.NotesInputModal
 import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,6 +82,7 @@ fun WorkoutScreen(
     onSelectExercise: () -> Unit,
     onWorkoutComplete: (Long) -> Unit = {},
     onProgrammeComplete: (Long) -> Unit = {},
+    onTemplateSaved: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: WorkoutViewModel = viewModel(),
 ) {
@@ -117,9 +122,11 @@ fun WorkoutScreen(
     // Check if workout has any exercises or sets - prevent completing empty workouts
     val hasContent = exercises.isNotEmpty()
 
-    // If no active workout, start one
-    LaunchedEffect(workoutState.isActive) {
-        if (!workoutState.isActive && workoutState.status != com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
+    // If no active workout, start one (except in template edit mode)
+    LaunchedEffect(workoutState.isActive, workoutState.mode) {
+        if (!workoutState.isActive && 
+            workoutState.status != com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED &&
+            workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
             viewModel.startNewWorkout()
         }
     }
@@ -175,8 +182,14 @@ fun WorkoutScreen(
                                     overflow = TextOverflow.Ellipsis,
                                 )
 
-                                // Subtitle - programme info or "Freestyle Workout"
-                                if (workoutState.isProgrammeWorkout) {
+                                // Subtitle - programme info, template edit, or "Freestyle Workout"
+                                if (workoutState.mode == com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
+                                    Text(
+                                        text = "Editing Template",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                    )
+                                } else if (workoutState.isProgrammeWorkout) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -211,11 +224,13 @@ fun WorkoutScreen(
                                 }
                             }
 
-                            // Workout timer
-                            WorkoutTimer(
-                                seconds = workoutTimerSeconds,
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
+                            // Workout timer (not shown in template edit mode)
+                            if (workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
+                                WorkoutTimer(
+                                    seconds = workoutTimerSeconds,
+                                    modifier = Modifier.padding(start = 8.dp),
+                                )
+                            }
                         }
                     },
                     navigationIcon = {
@@ -224,21 +239,23 @@ fun WorkoutScreen(
                         }
                     },
                     actions = {
-                        // Notes button
-                        IconButton(onClick = {
-                            // Load current notes from repository
-                            currentWorkoutId?.let { workoutId ->
-                                viewModel.loadWorkoutNotes(workoutId) { notes ->
-                                    currentNotes = notes ?: ""
-                                    showNotesModal = true
+                        // Notes button (not shown in template edit mode)
+                        if (workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
+                            IconButton(onClick = {
+                                // Load current notes from repository
+                                currentWorkoutId?.let { workoutId ->
+                                    viewModel.loadWorkoutNotes(workoutId) { notes ->
+                                        currentNotes = notes ?: ""
+                                        showNotesModal = true
+                                    }
                                 }
+                            }) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Notes,
+                                    contentDescription = "Workout Notes",
+                                    tint = if (currentNotes.isNotBlank()) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                                )
                             }
-                        }) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.Notes,
-                                contentDescription = "Workout Notes",
-                                tint = if (currentNotes.isNotBlank()) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                            )
                         }
 
                         // Show repeat button for completed workouts, menu for active
@@ -338,8 +355,13 @@ fun WorkoutScreen(
                     if (canEdit) {
                         WorkoutActionButtons(
                             canCompleteWorkout = false,
+                            isTemplateEdit = workoutState.mode == com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT,
                             onAddExercise = onSelectExercise,
                             onCompleteWorkout = {},
+                            onSaveTemplate = { 
+                                viewModel.saveTemplateChanges()
+                                onTemplateSaved()
+                            },
                             modifier = Modifier.padding(16.dp),
                         )
                     }
@@ -349,7 +371,7 @@ fun WorkoutScreen(
                     exercises = exercises,
                     sets = sets,
                     canEdit = canEdit,
-                    canCompleteWorkout = workoutState.isActive,
+                    canCompleteWorkout = workoutState.isActive && workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT,
                     expandedExerciseIds = expandedExerciseIds,
                     onDeleteExercise = { exerciseId ->
                         if (canEdit) {
@@ -358,6 +380,7 @@ fun WorkoutScreen(
                     },
                     onSelectExercise = onSelectExercise,
                     onCompleteWorkout = { showCompleteWorkoutDialog = true },
+                    onTemplateSaved = onTemplateSaved,
                     viewModel = viewModel,
                     modifier = Modifier.weight(1f),
                 )
@@ -724,6 +747,7 @@ private fun ExercisesList(
     onDeleteExercise: (Long) -> Unit,
     onSelectExercise: () -> Unit,
     onCompleteWorkout: () -> Unit,
+    onTemplateSaved: () -> Unit = {},
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
 ) {
@@ -795,10 +819,16 @@ private fun ExercisesList(
         // Action buttons at the end of the list
         if (canEdit) {
             item {
+                val workoutState by viewModel.workoutState.collectAsState()
                 WorkoutActionButtons(
-                    canCompleteWorkout = canCompleteWorkout && exercises.isNotEmpty(),
+                    canCompleteWorkout = canCompleteWorkout && exercises.isNotEmpty() && workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT,
+                    isTemplateEdit = workoutState.mode == com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT,
                     onAddExercise = onSelectExercise,
                     onCompleteWorkout = onCompleteWorkout,
+                    onSaveTemplate = { 
+                        viewModel.saveTemplateChanges()
+                        onTemplateSaved()
+                    },
                     modifier = Modifier.padding(vertical = 8.dp),
                 )
             }
@@ -809,10 +839,15 @@ private fun ExercisesList(
 @Composable
 private fun WorkoutActionButtons(
     canCompleteWorkout: Boolean,
+    isTemplateEdit: Boolean = false,
     onAddExercise: () -> Unit,
     onCompleteWorkout: () -> Unit,
+    onSaveTemplate: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    var isSaving by remember { mutableStateOf(false) }
+    var showSaved by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -831,8 +866,38 @@ private fun WorkoutActionButtons(
             Text("Add Exercise")
         }
 
-        // Complete Workout button
-        if (canCompleteWorkout) {
+        // Complete Workout button or Save Template button
+        if (isTemplateEdit) {
+            Button(
+                onClick = {
+                    if (!isSaving) {
+                        isSaving = true
+                        showSaved = true
+                        onSaveTemplate()
+                        // Reset after delay
+                        coroutineScope.launch {
+                            kotlinx.coroutines.delay(1000)
+                            isSaving = false
+                            showSaved = false
+                        }
+                    }
+                },
+                modifier = Modifier.weight(1f),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = if (showSaved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
+                    ),
+                enabled = !isSaving,
+            ) {
+                Icon(
+                    if (showSaved) Icons.Filled.CheckCircle else Icons.Filled.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(if (showSaved) "Saved ✓" else "Save Changes")
+            }
+        } else if (canCompleteWorkout) {
             Button(
                 onClick = onCompleteWorkout,
                 modifier = Modifier.weight(1f),

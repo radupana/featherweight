@@ -15,7 +15,10 @@
         "Back Squat",
         "Barbell Squat",
         "Squat",
-        "BB Back Squat"
+        "BB Back Squat",
+        "BB Squat",
+        "High Bar Squat",
+        "Olympic Squat"
       ]
     },
     {
@@ -65,7 +68,12 @@
         "Bench Press",
         "Barbell Bench",
         "Flat Bench Press",
-        "BB Bench Press"
+        "BB Bench Press",
+        "Bench",
+        "BB Bench",
+        "Flat Bench",
+        "Chest Press",
+        "BP"
       ]
     },
     {
@@ -131,7 +139,10 @@
       "aliases": [
         "Deadlift",
         "Conventional Deadlift",
-        "BB Deadlift"
+        "BB Deadlift",
+        "DL",
+        "Deads",
+        "Standard Deadlift"
       ]
     },
     {
@@ -148,7 +159,11 @@
       "aliases": [
         "Romanian Deadlift",
         "RDL",
-        "BB RDL"
+        "BB RDL",
+        "Romanian DL",
+        "RDLs",
+        "Stiff Leg Deadlift",
+        "SLDL"
       ]
     },
     {
@@ -199,7 +214,9 @@
         "Military Press",
         "Standing Press",
         "OHP",
-        "BB OHP"
+        "BB OHP",
+        "Shoulder Press",
+        "Strict Press"
       ]
     },
     {
@@ -249,7 +266,9 @@
         "Bent Over Row",
         "Barbell Bent Row",
         "BB Row",
-        "Bent Over Barbell Row"
+        "Bent Over Barbell Row",
+        "BOR",
+        "Barbell Rows"
       ]
     },
     {
@@ -296,8 +315,7 @@
       "requiresWeight": true,
       "instructions": "Use T-bar handle or landmine setup. Pull bar to chest with both hands.",
       "aliases": [
-        "T-Bar Row",
-        "Landmine Row"
+        "T-Bar Row"
       ]
     },
     {
@@ -314,7 +332,11 @@
       "aliases": [
         "Bicep Curl",
         "BB Bicep Curl",
-        "Barbell Curl"
+        "Barbell Curl",
+        "BB Curl",
+        "Standing Curl",
+        "Bar Curl",
+        "Curls"
       ]
     },
     {
@@ -362,8 +384,7 @@
       "instructions": "Sit with upper back against bench, barbell across hips. Drive hips up by squeezing glutes.",
       "aliases": [
         "Hip Thrust",
-        "BB Hip Thrust",
-        "Glute Bridge"
+        "BB Hip Thrust"
       ]
     },
     {
@@ -412,7 +433,10 @@
       "instructions": "Stand holding bar overhead. Lower behind head by bending elbows.",
       "aliases": [
         "Overhead Tricep Extension",
-        "Standing Tricep Extension"
+        "Standing Tricep Extension",
+        "Triceps Extension",
+        "Overhead Extension",
+        "French Press"
       ]
     },
     {
@@ -556,7 +580,6 @@
       "requiresWeight": true,
       "instructions": "Bar on shoulders, step backward into lunge position.",
       "aliases": [
-        "Reverse Lunge",
         "BB Reverse Lunge"
       ]
     },
@@ -605,7 +628,10 @@
       "instructions": "Bar on shoulders, rise up on toes.",
       "aliases": [
         "Calf Raise",
-        "BB Calf Raise"
+        "BB Calf Raise",
+        "Calf Raises",
+        "Standing Calf Raise",
+        "Heel Raise"
       ]
     },
     {
@@ -653,7 +679,10 @@
       "aliases": [
         "Dumbbell Bench Press",
         "DB Chest Press",
-        "DB Bench Press"
+        "DB Bench Press",
+        "Dumbbell Flat Press",
+        "DB Flat Press",
+        "Dumbbell Flat Bench Press"
       ]
     },
     {
@@ -740,9 +769,9 @@
     {
       "id": 46,
       "name": "Dumbbell Pullover",
-      "category": "Chest",
+      "category": "Back",
       "equipment": "Dumbbell",
-      "muscleGroup": "Chest",
+      "muscleGroup": "Lats",
       "movementPattern": "Pull",
       "type": "Strength",
       "difficulty": "Intermediate",
@@ -1136,8 +1165,7 @@
       "requiresWeight": true,
       "instructions": "Hold dumbbells at sides. Step backward into lunge position, then return to start.",
       "aliases": [
-        "DB Reverse Lunge",
-        "Reverse Lunge"
+        "DB Reverse Lunge"
       ]
     },
     {
@@ -1168,7 +1196,6 @@
       "requiresWeight": true,
       "instructions": "Step out to side into lateral lunge position.",
       "aliases": [
-        "Lateral Lunge",
         "Side Lunge"
       ]
     },
@@ -1333,7 +1360,7 @@
     {
       "id": 83,
       "name": "Dumbbell Turkish Get Up",
-      "category": "Core",
+      "category": "Full Body",
       "equipment": "Dumbbell",
       "muscleGroup": "Core",
       "movementPattern": "Complex",
@@ -1342,7 +1369,6 @@
       "requiresWeight": true,
       "instructions": "Complex movement from lying to standing with weight overhead.",
       "aliases": [
-        "Turkish Get Up",
         "TGU",
         "Get Up"
       ]
@@ -1456,8 +1482,7 @@
       "requiresWeight": true,
       "instructions": "Set cables at chest height. Press handles forward bringing hands together.",
       "aliases": [
-        "Cable Press",
-        "Cable Chest Fly"
+        "Cable Press"
       ]
     },
     {
@@ -1472,7 +1497,6 @@
       "requiresWeight": true,
       "instructions": "Set cables high. Pull handles down and across body in wide arc motion.",
       "aliases": [
-        "Cable Fly",
         "High Cable Crossover"
       ]
     },
@@ -1611,7 +1635,9 @@
       "instructions": "Sit at lat pulldown machine. Pull bar down to chest level.",
       "aliases": [
         "Lat Pulldown",
-        "Wide Grip Pulldown"
+        "Wide Grip Pulldown",
+        "Pulldown",
+        "Lat Pull"
       ]
     },
     {
@@ -1862,7 +1888,10 @@
       "aliases": [
         "Push Up",
         "Press Up",
-        "Push-Up"
+        "Push-Up",
+        "Pushup",
+        "Push Ups",
+        "Pushups"
       ]
     },
     {
@@ -1958,7 +1987,10 @@
       "instructions": "Hang from bar with overhand grip. Pull up until chin over bar.",
       "aliases": [
         "Pull Up",
-        "Pull-Up"
+        "Pull-Up",
+        "Pullup",
+        "Pullups",
+        "Chins"
       ]
     },
     {
@@ -2071,7 +2103,6 @@
       "instructions": "Feet shoulder width apart. Squat down keeping chest up.",
       "aliases": [
         "Air Squat",
-        "Squat",
         "Bodyweight Squat"
       ]
     },
@@ -2087,7 +2118,6 @@
       "requiresWeight": false,
       "instructions": "Squat down then explode up into a jump. Land softly.",
       "aliases": [
-        "Jump Squat",
         "Squat Jump"
       ]
     },
@@ -2103,7 +2133,6 @@
       "requiresWeight": false,
       "instructions": "Stand on one leg. Squat down as far as possible.",
       "aliases": [
-        "Pistol Squat",
         "Single Leg Squat"
       ]
     },
@@ -2135,7 +2164,6 @@
       "requiresWeight": false,
       "instructions": "Step backward into lunge position. Return to start.",
       "aliases": [
-        "Reverse Lunge",
         "Backward Lunge"
       ]
     },
@@ -2151,8 +2179,7 @@
       "requiresWeight": false,
       "instructions": "Step out to side into lateral lunge. Return to center.",
       "aliases": [
-        "Side Lunge",
-        "Lateral Lunge"
+        "Side Lunge"
       ]
     },
     {
@@ -2167,7 +2194,6 @@
       "requiresWeight": false,
       "instructions": "Lunge position, jump and switch legs in air.",
       "aliases": [
-        "Jump Lunge",
         "Switching Lunge"
       ]
     },
@@ -2183,7 +2209,6 @@
       "requiresWeight": false,
       "instructions": "Step back and across into curtsy position.",
       "aliases": [
-        "Curtsy Lunge",
         "Cross Back Lunge"
       ]
     },
@@ -2280,7 +2305,6 @@
       "requiresWeight": true,
       "instructions": "Position shoulders under pads with back against backrest. Place feet shoulder-width apart. Squat down by bending knees.",
       "aliases": [
-        "Hack Squat",
         "Machine Squat"
       ]
     },
@@ -2315,7 +2339,9 @@
       "aliases": [
         "Lying Leg Curl",
         "Hamstring Curl",
-        "Prone Leg Curl"
+        "Prone Leg Curl",
+        "Leg Curl",
+        "Seated Leg Curl"
       ]
     },
     {
@@ -3045,7 +3071,6 @@
       "requiresWeight": true,
       "instructions": "Attach belt to machine. Stand on platform and squat without spinal loading.",
       "aliases": [
-        "Belt Squat",
         "Hip Belt Squat"
       ]
     },
@@ -3314,8 +3339,7 @@
       "requiresWeight": true,
       "instructions": "Hold kettlebell overhead. Hinge to opposite side keeping arm vertical.",
       "aliases": [
-        "KB Windmill",
-        "Windmill"
+        "KB Windmill"
       ]
     },
     {
@@ -3411,7 +3435,9 @@
       "instructions": "Wide stance with kettlebell between legs. Deadlift with straight back.",
       "aliases": [
         "KB Sumo Deadlift",
-        "Sumo KB Pull"
+        "Sumo KB Pull",
+        "Sumo DL",
+        "Wide Stance Deadlift"
       ]
     },
     {
@@ -3602,8 +3628,7 @@
       "requiresWeight": true,
       "instructions": "Hold kettlebell at chest. Step out to side into lateral lunge.",
       "aliases": [
-        "KB Side Lunge",
-        "Lateral Lunge"
+        "KB Side Lunge"
       ]
     },
     {
@@ -3762,8 +3787,7 @@
       "requiresWeight": true,
       "instructions": "Press kettlebell from shoulder to overhead.",
       "aliases": [
-        "KB Press",
-        "Military Press"
+        "KB Press"
       ]
     },
     {
@@ -4426,7 +4450,6 @@
       "requiresWeight": false,
       "instructions": "Lie on bench. Lower body from vertical to near horizontal keeping rigid.",
       "aliases": [
-        "Dragon Flag",
         "Body Lever"
       ]
     },
@@ -5246,8 +5269,7 @@
       "requiresWeight": true,
       "instructions": "Ankle strap attached. Lift leg out to side against resistance.",
       "aliases": [
-        "Cable Abduction",
-        "Cable Lateral Raise"
+        "Cable Abduction"
       ]
     },
     {
@@ -5428,7 +5450,7 @@
     },
     {
       "id": 339,
-      "name": "Cable 21s",
+      "name": "Cable 21S",
       "category": "Arms",
       "equipment": "Cable",
       "muscleGroup": "Biceps",
@@ -5664,22 +5686,6 @@
       "aliases": [
         "Cable Internal Rotation",
         "Internal Rotator Cable"
-      ]
-    },
-    {
-      "id": 354,
-      "name": "Cable Single Arm Row",
-      "category": "Back",
-      "equipment": "Cable",
-      "muscleGroup": "Lats",
-      "movementPattern": "Row",
-      "type": "Strength",
-      "difficulty": "Beginner",
-      "requiresWeight": true,
-      "instructions": "Single handle. Row to side of torso with one arm.",
-      "aliases": [
-        "Single Arm Cable Row",
-        "Unilateral Cable Row"
       ]
     },
     {
@@ -6099,54 +6105,6 @@
       ]
     },
     {
-      "id": 381,
-      "name": "Band Hip Thrust",
-      "category": "Legs",
-      "equipment": "Band",
-      "muscleGroup": "Glutes",
-      "movementPattern": "Hinge",
-      "type": "Strength",
-      "difficulty": "Intermediate",
-      "requiresWeight": false,
-      "instructions": "Band across hips, shoulders on bench. Thrust hips up squeezing glutes.",
-      "aliases": [
-        "Banded Hip Thrust",
-        "Band Glute Bridge"
-      ]
-    },
-    {
-      "id": 382,
-      "name": "Band Good Morning",
-      "category": "Legs",
-      "equipment": "Band",
-      "muscleGroup": "Hamstrings",
-      "movementPattern": "Hinge",
-      "type": "Strength",
-      "difficulty": "Intermediate",
-      "requiresWeight": false,
-      "instructions": "Band around neck and under feet. Hinge at hips keeping back straight.",
-      "aliases": [
-        "Banded Good Morning",
-        "Band Hip Hinge"
-      ]
-    },
-    {
-      "id": 383,
-      "name": "Band Pallof Press",
-      "category": "Core",
-      "equipment": "Band",
-      "muscleGroup": "Core",
-      "movementPattern": "Anti-Rotation",
-      "type": "Strength",
-      "difficulty": "Intermediate",
-      "requiresWeight": false,
-      "instructions": "Band anchored to side. Press straight out resisting rotation.",
-      "aliases": [
-        "Pallof Press",
-        "Anti-Rotation Press"
-      ]
-    },
-    {
       "id": 384,
       "name": "Band Woodchopper",
       "category": "Core",
@@ -6158,7 +6116,6 @@
       "requiresWeight": false,
       "instructions": "Band anchored high. Pull diagonally across body in chopping motion.",
       "aliases": [
-        "Band Wood Chop",
         "Diagonal Chop"
       ]
     },
@@ -6291,38 +6248,6 @@
       ]
     },
     {
-      "id": 393,
-      "name": "TRX Pike",
-      "category": "Core",
-      "equipment": "Trx",
-      "muscleGroup": "Core",
-      "movementPattern": "Pike",
-      "type": "Strength",
-      "difficulty": "Advanced",
-      "requiresWeight": false,
-      "instructions": "Feet in TRX straps, plank position. Pike hips up.",
-      "aliases": [
-        "TRX Ab Pike",
-        "Suspension Pike"
-      ]
-    },
-    {
-      "id": 394,
-      "name": "TRX Mountain Climber",
-      "category": "Core",
-      "equipment": "Trx",
-      "muscleGroup": "Core",
-      "movementPattern": "Core",
-      "type": "Strength",
-      "difficulty": "Intermediate",
-      "requiresWeight": false,
-      "instructions": "Feet in TRX straps. Alternate bringing knees to chest.",
-      "aliases": [
-        "Suspension Mountain Climber",
-        "TRX Climber"
-      ]
-    },
-    {
       "id": 395,
       "name": "TRX Hamstring Curl",
       "category": "Legs",
@@ -6371,22 +6296,6 @@
       ]
     },
     {
-      "id": 398,
-      "name": "Medicine Ball Slam",
-      "category": "Full Body",
-      "equipment": "Medicine Ball",
-      "muscleGroup": "Core",
-      "movementPattern": "Explosive",
-      "type": "Power",
-      "difficulty": "Intermediate",
-      "requiresWeight": true,
-      "instructions": "Lift ball overhead, slam down with force. Squat to pick up.",
-      "aliases": [
-        "Med Ball Slam",
-        "Ball Slam"
-      ]
-    },
-    {
       "id": 399,
       "name": "Medicine Ball Wall Ball",
       "category": "Full Body",
@@ -6400,22 +6309,6 @@
       "aliases": [
         "Wall Ball Shot",
         "Wall Ball"
-      ]
-    },
-    {
-      "id": 400,
-      "name": "Medicine Ball Russian Twist",
-      "category": "Core",
-      "equipment": "Medicine Ball",
-      "muscleGroup": "Core",
-      "movementPattern": "Rotation",
-      "type": "Strength",
-      "difficulty": "Intermediate",
-      "requiresWeight": true,
-      "instructions": "Sit with knees bent, rotate ball side to side.",
-      "aliases": [
-        "Med Ball Russian Twist",
-        "Seated Twist"
       ]
     },
     {
@@ -6499,22 +6392,6 @@
       ]
     },
     {
-      "id": 406,
-      "name": "Medicine Ball V-Up",
-      "category": "Core",
-      "equipment": "Medicine Ball",
-      "muscleGroup": "Core",
-      "movementPattern": "Core",
-      "type": "Strength",
-      "difficulty": "Intermediate",
-      "requiresWeight": true,
-      "instructions": "Lie on back, pass ball between hands and feet in V position.",
-      "aliases": [
-        "Med Ball V-Up",
-        "Ball Pass V-Up"
-      ]
-    },
-    {
       "id": 407,
       "name": "Medicine Ball Plank",
       "category": "Core",
@@ -6563,24 +6440,8 @@
       ]
     },
     {
-      "id": 410,
-      "name": "Medicine Ball Sit Up",
-      "category": "Core",
-      "equipment": "Medicine Ball",
-      "muscleGroup": "Core",
-      "movementPattern": "Core",
-      "type": "Strength",
-      "difficulty": "Beginner",
-      "requiresWeight": true,
-      "instructions": "Sit up holding medicine ball, touch ball to ground overhead.",
-      "aliases": [
-        "Med Ball Sit Up",
-        "Weighted Sit Up"
-      ]
-    },
-    {
       "id": 411,
-      "name": "Landmine Press",
+      "name": "Barbell Landmine Press",
       "category": "Shoulders",
       "equipment": "Barbell",
       "muscleGroup": "Shoulders",
@@ -6596,7 +6457,7 @@
     },
     {
       "id": 412,
-      "name": "Landmine Row",
+      "name": "Barbell Landmine Row",
       "category": "Back",
       "equipment": "Barbell",
       "muscleGroup": "Upper Back",
@@ -6612,7 +6473,7 @@
     },
     {
       "id": 413,
-      "name": "Landmine Squat",
+      "name": "Barbell Landmine Squat",
       "category": "Legs",
       "equipment": "Barbell",
       "muscleGroup": "Quadriceps",
@@ -6868,7 +6729,7 @@
     },
     {
       "id": 429,
-      "name": "Single Leg Box Squat",
+      "name": "Bodyweight Single Leg Box Squat",
       "category": "Legs",
       "equipment": "Box",
       "muscleGroup": "Quadriceps",
@@ -6964,7 +6825,7 @@
     },
     {
       "id": 435,
-      "name": "Glute Ham Raise",
+      "name": "Machine Glute Ham Raise",
       "category": "Legs",
       "equipment": "Ghd Machine",
       "muscleGroup": "Hamstrings",
@@ -6996,7 +6857,7 @@
     },
     {
       "id": 437,
-      "name": "Nordic Curl",
+      "name": "Bodyweight Nordic Curl",
       "category": "Legs",
       "equipment": "Bodyweight",
       "muscleGroup": "Hamstrings",
@@ -7012,7 +6873,7 @@
     },
     {
       "id": 438,
-      "name": "Zercher Squat",
+      "name": "Barbell Zercher Squat",
       "category": "Legs",
       "equipment": "Barbell",
       "muscleGroup": "Quadriceps",
@@ -7028,7 +6889,7 @@
     },
     {
       "id": 439,
-      "name": "Jefferson Deadlift",
+      "name": "Barbell Jefferson Deadlift",
       "category": "Legs",
       "equipment": "Barbell",
       "muscleGroup": "Hamstrings",
@@ -7040,38 +6901,6 @@
       "aliases": [
         "Jefferson Lift",
         "Straddle Deadlift"
-      ]
-    },
-    {
-      "id": 440,
-      "name": "Hack Squat",
-      "category": "Legs",
-      "equipment": "Barbell",
-      "muscleGroup": "Quadriceps",
-      "movementPattern": "Squat",
-      "type": "Strength",
-      "difficulty": "Intermediate",
-      "requiresWeight": true,
-      "instructions": "Hold barbell behind legs, squat down and up.",
-      "aliases": [
-        "Barbell Hack Squat",
-        "Reverse Deadlift"
-      ]
-    },
-    {
-      "id": 441,
-      "name": "Barbell Power Clean",
-      "category": "Full Body",
-      "equipment": "Barbell",
-      "muscleGroup": "Full Body",
-      "movementPattern": "Olympic",
-      "type": "Power",
-      "difficulty": "Advanced",
-      "requiresWeight": true,
-      "instructions": "Explosively pull bar from floor to shoulders, catch in quarter squat.",
-      "aliases": [
-        "Power Clean",
-        "Clean"
       ]
     },
     {
@@ -7155,22 +6984,6 @@
       ]
     },
     {
-      "id": 447,
-      "name": "Barbell High Pull",
-      "category": "Full Body",
-      "equipment": "Barbell",
-      "muscleGroup": "Full Body",
-      "movementPattern": "Pull",
-      "type": "Power",
-      "difficulty": "Intermediate",
-      "requiresWeight": true,
-      "instructions": "Explosive pull to chest height with elbows high.",
-      "aliases": [
-        "Clean High Pull",
-        "Snatch High Pull"
-      ]
-    },
-    {
       "id": 448,
       "name": "Barbell Push Jerk",
       "category": "Shoulders",
@@ -7219,22 +7032,6 @@
       ]
     },
     {
-      "id": 451,
-      "name": "Dumbbell Snatch",
-      "category": "Full Body",
-      "equipment": "Dumbbell",
-      "muscleGroup": "Full Body",
-      "movementPattern": "Olympic",
-      "type": "Power",
-      "difficulty": "Intermediate",
-      "requiresWeight": true,
-      "instructions": "Single arm snatch from floor to overhead.",
-      "aliases": [
-        "DB Snatch",
-        "One Arm Snatch"
-      ]
-    },
-    {
       "id": 452,
       "name": "Dumbbell Clean and Press",
       "category": "Full Body",
@@ -7248,54 +7045,6 @@
       "aliases": [
         "DB Clean & Press",
         "Double Clean and Press"
-      ]
-    },
-    {
-      "id": 453,
-      "name": "Kettlebell Snatch",
-      "category": "Full Body",
-      "equipment": "Kettlebell",
-      "muscleGroup": "Full Body",
-      "movementPattern": "Olympic",
-      "type": "Power",
-      "difficulty": "Intermediate",
-      "requiresWeight": true,
-      "instructions": "Single arm KB snatch from floor to overhead.",
-      "aliases": [
-        "KB Snatch",
-        "One Arm KB Snatch"
-      ]
-    },
-    {
-      "id": 454,
-      "name": "Kettlebell Clean and Press",
-      "category": "Full Body",
-      "equipment": "Kettlebell",
-      "muscleGroup": "Full Body",
-      "movementPattern": "Complex",
-      "type": "Power",
-      "difficulty": "Intermediate",
-      "requiresWeight": true,
-      "instructions": "Clean KB to shoulder, then press overhead.",
-      "aliases": [
-        "KB Clean & Press",
-        "Clean and Military Press"
-      ]
-    },
-    {
-      "id": 455,
-      "name": "Kettlebell Jerk",
-      "category": "Shoulders",
-      "equipment": "Kettlebell",
-      "muscleGroup": "Shoulders",
-      "movementPattern": "Press",
-      "type": "Power",
-      "difficulty": "Intermediate",
-      "requiresWeight": true,
-      "instructions": "Jerk KB overhead using leg drive.",
-      "aliases": [
-        "KB Jerk",
-        "Push Jerk KB"
       ]
     },
     {
@@ -7380,7 +7129,7 @@
     },
     {
       "id": 461,
-      "name": "Pistol Squat",
+      "name": "Bodyweight Pistol Squat",
       "category": "Legs",
       "equipment": "Bodyweight",
       "muscleGroup": "Quadriceps",
@@ -7507,56 +7256,8 @@
       ]
     },
     {
-      "id": 469,
-      "name": "Barbell Hip Thrust",
-      "category": "Legs",
-      "equipment": "Barbell",
-      "muscleGroup": "Glutes",
-      "movementPattern": "Hinge",
-      "type": "Strength",
-      "difficulty": "Intermediate",
-      "requiresWeight": true,
-      "instructions": "Shoulders on bench, bar on hips. Thrust hips up.",
-      "aliases": [
-        "Hip Thrust",
-        "Glute Bridge"
-      ]
-    },
-    {
-      "id": 470,
-      "name": "Barbell Glute Bridge",
-      "category": "Legs",
-      "equipment": "Barbell",
-      "muscleGroup": "Glutes",
-      "movementPattern": "Hinge",
-      "type": "Strength",
-      "difficulty": "Beginner",
-      "requiresWeight": true,
-      "instructions": "Lie on floor, bar on hips. Bridge up squeezing glutes.",
-      "aliases": [
-        "Weighted Glute Bridge",
-        "BB Glute Bridge"
-      ]
-    },
-    {
-      "id": 471,
-      "name": "Belt Squat",
-      "category": "Legs",
-      "equipment": "Belt Squat",
-      "muscleGroup": "Quadriceps",
-      "movementPattern": "Squat",
-      "type": "Strength",
-      "difficulty": "Intermediate",
-      "requiresWeight": true,
-      "instructions": "Squat with weight attached to belt, no spinal loading.",
-      "aliases": [
-        "Hip Belt Squat",
-        "Belt Squat Machine"
-      ]
-    },
-    {
       "id": 472,
-      "name": "Sissy Squat",
+      "name": "Bodyweight Sissy Squat",
       "category": "Legs",
       "equipment": "Bodyweight",
       "muscleGroup": "Quadriceps",
@@ -7572,7 +7273,7 @@
     },
     {
       "id": 473,
-      "name": "Spanish Squat",
+      "name": "Bodyweight Spanish Squat",
       "category": "Legs",
       "equipment": "Band",
       "muscleGroup": "Quadriceps",
@@ -7587,56 +7288,8 @@
       ]
     },
     {
-      "id": 474,
-      "name": "Reverse Lunge",
-      "category": "Legs",
-      "equipment": "Bodyweight",
-      "muscleGroup": "Quadriceps",
-      "movementPattern": "Lunge",
-      "type": "Strength",
-      "difficulty": "Beginner",
-      "requiresWeight": false,
-      "instructions": "Step backward into lunge position.",
-      "aliases": [
-        "Backward Lunge",
-        "Step Back Lunge"
-      ]
-    },
-    {
-      "id": 475,
-      "name": "Lateral Lunge",
-      "category": "Legs",
-      "equipment": "Bodyweight",
-      "muscleGroup": "Quadriceps",
-      "movementPattern": "Lunge",
-      "type": "Strength",
-      "difficulty": "Intermediate",
-      "requiresWeight": false,
-      "instructions": "Step to side and lunge, keeping other leg straight.",
-      "aliases": [
-        "Side Lunge",
-        "Cossack Lunge"
-      ]
-    },
-    {
-      "id": 476,
-      "name": "Curtsy Lunge",
-      "category": "Legs",
-      "equipment": "Bodyweight",
-      "muscleGroup": "Glutes",
-      "movementPattern": "Lunge",
-      "type": "Strength",
-      "difficulty": "Intermediate",
-      "requiresWeight": false,
-      "instructions": "Step back and across body into curtsy position.",
-      "aliases": [
-        "Cross Behind Lunge",
-        "Curtsey Lunge"
-      ]
-    },
-    {
       "id": 477,
-      "name": "Jump Lunge",
+      "name": "Bodyweight Jump Lunge",
       "category": "Legs",
       "equipment": "Bodyweight",
       "muscleGroup": "Quadriceps",
@@ -7648,22 +7301,6 @@
       "aliases": [
         "Jumping Lunge",
         "Split Jump"
-      ]
-    },
-    {
-      "id": 478,
-      "name": "Jump Squat",
-      "category": "Legs",
-      "equipment": "Bodyweight",
-      "muscleGroup": "Quadriceps",
-      "movementPattern": "Jump",
-      "type": "Power",
-      "difficulty": "Beginner",
-      "requiresWeight": false,
-      "instructions": "Squat down and jump up explosively.",
-      "aliases": [
-        "Squat Jump",
-        "Bodyweight Jump Squat"
       ]
     },
     {
@@ -7940,7 +7577,7 @@
     },
     {
       "id": 496,
-      "name": "Suitcase Deadlift",
+      "name": "Dumbbell Suitcase Deadlift",
       "category": "Full Body",
       "equipment": "Barbell",
       "muscleGroup": "Full Body",
@@ -7956,7 +7593,7 @@
     },
     {
       "id": 497,
-      "name": "Reeves Deadlift",
+      "name": "Barbell Reeves Deadlift",
       "category": "Full Body",
       "equipment": "Barbell",
       "muscleGroup": "Full Body",
@@ -7972,7 +7609,7 @@
     },
     {
       "id": 498,
-      "name": "Anderson Squat",
+      "name": "Barbell Anderson Squat",
       "category": "Legs",
       "equipment": "Barbell",
       "muscleGroup": "Quadriceps",
@@ -7988,7 +7625,7 @@
     },
     {
       "id": 499,
-      "name": "Paused Squat",
+      "name": "Barbell Paused Squat",
       "category": "Legs",
       "equipment": "Barbell",
       "muscleGroup": "Quadriceps",
@@ -7999,12 +7636,14 @@
       "instructions": "Squat with pause at bottom position.",
       "aliases": [
         "Pause Squat",
-        "Competition Squat"
+        "Competition Squat",
+        "Pause Back Squat",
+        "2-Count Squat"
       ]
     },
     {
       "id": 500,
-      "name": "Tempo Squat",
+      "name": "Barbell Tempo Squat",
       "category": "Legs",
       "equipment": "Barbell",
       "muscleGroup": "Quadriceps",
@@ -8066,7 +7705,11 @@
       "aliases": [
         "Weighted Pull-Up",
         "Weighted Pullup",
-        "Pull Up with Weight"
+        "Pull Up with Weight",
+        "Weighted Pull-ups",
+        "Weighted Pullups",
+        "Weighted Chin Up",
+        "Weighted Chins"
       ]
     },
     {
@@ -8101,6 +7744,142 @@
         "Weighted Chin-Up",
         "Weighted Chinup",
         "Chin Up with Weight"
+      ]
+    },
+    {
+      "id": 506,
+      "name": "Cable Fly",
+      "category": "Chest",
+      "equipment": "Cable",
+      "muscleGroup": "Pectorals",
+      "movementPattern": "Fly",
+      "type": "Strength",
+      "difficulty": "Beginner",
+      "requiresWeight": true,
+      "instructions": "Stand between cable stations with slight forward lean. Bring handles together in front of chest with slight bend in elbows.",
+      "aliases": [
+        "Cable Chest Fly",
+        "Cable Pec Fly",
+        "Cable Flye"
+      ]
+    },
+    {
+      "id": 509,
+      "name": "Barbell Deficit Deadlift",
+      "category": "Legs",
+      "equipment": "Barbell",
+      "muscleGroup": "Hamstrings",
+      "movementPattern": "Hinge",
+      "type": "Strength",
+      "difficulty": "Advanced",
+      "requiresWeight": true,
+      "instructions": "Stand on platform 1-4 inches high. Perform deadlift with increased range of motion.",
+      "aliases": [
+        "Elevated Deadlift",
+        "Platform Deadlift",
+        "Deficit Conventional Deadlift"
+      ]
+    },
+    {
+      "id": 510,
+      "name": "Rack Pull",
+      "category": "Back",
+      "equipment": "Barbell",
+      "muscleGroup": "Traps",
+      "movementPattern": "Pull",
+      "type": "Strength",
+      "difficulty": "Intermediate",
+      "requiresWeight": true,
+      "instructions": "Set bar on rack at knee height or above. Pull bar to lockout focusing on upper back and traps.",
+      "aliases": [
+        "Partial Deadlift",
+        "Top Half Deadlift",
+        "Rack Deadlift"
+      ]
+    },
+    {
+      "id": 511,
+      "name": "Block Pull",
+      "category": "Back",
+      "equipment": "Barbell",
+      "muscleGroup": "Traps",
+      "movementPattern": "Pull",
+      "type": "Strength",
+      "difficulty": "Intermediate",
+      "requiresWeight": true,
+      "instructions": "Set bar on blocks at knee height. Pull to lockout with focus on lockout strength.",
+      "aliases": [
+        "Elevated Deadlift",
+        "Partial Deadlift",
+        "Block Deadlift"
+      ]
+    },
+    {
+      "id": 512,
+      "name": "Barbell 21S",
+      "category": "Arms",
+      "equipment": "Barbell",
+      "muscleGroup": "Biceps",
+      "movementPattern": "Curl",
+      "type": "Strength",
+      "difficulty": "Intermediate",
+      "requiresWeight": true,
+      "instructions": "Perform 7 partial reps bottom half, 7 partial reps top half, then 7 full range reps.",
+      "aliases": [
+        "21s",
+        "Twenty-Ones",
+        "Barbell Twenty-Ones"
+      ]
+    },
+    {
+      "id": 513,
+      "name": "Barbell JM Press",
+      "category": "Arms",
+      "equipment": "Barbell",
+      "muscleGroup": "Triceps",
+      "movementPattern": "Press",
+      "type": "Strength",
+      "difficulty": "Advanced",
+      "requiresWeight": true,
+      "instructions": "Lying position, lower bar by bending elbows toward forehead, then press back up.",
+      "aliases": [
+        "JM Bench Press",
+        "JM Tricep Press",
+        "Modified Close Grip Bench"
+      ]
+    },
+    {
+      "id": 514,
+      "name": "Barbell Spider Curl",
+      "category": "Arms",
+      "equipment": "Barbell",
+      "muscleGroup": "Biceps",
+      "movementPattern": "Curl",
+      "type": "Strength",
+      "difficulty": "Intermediate",
+      "requiresWeight": true,
+      "instructions": "Lean over incline bench, arms hanging straight down. Curl weight without swinging.",
+      "aliases": [
+        "Prone Incline Curl",
+        "Chest Supported Curl",
+        "Spider Bicep Curl"
+      ]
+    },
+    {
+      "id": 515,
+      "name": "Barbell Drag Curl",
+      "category": "Arms",
+      "equipment": "Barbell",
+      "muscleGroup": "Biceps",
+      "movementPattern": "Curl",
+      "type": "Strength",
+      "difficulty": "Intermediate",
+      "requiresWeight": true,
+      "instructions": "Curl bar by dragging it up your body, elbows moving behind torso.",
+      "aliases": [
+        "Barbell Drag Curl",
+        "Drag Bicep Curl",
+        "Posterior Curl"
       ]
     }
   ]
