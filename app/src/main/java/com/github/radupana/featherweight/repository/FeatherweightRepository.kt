@@ -1634,6 +1634,7 @@ class FeatherweightRepository(
                     // Convert the exercises to WorkoutStructure format - preserving individual sets
                     val exercisesList = workoutData["exercises"] as? List<Map<String, Any>> ?: emptyList()
                     
+                    
                     // For imported programmes, we need to store the exact sets data
                     // We'll encode it in a special format that createSetsFromStructure can decode
                     val exerciseStructures = exercisesList.map { exerciseData ->
@@ -3303,11 +3304,9 @@ class FeatherweightRepository(
 
     suspend fun deleteParseRequest(request: ParseRequest) =
         withContext(Dispatchers.IO) {
-            Log.d("FeatherweightRepository", "Deleting parse request with id: ${request.id}")
             try {
                 // Use deleteById for more reliable deletion
                 db.parseRequestDao().deleteById(request.id)
-                Log.d("FeatherweightRepository", "Successfully deleted parse request ${request.id}")
             } catch (e: Exception) {
                 Log.e("FeatherweightRepository", "Failed to delete parse request ${request.id}", e)
                 throw e

@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 class ProgrammeTextParser {
     companion object {
         private const val TAG = "ProgrammeTextParser"
-        private const val TIMEOUT_SECONDS = 180L // 3 minutes timeout
+        private const val TIMEOUT_SECONDS = 300L // 5 minutes timeout
         private const val SYSTEM_PROMPT = "You are a fitness programme parser. Extract workout programmes into structured JSON format."
     }
 
@@ -90,19 +90,8 @@ class ProgrammeTextParser {
             return ValidationResult(false, "Please provide programme text")
         }
 
-        if (text.length < 50) {
-            return ValidationResult(false, "Programme text is too short. Please provide more detail")
-        }
-
         if (text.length > 10000) {
             return ValidationResult(false, "Programme text is too long. Maximum 10,000 characters")
-        }
-
-        val hasExercises = text.contains(Regex("(squat|bench|press|deadlift|row|curl|fly|extension|pull)", RegexOption.IGNORE_CASE))
-        val hasSetsReps = text.contains(Regex("\\d+[x×]\\d+|\\d+\\s*(sets?|reps?)", RegexOption.IGNORE_CASE))
-
-        if (!hasExercises || !hasSetsReps) {
-            return ValidationResult(false, "Programme text must include specific exercises with sets and reps")
         }
 
         return ValidationResult(true)
@@ -142,7 +131,7 @@ class ProgrammeTextParser {
                 put("max_completion_tokens", 15000)
             }
 
-        Log.d(TAG, "Calling OpenAI API with model: gpt-5-mini")
+        Log.d(TAG, "Calling OpenAI API with model: gpt-5-mini, text length: ${request.rawText.length} chars")
 
         val httpRequest =
             Request
@@ -156,7 +145,7 @@ class ProgrammeTextParser {
         val response = client.newCall(httpRequest).execute()
         val responseBody = response.body.string()
         
-        Log.d(TAG, "OpenAI API response: ${response.code}")
+        Log.d(TAG, "OpenAI API response: ${response.code}, size: ${responseBody.length} chars")
 
         if (!response.isSuccessful) {
             val errorJson = JSONObject(responseBody)
@@ -164,15 +153,7 @@ class ProgrammeTextParser {
                 errorJson.optJSONObject("error")?.optString("message")
                     ?: "API call failed with status ${response.code}"
 
-            // Handle token limit errors with specific message
-            val finalError =
-                if (errorMessage.contains("maximum") || errorMessage.contains("token")) {
-                    "Programme is too complex. Please try splitting it into smaller sections (e.g., 2 weeks at a time)."
-                } else {
-                    errorMessage
-                }
-
-            throw IOException(finalError)
+            throw IOException(errorMessage)
         }
 
         val jsonResponse = JSONObject(responseBody)
@@ -227,6 +208,19 @@ class ProgrammeTextParser {
                - Squat/Bench/Deadlift/Press/Row/Curls → "Barbell"
                - Raises/Flyes (without Cable) → "Dumbbell"
                - Leg Curl/Extension, Lat Pulldown → "Machine"
+            
+            CRITICAL: Extract only the actual exercise name:
+            - Use your knowledge to identify the standard exercise name without any training context
+            - Remove programming descriptors (competition style, volume phase, top singles, back-offs, etc.)
+            - Remove tempo/technique modifiers unless they're part of the standard exercise name (keep "Paused" in "Paused Bench Press" but remove "2-count")
+            - When multiple exercises are listed together (e.g., "Split Squat / Lunge"), select the single most appropriate exercise
+            - Return the clean, standard exercise name that would appear in an exercise database
+            - Examples:
+              - "Back Squat (comp) – Top single" → "Barbell Back Squat"
+              - "Bench Press (volume)" → "Barbell Bench Press"
+              - "Paused Squat (2-count)" → "Barbell Paused Squat"
+              - "DB Split Squat / Lunge" → "Dumbbell Split Squat"
+              - "Back Squat (secondary/high-bar)" → "Barbell High Bar Squat"
             
             EXERCISE DISAMBIGUATION:
             Use workout context to resolve ambiguous exercises:

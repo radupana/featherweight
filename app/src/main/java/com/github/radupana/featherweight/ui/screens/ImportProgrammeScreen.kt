@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -53,8 +54,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import android.widget.Toast
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.viewmodel.ImportProgrammeViewModel
 
@@ -72,6 +77,7 @@ fun ImportProgrammeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showEditNotImplementedDialog by remember { mutableStateOf(false) }
+    var showFormatTipsDialog by remember { mutableStateOf(false) }
     
     // Set initial text if provided
     LaunchedEffect(initialText) {
@@ -146,60 +152,41 @@ fun ImportProgrammeScreen(
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        // Header card with format tips button
                         Card(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                             )
                         ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "Format Tips for Best Results",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "Paste your programme from any source (spreadsheet, coach, forum, etc.)",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                
-                                Text(
-                                    text = "✓ Preferred formats:",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = "• Sets×Reps: \"3×5 @100kg\" or \"3 sets of 5\"\n" +
-                                          "• Use bullets (•) for different rep schemes:\n" +
-                                          "  \"Squat: 1×1 @90kg • 3×3 @85kg • 3×8 @75kg\"\n" +
-                                          "• RPE notation: @7 or RPE 7\n" +
-                                          "• One exercise per line for clarity",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                
-                                Spacer(modifier = Modifier.height(8.dp))
-                                
-                                Text(
-                                    text = "What we recognize:",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "• Weeks: W1, Week 1, Week One\n" +
-                                          "• Days: Monday, Mon, Day 1\n" +
-                                          "• Sets notation: 3×5, 3x5, 3*5\n" +
-                                          "• Weights: 80kg, 80 kg, 80%, @RPE 8\n" +
-                                          "• We understand A×B means A sets of B reps\n\n" +
-                                          "💡 Tip: For complex programmes, import 2-4 weeks at a time.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Import Your Programme",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "Paste from any source - we'll parse it!",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { showFormatTipsDialog = true },
+                                    modifier = Modifier.size(48.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Info,
+                                        contentDescription = "Format tips",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
                         }
                         
@@ -311,6 +298,189 @@ fun ImportProgrammeScreen(
             }
         )
     }
+    
+    // Format Tips Dialog
+    if (showFormatTipsDialog) {
+        FormatTipsDialog(
+            onDismiss = { showFormatTipsDialog = false }
+        )
+    }
+}
+
+@Composable
+private fun FormatTipsDialog(
+    onDismiss: () -> Unit
+) {
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
+    
+    val promptTemplate = """
+        Please create a 6-week weightlifting programme with these specifications:
+        
+        - Format each week with clear headers (Week 1, Week 2, etc.)
+        - Include workout names and days (e.g., Monday - Upper Power)
+        - Use standard exercise names (e.g., Barbell Squat, Dumbbell Press)
+        - Format sets×reps clearly (e.g., 3×5, 4×8-10)
+        - Include weights when specific (e.g., 3×5 @ 80%, 3×8 @ 75kg)
+        - Add RPE when relevant (e.g., 3×8 @ RPE 8)
+        
+        Example format:
+        Week 1 - Volume Phase
+        
+        Monday - Upper Power
+        Barbell Bench Press 3×5 @ 80%
+        Barbell Row 3×5 @ 75kg
+        Dumbbell Overhead Press 3×8
+        Pull Ups 3×8-10
+        
+        Wednesday - Lower Power
+        Barbell Squat 3×5 @ 85%
+        Romanian Deadlift 3×8 @ 70%
+        Leg Press 3×12
+        Leg Curl 3×12-15
+    """.trimIndent()
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { 
+            Text(
+                "Format Tips for AI Generation",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "To get the best results from AI programme generation:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "✓ Structure",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "• Use clear week headers (Week 1, Week 2)\n" +
+                                  "• Include workout names and days\n" +
+                                  "• Group exercises by workout",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "✓ Exercise Naming",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "• Use standard names: Barbell Squat, Dumbbell Press\n" +
+                                  "• Equipment first: Cable Row, Machine Press\n" +
+                                  "• Be specific: Romanian Deadlift not just RDL",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "✓ Sets & Reps Format",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "• Use × for sets×reps: 3×5, 4×8\n" +
+                                  "• Rep ranges: 3×8-10, 4×6-8\n" +
+                                  "• Include intensity: 3×5 @ 80%, 3×8 @ RPE 8",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "Example Prompt Template",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            IconButton(
+                                onClick = {
+                                    clipboardManager.setText(AnnotatedString(promptTemplate))
+                                    Toast.makeText(
+                                        context,
+                                        "Prompt copied to clipboard!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = "Copy prompt",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = promptTemplate.take(200) + "...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Got It")
+            }
+        }
+    )
 }
 
 @Composable

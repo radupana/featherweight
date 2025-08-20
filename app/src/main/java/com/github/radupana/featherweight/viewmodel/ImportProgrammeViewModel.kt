@@ -103,22 +103,11 @@ class ImportProgrammeViewModel(application: Application) : AndroidViewModel(appl
                     val errorMessage = result.error ?: "Failed to parse programme"
                     Log.e("ImportProgrammeViewModel", "Parse failed: $errorMessage")
                     
-                    // Check if we should suggest splitting the programme
-                    val shouldSuggestSplit = errorMessage.contains("too complex") || 
-                                            errorMessage.contains("token limit") ||
-                                            parseRequest.rawText.length > 3000
-                    
-                    val finalError = if (shouldSuggestSplit) {
-                        "Programme is too complex. Try importing 2 weeks at a time, then import the remaining weeks separately."
-                    } else {
-                        errorMessage
-                    }
-                    
                     // Update parse request with failure
                     repository.updateParseRequest(
                         parseRequest.copy(
                             status = ParseStatus.FAILED,
-                            error = finalError,
+                            error = errorMessage,
                             completedAt = java.time.LocalDateTime.now()
                         )
                     )
@@ -174,6 +163,11 @@ class ImportProgrammeViewModel(application: Application) : AndroidViewModel(appl
                     )
                 }
             )
+        }
+        
+        // Log summary of unmatched exercises
+        if (unmatchedExercises.isNotEmpty()) {
+            Log.d("ImportProgrammeViewModel", "Found ${unmatchedExercises.size} unmatched exercises")
         }
         
         return programme.copy(
@@ -377,6 +371,15 @@ class ImportProgrammeViewModel(application: Application) : AndroidViewModel(appl
         val programme = _uiState.value.parsedProgramme ?: return
         val mappings = _uiState.value.exerciseMappings
         
+        // Log mappings (only IDs, not names to avoid async issues)
+        mappings.forEach { (exerciseName, mappedId) ->
+            if (mappedId != null) {
+                Log.d("ImportProgrammeViewModel", "Mapping: '$exerciseName' → Exercise ID $mappedId")
+            } else {
+                Log.d("ImportProgrammeViewModel", "Mapping: '$exerciseName' → Create as custom exercise")
+            }
+        }
+        
         // Apply the mappings to the parsed programme
         val updatedWeeks = programme.weeks.map { week ->
             week.copy(
@@ -434,6 +437,8 @@ class ImportProgrammeViewModel(application: Application) : AndroidViewModel(appl
     }
     
     private suspend fun createProgrammeFromParsed(parsedProgramme: ParsedProgramme): Long {
+        Log.d("ImportProgrammeViewModel", "Creating programme: ${parsedProgramme.name} (${parsedProgramme.durationWeeks} weeks)")
+        
         // Validation
         require(parsedProgramme.weeks.isNotEmpty()) { "Programme must have at least one week" }
         require(parsedProgramme.durationWeeks > 0) { "Programme duration must be positive" }
@@ -459,6 +464,8 @@ class ImportProgrammeViewModel(application: Application) : AndroidViewModel(appl
         
         val programmeStructure = buildProgrammeJson(parsedProgramme)
         
+        Log.d("ImportProgrammeViewModel", "Built JSON structure with ${parsedProgramme.weeks.sumOf { week -> week.workouts.sumOf { it.exercises.size } }} total exercises")
+        
         // Convert string programme type to enum
         val programmeType = try {
             com.github.radupana.featherweight.data.programme.ProgrammeType.valueOf(parsedProgramme.programmeType)
@@ -482,7 +489,11 @@ class ImportProgrammeViewModel(application: Application) : AndroidViewModel(appl
             difficulty = difficulty
         )
         
+        Log.d("ImportProgrammeViewModel", "Programme created with ID: $programmeId")
+        
         repository.activateProgramme(programmeId)
+        Log.d("ImportProgrammeViewModel", "Programme activated successfully")
+        Log.d("ImportProgrammeViewModel", "=== END PROGRAMME CREATION ===")
         
         // Mark the parse request as IMPORTED if we have one
         _uiState.value.parseRequestId?.let { requestId ->
