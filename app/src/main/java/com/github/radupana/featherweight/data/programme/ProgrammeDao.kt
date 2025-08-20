@@ -35,22 +35,6 @@ interface ProgrammeDao {
     @Query("SELECT * FROM programmes WHERE isCustom = :isCustom ORDER BY createdAt DESC")
     suspend fun getProgrammesByType(isCustom: Boolean): List<Programme>
 
-    // Programme Templates
-    @Insert
-    suspend fun insertProgrammeTemplate(template: ProgrammeTemplate): Long
-
-    @Query("SELECT * FROM programme_templates ORDER BY difficulty ASC, name ASC")
-    suspend fun getAllTemplates(): List<ProgrammeTemplate>
-
-    @Query("SELECT * FROM programme_templates WHERE difficulty = :difficulty")
-    suspend fun getTemplatesByDifficulty(difficulty: ProgrammeDifficulty): List<ProgrammeTemplate>
-
-    @Query("SELECT * FROM programme_templates WHERE id = :id")
-    suspend fun getTemplateById(id: Long): ProgrammeTemplate?
-
-    @Query("DELETE FROM programme_templates WHERE name = :name")
-    suspend fun deleteProgrammeTemplateByName(name: String)
-
     @Query("DELETE FROM programmes WHERE id = :id")
     suspend fun deleteProgrammeById(id: Long)
 

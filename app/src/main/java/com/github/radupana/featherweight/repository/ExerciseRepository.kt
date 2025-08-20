@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.repository
 
+import androidx.room.withTransaction
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.ExerciseSwapHistory
 import com.github.radupana.featherweight.data.FeatherweightDatabase
@@ -16,7 +17,6 @@ import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.domain.ExerciseStats
-import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -38,7 +38,7 @@ class ExerciseRepository(
         withContext(Dispatchers.IO) {
             exerciseDao.getAllExercises()
         }
-    
+
     suspend fun getAllExercisesWithAliases(): List<ExerciseVariationWithAliases> =
         withContext(Dispatchers.IO) {
             val variations = exerciseDao.getAllExercises()
@@ -46,7 +46,7 @@ class ExerciseRepository(
                 val aliases = exerciseDao.getAliasesForVariation(variation.id)
                 ExerciseVariationWithAliases(
                     variation = variation,
-                    aliases = aliases.map { it.alias }
+                    aliases = aliases.map { it.alias },
                 )
             }
         }
@@ -241,10 +241,10 @@ class ExerciseRepository(
         }
     }
 
-suspend fun getPersonalRecords(exerciseVariationId: Long): List<Pair<Float, LocalDateTime>> =
+    suspend fun getPersonalRecords(exerciseVariationId: Long): List<Pair<Float, LocalDateTime>> =
         withContext(Dispatchers.IO) {
             val variation = exerciseDao.getExerciseVariationById(exerciseVariationId)
-            val exerciseName = variation?.name ?: "Unknown"
+            variation?.name ?: "Unknown"
             val allWorkouts = db.workoutDao().getAllWorkouts()
 
             val records = mutableListOf<Pair<Float, LocalDateTime>>()
@@ -323,9 +323,9 @@ suspend fun getPersonalRecords(exerciseVariationId: Long): List<Pair<Float, Loca
         withContext(Dispatchers.IO) {
             exerciseSwapHistoryDao.getSwapHistoryForExercise(userId, exerciseId)
         }
-    
+
     // ===== CREATE CUSTOM EXERCISE =====
-    
+
     suspend fun createCustomExercise(
         name: String,
         category: ExerciseCategory,
@@ -335,180 +335,193 @@ suspend fun getPersonalRecords(exerciseVariationId: Long): List<Pair<Float, Loca
         difficulty: ExerciseDifficulty = ExerciseDifficulty.BEGINNER,
         requiresWeight: Boolean = true,
         movementPattern: MovementPattern = MovementPattern.PUSH,
-        userId: Long
-    ): Result<ExerciseVariation> = withContext(Dispatchers.IO) {
-        try {
-            // Check for duplicate names (case-insensitive)
-            val existingExercise = exerciseVariationDao.findVariationByName(name)
-            if (existingExercise != null) {
-                return@withContext Result.failure(
-                    IllegalArgumentException("An exercise with this name already exists: ${existingExercise.name}")
-                )
-            }
-            
-            // Find or create ExerciseCore based on category and movement pattern
-            val coreName = inferCoreName(name, category, movementPattern)
-            var exerciseCore = exerciseCoreDao.getExerciseCoreByName(coreName)
-            
-            if (exerciseCore == null) {
-                // Create new core
-                val coreId = exerciseCoreDao.insertExerciseCore(
-                    ExerciseCore(
-                        name = coreName,
-                        category = category,
-                        movementPattern = movementPattern,
-                        isCompound = true, // Most custom exercises are compound
-                        createdAt = LocalDateTime.now(),
-                        updatedAt = LocalDateTime.now()
-                    )
-                )
-                exerciseCore = exerciseCoreDao.getExerciseCoreById(coreId)
-            }
-            
-            if (exerciseCore == null) {
-                return@withContext Result.failure(
-                    IllegalStateException("Failed to create or find exercise core")
-                )
-            }
-            
-            // Create the exercise variation
-            val variationId = exerciseVariationDao.insertExerciseVariation(
-                ExerciseVariation(
-                    coreExerciseId = exerciseCore.id,
-                    name = name,
-                    equipment = equipment,
-                    difficulty = difficulty,
-                    requiresWeight = requiresWeight,
-                    usageCount = 0,
-                    isCustom = true,
-                    createdBy = userId,
-                    createdAt = LocalDateTime.now(),
-                    updatedAt = LocalDateTime.now()
-                )
-            )
-            
-            // Create muscle relationships
-            val allMuscles = mutableListOf<VariationMuscle>()
-            
-            // Add primary muscles
-            primaryMuscles.forEach { muscle ->
-                allMuscles.add(
-                    VariationMuscle(
-                        variationId = variationId,
-                        muscle = muscle,
-                        isPrimary = true,
-                        emphasisModifier = 1.0f
-                    )
-                )
-            }
-            
-            // Add secondary muscles
-            secondaryMuscles.forEach { muscle ->
-                allMuscles.add(
-                    VariationMuscle(
-                        variationId = variationId,
-                        muscle = muscle,
-                        isPrimary = false,
-                        emphasisModifier = 0.5f
-                    )
-                )
-            }
-            
-            // Insert all muscle relationships
-            if (allMuscles.isNotEmpty()) {
-                variationMuscleDao.insertVariationMuscles(allMuscles)
-            }
-            
-            // Return the created exercise
-            val createdExercise = exerciseVariationDao.getExerciseVariationById(variationId)
-            if (createdExercise != null) {
-                Result.success(createdExercise)
-            } else {
-                Result.failure(IllegalStateException("Failed to retrieve created exercise"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-    
-    // ===== DELETE CUSTOM EXERCISE =====
-    
-    suspend fun canDeleteExercise(exerciseVariationId: Long): Result<Boolean> = withContext(Dispatchers.IO) {
-        try {
-            // Check if it's a custom exercise
-            val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
-                ?: return@withContext Result.failure(IllegalArgumentException("Exercise not found"))
-            
-            if (!exercise.isCustom) {
-                return@withContext Result.failure(IllegalArgumentException("Cannot delete built-in exercises"))
-            }
-            
-            // Check if used in any completed workouts
-            val completedWorkouts = db.workoutDao().getAllWorkouts()
-                .filter { it.status == WorkoutStatus.COMPLETED }
-            
-            for (workout in completedWorkouts) {
-                val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                if (exerciseLogs.any { it.exerciseVariationId == exerciseVariationId }) {
+        userId: Long,
+    ): Result<ExerciseVariation> =
+        withContext(Dispatchers.IO) {
+            try {
+                // Check for duplicate names (case-insensitive)
+                val existingExercise = exerciseVariationDao.findVariationByName(name)
+                if (existingExercise != null) {
                     return@withContext Result.failure(
-                        IllegalStateException("Cannot delete exercise: Used in completed workouts")
+                        IllegalArgumentException("An exercise with this name already exists: ${existingExercise.name}"),
                     )
                 }
+
+                // Find or create ExerciseCore based on category and movement pattern
+                val coreName = inferCoreName(name, category, movementPattern)
+                var exerciseCore = exerciseCoreDao.getExerciseCoreByName(coreName)
+
+                if (exerciseCore == null) {
+                    // Create new core
+                    val coreId =
+                        exerciseCoreDao.insertExerciseCore(
+                            ExerciseCore(
+                                name = coreName,
+                                category = category,
+                                movementPattern = movementPattern,
+                                isCompound = true, // Most custom exercises are compound
+                                createdAt = LocalDateTime.now(),
+                                updatedAt = LocalDateTime.now(),
+                            ),
+                        )
+                    exerciseCore = exerciseCoreDao.getExerciseCoreById(coreId)
+                }
+
+                if (exerciseCore == null) {
+                    return@withContext Result.failure(
+                        IllegalStateException("Failed to create or find exercise core"),
+                    )
+                }
+
+                // Create the exercise variation
+                val variationId =
+                    exerciseVariationDao.insertExerciseVariation(
+                        ExerciseVariation(
+                            coreExerciseId = exerciseCore.id,
+                            name = name,
+                            equipment = equipment,
+                            difficulty = difficulty,
+                            requiresWeight = requiresWeight,
+                            usageCount = 0,
+                            isCustom = true,
+                            createdBy = userId,
+                            createdAt = LocalDateTime.now(),
+                            updatedAt = LocalDateTime.now(),
+                        ),
+                    )
+
+                // Create muscle relationships
+                val allMuscles = mutableListOf<VariationMuscle>()
+
+                // Add primary muscles
+                primaryMuscles.forEach { muscle ->
+                    allMuscles.add(
+                        VariationMuscle(
+                            variationId = variationId,
+                            muscle = muscle,
+                            isPrimary = true,
+                            emphasisModifier = 1.0f,
+                        ),
+                    )
+                }
+
+                // Add secondary muscles
+                secondaryMuscles.forEach { muscle ->
+                    allMuscles.add(
+                        VariationMuscle(
+                            variationId = variationId,
+                            muscle = muscle,
+                            isPrimary = false,
+                            emphasisModifier = 0.5f,
+                        ),
+                    )
+                }
+
+                // Insert all muscle relationships
+                if (allMuscles.isNotEmpty()) {
+                    variationMuscleDao.insertVariationMuscles(allMuscles)
+                }
+
+                // Return the created exercise
+                val createdExercise = exerciseVariationDao.getExerciseVariationById(variationId)
+                if (createdExercise != null) {
+                    Result.success(createdExercise)
+                } else {
+                    Result.failure(IllegalStateException("Failed to retrieve created exercise"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-            
-            Result.success(true)
-        } catch (e: Exception) {
-            Result.failure(e)
         }
-    }
-    
-    suspend fun deleteCustomExercise(exerciseVariationId: Long): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            // First check if we can delete it
-            val canDelete = canDeleteExercise(exerciseVariationId)
-            if (canDelete.isFailure) {
-                return@withContext Result.failure(canDelete.exceptionOrNull() ?: Exception("Cannot delete exercise"))
-            }
-            
-            // Use a transaction to ensure all deletions happen atomically
-            db.withTransaction {
-                // First, remove from ALL workouts (not just in-progress)
-                // We need to remove from ALL non-completed workouts to prevent foreign key issues
-                val allWorkouts = db.workoutDao().getAllWorkouts()
-                
-                for (workout in allWorkouts.filter { it.status != WorkoutStatus.COMPLETED }) {
+
+    // ===== DELETE CUSTOM EXERCISE =====
+
+    suspend fun canDeleteExercise(exerciseVariationId: Long): Result<Boolean> =
+        withContext(Dispatchers.IO) {
+            try {
+                // Check if it's a custom exercise
+                val exercise =
+                    exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
+                        ?: return@withContext Result.failure(IllegalArgumentException("Exercise not found"))
+
+                if (!exercise.isCustom) {
+                    return@withContext Result.failure(IllegalArgumentException("Cannot delete built-in exercises"))
+                }
+
+                // Check if used in any completed workouts
+                val completedWorkouts =
+                    db
+                        .workoutDao()
+                        .getAllWorkouts()
+                        .filter { it.status == WorkoutStatus.COMPLETED }
+
+                for (workout in completedWorkouts) {
                     val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                    val logsToDelete = exerciseLogs.filter { it.exerciseVariationId == exerciseVariationId }
-                    
-                    for (log in logsToDelete) {
-                        // Delete all sets for this exercise log FIRST
-                        setLogDao.deleteAllSetsForExercise(log.id)
-                        // Then delete the exercise log itself
-                        exerciseLogDao.deleteExerciseLog(log.id)
+                    if (exerciseLogs.any { it.exerciseVariationId == exerciseVariationId }) {
+                        return@withContext Result.failure(
+                            IllegalStateException("Cannot delete exercise: Used in completed workouts"),
+                        )
                     }
                 }
-                
-                // Now delete all muscle associations
-                variationMuscleDao.deleteMuscleMappingsForVariation(exerciseVariationId)
-                
-                // Finally delete the exercise variation itself
-                exerciseVariationDao.deleteExerciseVariation(exerciseVariationId)
-                
-                // Verify deletion
-                val stillExists = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
-                check(stillExists == null) { "Exercise was not deleted from database!" }
+
+                Result.success(true)
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-            
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
         }
-    }
-    
-    private fun inferCoreName(name: String, category: ExerciseCategory, movementPattern: MovementPattern): String {
+
+    suspend fun deleteCustomExercise(exerciseVariationId: Long): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                // First check if we can delete it
+                val canDelete = canDeleteExercise(exerciseVariationId)
+                if (canDelete.isFailure) {
+                    return@withContext Result.failure(canDelete.exceptionOrNull() ?: Exception("Cannot delete exercise"))
+                }
+
+                // Use a transaction to ensure all deletions happen atomically
+                db.withTransaction {
+                    // First, remove from ALL workouts (not just in-progress)
+                    // We need to remove from ALL non-completed workouts to prevent foreign key issues
+                    val allWorkouts = db.workoutDao().getAllWorkouts()
+
+                    for (workout in allWorkouts.filter { it.status != WorkoutStatus.COMPLETED }) {
+                        val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                        val logsToDelete = exerciseLogs.filter { it.exerciseVariationId == exerciseVariationId }
+
+                        for (log in logsToDelete) {
+                            // Delete all sets for this exercise log FIRST
+                            setLogDao.deleteAllSetsForExercise(log.id)
+                            // Then delete the exercise log itself
+                            exerciseLogDao.deleteExerciseLog(log.id)
+                        }
+                    }
+
+                    // Now delete all muscle associations
+                    variationMuscleDao.deleteMuscleMappingsForVariation(exerciseVariationId)
+
+                    // Finally delete the exercise variation itself
+                    exerciseVariationDao.deleteExerciseVariation(exerciseVariationId)
+
+                    // Verify deletion
+                    val stillExists = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
+                    check(stillExists == null) { "Exercise was not deleted from database!" }
+                }
+
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    private fun inferCoreName(
+        name: String,
+        category: ExerciseCategory,
+        movementPattern: MovementPattern,
+    ): String {
         // Try to infer a core name from the exercise name
         val lowerName = name.lowercase()
-        
+
         // Common core exercise patterns
         return when {
             lowerName.contains("squat") -> "Squat"

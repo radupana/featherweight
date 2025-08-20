@@ -154,7 +154,6 @@ fun SetEditingModal(
         }
     }
 
-
     // Handle back button and outside tap to dismiss
     BackHandler {
         keyboardController?.hide()
@@ -228,7 +227,7 @@ fun SetEditingModal(
                                 fontWeight = FontWeight.SemiBold,
                                 textAlign = TextAlign.Center,
                                 maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                overflow = TextOverflow.Ellipsis,
                             )
                             if (sets.isNotEmpty()) {
                                 val completedSets = sets.count { it.isCompleted }

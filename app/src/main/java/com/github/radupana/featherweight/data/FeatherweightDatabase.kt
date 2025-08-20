@@ -29,7 +29,6 @@ import com.github.radupana.featherweight.data.programme.ExerciseSubstitution
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeDao
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
-import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
 import com.github.radupana.featherweight.data.programme.ProgrammeWeek
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
 
@@ -47,7 +46,6 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         VariationMuscle::class,
         // Other entities
         Programme::class,
-        ProgrammeTemplate::class,
         ProgrammeWeek::class,
         ProgrammeWorkout::class,
         ExerciseSubstitution::class,
@@ -63,7 +61,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         TrainingAnalysis::class,
         ParseRequest::class,
     ],
-    version = 74,
+    version = 75,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)

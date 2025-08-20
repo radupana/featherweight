@@ -61,8 +61,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.components.CompactRestTimer
@@ -74,6 +72,8 @@ import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,7 +92,6 @@ fun WorkoutScreen(
     val workoutState by viewModel.workoutState.collectAsState()
     val pendingOneRMUpdates by viewModel.pendingOneRMUpdates.collectAsState()
     val expandedExerciseIds by viewModel.expandedExerciseIds.collectAsState()
-    
 
     // Rest timer state
     val restTimerSeconds by viewModel.restTimerSeconds.collectAsState()
@@ -124,9 +123,10 @@ fun WorkoutScreen(
 
     // If no active workout, start one (except in template edit mode)
     LaunchedEffect(workoutState.isActive, workoutState.mode) {
-        if (!workoutState.isActive && 
+        if (!workoutState.isActive &&
             workoutState.status != com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED &&
-            workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
+            workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT
+        ) {
             viewModel.startNewWorkout()
         }
     }
@@ -325,7 +325,7 @@ fun WorkoutScreen(
         Column(
             modifier =
                 Modifier
-                    .padding(top = innerPadding.calculateTopPadding())  // Only apply top padding
+                    .padding(top = innerPadding.calculateTopPadding()) // Only apply top padding
                     .fillMaxSize(),
         ) {
             // Exercises list or empty state
@@ -358,7 +358,7 @@ fun WorkoutScreen(
                             isTemplateEdit = workoutState.mode == com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT,
                             onAddExercise = onSelectExercise,
                             onCompleteWorkout = {},
-                            onSaveTemplate = { 
+                            onSaveTemplate = {
                                 viewModel.saveTemplateChanges()
                                 onTemplateSaved()
                             },
@@ -394,7 +394,7 @@ fun WorkoutScreen(
                     onSkip = { viewModel.skipRestTimer() },
                     onPresetSelected = { viewModel.selectRestTimerPreset(it) },
                     onAdjustTime = { viewModel.adjustRestTimer(it) },
-                    modifier = Modifier.fillMaxWidth(),  // No bottom padding - sits right at bottom
+                    modifier = Modifier.fillMaxWidth(), // No bottom padding - sits right at bottom
                 )
             }
         }
@@ -752,12 +752,13 @@ private fun ExercisesList(
     modifier: Modifier = Modifier,
 ) {
     val lazyListState = rememberLazyListState()
-    
+
     // Add Reorderable state
-    val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
-        // This callback is called when items are reordered
-        viewModel.reorderExercises(from.index, to.index)
-    }
+    val reorderableLazyListState =
+        rememberReorderableLazyListState(lazyListState) { from, to ->
+            // This callback is called when items are reordered
+            viewModel.reorderExercises(from.index, to.index)
+        }
 
     val imeInsets = WindowInsets.ime.asPaddingValues()
     val horizontalPadding = 16.dp
@@ -801,16 +802,17 @@ private fun ExercisesList(
                     },
                     viewModel = viewModel,
                     showDragHandle = canEdit,
-                    dragHandleModifier = if (canEdit) {
-                        Modifier.draggableHandle(
-                            onDragStarted = {
-                                // Collapse all exercises when dragging starts for easier reordering
-                                viewModel.collapseAllExercises()
-                            }
-                        )
-                    } else {
-                        Modifier
-                    },
+                    dragHandleModifier =
+                        if (canEdit) {
+                            Modifier.draggableHandle(
+                                onDragStarted = {
+                                    // Collapse all exercises when dragging starts for easier reordering
+                                    viewModel.collapseAllExercises()
+                                },
+                            )
+                        } else {
+                            Modifier
+                        },
                     modifier = Modifier.animateItem(),
                 )
             }
@@ -825,7 +827,7 @@ private fun ExercisesList(
                     isTemplateEdit = workoutState.mode == com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT,
                     onAddExercise = onSelectExercise,
                     onCompleteWorkout = onCompleteWorkout,
-                    onSaveTemplate = { 
+                    onSaveTemplate = {
                         viewModel.saveTemplateChanges()
                         onTemplateSaved()
                     },
@@ -876,7 +878,7 @@ private fun WorkoutActionButtons(
                         onSaveTemplate()
                         // Reset after delay
                         coroutineScope.launch {
-                            kotlinx.coroutines.delay(1000)
+                            delay(1000)
                             isSaving = false
                             showSaved = false
                         }

@@ -22,8 +22,8 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM Workout WHERE date >= :startDate AND date <= :endDate ORDER BY date DESC")
     suspend fun getWorkoutsInDateRange(
-        startDate: java.time.LocalDateTime,
-        endDate: java.time.LocalDateTime,
+        startDate: LocalDateTime,
+        endDate: LocalDateTime,
     ): List<Workout>
 
     @Query("DELETE FROM Workout WHERE id = :workoutId")
@@ -164,9 +164,9 @@ interface WorkoutDao {
     suspend fun getWorkoutDateForMaxWeight(
         exerciseVariationId: Long,
         weight: Float,
-        startDateTime: java.time.LocalDateTime,
-        endDateTime: java.time.LocalDateTime,
-    ): java.time.LocalDateTime?
+        startDateTime: LocalDateTime,
+        endDateTime: LocalDateTime,
+    ): LocalDateTime?
 
     @Query("SELECT date, COUNT(*) as count FROM workout WHERE date >= :startDate AND date < :endDate GROUP BY date")
     suspend fun getWorkoutCountsByDateRange(

@@ -20,14 +20,17 @@ class WorkoutTemplateGeneratorService(
         config: WorkoutTemplateGenerationConfig,
     ): List<Triple<ExerciseVariation, Int, Int>> =
         withContext(Dispatchers.IO) {
-            when (templateName) {
+            val result = when (templateName) {
                 "Push" -> generatePushWorkout(config)
                 "Pull" -> generatePullWorkout(config)
                 "Legs" -> generateLegsWorkout(config)
-                "Upper Body" -> generateUpperBodyWorkout(config)
+                "Upper", "Upper Body" -> generateUpperBodyWorkout(config)
+                "Lower" -> generateLowerBodyWorkout(config)
                 "Full Body" -> generateFullBodyWorkout(config)
                 else -> emptyList()
             }
+            
+            result
         }
 
     private suspend fun generatePushWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
@@ -39,24 +42,24 @@ class WorkoutTemplateGeneratorService(
                 exercises.add("Barbell Bench Press")
                 exercises.add("Dumbbell Shoulder Press")
                 exercises.add("Dumbbell Fly")
-                exercises.add("Cable Triceps Pushdown")
+                exercises.add("Cable Tricep Pushdown")
             }
             TimeAvailable.STANDARD -> {
                 exercises.add("Barbell Bench Press")
-                exercises.add("Dumbbell Incline Bench Press")
+                exercises.add("Dumbbell Incline Press")
                 exercises.add("Dumbbell Shoulder Press")
                 exercises.add("Cable Lateral Raise")
                 exercises.add("Cable Fly")
-                exercises.add("Cable Triceps Pushdown")
+                exercises.add("Cable Tricep Pushdown")
             }
             TimeAvailable.EXTENDED -> {
                 exercises.add("Barbell Bench Press")
-                exercises.add("Dumbbell Incline Bench Press")
+                exercises.add("Dumbbell Incline Press")
                 exercises.add("Cable Fly")
                 exercises.add("Dumbbell Shoulder Press")
                 exercises.add("Dumbbell Lateral Raise")
                 exercises.add("Cable Face Pull")
-                exercises.add("Cable Triceps Pushdown")
+                exercises.add("Cable Tricep Pushdown")
             }
         }
 
@@ -64,23 +67,136 @@ class WorkoutTemplateGeneratorService(
     }
 
     private suspend fun generatePullWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
-        // Similar implementation for pull workout
-        return emptyList()
+        val exercises = mutableListOf<String>()
+        
+        when (config.time) {
+            TimeAvailable.QUICK -> {
+                exercises.add("Barbell Row")
+                exercises.add("Cable Lat Pulldown")
+                exercises.add("Cable Face Pull")
+                exercises.add("Barbell Bicep Curl")
+            }
+            TimeAvailable.STANDARD -> {
+                exercises.add("Barbell Row")
+                exercises.add("Cable Lat Pulldown")
+                exercises.add("Cable Row")
+                exercises.add("Cable Face Pull")
+                exercises.add("Barbell Bicep Curl")
+                exercises.add("Dumbbell Hammer Curl")
+            }
+            TimeAvailable.EXTENDED -> {
+                exercises.add("Barbell Row")
+                exercises.add("Cable Lat Pulldown")
+                exercises.add("Cable Row")
+                exercises.add("Cable Face Pull")
+                exercises.add("Barbell Shrug")
+                exercises.add("Barbell Bicep Curl")
+                exercises.add("Dumbbell Hammer Curl")
+            }
+        }
+        
+        return generateWorkoutFromExercises(exercises, config)
     }
 
     private suspend fun generateLegsWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
-        // Similar implementation for legs workout
-        return emptyList()
+        val exercises = mutableListOf<String>()
+        
+        when (config.time) {
+            TimeAvailable.QUICK -> {
+                exercises.add("Barbell Back Squat")
+                exercises.add("Barbell Romanian Deadlift")
+                exercises.add("Machine Leg Curl")
+            }
+            TimeAvailable.STANDARD -> {
+                exercises.add("Barbell Back Squat")
+                exercises.add("Barbell Romanian Deadlift")
+                exercises.add("Machine Leg Press")
+                exercises.add("Machine Leg Curl")
+                exercises.add("Barbell Calf Raise")
+            }
+            TimeAvailable.EXTENDED -> {
+                exercises.add("Barbell Back Squat")
+                exercises.add("Barbell Romanian Deadlift")
+                exercises.add("Machine Leg Press")
+                exercises.add("Machine Leg Curl")
+                exercises.add("Machine Leg Extension")
+                exercises.add("Barbell Calf Raise")
+                exercises.add("Dumbbell Walking Lunge")
+            }
+        }
+        
+        return generateWorkoutFromExercises(exercises, config)
     }
 
     private suspend fun generateUpperBodyWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
-        // Similar implementation for upper body workout
-        return emptyList()
+        val exercises = mutableListOf<String>()
+        
+        when (config.time) {
+            TimeAvailable.QUICK -> {
+                exercises.add("Barbell Bench Press")
+                exercises.add("Barbell Row")
+                exercises.add("Dumbbell Shoulder Press")
+                exercises.add("Barbell Bicep Curl")
+            }
+            TimeAvailable.STANDARD -> {
+                exercises.add("Barbell Bench Press")
+                exercises.add("Barbell Row")
+                exercises.add("Dumbbell Shoulder Press")
+                exercises.add("Cable Lat Pulldown")
+                exercises.add("Barbell Bicep Curl")
+                exercises.add("Cable Tricep Pushdown")
+            }
+            TimeAvailable.EXTENDED -> {
+                exercises.add("Barbell Bench Press")
+                exercises.add("Barbell Row")
+                exercises.add("Dumbbell Incline Press")
+                exercises.add("Cable Lat Pulldown")
+                exercises.add("Dumbbell Shoulder Press")
+                exercises.add("Cable Lateral Raise")
+                exercises.add("Barbell Bicep Curl")
+                exercises.add("Cable Tricep Pushdown")
+            }
+        }
+        
+        return generateWorkoutFromExercises(exercises, config)
+    }
+    
+    private suspend fun generateLowerBodyWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
+        // Lower body is similar to legs
+        return generateLegsWorkout(config)
     }
 
     private suspend fun generateFullBodyWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
-        // Similar implementation for full body workout
-        return emptyList()
+        val exercises = mutableListOf<String>()
+        
+        when (config.time) {
+            TimeAvailable.QUICK -> {
+                exercises.add("Barbell Back Squat")
+                exercises.add("Barbell Bench Press")
+                exercises.add("Barbell Row")
+                exercises.add("Dumbbell Shoulder Press")
+            }
+            TimeAvailable.STANDARD -> {
+                exercises.add("Barbell Back Squat")
+                exercises.add("Barbell Bench Press")
+                exercises.add("Barbell Row")
+                exercises.add("Dumbbell Shoulder Press")
+                exercises.add("Barbell Romanian Deadlift")
+                exercises.add("Barbell Bicep Curl")
+            }
+            TimeAvailable.EXTENDED -> {
+                exercises.add("Barbell Back Squat")
+                exercises.add("Barbell Bench Press")
+                exercises.add("Barbell Row")
+                exercises.add("Dumbbell Shoulder Press")
+                exercises.add("Barbell Romanian Deadlift")
+                exercises.add("Cable Lat Pulldown")
+                exercises.add("Barbell Bicep Curl")
+                exercises.add("Cable Tricep Pushdown")
+            }
+        }
+        
+        return generateWorkoutFromExercises(exercises, config)
     }
 
     private suspend fun generateWorkoutFromExercises(
@@ -89,33 +205,38 @@ class WorkoutTemplateGeneratorService(
     ): List<Triple<ExerciseVariation, Int, Int>> {
         val result = mutableListOf<Triple<ExerciseVariation, Int, Int>>()
         val maxExercises = getMaxExercises(config.time, "Push")
-
         for ((index, name) in exerciseNames.withIndex()) {
             if (index >= maxExercises) break
 
-            val exercise = findMatchingExercise(listOf(name)) ?: continue
+            val exercise = findMatchingExercise(listOf(name))
+            if (exercise == null) continue
+            
             val sets = getSetsForExercise(exercise.name, config)
             val reps = getRepsForGoal(config.goal)
             result.add(Triple(exercise, sets, reps))
         }
 
         // Adapt for skill level
-        return when (config.skillLevel) {
+        val finalResult = when (config.skillLevel) {
             SkillLevel.BEGINNER -> result.take(result.size * 2 / 3)
             else -> result
         }
+        
+        return finalResult
     }
 
     private suspend fun findMatchingExercise(options: List<String>): ExerciseVariation? {
-        // Simply find the first available exercise from the options
-        // Assumes full commercial gym access
         for (exerciseName in options) {
+            
             // First try exact name match
             val exercise = exerciseVariationDao.getExerciseVariationByName(exerciseName)
-            if (exercise != null) {
-                return exercise
-            }
+            if (exercise != null) return exercise
+            
+            // Try with case variations
+            val exerciseLower = exerciseVariationDao.getExerciseVariationByName(exerciseName.lowercase())
+            if (exerciseLower != null) return exerciseLower
         }
+        
         return null
     }
 

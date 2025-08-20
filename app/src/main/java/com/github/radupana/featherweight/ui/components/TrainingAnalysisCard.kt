@@ -24,8 +24,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -153,8 +153,9 @@ fun TrainingAnalysisCard(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Need at least $required workouts for analysis " +
-                                    "($current/$required completed)",
+                                text =
+                                    "Need at least $required workouts for analysis " +
+                                        "($current/$required completed)",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             )
@@ -270,7 +271,7 @@ private fun InsightRow(insight: TrainingInsight) {
         verticalAlignment = Alignment.Top,
     ) {
         // Icon based on severity
-        val (icon, color) =
+        val (icon, _) =
             when (insight.severity) {
                 InsightSeverity.SUCCESS -> "✅" to MaterialTheme.colorScheme.primary
                 InsightSeverity.WARNING -> "⚠️" to Color(0xFFFF9800)

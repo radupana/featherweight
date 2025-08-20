@@ -17,16 +17,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SearchOff
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,7 +33,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,9 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
-import com.github.radupana.featherweight.data.programme.ProgrammeTemplate
 import com.github.radupana.featherweight.ui.components.ParseRequestCard
-import com.github.radupana.featherweight.ui.dialogs.ProgrammeSetupDialog
 import com.github.radupana.featherweight.ui.utils.NavigationContext
 import com.github.radupana.featherweight.ui.utils.rememberKeyboardState
 import com.github.radupana.featherweight.ui.utils.systemBarsPadding
@@ -326,61 +318,13 @@ fun ProgrammesScreen(
                     }
                 }
 
-                // Templates Section header - show even when keyboard visible
-                item {
-                    Text(
-                        text = "Predefined Programme Templates",
-                        style =
-                            if (isKeyboardVisible) {
-                                MaterialTheme.typography.titleMedium
-                            } else {
-                                MaterialTheme.typography.titleLarge
-                            },
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(vertical = compactPadding / 2),
-                    )
-                }
-
-                items(uiState.templates) { template ->
-                    ProgrammeTemplateCard(
-                        template = template,
-                        isActive = activeProgramme?.name == template.name,
-                        isDisabled = isParsingInProgress,
-                        onClick = {
-                            if (!isParsingInProgress && activeProgramme?.name != template.name) {
-                                viewModel.selectTemplate(template)
-                            }
-                        },
-                        isCompact = isKeyboardVisible,
-                    )
-                }
-
-                if (uiState.templates.isEmpty()) {
-                    item {
-                        EmptyStateCard()
-                    }
-                }
             }
         }
     }
 
-    // Setup Dialog
-    if (uiState.showSetupDialog && uiState.selectedTemplate != null) {
-        ProgrammeSetupDialog(
-            template = uiState.selectedTemplate!!,
-            uiState = uiState,
-            viewModel = viewModel,
-            repository =
-                com.github.radupana.featherweight.repository
-                    .FeatherweightRepository(viewModel.getApplication()),
-            onProgrammeCreated = {
-                // Navigate to active programme screen after creation
-                onNavigateToActiveProgramme?.invoke()
-            },
-        )
-    }
 
-    // Profile Update Prompt Dialog
+    // Profile Update Prompt Dialog - commented out for now
+    /* 
     if (uiState.showProfileUpdatePrompt && uiState.pendingProfileUpdates.isNotEmpty()) {
         com.github.radupana.featherweight.ui.dialogs.ProfileUpdatePromptDialog(
             updates = uiState.pendingProfileUpdates,
@@ -392,6 +336,7 @@ fun ProgrammesScreen(
             },
         )
     }
+    */
 
     // Delete Confirmation Dialog
     if (showDeleteConfirmDialog) {
@@ -462,7 +407,8 @@ fun ProgrammesScreen(
         )
     }
 
-    // Overwrite Warning Dialog
+    // Overwrite Warning Dialog - commented out (templates removed)
+    /*
     if (uiState.showOverwriteWarning) {
         AlertDialog(
             onDismissRequest = { viewModel.cancelOverwriteProgramme() },
@@ -507,6 +453,7 @@ fun ProgrammesScreen(
             },
         )
     }
+    */
     
     // Raw Text Dialog - Now scrollable!
     showRawTextDialog?.let { rawText ->
@@ -711,145 +658,6 @@ private fun formatEnumName(enumName: String): String =
             word.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
         }
 
-@Composable
-private fun ProgrammeTemplateCard(
-    template: ProgrammeTemplate,
-    isActive: Boolean,
-    isDisabled: Boolean = false,
-    onClick: () -> Unit,
-    isCompact: Boolean = false,
-) {
-    val cardPadding = if (isCompact) 16.dp else 20.dp
-    val cardColors = when {
-        isDisabled -> CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-            contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-        )
-        isActive -> CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-        )
-        else -> CardDefaults.cardColors()
-    }
-
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable(enabled = !isActive && !isDisabled) { onClick() },
-        colors = cardColors,
-        elevation = CardDefaults.cardElevation(if (isActive || isDisabled) 0.dp else 4.dp),
-    ) {
-        Column(
-            modifier = Modifier.padding(cardPadding),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = template.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = "by ${template.author}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                }
-
-                when {
-                    isDisabled -> {
-                        Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Text(
-                                text = "UNAVAILABLE",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
-                    }
-                    isActive -> {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Text(
-                                text = "ACTIVE",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = template.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Programme details - arranged in two rows to prevent text wrapping
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                // First row: duration and difficulty
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    ProgrammeDetail(
-                        icon = Icons.Filled.Schedule,
-                        text = "${template.durationWeeks} weeks",
-                    )
-                    ProgrammeDetail(
-                        icon = Icons.AutoMirrored.Filled.TrendingUp,
-                        text = formatEnumName(template.difficulty.name),
-                    )
-                }
-
-                // Second row: additional features (if any)
-                if (template.requiresMaxes || template.allowsAccessoryCustomization) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        if (template.requiresMaxes) {
-                            ProgrammeDetail(
-                                icon = Icons.Filled.Calculate,
-                                text = "Requires 1RM",
-                            )
-                        }
-                        if (template.allowsAccessoryCustomization) {
-                            ProgrammeDetail(
-                                icon = Icons.Filled.Tune,
-                                text = "Customizable",
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun ProgrammeDetail(

@@ -53,7 +53,7 @@ data class ExerciseMaxWithName(
     val exerciseId: Long,
     val exerciseName: String,
     val oneRMEstimate: Float,
-    val oneRMDate: java.time.LocalDateTime,
+    val oneRMDate: LocalDateTime,
     val oneRMContext: String,
     val oneRMType: com.github.radupana.featherweight.data.profile.OneRMType,
     val notes: String? = null,
@@ -66,7 +66,7 @@ data class Big4Exercise(
     val oneRMValue: Float? = null,
     val oneRMType: com.github.radupana.featherweight.data.profile.OneRMType? = null,
     val oneRMContext: String? = null,
-    val oneRMDate: java.time.LocalDateTime? = null,
+    val oneRMDate: LocalDateTime? = null,
     val sessionCount: Int = 0,
 )
 

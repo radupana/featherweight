@@ -100,26 +100,6 @@ data class Programme(
 }
 
 /**
- * Programme template for pre-defined programs
- */
-@Entity(tableName = "programme_templates")
-data class ProgrammeTemplate(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    val name: String,
-    val description: String,
-    val durationWeeks: Int,
-    val programmeType: ProgrammeType,
-    val difficulty: ProgrammeDifficulty,
-    val author: String,
-    val requiresMaxes: Boolean = false,
-    val allowsAccessoryCustomization: Boolean = false,
-    val jsonStructure: String, // JSON representation of the programme structure
-    val weightCalculationRules: String? = null, // JSON serialized WeightCalculationRules
-    val progressionRules: String? = null, // JSON serialized ProgressionRules
-)
-
-/**
  * Represents a specific week within a programme
  */
 @Entity(

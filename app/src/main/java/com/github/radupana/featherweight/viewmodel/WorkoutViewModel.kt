@@ -36,7 +36,7 @@ data class WorkoutState(
     val workoutId: Long? = null,
     val startTime: LocalDateTime? = null,
     val workoutName: String? = null,
-    val isReadOnly: Boolean = false,  // Deprecated - use mode instead
+    val isReadOnly: Boolean = false, // Deprecated - use mode instead
     val isInEditMode: Boolean = false,
     // Backup for rollback
     val originalWorkoutData: Triple<List<ExerciseLog>, List<SetLog>, String?>? = null,
@@ -560,75 +560,79 @@ class WorkoutViewModel(
             loadInProgressWorkouts()
         }
     }
-    
+
     // Start editing a workout template (for parsed programmes)
     fun startTemplateEdit(
         weekIndex: Int,
         workoutIndex: Int,
-        parsedWorkout: com.github.radupana.featherweight.data.ParsedWorkout
+        parsedWorkout: com.github.radupana.featherweight.data.ParsedWorkout,
     ) {
         Log.d("WorkoutViewModel", "startTemplateEdit called: week=$weekIndex, workout=$workoutIndex")
         Log.d("WorkoutViewModel", "ParsedWorkout: $parsedWorkout")
-        
+
         viewModelScope.launch {
             // Clear any existing workout
             stopWorkoutTimer()
             _currentWorkoutId.value = null
             _selectedWorkoutExercises.value = emptyList()
             _selectedExerciseSets.value = emptyList()
-            
+
             // Set template edit mode
-            _workoutState.value = WorkoutState(
-                isActive = true,
-                mode = WorkoutMode.TEMPLATE_EDIT,
-                workoutName = parsedWorkout.name,
-                templateWeekIndex = weekIndex,
-                templateWorkoutIndex = workoutIndex
-            )
-            
+            _workoutState.value =
+                WorkoutState(
+                    isActive = true,
+                    mode = WorkoutMode.TEMPLATE_EDIT,
+                    workoutName = parsedWorkout.name,
+                    templateWeekIndex = weekIndex,
+                    templateWorkoutIndex = workoutIndex,
+                )
+
             // Load the parsed exercises into the workout
             val tempExercises = mutableListOf<ExerciseLog>()
             val tempSets = mutableListOf<SetLog>()
             val tempExerciseNames = mutableMapOf<Long, String>()
-            
+
             var setIdCounter = -1L // Start with negative IDs for template sets
-            
+
             parsedWorkout.exercises.forEachIndexed { exerciseIndex, parsedExercise ->
                 // Use matchedExerciseId if available, otherwise try to find by name
-                val variation = if (parsedExercise.matchedExerciseId != null) {
-                    repository.getExerciseVariationById(parsedExercise.matchedExerciseId)
-                } else {
-                    repository.getExerciseByName(parsedExercise.exerciseName)
-                }
-                
+                val variation =
+                    if (parsedExercise.matchedExerciseId != null) {
+                        repository.getExerciseVariationById(parsedExercise.matchedExerciseId)
+                    } else {
+                        repository.getExerciseByName(parsedExercise.exerciseName)
+                    }
+
                 if (variation != null) {
                     // Create temporary exercise log with negative ID for template
-                    val exerciseLog = ExerciseLog(
-                        id = -(exerciseIndex + 1).toLong(), // Negative ID for template
-                        workoutId = -1L,  // Temporary ID for template
-                        exerciseVariationId = variation.id,
-                        exerciseOrder = exerciseIndex,
-                        notes = parsedExercise.notes
-                    )
-                    
+                    val exerciseLog =
+                        ExerciseLog(
+                            id = -(exerciseIndex + 1).toLong(), // Negative ID for template
+                            workoutId = -1L, // Temporary ID for template
+                            exerciseVariationId = variation.id,
+                            exerciseOrder = exerciseIndex,
+                            notes = parsedExercise.notes,
+                        )
+
                     tempExercises.add(exerciseLog)
                     tempExerciseNames[exerciseLog.exerciseVariationId] = variation.name
-                    
+
                     // Create sets for this exercise with unique negative IDs
                     parsedExercise.sets.forEachIndexed { setIndex, parsedSet ->
-                        val setLog = SetLog(
-                            id = setIdCounter--, // Unique negative ID for each set
-                            exerciseLogId = exerciseLog.id,
-                            setOrder = setIndex + 1,
-                            targetReps = parsedSet.reps,  // TEMPLATE EDIT: Goes to targetReps
-                            targetWeight = parsedSet.weight,  // TEMPLATE EDIT: Goes to targetWeight
-                            // Prepopulate actual values with target values for easier completion
-                            actualReps = parsedSet.reps ?: 0,
-                            actualWeight = parsedSet.weight ?: 0f,
-                            actualRpe = parsedSet.rpe,
-                            isCompleted = false
-                        )
-                        
+                        val setLog =
+                            SetLog(
+                                id = setIdCounter--, // Unique negative ID for each set
+                                exerciseLogId = exerciseLog.id,
+                                setOrder = setIndex + 1,
+                                targetReps = parsedSet.reps, // TEMPLATE EDIT: Goes to targetReps
+                                targetWeight = parsedSet.weight, // TEMPLATE EDIT: Goes to targetWeight
+                                // Prepopulate actual values with target values for easier completion
+                                actualReps = parsedSet.reps ?: 0,
+                                actualWeight = parsedSet.weight ?: 0f,
+                                actualRpe = parsedSet.rpe,
+                                isCompleted = false,
+                            )
+
                         Log.d("WorkoutViewModel", "  SetLog created: targetReps=${setLog.targetReps}, targetWeight=${setLog.targetWeight}")
                         tempSets.add(setLog)
                     }
@@ -636,14 +640,14 @@ class WorkoutViewModel(
                     Log.w("WorkoutViewModel", "Exercise not found: ${parsedExercise.exerciseName} (ID: ${parsedExercise.matchedExerciseId})")
                 }
             }
-            
+
             // Update state with all exercises and sets
             _selectedWorkoutExercises.value = tempExercises
             _selectedExerciseSets.value = tempSets
             _exerciseNames.value = tempExerciseNames
         }
     }
-    
+
     // Get display name for workout
     fun getWorkoutDisplayName(): String {
         val state = _workoutState.value
@@ -770,7 +774,7 @@ class WorkoutViewModel(
         if (_workoutState.value.mode == WorkoutMode.TEMPLATE_EDIT) {
             return
         }
-        
+
         viewModelScope.launch {
             val allSets = mutableListOf<SetLog>()
             _selectedWorkoutExercises.value.forEach { exercise ->
@@ -816,7 +820,7 @@ class WorkoutViewModel(
         if (_workoutState.value.mode == WorkoutMode.TEMPLATE_EDIT) {
             return
         }
-        
+
         val allSets = mutableListOf<SetLog>()
         _selectedWorkoutExercises.value.forEach { exercise ->
             val sets = repository.getSetsForExercise(exercise.id)
@@ -836,34 +840,36 @@ class WorkoutViewModel(
         if (_workoutState.value.mode == WorkoutMode.TEMPLATE_EDIT) {
             val currentExercises = _selectedWorkoutExercises.value
             val newExerciseId = -(currentExercises.size + 1).toLong() // Negative ID for template
-            val newExercise = ExerciseLog(
-                id = newExerciseId,
-                workoutId = -1L, // Template workout
-                exerciseVariationId = exercise.id,
-                exerciseOrder = currentExercises.size,
-                notes = null
-            )
-            
+            val newExercise =
+                ExerciseLog(
+                    id = newExerciseId,
+                    workoutId = -1L, // Template workout
+                    exerciseVariationId = exercise.id,
+                    exerciseOrder = currentExercises.size,
+                    notes = null,
+                )
+
             // Add exercise to local state
             _selectedWorkoutExercises.value = currentExercises + newExercise
-            
+
             // Add exercise name to cache
             _exerciseNames.value = _exerciseNames.value + (exercise.id to exercise.name)
-            
+
             // Auto-add first empty set
             val currentSets = _selectedExerciseSets.value
-            val firstSet = SetLog(
-                id = -(currentSets.size + 1).toLong(),
-                exerciseLogId = newExerciseId,
-                setOrder = 1,
-                targetReps = 0,
-                targetWeight = 0f,
-                actualReps = 0,
-                actualWeight = 0f,
-                isCompleted = false
-            )
+            val firstSet =
+                SetLog(
+                    id = -(currentSets.size + 1).toLong(),
+                    exerciseLogId = newExerciseId,
+                    setOrder = 1,
+                    targetReps = 0,
+                    targetWeight = 0f,
+                    actualReps = 0,
+                    actualWeight = 0f,
+                    isCompleted = false,
+                )
             _selectedExerciseSets.value = currentSets + firstSet
-            
+
             // Auto-expand the newly added exercise
             _expandedExerciseIds.value = _expandedExerciseIds.value + newExerciseId
             return
@@ -1030,16 +1036,17 @@ class WorkoutViewModel(
             val nextOrder = (exerciseSets.maxOfOrNull { it.setOrder } ?: 0) + 1
             // Use minimum of existing negative IDs minus 1 to ensure uniqueness
             val minId = currentSets.minOfOrNull { it.id } ?: 0L
-            val newSet = SetLog(
-                id = minId - 1, // Unique negative ID for template
-                exerciseLogId = exerciseLogId,
-                setOrder = nextOrder,
-                targetReps = 0,
-                targetWeight = 0f,
-                actualReps = 0,
-                actualWeight = 0f,
-                isCompleted = false
-            )
+            val newSet =
+                SetLog(
+                    id = minId - 1, // Unique negative ID for template
+                    exerciseLogId = exerciseLogId,
+                    setOrder = nextOrder,
+                    targetReps = 0,
+                    targetWeight = 0f,
+                    actualReps = 0,
+                    actualWeight = 0f,
+                    isCompleted = false,
+                )
             _selectedExerciseSets.value = currentSets + newSet
         } else {
             addSetToExercise(exerciseLogId) { }
@@ -1048,7 +1055,7 @@ class WorkoutViewModel(
 
     fun copyLastSet(exerciseLogId: Long) {
         if (!canEditWorkout()) return
-        
+
         // In TEMPLATE_EDIT mode, copy from local state
         if (_workoutState.value.mode == WorkoutMode.TEMPLATE_EDIT) {
             val currentSets = _selectedExerciseSets.value
@@ -1058,11 +1065,12 @@ class WorkoutViewModel(
                 val nextOrder = (exerciseSets.maxOfOrNull { it.setOrder } ?: 0) + 1
                 // Use minimum of existing negative IDs minus 1 to ensure uniqueness
                 val minId = currentSets.minOfOrNull { it.id } ?: 0L
-                val newSet = lastSet.copy(
-                    id = minId - 1, // Unique negative ID for template
-                    setOrder = nextOrder,
-                    isCompleted = false
-                )
+                val newSet =
+                    lastSet.copy(
+                        id = minId - 1, // Unique negative ID for template
+                        setOrder = nextOrder,
+                        isCompleted = false,
+                    )
                 _selectedExerciseSets.value = currentSets + newSet
             }
             return
@@ -1117,21 +1125,22 @@ class WorkoutViewModel(
                 // In TEMPLATE_EDIT mode, update TARGET values (what the programme prescribes)
                 // AND also update actual values for UI display
                 // In normal workout mode, update ACTUAL values (what the user did)
-                val updatedSet = if (_workoutState.value.mode == WorkoutMode.TEMPLATE_EDIT) {
-                    currentSet.copy(
-                        targetReps = reps,
-                        targetWeight = weight,
-                        // Also update actual values so UI displays the changes
-                        actualReps = reps,
-                        actualWeight = weight
-                    )
-                } else {
-                    currentSet.copy(
-                        actualReps = reps,
-                        actualWeight = weight,
-                        actualRpe = rpe,
-                    )
-                }
+                val updatedSet =
+                    if (_workoutState.value.mode == WorkoutMode.TEMPLATE_EDIT) {
+                        currentSet.copy(
+                            targetReps = reps,
+                            targetWeight = weight,
+                            // Also update actual values so UI displays the changes
+                            actualReps = reps,
+                            actualWeight = weight,
+                        )
+                    } else {
+                        currentSet.copy(
+                            actualReps = reps,
+                            actualWeight = weight,
+                            actualRpe = rpe,
+                        )
+                    }
 
                 // Update the set in the local state immediately to prevent UI flicker
                 val updatedSets =
@@ -1139,7 +1148,7 @@ class WorkoutViewModel(
                         if (set.id == setId) updatedSet else set
                     }
                 _selectedExerciseSets.value = updatedSets
-                
+
                 // Skip database operations in TEMPLATE_EDIT mode
                 if (_workoutState.value.mode != WorkoutMode.TEMPLATE_EDIT) {
                     // Update validation cache for this set immediately within the same coroutine
@@ -1165,7 +1174,7 @@ class WorkoutViewModel(
             // Update local state immediately
             val updatedSets = _selectedExerciseSets.value.filter { it.id != setId }
             _selectedExerciseSets.value = updatedSets
-            
+
             // Skip database operations in TEMPLATE_EDIT mode
             if (_workoutState.value.mode != WorkoutMode.TEMPLATE_EDIT) {
                 // Then delete from database
@@ -1183,7 +1192,7 @@ class WorkoutViewModel(
         if (_workoutState.value.mode == WorkoutMode.TEMPLATE_EDIT) {
             return
         }
-        
+
         viewModelScope.launch {
             completeSetInternal(setId, completed)
         }
@@ -1493,28 +1502,31 @@ class WorkoutViewModel(
                     // Check if we're in template edit mode (negative IDs)
                     if (_workoutState.value.mode == WorkoutMode.TEMPLATE_EDIT || swappingExercise.id < 0) {
                         // For template edit, just update the in-memory state
-                        val updatedExercises = _selectedWorkoutExercises.value.map { exercise ->
-                            if (exercise.id == swappingExercise.id) {
-                                exercise.copy(
-                                    exerciseVariationId = newExerciseId,
-                                    originalVariationId = swappingExercise.originalVariationId ?: swappingExercise.exerciseVariationId
-                                )
-                            } else {
-                                exercise
+                        val updatedExercises =
+                            _selectedWorkoutExercises.value.map { exercise ->
+                                if (exercise.id == swappingExercise.id) {
+                                    exercise.copy(
+                                        exerciseVariationId = newExerciseId,
+                                        originalVariationId = swappingExercise.originalVariationId ?: swappingExercise.exerciseVariationId,
+                                    )
+                                } else {
+                                    exercise
+                                }
                             }
-                        }
                         _selectedWorkoutExercises.value = updatedExercises
-                        
+
                         // Update exercise name in the map
-                        _exerciseNames.value = _exerciseNames.value.toMutableMap().apply {
-                            remove(swappingExercise.exerciseVariationId)
-                            put(newExerciseId, newExercise.name)
-                        }
-                        
+                        _exerciseNames.value =
+                            _exerciseNames.value.toMutableMap().apply {
+                                remove(swappingExercise.exerciseVariationId)
+                                put(newExerciseId, newExercise.name)
+                            }
+
                         // Clear sets for this exercise to force re-creation with new exercise
-                        _selectedExerciseSets.value = _selectedExerciseSets.value.filter { 
-                            it.exerciseLogId != swappingExercise.id 
-                        }
+                        _selectedExerciseSets.value =
+                            _selectedExerciseSets.value.filter {
+                                it.exerciseLogId != swappingExercise.id
+                            }
                     } else {
                         // For regular workouts, use database operations
                         repository.swapExercise(
@@ -1923,36 +1935,39 @@ class WorkoutViewModel(
         viewModelScope.launch {
             val state = _workoutState.value
             if (state.mode != WorkoutMode.TEMPLATE_EDIT) return@launch
-            
-            val weekIndex = state.templateWeekIndex ?: return@launch
-            val workoutIndex = state.templateWorkoutIndex ?: return@launch
-            
+
+            state.templateWeekIndex ?: return@launch
+            state.templateWorkoutIndex ?: return@launch
+
             // Convert current workout state back to ParsedWorkout
             val exercises = _selectedWorkoutExercises.value
             val sets = _selectedExerciseSets.value
-            
-            val parsedExercises = exercises.map { exerciseLog ->
-                val exerciseSets = sets.filter { it.exerciseLogId == exerciseLog.id }
-                com.github.radupana.featherweight.data.ParsedExercise(
-                    exerciseName = _exerciseNames.value[exerciseLog.exerciseVariationId] ?: "Unknown Exercise",
-                    matchedExerciseId = exerciseLog.exerciseVariationId,  // Preserve the exercise ID
-                    sets = exerciseSets.map { setLog ->
-                        com.github.radupana.featherweight.data.ParsedSet(
-                            reps = setLog.targetReps,
-                            weight = setLog.targetWeight,
-                            rpe = null
-                        )
-                    }
+
+            val parsedExercises =
+                exercises.map { exerciseLog ->
+                    val exerciseSets = sets.filter { it.exerciseLogId == exerciseLog.id }
+                    com.github.radupana.featherweight.data.ParsedExercise(
+                        exerciseName = _exerciseNames.value[exerciseLog.exerciseVariationId] ?: "Unknown Exercise",
+                        matchedExerciseId = exerciseLog.exerciseVariationId, // Preserve the exercise ID
+                        sets =
+                            exerciseSets.map { setLog ->
+                                com.github.radupana.featherweight.data.ParsedSet(
+                                    reps = setLog.targetReps,
+                                    weight = setLog.targetWeight,
+                                    rpe = null,
+                                )
+                            },
+                    )
+                }
+
+            val updatedWorkout =
+                com.github.radupana.featherweight.data.ParsedWorkout(
+                    dayOfWeek = null, // Use null for numbered days
+                    name = state.workoutName ?: "",
+                    exercises = parsedExercises,
+                    estimatedDurationMinutes = exercises.size * 15,
                 )
-            }
-            
-            val updatedWorkout = com.github.radupana.featherweight.data.ParsedWorkout(
-                dayOfWeek = null,  // Use null for numbered days
-                name = state.workoutName ?: "",
-                exercises = parsedExercises,
-                estimatedDurationMinutes = exercises.size * 15
-            )
-            
+
             // Updated workout will be sent back via the onTemplateSaved callback
             Log.d("WorkoutViewModel", "Template changes saved: $updatedWorkout")
         }
@@ -1988,12 +2003,11 @@ class WorkoutViewModel(
             // Check if we should update
             if (oneRMService.shouldUpdateOneRM(set, currentMax, estimated1RM)) {
                 // Calculate confidence
-                val percentOf1RM =
-                    if (currentMax != null && currentMax > 0) {
-                        set.actualWeight / currentMax
-                    } else {
-                        1f
-                    }
+                if (currentMax != null && currentMax > 0) {
+                    set.actualWeight / currentMax
+                } else {
+                    1f
+                }
 
                 // Create context string
                 val context = oneRMService.buildContext(set.actualWeight, set.actualReps, set.actualRpe)

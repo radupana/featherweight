@@ -134,7 +134,7 @@ class InsightsViewModel(
             val endDate = LocalDate.now()
             val startDate = endDate.minusWeeks(ANALYSIS_PERIOD_WEEKS.toLong())
             _currentWorkoutCount.value = repository.getWorkoutCountByDateRange(startDate, endDate)
-            
+
             val currentState = _analyticsState.value
             val cachedData = currentState.cachedData
             val now = System.currentTimeMillis()
@@ -547,7 +547,7 @@ class InsightsViewModel(
             val endDate = LocalDate.now()
             val startDate = endDate.minusWeeks(ANALYSIS_PERIOD_WEEKS.toLong())
             _currentWorkoutCount.value = repository.getWorkoutCountByDateRange(startDate, endDate)
-            
+
             // Check if we've already checked today using SharedPreferences
             val prefs = getApplication<Application>().getSharedPreferences("training_analysis", 0)
             val lastCheckDate = prefs.getString("last_check_date", null)
@@ -592,26 +592,29 @@ class InsightsViewModel(
 
             if (workoutCount < MINIMUM_WORKOUTS_FOR_ANALYSIS) {
                 // Save a placeholder analysis indicating insufficient data
-                val insufficientDataAnalysis = TrainingAnalysis(
-                    analysisDate = LocalDateTime.now(),
-                    periodStart = startDate,
-                    periodEnd = endDate,
-                    overallAssessment = "INSUFFICIENT_DATA:$workoutCount:$MINIMUM_WORKOUTS_FOR_ANALYSIS",
-                    keyInsightsJson = gson.toJson(
-                        listOf(
-                            TrainingInsight(
-                                category = InsightCategory.PROGRESSION,
-                                message = "Continue building training history",
-                                severity = InsightSeverity.INFO
-                            )
-                        )
-                    ),
-                    recommendationsJson = gson.toJson(
-                        listOf("Complete more workouts to enable analysis")
-                    ),
-                    warningsJson = gson.toJson(emptyList<String>()),
-                    userId = 1
-                )
+                val insufficientDataAnalysis =
+                    TrainingAnalysis(
+                        analysisDate = LocalDateTime.now(),
+                        periodStart = startDate,
+                        periodEnd = endDate,
+                        overallAssessment = "INSUFFICIENT_DATA:$workoutCount:$MINIMUM_WORKOUTS_FOR_ANALYSIS",
+                        keyInsightsJson =
+                            gson.toJson(
+                                listOf(
+                                    TrainingInsight(
+                                        category = InsightCategory.PROGRESSION,
+                                        message = "Continue building training history",
+                                        severity = InsightSeverity.INFO,
+                                    ),
+                                ),
+                            ),
+                        recommendationsJson =
+                            gson.toJson(
+                                listOf("Complete more workouts to enable analysis"),
+                            ),
+                        warningsJson = gson.toJson(emptyList<String>()),
+                        userId = 1,
+                    )
                 repository.saveTrainingAnalysis(insufficientDataAnalysis)
                 _trainingAnalysis.value = insufficientDataAnalysis
             } else {
@@ -675,7 +678,7 @@ class InsightsViewModel(
         val workoutsArray = com.google.gson.JsonArray()
 
         // Only include last 4 weeks of detailed data, older data as weekly summaries
-        val fourWeeksAgo = LocalDate.now().minusWeeks(4)
+        LocalDate.now().minusWeeks(4)
 
         for (workout in workouts) {
             val workoutObj = JsonObject()

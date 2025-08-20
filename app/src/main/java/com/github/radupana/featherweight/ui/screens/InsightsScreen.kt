@@ -55,7 +55,6 @@ fun InsightsScreen(
     modifier: Modifier = Modifier,
 ) {
     var recentPRs by remember { mutableStateOf<List<com.github.radupana.featherweight.data.PersonalRecord>>(emptyList()) }
-    var prExerciseNames by remember { mutableStateOf<Map<com.github.radupana.featherweight.data.PersonalRecord, String>>(emptyMap()) }
     var weeklyWorkoutCount by remember { mutableStateOf(0) }
     var currentStreak by remember { mutableStateOf(0) }
     var isHighlightsLoading by remember { mutableStateOf(true) }

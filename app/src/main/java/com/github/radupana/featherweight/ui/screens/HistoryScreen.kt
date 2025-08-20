@@ -65,7 +65,6 @@ import java.util.Locale
 
 // WorkoutSummary now imported from repository
 
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HistoryScreen(
@@ -178,19 +177,19 @@ fun HistoryScreen(
                                         weekNumber =
                                             weekWorkouts.weekStart.get(
                                                 java.time.temporal.WeekFields
-                                                    .of(java.util.Locale.getDefault())
+                                                    .of(Locale.getDefault())
                                                     .weekOfYear(),
                                             ),
                                         year = weekWorkouts.weekStart.year,
                                         workouts = weekWorkouts.workouts,
                                         startDate =
                                             weekWorkouts.weekStart.format(
-                                                java.time.format.DateTimeFormatter
+                                                DateTimeFormatter
                                                     .ofPattern("MMM d"),
                                             ),
                                         endDate =
                                             weekWorkouts.weekEnd.format(
-                                                java.time.format.DateTimeFormatter
+                                                DateTimeFormatter
                                                     .ofPattern("MMM d"),
                                             ),
                                         totalVolume = weekWorkouts.totalVolume,
