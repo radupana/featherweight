@@ -58,50 +58,17 @@ import com.google.gson.JsonSyntaxException
 @Composable
 fun ParseRequestCard(
     request: ParseRequest,
-    onView: (ParsedProgramme, Long) -> Unit,  // Pass programme and request ID
-    onViewRawText: (String) -> Unit, // View what was submitted
-    onEditAndRetry: (String) -> Unit, // Edit the text and try again
+    onView: (ParsedProgramme, Long) -> Unit,
+    onViewRawText: (String) -> Unit,
+    onEditAndRetry: (String) -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
-    // Calculate time elapsed
-    val timeElapsed =
-        remember(request.createdAt) {
-            val minutes = ChronoUnit.MINUTES.between(request.createdAt, LocalDateTime.now())
-            when {
-                minutes < 1 -> "Just now"
-                minutes < 60 -> "$minutes min ago"
-                minutes < 1440 -> "${minutes / 60} hours ago"
-                else -> "${minutes / 1440} days ago"
-            }
-        }
-
-    // Parse programme name if completed
-    val programmeName =
-        remember(request.resultJson) {
-            if (request.status == ParseStatus.COMPLETED && !request.resultJson.isNullOrEmpty()) {
-                try {
-                    val programme = Gson().fromJson(request.resultJson, ParsedProgramme::class.java)
-                    programme.name
-                } catch (e: JsonSyntaxException) {
-                    Log.w("ParseRequestCard", "Failed to parse programme name from result JSON", e)
-                    null
-                }
-            } else {
-                null
-            }
-        }
-
-    // Get status color and icon
-    val (statusColor, statusIcon) =
-        when (request.status) {
-            ParseStatus.PROCESSING -> MaterialTheme.colorScheme.primary to Icons.Filled.AutoAwesome
-            ParseStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary to Icons.Filled.CheckCircle
-            ParseStatus.FAILED -> MaterialTheme.colorScheme.error to Icons.Filled.Error
-            ParseStatus.IMPORTED -> MaterialTheme.colorScheme.primary to Icons.Filled.CheckCircle
-        }
+    val timeElapsed = remember(request.createdAt) { formatTimeElapsed(request.createdAt) }
+    val programmeName = remember(request.resultJson) { extractProgrammeName(request) }
+    val (statusColor, statusIcon) = getStatusColorAndIcon(request.status)
 
     Card(
         modifier =
@@ -143,214 +110,330 @@ fun ParseRequestCard(
                 verticalAlignment = Alignment.Top,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        if (request.status == ParseStatus.PROCESSING) {
-                            val infiniteTransition = rememberInfiniteTransition(label = "rotation")
-                            val angle by infiniteTransition.animateFloat(
-                                initialValue = 0f,
-                                targetValue = 360f,
-                                animationSpec =
-                                    infiniteRepeatable(
-                                        animation = tween(durationMillis = 2000, easing = LinearEasing),
-                                    ),
-                                label = "rotation",
-                            )
-                            Icon(
-                                imageVector = statusIcon,
-                                contentDescription = null,
-                                tint = statusColor,
-                                modifier =
-                                    Modifier
-                                        .size(20.dp)
-                                        .rotate(angle),
-                            )
-                        } else {
-                            Icon(
-                                imageVector = statusIcon,
-                                contentDescription = null,
-                                tint = statusColor,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text =
-                                when (request.status) {
-                                    ParseStatus.PROCESSING -> "Parsing Programme..."
-                                    ParseStatus.COMPLETED -> programmeName ?: "Programme Ready"
-                                    ParseStatus.FAILED -> "Parsing Failed"
-                                    ParseStatus.IMPORTED -> programmeName ?: "Programme Imported"
-                                },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                    ParseRequestHeader(
+                        status = request.status,
+                        statusIcon = statusIcon,
+                        statusColor = statusColor,
+                        programmeName = programmeName,
+                    )
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    Column {
-                        Text(
-                            text =
-                                when (request.status) {
-                                    ParseStatus.PROCESSING -> "Processing your programme text • $timeElapsed"
-                                    ParseStatus.COMPLETED -> "Ready to review • $timeElapsed"
-                                    ParseStatus.FAILED -> "Failed • $timeElapsed"
-                                    ParseStatus.IMPORTED -> "Imported • $timeElapsed"
-                                },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-
-                        // Show detailed error and suggestions for failed requests
-                        if (request.status == ParseStatus.FAILED) {
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            val errorMessage = request.error ?: "Unknown error"
-                            val suggestion =
-                                when {
-                                    errorMessage.contains("too complex") || errorMessage.contains("2 weeks") ->
-                                        "💡 Try: Split into 2-week chunks"
-                                    errorMessage.contains("format") || errorMessage.contains("simplifying") ->
-                                        "💡 Try: Simplify format (Week 1, Monday, Exercise 3x5 @ 80kg)"
-                                    errorMessage.contains("Server error") || errorMessage.contains("try again") ->
-                                        "💡 Server is busy. Wait a moment and try again"
-                                    request.rawText.length > 5000 ->
-                                        "💡 Try: Import first 2 weeks, then remaining weeks"
-                                    else ->
-                                        "💡 Try: Check format and simplify if needed"
-                                }
-
-                            Text(
-                                text = errorMessage,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-
-                            Text(
-                                text = suggestion,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
-                    }
+                    ParseRequestDetails(
+                        status = request.status,
+                        timeElapsed = timeElapsed,
+                        error = request.error,
+                        rawTextLength = request.rawText.length,
+                    )
                 }
 
-                // Action buttons
+                ParseRequestActionButtons(
+                    status = request.status,
+                    isExpanded = isExpanded,
+                    onToggleExpanded = { isExpanded = !isExpanded },
+                    onView = {
+                        parseAndViewProgramme(request.resultJson, onView, request.id)
+                    },
+                    onViewRawText = { onViewRawText(request.rawText) },
+                    onEditAndRetry = { onEditAndRetry(request.rawText) },
+                    onDelete = onDelete,
+                )
+            }
+
+            ExpandableProcessingDetails(
+                isExpanded = isExpanded,
+                status = request.status,
+                rawText = request.rawText,
+            )
+        }
+    }
+}
+
+private fun formatTimeElapsed(createdAt: LocalDateTime): String {
+    val minutes = ChronoUnit.MINUTES.between(createdAt, LocalDateTime.now())
+    return when {
+        minutes < 1 -> "Just now"
+        minutes < 60 -> "$minutes min ago"
+        minutes < 1440 -> "${minutes / 60} hours ago"
+        else -> "${minutes / 1440} days ago"
+    }
+}
+
+private fun extractProgrammeName(request: ParseRequest): String? {
+    return if (request.status == ParseStatus.COMPLETED && !request.resultJson.isNullOrEmpty()) {
+        try {
+            val programme = Gson().fromJson(request.resultJson, ParsedProgramme::class.java)
+            programme.name
+        } catch (e: JsonSyntaxException) {
+            Log.w("ParseRequestCard", "Failed to parse programme name from result JSON", e)
+            null
+        }
+    } else {
+        null
+    }
+}
+
+@Composable
+private fun getStatusColorAndIcon(status: ParseStatus): Pair<androidx.compose.ui.graphics.Color, androidx.compose.ui.graphics.vector.ImageVector> {
+    return when (status) {
+        ParseStatus.PROCESSING -> MaterialTheme.colorScheme.primary to Icons.Filled.AutoAwesome
+        ParseStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary to Icons.Filled.CheckCircle
+        ParseStatus.FAILED -> MaterialTheme.colorScheme.error to Icons.Filled.Error
+        ParseStatus.IMPORTED -> MaterialTheme.colorScheme.primary to Icons.Filled.CheckCircle
+    }
+}
+
+private fun parseAndViewProgramme(
+    resultJson: String?,
+    onView: (ParsedProgramme, Long) -> Unit,
+    requestId: Long,
+) {
+    if (!resultJson.isNullOrEmpty()) {
+        try {
+            val programme = Gson().fromJson(resultJson, ParsedProgramme::class.java)
+            onView(programme, requestId)
+        } catch (e: JsonSyntaxException) {
+            Log.w("ParseRequestCard", "Failed to parse programme from result JSON", e)
+        }
+    }
+}
+
+@Composable
+private fun ParseRequestHeader(
+    status: ParseStatus,
+    statusIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    statusColor: androidx.compose.ui.graphics.Color,
+    programmeName: String?,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (status == ParseStatus.PROCESSING) {
+            val infiniteTransition = rememberInfiniteTransition(label = "rotation")
+            val angle by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 360f,
+                animationSpec =
+                    infiniteRepeatable(
+                        animation = tween(durationMillis = 2000, easing = LinearEasing),
+                    ),
+                label = "rotation",
+            )
+            Icon(
+                imageVector = statusIcon,
+                contentDescription = null,
+                tint = statusColor,
+                modifier =
+                    Modifier
+                        .size(20.dp)
+                        .rotate(angle),
+            )
+        } else {
+            Icon(
+                imageVector = statusIcon,
+                contentDescription = null,
+                tint = statusColor,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = getStatusTitle(status, programmeName),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+private fun getStatusTitle(status: ParseStatus, programmeName: String?): String {
+    return when (status) {
+        ParseStatus.PROCESSING -> "Parsing Programme..."
+        ParseStatus.COMPLETED -> programmeName ?: "Programme Ready"
+        ParseStatus.FAILED -> "Parsing Failed"
+        ParseStatus.IMPORTED -> programmeName ?: "Programme Imported"
+    }
+}
+
+@Composable
+private fun ParseRequestDetails(
+    status: ParseStatus,
+    timeElapsed: String,
+    error: String?,
+    rawTextLength: Int,
+) {
+    Column {
+        Text(
+            text = getStatusMessage(status, timeElapsed),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        if (status == ParseStatus.FAILED) {
+            Spacer(modifier = Modifier.height(4.dp))
+            FailedRequestDetails(
+                error = error,
+                rawTextLength = rawTextLength,
+            )
+        }
+    }
+}
+
+private fun getStatusMessage(status: ParseStatus, timeElapsed: String): String {
+    return when (status) {
+        ParseStatus.PROCESSING -> "Processing your programme text • $timeElapsed"
+        ParseStatus.COMPLETED -> "Ready to review • $timeElapsed"
+        ParseStatus.FAILED -> "Failed • $timeElapsed"
+        ParseStatus.IMPORTED -> "Imported • $timeElapsed"
+    }
+}
+
+@Composable
+private fun FailedRequestDetails(
+    error: String?,
+    rawTextLength: Int,
+) {
+    val errorMessage = error ?: "Unknown error"
+    val suggestion = getErrorSuggestion(errorMessage, rawTextLength)
+
+    Text(
+        text = errorMessage,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+
+    Text(
+        text = suggestion,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.Medium,
+    )
+}
+
+private fun getErrorSuggestion(errorMessage: String, rawTextLength: Int): String {
+    return when {
+        errorMessage.contains("too complex") || errorMessage.contains("2 weeks") ->
+            "💡 Try: Split into 2-week chunks"
+        errorMessage.contains("format") || errorMessage.contains("simplifying") ->
+            "💡 Try: Simplify format (Week 1, Monday, Exercise 3x5 @ 80kg)"
+        errorMessage.contains("Server error") || errorMessage.contains("try again") ->
+            "💡 Server is busy. Wait a moment and try again"
+        rawTextLength > 5000 ->
+            "💡 Try: Import first 2 weeks, then remaining weeks"
+        else ->
+            "💡 Try: Check format and simplify if needed"
+    }
+}
+
+@Composable
+private fun ParseRequestActionButtons(
+    status: ParseStatus,
+    isExpanded: Boolean,
+    onToggleExpanded: () -> Unit,
+    onView: () -> Unit,
+    onViewRawText: () -> Unit,
+    onEditAndRetry: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Row {
+        when (status) {
+            ParseStatus.PROCESSING -> {
+                IconButton(
+                    onClick = onToggleExpanded,
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    )
+                }
+            }
+            ParseStatus.COMPLETED -> {
+                IconButton(
+                    onClick = onView,
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Visibility,
+                        contentDescription = "View Programme",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+            ParseStatus.FAILED -> {
                 Row {
-                    when (request.status) {
-                        ParseStatus.PROCESSING -> {
-                            IconButton(
-                                onClick = { isExpanded = !isExpanded },
-                                modifier = Modifier.size(40.dp),
-                            ) {
-                                Icon(
-                                    imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                                    contentDescription = if (isExpanded) "Collapse" else "Expand",
-                                )
-                            }
-                        }
-                        ParseStatus.COMPLETED -> {
-                            IconButton(
-                                onClick = {
-                                    if (!request.resultJson.isNullOrEmpty()) {
-                                        try {
-                                            val programme = Gson().fromJson(request.resultJson, ParsedProgramme::class.java)
-                                            onView(programme, request.id)
-                                        } catch (e: JsonSyntaxException) {
-                                            Log.w("ParseRequestCard", "Failed to parse programme from result JSON in completed action button", e)
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.size(40.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Visibility,
-                                    contentDescription = "View Programme",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-                        }
-                        ParseStatus.FAILED -> {
-                            // Show different actions based on failure type
-                            Row {
-                                // View raw text to understand what was submitted
-                                IconButton(
-                                    onClick = { onViewRawText(request.rawText) },
-                                    modifier = Modifier.size(40.dp),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Visibility,
-                                        contentDescription = "View submitted text",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
-
-                                // Edit and retry with modified text
-                                IconButton(
-                                    onClick = { onEditAndRetry(request.rawText) },
-                                    modifier = Modifier.size(40.dp),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Edit,
-                                        contentDescription = "Edit and retry",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
-                            }
-                        }
-                        ParseStatus.IMPORTED -> {
-                            // Programme already imported, no actions needed
-                        }
-                    }
-
                     IconButton(
-                        onClick = {
-                            // Add immediate feedback before deleting
-                            onDelete()
-                        },
+                        onClick = onViewRawText,
                         modifier = Modifier.size(40.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Delete,
-                            contentDescription = "Delete request",
-                            tint = MaterialTheme.colorScheme.error,
+                            imageVector = Icons.Filled.Visibility,
+                            contentDescription = "View submitted text",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onEditAndRetry,
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Edit,
+                            contentDescription = "Edit and retry",
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
             }
-
-            // Expandable details for processing requests
-            AnimatedVisibility(
-                visible = isExpanded && request.status == ParseStatus.PROCESSING,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut(),
-            ) {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp),
-                ) {
-                    Text(
-                        text = "Programme Text Preview:",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = request.rawText.take(200) + if (request.rawText.length > 200) "..." else "",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            ParseStatus.IMPORTED -> {
+                // Programme already imported, no actions needed
             }
+        }
+
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier.size(40.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Delete,
+                contentDescription = "Delete request",
+                tint = MaterialTheme.colorScheme.error,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExpandableProcessingDetails(
+    isExpanded: Boolean,
+    status: ParseStatus,
+    rawText: String,
+) {
+    AnimatedVisibility(
+        visible = isExpanded && status == ParseStatus.PROCESSING,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut(),
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+        ) {
+            Text(
+                text = "Programme Text Preview:",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = rawText.take(200) + if (rawText.length > 200) "..." else "",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

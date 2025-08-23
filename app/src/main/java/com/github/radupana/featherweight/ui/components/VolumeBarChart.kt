@@ -128,6 +128,10 @@ fun VolumeBarChart(
     }
 }
 
+private object VolumeBarChartConstants {
+    const val ANIMATION_DURATION_MS = 800
+}
+
 @Composable
 private fun VolumeBarChartCanvas(
     dataPoints: List<ExerciseDataPoint>,
@@ -142,7 +146,7 @@ private fun VolumeBarChartCanvas(
 
     val animationProgress = remember { Animatable(0f) }
     LaunchedEffect(dataPoints) {
-        animationProgress.animateTo(1f, animationSpec = tween(800))
+        animationProgress.animateTo(1f, animationSpec = tween(VolumeBarChartConstants.ANIMATION_DURATION_MS))
     }
 
     Canvas(

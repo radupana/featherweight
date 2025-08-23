@@ -22,6 +22,10 @@ data class ExerciseMappingUiState(
 
 class ExerciseMappingViewModel(application: Application) : AndroidViewModel(application) {
     
+    companion object {
+        private const val MAX_SEARCH_RESULTS = 20
+    }
+    
     private val repository = FeatherweightRepository(application)
     
     private val _uiState = MutableStateFlow(ExerciseMappingUiState())
@@ -83,7 +87,7 @@ class ExerciseMappingViewModel(application: Application) : AndroidViewModel(appl
                 exercise.name.lowercase().startsWith(queryLower) -> 1
                 else -> 2
             }
-        }.take(20)  // Limit results for performance
+        }.take(MAX_SEARCH_RESULTS)  // Limit results for performance
         
         _searchResults.value = results
     }

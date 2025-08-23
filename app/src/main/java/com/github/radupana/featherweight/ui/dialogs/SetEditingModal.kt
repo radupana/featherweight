@@ -52,6 +52,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -249,7 +250,6 @@ fun SetEditingModal(
 
                 if (previousSets.isNotEmpty() || (!isProgrammeWorkout && intelligentSuggestions != null)) {
                     InsightsSection(
-                        exerciseName = exerciseName,
                         previousSets = previousSets,
                         intelligentSuggestions = if (!isProgrammeWorkout) intelligentSuggestions else null,
                         isExpanded = showInsights,
@@ -448,19 +448,14 @@ fun SetEditingModal(
 
                                 CleanSetLayout(
                                     set = set,
-                                    exercise = exercise,
                                     oneRMEstimate = oneRMEstimate,
                                     onUpdateSet = { reps, weight, rpe ->
                                         onUpdateSet(set.id, reps, weight, rpe)
-                                    },
-                                    onUpdateTarget = { reps, weight ->
-                                        viewModel.updateSetTarget(set.id, reps, weight)
                                     },
                                     onToggleCompleted = { completed ->
                                         onToggleCompleted(set.id, completed)
                                     },
                                     canMarkComplete = setCompletionValidation[set.id] ?: false,
-                                    viewModel = viewModel,
                                     isProgrammeWorkout = isProgrammeWorkout,
                                     swipeToDismissState = dismissState,
                                     readOnly = readOnly,
@@ -549,290 +544,48 @@ fun SetEditingModal(
 @Composable
 fun CleanSetLayout(
     set: SetLog,
-    exercise: ExerciseLog,
     oneRMEstimate: Float? = null,
     onUpdateSet: (Int, Float, Float?) -> Unit,
-    onUpdateTarget: (Int, Float?) -> Unit,
     onToggleCompleted: (Boolean) -> Unit,
     canMarkComplete: Boolean,
-    viewModel: WorkoutViewModel,
     isProgrammeWorkout: Boolean,
     swipeToDismissState: SwipeToDismissBoxState,
     modifier: Modifier = Modifier,
     readOnly: Boolean = false,
 ) {
-    // Input states - Store as TextFieldValue to preserve cursor position
-    // Use both set.id and the actual values as remember keys so UI updates when data changes
-    var weightInput by remember(set.id, set.actualWeight, set.targetWeight) {
-        val text =
-            if (set.actualWeight > 0) {
-                WeightFormatter.formatWeight(set.actualWeight)
-            } else if (set.targetWeight != null && set.targetWeight > 0) {
-                // Pre-populate with target weight if no actual weight entered yet
-                WeightFormatter.formatWeight(set.targetWeight)
-            } else {
-                ""
-            }
-        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
-    }
-    var repsInput by remember(set.id, set.actualReps, set.targetReps) {
-        val text =
-            if (set.actualReps > 0) {
-                set.actualReps.toString()
-            } else if (set.targetReps != null && set.targetReps > 0) {
-                // Pre-populate with target reps if no actual reps entered yet
-                set.targetReps.toString()
-            } else {
-                ""
-            }
-        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
-    }
-    var rpeInput by remember(set.id, set.actualRpe) {
-        val text = set.actualRpe?.let { WeightFormatter.formatDecimal(it, 1) } ?: ""
-        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
-    }
+    val inputStates = rememberSetInputStates(set)
 
     Column(
         modifier = modifier.fillMaxWidth(),
     ) {
-        // Swipeable Input Area - ONLY this part can be swiped to delete
         SwipeToDismissBox(
             state = swipeToDismissState,
             backgroundContent = {
-                // Only show red background when actively swiping to delete
-                val progress = swipeToDismissState.progress
-                val targetValue = swipeToDismissState.targetValue
-                val currentValue = swipeToDismissState.currentValue
-
-                // Show red only when:
-                // 1. We have swipe progress (item is displaced)
-                // 2. Target is delete direction (EndToStart)
-                // 3. Not already dismissed
-                // Use very small threshold to detect swipe immediately
-                if (progress > 0.01f &&
-                    targetValue == SwipeToDismissBoxValue.EndToStart &&
-                    currentValue != SwipeToDismissBoxValue.EndToStart
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.CenterEnd,
-                    ) {
-                        // Dynamic red stripe that grows with swipe
-                        // Start with minimum width for immediate visibility
-                        val minWidth = 40.dp
-                        val maxAdditionalWidth = 160.dp
-                        val currentWidth = minWidth + (maxAdditionalWidth.value * progress).dp
-
-                        Surface(
-                            modifier =
-                                Modifier
-                                    .width(currentWidth)
-                                    .fillMaxHeight()
-                                    .padding(vertical = 2.dp),
-                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
-                            shape =
-                                RoundedCornerShape(
-                                    topStart = 8.dp,
-                                    bottomStart = 8.dp,
-                                    topEnd = 0.dp,
-                                    bottomEnd = 0.dp,
-                                ),
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                // Icon that becomes more visible with progress
-                                val iconOffset = ((1 - progress) * 15).dp
-                                Icon(
-                                    Icons.Filled.Delete,
-                                    contentDescription = "Delete",
-                                    tint =
-                                        MaterialTheme.colorScheme.onError.copy(
-                                            alpha = 0.6f + (0.4f * progress),
-                                        ),
-                                    modifier =
-                                        Modifier
-                                            .size((20 + (4 * progress)).dp)
-                                            .offset(x = iconOffset),
-                                )
-                            }
-                        }
-                    }
-                }
+                SwipeDeleteBackground(swipeToDismissState)
             },
             enableDismissFromStartToEnd = false,
             enableDismissFromEndToStart = true,
         ) {
-            // Clean Input Row with percentage below
             Column(
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    // Target column - read-only
-                    val targetDisplay =
-                        if (isProgrammeWorkout && set.targetReps != null && set.targetReps > 0) {
-                            if (set.targetWeight != null && set.targetWeight > 0) {
-                                "${set.targetReps}×${WeightFormatter.formatWeight(set.targetWeight)}"
-                            } else {
-                                "${set.targetReps}"
-                            }
-                        } else {
-                            "—"
-                        }
-
-                    Box(
-                        modifier =
-                            Modifier
-                                .weight(0.8f)
-                                .height(48.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                    shape = RoundedCornerShape(8.dp),
-                                ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = targetDisplay,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = if (targetDisplay.isNotEmpty()) FontWeight.Medium else FontWeight.Normal,
-                        )
-                    }
-
-                    // Weight input
-                    Box(
-                        modifier = Modifier.weight(0.8f), // Ensure height is not fixed
-                        contentAlignment = Alignment.TopCenter, // Align content to the top
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(0.dp), // No space between items
-                        ) {
-                            Box(
-                                modifier = Modifier.height(48.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                CenteredInputField(
-                                    value = weightInput,
-                                    onValueChange = { textFieldValue ->
-                                        if (!readOnly) {
-                                            weightInput = textFieldValue
-                                            val weight = textFieldValue.text.toFloatOrNull() ?: 0f
-                                            onUpdateSet(set.actualReps, weight, set.actualRpe)
-                                        }
-                                    },
-                                    fieldType = InputFieldType.WEIGHT,
-                                    placeholder = "", // No placeholder
-                                    modifier = Modifier.fillMaxSize(),
-                                    imeAction = ImeAction.Next,
-                                )
-                            }
-
-                            // Show percentage of 1RM below the row
-                            val displayWeight = if (set.actualWeight > 0) set.actualWeight else set.targetWeight ?: 0f
-                            if (oneRMEstimate != null && oneRMEstimate > 0 && displayWeight > 0) {
-                                val percentage = ((displayWeight / oneRMEstimate) * 100).toInt()
-                                Text(
-                                    text = "$percentage% of 1RM",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                    modifier = Modifier, // No offset
-                                )
-                            }
-                        }
-                    }
-
-                    // Reps input
-                    Box(
-                        modifier =
-                            Modifier
-                                .weight(0.6f)
-                                .height(48.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CenteredInputField(
-                            value = repsInput,
-                            onValueChange = { textFieldValue ->
-                                if (!readOnly) {
-                                    repsInput = textFieldValue
-                                    val reps = textFieldValue.text.toIntOrNull() ?: 0
-                                    onUpdateSet(reps, set.actualWeight, set.actualRpe)
-                                }
-                            },
-                            fieldType = InputFieldType.REPS,
-                            placeholder = "", // No placeholder
-                            modifier = Modifier.fillMaxSize(),
-                            imeAction = ImeAction.Next,
-                        )
-                    }
-
-                    // RPE input
-                    Box(
-                        modifier =
-                            Modifier
-                                .weight(0.6f)
-                                .height(48.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CenteredInputField(
-                            value = rpeInput,
-                            onValueChange = { textFieldValue ->
-                                if (!readOnly) {
-                                    rpeInput = textFieldValue
-                                    val rpe = textFieldValue.text.toFloatOrNull()
-                                    onUpdateSet(set.actualReps, set.actualWeight, rpe)
-                                }
-                            },
-                            fieldType = InputFieldType.RPE,
-                            placeholder = "", // No placeholder
-                            modifier = Modifier.fillMaxSize(),
-                            imeAction = ImeAction.Done,
-                        )
-                    }
-
-                    // Completion checkbox
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(40.dp)
-                                .clickable(
-                                    enabled = !readOnly && (canMarkComplete || set.isCompleted),
-                                    onClick = {
-                                        val newChecked = !set.isCompleted
-                                        if (!newChecked || canMarkComplete) {
-                                            onToggleCompleted(newChecked)
-                                        }
-                                    },
-                                ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Checkbox(
-                            checked = set.isCompleted,
-                            onCheckedChange = null, // Handle clicks on the Box instead
-                            enabled = !readOnly && (canMarkComplete || set.isCompleted),
-                            colors =
-                                CheckboxDefaults.colors(
-                                    checkedColor = MaterialTheme.colorScheme.primary,
-                                ),
-                        )
-                    }
-                }
+                SetInputRow(
+                    set = set,
+                    inputStates = inputStates,
+                    oneRMEstimate = oneRMEstimate,
+                    isProgrammeWorkout = isProgrammeWorkout,
+                    readOnly = readOnly,
+                    onUpdateSet = onUpdateSet,
+                    onToggleCompleted = onToggleCompleted,
+                    canMarkComplete = canMarkComplete,
+                )
             }
-        } // Close SwipeToDismissBox
-    } // Close Column
+        }
+    }
 }
 
 @Composable
 private fun InsightsSection(
-    exerciseName: String,
     previousSets: List<SetLog>,
     intelligentSuggestions: SmartSuggestions?,
     isExpanded: Boolean,
@@ -1019,5 +772,355 @@ private fun InsightsSection(
                 }
             }
         }
+    }
+}
+
+data class SetInputStates(
+    val weightInput: MutableState<TextFieldValue>,
+    val repsInput: MutableState<TextFieldValue>,
+    val rpeInput: MutableState<TextFieldValue>,
+)
+
+@Composable
+private fun rememberSetInputStates(set: SetLog): SetInputStates {
+    val weightInput = remember(set.id, set.actualWeight, set.targetWeight) {
+        val text = formatWeightInput(set.actualWeight, set.targetWeight)
+        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
+    }
+    val repsInput = remember(set.id, set.actualReps, set.targetReps) {
+        val text = formatRepsInput(set.actualReps, set.targetReps)
+        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
+    }
+    val rpeInput = remember(set.id, set.actualRpe) {
+        val text = set.actualRpe?.let { WeightFormatter.formatDecimal(it, 1) } ?: ""
+        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
+    }
+    
+    return SetInputStates(weightInput, repsInput, rpeInput)
+}
+
+private fun formatWeightInput(actualWeight: Float, targetWeight: Float?): String {
+    return if (actualWeight > 0) {
+        WeightFormatter.formatWeight(actualWeight)
+    } else if (targetWeight != null && targetWeight > 0) {
+        WeightFormatter.formatWeight(targetWeight)
+    } else {
+        ""
+    }
+}
+
+private fun formatRepsInput(actualReps: Int, targetReps: Int?): String {
+    return if (actualReps > 0) {
+        actualReps.toString()
+    } else if (targetReps != null && targetReps > 0) {
+        targetReps.toString()
+    } else {
+        ""
+    }
+}
+
+@Composable
+private fun SwipeDeleteBackground(swipeToDismissState: SwipeToDismissBoxState) {
+    val progress = swipeToDismissState.progress
+    val targetValue = swipeToDismissState.targetValue
+    val currentValue = swipeToDismissState.currentValue
+
+    if (progress > 0.01f &&
+        targetValue == SwipeToDismissBoxValue.EndToStart &&
+        currentValue != SwipeToDismissBoxValue.EndToStart
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.CenterEnd,
+        ) {
+            val minWidth = 40.dp
+            val maxAdditionalWidth = 160.dp
+            val currentWidth = minWidth + (maxAdditionalWidth.value * progress).dp
+
+            Surface(
+                modifier =
+                    Modifier
+                        .width(currentWidth)
+                        .fillMaxHeight()
+                        .padding(vertical = 2.dp),
+                color = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
+                shape =
+                    RoundedCornerShape(
+                        topStart = 8.dp,
+                        bottomStart = 8.dp,
+                        topEnd = 0.dp,
+                        bottomEnd = 0.dp,
+                    ),
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val iconOffset = ((1 - progress) * 15).dp
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = "Delete",
+                        tint =
+                            MaterialTheme.colorScheme.onError.copy(
+                                alpha = 0.6f + (0.4f * progress),
+                            ),
+                        modifier =
+                            Modifier
+                                .size((20 + (4 * progress)).dp)
+                                .offset(x = iconOffset),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SetInputRow(
+    set: SetLog,
+    inputStates: SetInputStates,
+    oneRMEstimate: Float?,
+    isProgrammeWorkout: Boolean,
+    readOnly: Boolean,
+    onUpdateSet: (Int, Float, Float?) -> Unit,
+    onToggleCompleted: (Boolean) -> Unit,
+    canMarkComplete: Boolean,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        TargetColumn(
+            set = set,
+            isProgrammeWorkout = isProgrammeWorkout,
+            modifier = Modifier.weight(0.8f),
+        )
+
+        WeightInputColumn(
+            weightInput = inputStates.weightInput,
+            set = set,
+            oneRMEstimate = oneRMEstimate,
+            readOnly = readOnly,
+            onUpdateSet = onUpdateSet,
+            modifier = Modifier.weight(0.8f),
+        )
+
+        RepsInputColumn(
+            repsInput = inputStates.repsInput,
+            set = set,
+            readOnly = readOnly,
+            onUpdateSet = onUpdateSet,
+            modifier = Modifier.weight(0.6f),
+        )
+
+        RpeInputColumn(
+            rpeInput = inputStates.rpeInput,
+            set = set,
+            readOnly = readOnly,
+            onUpdateSet = onUpdateSet,
+            modifier = Modifier.weight(0.6f),
+        )
+
+        CompletionCheckbox(
+            set = set,
+            readOnly = readOnly,
+            canMarkComplete = canMarkComplete,
+            onToggleCompleted = onToggleCompleted,
+            modifier = Modifier.size(40.dp),
+        )
+    }
+}
+
+@Composable
+private fun TargetColumn(
+    set: SetLog,
+    isProgrammeWorkout: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val targetDisplay = getTargetDisplay(set, isProgrammeWorkout)
+
+    Box(
+        modifier = modifier
+            .height(48.dp)
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                shape = RoundedCornerShape(8.dp),
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = targetDisplay,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = if (targetDisplay != "—") FontWeight.Medium else FontWeight.Normal,
+        )
+    }
+}
+
+private fun getTargetDisplay(set: SetLog, isProgrammeWorkout: Boolean): String {
+    return if (isProgrammeWorkout && set.targetReps != null && set.targetReps > 0) {
+        if (set.targetWeight != null && set.targetWeight > 0) {
+            "${set.targetReps}×${WeightFormatter.formatWeight(set.targetWeight)}"
+        } else {
+            "${set.targetReps}"
+        }
+    } else {
+        "—"
+    }
+}
+
+@Composable
+private fun WeightInputColumn(
+    weightInput: MutableState<TextFieldValue>,
+    set: SetLog,
+    oneRMEstimate: Float?,
+    readOnly: Boolean,
+    onUpdateSet: (Int, Float, Float?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(0.dp),
+        ) {
+            Box(
+                modifier = Modifier.height(48.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                CenteredInputField(
+                    value = weightInput.value,
+                    onValueChange = { textFieldValue ->
+                        if (!readOnly) {
+                            weightInput.value = textFieldValue
+                            val weight = textFieldValue.text.toFloatOrNull() ?: 0f
+                            onUpdateSet(set.actualReps, weight, set.actualRpe)
+                        }
+                    },
+                    fieldType = InputFieldType.WEIGHT,
+                    placeholder = "",
+                    modifier = Modifier.fillMaxSize(),
+                    imeAction = ImeAction.Next,
+                )
+            }
+
+            OneRMPercentageText(
+                set = set,
+                oneRMEstimate = oneRMEstimate,
+            )
+        }
+    }
+}
+
+@Composable
+private fun OneRMPercentageText(
+    set: SetLog,
+    oneRMEstimate: Float?,
+) {
+    val displayWeight = if (set.actualWeight > 0) set.actualWeight else set.targetWeight ?: 0f
+    if (oneRMEstimate != null && oneRMEstimate > 0 && displayWeight > 0) {
+        val percentage = ((displayWeight / oneRMEstimate) * 100).toInt()
+        Text(
+            text = "$percentage% of 1RM",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+        )
+    }
+}
+
+@Composable
+private fun RepsInputColumn(
+    repsInput: MutableState<TextFieldValue>,
+    set: SetLog,
+    readOnly: Boolean,
+    onUpdateSet: (Int, Float, Float?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier.height(48.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        CenteredInputField(
+            value = repsInput.value,
+            onValueChange = { textFieldValue ->
+                if (!readOnly) {
+                    repsInput.value = textFieldValue
+                    val reps = textFieldValue.text.toIntOrNull() ?: 0
+                    onUpdateSet(reps, set.actualWeight, set.actualRpe)
+                }
+            },
+            fieldType = InputFieldType.REPS,
+            placeholder = "",
+            modifier = Modifier.fillMaxSize(),
+            imeAction = ImeAction.Next,
+        )
+    }
+}
+
+@Composable
+private fun RpeInputColumn(
+    rpeInput: MutableState<TextFieldValue>,
+    set: SetLog,
+    readOnly: Boolean,
+    onUpdateSet: (Int, Float, Float?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier.height(48.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        CenteredInputField(
+            value = rpeInput.value,
+            onValueChange = { textFieldValue ->
+                if (!readOnly) {
+                    rpeInput.value = textFieldValue
+                    val rpe = textFieldValue.text.toFloatOrNull()
+                    onUpdateSet(set.actualReps, set.actualWeight, rpe)
+                }
+            },
+            fieldType = InputFieldType.RPE,
+            placeholder = "",
+            modifier = Modifier.fillMaxSize(),
+            imeAction = ImeAction.Done,
+        )
+    }
+}
+
+@Composable
+private fun CompletionCheckbox(
+    set: SetLog,
+    readOnly: Boolean,
+    canMarkComplete: Boolean,
+    onToggleCompleted: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clickable(
+                enabled = !readOnly && (canMarkComplete || set.isCompleted),
+                onClick = {
+                    val newChecked = !set.isCompleted
+                    if (!newChecked || canMarkComplete) {
+                        onToggleCompleted(newChecked)
+                    }
+                },
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Checkbox(
+            checked = set.isCompleted,
+            onCheckedChange = null,
+            enabled = !readOnly && (canMarkComplete || set.isCompleted),
+            colors =
+                CheckboxDefaults.colors(
+                    checkedColor = MaterialTheme.colorScheme.primary,
+                ),
+        )
     }
 }

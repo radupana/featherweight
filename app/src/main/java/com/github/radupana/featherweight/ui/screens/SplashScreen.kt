@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.ui.screens
 
 import android.content.Context
-import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.compose.animation.core.LinearEasing
@@ -31,6 +30,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import com.github.radupana.featherweight.R
 import kotlinx.coroutines.delay
+
+private object SplashConstants {
+    const val SPLASH_DURATION_MS = 1600L
+    const val FADE_DURATION_MS = 400
+    const val FADE_DELAY_MS = 100
+    const val SHAKE_AMPLITUDE_PX = 5f
+    const val HAPTIC_DURATION_MS = 50L
+}
 
 @Composable
 fun SplashScreen(onSplashFinished: () -> Unit) {
@@ -63,8 +70,8 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
         targetValue = if (startAnimation) 1f else 0f,
         animationSpec =
             tween(
-                durationMillis = 400,
-                delayMillis = 100,
+                durationMillis = SplashConstants.FADE_DURATION_MS,
+                delayMillis = SplashConstants.FADE_DELAY_MS,
                 easing = LinearEasing,
             ),
         label = "logoAlpha",
@@ -108,7 +115,7 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
         // Start animation immediately
         startAnimation = true
         // Total duration: ~1.6 seconds (drop + settle time)
-        delay(1600)
+        delay(SplashConstants.SPLASH_DURATION_MS)
         onSplashFinished()
     }
 
@@ -119,7 +126,7 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
                 .background(backgroundColor)
                 .graphicsLayer {
                     // Apply subtle screen shake
-                    translationX = screenShakeX * 5f // 5 pixel max shake
+                    translationX = screenShakeX * SplashConstants.SHAKE_AMPLITUDE_PX // Max shake amplitude
                 },
         contentAlignment = Alignment.Center,
     ) {
@@ -144,6 +151,6 @@ private fun triggerHapticFeedback(context: Context) {
     val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
     vibrator?.let {
         // Modern haptic feedback - short sharp impact
-        it.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+        it.vibrate(VibrationEffect.createOneShot(SplashConstants.HAPTIC_DURATION_MS, VibrationEffect.DEFAULT_AMPLITUDE))
     }
 }

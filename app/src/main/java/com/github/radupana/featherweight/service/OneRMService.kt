@@ -133,28 +133,39 @@ class OneRMService {
         currentEstimate: Float?,
         newEstimate: Float,
     ): Boolean {
-        // Basic validation
-        if (set.actualReps <= 0 || set.actualReps > MAX_REPS_FOR_ESTIMATE) return false
-        if (set.actualWeight <= 0) return false
-        if (set.actualRpe != null && set.actualRpe < MIN_RPE_FOR_ESTIMATE) return false
-
-        // Never decrease 1RM
-        if (currentEstimate != null && newEstimate <= currentEstimate) return false
-
-        // Check minimum load percentage if we have a current estimate
-        if (currentEstimate != null && currentEstimate > 0) {
-            val loadPercentage = set.actualWeight / currentEstimate
-            if (loadPercentage < MIN_LOAD_PERCENTAGE) return false
+        val isBasicValidationPassed = isSetValidForOneRM(set)
+        val isEstimateImproving = isNewEstimateBetter(currentEstimate, newEstimate)
+        val isLoadSufficient = isLoadPercentageSufficient(set, currentEstimate)
+        val isConfidenceHigh = isConfidenceAboveThreshold(set, currentEstimate)
+        
+        return isBasicValidationPassed && isEstimateImproving && isLoadSufficient && isConfidenceHigh
+    }
+    
+    private fun isSetValidForOneRM(set: SetLog): Boolean {
+        return set.actualReps > 0 && 
+               set.actualReps <= MAX_REPS_FOR_ESTIMATE &&
+               set.actualWeight > 0 &&
+               (set.actualRpe == null || set.actualRpe >= MIN_RPE_FOR_ESTIMATE)
+    }
+    
+    private fun isNewEstimateBetter(currentEstimate: Float?, newEstimate: Float): Boolean {
+        return currentEstimate == null || newEstimate > currentEstimate
+    }
+    
+    private fun isLoadPercentageSufficient(set: SetLog, currentEstimate: Float?): Boolean {
+        if (currentEstimate == null || currentEstimate <= 0) return true
+        
+        val loadPercentage = set.actualWeight / currentEstimate
+        return loadPercentage >= MIN_LOAD_PERCENTAGE
+    }
+    
+    private fun isConfidenceAboveThreshold(set: SetLog, currentEstimate: Float?): Boolean {
+        val percentOf1RM = if (currentEstimate != null && currentEstimate > 0) {
+            set.actualWeight / currentEstimate
+        } else {
+            1f // Assume 100% if no current estimate
         }
-
-        // Calculate confidence
-        val percentOf1RM =
-            if (currentEstimate != null && currentEstimate > 0) {
-                set.actualWeight / currentEstimate
-            } else {
-                1f // Assume 100% if no current estimate
-            }
-
+        
         val confidence = calculateConfidence(set.actualReps, set.actualRpe, percentOf1RM)
         return confidence >= MIN_CONFIDENCE_THRESHOLD
     }

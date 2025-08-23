@@ -139,6 +139,10 @@ fun RepRangeChart(
     }
 }
 
+private object RepRangeChartConstants {
+    const val ANIMATION_DURATION_MS = 800
+}
+
 @Composable
 private fun RepRangeChartCanvas(
     distributionData: List<RepRangeDistribution>,
@@ -153,7 +157,7 @@ private fun RepRangeChartCanvas(
 
     val animationProgress = remember { Animatable(0f) }
     LaunchedEffect(distributionData) {
-        animationProgress.animateTo(1f, animationSpec = tween(800))
+        animationProgress.animateTo(1f, animationSpec = tween(RepRangeChartConstants.ANIMATION_DURATION_MS))
     }
 
     Canvas(

@@ -147,6 +147,10 @@ fun IntensityZoneChart(
     }
 }
 
+private object IntensityZoneChartConstants {
+    const val ANIMATION_DURATION_MS = 800
+}
+
 @Composable
 private fun IntensityZoneChartCanvas(
     intensityData: List<IntensityZoneData>,
@@ -160,7 +164,7 @@ private fun IntensityZoneChartCanvas(
 
     val animationProgress = remember { Animatable(0f) }
     LaunchedEffect(intensityData) {
-        animationProgress.animateTo(1f, animationSpec = tween(800))
+        animationProgress.animateTo(1f, animationSpec = tween(IntensityZoneChartConstants.ANIMATION_DURATION_MS))
     }
 
     Canvas(

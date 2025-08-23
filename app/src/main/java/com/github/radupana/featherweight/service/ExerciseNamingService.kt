@@ -79,67 +79,82 @@ class ExerciseNamingService {
     fun validateExerciseName(name: String): ValidationResult {
         val trimmedName = name.trim()
         
-        // Check for empty or too short
-        if (trimmedName.length < MIN_NAME_LENGTH) {
-            return ValidationResult.Invalid(
+        // Check basic length requirements
+        val lengthValidation = validateLength(trimmedName)
+        if (lengthValidation != null) return lengthValidation
+        
+        // Check for invalid characters
+        val characterValidation = validateCharacters(trimmedName)
+        if (characterValidation != null) return characterValidation
+        
+        // Check formatting
+        val formattingValidation = validateFormatting(trimmedName)
+        if (formattingValidation != null) return formattingValidation
+        
+        // Check equipment order
+        val equipmentValidation = validateEquipmentOrder(trimmedName)
+        if (equipmentValidation != null) return equipmentValidation
+        
+        return ValidationResult.Valid
+    }
+    
+    private fun validateLength(name: String): ValidationResult.Invalid? {
+        return when {
+            name.length < MIN_NAME_LENGTH -> ValidationResult.Invalid(
                 reason = "Exercise name must be at least $MIN_NAME_LENGTH characters",
                 suggestion = null
             )
-        }
-        
-        // Check for too long
-        if (trimmedName.length > MAX_NAME_LENGTH) {
-            return ValidationResult.Invalid(
+            name.length > MAX_NAME_LENGTH -> ValidationResult.Invalid(
                 reason = "Exercise name must be less than $MAX_NAME_LENGTH characters",
-                suggestion = trimmedName.take(MAX_NAME_LENGTH)
+                suggestion = name.take(MAX_NAME_LENGTH)
             )
+            else -> null
         }
-        
-        // Check for emojis
-        if (containsEmoji(trimmedName)) {
-            return ValidationResult.Invalid(
+    }
+    
+    private fun validateCharacters(name: String): ValidationResult.Invalid? {
+        return when {
+            containsEmoji(name) -> ValidationResult.Invalid(
                 reason = "Exercise name cannot contain emojis",
-                suggestion = removeEmojis(trimmedName)
+                suggestion = removeEmojis(name)
             )
-        }
-        
-        // Check for hyphens (should use spaces)
-        if (trimmedName.contains("-")) {
-            val suggestion = formatExerciseName(trimmedName.replace("-", " "))
-            return ValidationResult.Invalid(
+            name.contains("-") -> ValidationResult.Invalid(
                 reason = "Use spaces instead of hyphens (e.g., 'Step Up' not 'Step-Up')",
-                suggestion = suggestion
+                suggestion = formatExerciseName(name.replace("-", " "))
             )
+            else -> null
         }
-        
-        // Check for proper formatting and suggest corrections
-        val formatted = formatExerciseName(trimmedName)
-        if (formatted != trimmedName) {
-            return ValidationResult.Invalid(
+    }
+    
+    private fun validateFormatting(name: String): ValidationResult.Invalid? {
+        val formatted = formatExerciseName(name)
+        return if (formatted != name) {
+            ValidationResult.Invalid(
                 reason = "Exercise name should be properly formatted",
                 suggestion = formatted
             )
-        }
+        } else null
+    }
+    
+    private fun validateEquipmentOrder(name: String): ValidationResult.Invalid? {
+        val components = extractComponents(name)
+        val shouldCheckEquipmentOrder = components.equipment == null && 
+                                       !name.lowercase().startsWith("bodyweight")
         
-        // Check if equipment comes first
-        val components = extractComponents(trimmedName)
-        if (components.equipment == null && !trimmedName.lowercase().startsWith("bodyweight")) {
-            val words = trimmedName.split(" ")
-            val firstWord = words.firstOrNull()?.lowercase() ?: ""
-            
-            // Check if first word is not equipment but we can detect equipment elsewhere
-            if (!EQUIPMENT_KEYWORDS.contains(firstWord)) {
-                val detectedEquipment = detectEquipmentInName(trimmedName)
-                if (detectedEquipment != null) {
-                    return ValidationResult.Invalid(
-                        reason = "Equipment should come first in the exercise name",
-                        suggestion = suggestWithEquipmentFirst(trimmedName, detectedEquipment)
-                    )
-                }
-            }
-        }
+        if (!shouldCheckEquipmentOrder) return null
         
-        return ValidationResult.Valid
+        val firstWord = name.split(" ").firstOrNull()?.lowercase() ?: ""
+        val isFirstWordEquipment = EQUIPMENT_KEYWORDS.contains(firstWord)
+        
+        if (isFirstWordEquipment) return null
+        
+        val detectedEquipment = detectEquipmentInName(name)
+        return if (detectedEquipment != null) {
+            ValidationResult.Invalid(
+                reason = "Equipment should come first in the exercise name",
+                suggestion = suggestWithEquipmentFirst(name, detectedEquipment)
+            )
+        } else null
     }
     
     /**

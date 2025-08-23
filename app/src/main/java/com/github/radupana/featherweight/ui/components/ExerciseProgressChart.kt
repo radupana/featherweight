@@ -73,7 +73,7 @@ fun ExerciseProgressChart(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .height(250.dp),
+                    .height(ChartCanvasConstants.CHART_HEIGHT_DP.dp),
             colors =
                 CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -110,7 +110,7 @@ fun ExerciseProgressChart(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
+                        .padding(top = ChartCanvasConstants.DETAIL_CARD_TOP_MARGIN_DP.dp),
                 colors =
                     CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -120,7 +120,7 @@ fun ExerciseProgressChart(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(ChartCanvasConstants.DETAIL_CARD_PADDING_DP.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -149,6 +149,25 @@ fun ExerciseProgressChart(
     }
 }
 
+private object ChartCanvasConstants {
+    const val ANIMATION_DURATION_MS = 800
+    const val CHART_PADDING_DP = 16
+    const val AXIS_LABEL_PADDING_DP = 8
+    const val Y_AXIS_LABEL_SPACE_DP = 50
+    const val X_AXIS_LABEL_SPACE_DP = 40
+    const val GRID_STROKE_WIDTH_DP = 1
+    const val LINE_STROKE_WIDTH_DP = 3
+    const val CHART_HEIGHT_DP = 250
+    const val DETAIL_CARD_PADDING_DP = 12
+    const val DETAIL_CARD_TOP_MARGIN_DP = 8
+    const val POINT_RADIUS_NORMAL_DP = 5
+    const val POINT_RADIUS_SELECTED_DP = 8
+    const val POINT_CENTER_NORMAL_DP = 2
+    const val POINT_CENTER_SELECTED_DP = 4
+    const val TOUCH_TARGET_RADIUS_DP = 20
+    const val LABEL_FONT_SIZE_SP = 10
+}
+
 @Composable
 private fun ChartCanvas(
     dataPoints: List<ExerciseDataPoint>,
@@ -164,24 +183,24 @@ private fun ChartCanvas(
 
     val animationProgress = remember { Animatable(0f) }
     LaunchedEffect(dataPoints) {
-        animationProgress.animateTo(1f, animationSpec = tween(800))
+        animationProgress.animateTo(1f, animationSpec = tween(ChartCanvasConstants.ANIMATION_DURATION_MS))
     }
 
     Canvas(
         modifier =
             Modifier
                 .fillMaxSize()
-                .padding(start = 0.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)
+                .padding(start = 0.dp, end = ChartCanvasConstants.CHART_PADDING_DP.dp, top = ChartCanvasConstants.CHART_PADDING_DP.dp, bottom = ChartCanvasConstants.CHART_PADDING_DP.dp)
                 .pointerInput(Unit) {
                     detectTapGestures { offset ->
                         clickPosition = offset
                     }
                 },
     ) {
-        val leftPadding = 50.dp.toPx() // Space for Y-axis labels
-        val rightPadding = 8.dp.toPx()
-        val topPadding = 8.dp.toPx()
-        val bottomPadding = 40.dp.toPx() // Space for X-axis labels
+        val leftPadding = ChartCanvasConstants.Y_AXIS_LABEL_SPACE_DP.dp.toPx() // Space for Y-axis labels
+        val rightPadding = ChartCanvasConstants.AXIS_LABEL_PADDING_DP.dp.toPx()
+        val topPadding = ChartCanvasConstants.AXIS_LABEL_PADDING_DP.dp.toPx()
+        val bottomPadding = ChartCanvasConstants.X_AXIS_LABEL_SPACE_DP.dp.toPx() // Space for X-axis labels
 
         val chartWidth = size.width - leftPadding - rightPadding
         val chartHeight = size.height - topPadding - bottomPadding
@@ -204,7 +223,7 @@ private fun ChartCanvas(
                 color = surfaceVariantColor,
                 start = Offset(leftPadding, y),
                 end = Offset(size.width - rightPadding, y),
-                strokeWidth = 1.dp.toPx(),
+                strokeWidth = ChartCanvasConstants.GRID_STROKE_WIDTH_DP.dp.toPx(),
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 5f)),
             )
 
@@ -215,13 +234,13 @@ private fun ChartCanvas(
                     text = weightText,
                     style =
                         TextStyle(
-                            fontSize = 10.sp,
+                            fontSize = ChartCanvasConstants.LABEL_FONT_SIZE_SP.sp,
                             color = onSurfaceColor,
                         ),
                 )
             drawText(
                 textLayoutResult = textLayoutResult,
-                topLeft = Offset(leftPadding - textLayoutResult.size.width - 8.dp.toPx(), y - textLayoutResult.size.height / 2),
+                topLeft = Offset(leftPadding - textLayoutResult.size.width - ChartCanvasConstants.AXIS_LABEL_PADDING_DP.dp.toPx(), y - textLayoutResult.size.height / 2),
             )
         }
 
@@ -235,7 +254,7 @@ private fun ChartCanvas(
 
         // Handle click detection
         clickPosition?.let { click ->
-            val clickRadius = 20.dp.toPx() // Touch target radius
+            val clickRadius = ChartCanvasConstants.TOUCH_TARGET_RADIUS_DP.dp.toPx() // Touch target radius
             points.forEach { (x, y, dataPoint) ->
                 val distance =
                     kotlin.math.sqrt(
@@ -264,7 +283,7 @@ private fun ChartCanvas(
         drawPath(
             path = path,
             color = primaryColor,
-            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round),
+            style = Stroke(width = ChartCanvasConstants.LINE_STROKE_WIDTH_DP.dp.toPx(), cap = StrokeCap.Round),
         )
 
         // Draw gradient fill under the line
@@ -345,7 +364,7 @@ private fun ChartCanvas(
                     text = finalLabel,
                     style =
                         TextStyle(
-                            fontSize = 10.sp,
+                            fontSize = ChartCanvasConstants.LABEL_FONT_SIZE_SP.sp,
                             color = onSurfaceColor,
                         ),
                 )
@@ -355,7 +374,7 @@ private fun ChartCanvas(
                 topLeft =
                     Offset(
                         x - textLayoutResult.size.width / 2,
-                        size.height - bottomPadding + 8.dp.toPx(),
+                        size.height - bottomPadding + ChartCanvasConstants.AXIS_LABEL_PADDING_DP.dp.toPx(),
                     ),
             )
         }
@@ -368,14 +387,14 @@ private fun ChartCanvas(
             // Point circle
             drawCircle(
                 color = if (dataPoint.isPR) prColor else primaryColor,
-                radius = if (isSelected) 8.dp.toPx() else 5.dp.toPx(),
+                radius = if (isSelected) ChartCanvasConstants.POINT_RADIUS_SELECTED_DP.dp.toPx() else ChartCanvasConstants.POINT_RADIUS_NORMAL_DP.dp.toPx(),
                 center = Offset(x, animatedY),
             )
 
             // White center for better visibility
             drawCircle(
                 color = Color.White,
-                radius = if (isSelected) 4.dp.toPx() else 2.dp.toPx(),
+                radius = if (isSelected) ChartCanvasConstants.POINT_CENTER_SELECTED_DP.dp.toPx() else ChartCanvasConstants.POINT_CENTER_NORMAL_DP.dp.toPx(),
                 center = Offset(x, animatedY),
             )
 

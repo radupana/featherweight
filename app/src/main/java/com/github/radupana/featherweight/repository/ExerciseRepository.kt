@@ -184,7 +184,6 @@ class ExerciseRepository(
     ) = exerciseLogDao.updateExerciseOrder(exerciseLogId, newOrder)
 
     suspend fun updateExerciseOrder(
-        workoutId: Long,
         exerciseOrders: Map<Long, Int>,
     ) {
         withContext(Dispatchers.IO) {
@@ -349,7 +348,7 @@ class ExerciseRepository(
                 }
 
                 // Find or create ExerciseCore based on category and movement pattern
-                val coreName = inferCoreName(name, category, movementPattern)
+                val coreName = inferCoreName(name, category)
                 var exerciseCore = exerciseCoreDao.getExerciseCoreByName(coreName)
 
                 if (exerciseCore == null) {
@@ -524,7 +523,6 @@ class ExerciseRepository(
     private fun inferCoreName(
         name: String,
         category: ExerciseCategory,
-        movementPattern: MovementPattern,
     ): String {
         // Try to infer a core name from the exercise name
         val lowerName = name.lowercase()

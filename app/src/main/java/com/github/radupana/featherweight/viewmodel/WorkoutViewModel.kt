@@ -1719,7 +1719,6 @@ class WorkoutViewModel(
                     programmeId = programmeId,
                     weekNumber = weekNumber,
                     dayNumber = dayNumber,
-                    userMaxes = userMaxes,
                 )
 
             // Get the created workout to extract metadata

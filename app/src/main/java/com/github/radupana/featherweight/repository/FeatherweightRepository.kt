@@ -49,7 +49,6 @@ import com.github.radupana.featherweight.data.programme.ProgrammeStatus
 import com.github.radupana.featherweight.data.programme.ProgrammeWeek
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkoutParser
-import com.github.radupana.featherweight.data.programme.ProgressionType
 import com.github.radupana.featherweight.data.programme.RepsStructure
 import com.github.radupana.featherweight.data.programme.StrengthImprovement
 import com.github.radupana.featherweight.data.programme.WeightBasis
@@ -388,14 +387,12 @@ class FeatherweightRepository(
 
         // Update programme progress if this is a programme workout
         if (workout.isProgrammeWorkout && workout.programmeId != null && workout.weekNumber != null && workout.dayNumber != null) {
-            updateProgrammeProgressAfterWorkout(workout.programmeId, workout.weekNumber, workout.dayNumber)
+            updateProgrammeProgressAfterWorkout(workout.programmeId)
         }
     }
 
     private suspend fun updateProgrammeProgressAfterWorkout(
         programmeId: Long,
-        weekNumber: Int?,
-        dayNumber: Int?,
     ) {
         try {
             // Always increment completed workouts when a workout is completed
@@ -998,7 +995,6 @@ class FeatherweightRepository(
         programmeId: Long,
         weekNumber: Int,
         dayNumber: Int,
-        userMaxes: Map<Long, Float> = emptyMap(),
     ): Long =
         withContext(Dispatchers.IO) {
             programmeDao.getProgrammeById(programmeId)
@@ -1022,118 +1018,6 @@ class FeatherweightRepository(
             return@withContext workoutId
         }
 
-    private suspend fun createSetsFromStructure(
-        exerciseLogId: Long,
-        exerciseStructure: ExerciseStructure,
-        userMaxes: Map<Long, Float>,
-        programme: Programme? = null,
-        weekNumber: Int? = null,
-    ) {
-        // Check if this is an imported programme with custom set data
-        if (exerciseStructure.weightSource == "imported" && exerciseStructure.note != null) {
-            // Parse the stored weights and RPE from the note field
-            val setsData =
-                try {
-                    Gson().fromJson(exerciseStructure.note, Map::class.java) as Map<String, Any>
-                } catch (e: com.google.gson.JsonSyntaxException) {
-                    Log.w(TAG, "Failed to parse exercise structure note JSON for exercise: ${exerciseStructure.name}", e)
-                    null
-                } catch (e: com.google.gson.JsonIOException) {
-                    Log.w(TAG, "Failed to parse exercise structure note JSON for exercise: ${exerciseStructure.name}", e)
-                    null
-                }
-
-            val weights = (setsData?.get("weights") as? List<*>)?.map { (it as? Double)?.toFloat() ?: 0f } ?: List(exerciseStructure.sets) { 0f }
-            val rpeValues = (setsData?.get("rpe") as? List<*>)?.map { (it as? Double)?.toFloat() }
-
-            // Create sets with the preserved individual data
-            repeat(exerciseStructure.sets) { setIndex ->
-                val reps =
-                    ProgrammeWorkoutParser.parseRepsForSet(
-                        exerciseStructure.reps,
-                        setIndex,
-                    )
-
-                val weight = weights.getOrNull(setIndex) ?: 0f
-                val rpe = rpeValues?.getOrNull(setIndex)
-
-                val setLog =
-                    SetLog(
-                        exerciseLogId = exerciseLogId,
-                        setOrder = setIndex,
-                        targetReps = reps,
-                        targetWeight = weight,
-                        // Prepopulate actual values with target values for easier completion
-                        actualReps = reps ?: 0,
-                        actualWeight = weight ?: 0f,
-                        actualRpe = rpe,
-                        isCompleted = false,
-                        completedAt = null,
-                    )
-
-                insertSetLog(setLog)
-            }
-        } else {
-            // Original logic for template-based programmes
-            repeat(exerciseStructure.sets) { setIndex ->
-                val reps =
-                    ProgrammeWorkoutParser.parseRepsForSet(
-                        exerciseStructure.reps,
-                        setIndex,
-                    )
-
-                var intensity =
-                    exerciseStructure.intensity?.getOrNull(setIndex)
-                        ?: exerciseStructure.intensity?.firstOrNull()
-
-                // Apply week-specific modifications for wave progression (e.g., Wendler 5/3/1)
-                if (programme != null && weekNumber != null && intensity != null) {
-                    val progressionRules = programme.getProgressionRulesObject()
-                    if (progressionRules?.type == ProgressionType.WAVE && progressionRules.weeklyPercentages != null) {
-                        // For wave progression, override intensity with week-specific percentage
-                        val cycleLength = progressionRules.cycleLength ?: 3
-                        val cycleWeek = ((weekNumber - 1) % cycleLength)
-
-                        // Get the percentages for this week of the cycle
-                        if (cycleWeek < progressionRules.weeklyPercentages.size) {
-                            val weekPercentages = progressionRules.weeklyPercentages[cycleWeek]
-
-                            // Override the intensity with the week-specific value
-                            if (setIndex < weekPercentages.size) {
-                                // Convert from decimal to percentage (0.65 -> 65)
-                                intensity = (weekPercentages[setIndex] * 100).toInt()
-                            }
-                        }
-                    }
-                }
-
-                val weight =
-                    calculateIntelligentWeight(
-                        exerciseStructure = exerciseStructure,
-                        reps = reps,
-                        userMaxes = userMaxes,
-                        intensity = intensity,
-                        programme = programme,
-                    )
-
-                val setLog =
-                    SetLog(
-                        exerciseLogId = exerciseLogId,
-                        setOrder = setIndex,
-                        targetReps = reps,
-                        targetWeight = weight,
-                        // Prepopulate actual values with target values for easier completion
-                        actualReps = reps ?: 0,
-                        actualWeight = weight ?: 0f,
-                        actualRpe = null,
-                        isCompleted = false,
-                        completedAt = null,
-                    )
-
-                insertSetLog(setLog)
-            }
-        }
-    }
 
     // Get workouts for a specific programme
     suspend fun getWorkoutsByProgramme(programmeId: Long): List<Workout> =
@@ -1957,111 +1841,6 @@ class FeatherweightRepository(
             }
         }
 
-    private suspend fun calculateIntelligentWeight(
-        exerciseStructure: ExerciseStructure,
-        reps: Int,
-        userMaxes: Map<Long, Float>,
-        intensity: Int? = null,
-        programme: Programme? = null,
-    ): Float {
-        // First check if we have intensity-based calculation (e.g., Wendler 5/3/1)
-        if (intensity != null && programme != null) {
-            val weightCalcRules = programme.getWeightCalculationRulesObject()
-            if (weightCalcRules?.baseOn == WeightBasis.ONE_REP_MAX) {
-                // Get user's 1RM for this exercise
-                // First get the exercise variation ID for this exercise name
-                val exerciseVariation = exerciseVariationDao.getExerciseVariationByName(exerciseStructure.name)
-                val user1RM = exerciseVariation?.id?.let { userMaxes[it] }
-                if (user1RM != null && user1RM > 0) {
-                    // Apply training max percentage if specified
-                    val trainingMax = user1RM * (weightCalcRules.trainingMaxPercentage ?: 1.0f)
-
-                    // Calculate weight based on intensity percentage
-                    val calculatedWeight = trainingMax * (intensity / 100f)
-
-                    // Round to increment
-                    val roundingIncrement = weightCalcRules.roundingIncrement ?: 2.5f
-                    val rounded = (calculatedWeight / roundingIncrement).toInt() * roundingIncrement
-
-                    // Ensure minimum bar weight
-                    val minimumWeight = weightCalcRules.minimumBarWeight ?: 20f
-
-                    return rounded.coerceAtLeast(minimumWeight)
-                }
-            }
-        }
-
-        // Check for LAST_WORKOUT based calculation (e.g., StrongLifts)
-        if (programme != null) {
-            val weightCalcRules = programme.getWeightCalculationRulesObject()
-            if (weightCalcRules?.baseOn == WeightBasis.LAST_WORKOUT) {
-                // Use ProgressionService for intelligent weight calculation with deload support
-                val progressionService =
-                    ProgressionService(
-                        performanceTrackingDao = db.exercisePerformanceTrackingDao(),
-                        programmeDao = programmeDao,
-                        repository = this@FeatherweightRepository,
-                    )
-
-                // Calculate the progression decision
-                val decision =
-                    progressionService.calculateProgressionWeight(
-                        exerciseName = exerciseStructure.name,
-                        programme = programme,
-                    )
-
-                return decision.weight
-            }
-        }
-
-        // Check if we have AI-suggested weight with a valid source
-        if (exerciseStructure.suggestedWeight != null &&
-            exerciseStructure.suggestedWeight > 0 &&
-            exerciseStructure.weightSource != null &&
-            exerciseStructure.weightSource != "average_estimate"
-        ) {
-            // AI made an informed decision based on user's 1RMs or specific input
-            return exerciseStructure.suggestedWeight
-        }
-
-        // Fallback to existing intelligent weight calculation
-        val weightCalculator = WeightCalculator()
-
-        // Parse rep range from the exercise structure
-        val repRange =
-            when (val repsStructure = exerciseStructure.reps) {
-                is RepsStructure.Single ->
-                    repsStructure.value..repsStructure.value
-
-                is RepsStructure.Range ->
-                    repsStructure.min..repsStructure.max
-
-                is RepsStructure.RangeString ->
-                    reps..reps // Fallback to actual reps
-                is RepsStructure.PerSet ->
-                    reps..reps // Fallback to actual reps
-            }
-
-        // Determine programme type from exercise structure or use general
-        val programmeType = ProgrammeType.GENERAL // Could be enhanced to detect from context
-
-        // Get user's 1RM for this exercise
-        val exerciseVariation = exerciseVariationDao.getExerciseVariationByName(exerciseStructure.name)
-        val user1RM = exerciseVariation?.id?.let { userMaxes[it] }
-
-        // Use the intelligent weight calculation
-        val weightCalculation =
-            weightCalculator.calculateWorkingWeight(
-                exerciseName = exerciseStructure.name,
-                repRange = repRange,
-                programmeType = programmeType,
-                user1RM = user1RM,
-                extractedWeight = null, // This would come from user input analysis
-                aiSuggestedWeight = exerciseStructure.suggestedWeight,
-            )
-
-        return weightCalculation.weight
-    }
 
     private suspend fun recordWorkoutPerformanceData(
         workoutId: Long,

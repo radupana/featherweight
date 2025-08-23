@@ -48,7 +48,6 @@ fun SetRow(
     onOpenModal: () -> Unit = {},
     canMarkComplete: Boolean = true,
     isReadOnly: Boolean = false,
-    oneRMEstimate: Float? = null,
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
