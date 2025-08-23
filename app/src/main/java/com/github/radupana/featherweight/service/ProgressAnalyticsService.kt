@@ -3,57 +3,6 @@ package com.github.radupana.featherweight.service
 import java.time.LocalDateTime
 
 /**
- * Service for calculating analytics and progress metrics
- */
-class ProgressAnalyticsService {
-    /**
-     * Get exercise progress data for charts
-     */
-    suspend fun getExerciseProgressData(
-        exerciseName: String,
-    ): ExerciseProgressData {
-        // For now, return sample data since we need to implement proper data fetching
-        val dataPoints = emptyList<ProgressDataPoint>()
-
-        return ExerciseProgressData(
-            exerciseName = exerciseName,
-            dataPoints = dataPoints,
-            currentMax = 0f,
-            progressPercentage = 0f,
-            totalSessions = 0,
-        )
-    }
-
-    /**
-     * Get all exercises with basic progress info for the exercises list
-     */
-    suspend fun getAllExercisesSummary(): List<ExerciseSummary> {
-        // For now, return empty list - will implement proper data fetching later
-        return emptyList()
-    }
-
-    /**
-     * Calculate weekly volume for an exercise
-     */
-    suspend fun calculateWeeklyVolume(): Float = 0f
-
-    /**
-     * Get performance statistics for an exercise
-     */
-    suspend fun getPerformanceStats(exerciseName: String): PerformanceStats {
-        // For now, return basic stats - will implement proper calculation later
-        return PerformanceStats(
-            exerciseName = exerciseName,
-            bestSingle = null,
-            bestVolume = null,
-            averageRpe = null,
-            consistency = 0f,
-            totalSessions = 0,
-        )
-    }
-}
-
-/**
  * Data classes for progress analytics
  */
 data class ExerciseProgressData(

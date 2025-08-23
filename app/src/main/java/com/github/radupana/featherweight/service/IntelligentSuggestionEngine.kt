@@ -65,64 +65,6 @@ enum class SuggestionSource {
     AI_PREDICTION,
 }
 
-/**
- * Failure analysis based on target vs actual performance
- */
-interface FailureAnalysisEngine {
-    suspend fun analyzePerformance(
-        exerciseName: String,
-        targetReps: Int?,
-        targetWeight: Float?,
-        actualReps: Int,
-        actualWeight: Float,
-        actualRpe: Float?,
-    ): PerformanceAnalysis
-
-    suspend fun detectStall(
-        exerciseName: String,
-        recentSets: List<PerformanceData>,
-    ): StallAnalysis
-
-    suspend fun suggestDeload(stallAnalysis: StallAnalysis): DeloadRecommendation
-}
-
-data class PerformanceAnalysis(
-    val performanceRatio: Float, // actualReps/targetReps
-    val loadAccuracy: Float, // actualWeight/targetWeight (if target exists)
-    val fatigueIndicator: Float, // Based on RPE and performance
-    val result: PerformanceResult,
-)
-
-enum class PerformanceResult {
-    EXCEEDED_TARGET,
-    MET_TARGET,
-    MINOR_MISS,
-    MODERATE_FAILURE,
-    MAJOR_FAILURE,
-}
-
-data class StallAnalysis(
-    val exerciseName: String,
-    val consecutiveFailures: Int,
-    val failurePattern: List<PerformanceResult>,
-    val lastSuccessfulWeight: Float?,
-    val recommendedAction: DeloadAction,
-)
-
-enum class DeloadAction {
-    CONTINUE_SAME_WEIGHT,
-    MICRO_DELOAD, // 5-10%
-    STANDARD_DELOAD, // 15%
-    MAJOR_DELOAD, // 25%+
-}
-
-data class DeloadRecommendation(
-    val newWeight: Float,
-    val reasoning: String,
-    val progressionPlan: String,
-    val confidence: Float,
-)
-
 data class PerformanceData(
     val targetReps: Int?,
     val targetWeight: Float?,
