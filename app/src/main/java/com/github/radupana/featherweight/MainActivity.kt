@@ -1,9 +1,9 @@
 package com.github.radupana.featherweight
 
 import android.Manifest
-import android.util.Log
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -94,7 +94,7 @@ class MainActivity : ComponentActivity() {
     private val requestPermissionLauncher =
         registerForActivityResult(
             ActivityResultContracts.RequestPermission(),
-        ) { isGranted: Boolean ->
+        ) { _ ->
             // Permission result handled in UI - no action needed as notification permission is optional
         }
 

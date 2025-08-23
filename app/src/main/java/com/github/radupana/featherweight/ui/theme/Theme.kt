@@ -22,15 +22,13 @@ private val Success = Color(0xFF00E676) // Vibrant green
 private val SuccessLight = Color(0xFF69F0AE) // Light green
 private val SuccessDark = Color(0xFF00BFA5) // Teal
 
-// Warning & Error
-private val Warning = Color(0xFFFF6F00) // Energetic orange
+// Error
 private val Error = Color(0xFFE53935) // Bold red
 
 // Light Theme Colors
 private val LightBackground = Color(0xFFF8F9FE) // Off-white with blue tint
 private val LightSurface = Color(0xFFFFFFFF) // Pure white
 private val LightSurfaceVariant = Color(0xFFF0F2F8) // Light blue-gray
-private val LightSurfaceTint = Color(0xFFF5F7FF) // Very light blue
 
 private val LightOnBackground = Color(0xFF0D1421) // Almost black
 private val LightOnSurface = Color(0xFF1A1A1A) // Dark gray
@@ -40,7 +38,6 @@ private val LightOnSurfaceVariant = Color(0xFF5A6373) // Medium gray
 private val DarkBackground = Color(0xFF121212) // Softer dark for better comfort
 private val DarkSurface = Color(0xFF1C1C1C) // Elevated surface
 private val DarkSurfaceVariant = Color(0xFF2A2A2A) // Higher elevation
-private val DarkSurfaceTint = Color(0xFF242424) // Subtle tint
 
 private val DarkOnBackground = Color(0xFFE1E3E6) // Off-white
 private val DarkOnSurface = Color(0xFFE1E3E6) // Off-white

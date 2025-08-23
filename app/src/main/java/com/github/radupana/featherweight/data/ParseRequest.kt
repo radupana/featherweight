@@ -8,7 +8,7 @@ enum class ParseStatus {
     PROCESSING,
     COMPLETED,
     FAILED,
-    IMPORTED  // Programme has been created from this parse request
+    IMPORTED, // Programme has been created from this parse request
 }
 
 @Entity(tableName = "parse_requests")
@@ -20,5 +20,5 @@ data class ParseRequest(
     val status: ParseStatus = ParseStatus.PROCESSING,
     val error: String? = null,
     val resultJson: String? = null, // JSON representation of ParsedProgramme
-    val completedAt: LocalDateTime? = null
+    val completedAt: LocalDateTime? = null,
 )

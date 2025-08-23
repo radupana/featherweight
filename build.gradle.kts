@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.ktlint) apply true
     alias(libs.plugins.detekt) apply true
+    id("org.sonarqube") version "6.2.0.5505"
 }
 
 configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
@@ -22,13 +23,23 @@ configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
     allRules = false
     config.setFrom("$projectDir/detekt-config.yml")
     // NO BASELINE - WE FIX EVERYTHING
-    
+
     source.setFrom(
         "app/src/main/java",
         "app/src/test/java",
-        "app/src/androidTest/java"
+        "app/src/androidTest/java",
     )
-    
+
     parallel = true
     autoCorrect = true // AUTO-FIX EVERYTHING POSSIBLE
+}
+
+sonarqube {
+    properties {
+        property("sonar.projectKey", "featherweight")
+        property("sonar.projectName", "Featherweight")
+        property("sonar.host.url", "http://localhost:9000")
+        property("sonar.token", System.getenv("SONAR_TOKEN") ?: "")
+        property("sonar.sourceEncoding", "UTF-8")
+    }
 }

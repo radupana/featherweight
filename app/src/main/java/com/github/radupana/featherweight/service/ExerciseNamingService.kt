@@ -168,7 +168,7 @@ class ExerciseNamingService {
         
         // Apply proper case
         formatted = words.joinToString(" ") { word ->
-            word.split(" ").joinToString(" ") { it.capitalize() }
+            word.split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
         }
         
         // Handle special cases
@@ -282,7 +282,7 @@ class ExerciseNamingService {
         if (equipmentIndex > 0) {
             // Move equipment to first position
             words.removeAt(equipmentIndex)
-            words.add(0, equipment.capitalize())
+            words.add(0, equipment.replaceFirstChar { it.uppercase() })
         }
         
         return formatExerciseName(words.joinToString(" "))

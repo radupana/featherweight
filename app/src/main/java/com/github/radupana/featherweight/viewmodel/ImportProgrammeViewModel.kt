@@ -603,10 +603,6 @@ class ImportProgrammeViewModel(
             .toJson(mapOf("weeks" to weeks))
     }
 
-    companion object {
-        private const val MIN_WORD_LENGTH = 2
-        private const val WORD_MATCH_THRESHOLD = 0.65f // Balanced threshold - not too strict, not too loose
-    }
 }
 
 data class ImportProgrammeUiState(

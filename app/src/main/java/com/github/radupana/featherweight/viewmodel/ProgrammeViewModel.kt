@@ -4,7 +4,6 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.ParseRequest
 import com.github.radupana.featherweight.data.ParseStatus
 import com.github.radupana.featherweight.data.programme.Programme
@@ -21,7 +20,6 @@ class ProgrammeViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
-    private val database = FeatherweightDatabase.getDatabase(application)
 
     // UI State
     private val _uiState = MutableStateFlow(ProgrammeUiState())
