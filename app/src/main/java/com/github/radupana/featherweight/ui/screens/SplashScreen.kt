@@ -72,7 +72,7 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
 
     // Screen shake effect on impact
     val screenShakeX by animateFloatAsState(
-        targetValue = if (impactOccurred) 0f else 0f,
+        targetValue = 0f,
         animationSpec =
             if (impactOccurred) {
                 // Create a damped oscillation for shake

@@ -336,8 +336,9 @@ class ProgrammeTextParser {
                     }
 
                     // Merge sets if exercise already exists
-                    if (exerciseMap.containsKey(exerciseName)) {
-                        exerciseMap[exerciseName]!!.addAll(sets)
+                    val existingSets = exerciseMap[exerciseName]
+                    if (existingSets != null) {
+                        existingSets.addAll(sets)
                         Log.w(TAG, "Merging duplicate exercise: $exerciseName (AI created multiple entries)")
                     } else {
                         exerciseMap[exerciseName] = sets

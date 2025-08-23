@@ -681,21 +681,7 @@ class WorkoutViewModel(
             // Force UI update by updating sets state to trigger recomposition
             _selectedExerciseSets.value = _selectedExerciseSets.value.toList()
         }
-
-        // Use the same logic as canMarkSetCompleteInternal for fallback
-        // This ensures consistency between cached and uncached results
-        val exerciseLog = _selectedWorkoutExercises.value.find { it.id == set.exerciseLogId }
-        val fallbackResult =
-            if (exerciseLog?.exerciseVariationId == null) {
-                // Exercise without variation reference - assume weight is required
-                set.actualReps > 0 && set.actualWeight > 0
-            } else {
-                // For now, assume weight is required unless we know otherwise
-                // This is conservative but matches what most users expect
-                set.actualReps > 0 && set.actualWeight > 0
-            }
-
-        return fallbackResult
+        return set.actualReps > 0 && set.actualWeight > 0
     }
 
     // Internal suspend function for validation logic

@@ -48,26 +48,31 @@ complexity:
     active: false
   ComplexCondition:
     active: true
-    threshold: 6
+    threshold: 4
   ComplexInterface:
     active: false
   CyclomaticComplexMethod:
-    active: false
+    active: true
+    threshold: 20
   LabeledExpression:
     active: false
   LargeClass:
     active: true
     threshold: 2000
   LongMethod:
-    active: false
+    active: true
+    threshold: 100
   LongParameterList:
-    active: false
+    active: true
+    functionThreshold: 8
+    constructorThreshold: 10
   MethodOverloading:
     active: false
   NamedArguments:
     active: false
   NestedBlockDepth:
-    active: false
+    active: true
+    threshold: 5
   NestedScopeFunctions:
     active: false
   ReplaceSafeCallChainWithRun:
@@ -76,12 +81,12 @@ complexity:
     active: false
   TooManyFunctions:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
-    thresholdInFiles: 200
-    thresholdInClasses: 200
-    thresholdInInterfaces: 200
-    thresholdInObjects: 200
-    thresholdInEnums: 30
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**', '**/*ViewModel.kt', '**/*Repository.kt']
+    thresholdInFiles: 30
+    thresholdInClasses: 30
+    thresholdInInterfaces: 20
+    thresholdInObjects: 30
+    thresholdInEnums: 10
     ignoreDeprecated: true
     ignorePrivate: false
     ignoreOverridden: false
@@ -155,7 +160,7 @@ exceptions:
   ReturnFromFinally:
     active: true
   SwallowedException:
-    active: false
+    active: true
     ignoredExceptionTypes:
       - 'InterruptedException'
       - 'NumberFormatException'
@@ -171,7 +176,7 @@ exceptions:
   ThrowingNewInstanceOfSameException:
     active: true
   TooGenericExceptionCaught:
-    active: false
+    active: true
     excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
     exceptionNames:
       - 'ArrayIndexOutOfBoundsException'
@@ -223,7 +228,7 @@ naming:
   LambdaParameterNaming:
     active: false
   MatchingDeclarationName:
-    active: false
+    active: true
     mustBeFirst: true
   MemberNameEqualsClassName:
     active: true
@@ -311,7 +316,7 @@ potential-bugs:
   IgnoredReturnValue:
     active: true
   ImplicitDefaultLocale:
-    active: false
+    active: true
   ImplicitUnitReturnType:
     active: false
   InvalidRange:
@@ -411,18 +416,19 @@ style:
   ForbiddenVoid:
     active: true
   FunctionOnlyReturningConstant:
-    active: false
+    active: true
   LoopWithTooManyJumpStatements:
-    active: false
-    maxJumpCount: 1
+    active: true
+    maxJumpCount: 2
   MagicNumber:
-    active: false
+    active: false  # Too noisy for UI code
   MandatoryBracesLoops:
     active: false
   MaxChainedCallsOnSameLine:
     active: false
   MaxLineLength:
-    active: false
+    active: true
+    maxLineLength: 200
     excludePackageStatements: true
     excludeImportStatements: true
     excludeCommentStatements: false
@@ -460,7 +466,8 @@ style:
   RedundantVisibilityModifierRule:
     active: false
   ReturnCount:
-    active: false
+    active: true
+    max: 5
     excludedFunctions:
       - 'equals'
     excludeLabeled: false
@@ -509,17 +516,17 @@ style:
   UnusedImports:
     active: true
   UnusedParameter:
-    active: false
+    active: true
     allowedNames: 'ignored|expected'
   UnusedPrivateClass:
     active: true
   UnusedPrivateMember:
-    active: false
+    active: true
     allowedNames: ''
     ignoreAnnotated:
       - 'Preview'
   UnusedPrivateProperty:
-    active: false
+    active: true
     allowedNames: '_|ignored|expected|serialVersionUID'
   UseAnyOrNoneInsteadOfFind:
     active: true
@@ -557,6 +564,6 @@ style:
     active: true
     ignoreLateinitVar: false
   WildcardImport:
-    active: false
+    active: true
     excludeImports:
       - 'java.util.*'

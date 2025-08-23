@@ -18,6 +18,13 @@ configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
     }
 }
 
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+    config.setFrom("$rootDir/detekt-config.yml")
+    autoCorrect = true
+}
+
 android {
     namespace = "com.github.radupana.featherweight"
     compileSdk = 36

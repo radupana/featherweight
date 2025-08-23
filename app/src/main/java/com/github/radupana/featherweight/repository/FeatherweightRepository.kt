@@ -2706,7 +2706,7 @@ class FeatherweightRepository(
             // Second pass: Fill in the counts for each status
             dateStatusCountList.forEach { item ->
                 val date = item.date.toLocalDate()
-                val currentInfo = dayInfoMap[date]!!
+                val currentInfo = dayInfoMap[date] ?: WorkoutDayInfo(0, 0, 0)
 
                 // Update only the specific count for this status, preserving other counts
                 dayInfoMap[date] =
