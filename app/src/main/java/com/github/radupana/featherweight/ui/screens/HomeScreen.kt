@@ -43,9 +43,7 @@ import com.github.radupana.featherweight.viewmodel.InProgressWorkout
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -101,7 +99,6 @@ fun HomeScreen(
         }
     }
 
-    val exerciseNamesMap by workoutViewModel.exerciseNames.collectAsState()
 
     // Load data when screen appears
     LaunchedEffect(Unit) {
