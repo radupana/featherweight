@@ -47,7 +47,7 @@ class ProgressionService(
                 )
 
             if (recentPerformance.isEmpty()) {
-                return@withContext handleFirstWorkout(exerciseName, programme)
+                return@withContext handleFirstWorkout(exerciseName)
             }
 
             val lastPerformance = recentPerformance.first()
@@ -61,7 +61,6 @@ class ProgressionService(
             val deloadRules = progressionRules.deloadRules
             if (deloadRules.autoDeload && consecutiveFailures >= deloadRules.triggerAfterFailures) {
                 return@withContext handleDeload(
-                    exerciseName = exerciseName,
                     lastWeight = lastPerformance.targetWeight,
                     deloadRules = deloadRules,
                     reason = "Reached $consecutiveFailures consecutive failures",
@@ -188,7 +187,6 @@ class ProgressionService(
 
     private suspend fun handleFirstWorkout(
         exerciseName: String,
-        programme: Programme,
     ): ProgressionDecision {
         // Get exercise ID from name
         val exercise = repository.getExerciseByName(exerciseName)
@@ -222,7 +220,6 @@ class ProgressionService(
     }
 
     private fun handleDeload(
-        exerciseName: String,
         lastWeight: Float,
         deloadRules: DeloadRules,
         reason: String,

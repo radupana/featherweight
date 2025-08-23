@@ -46,7 +46,7 @@ class WorkoutExportService(
 
                 // Write user profile if requested
                 if (exportOptions.includeProfile) {
-                    writeUserProfile(writer, startDate, endDate, exportOptions)
+                    writeUserProfile(writer, exportOptions)
                 }
 
                 // Stream workouts with pagination
@@ -109,8 +109,6 @@ class WorkoutExportService(
 
     private suspend fun writeUserProfile(
         writer: JsonWriter,
-        startDate: LocalDateTime,
-        endDate: LocalDateTime,
         exportOptions: ExportOptions,
     ) {
         writer.name("userProfile").beginObject()

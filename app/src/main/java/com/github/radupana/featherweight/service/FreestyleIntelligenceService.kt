@@ -5,7 +5,6 @@ import com.github.radupana.featherweight.data.GlobalExerciseProgressDao
 import com.github.radupana.featherweight.data.ProgressTrend
 import com.github.radupana.featherweight.domain.AlternativeSuggestion
 import com.github.radupana.featherweight.domain.SmartSuggestions
-import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.flow.map
 import kotlin.math.roundToInt
 
@@ -14,7 +13,6 @@ import kotlin.math.roundToInt
  * by analyzing global exercise progress, RPE trends, and performance patterns.
  */
 class FreestyleIntelligenceService(
-    private val repository: FeatherweightRepository,
     private val globalProgressDao: GlobalExerciseProgressDao,
 ) {
     enum class RpeTrendAnalysis {
@@ -45,7 +43,7 @@ class FreestyleIntelligenceService(
 
         // If no progress data, fallback to basic suggestions
         if (progress == null) {
-            return getBasicSuggestions(exerciseVariationId, targetReps)
+            return getBasicSuggestions(targetReps)
         }
 
         // Analyze RPE trend
@@ -55,7 +53,7 @@ class FreestyleIntelligenceService(
         return when {
             // User has been hitting low RPEs - time to increase weight
             rpeTrend == RpeTrendAnalysis.TOO_EASY && progress.consecutiveStalls < 2 -> {
-                suggestProgressiveOverload(progress, targetReps, rpeTrend)
+                suggestProgressiveOverload(progress, targetReps)
             }
 
             // Stalled for 3+ sessions - suggest deload or variation
@@ -65,7 +63,7 @@ class FreestyleIntelligenceService(
 
             // High RPE trend - maintain or slightly decrease
             rpeTrend == RpeTrendAnalysis.TOO_HARD -> {
-                suggestMaintainOrDecrease(progress, targetReps, rpeTrend)
+                suggestMaintainOrDecrease(progress, targetReps)
             }
 
             // Normal progression based on trend
@@ -98,7 +96,6 @@ class FreestyleIntelligenceService(
     private suspend fun suggestProgressiveOverload(
         progress: GlobalExerciseProgress,
         targetReps: Int?,
-        rpeTrend: RpeTrendAnalysis,
     ): SmartSuggestions {
         val reps = targetReps ?: 5 // Default to 5 reps if not specified
         val baseWeight = progress.currentWorkingWeight
@@ -186,7 +183,6 @@ class FreestyleIntelligenceService(
     private suspend fun suggestMaintainOrDecrease(
         progress: GlobalExerciseProgress,
         targetReps: Int?,
-        rpeTrend: RpeTrendAnalysis,
     ): SmartSuggestions {
         val reps = targetReps ?: 5
         val baseWeight = progress.currentWorkingWeight
@@ -259,7 +255,6 @@ class FreestyleIntelligenceService(
     }
 
     private suspend fun getBasicSuggestions(
-        exerciseVariationId: Long,
         targetReps: Int?,
     ): SmartSuggestions {
         // Return basic suggestions when no historical data exists

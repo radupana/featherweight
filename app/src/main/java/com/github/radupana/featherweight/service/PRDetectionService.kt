@@ -78,7 +78,7 @@ class PRDetectionService(
             Log.d("PRDetection", "Current max 1RM in database: ${currentMax1RM?.let { WeightFormatter.formatDecimal(it, 2) } ?: "None"}kg")
 
             // Check for weight PR (higher absolute weight than ever before)
-            val weightPR = checkWeightPR(exerciseVariationId, currentWeight, currentReps, currentRpe, currentDate, workoutId, scalingType, estimated1RM, currentMax1RM)
+            val weightPR = checkWeightPR(exerciseVariationId, currentWeight, currentReps, currentRpe, currentDate, workoutId, estimated1RM, currentMax1RM)
             weightPR?.let { 
                 Log.d("PRDetection", "Weight PR detected: ${it.weight}kg × ${it.reps}")
                 newPRs.add(it) 
@@ -188,7 +188,6 @@ class PRDetectionService(
         rpe: Float?,
         date: LocalDateTime,
         workoutId: Long?,
-        scalingType: RMScalingType,
         estimated1RM: Float?,
         currentMax1RM: Float?,
     ): PersonalRecord? {

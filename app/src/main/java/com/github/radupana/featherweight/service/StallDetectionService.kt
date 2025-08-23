@@ -1,11 +1,8 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
 
-class StallDetectionService(
-    private val db: FeatherweightDatabase,
-) {
+class StallDetectionService {
     data class StallAnalysis(
         val isStalling: Boolean,
         val weeksAtCurrentWeight: Int,
@@ -26,8 +23,6 @@ class StallDetectionService(
     }
 
     suspend fun analyzeStall(
-        userId: Long,
-        exerciseName: String,
         globalProgress: GlobalExerciseProgress,
     ): StallAnalysis {
         // Basic stall detection
@@ -37,7 +32,7 @@ class StallDetectionService(
                 globalProgress.failureStreak >= 2
 
         // Get recent workout data for context
-        val recentWorkouts = getRecentWorkoutData(userId, exerciseName, 30)
+        val recentWorkouts = getRecentWorkoutData()
         val avgRpe = globalProgress.recentAvgRpe ?: 8f
 
         // Determine recommendation based on context
@@ -85,11 +80,7 @@ class StallDetectionService(
         )
     }
 
-    private suspend fun getRecentWorkoutData(
-        userId: Long,
-        exerciseName: String,
-        days: Int,
-    ): List<Any> {
+    private suspend fun getRecentWorkoutData(): List<Any> {
         // This would query actual workout data
         // For now, returning empty list
         return emptyList()

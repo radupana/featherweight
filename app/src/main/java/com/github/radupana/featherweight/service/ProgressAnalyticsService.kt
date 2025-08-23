@@ -1,20 +1,16 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.repository.FeatherweightRepository
 import java.time.LocalDateTime
 
 /**
  * Service for calculating analytics and progress metrics
  */
-class ProgressAnalyticsService(
-    private val repository: FeatherweightRepository,
-) {
+class ProgressAnalyticsService {
     /**
      * Get exercise progress data for charts
      */
     suspend fun getExerciseProgressData(
         exerciseName: String,
-        days: Int = 90,
     ): ExerciseProgressData {
         // For now, return sample data since we need to implement proper data fetching
         val dataPoints = emptyList<ProgressDataPoint>()
@@ -39,7 +35,7 @@ class ProgressAnalyticsService(
     /**
      * Calculate weekly volume for an exercise
      */
-    suspend fun calculateWeeklyVolume(exerciseName: String): Float = 0f
+    suspend fun calculateWeeklyVolume(): Float = 0f
 
     /**
      * Get performance statistics for an exercise

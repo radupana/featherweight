@@ -464,25 +464,6 @@ private fun MotivationalMessageCard(summary: CompletionSummary) {
 }
 
 @Composable
-private fun AnimatedNumber(
-    targetValue: Float,
-    suffix: String = "",
-    content: @Composable (Float) -> Unit,
-) {
-    var animatedValue by remember { mutableFloatStateOf(0f) }
-
-    LaunchedEffect(targetValue) {
-        animate(
-            initialValue = 0f,
-            targetValue = targetValue,
-            animationSpec = tween(1000, easing = EaseOutCubic),
-        ) { value, _ ->
-            animatedValue = value
-        }
-    }
-
-    content(animatedValue)
-}
 
 private fun formatDuration(duration: java.time.Duration): String {
     val hours = duration.toHours()

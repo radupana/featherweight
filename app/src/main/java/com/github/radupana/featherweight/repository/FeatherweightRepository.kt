@@ -141,7 +141,7 @@ class FeatherweightRepository(
 
     // Initialize GlobalProgressTracker
     private val globalProgressTracker = GlobalProgressTracker(this, db)
-    private val freestyleIntelligenceService = FreestyleIntelligenceService(this, db.globalExerciseProgressDao())
+    private val freestyleIntelligenceService = FreestyleIntelligenceService(db.globalExerciseProgressDao())
     private val prDetectionService = PRDetectionService(personalRecordDao, setLogDao, exerciseVariationDao)
     private val workoutTemplateGeneratorService =
         WorkoutTemplateGeneratorService(exerciseVariationDao)

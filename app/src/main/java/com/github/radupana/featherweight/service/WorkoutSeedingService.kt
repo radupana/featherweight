@@ -83,7 +83,7 @@ class WorkoutSeedingService(
                 // Determine if this is a 5-day week (every 4th week)
                 val is5DayWeek = cycleWeek == 4 && dayInWeek == 5
 
-                val workoutPlan = generateWorkoutPlan(weekNumber, cycleWeek, dayInWeek, is5DayWeek)
+                val workoutPlan = generateWorkoutPlan(weekNumber, dayInWeek, is5DayWeek)
                 val progressionMultiplier = calculateProgressionMultiplier(weekNumber)
                 val isDeloadWeek = weekNumber % 4 == 0
 
@@ -183,7 +183,6 @@ class WorkoutSeedingService(
 
     private fun generateWorkoutPlan(
         weekNumber: Int,
-        cycleWeek: Int,
         dayInWeek: Int,
         is5DayWeek: Boolean,
     ): WorkoutPlan =
