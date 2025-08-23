@@ -204,7 +204,6 @@ fun HistoryScreen(
                                     isExpanded = weekId in weekGroupState.expandedWeeks,
                                     onToggleExpanded = { historyViewModel.toggleWeekExpanded(weekId) },
                                     onWorkoutClick = onViewWorkout,
-                                    onWorkoutLongClick = historyViewModel::deleteWorkout,
                                     modifier =
                                         Modifier
                                             .fillMaxWidth()

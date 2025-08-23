@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.repository
 
+import android.database.sqlite.SQLiteException
 import androidx.room.withTransaction
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.ExerciseSwapHistory
@@ -20,7 +21,6 @@ import com.github.radupana.featherweight.domain.ExerciseStats
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
-import android.database.sqlite.SQLiteException
 
 class ExerciseRepository(
     private val db: FeatherweightDatabase,

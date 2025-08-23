@@ -2,15 +2,15 @@ package com.github.radupana.featherweight.service
 
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
-import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.data.exercise.MovementPattern
+import com.github.radupana.featherweight.data.exercise.MuscleGroup
 
 /**
  * Service for validating and formatting exercise names according to app conventions.
- * 
+ *
  * Naming Convention: `[Equipment] [Muscle] [Movement]`
  * Example: "Barbell Bench Press", "Dumbbell Bicep Curl"
- * 
+ *
  * Rules:
  * - Equipment MUST come first
  * - Use proper case for all words
@@ -19,193 +19,246 @@ import com.github.radupana.featherweight.data.exercise.MovementPattern
  * - No emojis
  */
 class ExerciseNamingService {
-    
     companion object {
         private const val MIN_NAME_LENGTH = 3
         private const val MAX_NAME_LENGTH = 50
-        
+
         // Common equipment keywords that should appear first
-        private val EQUIPMENT_KEYWORDS = setOf(
-            "barbell", "dumbbell", "cable", "machine", "bodyweight",
-            "kettlebell", "band", "plate", "smith", "trap bar",
-            "ez bar", "db", "bb", "kb"
-        )
-        
+        private val EQUIPMENT_KEYWORDS =
+            setOf(
+                "barbell",
+                "dumbbell",
+                "cable",
+                "machine",
+                "bodyweight",
+                "kettlebell",
+                "band",
+                "plate",
+                "smith",
+                "trap bar",
+                "ez bar",
+                "db",
+                "bb",
+                "kb",
+            )
+
         // Common muscle group keywords
-        private val MUSCLE_KEYWORDS = setOf(
-            "chest", "back", "shoulder", "bicep", "tricep", "quad",
-            "hamstring", "glute", "calf", "ab", "core", "lat",
-            "delt", "trap", "forearm", "leg"
-        )
-        
+        private val MUSCLE_KEYWORDS =
+            setOf(
+                "chest",
+                "back",
+                "shoulder",
+                "bicep",
+                "tricep",
+                "quad",
+                "hamstring",
+                "glute",
+                "calf",
+                "ab",
+                "core",
+                "lat",
+                "delt",
+                "trap",
+                "forearm",
+                "leg",
+            )
+
         // Common movement keywords
-        private val MOVEMENT_KEYWORDS = setOf(
-            "press", "curl", "extension", "fly", "row", "pulldown",
-            "raise", "squat", "deadlift", "lunge", "crunch", "plank",
-            "pull", "push", "dip", "shrug", "kickback"
-        )
-        
+        private val MOVEMENT_KEYWORDS =
+            setOf(
+                "press",
+                "curl",
+                "extension",
+                "fly",
+                "row",
+                "pulldown",
+                "raise",
+                "squat",
+                "deadlift",
+                "lunge",
+                "crunch",
+                "plank",
+                "pull",
+                "push",
+                "dip",
+                "shrug",
+                "kickback",
+            )
+
         // Words that should be singular
-        private val SINGULAR_MAPPINGS = mapOf(
-            "curls" to "curl",
-            "presses" to "press",
-            "rows" to "row",
-            "raises" to "raise",
-            "extensions" to "extension",
-            "flies" to "fly",
-            "flyes" to "fly",
-            "crunches" to "crunch",
-            "dips" to "dip",
-            "shrugs" to "shrug",
-            "kickbacks" to "kickback",
-            "pulldowns" to "pulldown",
-            "pushdowns" to "pushdown",
-            "lunges" to "lunge",
-            "squats" to "squat"
-        )
-        
+        private val SINGULAR_MAPPINGS =
+            mapOf(
+                "curls" to "curl",
+                "presses" to "press",
+                "rows" to "row",
+                "raises" to "raise",
+                "extensions" to "extension",
+                "flies" to "fly",
+                "flyes" to "fly",
+                "crunches" to "crunch",
+                "dips" to "dip",
+                "shrugs" to "shrug",
+                "kickbacks" to "kickback",
+                "pulldowns" to "pulldown",
+                "pushdowns" to "pushdown",
+                "lunges" to "lunge",
+                "squats" to "squat",
+            )
+
         // Equipment abbreviation mappings
-        private val EQUIPMENT_ABBREVIATIONS = mapOf(
-            "db" to "Dumbbell",
-            "bb" to "Barbell",
-            "kb" to "Kettlebell",
-            "ez" to "EZ Bar"
-        )
+        private val EQUIPMENT_ABBREVIATIONS =
+            mapOf(
+                "db" to "Dumbbell",
+                "bb" to "Barbell",
+                "kb" to "Kettlebell",
+                "ez" to "EZ Bar",
+            )
     }
-    
+
     /**
      * Validates an exercise name according to app conventions.
      */
     fun validateExerciseName(name: String): ValidationResult {
         val trimmedName = name.trim()
-        
+
         // Check basic length requirements
         val lengthValidation = validateLength(trimmedName)
         if (lengthValidation != null) return lengthValidation
-        
+
         // Check for invalid characters
         val characterValidation = validateCharacters(trimmedName)
         if (characterValidation != null) return characterValidation
-        
+
         // Check formatting
         val formattingValidation = validateFormatting(trimmedName)
         if (formattingValidation != null) return formattingValidation
-        
+
         // Check equipment order
         val equipmentValidation = validateEquipmentOrder(trimmedName)
         if (equipmentValidation != null) return equipmentValidation
-        
+
         return ValidationResult.Valid
     }
-    
-    private fun validateLength(name: String): ValidationResult.Invalid? {
-        return when {
-            name.length < MIN_NAME_LENGTH -> ValidationResult.Invalid(
-                reason = "Exercise name must be at least $MIN_NAME_LENGTH characters",
-                suggestion = null
-            )
-            name.length > MAX_NAME_LENGTH -> ValidationResult.Invalid(
-                reason = "Exercise name must be less than $MAX_NAME_LENGTH characters",
-                suggestion = name.take(MAX_NAME_LENGTH)
-            )
+
+    private fun validateLength(name: String): ValidationResult.Invalid? =
+        when {
+            name.length < MIN_NAME_LENGTH ->
+                ValidationResult.Invalid(
+                    reason = "Exercise name must be at least $MIN_NAME_LENGTH characters",
+                    suggestion = null,
+                )
+            name.length > MAX_NAME_LENGTH ->
+                ValidationResult.Invalid(
+                    reason = "Exercise name must be less than $MAX_NAME_LENGTH characters",
+                    suggestion = name.take(MAX_NAME_LENGTH),
+                )
             else -> null
         }
-    }
-    
-    private fun validateCharacters(name: String): ValidationResult.Invalid? {
-        return when {
-            containsEmoji(name) -> ValidationResult.Invalid(
-                reason = "Exercise name cannot contain emojis",
-                suggestion = removeEmojis(name)
-            )
-            name.contains("-") -> ValidationResult.Invalid(
-                reason = "Use spaces instead of hyphens (e.g., 'Step Up' not 'Step-Up')",
-                suggestion = formatExerciseName(name.replace("-", " "))
-            )
+
+    private fun validateCharacters(name: String): ValidationResult.Invalid? =
+        when {
+            containsEmoji(name) ->
+                ValidationResult.Invalid(
+                    reason = "Exercise name cannot contain emojis",
+                    suggestion = removeEmojis(name),
+                )
+            name.contains("-") ->
+                ValidationResult.Invalid(
+                    reason = "Use spaces instead of hyphens (e.g., 'Step Up' not 'Step-Up')",
+                    suggestion = formatExerciseName(name.replace("-", " ")),
+                )
             else -> null
         }
-    }
-    
+
     private fun validateFormatting(name: String): ValidationResult.Invalid? {
         val formatted = formatExerciseName(name)
         return if (formatted != name) {
             ValidationResult.Invalid(
                 reason = "Exercise name should be properly formatted",
-                suggestion = formatted
+                suggestion = formatted,
             )
-        } else null
+        } else {
+            null
+        }
     }
-    
+
     private fun validateEquipmentOrder(name: String): ValidationResult.Invalid? {
         val components = extractComponents(name)
-        val shouldCheckEquipmentOrder = components.equipment == null && 
-                                       !name.lowercase().startsWith("bodyweight")
-        
+        val shouldCheckEquipmentOrder =
+            components.equipment == null &&
+                !name.lowercase().startsWith("bodyweight")
+
         if (!shouldCheckEquipmentOrder) return null
-        
+
         val firstWord = name.split(" ").firstOrNull()?.lowercase() ?: ""
         val isFirstWordEquipment = EQUIPMENT_KEYWORDS.contains(firstWord)
-        
+
         if (isFirstWordEquipment) return null
-        
+
         val detectedEquipment = detectEquipmentInName(name)
         return if (detectedEquipment != null) {
             ValidationResult.Invalid(
                 reason = "Equipment should come first in the exercise name",
-                suggestion = suggestWithEquipmentFirst(name, detectedEquipment)
+                suggestion = suggestWithEquipmentFirst(name, detectedEquipment),
             )
-        } else null
+        } else {
+            null
+        }
     }
-    
+
     /**
      * Formats an exercise name according to conventions.
      */
     fun formatExerciseName(name: String): String {
-        var formatted = name.trim()
-            .replace(Regex("\\s+"), " ")  // Multiple spaces to single
-            .replace("-", " ")  // Hyphens to spaces
-        
+        var formatted =
+            name
+                .trim()
+                .replace(Regex("\\s+"), " ") // Multiple spaces to single
+                .replace("-", " ") // Hyphens to spaces
+
         // Apply singular forms
         val words = formatted.split(" ").toMutableList()
         for (i in words.indices) {
             val lowerWord = words[i].lowercase()
-            
+
             // Check for singular mappings
             SINGULAR_MAPPINGS[lowerWord]?.let { singular ->
                 words[i] = singular
             }
-            
+
             // Check for equipment abbreviations
             EQUIPMENT_ABBREVIATIONS[lowerWord]?.let { fullName ->
                 words[i] = fullName
             }
         }
-        
+
         // Apply proper case
-        formatted = words.joinToString(" ") { word ->
-            word.split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
-        }
-        
+        formatted =
+            words.joinToString(" ") { word ->
+                word.split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
+            }
+
         // Handle special cases
-        formatted = formatted
-            .replace("Ez Bar", "EZ Bar")
-            .replace("Db ", "Dumbbell ")
-            .replace("Bb ", "Barbell ")
-            .replace("Kb ", "Kettlebell ")
-        
+        formatted =
+            formatted
+                .replace("Ez Bar", "EZ Bar")
+                .replace("Db ", "Dumbbell ")
+                .replace("Bb ", "Barbell ")
+                .replace("Kb ", "Kettlebell ")
+
         return formatted
     }
-    
+
     /**
      * Extracts components from an exercise name.
      */
     fun extractComponents(name: String): ExerciseComponents {
         val words = name.lowercase().split(" ")
-        
+
         var equipment: Equipment? = null
         var muscleGroup: MuscleGroup? = null
         var movement: String? = null
-        
+
         // Try to identify equipment
         for (word in words) {
             if (EQUIPMENT_KEYWORDS.contains(word)) {
@@ -213,7 +266,7 @@ class ExerciseNamingService {
                 break
             }
         }
-        
+
         // Try to identify muscle group
         for (word in words) {
             if (MUSCLE_KEYWORDS.contains(word)) {
@@ -221,7 +274,7 @@ class ExerciseNamingService {
                 break
             }
         }
-        
+
         // Try to identify movement
         for (word in words) {
             if (MOVEMENT_KEYWORDS.contains(word)) {
@@ -229,57 +282,55 @@ class ExerciseNamingService {
                 break
             }
         }
-        
+
         return ExerciseComponents(
             equipment = equipment,
             muscleGroup = muscleGroup,
             movement = movement,
             category = inferCategory(name, muscleGroup),
-            movementPattern = inferMovementPattern(name)
+            movementPattern = inferMovementPattern(name),
         )
     }
-    
+
     /**
      * Suggests a correction for an invalid exercise name.
      */
     fun suggestCorrection(name: String): String? {
         val formatted = formatExerciseName(name)
-        
+
         // If no equipment is detected at the start, try to add it
         val components = extractComponents(formatted)
         if (components.equipment == null) {
             // Default to bodyweight if no equipment detected
             return "Bodyweight $formatted"
         }
-        
+
         // Ensure equipment comes first
         val words = formatted.split(" ")
         val firstWord = words.firstOrNull()?.lowercase() ?: ""
-        
+
         if (!EQUIPMENT_KEYWORDS.contains(firstWord)) {
             val detectedEquipment = detectEquipmentInName(formatted)
             if (detectedEquipment != null) {
                 return suggestWithEquipmentFirst(formatted, detectedEquipment)
             }
         }
-        
+
         return formatted
     }
-    
-    private fun containsEmoji(text: String): Boolean {
-        return text.any { char ->
+
+    private fun containsEmoji(text: String): Boolean =
+        text.any { char ->
             val type = Character.getType(char).toByte()
             type == Character.SURROGATE || type == Character.OTHER_SYMBOL
         }
-    }
-    
-    private fun removeEmojis(text: String): String {
-        return text.filter { char ->
+
+    private fun removeEmojis(text: String): String =
+        text.filter { char ->
             val type = Character.getType(char).toByte()
             type != Character.SURROGATE && type != Character.OTHER_SYMBOL
         }
-    }
-    
+
     private fun detectEquipmentInName(name: String): String? {
         val lowerName = name.lowercase()
         for (equipment in EQUIPMENT_KEYWORDS) {
@@ -289,22 +340,25 @@ class ExerciseNamingService {
         }
         return null
     }
-    
-    private fun suggestWithEquipmentFirst(name: String, equipment: String): String {
+
+    private fun suggestWithEquipmentFirst(
+        name: String,
+        equipment: String,
+    ): String {
         val words = name.split(" ").toMutableList()
         val equipmentIndex = words.indexOfFirst { it.lowercase() == equipment }
-        
+
         if (equipmentIndex > 0) {
             // Move equipment to first position
             words.removeAt(equipmentIndex)
             words.add(0, equipment.replaceFirstChar { it.uppercase() })
         }
-        
+
         return formatExerciseName(words.joinToString(" "))
     }
-    
-    private fun mapWordToEquipment(word: String): Equipment {
-        return when (word.lowercase()) {
+
+    private fun mapWordToEquipment(word: String): Equipment =
+        when (word.lowercase()) {
             "barbell", "bb" -> Equipment.BARBELL
             "dumbbell", "db" -> Equipment.DUMBBELL
             "cable" -> Equipment.CABLE
@@ -315,10 +369,9 @@ class ExerciseNamingService {
             "smith" -> Equipment.SMITH_MACHINE
             else -> Equipment.NONE
         }
-    }
-    
-    private fun mapWordToMuscleGroup(word: String): MuscleGroup {
-        return when (word.lowercase()) {
+
+    private fun mapWordToMuscleGroup(word: String): MuscleGroup =
+        when (word.lowercase()) {
             "chest" -> MuscleGroup.CHEST
             "back" -> MuscleGroup.UPPER_BACK
             "shoulder", "delt" -> MuscleGroup.SHOULDERS
@@ -334,11 +387,13 @@ class ExerciseNamingService {
             "forearm" -> MuscleGroup.FOREARMS
             else -> MuscleGroup.FULL_BODY
         }
-    }
-    
-    private fun inferCategory(name: String, muscleGroup: MuscleGroup?): ExerciseCategory {
+
+    private fun inferCategory(
+        name: String,
+        muscleGroup: MuscleGroup?,
+    ): ExerciseCategory {
         val lowerName = name.lowercase()
-        
+
         // Use muscle group if available
         muscleGroup?.let {
             return when (it) {
@@ -351,7 +406,7 @@ class ExerciseNamingService {
                 else -> ExerciseCategory.FULL_BODY
             }
         }
-        
+
         // Infer from name patterns
         return when {
             lowerName.contains("press") && (lowerName.contains("bench") || lowerName.contains("chest")) -> ExerciseCategory.CHEST
@@ -366,10 +421,10 @@ class ExerciseNamingService {
             else -> ExerciseCategory.FULL_BODY
         }
     }
-    
+
     private fun inferMovementPattern(name: String): MovementPattern {
         val lowerName = name.lowercase()
-        
+
         return when {
             lowerName.contains("squat") -> MovementPattern.SQUAT
             lowerName.contains("deadlift") -> MovementPattern.HINGE
@@ -390,10 +445,10 @@ class ExerciseNamingService {
  */
 sealed class ValidationResult {
     object Valid : ValidationResult()
-    
+
     data class Invalid(
         val reason: String,
-        val suggestion: String?
+        val suggestion: String?,
     ) : ValidationResult()
 }
 
@@ -405,5 +460,5 @@ data class ExerciseComponents(
     val muscleGroup: MuscleGroup?,
     val movement: String?,
     val category: ExerciseCategory,
-    val movementPattern: MovementPattern
+    val movementPattern: MovementPattern,
 )

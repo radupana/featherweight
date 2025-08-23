@@ -26,8 +26,8 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -64,135 +64,140 @@ fun ExerciseMappingScreen(
     onMappingComplete: (Map<String, Long?>) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: ExerciseMappingViewModel = viewModel()
+    viewModel: ExerciseMappingViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var currentExerciseIndex by remember { mutableStateOf(0) }
     val currentExercise = unmatchedExercises.getOrNull(currentExerciseIndex)
-    
+
     // Initialize mappings
     LaunchedEffect(unmatchedExercises) {
         viewModel.initializeMappings(unmatchedExercises)
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
-                    Text("Map Exercises (${currentExerciseIndex + 1}/${unmatchedExercises.size})") 
+                title = {
+                    Text("Map Exercises (${currentExerciseIndex + 1}/${unmatchedExercises.size})")
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
             )
         },
-        modifier = modifier
+        modifier = modifier,
     ) { paddingValues ->
         if (currentExercise != null) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 // Header card showing the unmatched exercise
                 Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                    ),
-                    modifier = Modifier.fillMaxWidth()
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        ),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Warning,
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.tertiary
+                                tint = MaterialTheme.colorScheme.tertiary,
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Unmatched Exercise",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                         Text(
                             text = currentExercise,
                             style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
                         )
                         Text(
                             text = "Select an existing exercise or create a custom one",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
                         )
                     }
                 }
-                
+
                 // Current mapping status
                 val currentMapping = uiState.mappings[currentExercise]
                 if (currentMapping != null) {
                     Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        )
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                            ),
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Check,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.primary,
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (currentMapping.exerciseId != null) {
-                                    "Mapped to: ${currentMapping.exerciseName}"
-                                } else {
-                                    "Will create as custom exercise"
-                                },
-                                style = MaterialTheme.typography.bodyMedium
+                                text =
+                                    if (currentMapping.exerciseId != null) {
+                                        "Mapped to: ${currentMapping.exerciseName}"
+                                    } else {
+                                        "Will create as custom exercise"
+                                    },
+                                style = MaterialTheme.typography.bodyMedium,
                             )
                             Spacer(modifier = Modifier.weight(1f))
                             TextButton(
-                                onClick = { 
-                                    viewModel.clearMapping(currentExercise) 
-                                }
+                                onClick = {
+                                    viewModel.clearMapping(currentExercise)
+                                },
                             ) {
                                 Text("Clear")
                             }
                         }
                     }
                 }
-                
+
                 // Search section
                 ExerciseSearchSection(
                     exerciseName = currentExercise,
                     onExerciseSelected = { exerciseId, exerciseName ->
                         viewModel.mapExercise(currentExercise, exerciseId, exerciseName)
                     },
-                    viewModel = viewModel
+                    viewModel = viewModel,
                 )
-                
+
                 Spacer(modifier = Modifier.weight(1f))
-                
+
                 // Action buttons
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     // Create as custom button
                     OutlinedButton(
@@ -200,35 +205,35 @@ fun ExerciseMappingScreen(
                             viewModel.mapExercise(currentExercise, null, currentExercise)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = currentMapping == null
+                        enabled = currentMapping == null,
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Add,
                             contentDescription = null,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(18.dp),
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Create as Custom Exercise")
                     }
-                    
+
                     // Navigation buttons
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         // Previous button
                         OutlinedButton(
-                            onClick = { 
+                            onClick = {
                                 if (currentExerciseIndex > 0) {
                                     currentExerciseIndex--
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            enabled = currentExerciseIndex > 0
+                            enabled = currentExerciseIndex > 0,
                         ) {
                             Text("Previous")
                         }
-                        
+
                         // Next/Complete button
                         Button(
                             onClick = {
@@ -242,15 +247,18 @@ fun ExerciseMappingScreen(
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            enabled = currentMapping != null
+                            enabled = currentMapping != null,
                         ) {
                             Text(
-                                if (currentExerciseIndex < unmatchedExercises.size - 1) "Next" 
-                                else "Complete"
+                                if (currentExerciseIndex < unmatchedExercises.size - 1) {
+                                    "Next"
+                                } else {
+                                    "Complete"
+                                },
                             )
                         }
                     }
-                    
+
                     // Progress indicator
                     if (unmatchedExercises.size > 1) {
                         val mappedCount = uiState.mappings.size
@@ -259,7 +267,7 @@ fun ExerciseMappingScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }
@@ -273,22 +281,22 @@ private fun ExerciseSearchSection(
     exerciseName: String,
     onExerciseSelected: (Long, String) -> Unit,
     viewModel: ExerciseMappingViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var searchQuery by remember(exerciseName) { mutableStateOf("") }
     val searchResults by viewModel.searchResults.collectAsState()
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
-    
+
     // Auto-search with the exercise name initially
     LaunchedEffect(exerciseName) {
         searchQuery = exerciseName
         viewModel.searchExercises(exerciseName)
     }
-    
+
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // Search field
         OutlinedTextField(
@@ -304,7 +312,7 @@ private fun ExerciseSearchSection(
             },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { 
+                    IconButton(onClick = {
                         searchQuery = ""
                         viewModel.clearSearch()
                     }) {
@@ -312,48 +320,54 @@ private fun ExerciseSearchSection(
                     }
                 }
             },
-            keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Search
-            ),
-            keyboardActions = KeyboardActions(
-                onSearch = {
-                    focusManager.clearFocus()
-                }
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester),
-            singleLine = true
+            keyboardOptions =
+                KeyboardOptions(
+                    imeAction = ImeAction.Search,
+                ),
+            keyboardActions =
+                KeyboardActions(
+                    onSearch = {
+                        focusManager.clearFocus()
+                    },
+                ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
+            singleLine = true,
         )
-        
+
         // Search results
         AnimatedVisibility(visible = searchResults.isNotEmpty()) {
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
             ) {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     items(searchResults) { exercise ->
                         Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { 
-                                    onExerciseSelected(exercise.id, exercise.name)
-                                    focusManager.clearFocus()
-                                },
-                            color = MaterialTheme.colorScheme.surface
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onExerciseSelected(exercise.id, exercise.name)
+                                        focusManager.clearFocus()
+                                    },
+                            color = MaterialTheme.colorScheme.surface,
                         ) {
                             Column {
                                 Text(
                                     text = exercise.name,
                                     style = MaterialTheme.typography.bodyLarge,
-                                    modifier = Modifier.padding(
-                                        horizontal = 16.dp,
-                                        vertical = 12.dp
-                                    )
+                                    modifier =
+                                        Modifier.padding(
+                                            horizontal = 16.dp,
+                                            vertical = 12.dp,
+                                        ),
                                 )
                                 HorizontalDivider()
                             }
@@ -362,19 +376,20 @@ private fun ExerciseSearchSection(
                 }
             }
         }
-        
+
         // No results message
         if (searchQuery.isNotEmpty() && searchResults.isEmpty()) {
             Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
             ) {
                 Text(
                     text = "No exercises found for \"$searchQuery\"",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(16.dp),
                 )
             }
         }

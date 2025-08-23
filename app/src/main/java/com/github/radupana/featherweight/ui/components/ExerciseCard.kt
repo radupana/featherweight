@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Warning
@@ -54,6 +55,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -65,9 +68,6 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
-import androidx.compose.material.icons.filled.DragHandle
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -88,17 +88,18 @@ fun ExerciseCard(
     val completedSets = sets.count { it.isCompleted }
 
     GlassCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(
-                if (isDragging) {
-                    Modifier
-                        .scale(1.02f)
-                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp))
-                } else {
-                    Modifier
-                }
-            ),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .then(
+                    if (isDragging) {
+                        Modifier
+                            .scale(1.02f)
+                            .shadow(elevation = 8.dp, shape = RoundedCornerShape(12.dp))
+                    } else {
+                        Modifier
+                    },
+                ),
         onClick = null,
         elevation = if (isDragging) 4.dp else 2.dp,
     ) {
@@ -157,14 +158,16 @@ fun ExerciseCard(
                 Icon(
                     Icons.Filled.DragHandle,
                     contentDescription = "Drag to reorder",
-                    modifier = dragHandleModifier
-                        .padding(end = 8.dp)
-                        .size(24.dp),
-                    tint = if (isDragging) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    }
+                    modifier =
+                        dragHandleModifier
+                            .padding(end = 8.dp)
+                            .size(24.dp),
+                    tint =
+                        if (isDragging) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        },
                 )
             }
 
@@ -192,19 +195,20 @@ fun ExerciseCard(
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f),
             )
-            
+
             // Set completion counter
             if (sets.isNotEmpty()) {
                 Text(
                     text = "$completedSets/${sets.size}",
                     style = MaterialTheme.typography.labelMedium,
-                    color = when {
-                        completedSets == 0 -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        completedSets == sets.size -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                    color =
+                        when {
+                            completedSets == 0 -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            completedSets == sets.size -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     fontWeight = if (completedSets > 0) FontWeight.Medium else FontWeight.Normal,
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp),
                 )
             }
 

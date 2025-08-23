@@ -539,7 +539,6 @@ fun SetEditingModal(
     }
 }
 
-
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun CleanSetLayout(
@@ -783,41 +782,48 @@ data class SetInputStates(
 
 @Composable
 private fun rememberSetInputStates(set: SetLog): SetInputStates {
-    val weightInput = remember(set.id, set.actualWeight, set.targetWeight) {
-        val text = formatWeightInput(set.actualWeight, set.targetWeight)
-        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
-    }
-    val repsInput = remember(set.id, set.actualReps, set.targetReps) {
-        val text = formatRepsInput(set.actualReps, set.targetReps)
-        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
-    }
-    val rpeInput = remember(set.id, set.actualRpe) {
-        val text = set.actualRpe?.let { WeightFormatter.formatDecimal(it, 1) } ?: ""
-        mutableStateOf(TextFieldValue(text, TextRange(text.length)))
-    }
-    
+    val weightInput =
+        remember(set.id, set.actualWeight, set.targetWeight) {
+            val text = formatWeightInput(set.actualWeight, set.targetWeight)
+            mutableStateOf(TextFieldValue(text, TextRange(text.length)))
+        }
+    val repsInput =
+        remember(set.id, set.actualReps, set.targetReps) {
+            val text = formatRepsInput(set.actualReps, set.targetReps)
+            mutableStateOf(TextFieldValue(text, TextRange(text.length)))
+        }
+    val rpeInput =
+        remember(set.id, set.actualRpe) {
+            val text = set.actualRpe?.let { WeightFormatter.formatDecimal(it, 1) } ?: ""
+            mutableStateOf(TextFieldValue(text, TextRange(text.length)))
+        }
+
     return SetInputStates(weightInput, repsInput, rpeInput)
 }
 
-private fun formatWeightInput(actualWeight: Float, targetWeight: Float?): String {
-    return if (actualWeight > 0) {
+private fun formatWeightInput(
+    actualWeight: Float,
+    targetWeight: Float?,
+): String =
+    if (actualWeight > 0) {
         WeightFormatter.formatWeight(actualWeight)
     } else if (targetWeight != null && targetWeight > 0) {
         WeightFormatter.formatWeight(targetWeight)
     } else {
         ""
     }
-}
 
-private fun formatRepsInput(actualReps: Int, targetReps: Int?): String {
-    return if (actualReps > 0) {
+private fun formatRepsInput(
+    actualReps: Int,
+    targetReps: Int?,
+): String =
+    if (actualReps > 0) {
         actualReps.toString()
     } else if (targetReps != null && targetReps > 0) {
         targetReps.toString()
     } else {
         ""
     }
-}
 
 @Composable
 private fun SwipeDeleteBackground(swipeToDismissState: SwipeToDismissBoxState) {
@@ -944,12 +950,13 @@ private fun TargetColumn(
     val targetDisplay = getTargetDisplay(set, isProgrammeWorkout)
 
     Box(
-        modifier = modifier
-            .height(48.dp)
-            .background(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(8.dp),
-            ),
+        modifier =
+            modifier
+                .height(48.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(8.dp),
+                ),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -961,8 +968,11 @@ private fun TargetColumn(
     }
 }
 
-private fun getTargetDisplay(set: SetLog, isProgrammeWorkout: Boolean): String {
-    return if (isProgrammeWorkout && set.targetReps != null && set.targetReps > 0) {
+private fun getTargetDisplay(
+    set: SetLog,
+    isProgrammeWorkout: Boolean,
+): String =
+    if (isProgrammeWorkout && set.targetReps != null && set.targetReps > 0) {
         if (set.targetWeight != null && set.targetWeight > 0) {
             "${set.targetReps}×${WeightFormatter.formatWeight(set.targetWeight)}"
         } else {
@@ -971,7 +981,6 @@ private fun getTargetDisplay(set: SetLog, isProgrammeWorkout: Boolean): String {
     } else {
         "—"
     }
-}
 
 @Composable
 private fun WeightInputColumn(
@@ -1101,16 +1110,17 @@ private fun CompletionCheckbox(
     modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier
-            .clickable(
-                enabled = !readOnly && (canMarkComplete || set.isCompleted),
-                onClick = {
-                    val newChecked = !set.isCompleted
-                    if (!newChecked || canMarkComplete) {
-                        onToggleCompleted(newChecked)
-                    }
-                },
-            ),
+        modifier =
+            modifier
+                .clickable(
+                    enabled = !readOnly && (canMarkComplete || set.isCompleted),
+                    onClick = {
+                        val newChecked = !set.isCompleted
+                        if (!newChecked || canMarkComplete) {
+                            onToggleCompleted(newChecked)
+                        }
+                    },
+                ),
         contentAlignment = Alignment.Center,
     ) {
         Checkbox(

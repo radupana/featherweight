@@ -31,12 +31,12 @@ class OneRMService {
         scalingType: RMScalingType = RMScalingType.STANDARD,
     ): Float? {
         Log.d("OneRMService", "calculateEstimated1RM: weight=$weight, reps=$reps, rpe=$rpe, scalingType=$scalingType")
-        
+
         if (reps <= 0 || reps > MAX_REPS_FOR_ESTIMATE) {
             Log.d("OneRMService", "Skipping 1RM calc: reps out of range ($reps)")
             return null
         }
-        
+
         // Skip calculation if RPE is 6 or below - too unreliable
         if (rpe != null && rpe <= 6.0f) {
             Log.d("OneRMService", "Skipping 1RM calc: RPE too low ($rpe <= 6.0) - unreliable estimate")
@@ -71,29 +71,30 @@ class OneRMService {
         }
 
         // Apply formula based on scaling type
-        val result = when (scalingType) {
-            RMScalingType.WEIGHTED_BODYWEIGHT -> {
-                // More aggressive scaling for weighted bodyweight movements
-                // Use modified Epley formula with adjusted coefficient
-                val calc = weight * (1 + totalRepCapacity * 0.035f)
-                Log.d("OneRMService", "Weighted BW formula: $weight × (1 + $totalRepCapacity × 0.035) = $calc")
-                calc
+        val result =
+            when (scalingType) {
+                RMScalingType.WEIGHTED_BODYWEIGHT -> {
+                    // More aggressive scaling for weighted bodyweight movements
+                    // Use modified Epley formula with adjusted coefficient
+                    val calc = weight * (1 + totalRepCapacity * 0.035f)
+                    Log.d("OneRMService", "Weighted BW formula: $weight × (1 + $totalRepCapacity × 0.035) = $calc")
+                    calc
+                }
+                RMScalingType.ISOLATION -> {
+                    // More conservative scaling for isolation exercises
+                    // Use Lombardi formula which is more conservative at higher reps
+                    val calc = weight * totalRepCapacity.toFloat().pow(0.10f)
+                    Log.d("OneRMService", "Isolation formula: $weight × $totalRepCapacity^0.10 = $calc")
+                    calc
+                }
+                RMScalingType.STANDARD -> {
+                    // Standard Brzycki formula for compound movements
+                    val calc = weight / (1.0278f - 0.0278f * totalRepCapacity)
+                    Log.d("OneRMService", "Standard Brzycki: $weight / (1.0278 - 0.0278 × $totalRepCapacity) = $calc")
+                    calc
+                }
             }
-            RMScalingType.ISOLATION -> {
-                // More conservative scaling for isolation exercises
-                // Use Lombardi formula which is more conservative at higher reps
-                val calc = weight * totalRepCapacity.toFloat().pow(0.10f)
-                Log.d("OneRMService", "Isolation formula: $weight × $totalRepCapacity^0.10 = $calc")
-                calc
-            }
-            RMScalingType.STANDARD -> {
-                // Standard Brzycki formula for compound movements
-                val calc = weight / (1.0278f - 0.0278f * totalRepCapacity)
-                Log.d("OneRMService", "Standard Brzycki: $weight / (1.0278 - 0.0278 × $totalRepCapacity) = $calc")
-                calc
-            }
-        }
-        
+
         Log.d("OneRMService", "Final 1RM estimate: ${WeightFormatter.formatDecimal(result, 2)}kg")
         return result
     }
@@ -137,35 +138,42 @@ class OneRMService {
         val isEstimateImproving = isNewEstimateBetter(currentEstimate, newEstimate)
         val isLoadSufficient = isLoadPercentageSufficient(set, currentEstimate)
         val isConfidenceHigh = isConfidenceAboveThreshold(set, currentEstimate)
-        
+
         return isBasicValidationPassed && isEstimateImproving && isLoadSufficient && isConfidenceHigh
     }
-    
-    private fun isSetValidForOneRM(set: SetLog): Boolean {
-        return set.actualReps > 0 && 
-               set.actualReps <= MAX_REPS_FOR_ESTIMATE &&
-               set.actualWeight > 0 &&
-               (set.actualRpe == null || set.actualRpe >= MIN_RPE_FOR_ESTIMATE)
-    }
-    
-    private fun isNewEstimateBetter(currentEstimate: Float?, newEstimate: Float): Boolean {
-        return currentEstimate == null || newEstimate > currentEstimate
-    }
-    
-    private fun isLoadPercentageSufficient(set: SetLog, currentEstimate: Float?): Boolean {
+
+    private fun isSetValidForOneRM(set: SetLog): Boolean =
+        set.actualReps > 0 &&
+            set.actualReps <= MAX_REPS_FOR_ESTIMATE &&
+            set.actualWeight > 0 &&
+            (set.actualRpe == null || set.actualRpe >= MIN_RPE_FOR_ESTIMATE)
+
+    private fun isNewEstimateBetter(
+        currentEstimate: Float?,
+        newEstimate: Float,
+    ): Boolean = currentEstimate == null || newEstimate > currentEstimate
+
+    private fun isLoadPercentageSufficient(
+        set: SetLog,
+        currentEstimate: Float?,
+    ): Boolean {
         if (currentEstimate == null || currentEstimate <= 0) return true
-        
+
         val loadPercentage = set.actualWeight / currentEstimate
         return loadPercentage >= MIN_LOAD_PERCENTAGE
     }
-    
-    private fun isConfidenceAboveThreshold(set: SetLog, currentEstimate: Float?): Boolean {
-        val percentOf1RM = if (currentEstimate != null && currentEstimate > 0) {
-            set.actualWeight / currentEstimate
-        } else {
-            1f // Assume 100% if no current estimate
-        }
-        
+
+    private fun isConfidenceAboveThreshold(
+        set: SetLog,
+        currentEstimate: Float?,
+    ): Boolean {
+        val percentOf1RM =
+            if (currentEstimate != null && currentEstimate > 0) {
+                set.actualWeight / currentEstimate
+            } else {
+                1f // Assume 100% if no current estimate
+            }
+
         val confidence = calculateConfidence(set.actualReps, set.actualRpe, percentOf1RM)
         return confidence >= MIN_CONFIDENCE_THRESHOLD
     }

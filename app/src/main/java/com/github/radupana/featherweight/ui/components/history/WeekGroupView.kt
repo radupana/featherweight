@@ -51,7 +51,6 @@ fun WeekGroupView(
     isExpanded: Boolean,
     onToggleExpanded: () -> Unit,
     onWorkoutClick: (Long) -> Unit,
-    onWorkoutLongClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val rotation by animateFloatAsState(
@@ -138,7 +137,6 @@ fun WeekGroupView(
                                 CompactWorkoutCard(
                                     workout = workout,
                                     onClick = { onWorkoutClick(workout.id) },
-                                    onLongClick = { onWorkoutLongClick(workout.id) },
                                 )
                             }
                         }
@@ -153,7 +151,6 @@ fun WeekGroupView(
 private fun CompactWorkoutCard(
     workout: WorkoutSummary,
     onClick: () -> Unit,
-    onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(

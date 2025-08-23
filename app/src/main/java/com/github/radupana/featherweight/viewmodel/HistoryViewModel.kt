@@ -54,7 +54,7 @@ class HistoryViewModel(
     companion object {
         private const val TAG = "HistoryViewModel"
     }
-    
+
     private val repository = FeatherweightRepository(application)
 
     private val _historyState = MutableStateFlow(PaginatedHistoryState())

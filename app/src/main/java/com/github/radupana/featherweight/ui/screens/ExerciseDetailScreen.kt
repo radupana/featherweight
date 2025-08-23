@@ -48,7 +48,6 @@ import java.time.format.DateTimeFormatter
 fun ExerciseDetailScreen(
     exerciseName: String,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     var exerciseData by remember { mutableStateOf<ExerciseProgressData?>(null) }
     var performanceStats by remember { mutableStateOf<PerformanceStats?>(null) }

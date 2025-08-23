@@ -342,13 +342,11 @@ fun ActiveProgrammeScreen(
                                                 workoutViewModel.resumeWorkout(workout.id)
                                                 onStartProgrammeWorkout()
                                             } else {
-                                                // Start new workout with user's current 1RMs
-                                                val userMaxes = workoutViewModel.oneRMEstimates.value
+                                                // Start new workout
                                                 workoutViewModel.startProgrammeWorkout(
                                                     programmeId = programme.id,
                                                     weekNumber = nextWorkoutWeek,
                                                     dayNumber = nextWorkout!!.day,
-                                                    userMaxes = userMaxes,
                                                     onReady = {
                                                         // Navigate only after workout is fully created
                                                         onStartProgrammeWorkout()

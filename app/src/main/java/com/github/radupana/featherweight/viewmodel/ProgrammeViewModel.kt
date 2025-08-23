@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
+import android.database.sqlite.SQLiteException
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,7 +13,6 @@ import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import android.database.sqlite.SQLiteException
 import java.io.IOException
 
 class ProgrammeViewModel(
@@ -181,10 +181,6 @@ class ProgrammeViewModel(
         }
     }
 
-
-
-
-
     private fun observeParseRequests() {
         viewModelScope.launch {
             repository.getAllParseRequests().collect { requests ->
@@ -260,4 +256,3 @@ data class UserMaxes(
             true
         }
 }
-

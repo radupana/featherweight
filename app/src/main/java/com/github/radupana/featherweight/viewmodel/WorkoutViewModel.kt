@@ -1683,7 +1683,6 @@ class WorkoutViewModel(
         programmeId: Long,
         weekNumber: Int,
         dayNumber: Int,
-        userMaxes: Map<Long, Float> = emptyMap(),
         onReady: (() -> Unit)? = null,
     ) {
         try {

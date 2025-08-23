@@ -462,7 +462,6 @@ private fun MotivationalMessageCard(summary: CompletionSummary) {
 }
 
 @Composable
-
 private fun formatDuration(duration: java.time.Duration): String {
     val hours = duration.toHours()
     val minutes = duration.toMinutes() % 60

@@ -35,7 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.github.radupana.featherweight.service.RepsSuggestion
 import com.github.radupana.featherweight.service.WeightSuggestion
 import com.github.radupana.featherweight.util.WeightFormatter
 import kotlin.math.roundToInt
@@ -48,9 +47,6 @@ fun IntelligentSetInput(
     actualWeight: Float,
     actualRpe: Float?,
     weightSuggestion: WeightSuggestion?,
-    repsSuggestion: RepsSuggestion?,
-    onTargetRepsChange: (Int) -> Unit,
-    onTargetWeightChange: (Float?) -> Unit,
     onActualRepsChange: (Int) -> Unit,
     onActualWeightChange: (Float) -> Unit,
     onActualRpeChange: (Float?) -> Unit,

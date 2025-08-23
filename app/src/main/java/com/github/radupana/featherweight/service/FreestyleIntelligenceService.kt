@@ -22,7 +22,6 @@ class FreestyleIntelligenceService(
         UNKNOWN, // No RPE data
     }
 
-
     /**
      * Get intelligent weight suggestions for an exercise with detailed reasoning
      */

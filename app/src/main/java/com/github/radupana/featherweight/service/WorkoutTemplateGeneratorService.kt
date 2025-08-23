@@ -20,16 +20,17 @@ class WorkoutTemplateGeneratorService(
         config: WorkoutTemplateGenerationConfig,
     ): List<Triple<ExerciseVariation, Int, Int>> =
         withContext(Dispatchers.IO) {
-            val result = when (templateName) {
-                "Push" -> generatePushWorkout(config)
-                "Pull" -> generatePullWorkout(config)
-                "Legs" -> generateLegsWorkout(config)
-                "Upper", "Upper Body" -> generateUpperBodyWorkout(config)
-                "Lower" -> generateLowerBodyWorkout(config)
-                "Full Body" -> generateFullBodyWorkout(config)
-                else -> emptyList()
-            }
-            
+            val result =
+                when (templateName) {
+                    "Push" -> generatePushWorkout(config)
+                    "Pull" -> generatePullWorkout(config)
+                    "Legs" -> generateLegsWorkout(config)
+                    "Upper", "Upper Body" -> generateUpperBodyWorkout(config)
+                    "Lower" -> generateLowerBodyWorkout(config)
+                    "Full Body" -> generateFullBodyWorkout(config)
+                    else -> emptyList()
+                }
+
             result
         }
 
@@ -68,7 +69,7 @@ class WorkoutTemplateGeneratorService(
 
     private suspend fun generatePullWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
         val exercises = mutableListOf<String>()
-        
+
         when (config.time) {
             TimeAvailable.QUICK -> {
                 exercises.add("Barbell Row")
@@ -94,13 +95,13 @@ class WorkoutTemplateGeneratorService(
                 exercises.add("Dumbbell Hammer Curl")
             }
         }
-        
+
         return generateWorkoutFromExercises(exercises, config)
     }
 
     private suspend fun generateLegsWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
         val exercises = mutableListOf<String>()
-        
+
         when (config.time) {
             TimeAvailable.QUICK -> {
                 exercises.add("Barbell Back Squat")
@@ -124,13 +125,13 @@ class WorkoutTemplateGeneratorService(
                 exercises.add("Dumbbell Walking Lunge")
             }
         }
-        
+
         return generateWorkoutFromExercises(exercises, config)
     }
 
     private suspend fun generateUpperBodyWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
         val exercises = mutableListOf<String>()
-        
+
         when (config.time) {
             TimeAvailable.QUICK -> {
                 exercises.add("Barbell Bench Press")
@@ -157,10 +158,10 @@ class WorkoutTemplateGeneratorService(
                 exercises.add("Cable Tricep Pushdown")
             }
         }
-        
+
         return generateWorkoutFromExercises(exercises, config)
     }
-    
+
     private suspend fun generateLowerBodyWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
         // Lower body is similar to legs
         return generateLegsWorkout(config)
@@ -168,7 +169,7 @@ class WorkoutTemplateGeneratorService(
 
     private suspend fun generateFullBodyWorkout(config: WorkoutTemplateGenerationConfig): List<Triple<ExerciseVariation, Int, Int>> {
         val exercises = mutableListOf<String>()
-        
+
         when (config.time) {
             TimeAvailable.QUICK -> {
                 exercises.add("Barbell Back Squat")
@@ -195,7 +196,7 @@ class WorkoutTemplateGeneratorService(
                 exercises.add("Cable Tricep Pushdown")
             }
         }
-        
+
         return generateWorkoutFromExercises(exercises, config)
     }
 
@@ -210,33 +211,33 @@ class WorkoutTemplateGeneratorService(
 
             val exercise = findMatchingExercise(listOf(name))
             if (exercise == null) continue
-            
+
             val sets = getSetsForExercise(exercise.name, config)
             val reps = getRepsForGoal(config.goal)
             result.add(Triple(exercise, sets, reps))
         }
 
         // Adapt for skill level
-        val finalResult = when (config.skillLevel) {
-            SkillLevel.BEGINNER -> result.take(result.size * 2 / 3)
-            else -> result
-        }
-        
+        val finalResult =
+            when (config.skillLevel) {
+                SkillLevel.BEGINNER -> result.take(result.size * 2 / 3)
+                else -> result
+            }
+
         return finalResult
     }
 
     private suspend fun findMatchingExercise(options: List<String>): ExerciseVariation? {
         for (exerciseName in options) {
-            
             // First try exact name match
             val exercise = exerciseVariationDao.getExerciseVariationByName(exerciseName)
             if (exercise != null) return exercise
-            
+
             // Try with case variations
             val exerciseLower = exerciseVariationDao.getExerciseVariationByName(exerciseName.lowercase())
             if (exerciseLower != null) return exerciseLower
         }
-        
+
         return null
     }
 

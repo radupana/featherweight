@@ -238,12 +238,10 @@ fun WorkoutsScreen(
                                     val programme = activeProgramme
                                     val workoutInfo = nextWorkoutInfo
                                     if (workoutInfo != null && programme != null) {
-                                        val userMaxes = workoutViewModel.oneRMEstimates.value
                                         workoutViewModel.startProgrammeWorkout(
                                             programmeId = programme.id,
                                             weekNumber = workoutInfo.actualWeekNumber,
                                             dayNumber = workoutInfo.workoutStructure.day,
-                                            userMaxes = userMaxes,
                                             onReady = {
                                                 onStartProgrammeWorkout()
                                             },

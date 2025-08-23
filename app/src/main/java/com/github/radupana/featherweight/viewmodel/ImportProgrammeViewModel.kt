@@ -21,6 +21,7 @@ class ImportProgrammeViewModel(
     companion object {
         private const val TAG = "ImportProgrammeViewModel"
     }
+
     private val repository = FeatherweightRepository(application)
     private val parser = ProgrammeTextParser()
 
@@ -607,7 +608,6 @@ class ImportProgrammeViewModel(
             .Gson()
             .toJson(mapOf("weeks" to weeks))
     }
-
 }
 
 data class ImportProgrammeUiState(

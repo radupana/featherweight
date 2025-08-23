@@ -158,7 +158,6 @@ fun CalendarView(
                     CalendarDayContent(
                         calendarDay = calendarDay,
                         isSelected = selectedDate == calendarDay.date,
-                        hasWorkout = workoutDates.contains(calendarDay.date),
                         workoutDayInfo = dayInfo,
                         isToday = calendarDay.date == LocalDate.now(),
                         onClick = { if (calendarDay.position == DayPosition.MonthDate) onDateSelected(calendarDay.date) },
@@ -173,7 +172,6 @@ fun CalendarView(
 private fun CalendarDayContent(
     calendarDay: CalendarDay,
     isSelected: Boolean,
-    hasWorkout: Boolean,
     workoutDayInfo: com.github.radupana.featherweight.repository.WorkoutDayInfo?,
     isToday: Boolean,
     onClick: () -> Unit,

@@ -30,13 +30,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
-import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlin.math.roundToInt
 
 @Composable
 fun OneRMUpdateDialog(
     pendingUpdates: List<PendingOneRMUpdate>,
-    repository: FeatherweightRepository,
     exerciseNames: Map<Long, String>,
     onApply: (PendingOneRMUpdate) -> Unit,
     onDismiss: () -> Unit,

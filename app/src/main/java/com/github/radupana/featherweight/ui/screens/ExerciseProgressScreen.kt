@@ -143,9 +143,10 @@ fun ExerciseProgressScreen(
         when (state) {
             is ExerciseProgressViewModel.ExerciseProgressState.Loading -> {
                 LoadingState(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
                 )
             }
 
@@ -153,20 +154,22 @@ fun ExerciseProgressScreen(
                 val successState = state as ExerciseProgressViewModel.ExerciseProgressState.Success
                 ExerciseInsightsContent(
                     data = successState.data,
-                    chartData = ExerciseChartData(
-                        chartData = chartData,
-                        maxWeightChartData = maxWeightChartData,
-                        volumeChartData = volumeChartData,
-                        selectedChartType = selectedChartType,
-                        onChartTypeChanged = viewModel::setChartType,
-                    ),
-                    patternData = ExercisePatternData(
-                        frequencyData = frequencyData,
-                        repRangeData = repRangeData,
-                        rpeZoneData = rpeZoneData,
-                        selectedPatternType = selectedPatternType,
-                        onPatternTypeChanged = viewModel::setPatternType,
-                    ),
+                    chartData =
+                        ExerciseChartData(
+                            chartData = chartData,
+                            maxWeightChartData = maxWeightChartData,
+                            volumeChartData = volumeChartData,
+                            selectedChartType = selectedChartType,
+                            onChartTypeChanged = viewModel::setChartType,
+                        ),
+                    patternData =
+                        ExercisePatternData(
+                            frequencyData = frequencyData,
+                            repRangeData = repRangeData,
+                            rpeZoneData = rpeZoneData,
+                            selectedPatternType = selectedPatternType,
+                            onPatternTypeChanged = viewModel::setPatternType,
+                        ),
                     modifier =
                         modifier
                             .fillMaxSize()
@@ -177,9 +180,10 @@ fun ExerciseProgressScreen(
             is ExerciseProgressViewModel.ExerciseProgressState.Error -> {
                 ErrorState(
                     onRetry = { scope.launch { viewModel.loadExerciseData(exerciseVariationId) } },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
                 )
             }
         }
@@ -329,7 +333,7 @@ private fun QuickStatsSection(
 
     if (showStatusTooltip) {
         StatusTooltipDialog(
-            onDismiss = { showStatusTooltip = false }
+            onDismiss = { showStatusTooltip = false },
         )
     }
 }
@@ -705,36 +709,33 @@ private fun StatusCard(
 }
 
 @Composable
-private fun getStatusBackgroundColor(status: ExerciseProgressViewModel.ProgressStatus): Color {
-    return when (status) {
+private fun getStatusBackgroundColor(status: ExerciseProgressViewModel.ProgressStatus): Color =
+    when (status) {
         ExerciseProgressViewModel.ProgressStatus.MAKING_GAINS -> Color(0xFF4CAF50).copy(alpha = 0.2f)
         ExerciseProgressViewModel.ProgressStatus.STEADY_PROGRESS -> MaterialTheme.colorScheme.primaryContainer
         ExerciseProgressViewModel.ProgressStatus.PLATEAU -> Color(0xFFFF9800).copy(alpha = 0.2f)
         ExerciseProgressViewModel.ProgressStatus.EXTENDED_BREAK -> Color(0xFFFF5722).copy(alpha = 0.2f)
         ExerciseProgressViewModel.ProgressStatus.WORKING_LIGHTER -> MaterialTheme.colorScheme.surfaceVariant
     }
-}
 
 @Composable
-private fun getStatusIconColor(status: ExerciseProgressViewModel.ProgressStatus): Color {
-    return when (status) {
+private fun getStatusIconColor(status: ExerciseProgressViewModel.ProgressStatus): Color =
+    when (status) {
         ExerciseProgressViewModel.ProgressStatus.MAKING_GAINS -> Color(0xFF4CAF50)
         ExerciseProgressViewModel.ProgressStatus.STEADY_PROGRESS -> MaterialTheme.colorScheme.primary
         ExerciseProgressViewModel.ProgressStatus.PLATEAU -> Color(0xFFFF9800)
         ExerciseProgressViewModel.ProgressStatus.EXTENDED_BREAK -> Color(0xFFFF5722)
         ExerciseProgressViewModel.ProgressStatus.WORKING_LIGHTER -> MaterialTheme.colorScheme.onSurfaceVariant
     }
-}
 
-private fun getStatusDisplayName(status: ExerciseProgressViewModel.ProgressStatus): String {
-    return when (status) {
+private fun getStatusDisplayName(status: ExerciseProgressViewModel.ProgressStatus): String =
+    when (status) {
         ExerciseProgressViewModel.ProgressStatus.MAKING_GAINS -> "Making Gains"
         ExerciseProgressViewModel.ProgressStatus.STEADY_PROGRESS -> "Steady Progress"
         ExerciseProgressViewModel.ProgressStatus.PLATEAU -> "Plateau"
         ExerciseProgressViewModel.ProgressStatus.EXTENDED_BREAK -> "Extended Break"
         ExerciseProgressViewModel.ProgressStatus.WORKING_LIGHTER -> "Working Lighter"
     }
-}
 
 @Composable
 private fun StatusTooltipDialog(

@@ -71,7 +71,7 @@ data class Programme(
 
     companion object {
         private const val TAG = "Programme"
-        
+
         fun encodeWeightCalculationRules(rules: WeightCalculationRules): String = Json.encodeToString(rules)
 
         fun encodeProgressionRules(rules: ProgressionRules): String = Json.encodeToString(rules)

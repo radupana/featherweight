@@ -23,7 +23,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -51,8 +50,6 @@ fun ProgressChart(
     height: Dp = 200.dp,
     modifier: Modifier = Modifier,
 ) {
-    val density = LocalDensity.current
-
     if (data.dataPoints.isEmpty()) {
         EmptyChartState(
             title = data.title,
@@ -91,9 +88,9 @@ fun ProgressChart(
                         .height(height),
             ) {
                 when (type) {
-                    ChartType.LINE -> drawLineChart(data, density.density)
-                    ChartType.BAR -> drawBarChart(data, density.density)
-                    ChartType.AREA -> drawAreaChart(data, density.density)
+                    ChartType.LINE -> drawLineChart(data)
+                    ChartType.BAR -> drawBarChart(data)
+                    ChartType.AREA -> drawAreaChart(data)
                 }
             }
 
@@ -182,7 +179,6 @@ private fun EmptyChartState(
 
 private fun DrawScope.drawLineChart(
     data: ChartData,
-    density: Float,
 ) {
     val points = data.dataPoints
     if (points.size < 2) return
@@ -256,7 +252,6 @@ private fun DrawScope.drawLineChart(
 
 private fun DrawScope.drawBarChart(
     data: ChartData,
-    density: Float,
 ) {
     val points = data.dataPoints
     if (points.isEmpty()) return
@@ -293,7 +288,6 @@ private fun DrawScope.drawBarChart(
 
 private fun DrawScope.drawAreaChart(
     data: ChartData,
-    density: Float,
 ) {
     val points = data.dataPoints
     if (points.size < 2) return

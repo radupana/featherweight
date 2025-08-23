@@ -67,7 +67,6 @@ fun FilterBottomSheet(
     filters: HistoryFilters,
     availableExercises: List<String>,
     availableMuscleGroups: List<String>,
-    onFiltersChanged: (HistoryFilters) -> Unit,
     onApplyFilters: (HistoryFilters) -> Unit,
     onClearFilters: () -> Unit,
     onDismiss: () -> Unit,
@@ -352,7 +351,6 @@ fun FilterBottomSheet(
     // Date Pickers
     if (showStartDatePicker) {
         DatePickerSheet(
-            title = "Select Start Date",
             selectedDate = currentFilters.startDate,
             onDateSelected = { date ->
                 currentFilters = currentFilters.copy(startDate = date)
@@ -363,7 +361,6 @@ fun FilterBottomSheet(
 
     if (showEndDatePicker) {
         DatePickerSheet(
-            title = "Select End Date",
             selectedDate = currentFilters.endDate,
             onDateSelected = { date ->
                 currentFilters = currentFilters.copy(endDate = date)
@@ -470,7 +467,6 @@ private fun DateFilterChip(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DatePickerSheet(
-    title: String,
     selectedDate: LocalDate?,
     onDateSelected: (LocalDate?) -> Unit,
     onDismiss: () -> Unit,

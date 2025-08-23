@@ -27,6 +27,7 @@ class PRDetectionService(
     companion object {
         private const val TAG = "PRDetectionService"
     }
+
     /**
      * Checks if a completed set represents a new weight PR and creates record if so.
      * Only detects weight PRs (lifting more weight than previous best).
@@ -67,25 +68,25 @@ class PRDetectionService(
             val scalingType = exerciseVariation?.rmScalingType ?: RMScalingType.STANDARD
 
             Log.d("PRDetection", "Checking PRs for exercise $exerciseVariationId: ${currentWeight}kg × $currentReps @ RPE $currentRpe")
-            
+
             // Calculate estimated 1RM for this set
             val estimated1RM = calculateEstimated1RM(currentWeight, currentReps, currentRpe, scalingType)
-            
+
             if (estimated1RM != null) {
                 Log.d("PRDetection", "Calculated 1RM: ${WeightFormatter.formatDecimal(estimated1RM, 2)}kg")
             } else {
                 Log.d("PRDetection", "No 1RM calculated (RPE too low or other criteria not met)")
             }
-            
+
             // Get the current max estimated 1RM for comparison
             val currentMax1RM = personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId)
             Log.d("PRDetection", "Current max 1RM in database: ${currentMax1RM?.let { WeightFormatter.formatDecimal(it, 2) } ?: "None"}kg")
 
             // Check for weight PR (higher absolute weight than ever before)
             val weightPR = checkWeightPR(exerciseVariationId, currentWeight, currentReps, currentRpe, currentDate, workoutId, estimated1RM, currentMax1RM)
-            weightPR?.let { 
+            weightPR?.let {
                 Log.d("PRDetection", "Weight PR detected: ${it.weight}kg × ${it.reps}")
-                newPRs.add(it) 
+                newPRs.add(it)
             }
 
             // Check for estimated 1RM PR (higher estimated 1RM than ever before)
@@ -93,7 +94,7 @@ class PRDetectionService(
             if (estimated1RM != null && estimated1RM > (currentMax1RM ?: 0f)) {
                 Log.d("PRDetection", "New 1RM PR detected: ${WeightFormatter.formatDecimal(estimated1RM, 2)}kg > ${currentMax1RM ?: 0}kg")
                 val oneRMPR = checkEstimated1RMPR(exerciseVariationId, currentWeight, currentReps, currentRpe, estimated1RM, currentDate, workoutId)
-                oneRMPR?.let { 
+                oneRMPR?.let {
                     // Don't add duplicate 1RM PR if weight PR already includes it
                     if (weightPR == null || weightPR.estimated1RM != estimated1RM) {
                         newPRs.add(it)
@@ -209,14 +210,15 @@ class PRDetectionService(
                     100f
                 }
 
-            val notes = when {
-                currentMaxWeight == null -> "First weight record: ${weight}kg × $reps"
-                currentMax1RM != null && estimated1RM != null && estimated1RM < currentMax1RM -> {
-                    val potentialMax = WeightFormatter.formatDecimal(currentMax1RM, 1)
-                    "New weight PR: ${weight}kg × $reps (Based on your ${potentialMax}kg 1RM, you could potentially lift more!)"
+            val notes =
+                when {
+                    currentMaxWeight == null -> "First weight record: ${weight}kg × $reps"
+                    currentMax1RM != null && estimated1RM != null && estimated1RM < currentMax1RM -> {
+                        val potentialMax = WeightFormatter.formatDecimal(currentMax1RM, 1)
+                        "New weight PR: ${weight}kg × $reps (Based on your ${potentialMax}kg 1RM, you could potentially lift more!)"
+                    }
+                    else -> "New weight PR: ${weight}kg × $reps"
                 }
-                else -> "New weight PR: ${weight}kg × $reps"
-            }
 
             val roundedWeight = WeightFormatter.roundToNearestQuarter(weight)
             Log.d("PRDetection", "Creating weight PR: ${roundedWeight}kg × $reps, notes: $notes")
@@ -256,7 +258,7 @@ class PRDetectionService(
             Log.d("PRDetection", "Skipping 1RM calculation: RPE $rpe <= 6.0 (unreliable)")
             return null
         }
-        
+
         // Calculate total rep capacity based on RPE
         val totalRepCapacity =
             when {

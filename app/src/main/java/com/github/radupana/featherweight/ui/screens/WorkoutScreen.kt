@@ -66,13 +66,13 @@ import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.WorkoutMode
 import com.github.radupana.featherweight.data.WorkoutStatus
-import com.github.radupana.featherweight.viewmodel.WorkoutState
 import com.github.radupana.featherweight.ui.components.CompactRestTimer
 import com.github.radupana.featherweight.ui.components.ExerciseCard
 import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.ui.dialogs.NotesInputModal
 import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
+import com.github.radupana.featherweight.viewmodel.WorkoutState
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -137,7 +137,7 @@ fun WorkoutScreen(
         viewModel = viewModel,
         onWorkoutComplete = onWorkoutComplete,
         onShowOneRMUpdateDialog = { showOneRMUpdateDialog = it },
-        onShowPRCelebration = { showPRCelebration = it }
+        onShowPRCelebration = { showPRCelebration = it },
     )
 
     Scaffold(
@@ -159,7 +159,7 @@ fun WorkoutScreen(
                         currentNotes = notes ?: ""
                         showNotesModal = true
                     }
-                }
+                },
             )
         },
     ) { innerPadding ->
@@ -231,7 +231,7 @@ fun WorkoutScreen(
             WorkoutFooter(
                 restTimerSeconds = restTimerSeconds,
                 restTimerInitialSeconds = restTimerInitialSeconds,
-                viewModel = viewModel
+                viewModel = viewModel,
             )
         }
     }
@@ -264,7 +264,7 @@ fun WorkoutScreen(
         onPRCelebrationChange = { showPRCelebration = it },
         onNotesModalChange = { showNotesModal = it },
         onCurrentNotesChange = { currentNotes = it },
-        onShouldNavigateAfterCompletionChange = { shouldNavigateAfterCompletion = it }
+        onShouldNavigateAfterCompletionChange = { shouldNavigateAfterCompletion = it },
     )
 }
 
@@ -440,7 +440,6 @@ private fun WorkoutDialogs(
         val exerciseNames by viewModel.exerciseNames.collectAsState()
         OneRMUpdateDialog(
             pendingUpdates = pendingOneRMUpdates,
-            repository = viewModel.repository,
             exerciseNames = exerciseNames,
             onApply = { update ->
                 viewModel.applyOneRMUpdate(update)
@@ -468,7 +467,6 @@ private fun WorkoutDialogs(
         val prExerciseNames by viewModel.exerciseNames.collectAsState()
         PRCelebrationDialog(
             personalRecords = workoutState.pendingPRs,
-            repository = viewModel.repository,
             exerciseNames = prExerciseNames,
             onDismiss = {
                 onPRCelebrationChange(false)

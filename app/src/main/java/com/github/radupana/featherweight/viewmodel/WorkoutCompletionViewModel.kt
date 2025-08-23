@@ -16,11 +16,10 @@ import java.time.Duration
 class WorkoutCompletionViewModel(
     private val repository: FeatherweightRepository,
 ) : ViewModel() {
-    
     companion object {
         private const val TAG = "WorkoutCompletionViewModel"
     }
-    
+
     private val _uiState = MutableStateFlow(WorkoutCompletionUiState())
     val uiState: StateFlow<WorkoutCompletionUiState> = _uiState.asStateFlow()
 

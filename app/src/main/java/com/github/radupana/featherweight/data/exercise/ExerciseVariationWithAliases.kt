@@ -6,7 +6,7 @@ package com.github.radupana.featherweight.data.exercise
  */
 data class ExerciseVariationWithAliases(
     val variation: ExerciseVariation,
-    val aliases: List<String> = emptyList()
+    val aliases: List<String> = emptyList(),
 ) {
     val id: Long get() = variation.id
     val name: String get() = variation.name

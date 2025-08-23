@@ -4,8 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,6 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
@@ -71,12 +71,13 @@ fun ProgrammesScreen(
     val parseRequests by viewModel.parseRequests.collectAsState()
     val isKeyboardVisible by rememberKeyboardState()
     val compactPadding = if (isKeyboardVisible) 8.dp else 16.dp
-    
+
     // Check if any parse request is currently being processed
     val isParsingInProgress = parseRequests.any { it.status == com.github.radupana.featherweight.data.ParseStatus.PROCESSING }
-    val hasPendingParseRequests = parseRequests.any { 
-        it.status != com.github.radupana.featherweight.data.ParseStatus.IMPORTED 
-    }
+    val hasPendingParseRequests =
+        parseRequests.any {
+            it.status != com.github.radupana.featherweight.data.ParseStatus.IMPORTED
+        }
 
     // Dialog states
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -133,7 +134,7 @@ fun ProgrammesScreen(
                     )
                 }
             }
-            
+
             // Error Messages
             uiState.error?.let { error ->
                 Card(
@@ -169,7 +170,7 @@ fun ProgrammesScreen(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .clickable(enabled = !hasPendingParseRequests) { 
+                                    .clickable(enabled = !hasPendingParseRequests) {
                                         if (!hasPendingParseRequests) {
                                             onNavigateToImport?.invoke()
                                         }
@@ -192,11 +193,11 @@ fun ProgrammesScreen(
                                     if (isParsingInProgress) {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Center
+                                            horizontalArrangement = Arrangement.Center,
                                         ) {
                                             CircularProgressIndicator(
                                                 modifier = Modifier.size(24.dp),
-                                                color = MaterialTheme.colorScheme.primary
+                                                color = MaterialTheme.colorScheme.primary,
                                             )
                                             Spacer(modifier = Modifier.width(12.dp))
                                             Text(
@@ -217,7 +218,7 @@ fun ProgrammesScreen(
                                             imageVector = Icons.Filled.CheckCircle,
                                             contentDescription = null,
                                             modifier = Modifier.size(32.dp),
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
@@ -259,7 +260,7 @@ fun ProgrammesScreen(
                         }
                     }
                 }
-                
+
                 // Active Programme Section
                 activeProgramme?.let { programme ->
                     item {
@@ -271,25 +272,26 @@ fun ProgrammesScreen(
                             isCompact = isKeyboardVisible,
                         )
                     }
-                    
+
                     // Removed secondary import button - users should not import when active programme exists
                 }
-                
+
                 // Parse Requests Section
                 if (parseRequests.isNotEmpty()) {
                     item {
                         Text(
                             text = "Imported Programmes Review",
-                            style = if (isKeyboardVisible) {
-                                MaterialTheme.typography.titleMedium
-                            } else {
-                                MaterialTheme.typography.titleLarge
-                            },
+                            style =
+                                if (isKeyboardVisible) {
+                                    MaterialTheme.typography.titleMedium
+                                } else {
+                                    MaterialTheme.typography.titleLarge
+                                },
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(vertical = compactPadding / 2),
                         )
                     }
-                    
+
                     items(parseRequests) { request ->
                         ParseRequestCard(
                             request = request,
@@ -316,14 +318,12 @@ fun ProgrammesScreen(
                         )
                     }
                 }
-
             }
         }
     }
 
-
     // Profile Update Prompt Dialog - commented out for now
-    /* 
+    /*
     if (uiState.showProfileUpdatePrompt && uiState.pendingProfileUpdates.isNotEmpty()) {
         com.github.radupana.featherweight.ui.dialogs.ProfileUpdatePromptDialog(
             updates = uiState.pendingProfileUpdates,
@@ -335,7 +335,7 @@ fun ProgrammesScreen(
             },
         )
     }
-    */
+     */
 
     // Delete Confirmation Dialog
     if (showDeleteConfirmDialog) {
@@ -450,8 +450,8 @@ fun ProgrammesScreen(
             },
         )
     }
-    */
-    
+     */
+
     // Raw Text Dialog - Now scrollable!
     showRawTextDialog?.let { rawText ->
         AlertDialog(
@@ -459,46 +459,51 @@ fun ProgrammesScreen(
             title = { Text("Submitted Programme Text") },
             text = {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(400.dp) // Fixed height so it doesn't take full screen
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(400.dp), // Fixed height so it doesn't take full screen
                 ) {
                     Text(
                         text = "This is what was sent for parsing:",
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = 8.dp),
                     )
                     Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f) // Take remaining space
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            ),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .weight(1f), // Take remaining space
                     ) {
                         Text(
                             text = rawText,
                             style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .verticalScroll(rememberScrollState()), // Make text scrollable
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                            modifier =
+                                Modifier
+                                    .padding(12.dp)
+                                    .verticalScroll(rememberScrollState()),
+                            // Make text scrollable
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Length: ${rawText.length} characters",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             },
             confirmButton = {
                 Button(
-                    onClick = { 
+                    onClick = {
                         // Copy to clipboard would be nice here
-                        showRawTextDialog = null 
-                    }
+                        showRawTextDialog = null
+                    },
                 ) {
                     Text("Close")
                 }
@@ -525,12 +530,13 @@ private fun ActiveProgrammeCard(
                         Modifier.clickable { onNavigateToProgramme() }
                     } else {
                         Modifier
-                    }
+                    },
                 ),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+            ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
             modifier =

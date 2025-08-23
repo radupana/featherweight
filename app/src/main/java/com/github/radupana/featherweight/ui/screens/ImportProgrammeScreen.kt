@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.ui.screens
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -23,13 +24,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -38,7 +40,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -59,7 +60,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import android.widget.Toast
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.viewmodel.ImportProgrammeViewModel
 
@@ -73,19 +73,19 @@ fun ImportProgrammeScreen(
     onNavigateToExerciseMapping: () -> Unit = {},
     initialText: String? = null,
     modifier: Modifier = Modifier,
-    viewModel: ImportProgrammeViewModel = viewModel()
+    viewModel: ImportProgrammeViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showEditNotImplementedDialog by remember { mutableStateOf(false) }
     var showFormatTipsDialog by remember { mutableStateOf(false) }
-    
+
     // Set initial text if provided
     LaunchedEffect(initialText) {
         initialText?.let {
             viewModel.updateInputText(it)
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -94,32 +94,33 @@ fun ImportProgrammeScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
             )
         },
-        modifier = modifier
+        modifier = modifier,
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
         ) {
             when {
                 uiState.isLoading -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
                             CircularProgressIndicator()
                             Text("Analyzing your programme...")
                         }
                     }
                 }
-                
+
                 uiState.parsedProgramme != null -> {
                     val programme = uiState.parsedProgramme
                     if (programme != null) {
@@ -135,186 +136,195 @@ fun ImportProgrammeScreen(
                                     viewModel.confirmAndCreateProgramme(onSuccess = onProgrammeCreated)
                                 }
                             },
-                            onEdit = { viewModel.clearParsedProgramme() },
                             onEditWorkout = { weekIndex, workoutIndex ->
                                 onNavigateToWorkoutEdit(weekIndex, workoutIndex)
                             },
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }
-                
+
                 else -> {
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                                .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         // Header card with format tips button
                         Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                            )
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                ),
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = "Import Your Programme",
                                         style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
                                     )
                                     Text(
                                         text = "Paste from any source - we'll parse it!",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                                 IconButton(
                                     onClick = { showFormatTipsDialog = true },
-                                    modifier = Modifier.size(48.dp)
+                                    modifier = Modifier.size(48.dp),
                                 ) {
                                     Icon(
                                         Icons.Default.Info,
                                         contentDescription = "Format tips",
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                             }
                         }
-                        
+
                         Column {
                             OutlinedTextField(
                                 value = uiState.inputText.take(10000),
-                                onValueChange = { newText -> 
+                                onValueChange = { newText ->
                                     if (newText.length <= 10000) {
                                         viewModel.updateInputText(newText)
                                     }
                                 },
                                 label = { Text("Programme Text") },
-                                placeholder = { 
+                                placeholder = {
                                     Text(
                                         "Week 1 - Volume Phase\n\nMonday - Upper Power\nBench Press 3x5 @ 80%\nBarbell Row 3x5 @ 75kg\nOverhead Press 3x8\n\nWednesday - Lower Power\nSquat 3x5 @ 85%\nRomanian Deadlift 3x8\n...",
-                                        style = MaterialTheme.typography.bodySmall
+                                        style = MaterialTheme.typography.bodySmall,
                                     )
                                 },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(350.dp),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(350.dp),
                                 singleLine = false,
                                 maxLines = Int.MAX_VALUE,
-                                isError = uiState.inputText.length > 10000
+                                isError = uiState.inputText.length > 10000,
                             )
-                            
+
                             Text(
                                 text = "${uiState.inputText.length} / 10,000 characters",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = when {
-                                    uiState.inputText.length > 10000 -> MaterialTheme.colorScheme.error
-                                    uiState.inputText.length > 9500 -> MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
-                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                modifier = Modifier
-                                    .align(Alignment.End)
-                                    .padding(top = 4.dp)
+                                color =
+                                    when {
+                                        uiState.inputText.length > 10000 -> MaterialTheme.colorScheme.error
+                                        uiState.inputText.length > 9500 -> MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                modifier =
+                                    Modifier
+                                        .align(Alignment.End)
+                                        .padding(top = 4.dp),
                             )
                         }
-                        
+
                         if (uiState.error != null) {
                             val errorMessage = uiState.error
                             if (errorMessage != null) {
                                 Card(
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
+                                    colors =
+                                        CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                                        ),
+                                    modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     Text(
                                         text = errorMessage,
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
-                                    modifier = Modifier.padding(16.dp)
-                                )
-                            }
-                            }
-                        }
-                        
-                        if (uiState.successMessage != null) {
-                            val successMessage = uiState.successMessage
-                            if (successMessage != null) {
-                                Card(
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = successMessage,
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                        modifier = Modifier.padding(16.dp)
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        modifier = Modifier.padding(16.dp),
                                     )
                                 }
                             }
                         }
-                        
+
+                        if (uiState.successMessage != null) {
+                            val successMessage = uiState.successMessage
+                            if (successMessage != null) {
+                                Card(
+                                    colors =
+                                        CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                        ),
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(
+                                        text = successMessage,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.padding(16.dp),
+                                    )
+                                }
+                            }
+                        }
+
                         Button(
                             onClick = { viewModel.parseProgramme(onNavigateToProgrammes) },
                             enabled = uiState.inputText.isNotBlank() && uiState.inputText.length <= 10000,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp)
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
                         ) {
                             Text(
                                 text = "Parse Programme",
-                                style = MaterialTheme.typography.titleMedium
+                                style = MaterialTheme.typography.titleMedium,
                             )
                         }
-                        
+
                         Spacer(modifier = Modifier.height(32.dp))
                     }
                 }
             }
         }
     }
-    
+
     // Edit Not Implemented Dialog
     if (showEditNotImplementedDialog) {
         AlertDialog(
             onDismissRequest = { showEditNotImplementedDialog = false },
             title = { Text("Coming Soon") },
-            text = { 
+            text = {
                 Text("Workout editing is not yet implemented. For now, you can edit the text and re-parse if you need to make changes.")
             },
             confirmButton = {
                 TextButton(onClick = { showEditNotImplementedDialog = false }) {
                     Text("OK")
                 }
-            }
+            },
         )
     }
-    
+
     // Format Tips Dialog
     if (showFormatTipsDialog) {
         FormatTipsDialog(
-            onDismiss = { showFormatTipsDialog = false }
+            onDismiss = { showFormatTipsDialog = false },
         )
     }
 }
 
 @Composable
 private fun FormatTipsDialog(
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
-    
-    val promptTemplate = """
+
+    val promptTemplate =
+        """
         Please create a 6-week weightlifting programme with these specifications:
         
         - Format each week with clear headers (Week 1, Week 2, etc.)
@@ -338,138 +348,146 @@ private fun FormatTipsDialog(
         Romanian Deadlift 3×8 @ 70%
         Leg Press 3×12
         Leg Curl 3×12-15
-    """.trimIndent()
-    
+        """.trimIndent()
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
+        title = {
             Text(
                 "Format Tips for AI Generation",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
             )
         },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
                     text = "To get the best results from AI programme generation:",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
                 )
-                
+
                 Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        ),
                 ) {
                     Column(
                         modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
                             text = "✓ Structure",
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
                         )
                         Text(
-                            text = "• Use clear week headers (Week 1, Week 2)\n" +
-                                  "• Include workout names and days\n" +
-                                  "• Group exercises by workout",
-                            style = MaterialTheme.typography.bodySmall
+                            text =
+                                "• Use clear week headers (Week 1, Week 2)\n" +
+                                    "• Include workout names and days\n" +
+                                    "• Group exercises by workout",
+                            style = MaterialTheme.typography.bodySmall,
                         )
                     }
                 }
-                
+
                 Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        ),
                 ) {
                     Column(
                         modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
                             text = "✓ Exercise Naming",
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
                         )
                         Text(
-                            text = "• Use standard names: Barbell Squat, Dumbbell Press\n" +
-                                  "• Equipment first: Cable Row, Machine Press\n" +
-                                  "• Be specific: Romanian Deadlift not just RDL",
-                            style = MaterialTheme.typography.bodySmall
+                            text =
+                                "• Use standard names: Barbell Squat, Dumbbell Press\n" +
+                                    "• Equipment first: Cable Row, Machine Press\n" +
+                                    "• Be specific: Romanian Deadlift not just RDL",
+                            style = MaterialTheme.typography.bodySmall,
                         )
                     }
                 }
-                
+
                 Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        ),
                 ) {
                     Column(
                         modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
                             text = "✓ Sets & Reps Format",
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
                         )
                         Text(
-                            text = "• Use × for sets×reps: 3×5, 4×8\n" +
-                                  "• Rep ranges: 3×8-10, 4×6-8\n" +
-                                  "• Include intensity: 3×5 @ 80%, 3×8 @ RPE 8",
-                            style = MaterialTheme.typography.bodySmall
+                            text =
+                                "• Use × for sets×reps: 3×5, 4×8\n" +
+                                    "• Rep ranges: 3×8-10, 4×6-8\n" +
+                                    "• Include intensity: 3×5 @ 80%, 3×8 @ RPE 8",
+                            style = MaterialTheme.typography.bodySmall,
                         )
                     }
                 }
-                
+
                 Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    )
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                        ),
                 ) {
                     Column(
                         modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
                                 text = "Example Prompt Template",
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
                             )
                             IconButton(
                                 onClick = {
                                     clipboardManager.setText(AnnotatedString(promptTemplate))
-                                    Toast.makeText(
-                                        context,
-                                        "Prompt copied to clipboard!",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast
+                                        .makeText(
+                                            context,
+                                            "Prompt copied to clipboard!",
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
                                 },
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.size(32.dp),
                             ) {
                                 Icon(
                                     Icons.Default.ContentCopy,
                                     contentDescription = "Copy prompt",
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(18.dp),
                                 )
                             }
                         }
                         Text(
                             text = promptTemplate.take(200) + "...",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                     }
                 }
@@ -479,7 +497,7 @@ private fun FormatTipsDialog(
             TextButton(onClick = onDismiss) {
                 Text("Got It")
             }
-        }
+        },
     )
 }
 
@@ -487,160 +505,163 @@ private fun FormatTipsDialog(
 private fun ProgrammePreview(
     programme: com.github.radupana.featherweight.data.ParsedProgramme,
     onConfirm: () -> Unit,
-    onEdit: () -> Unit,
     onEditWorkout: (weekIndex: Int, workoutIndex: Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var expandedWeeks by remember { mutableStateOf(setOf<Int>()) }
-    
+
     Column(
-        modifier = modifier
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier =
+            modifier
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Edit Hint Card
         Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-            )
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+                ),
         ) {
             Row(
                 modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     imageVector = Icons.Filled.Info,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.secondary
+                    tint = MaterialTheme.colorScheme.secondary,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Tap any workout to edit exercises and sets",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
             }
         }
-        
+
         // Programme Header Card
         Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            )
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                ),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     text = programme.name,
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
-                
+
                 val totalWorkouts = programme.weeks.sumOf { it.workouts.size }
                 val actualWeeks = programme.weeks.size
-                
+
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Filled.Schedule,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "$actualWeeks ${if (actualWeeks == 1) "week" else "weeks"}",
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     }
-                    
+
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Filled.FitnessCenter,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "$totalWorkouts ${if (totalWorkouts == 1) "workout" else "workouts"}",
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                     }
                 }
-                
+
                 if (programme.description.isNotBlank()) {
                     Text(
                         text = programme.description,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
         }
-        
+
         // Weekly Cards - All weeks shown, collapsible
         programme.weeks.forEachIndexed { weekIndex, week ->
             WeekCard(
                 week = week,
-                weekIndex = weekIndex,
                 isExpanded = expandedWeeks.contains(week.weekNumber),
                 onToggleExpand = {
-                    expandedWeeks = if (expandedWeeks.contains(week.weekNumber)) {
-                        expandedWeeks - week.weekNumber
-                    } else {
-                        expandedWeeks + week.weekNumber
-                    }
+                    expandedWeeks =
+                        if (expandedWeeks.contains(week.weekNumber)) {
+                            expandedWeeks - week.weekNumber
+                        } else {
+                            expandedWeeks + week.weekNumber
+                        }
                 },
                 onEditWorkout = { workoutIndex ->
                     onEditWorkout(weekIndex, workoutIndex)
-                }
+                },
             )
         }
-        
+
         // Unmatched Exercises Warning
         if (programme.unmatchedExercises.isNotEmpty()) {
             Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                )
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    ),
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Info,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.tertiary
+                            tint = MaterialTheme.colorScheme.tertiary,
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "${programme.unmatchedExercises.size} Unmatched Exercises",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         )
                     }
                     Text(
                         text = "These exercises need to be mapped to existing ones or created as custom:",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
                     )
                     programme.unmatchedExercises.take(5).forEach { exercise ->
                         Text(
                             text = "• $exercise",
                             style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(start = 8.dp)
+                            modifier = Modifier.padding(start = 8.dp),
                         )
                     }
                     if (programme.unmatchedExercises.size > 5) {
@@ -648,32 +669,33 @@ private fun ProgrammePreview(
                             text = "... and ${programme.unmatchedExercises.size - 5} more",
                             style = MaterialTheme.typography.bodySmall,
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                            modifier = Modifier.padding(start = 8.dp)
+                            modifier = Modifier.padding(start = 8.dp),
                         )
                     }
                 }
             }
         }
-        
+
         // Create/Continue Button
         Button(
             onClick = onConfirm,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(
                 imageVector = if (programme.unmatchedExercises.isEmpty()) Icons.Filled.Check else Icons.Filled.Edit,
                 contentDescription = null,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(18.dp),
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                if (programme.unmatchedExercises.isEmpty()) 
-                    "Create Programme" 
-                else 
+                if (programme.unmatchedExercises.isEmpty()) {
+                    "Create Programme"
+                } else {
                     "Map ${programme.unmatchedExercises.size} Custom Exercises"
+                },
             )
         }
-        
+
         Spacer(modifier = Modifier.height(32.dp))
     }
 }
@@ -681,105 +703,106 @@ private fun ProgrammePreview(
 @Composable
 private fun WeekCard(
     week: com.github.radupana.featherweight.data.ParsedWeek,
-    weekIndex: Int,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
     onEditWorkout: (workoutIndex: Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        onClick = onToggleExpand
+        onClick = onToggleExpand,
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp),
         ) {
             // Week Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Week ${week.weekNumber}${if (week.name.isNotBlank() && week.name != "Week ${week.weekNumber}") " - ${week.name}" else ""}",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
-                    
+
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.padding(top = 4.dp)
+                        modifier = Modifier.padding(top = 4.dp),
                     ) {
                         Text(
                             text = "${week.workouts.size} workouts",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        
+
                         week.intensityLevel?.let { intensity ->
                             Surface(
-                                color = when(intensity) {
-                                    "MAX" -> MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-                                    "HIGH" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
-                                    "MODERATE" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                    else -> MaterialTheme.colorScheme.surface
-                                },
-                                shape = RoundedCornerShape(4.dp)
+                                color =
+                                    when (intensity) {
+                                        "MAX" -> MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                                        "HIGH" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+                                        "MODERATE" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                        else -> MaterialTheme.colorScheme.surface
+                                    },
+                                shape = RoundedCornerShape(4.dp),
                             ) {
                                 Text(
                                     text = intensity,
                                     style = MaterialTheme.typography.labelSmall,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    color = when(intensity) {
-                                        "MAX" -> MaterialTheme.colorScheme.error
-                                        "HIGH" -> MaterialTheme.colorScheme.tertiary
-                                        "MODERATE" -> MaterialTheme.colorScheme.primary
-                                        else -> MaterialTheme.colorScheme.onSurface
-                                    }
+                                    color =
+                                        when (intensity) {
+                                            "MAX" -> MaterialTheme.colorScheme.error
+                                            "HIGH" -> MaterialTheme.colorScheme.tertiary
+                                            "MODERATE" -> MaterialTheme.colorScheme.primary
+                                            else -> MaterialTheme.colorScheme.onSurface
+                                        },
                                 )
                             }
                         }
-                        
+
                         if (week.isDeload) {
                             Surface(
                                 color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(4.dp)
+                                shape = RoundedCornerShape(4.dp),
                             ) {
                                 Text(
                                     text = "DELOAD",
                                     style = MaterialTheme.typography.labelSmall,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    color = MaterialTheme.colorScheme.secondary
+                                    color = MaterialTheme.colorScheme.secondary,
                                 )
                             }
                         }
                     }
                 }
-                
+
                 IconButton(onClick = onToggleExpand) {
                     Icon(
                         imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand"
+                        contentDescription = if (isExpanded) "Collapse" else "Expand",
                     )
                 }
             }
-            
+
             // Expandable Content
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+                exit = shrinkVertically() + fadeOut(),
             ) {
                 Column(
                     modifier = Modifier.padding(top = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     week.workouts.forEachIndexed { workoutIndex, workout ->
                         WorkoutSummaryCard(
                             workout = workout,
                             workoutIndex = workoutIndex,
-                            onClick = { onEditWorkout(workoutIndex) }
+                            onClick = { onEditWorkout(workoutIndex) },
                         )
                     }
                 }
@@ -793,92 +816,93 @@ private fun WorkoutSummaryCard(
     workout: com.github.radupana.featherweight.data.ParsedWorkout,
     workoutIndex: Int,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
         onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        shape = RoundedCornerShape(8.dp)
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            ),
+        shape = RoundedCornerShape(8.dp),
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column {
                     Text(
                         text = workout.dayOfWeek ?: "Day ${workoutIndex + 1}",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     )
                     Text(
                         text = workout.name,
                         style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
                     )
                 }
-                
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Edit,
                         contentDescription = "Edit workout",
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
                         imageVector = Icons.Filled.AccessTime,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = "${workout.estimatedDurationMinutes} min",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-            
+
             // Exercise summary
             Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 val exercisesToShow = workout.exercises.take(3)
                 exercisesToShow.forEach { exercise ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(
                             text = "• ${exercise.exerciseName}",
                             style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                         Text(
                             text = "${exercise.sets.size} sets",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-                
+
                 if (workout.exercises.size > 3) {
                     Text(
                         text = "... and ${workout.exercises.size - 3} more exercises",
                         style = MaterialTheme.typography.bodySmall,
                         fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

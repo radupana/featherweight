@@ -41,7 +41,7 @@ import androidx.compose.ui.window.DialogProperties
 
 /**
  * A searchable selection dialog that supports both single and multi-selection modes.
- * 
+ *
  * @param T The type of items in the selection list
  * @param title The title of the dialog
  * @param items List of items to select from
@@ -72,22 +72,23 @@ fun <T> SearchableSelectionDialog(
     var searchQuery by remember { mutableStateOf("") }
     var tempSelectedItems by remember { mutableStateOf(selectedItems) }
     var tempSelectedItem by remember { mutableStateOf(selectedItem) }
-    
+
     // Filter items based on search query (keyword matching, not exact order)
-    val filteredItems = remember(searchQuery, items) {
-        if (searchQuery.isBlank()) {
-            items
-        } else {
-            val queryWords = searchQuery.lowercase().split(" ").filter { it.isNotBlank() }
-            items.filter { item ->
-                val label = itemLabel(item).lowercase()
-                queryWords.all { queryWord ->
-                    label.contains(queryWord)
+    val filteredItems =
+        remember(searchQuery, items) {
+            if (searchQuery.isBlank()) {
+                items
+            } else {
+                val queryWords = searchQuery.lowercase().split(" ").filter { it.isNotBlank() }
+                items.filter { item ->
+                    val label = itemLabel(item).lowercase()
+                    queryWords.all { queryWord ->
+                        label.contains(queryWord)
+                    }
                 }
             }
         }
-    }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.fillMaxSize(0.9f),
@@ -110,7 +111,7 @@ fun <T> SearchableSelectionDialog(
         },
         text = {
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             ) {
                 // Search field
                 OutlinedTextField(
@@ -130,9 +131,9 @@ fun <T> SearchableSelectionDialog(
                     },
                     singleLine = true,
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 // Show selected count for multi-select
                 if (multiSelect) {
                     Text(
@@ -140,19 +141,20 @@ fun <T> SearchableSelectionDialog(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
                 }
-                
+
                 HorizontalDivider()
-                
+
                 // Item list
                 if (filteredItems.isEmpty()) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = "No items found",
@@ -163,54 +165,58 @@ fun <T> SearchableSelectionDialog(
                 } else {
                     LazyColumn(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         items(filteredItems) { item ->
                             Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        if (multiSelect) {
-                                            tempSelectedItems = if (item in tempSelectedItems) {
-                                                tempSelectedItems - item
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            if (multiSelect) {
+                                                tempSelectedItems =
+                                                    if (item in tempSelectedItems) {
+                                                        tempSelectedItems - item
+                                                    } else {
+                                                        tempSelectedItems + item
+                                                    }
                                             } else {
-                                                tempSelectedItems + item
+                                                tempSelectedItem = item
+                                                onSelect?.invoke(item)
+                                                onDismiss()
                                             }
-                                        } else {
-                                            tempSelectedItem = item
-                                            onSelect?.invoke(item)
-                                            onDismiss()
-                                        }
+                                        },
+                                color =
+                                    if (multiSelect && item in tempSelectedItems || !multiSelect && item == tempSelectedItem) {
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                    } else {
+                                        MaterialTheme.colorScheme.surface
                                     },
-                                color = if (multiSelect && item in tempSelectedItems || !multiSelect && item == tempSelectedItem) {
-                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                }
                             ) {
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    horizontalArrangement = Arrangement.SpaceBetween,
                                 ) {
                                     Text(
                                         text = itemLabel(item),
                                         style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.weight(1f),
                                     )
-                                    
+
                                     if (multiSelect) {
                                         Checkbox(
                                             checked = item in tempSelectedItems,
-                                            onCheckedChange = null // Handled by row click
+                                            onCheckedChange = null, // Handled by row click
                                         )
                                     } else if (item == tempSelectedItem) {
                                         Icon(
                                             Icons.Default.Check,
                                             contentDescription = "Selected",
-                                            tint = MaterialTheme.colorScheme.primary
+                                            tint = MaterialTheme.colorScheme.primary,
                                         )
                                     }
                                 }
@@ -218,26 +224,26 @@ fun <T> SearchableSelectionDialog(
                         }
                     }
                 }
-                
+
                 // Quick actions for multi-select
                 if (multiSelect && filteredItems.isNotEmpty()) {
                     HorizontalDivider()
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                        horizontalArrangement = Arrangement.SpaceEvenly,
                     ) {
                         TextButton(
                             onClick = {
                                 tempSelectedItems = tempSelectedItems + filteredItems
-                            }
+                            },
                         ) {
                             Text("Select All Visible")
                         }
                         TextButton(
                             onClick = {
                                 tempSelectedItems = tempSelectedItems - filteredItems.toSet()
-                            }
+                            },
                         ) {
                             Text("Deselect All Visible")
                         }
@@ -252,7 +258,7 @@ fun <T> SearchableSelectionDialog(
                         onConfirm?.invoke(tempSelectedItems)
                         onDismiss()
                     },
-                    enabled = !required || tempSelectedItems.isNotEmpty()
+                    enabled = !required || tempSelectedItems.isNotEmpty(),
                 ) {
                     Text("Done")
                 }
@@ -262,6 +268,6 @@ fun <T> SearchableSelectionDialog(
             OutlinedButton(onClick = onDismiss) {
                 Text("Cancel")
             }
-        }
+        },
     )
 }

@@ -1,7 +1,5 @@
 package com.github.radupana.featherweight.ui.components
 
-import com.github.radupana.featherweight.data.PRType
-
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -44,8 +42,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
-import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.format.DateTimeFormatter
 import kotlin.math.sin
@@ -54,7 +52,6 @@ import kotlin.random.Random
 @Composable
 fun PRCelebrationDialog(
     personalRecords: List<PersonalRecord>,
-    repository: FeatherweightRepository,
     exerciseNames: Map<Long, String>,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -142,18 +139,20 @@ fun PRCelebrationDialog(
                     val prTypeCounts = personalRecords.groupBy { it.recordType }.mapValues { it.value.size }
                     val hasWeightPR = prTypeCounts.containsKey(PRType.WEIGHT)
                     val hasOneRMPR = prTypeCounts.containsKey(PRType.ESTIMATED_1RM)
-                    
-                    val titleText = when {
-                        personalRecords.size == 1 -> when (personalRecords.first().recordType) {
-                            PRType.WEIGHT -> "NEW WEIGHT PR!"
-                            PRType.ESTIMATED_1RM -> "NEW ESTIMATED 1RM!"
+
+                    val titleText =
+                        when {
+                            personalRecords.size == 1 ->
+                                when (personalRecords.first().recordType) {
+                                    PRType.WEIGHT -> "NEW WEIGHT PR!"
+                                    PRType.ESTIMATED_1RM -> "NEW ESTIMATED 1RM!"
+                                    else -> "PERSONAL RECORD!"
+                                }
+                            hasWeightPR && hasOneRMPR -> "DOUBLE PR!"
+                            personalRecords.size > 1 -> "Multiple PRs!"
                             else -> "PERSONAL RECORD!"
                         }
-                        hasWeightPR && hasOneRMPR -> "DOUBLE PR!"
-                        personalRecords.size > 1 -> "Multiple PRs!"
-                        else -> "PERSONAL RECORD!"
-                    }
-                    
+
                     Text(
                         text = titleText,
                         style = MaterialTheme.typography.headlineMedium,
@@ -172,7 +171,6 @@ fun PRCelebrationDialog(
                         personalRecords.forEach { pr ->
                             PRDetailCard(
                                 personalRecord = pr,
-                                repository = repository,
                                 exerciseNames = exerciseNames,
                                 modifier = Modifier.padding(vertical = 4.dp),
                             )
@@ -196,7 +194,6 @@ fun PRCelebrationDialog(
 @Composable
 private fun PRDetailCard(
     personalRecord: PersonalRecord,
-    repository: FeatherweightRepository,
     exerciseNames: Map<Long, String>,
     modifier: Modifier = Modifier,
 ) {
@@ -227,16 +224,17 @@ private fun PRDetailCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             // PR achievement - show different text based on PR type
-            val prText = when (personalRecord.recordType) {
-                PRType.WEIGHT -> {
-                    formatPRText(personalRecord)
+            val prText =
+                when (personalRecord.recordType) {
+                    PRType.WEIGHT -> {
+                        formatPRText(personalRecord)
+                    }
+                    PRType.ESTIMATED_1RM -> {
+                        "Est. 1RM: ${WeightFormatter.formatWeightWithUnit(personalRecord.estimated1RM ?: 0f)}"
+                    }
+                    else -> formatPRText(personalRecord)
                 }
-                PRType.ESTIMATED_1RM -> {
-                    "Est. 1RM: ${WeightFormatter.formatWeightWithUnit(personalRecord.estimated1RM ?: 0f)}"
-                }
-                else -> formatPRText(personalRecord)
-            }
-            
+
             Text(
                 text = prText,
                 style = MaterialTheme.typography.headlineSmall,
@@ -254,7 +252,7 @@ private fun PRDetailCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            
+
             // For weight PRs, check if we should show 1RM or potential message
             if (personalRecord.recordType == PRType.WEIGHT) {
                 // Check if notes contain the "could potentially lift more" message

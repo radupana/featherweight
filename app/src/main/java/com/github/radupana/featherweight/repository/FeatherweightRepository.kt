@@ -1015,7 +1015,6 @@ class FeatherweightRepository(
             return@withContext workoutId
         }
 
-
     // Get workouts for a specific programme
     suspend fun getWorkoutsByProgramme(programmeId: Long): List<Workout> =
         withContext(Dispatchers.IO) {
@@ -1837,7 +1836,6 @@ class FeatherweightRepository(
                 }
             }
         }
-
 
     private suspend fun recordWorkoutPerformanceData(
         workoutId: Long,

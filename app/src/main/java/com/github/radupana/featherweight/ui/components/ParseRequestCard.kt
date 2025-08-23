@@ -51,9 +51,9 @@ import com.github.radupana.featherweight.data.ParseRequest
 import com.github.radupana.featherweight.data.ParseStatus
 import com.github.radupana.featherweight.data.ParsedProgramme
 import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import com.google.gson.JsonSyntaxException
 
 @Composable
 fun ParseRequestCard(
@@ -159,8 +159,8 @@ private fun formatTimeElapsed(createdAt: LocalDateTime): String {
     }
 }
 
-private fun extractProgrammeName(request: ParseRequest): String? {
-    return if (request.status == ParseStatus.COMPLETED && !request.resultJson.isNullOrEmpty()) {
+private fun extractProgrammeName(request: ParseRequest): String? =
+    if (request.status == ParseStatus.COMPLETED && !request.resultJson.isNullOrEmpty()) {
         try {
             val programme = Gson().fromJson(request.resultJson, ParsedProgramme::class.java)
             programme.name
@@ -171,17 +171,15 @@ private fun extractProgrammeName(request: ParseRequest): String? {
     } else {
         null
     }
-}
 
 @Composable
-private fun getStatusColorAndIcon(status: ParseStatus): Pair<androidx.compose.ui.graphics.Color, androidx.compose.ui.graphics.vector.ImageVector> {
-    return when (status) {
+private fun getStatusColorAndIcon(status: ParseStatus): Pair<androidx.compose.ui.graphics.Color, androidx.compose.ui.graphics.vector.ImageVector> =
+    when (status) {
         ParseStatus.PROCESSING -> MaterialTheme.colorScheme.primary to Icons.Filled.AutoAwesome
         ParseStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary to Icons.Filled.CheckCircle
         ParseStatus.FAILED -> MaterialTheme.colorScheme.error to Icons.Filled.Error
         ParseStatus.IMPORTED -> MaterialTheme.colorScheme.primary to Icons.Filled.CheckCircle
     }
-}
 
 private fun parseAndViewProgramme(
     resultJson: String?,
@@ -247,14 +245,16 @@ private fun ParseRequestHeader(
     }
 }
 
-private fun getStatusTitle(status: ParseStatus, programmeName: String?): String {
-    return when (status) {
+private fun getStatusTitle(
+    status: ParseStatus,
+    programmeName: String?,
+): String =
+    when (status) {
         ParseStatus.PROCESSING -> "Parsing Programme..."
         ParseStatus.COMPLETED -> programmeName ?: "Programme Ready"
         ParseStatus.FAILED -> "Parsing Failed"
         ParseStatus.IMPORTED -> programmeName ?: "Programme Imported"
     }
-}
 
 @Composable
 private fun ParseRequestDetails(
@@ -280,14 +280,16 @@ private fun ParseRequestDetails(
     }
 }
 
-private fun getStatusMessage(status: ParseStatus, timeElapsed: String): String {
-    return when (status) {
+private fun getStatusMessage(
+    status: ParseStatus,
+    timeElapsed: String,
+): String =
+    when (status) {
         ParseStatus.PROCESSING -> "Processing your programme text • $timeElapsed"
         ParseStatus.COMPLETED -> "Ready to review • $timeElapsed"
         ParseStatus.FAILED -> "Failed • $timeElapsed"
         ParseStatus.IMPORTED -> "Imported • $timeElapsed"
     }
-}
 
 @Composable
 private fun FailedRequestDetails(
@@ -313,8 +315,11 @@ private fun FailedRequestDetails(
     )
 }
 
-private fun getErrorSuggestion(errorMessage: String, rawTextLength: Int): String {
-    return when {
+private fun getErrorSuggestion(
+    errorMessage: String,
+    rawTextLength: Int,
+): String =
+    when {
         errorMessage.contains("too complex") || errorMessage.contains("2 weeks") ->
             "💡 Try: Split into 2-week chunks"
         errorMessage.contains("format") || errorMessage.contains("simplifying") ->
@@ -326,7 +331,6 @@ private fun getErrorSuggestion(errorMessage: String, rawTextLength: Int): String
         else ->
             "💡 Try: Check format and simplify if needed"
     }
-}
 
 @Composable
 private fun ParseRequestActionButtons(

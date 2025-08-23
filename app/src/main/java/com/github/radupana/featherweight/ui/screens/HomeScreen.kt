@@ -99,7 +99,6 @@ fun HomeScreen(
         }
     }
 
-
     // Load data when screen appears
     LaunchedEffect(Unit) {
         workoutViewModel.loadInProgressWorkouts()

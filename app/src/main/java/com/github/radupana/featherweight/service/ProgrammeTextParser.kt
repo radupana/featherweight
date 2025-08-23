@@ -144,7 +144,7 @@ class ProgrammeTextParser {
 
         val response = client.newCall(httpRequest).execute()
         val responseBody = response.body.string()
-        
+
         Log.d(TAG, "OpenAI API response: ${response.code}, size: ${responseBody.length} chars")
 
         if (!response.isSuccessful) {

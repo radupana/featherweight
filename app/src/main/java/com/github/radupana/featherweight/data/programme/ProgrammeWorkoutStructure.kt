@@ -98,7 +98,7 @@ sealed class RepsStructure {
  */
 object ProgrammeWorkoutParser {
     private const val TAG = "ProgrammeWorkoutParser"
-    
+
     private val json =
         Json {
             ignoreUnknownKeys = true

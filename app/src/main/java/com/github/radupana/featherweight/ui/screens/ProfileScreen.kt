@@ -101,30 +101,32 @@ fun ProfileScreen(
                 onToggleBig4SubSection = { viewModel.toggleBig4SubSection() },
                 onToggleOtherSubSection = { viewModel.toggleOtherSubSection() },
                 onAddMax = { exercise ->
-                    editingMax = ExerciseMaxWithName(
-                        id = 0,
-                        exerciseId = exercise.exerciseId,
-                        exerciseName = exercise.exerciseName,
-                        oneRMEstimate = 0f,
-                        oneRMDate = java.time.LocalDateTime.now(),
-                        oneRMContext = "Manually set",
-                        oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,
-                        notes = null,
-                        sessionCount = 0,
-                    )
+                    editingMax =
+                        ExerciseMaxWithName(
+                            id = 0,
+                            exerciseId = exercise.exerciseId,
+                            exerciseName = exercise.exerciseName,
+                            oneRMEstimate = 0f,
+                            oneRMDate = java.time.LocalDateTime.now(),
+                            oneRMContext = "Manually set",
+                            oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,
+                            notes = null,
+                            sessionCount = 0,
+                        )
                 },
                 onEditMax = { exercise ->
-                    editingMax = ExerciseMaxWithName(
-                        id = 0,
-                        exerciseId = exercise.exerciseId,
-                        exerciseName = exercise.exerciseName,
-                        oneRMEstimate = exercise.oneRMValue ?: 0f,
-                        oneRMDate = java.time.LocalDateTime.now(),
-                        oneRMContext = exercise.oneRMContext ?: "Manually set",
-                        oneRMType = exercise.oneRMType ?: com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,
-                        notes = null,
-                        sessionCount = exercise.sessionCount,
-                    )
+                    editingMax =
+                        ExerciseMaxWithName(
+                            id = 0,
+                            exerciseId = exercise.exerciseId,
+                            exerciseName = exercise.exerciseName,
+                            oneRMEstimate = exercise.oneRMValue ?: 0f,
+                            oneRMDate = java.time.LocalDateTime.now(),
+                            oneRMContext = exercise.oneRMContext ?: "Manually set",
+                            oneRMType = exercise.oneRMType ?: com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,
+                            notes = null,
+                            sessionCount = exercise.sessionCount,
+                        )
                 },
                 onClearMax = { exerciseId ->
                     clearingExerciseId = exerciseId
@@ -132,7 +134,7 @@ fun ProfileScreen(
                 },
                 onShowExerciseSelector = { showExerciseSelector = true },
                 onEditOtherMax = { max -> editingMax = max },
-                onDeleteMax = { exerciseId -> viewModel.deleteMax(exerciseId) }
+                onDeleteMax = { exerciseId -> viewModel.deleteMax(exerciseId) },
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -140,7 +142,7 @@ fun ProfileScreen(
             ExportSection(
                 uiState = uiState,
                 onToggleDataManagement = { viewModel.toggleDataManagementSection() },
-                onShowExportDialog = { showExportDialog = true }
+                onShowExportDialog = { showExportDialog = true },
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -151,7 +153,7 @@ fun ProfileScreen(
                 onSeedWorkoutData = { viewModel.seedWorkoutData() },
                 onResetSeedingState = { viewModel.resetSeedingState() },
                 onClearAllData = { viewModel.clearAllWorkoutData() },
-                onForceAnalysis = { insightsViewModel?.forceAnalysis() }
+                onForceAnalysis = { insightsViewModel?.forceAnalysis() },
             )
         }
     }
@@ -169,17 +171,18 @@ fun ProfileScreen(
             if (existingMax != null) {
                 editingMax = existingMax
             } else {
-                editingMax = ExerciseMaxWithName(
-                    id = 0,
-                    exerciseId = exercise.variation.id,
-                    exerciseName = exercise.variation.name,
-                    oneRMEstimate = 0f,
-                    oneRMDate = java.time.LocalDateTime.now(),
-                    oneRMContext = "Manually set",
-                    oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,
-                    notes = null,
-                    sessionCount = 0,
-                )
+                editingMax =
+                    ExerciseMaxWithName(
+                        id = 0,
+                        exerciseId = exercise.variation.id,
+                        exerciseName = exercise.variation.name,
+                        oneRMEstimate = 0f,
+                        oneRMDate = java.time.LocalDateTime.now(),
+                        oneRMContext = "Manually set",
+                        oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,
+                        notes = null,
+                        sessionCount = 0,
+                    )
             }
             showExerciseSelector = false
         },
@@ -205,7 +208,7 @@ fun ProfileScreen(
         },
         onClearExportedFile = { viewModel.clearExportedFile() },
         onClearError = { viewModel.clearError() },
-        onClearSuccessMessage = { viewModel.clearSuccessMessage() }
+        onClearSuccessMessage = { viewModel.clearSuccessMessage() },
     )
 }
 
@@ -220,7 +223,7 @@ private fun OneRMSection(
     onClearMax: (Long) -> Unit,
     onShowExerciseSelector: () -> Unit,
     onEditOtherMax: (ExerciseMaxWithName) -> Unit,
-    onDeleteMax: (Long) -> Unit
+    onDeleteMax: (Long) -> Unit,
 ) {
     CollapsibleSection(
         title = "One Rep Maxes",
@@ -259,9 +262,10 @@ private fun OneRMSection(
                     showDivider = true,
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp),
                         horizontalArrangement = Arrangement.End,
                     ) {
                         IconButton(onClick = onShowExerciseSelector) {
@@ -292,9 +296,10 @@ private fun OneRMSection(
                 Spacer(modifier = Modifier.height(8.dp))
                 GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
@@ -328,7 +333,7 @@ private fun OneRMSection(
 private fun ExportSection(
     uiState: com.github.radupana.featherweight.viewmodel.ProfileUiState,
     onToggleDataManagement: () -> Unit,
-    onShowExportDialog: () -> Unit
+    onShowExportDialog: () -> Unit,
 ) {
     CollapsibleSection(
         title = "Data Management",
@@ -341,9 +346,10 @@ private fun ExportSection(
         ) {
             GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
@@ -381,7 +387,7 @@ private fun SettingsSection(
     onSeedWorkoutData: () -> Unit,
     onResetSeedingState: () -> Unit,
     onClearAllData: () -> Unit,
-    onForceAnalysis: () -> Unit
+    onForceAnalysis: () -> Unit,
 ) {
     CollapsibleSection(
         title = "Developer Tools",
@@ -394,9 +400,10 @@ private fun SettingsSection(
         ) {
             GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
@@ -460,9 +467,10 @@ private fun SettingsSection(
 
             GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
@@ -487,9 +495,10 @@ private fun SettingsSection(
 
             GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
@@ -533,7 +542,7 @@ private fun ProfileDialogs(
     onDismissClear: () -> Unit,
     onClearExportedFile: () -> Unit,
     onClearError: () -> Unit,
-    onClearSuccessMessage: () -> Unit
+    onClearSuccessMessage: () -> Unit,
 ) {
     if (showExerciseSelector) {
         ExerciseSelectorDialog(

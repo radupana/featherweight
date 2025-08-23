@@ -5,10 +5,10 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import java.time.LocalDateTime
-import java.io.IOException
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
+import java.io.IOException
+import java.time.LocalDateTime
 
 @Serializable
 data class ExerciseData(
@@ -46,6 +46,7 @@ class ExerciseSeeder(
     companion object {
         private const val TAG = "ExerciseSeeder"
     }
+
     private val json =
         Json {
             ignoreUnknownKeys = true
@@ -102,7 +103,7 @@ class ExerciseSeeder(
                         // Create variations for this core
                         variations.forEach { data ->
                             val rmScalingType = determineRMScalingType(data.name)
-                            
+
                             val variation =
                                 ExerciseVariation(
                                     id = 0, // Auto-generate
@@ -260,49 +261,65 @@ class ExerciseSeeder(
 
     private fun determineRMScalingType(exerciseName: String): RMScalingType {
         val nameLower = exerciseName.lowercase()
-        
+
         // Check for weighted bodyweight exercises
         if (isWeightedBodyweightExercise(nameLower)) {
             return RMScalingType.WEIGHTED_BODYWEIGHT
         }
-        
+
         // Check for isolation exercises
         if (isIsolationExercise(nameLower)) {
             return RMScalingType.ISOLATION
         }
-        
+
         // Default to standard for compound movements
         return RMScalingType.STANDARD
     }
-    
+
     private fun isWeightedBodyweightExercise(nameLower: String): Boolean {
         if (!nameLower.contains("weighted")) return false
-        
-        val bodyweightExercises = listOf(
-            "pull up", "pull-up", "chin up", "chin-up",
-            "dip", "muscle up", "muscle-up"
-        )
-        
+
+        val bodyweightExercises =
+            listOf(
+                "pull up",
+                "pull-up",
+                "chin up",
+                "chin-up",
+                "dip",
+                "muscle up",
+                "muscle-up",
+            )
+
         return bodyweightExercises.any { nameLower.contains(it) }
     }
-    
+
     private fun isIsolationExercise(nameLower: String): Boolean {
-        val isolationKeywords = listOf(
-            "curl", "extension", "fly", "flye", "raise", "shrug",
-            "kickback", "pullover", "calf", "preacher",
-            "concentration", "hammer"
-        )
-        
+        val isolationKeywords =
+            listOf(
+                "curl",
+                "extension",
+                "fly",
+                "flye",
+                "raise",
+                "shrug",
+                "kickback",
+                "pullover",
+                "calf",
+                "preacher",
+                "concentration",
+                "hammer",
+            )
+
         // Check for standard isolation keywords
         if (isolationKeywords.any { nameLower.contains(it) }) {
             return true
         }
-        
+
         // Special case for cable exercises
         if (nameLower.contains("cable")) {
             return nameLower.contains("crossover") || nameLower.contains("lateral")
         }
-        
+
         return false
     }
 

@@ -17,6 +17,7 @@ class WorkoutSeedingService(
 ) {
     companion object {
         private const val TAG = "WorkoutSeedingService"
+
         // Weight thresholds and improvements
         private const val MIN_MEANINGFUL_WEIGHT = 40f // Minimum weight for 1RM calculations (kg)
         private const val MIN_IMPROVEMENT_THRESHOLD = 0.01f // 1% improvement required for 1RM update
@@ -611,7 +612,7 @@ class WorkoutSeedingService(
 
             exerciseLogs.forEach { exerciseLog ->
                 val sets = repository.getSetLogsForExercise(exerciseLog.id)
-                
+
                 // Get the exercise variation to determine scaling type
                 val exerciseVariation = repository.getExerciseById(exerciseLog.exerciseVariationId)
                 val scalingType = exerciseVariation?.rmScalingType ?: com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
