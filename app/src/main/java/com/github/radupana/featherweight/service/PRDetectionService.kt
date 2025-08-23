@@ -24,6 +24,9 @@ class PRDetectionService(
     private val setLogDao: SetLogDao,
     private val exerciseVariationDao: ExerciseVariationDao,
 ) {
+    companion object {
+        private const val TAG = "PRDetectionService"
+    }
     /**
      * Checks if a completed set represents a new weight PR and creates record if so.
      * Only detects weight PRs (lifting more weight than previous best).
@@ -52,6 +55,7 @@ class PRDetectionService(
                     try {
                         LocalDateTime.parse(workoutDateString, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                     } catch (e: Exception) {
+                        Log.w(TAG, "Failed to parse workout date for setLog: ${setLog.id}, using current time", e)
                         LocalDateTime.now()
                     }
                 } else {

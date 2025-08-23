@@ -46,14 +46,3 @@ data class Usage(
     @SerialName("total_tokens") val totalTokens: Int,
 )
 
-@Serializable
-data class OpenAIError(
-    val error: ErrorDetails,
-)
-
-@Serializable
-data class ErrorDetails(
-    val message: String,
-    val type: String,
-    val code: String?,
-)

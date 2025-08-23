@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.ExerciseLog
@@ -15,6 +16,11 @@ import java.time.Duration
 class WorkoutCompletionViewModel(
     private val repository: FeatherweightRepository,
 ) : ViewModel() {
+    
+    companion object {
+        private const val TAG = "WorkoutCompletionViewModel"
+    }
+    
     private val _uiState = MutableStateFlow(WorkoutCompletionUiState())
     val uiState: StateFlow<WorkoutCompletionUiState> = _uiState.asStateFlow()
 
@@ -60,6 +66,7 @@ class WorkoutCompletionViewModel(
                         workoutSummary = summary,
                     )
             } catch (e: Exception) {
+                Log.e(TAG, "Failed to load workout summary for workoutId: $workoutId", e)
                 _uiState.value =
                     _uiState.value.copy(
                         isLoading = false,

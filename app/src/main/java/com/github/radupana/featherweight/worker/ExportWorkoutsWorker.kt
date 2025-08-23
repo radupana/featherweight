@@ -94,19 +94,17 @@ class ExportWorkoutsWorker(
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel =
-                NotificationChannel(
-                    CHANNEL_ID,
-                    "Workout Export",
-                    NotificationManager.IMPORTANCE_LOW,
-                ).apply {
-                    description = "Shows progress while exporting workout data"
-                }
+        val channel =
+            NotificationChannel(
+                CHANNEL_ID,
+                "Workout Export",
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = "Shows progress while exporting workout data"
+            }
 
-            val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-        }
+        val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 
     private fun createForegroundInfo(

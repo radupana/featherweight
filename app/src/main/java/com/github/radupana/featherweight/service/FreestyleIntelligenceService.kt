@@ -22,14 +22,6 @@ class FreestyleIntelligenceService(
         UNKNOWN, // No RPE data
     }
 
-    enum class SuggestionSource {
-        ONE_RM_CALCULATION,
-        RECENT_PERFORMANCE,
-        HISTORICAL_AVERAGE,
-        RPE_AUTOREGULATION,
-        STALL_DETECTION,
-        TREND_ANALYSIS,
-    }
 
     /**
      * Get intelligent weight suggestions for an exercise with detailed reasoning

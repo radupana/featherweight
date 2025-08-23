@@ -57,7 +57,6 @@ fun InsightsScreen(
     var recentPRs by remember { mutableStateOf<List<com.github.radupana.featherweight.data.PersonalRecord>>(emptyList()) }
     var weeklyWorkoutCount by remember { mutableStateOf(0) }
     var currentStreak by remember { mutableStateOf(0) }
-    var isHighlightsLoading by remember { mutableStateOf(true) }
     var isDataInitialized by remember { mutableStateOf(false) }
 
     val trainingAnalysis by viewModel.trainingAnalysis.collectAsStateWithLifecycle()
@@ -71,7 +70,6 @@ fun InsightsScreen(
             recentPRs = prs
             weeklyWorkoutCount = workoutCount
             currentStreak = streak
-            isHighlightsLoading = false
             isDataInitialized = true
         }
 

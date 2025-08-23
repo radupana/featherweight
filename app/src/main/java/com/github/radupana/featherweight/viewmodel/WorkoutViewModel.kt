@@ -80,6 +80,7 @@ class WorkoutViewModel(
     private val oneRMService = OneRMService()
 
     companion object {
+        private const val TAG = "WorkoutViewModel"
         private const val DEFAULT_REST_TIMER_SECONDS = 90
     }
 
@@ -253,7 +254,7 @@ class WorkoutViewModel(
                                     sets.count { it.isCompleted }
                                 }
                             } catch (e: Exception) {
-                                // Failed to calculate completed sets, show 0 for now
+                                Log.e(TAG, "Failed to calculate completed sets for workout ${summary.id}", e)
                                 0
                             }
 
@@ -384,7 +385,7 @@ class WorkoutViewModel(
                     try {
                         repository.getProgrammeById(workout.programmeId)?.name
                     } catch (e: Exception) {
-                        // Failed to get programme name
+                        Log.e(TAG, "Failed to get programme name for ID ${workout.programmeId}", e)
                         null
                     }
                 } else {
@@ -962,7 +963,7 @@ class WorkoutViewModel(
                     repository.updateExerciseOrder(exercise.id, index)
                 }
             } catch (e: Exception) {
-                // Error reordering exercises - order remains as-is in UI
+                Log.e(TAG, "Error reordering exercises", e)
             }
         }
     }
@@ -1274,7 +1275,7 @@ class WorkoutViewModel(
                     }
                 }
             } catch (e: Exception) {
-                // PR detection failed but don't fail set completion
+                Log.e(TAG, "PR detection failed for set $setId", e)
             }
 
             // Check if we should update 1RM estimate

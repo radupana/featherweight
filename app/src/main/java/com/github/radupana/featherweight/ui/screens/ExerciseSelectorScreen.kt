@@ -990,7 +990,7 @@ private fun CreateCustomExerciseDialog(
     if (showCategoryDialog) {
         SearchableSelectionDialog(
             title = "Select Category",
-            items = ExerciseCategory.values().toList(),
+            items = ExerciseCategory.entries.toList(),
             selectedItem = selectedCategory,
             itemLabel = { it.displayName },
             searchHint = "Search categories...",
@@ -1008,7 +1008,7 @@ private fun CreateCustomExerciseDialog(
     if (showPrimaryMusclesDialog) {
         SearchableSelectionDialog(
             title = "Select Primary Muscles",
-            items = MuscleGroup.values().toList(),
+            items = MuscleGroup.entries.toList(),
             selectedItems = selectedPrimaryMuscles,
             itemLabel = { it.displayName },
             searchHint = "Search muscles...",
@@ -1028,7 +1028,7 @@ private fun CreateCustomExerciseDialog(
     if (showEquipmentDialog) {
         SearchableSelectionDialog(
             title = "Select Equipment",
-            items = Equipment.values().toList(),
+            items = Equipment.entries.toList(),
             selectedItems = selectedEquipment,
             itemLabel = { it.displayName },
             searchHint = "Search equipment...",
@@ -1044,7 +1044,7 @@ private fun CreateCustomExerciseDialog(
 
     // Secondary Muscles Selection Dialog
     if (showSecondaryMusclesDialog) {
-        val availableSecondaryMuscles = MuscleGroup.values().filter { it !in selectedPrimaryMuscles }
+        val availableSecondaryMuscles = MuscleGroup.entries.filter { it !in selectedPrimaryMuscles }
         SearchableSelectionDialog(
             title = "Select Secondary Muscles",
             items = availableSecondaryMuscles,
@@ -1065,7 +1065,7 @@ private fun CreateCustomExerciseDialog(
     if (showDifficultyDialog) {
         SearchableSelectionDialog(
             title = "Select Difficulty",
-            items = ExerciseDifficulty.values().toList(),
+            items = ExerciseDifficulty.entries.toList(),
             selectedItem = selectedDifficulty,
             itemLabel = { it.displayName },
             searchHint = "Search difficulty...",

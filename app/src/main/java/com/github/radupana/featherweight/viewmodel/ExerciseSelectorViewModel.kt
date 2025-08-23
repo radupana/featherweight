@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.Equipment
@@ -22,6 +23,10 @@ class ExerciseSelectorViewModel(
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
     private val namingService = ExerciseNamingService()
+
+    companion object {
+        private const val TAG = "ExerciseSelectorViewModel"
+    }
 
     // Raw data
     private val _allExercises = MutableStateFlow<List<ExerciseWithDetails>>(emptyList())
@@ -66,9 +71,9 @@ class ExerciseSelectorViewModel(
     val isLoading: StateFlow<Boolean> = _isLoading
 
     // Available filter options
-    val categories = MutableStateFlow(ExerciseCategory.values().toList())
-    val muscleGroups = MutableStateFlow(MuscleGroup.values().toList())
-    val equipment = MutableStateFlow(Equipment.values().filter { it != Equipment.NONE })
+    val categories = MutableStateFlow(ExerciseCategory.entries.toList())
+    val muscleGroups = MutableStateFlow(MuscleGroup.entries.toList())
+    val equipment = MutableStateFlow(Equipment.entries.filter { it != Equipment.NONE })
 
     // Filtered exercises
     private val _filteredExercises = MutableStateFlow<List<ExerciseWithDetails>>(emptyList())
@@ -118,6 +123,7 @@ class ExerciseSelectorViewModel(
                             try {
                                 MuscleGroup.valueOf(targetMuscle)
                             } catch (e: IllegalArgumentException) {
+                                Log.w(TAG, "Invalid muscle group: $targetMuscle", e)
                                 return@let false
                             }
                         exercise.getPrimaryMuscles().contains(muscleGroupEnum) ||

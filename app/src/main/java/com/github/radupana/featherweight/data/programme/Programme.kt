@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.data.programme
 
+import android.util.Log
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -53,6 +54,7 @@ data class Programme(
             try {
                 Json.decodeFromString<WeightCalculationRules>(it)
             } catch (e: Exception) {
+                Log.w(TAG, "Failed to parse weight calculation rules JSON", e)
                 null
             }
         }
@@ -62,11 +64,14 @@ data class Programme(
             try {
                 Json.decodeFromString<ProgressionRules>(it)
             } catch (e: Exception) {
+                Log.w(TAG, "Failed to parse progression rules JSON", e)
                 null
             }
         }
 
     companion object {
+        private const val TAG = "Programme"
+        
         fun encodeWeightCalculationRules(rules: WeightCalculationRules): String = Json.encodeToString(rules)
 
         fun encodeProgressionRules(rules: ProgressionRules): String = Json.encodeToString(rules)

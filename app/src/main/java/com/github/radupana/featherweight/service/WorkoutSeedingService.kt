@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.service
 
+import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
@@ -15,6 +16,7 @@ class WorkoutSeedingService(
     private val repository: FeatherweightRepository,
 ) {
     companion object {
+        private const val TAG = "WorkoutSeedingService"
         // Weight thresholds and improvements
         private const val MIN_MEANINGFUL_WEIGHT = 40f // Minimum weight for 1RM calculations (kg)
         private const val MIN_IMPROVEMENT_THRESHOLD = 0.01f // 1% improvement required for 1RM update
@@ -631,7 +633,7 @@ class WorkoutSeedingService(
                     try {
                         repository.checkForPR(set, exerciseLog.exerciseVariationId)
                     } catch (e: Exception) {
-                        // PR check failed during seeding - non-critical, continue with seeding
+                        Log.w(TAG, "PR check failed during seeding for exerciseId: ${exerciseLog.exerciseVariationId}, setId: ${set.id}", e)
                     }
 
                     // Only calculate 1RM for meaningful sets (not warmups)
@@ -689,7 +691,7 @@ class WorkoutSeedingService(
                             workoutDate = workout.date,
                         )
                     } catch (e: Exception) {
-                        // 1RM update failed during seeding - non-critical, continue with seeding
+                        Log.w(TAG, "1RM update failed during seeding for exerciseId: ${exerciseLog.exerciseVariationId}, workoutId: $workoutId", e)
                     }
                 }
             }

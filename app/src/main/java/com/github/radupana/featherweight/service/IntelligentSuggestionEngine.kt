@@ -59,10 +59,7 @@ data class SuggestionSourceData(
 enum class SuggestionSource {
     ONE_RM_CALCULATION,
     HISTORICAL_AVERAGE,
-    PROGRAMME_PRESCRIPTION,
-    CROSS_EXERCISE_CORRELATION,
     RECENT_PERFORMANCE,
-    AI_PREDICTION,
 }
 
 data class PerformanceData(

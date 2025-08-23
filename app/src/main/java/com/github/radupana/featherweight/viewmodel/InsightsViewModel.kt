@@ -96,6 +96,7 @@ class InsightsViewModel(
     private val gson = Gson()
 
     companion object {
+        private const val TAG = "InsightsViewModel"
         private const val MINIMUM_WORKOUTS_FOR_ANALYSIS = 16
         private const val ANALYSIS_PERIOD_WEEKS = 12
     }
@@ -157,7 +158,7 @@ class InsightsViewModel(
         }
     }
 
-    private suspend fun hydrateFromCache(cachedData: CachedAnalyticsData) {
+    private fun hydrateFromCache(cachedData: CachedAnalyticsData) {
         val currentState = _analyticsState.value
 
         _analyticsState.value =
@@ -798,12 +799,14 @@ class InsightsViewModel(
                     try {
                         InsightCategory.valueOf(insight.get("category").asString)
                     } catch (e: Exception) {
+                        Log.w(TAG, "Unknown insight category, defaulting to PROGRESSION", e)
                         InsightCategory.PROGRESSION
                     }
                 val severity =
                     try {
                         InsightSeverity.valueOf(insight.get("severity").asString)
                     } catch (e: Exception) {
+                        Log.w(TAG, "Unknown insight severity, defaulting to INFO", e)
                         InsightSeverity.INFO
                     }
 
@@ -837,7 +840,7 @@ class InsightsViewModel(
                 userId = 1,
             )
         } catch (e: Exception) {
-            // Fallback to basic analysis if parsing fails
+            Log.e(TAG, "Failed to parse AI analysis, using fallback", e)
             val fallbackInsights =
                 listOf(
                     TrainingInsight(

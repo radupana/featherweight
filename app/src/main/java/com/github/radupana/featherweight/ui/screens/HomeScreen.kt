@@ -47,12 +47,6 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
-data class LastWorkoutInfo(
-    val name: String,
-    val daysAgo: String,
-    val exercises: String,
-)
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
@@ -99,47 +93,15 @@ fun HomeScreen(
 
     // Determine next workout info - needs to be done in LaunchedEffect
     var nextWorkoutInfo by remember { mutableStateOf<NextProgrammeWorkoutInfo?>(null) }
-    var nextWorkoutLabel by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(activeProgramme, programmeProgress) {
         val programme = activeProgramme
         if (programme != null && programmeProgress != null) {
             nextWorkoutInfo = workoutViewModel.getNextProgrammeWorkout()
-            nextWorkoutInfo?.let { info ->
-                val workoutDetail = info.workoutStructure.name
-                nextWorkoutLabel = "${programme.name} $workoutDetail"
-            }
         }
     }
 
-    // Format last workout info
-    var lastWorkoutInfo by remember { mutableStateOf<LastWorkoutInfo?>(null) }
     val exerciseNamesMap by workoutViewModel.exerciseNames.collectAsState()
-
-    LaunchedEffect(lastCompletedWorkout, lastCompletedWorkoutExercises, exerciseNamesMap) {
-        lastCompletedWorkout?.let { workout ->
-            val daysAgo = ChronoUnit.DAYS.between(workout.date, LocalDateTime.now()).toInt()
-            val daysAgoText =
-                when (daysAgo) {
-                    0 -> "today"
-                    1 -> "yesterday"
-                    else -> "$daysAgo days ago"
-                }
-
-            val exerciseNames =
-                lastCompletedWorkoutExercises.take(3).joinToString(", ") { exercise ->
-                    exerciseNamesMap[exercise.exerciseVariationId] ?: "Unknown"
-                } +
-                    if (lastCompletedWorkoutExercises.size > 3) " +${lastCompletedWorkoutExercises.size - 3} more" else ""
-
-            lastWorkoutInfo =
-                LastWorkoutInfo(
-                    name = workout.programmeWorkoutName ?: "Freestyle Workout",
-                    daysAgo = daysAgoText,
-                    exercises = exerciseNames,
-                )
-        }
-    }
 
     // Load data when screen appears
     LaunchedEffect(Unit) {

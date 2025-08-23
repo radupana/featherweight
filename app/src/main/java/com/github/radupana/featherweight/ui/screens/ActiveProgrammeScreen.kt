@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -111,7 +112,7 @@ fun ActiveProgrammeScreen(
                 }
             }
         } catch (e: Exception) {
-            // Error loading next workout
+            Log.w("ActiveProgrammeScreen", "Failed to load next programme workout", e)
         } finally {
             isLoading = false
         }

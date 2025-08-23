@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.data.programme
 
+import android.util.Log
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -96,6 +97,8 @@ sealed class RepsStructure {
  * Helper functions for parsing programme structures
  */
 object ProgrammeWorkoutParser {
+    private const val TAG = "ProgrammeWorkoutParser"
+    
     private val json =
         Json {
             ignoreUnknownKeys = true
@@ -106,6 +109,7 @@ object ProgrammeWorkoutParser {
         try {
             json.decodeFromString<ProgrammeStructure>(jsonString)
         } catch (e: Exception) {
+            Log.w(TAG, "Failed to parse programme structure JSON", e)
             null
         }
 

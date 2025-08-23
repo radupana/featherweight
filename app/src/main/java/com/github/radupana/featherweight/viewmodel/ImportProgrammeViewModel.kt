@@ -18,6 +18,9 @@ import kotlinx.coroutines.launch
 class ImportProgrammeViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
+    companion object {
+        private const val TAG = "ImportProgrammeViewModel"
+    }
     private val repository = FeatherweightRepository(application)
     private val parser = ProgrammeTextParser()
 
@@ -516,6 +519,7 @@ class ImportProgrammeViewModel(
                 com.github.radupana.featherweight.data.programme.ProgrammeType
                     .valueOf(parsedProgramme.programmeType)
             } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Unknown programme type: ${parsedProgramme.programmeType}, defaulting to GENERAL_FITNESS", e)
                 com.github.radupana.featherweight.data.programme.ProgrammeType.GENERAL_FITNESS
             }
 
@@ -525,6 +529,7 @@ class ImportProgrammeViewModel(
                 com.github.radupana.featherweight.data.programme.ProgrammeDifficulty
                     .valueOf(parsedProgramme.difficulty)
             } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Unknown difficulty: ${parsedProgramme.difficulty}, defaulting to INTERMEDIATE", e)
                 com.github.radupana.featherweight.data.programme.ProgrammeDifficulty.INTERMEDIATE
             }
 

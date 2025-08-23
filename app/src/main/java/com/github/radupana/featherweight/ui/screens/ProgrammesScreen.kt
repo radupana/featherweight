@@ -343,10 +343,8 @@ fun ProgrammesScreen(
 
         // Check for in-progress workouts when dialog opens
         LaunchedEffect(showDeleteConfirmDialog) {
-            if (showDeleteConfirmDialog) {
-                activeProgramme?.let { programme ->
-                    inProgressWorkoutCount = viewModel.getInProgressWorkoutCount(programme)
-                }
+            activeProgramme?.let { programme ->
+                inProgressWorkoutCount = viewModel.getInProgressWorkoutCount(programme)
             }
         }
 

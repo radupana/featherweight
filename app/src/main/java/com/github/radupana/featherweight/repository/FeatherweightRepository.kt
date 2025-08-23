@@ -118,6 +118,10 @@ data class WorkoutSummary(
 class FeatherweightRepository(
     application: Application,
 ) {
+    companion object {
+        private const val TAG = "FeatherweightRepository"
+    }
+
     private val db = FeatherweightDatabase.getDatabase(application)
     private val userPreferences = UserPreferences(application)
 
@@ -477,6 +481,7 @@ class FeatherweightRepository(
                         try {
                             programmeDao.getProgrammeById(workout.programmeId)?.name
                         } catch (e: Exception) {
+                            Log.e(TAG, "Failed to get programme name for programmeId: ${workout.programmeId}", e)
                             null
                         }
                     } else {
@@ -790,7 +795,6 @@ class FeatherweightRepository(
                         setLogDao.insertSetLog(setLog)
                     }
                 }
-
             } catch (e: Exception) {
                 Log.e("FeatherweightRepository", "Failed to generate template exercises: ${e.message}", e)
             }
@@ -1235,6 +1239,7 @@ class FeatherweightRepository(
                 try {
                     Gson().fromJson(exerciseStructure.note, Map::class.java) as Map<String, Any>
                 } catch (e: Exception) {
+                    Log.w(TAG, "Failed to parse exercise structure note JSON for exercise: ${exerciseStructure.name}", e)
                     null
                 }
 
@@ -1493,121 +1498,10 @@ class FeatherweightRepository(
 
             return totalWorkouts
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to get total workouts for programme: ${programme.id} (${programme.name})", e)
             programme.durationWeeks * 3 // Fallback to default
         }
     }
-
-    // ===== PROGRAMME METHODS =====
-
-    // Programme Templates
-    /* REMOVED - Programme templates no longer supported
-    suspend fun getAllProgrammeTemplates() =
-        withContext(Dispatchers.IO) {
-            programmeDao.getAllTemplates()
-        }
-     */
-
-    // Programme Management
-    /* REMOVED - Programme templates no longer supported
-    suspend fun createProgrammeFromTemplate(
-        templateId: Long,
-        name: String? = null,
-        squatMax: Float? = null,
-        benchMax: Float? = null,
-        deadliftMax: Float? = null,
-        ohpMax: Float? = null,
-    ): Long =
-        withContext(Dispatchers.IO) {
-            val template =
-                programmeDao.getTemplateById(templateId)
-                    ?: throw IllegalArgumentException("Template not found")
-
-            // Validate all exercises in the template
-            val validator = ExerciseValidator(exerciseDao)
-            validator.initialize()
-
-            val validationErrors = validator.validateProgrammeStructure(template.jsonStructure)
-            if (validationErrors.isNotEmpty()) {
-                val errorMessage =
-                    validationErrors.joinToString("\n") { error ->
-                        "${error.field}: ${error.error}" +
-                            (error.suggestion?.let { " (Try: $it)" } ?: "")
-                    }
-                throw IllegalArgumentException(errorMessage)
-            }
-
-            val programme =
-                Programme(
-                    name = template.name, // Always use template name, ignore custom name
-                    description = template.description,
-                    durationWeeks = template.durationWeeks,
-                    programmeType = template.programmeType,
-                    difficulty = template.difficulty,
-                    isCustom = false,
-                    isActive = false,
-                    status = ProgrammeStatus.NOT_STARTED,
-                    squatMax = squatMax,
-                    benchMax = benchMax,
-                    deadliftMax = deadliftMax,
-                    ohpMax = ohpMax,
-                    weightCalculationRules = template.weightCalculationRules,
-                    progressionRules = template.progressionRules,
-                    templateName = template.name, // Always store the original template name
-                )
-
-            val programmeId = programmeDao.insertProgramme(programme)
-
-            // Parse JSON structure and create weeks/workouts
-            val structure = ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
-            if (structure != null) {
-                // For programmes with single week templates that repeat (like StrongLifts)
-                val templateWeeks = structure.weeks.size
-                val totalWeeks = template.durationWeeks
-
-                // Create all weeks
-                for (weekNum in 1..totalWeeks) {
-                    val templateWeekIndex = ((weekNum - 1) % templateWeeks)
-                    val templateWeek = structure.weeks[templateWeekIndex]
-
-                    val week =
-                        ProgrammeWeek(
-                            programmeId = programmeId,
-                            weekNumber = weekNum,
-                            name = "Week $weekNum",
-                            description = templateWeek.name,
-                            focusAreas = null,
-                            intensityLevel = null,
-                            volumeLevel = null,
-                            isDeload = false,
-                            phase = null,
-                        )
-
-                    val weekId = programmeDao.insertProgrammeWeek(week)
-
-                    // Create workouts for this week
-                    templateWeek.workouts.forEach { workoutStructure ->
-                        val workout =
-                            ProgrammeWorkout(
-                                weekId = weekId,
-                                dayNumber = workoutStructure.day,
-                                name = workoutStructure.name,
-                                description = null,
-                                estimatedDuration = workoutStructure.estimatedDuration,
-                                workoutStructure =
-                                    kotlinx.serialization.json.Json.encodeToString(
-                                        WorkoutStructure.serializer(),
-                                        workoutStructure,
-                                    ),
-                            )
-
-                        programmeDao.insertProgrammeWorkout(workout)
-                    }
-                }
-            }
-
-            programmeId
-        }
-     */
 
     suspend fun createImportedProgramme(
         name: String,
@@ -2534,9 +2428,8 @@ class FeatherweightRepository(
 
                 // Update or insert the 1RM record
                 updateOrInsertOneRM(userExerciseMax)
-            } else if (prs.isNotEmpty()) {
-                // PRs detected but no 1RM update needed
             }
+            // Note: If PRs detected but no 1RM update needed, we simply return the PRs
 
             prs
         }

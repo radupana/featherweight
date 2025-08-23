@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.ui.components
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
@@ -84,6 +85,7 @@ fun ParseRequestCard(
                     val programme = Gson().fromJson(request.resultJson, ParsedProgramme::class.java)
                     programme.name
                 } catch (e: Exception) {
+                    Log.w("ParseRequestCard", "Failed to parse programme name from result JSON", e)
                     null
                 }
             } else {
@@ -115,7 +117,7 @@ fun ParseRequestCard(
                                     val programme = Gson().fromJson(request.resultJson, ParsedProgramme::class.java)
                                     onView(programme, request.id)
                                 } catch (e: Exception) {
-                                    // Handle parse error
+                                    Log.w("ParseRequestCard", "Failed to parse programme from result JSON for view action", e)
                                 }
                             }
                         }
@@ -261,7 +263,7 @@ fun ParseRequestCard(
                                             val programme = Gson().fromJson(request.resultJson, ParsedProgramme::class.java)
                                             onView(programme, request.id)
                                         } catch (e: Exception) {
-                                            // Handle parse error
+                                            Log.w("ParseRequestCard", "Failed to parse programme from result JSON in completed action button", e)
                                         }
                                     }
                                 },

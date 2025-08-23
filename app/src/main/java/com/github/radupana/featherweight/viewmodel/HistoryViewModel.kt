@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.repository.FeatherweightRepository
@@ -50,6 +51,10 @@ data class WeekWorkouts(
 class HistoryViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
+    companion object {
+        private const val TAG = "HistoryViewModel"
+    }
+    
     private val repository = FeatherweightRepository(application)
 
     private val _historyState = MutableStateFlow(PaginatedHistoryState())
@@ -238,6 +243,7 @@ class HistoryViewModel(
                         isLoading = false,
                     )
             } catch (e: Exception) {
+                Log.e(TAG, "Failed to export workout", e)
                 _calendarState.value = _calendarState.value.copy(isLoading = false)
             }
         }
@@ -325,6 +331,7 @@ class HistoryViewModel(
                         isLoading = false,
                     )
             } catch (e: Exception) {
+                Log.e(TAG, "Failed to load week groups for calendar month", e)
                 _weekGroupState.value = _weekGroupState.value.copy(isLoading = false)
             }
         }

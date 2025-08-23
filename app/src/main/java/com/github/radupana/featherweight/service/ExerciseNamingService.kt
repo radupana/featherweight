@@ -8,7 +8,7 @@ import com.github.radupana.featherweight.data.exercise.MovementPattern
 /**
  * Service for validating and formatting exercise names according to app conventions.
  * 
- * Naming Convention: [Equipment] [Muscle] [Movement]
+ * Naming Convention: `[Equipment] [Muscle] [Movement]`
  * Example: "Barbell Bench Press", "Dumbbell Bicep Curl"
  * 
  * Rules:

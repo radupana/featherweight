@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.data
 
+import android.util.Log
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.google.gson.Gson
@@ -21,6 +22,7 @@ data class TrainingAnalysis(
     val userId: Long = 1,
 ) {
     companion object {
+        private const val TAG = "TrainingAnalysis"
         private val gson = Gson() // Single instance for performance
     }
 
@@ -33,6 +35,7 @@ data class TrainingAnalysis(
                     object : TypeToken<List<TrainingInsight>>() {}.type,
                 ) ?: emptyList()
             } catch (e: Exception) {
+                Log.w(TAG, "Failed to parse key insights JSON", e)
                 emptyList()
             }
 
@@ -44,6 +47,7 @@ data class TrainingAnalysis(
                     object : TypeToken<List<String>>() {}.type,
                 ) ?: emptyList()
             } catch (e: Exception) {
+                Log.w(TAG, "Failed to parse recommendations JSON", e)
                 emptyList()
             }
 
@@ -55,6 +59,7 @@ data class TrainingAnalysis(
                     object : TypeToken<List<String>>() {}.type,
                 ) ?: emptyList()
             } catch (e: Exception) {
+                Log.w(TAG, "Failed to parse warnings JSON", e)
                 emptyList()
             }
 }

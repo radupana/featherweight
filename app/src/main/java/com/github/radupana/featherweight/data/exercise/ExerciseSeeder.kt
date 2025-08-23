@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.data.exercise
 
 import android.content.Context
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -40,6 +41,9 @@ class ExerciseSeeder(
     private val variationInstructionDao: VariationInstructionDao,
     private val context: Context? = null,
 ) {
+    companion object {
+        private const val TAG = "ExerciseSeeder"
+    }
     private val json =
         Json {
             ignoreUnknownKeys = true
@@ -217,7 +221,7 @@ class ExerciseSeeder(
         try {
             MovementPattern.valueOf(value.uppercase().replace(" ", "_"))
         } catch (e: Exception) {
-            // Default to PUSH if pattern not recognized
+            Log.w(TAG, "Failed to parse movement pattern: $value, defaulting to PUSH", e)
             MovementPattern.PUSH
         }
 
@@ -235,7 +239,7 @@ class ExerciseSeeder(
         try {
             MuscleGroup.valueOf(value.uppercase().replace(" ", "_"))
         } catch (e: Exception) {
-            // Default to CHEST if not recognized
+            Log.w(TAG, "Failed to parse muscle group: $value, defaulting to CHEST", e)
             MuscleGroup.CHEST
         }
 

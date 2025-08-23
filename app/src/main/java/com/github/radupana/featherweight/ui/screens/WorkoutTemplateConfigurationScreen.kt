@@ -102,7 +102,7 @@ fun WorkoutTemplateConfigurationScreen(
             ConfigurationSection(
                 title = "How much time do you have?",
                 selectedValue = timeAvailable,
-                options = TimeAvailable.values().toList(),
+                options = TimeAvailable.entries.toList(),
                 onValueSelected = { timeAvailable = it },
                 getDisplayName = { getTimeDisplayName(it) },
             )
@@ -111,7 +111,7 @@ fun WorkoutTemplateConfigurationScreen(
             ConfigurationSection(
                 title = "What's your goal today?",
                 selectedValue = goal,
-                options = TrainingGoal.values().toList(),
+                options = TrainingGoal.entries.toList(),
                 onValueSelected = { goal = it },
                 getDisplayName = { getGoalDisplayName(it) },
             )
@@ -120,7 +120,7 @@ fun WorkoutTemplateConfigurationScreen(
             ConfigurationSection(
                 title = "How hard do you want to push?",
                 selectedValue = intensity,
-                options = IntensityLevel.values().toList(),
+                options = IntensityLevel.entries.toList(),
                 onValueSelected = { intensity = it },
                 getDisplayName = { getIntensityDisplayName(it) },
             )
