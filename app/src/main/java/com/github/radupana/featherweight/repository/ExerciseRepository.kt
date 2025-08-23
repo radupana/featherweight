@@ -20,6 +20,7 @@ import com.github.radupana.featherweight.domain.ExerciseStats
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
+import android.database.sqlite.SQLiteException
 
 class ExerciseRepository(
     private val db: FeatherweightDatabase,
@@ -429,7 +430,9 @@ class ExerciseRepository(
                 } else {
                     Result.failure(IllegalStateException("Failed to retrieve created exercise"))
                 }
-            } catch (e: Exception) {
+            } catch (e: SQLiteException) {
+                Result.failure(e)
+            } catch (e: IllegalArgumentException) {
                 Result.failure(e)
             }
         }
@@ -465,7 +468,9 @@ class ExerciseRepository(
                 }
 
                 Result.success(true)
-            } catch (e: Exception) {
+            } catch (e: SQLiteException) {
+                Result.failure(e)
+            } catch (e: IllegalArgumentException) {
                 Result.failure(e)
             }
         }
@@ -509,7 +514,9 @@ class ExerciseRepository(
                 }
 
                 Result.success(Unit)
-            } catch (e: Exception) {
+            } catch (e: SQLiteException) {
+                Result.failure(e)
+            } catch (e: IllegalStateException) {
                 Result.failure(e)
             }
         }

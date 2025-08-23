@@ -7,6 +7,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
+import java.io.IOException
+import kotlinx.serialization.SerializationException
 
 @Serializable
 data class ExerciseData(
@@ -174,7 +176,11 @@ class ExerciseSeeder(
                         }
                     }
                 }
-            } catch (e: Exception) {
+            } catch (e: IOException) {
+                error(
+                    "Exercise database loading failed. App cannot function without proper exercise data. Error: ${e.message}",
+                )
+            } catch (e: SerializationException) {
                 error(
                     "Exercise database loading failed. App cannot function without proper exercise data. Error: ${e.message}",
                 )
@@ -220,7 +226,7 @@ class ExerciseSeeder(
     private fun parseMovementPattern(value: String): MovementPattern =
         try {
             MovementPattern.valueOf(value.uppercase().replace(" ", "_"))
-        } catch (e: Exception) {
+        } catch (e: IllegalArgumentException) {
             Log.w(TAG, "Failed to parse movement pattern: $value, defaulting to PUSH", e)
             MovementPattern.PUSH
         }
@@ -238,7 +244,7 @@ class ExerciseSeeder(
     private fun parseMuscleGroup(value: String): MuscleGroup =
         try {
             MuscleGroup.valueOf(value.uppercase().replace(" ", "_"))
-        } catch (e: Exception) {
+        } catch (e: IllegalArgumentException) {
             Log.w(TAG, "Failed to parse muscle group: $value, defaulting to CHEST", e)
             MuscleGroup.CHEST
         }

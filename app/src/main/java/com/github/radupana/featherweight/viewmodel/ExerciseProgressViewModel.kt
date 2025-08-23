@@ -282,9 +282,15 @@ class ExerciseProgressViewModel(
                     )
 
                 _state.value = ExerciseProgressState.Success(data)
-            } catch (e: Exception) {
+            } catch (e: IllegalArgumentException) {
                 android.util.Log.e("ExerciseProgressViewModel", "Error loading exercise data", e)
-                _state.value = ExerciseProgressState.Error(e.message ?: "Unknown error")
+                _state.value = ExerciseProgressState.Error(e.message ?: "Invalid argument")
+            } catch (e: IllegalStateException) {
+                android.util.Log.e("ExerciseProgressViewModel", "Error loading exercise data", e)
+                _state.value = ExerciseProgressState.Error(e.message ?: "Invalid state")
+            } catch (e: NumberFormatException) {
+                android.util.Log.e("ExerciseProgressViewModel", "Error loading exercise data", e)
+                _state.value = ExerciseProgressState.Error(e.message ?: "Number parsing error")
             }
         }
     }
@@ -344,7 +350,13 @@ class ExerciseProgressViewModel(
                     }
 
                 _chartData.value = dataWithPRs
-            } catch (e: Exception) {
+            } catch (e: IllegalArgumentException) {
+                android.util.Log.e("ExerciseProgressViewModel", "Error loading chart data", e)
+                _chartData.value = emptyList()
+            } catch (e: IllegalStateException) {
+                android.util.Log.e("ExerciseProgressViewModel", "Error loading chart data", e)
+                _chartData.value = emptyList()
+            } catch (e: NumberFormatException) {
                 android.util.Log.e("ExerciseProgressViewModel", "Error loading chart data", e)
                 _chartData.value = emptyList()
             }
@@ -403,7 +415,13 @@ class ExerciseProgressViewModel(
                     }
 
                 _maxWeightChartData.value = dataWithPRs
-            } catch (e: Exception) {
+            } catch (e: IllegalArgumentException) {
+                android.util.Log.e("ExerciseProgressViewModel", "Error loading max weight chart data", e)
+                _maxWeightChartData.value = emptyList()
+            } catch (e: IllegalStateException) {
+                android.util.Log.e("ExerciseProgressViewModel", "Error loading max weight chart data", e)
+                _maxWeightChartData.value = emptyList()
+            } catch (e: NumberFormatException) {
                 android.util.Log.e("ExerciseProgressViewModel", "Error loading max weight chart data", e)
                 _maxWeightChartData.value = emptyList()
             }
@@ -451,7 +469,13 @@ class ExerciseProgressViewModel(
                         }.sortedBy { it.date }
 
                 _volumeChartData.value = chartPoints
-            } catch (e: Exception) {
+            } catch (e: IllegalArgumentException) {
+                android.util.Log.e("ExerciseProgressViewModel", "Error loading volume chart data", e)
+                _volumeChartData.value = emptyList()
+            } catch (e: IllegalStateException) {
+                android.util.Log.e("ExerciseProgressViewModel", "Error loading volume chart data", e)
+                _volumeChartData.value = emptyList()
+            } catch (e: NumberFormatException) {
                 android.util.Log.e("ExerciseProgressViewModel", "Error loading volume chart data", e)
                 _volumeChartData.value = emptyList()
             }
@@ -471,7 +495,11 @@ class ExerciseProgressViewModel(
                 loadFrequencyData(exerciseVariationId)
                 loadRepRangeData(exerciseVariationId)
                 loadRPEZoneData(exerciseVariationId)
-            } catch (e: Exception) {
+            } catch (e: IllegalArgumentException) {
+                android.util.Log.e("ExerciseProgress", "Error loading training patterns data", e)
+            } catch (e: IllegalStateException) {
+                android.util.Log.e("ExerciseProgress", "Error loading training patterns data", e)
+            } catch (e: NumberFormatException) {
                 android.util.Log.e("ExerciseProgress", "Error loading training patterns data", e)
             }
         }
@@ -504,7 +532,13 @@ class ExerciseProgressViewModel(
                     }.sortedBy { it.date }
 
             _frequencyData.value = frequencyPoints
-        } catch (e: Exception) {
+        } catch (e: IllegalArgumentException) {
+            android.util.Log.e("ExerciseProgress", "Error loading frequency data", e)
+            _frequencyData.value = emptyList()
+        } catch (e: IllegalStateException) {
+            android.util.Log.e("ExerciseProgress", "Error loading frequency data", e)
+            _frequencyData.value = emptyList()
+        } catch (e: NumberFormatException) {
             android.util.Log.e("ExerciseProgress", "Error loading frequency data", e)
             _frequencyData.value = emptyList()
         }
@@ -549,7 +583,13 @@ class ExerciseProgressViewModel(
                 }
 
             _repRangeData.value = repRangeData
-        } catch (e: Exception) {
+        } catch (e: IllegalArgumentException) {
+            android.util.Log.e("ExerciseProgress", "Error loading rep range data", e)
+            _repRangeData.value = emptyList()
+        } catch (e: IllegalStateException) {
+            android.util.Log.e("ExerciseProgress", "Error loading rep range data", e)
+            _repRangeData.value = emptyList()
+        } catch (e: NumberFormatException) {
             android.util.Log.e("ExerciseProgress", "Error loading rep range data", e)
             _repRangeData.value = emptyList()
         }
@@ -607,7 +647,13 @@ class ExerciseProgressViewModel(
                 }
 
             _rpeZoneData.value = rpeData
-        } catch (e: Exception) {
+        } catch (e: IllegalArgumentException) {
+            android.util.Log.e("ExerciseProgress", "Error loading RPE zone data", e)
+            _rpeZoneData.value = emptyList()
+        } catch (e: IllegalStateException) {
+            android.util.Log.e("ExerciseProgress", "Error loading RPE zone data", e)
+            _rpeZoneData.value = emptyList()
+        } catch (e: NumberFormatException) {
             android.util.Log.e("ExerciseProgress", "Error loading RPE zone data", e)
             _rpeZoneData.value = emptyList()
         }

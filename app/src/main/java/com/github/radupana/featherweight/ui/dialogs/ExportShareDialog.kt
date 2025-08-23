@@ -73,7 +73,7 @@ fun ExportShareDialog(
                         }
                         Toast.makeText(context, "File saved successfully", Toast.LENGTH_LONG).show()
                         onDismiss()
-                    } catch (e: Exception) {
+                    } catch (e: java.io.IOException) {
                         Toast.makeText(context, "Failed to save file: ${e.message}", Toast.LENGTH_SHORT).show()
                     } finally {
                         savingFile = false

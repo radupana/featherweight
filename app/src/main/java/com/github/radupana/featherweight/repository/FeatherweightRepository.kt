@@ -451,7 +451,7 @@ class FeatherweightRepository(
                     )
                 programmeDao.insertOrUpdateProgress(updatedProgress)
             }
-        } catch (e: Exception) {
+        } catch (e: android.database.sqlite.SQLiteException) {
             Log.e("FeatherweightRepository", "Programme progress update failed", e)
             // Programme progress update failed - this is not critical for app functionality
         }
@@ -480,7 +480,7 @@ class FeatherweightRepository(
                     if (workout.isProgrammeWorkout && workout.programmeId != null) {
                         try {
                             programmeDao.getProgrammeById(workout.programmeId)?.name
-                        } catch (e: Exception) {
+                        } catch (e: android.database.sqlite.SQLiteException) {
                             Log.e(TAG, "Failed to get programme name for programmeId: ${workout.programmeId}", e)
                             null
                         }
@@ -795,7 +795,9 @@ class FeatherweightRepository(
                         setLogDao.insertSetLog(setLog)
                     }
                 }
-            } catch (e: Exception) {
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e("FeatherweightRepository", "Failed to generate template exercises: ${e.message}", e)
+            } catch (e: IllegalArgumentException) {
                 Log.e("FeatherweightRepository", "Failed to generate template exercises: ${e.message}", e)
             }
 
@@ -1018,212 +1020,7 @@ class FeatherweightRepository(
             val workoutId = workoutDao.insertWorkout(workout)
 
             return@withContext workoutId
-
-            /* REMOVED - Programme templates no longer supported
-            // Find the template this programme was created from
-            val template =
-                programmeDao.getAllTemplates().find { it.name == programme.name }
-                    ?: throw IllegalArgumentException("Programme template not found")
-
-            // Parse the JSON structure
-            val structure =
-                ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
-                    ?: throw IllegalArgumentException("Invalid programme structure")
-
-            // For programmes with single week templates that repeat (like Starting Strength)
-            // Use modulo to find the template week
-            val templateWeekNumber =
-                if (structure.weeks.size == 1) {
-                    1 // Always use week 1 if only one week is defined
-                } else {
-                    ((weekNumber - 1) % structure.weeks.size) + 1
-                }
-
-            // Find the specific workout for this week and day
-            // All programmes MUST have sequential days (1,2,3,4...)
-            val workoutStructure =
-                ProgrammeWorkoutParser.getWorkoutForWeekAndDay(
-                    structure,
-                    templateWeekNumber,
-                    dayNumber,
-                ) ?: throw IllegalArgumentException("Workout not found for template week $templateWeekNumber, day $dayNumber")
-
-            // Create the workout entry
-            // Store actual programme week, not template week
-            val workout =
-                Workout(
-                    date = LocalDateTime.now(),
-                    programmeId = programmeId,
-                    weekNumber = weekNumber,
-                    dayNumber = dayNumber,
-                    programmeWorkoutName = workoutStructure.name,
-                    isProgrammeWorkout = true,
-                    notes = null,
-                )
-            val workoutId = workoutDao.insertWorkout(workout)
-
-            // Create exercises and sets from the structure
-            var exerciseOrder = 0
-            workoutStructure.exercises.forEach { exerciseStructure ->
-                // Try to find the exercise in the database first
-                val exercise = try {
-                    searchExercises(exerciseStructure.name).firstOrNull()
-                } catch (e: Exception) {
-                    Log.w("FeatherweightRepository", "Failed to find exercise: ${exerciseStructure.name}")
-                    null
-                }
-
-                // Only create exercise log if we found a matching exercise
-                if (exercise != null) {
-                    val exerciseLog = createExerciseLogFromStructure(
-                        workoutId = workoutId,
-                        exerciseStructure = exerciseStructure,
-                        exerciseOrder = exerciseOrder++,
-                        exerciseVariationId = exercise.id
-                    )
-                    val exerciseLogId = exerciseLogDao.insertExerciseLog(exerciseLog)
-
-                    // Create sets for this exercise
-                    createSetsFromStructure(exerciseLogId, exerciseStructure, userMaxes, programme, weekNumber)
-                } else {
-                    Log.w("FeatherweightRepository", "Skipping exercise '${exerciseStructure.name}' - not found in database")
-                }
-            }
-
-            workoutId
         }
-
-    private suspend fun createWorkoutFromCustomProgramme(
-        programmeId: Long,
-        weekNumber: Int,
-        dayNumber: Int,
-        userMaxes: Map<Long, Float> = emptyMap(),
-    ): Long {
-        // Get the programme
-        val programme =
-            requireNotNull(programmeDao.getProgrammeById(programmeId)) {
-                "Programme not found"
-            }
-
-        // Get the progress to find which workout to use
-        val progress =
-            requireNotNull(programmeDao.getProgressForProgramme(programmeId)) {
-                "Programme progress not found"
-            }
-
-        // Get all workouts for this programme
-        val allWorkouts = programmeDao.getAllWorkoutsForProgramme(programmeId)
-        require(allWorkouts.isNotEmpty()) { "No workouts found for custom programme" }
-
-        // Find the workout index based on completed workouts
-        val workoutIndex = progress.completedWorkouts
-        require(workoutIndex < allWorkouts.size) { "All workouts already completed" }
-
-        val programmeWorkout = allWorkouts[workoutIndex]
-
-        // Parse workout structure
-        val workoutStructure =
-            try {
-                val json =
-                    kotlinx.serialization.json.Json {
-                        ignoreUnknownKeys = true
-                        isLenient = true
-                    }
-                json.decodeFromString<WorkoutStructure>(
-                    programmeWorkout.workoutStructure,
-                )
-            } catch (e: Exception) {
-                // Try to fix invalid JSON
-                val fixedJson =
-                    programmeWorkout.workoutStructure
-                        .replace("\"reps\":,", "\"reps\":\"8-12\",")
-                        .replace("\"reps\": ,", "\"reps\":\"8-12\",")
-
-                try {
-                    val json =
-                        kotlinx.serialization.json.Json {
-                            ignoreUnknownKeys = true
-                            isLenient = true
-                        }
-                    json.decodeFromString<WorkoutStructure>(fixedJson)
-                } catch (e2: Exception) {
-                    error("Failed to parse workout structure: ${e2.message}")
-                }
-            }
-
-        // Create the workout entry
-        val workout =
-            Workout(
-                date = LocalDateTime.now(),
-                programmeId = programmeId,
-                weekNumber = weekNumber,
-                dayNumber = dayNumber,
-                programmeWorkoutName = workoutStructure.name,
-                isProgrammeWorkout = true,
-                notes = null,
-            )
-        val workoutId = workoutDao.insertWorkout(workout)
-
-        // Create exercises and sets from the structure
-        var exerciseOrder = 0
-        workoutStructure.exercises.forEach { exerciseStructure ->
-            // Try to find the exercise in the database first
-            val exercise = try {
-                searchExercises(exerciseStructure.name).firstOrNull()
-            } catch (e: Exception) {
-                Log.w("FeatherweightRepository", "Failed to find exercise: ${exerciseStructure.name}")
-                null
-            }
-
-            // Only create exercise log if we found a matching exercise
-            if (exercise != null) {
-                val exerciseLog = createExerciseLogFromStructure(
-                    workoutId = workoutId,
-                    exerciseStructure = exerciseStructure,
-                    exerciseOrder = exerciseOrder++,
-                    exerciseVariationId = exercise.id
-                )
-                val exerciseLogId = exerciseLogDao.insertExerciseLog(exerciseLog)
-
-                // Create sets for this exercise
-                createSetsFromStructure(exerciseLogId, exerciseStructure, userMaxes, programme, weekNumber)
-            } else {
-                Log.w("FeatherweightRepository", "Skipping exercise '${exerciseStructure.name}' - not found in database")
-            }
-        }
-
-        return workoutId
-             */
-        }
-
-    private suspend fun createExerciseLogFromStructure(
-        workoutId: Long,
-        exerciseStructure: ExerciseStructure,
-        exerciseOrder: Int,
-        exerciseVariationId: Long,
-    ): ExerciseLog {
-        val notes =
-            buildString {
-                if (exerciseStructure.note != null) {
-                    append(exerciseStructure.note)
-                }
-                if (exerciseStructure.progression != "linear") {
-                    if (isNotEmpty()) append(" | ")
-                    append("Progression: ${exerciseStructure.progression}")
-                }
-                if (exerciseStructure.intensity?.isNotEmpty() == true) {
-                    if (isNotEmpty()) append(" | ")
-                    append("Intensities: ${exerciseStructure.intensity.joinToString(", ")}%")
-                }
-            }.takeIf { it.isNotEmpty() }
-
-        return ExerciseLog(
-            workoutId = workoutId,
-            exerciseVariationId = exerciseVariationId,
-            exerciseOrder = exerciseOrder,
-            notes = notes,
-        )
-    }
 
     private suspend fun createSetsFromStructure(
         exerciseLogId: Long,
@@ -1238,7 +1035,10 @@ class FeatherweightRepository(
             val setsData =
                 try {
                     Gson().fromJson(exerciseStructure.note, Map::class.java) as Map<String, Any>
-                } catch (e: Exception) {
+                } catch (e: com.google.gson.JsonSyntaxException) {
+                    Log.w(TAG, "Failed to parse exercise structure note JSON for exercise: ${exerciseStructure.name}", e)
+                    null
+                } catch (e: com.google.gson.JsonIOException) {
                     Log.w(TAG, "Failed to parse exercise structure note JSON for exercise: ${exerciseStructure.name}", e)
                     null
                 }
@@ -1458,7 +1258,7 @@ class FeatherweightRepository(
                 json.decodeFromString<WorkoutStructure>(
                     nextWorkout.workoutStructure,
                 )
-            } catch (e: Exception) {
+            } catch (e: kotlinx.serialization.SerializationException) {
                 // Try to fix invalid JSON by replacing ,"reps":, with ,"reps":"8-12",
                 val fixedJson =
                     nextWorkout.workoutStructure
@@ -1472,7 +1272,7 @@ class FeatherweightRepository(
                             isLenient = true
                         }
                     json.decodeFromString<WorkoutStructure>(fixedJson)
-                } catch (e2: Exception) {
+                } catch (e2: kotlinx.serialization.SerializationException) {
                     Log.e("FeatherweightRepository", "Failed to parse workout structure", e2)
                     return null
                 }
@@ -1497,7 +1297,7 @@ class FeatherweightRepository(
             val totalWorkouts = allWorkouts.size
 
             return totalWorkouts
-        } catch (e: Exception) {
+        } catch (e: android.database.sqlite.SQLiteException) {
             Log.e(TAG, "Failed to get total workouts for programme: ${programme.id} (${programme.name})", e)
             programme.durationWeeks * 3 // Fallback to default
         }
@@ -1840,7 +1640,7 @@ class FeatherweightRepository(
                     )
 
                 programmeDao.insertOrUpdateProgress(progress)
-            } catch (e: Exception) {
+            } catch (e: android.database.sqlite.SQLiteException) {
                 Log.e("FeatherweightRepository", "Error completing workout", e)
             }
         }
@@ -3245,7 +3045,7 @@ class FeatherweightRepository(
             try {
                 // Use deleteById for more reliable deletion
                 db.parseRequestDao().deleteById(request.id)
-            } catch (e: Exception) {
+            } catch (e: android.database.sqlite.SQLiteException) {
                 Log.e("FeatherweightRepository", "Failed to delete parse request ${request.id}", e)
                 throw e
             }

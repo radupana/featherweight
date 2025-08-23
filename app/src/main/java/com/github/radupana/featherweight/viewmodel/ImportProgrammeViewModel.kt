@@ -128,7 +128,7 @@ class ImportProgrammeViewModel(
                         ),
                     )
                 }
-            } catch (e: Exception) {
+            } catch (e: IllegalStateException) {
                 Log.e("ImportProgrammeViewModel", "Error processing programme", e)
 
                 val parseRequest = repository.getParseRequest(requestId)
@@ -473,7 +473,7 @@ class ImportProgrammeViewModel(
                     )
                 // Navigate after successful creation
                 onSuccess()
-            } catch (e: Exception) {
+            } catch (e: IllegalArgumentException) {
                 _uiState.value =
                     _uiState.value.copy(
                         isLoading = false,

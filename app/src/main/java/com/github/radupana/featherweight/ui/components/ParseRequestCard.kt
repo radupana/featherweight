@@ -53,6 +53,7 @@ import com.github.radupana.featherweight.data.ParsedProgramme
 import com.google.gson.Gson
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
+import com.google.gson.JsonSyntaxException
 
 @Composable
 fun ParseRequestCard(
@@ -84,7 +85,7 @@ fun ParseRequestCard(
                 try {
                     val programme = Gson().fromJson(request.resultJson, ParsedProgramme::class.java)
                     programme.name
-                } catch (e: Exception) {
+                } catch (e: JsonSyntaxException) {
                     Log.w("ParseRequestCard", "Failed to parse programme name from result JSON", e)
                     null
                 }
@@ -116,7 +117,7 @@ fun ParseRequestCard(
                                 try {
                                     val programme = Gson().fromJson(request.resultJson, ParsedProgramme::class.java)
                                     onView(programme, request.id)
-                                } catch (e: Exception) {
+                                } catch (e: JsonSyntaxException) {
                                     Log.w("ParseRequestCard", "Failed to parse programme from result JSON for view action", e)
                                 }
                             }
@@ -262,7 +263,7 @@ fun ParseRequestCard(
                                         try {
                                             val programme = Gson().fromJson(request.resultJson, ParsedProgramme::class.java)
                                             onView(programme, request.id)
-                                        } catch (e: Exception) {
+                                        } catch (e: JsonSyntaxException) {
                                             Log.w("ParseRequestCard", "Failed to parse programme from result JSON in completed action button", e)
                                         }
                                     }

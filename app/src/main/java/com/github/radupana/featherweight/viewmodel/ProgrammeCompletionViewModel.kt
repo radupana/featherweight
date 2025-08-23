@@ -33,7 +33,7 @@ class ProgrammeCompletionViewModel(
                         completionStats = stats,
                         error = null,
                     )
-            } catch (e: Exception) {
+            } catch (e: IllegalStateException) {
                 _uiState.value =
                     _uiState.value.copy(
                         isLoading = false,
@@ -50,7 +50,7 @@ class ProgrammeCompletionViewModel(
         viewModelScope.launch {
             try {
                 repository.updateProgrammeCompletionNotes(programmeId, notes)
-            } catch (e: Exception) {
+            } catch (e: IllegalStateException) {
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to save notes: ${e.message}",

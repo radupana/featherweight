@@ -62,7 +62,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.ExerciseLog
+import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.data.WorkoutMode
+import com.github.radupana.featherweight.data.WorkoutStatus
+import com.github.radupana.featherweight.viewmodel.WorkoutState
 import com.github.radupana.featherweight.ui.components.CompactRestTimer
 import com.github.radupana.featherweight.ui.components.ExerciseCard
 import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
@@ -121,205 +125,42 @@ fun WorkoutScreen(
     // Check if workout has any exercises or sets - prevent completing empty workouts
     val hasContent = exercises.isNotEmpty()
 
-    // If no active workout, start one (except in template edit mode)
-    LaunchedEffect(workoutState.isActive, workoutState.mode) {
-        if (!workoutState.isActive &&
-            workoutState.status != com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED &&
-            workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT
-        ) {
-            viewModel.startNewWorkout()
-        }
-    }
-
     val canEdit = viewModel.canEditWorkout()
-
-    // Show 1RM update dialog when there are pending updates
-    LaunchedEffect(pendingOneRMUpdates, workoutState.status) {
-        if (pendingOneRMUpdates.isNotEmpty() && workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
-            showOneRMUpdateDialog = true
-        }
-    }
-
-    // Show PR celebration when there are pending PRs
-    LaunchedEffect(workoutState.shouldShowPRCelebration) {
-        if (workoutState.shouldShowPRCelebration) {
-            showPRCelebration = true
-        }
-    }
-
-    // Navigate away after dealing with 1RM updates
     val currentWorkoutId by viewModel.currentWorkoutId.collectAsState()
-    LaunchedEffect(shouldNavigateAfterCompletion, pendingOneRMUpdates, showOneRMUpdateDialog) {
-        if (shouldNavigateAfterCompletion && pendingOneRMUpdates.isEmpty() && !showOneRMUpdateDialog) {
-            currentWorkoutId?.let { workoutId ->
-                onWorkoutComplete(workoutId)
-            }
-        }
-    }
+
+    WorkoutStateEffects(
+        workoutState = workoutState,
+        pendingOneRMUpdates = pendingOneRMUpdates,
+        shouldNavigateAfterCompletion = shouldNavigateAfterCompletion,
+        showOneRMUpdateDialog = showOneRMUpdateDialog,
+        currentWorkoutId = currentWorkoutId,
+        viewModel = viewModel,
+        onWorkoutComplete = onWorkoutComplete,
+        onShowOneRMUpdateDialog = { showOneRMUpdateDialog = it },
+        onShowPRCelebration = { showPRCelebration = it }
+    )
 
     Scaffold(
         modifier = modifier,
         topBar = {
-            Column {
-                TopAppBar(
-                    title = {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                // Main workout title
-                                Text(
-                                    text =
-                                        if (workoutState.isProgrammeWorkout) {
-                                            workoutState.programmeWorkoutName ?: viewModel.getWorkoutDisplayName()
-                                        } else {
-                                            viewModel.getWorkoutDisplayName()
-                                        },
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-
-                                // Subtitle - programme info, template edit, or "Freestyle Workout"
-                                if (workoutState.mode == com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
-                                    Text(
-                                        text = "Editing Template",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.tertiary,
-                                    )
-                                } else if (workoutState.isProgrammeWorkout) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    ) {
-                                        Icon(
-                                            Icons.Filled.FitnessCenter,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(12.dp),
-                                            tint = MaterialTheme.colorScheme.primary,
-                                        )
-                                        Text(
-                                            text =
-                                                buildString {
-                                                    workoutState.programmeName?.let { append(it) }
-                                                    if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
-                                                        if (isNotEmpty()) append(" • ")
-                                                        append("W${workoutState.weekNumber}D${workoutState.dayNumber}")
-                                                    }
-                                                },
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                    }
-                                } else {
-                                    Text(
-                                        text = "Freestyle Workout",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-
-                            // Workout timer (not shown in template edit mode)
-                            if (workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
-                                WorkoutTimer(
-                                    seconds = workoutTimerSeconds,
-                                    modifier = Modifier.padding(start = 8.dp),
-                                )
-                            }
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    actions = {
-                        // Notes button (not shown in template edit mode)
-                        if (workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
-                            IconButton(onClick = {
-                                // Load current notes from repository
-                                currentWorkoutId?.let { workoutId ->
-                                    viewModel.loadWorkoutNotes(workoutId) { notes ->
-                                        currentNotes = notes ?: ""
-                                        showNotesModal = true
-                                    }
-                                }
-                            }) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.Notes,
-                                    contentDescription = "Workout Notes",
-                                    tint = if (currentNotes.isNotBlank()) MaterialTheme.colorScheme.primary else LocalContentColor.current,
-                                )
-                            }
-                        }
-
-                        // Show repeat button for completed workouts, menu for active
-                        if (!canEdit && workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
-                            IconButton(onClick = { viewModel.repeatWorkout() }) {
-                                Icon(
-                                    Icons.Filled.Refresh,
-                                    contentDescription = "Repeat Workout",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-                        } else if (canEdit) {
-                            IconButton(onClick = { showWorkoutMenuDialog = true }) {
-                                Icon(Icons.Filled.MoreVert, contentDescription = "Workout Options")
-                            }
-                        }
-                    },
-                    colors =
-                        TopAppBarDefaults.topAppBarColors(
-                            containerColor =
-                                if (!canEdit) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
-                            titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        ),
-                )
-
-                // Progress bar below TopAppBar
-                if (totalSets > 0) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                                .padding(bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        LinearProgressIndicator(
-                            progress = { (completedSets.toFloat() / totalSets).coerceIn(0f, 1f) },
-                            modifier =
-                                Modifier
-                                    .weight(1f)
-                                    .height(4.dp),
-                            color =
-                                if (completedSets == totalSets) {
-                                    MaterialTheme.colorScheme.tertiary
-                                } else {
-                                    MaterialTheme.colorScheme.primary
-                                },
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "$completedSets / $totalSets",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Medium,
-                            color =
-                                if (completedSets == totalSets) {
-                                    MaterialTheme.colorScheme.tertiary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                        )
+            WorkoutHeader(
+                workoutState = workoutState,
+                workoutTimerSeconds = workoutTimerSeconds,
+                totalSets = totalSets,
+                completedSets = completedSets,
+                canEdit = canEdit,
+                currentWorkoutId = currentWorkoutId,
+                currentNotes = currentNotes,
+                viewModel = viewModel,
+                onBack = onBack,
+                onShowWorkoutMenuDialog = { showWorkoutMenuDialog = true },
+                onShowNotesModal = { workoutId ->
+                    viewModel.loadWorkoutNotes(workoutId) { notes ->
+                        currentNotes = notes ?: ""
+                        showNotesModal = true
                     }
                 }
-            }
+            )
         },
     ) { innerPadding ->
         Column(
@@ -387,44 +228,148 @@ fun WorkoutScreen(
             }
 
             // Rest timer at bottom (if active) - positioned at absolute bottom
-            if (restTimerSeconds > 0) {
-                CompactRestTimer(
-                    seconds = restTimerSeconds,
-                    initialSeconds = restTimerInitialSeconds,
-                    onSkip = { viewModel.skipRestTimer() },
-                    onPresetSelected = { viewModel.selectRestTimerPreset(it) },
-                    onAdjustTime = { viewModel.adjustRestTimer(it) },
-                    modifier = Modifier.fillMaxWidth(), // No bottom padding - sits right at bottom
-                )
-            }
+            WorkoutFooter(
+                restTimerSeconds = restTimerSeconds,
+                restTimerInitialSeconds = restTimerInitialSeconds,
+                viewModel = viewModel
+            )
         }
     }
 
+    WorkoutDialogs(
+        showWorkoutMenuDialog = showWorkoutMenuDialog,
+        showDeleteWorkoutDialog = showDeleteWorkoutDialog,
+        showEditWorkoutNameDialog = showEditWorkoutNameDialog,
+        showCompleteWorkoutDialog = showCompleteWorkoutDialog,
+        showOneRMUpdateDialog = showOneRMUpdateDialog,
+        showPRCelebration = showPRCelebration,
+        showNotesModal = showNotesModal,
+        canEdit = canEdit,
+        hasContent = hasContent,
+        completedSets = completedSets,
+        totalSets = totalSets,
+        workoutState = workoutState,
+        pendingOneRMUpdates = pendingOneRMUpdates,
+        shouldNavigateAfterCompletion = shouldNavigateAfterCompletion,
+        currentNotes = currentNotes,
+        currentWorkoutId = currentWorkoutId,
+        viewModel = viewModel,
+        onBack = onBack,
+        onProgrammeComplete = onProgrammeComplete,
+        onWorkoutMenuDialogChange = { showWorkoutMenuDialog = it },
+        onDeleteWorkoutDialogChange = { showDeleteWorkoutDialog = it },
+        onEditWorkoutNameDialogChange = { showEditWorkoutNameDialog = it },
+        onCompleteWorkoutDialogChange = { showCompleteWorkoutDialog = it },
+        onOneRMUpdateDialogChange = { showOneRMUpdateDialog = it },
+        onPRCelebrationChange = { showPRCelebration = it },
+        onNotesModalChange = { showNotesModal = it },
+        onCurrentNotesChange = { currentNotes = it },
+        onShouldNavigateAfterCompletionChange = { shouldNavigateAfterCompletion = it }
+    )
+}
+
+@Composable
+private fun WorkoutStateEffects(
+    workoutState: WorkoutState,
+    pendingOneRMUpdates: List<PendingOneRMUpdate>,
+    shouldNavigateAfterCompletion: Boolean,
+    showOneRMUpdateDialog: Boolean,
+    currentWorkoutId: Long?,
+    viewModel: WorkoutViewModel,
+    onWorkoutComplete: (Long) -> Unit,
+    onShowOneRMUpdateDialog: (Boolean) -> Unit,
+    onShowPRCelebration: (Boolean) -> Unit,
+) {
+    // If no active workout, start one (except in template edit mode)
+    LaunchedEffect(workoutState.isActive, workoutState.mode) {
+        if (!workoutState.isActive &&
+            workoutState.status != com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED &&
+            workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT
+        ) {
+            viewModel.startNewWorkout()
+        }
+    }
+
+    // Show 1RM update dialog when there are pending updates
+    LaunchedEffect(pendingOneRMUpdates, workoutState.status) {
+        if (pendingOneRMUpdates.isNotEmpty() && workoutState.status == WorkoutStatus.COMPLETED) {
+            onShowOneRMUpdateDialog(true)
+        }
+    }
+
+    // Show PR celebration when there are pending PRs
+    LaunchedEffect(workoutState.shouldShowPRCelebration) {
+        if (workoutState.shouldShowPRCelebration) {
+            onShowPRCelebration(true)
+        }
+    }
+
+    // Navigate away after dealing with 1RM updates
+    LaunchedEffect(shouldNavigateAfterCompletion, pendingOneRMUpdates, showOneRMUpdateDialog) {
+        if (shouldNavigateAfterCompletion && pendingOneRMUpdates.isEmpty() && !showOneRMUpdateDialog) {
+            currentWorkoutId?.let { workoutId ->
+                onWorkoutComplete(workoutId)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutDialogs(
+    showWorkoutMenuDialog: Boolean,
+    showDeleteWorkoutDialog: Boolean,
+    showEditWorkoutNameDialog: Boolean,
+    showCompleteWorkoutDialog: Boolean,
+    showOneRMUpdateDialog: Boolean,
+    showPRCelebration: Boolean,
+    showNotesModal: Boolean,
+    canEdit: Boolean,
+    hasContent: Boolean,
+    completedSets: Int,
+    totalSets: Int,
+    workoutState: WorkoutState,
+    pendingOneRMUpdates: List<PendingOneRMUpdate>,
+    shouldNavigateAfterCompletion: Boolean,
+    currentNotes: String,
+    currentWorkoutId: Long?,
+    viewModel: WorkoutViewModel,
+    onBack: () -> Unit,
+    onProgrammeComplete: (Long) -> Unit,
+    onWorkoutMenuDialogChange: (Boolean) -> Unit,
+    onDeleteWorkoutDialogChange: (Boolean) -> Unit,
+    onEditWorkoutNameDialogChange: (Boolean) -> Unit,
+    onCompleteWorkoutDialogChange: (Boolean) -> Unit,
+    onOneRMUpdateDialogChange: (Boolean) -> Unit,
+    onPRCelebrationChange: (Boolean) -> Unit,
+    onNotesModalChange: (Boolean) -> Unit,
+    onCurrentNotesChange: (String) -> Unit,
+    onShouldNavigateAfterCompletionChange: (Boolean) -> Unit,
+) {
     // Workout Menu Dialog
     if (showWorkoutMenuDialog) {
         WorkoutMenuDialog(
             canEdit = canEdit,
             canCompleteAllSets = viewModel.canCompleteAllSetsInWorkout(),
             onEditName = {
-                showWorkoutMenuDialog = false
-                showEditWorkoutNameDialog = true
+                onWorkoutMenuDialogChange(false)
+                onEditWorkoutNameDialogChange(true)
             },
             onDeleteWorkout = {
-                showWorkoutMenuDialog = false
-                showDeleteWorkoutDialog = true
+                onWorkoutMenuDialogChange(false)
+                onDeleteWorkoutDialogChange(true)
             },
             onCompleteAllSets = {
-                showWorkoutMenuDialog = false
+                onWorkoutMenuDialogChange(false)
                 viewModel.completeAllSetsInWorkout()
             },
-            onClose = { showWorkoutMenuDialog = false },
+            onClose = { onWorkoutMenuDialogChange(false) },
         )
     }
 
     // Delete Workout Dialog
     if (showDeleteWorkoutDialog) {
         AlertDialog(
-            onDismissRequest = { showDeleteWorkoutDialog = false },
+            onDismissRequest = { onDeleteWorkoutDialogChange(false) },
             title = { Text("Delete Workout") },
             text = {
                 Text(
@@ -436,7 +381,7 @@ fun WorkoutScreen(
                 Button(
                     onClick = {
                         viewModel.deleteCurrentWorkout()
-                        showDeleteWorkoutDialog = false
+                        onDeleteWorkoutDialogChange(false)
                         onBack()
                     },
                     colors =
@@ -448,7 +393,7 @@ fun WorkoutScreen(
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { showDeleteWorkoutDialog = false }) {
+                OutlinedButton(onClick = { onDeleteWorkoutDialogChange(false) }) {
                     Text("Cancel")
                 }
             },
@@ -461,9 +406,9 @@ fun WorkoutScreen(
             currentName = workoutState.workoutName ?: "",
             onSave = { name ->
                 viewModel.updateWorkoutName(name.takeIf { it.isNotBlank() })
-                showEditWorkoutNameDialog = false
+                onEditWorkoutNameDialogChange(false)
             },
-            onDismiss = { showEditWorkoutNameDialog = false },
+            onDismiss = { onEditWorkoutNameDialogChange(false) },
         )
     }
 
@@ -476,17 +421,17 @@ fun WorkoutScreen(
                 viewModel.completeWorkout(
                     onComplete = {
                         // Completion callback: let the workout completion finish before navigation
-                        showCompleteWorkoutDialog = false
-                        shouldNavigateAfterCompletion = true
+                        onCompleteWorkoutDialogChange(false)
+                        onShouldNavigateAfterCompletionChange(true)
                     },
                     onProgrammeComplete = { programmeId ->
                         // Programme completion callback
-                        showCompleteWorkoutDialog = false
+                        onCompleteWorkoutDialogChange(false)
                         onProgrammeComplete(programmeId)
                     },
                 )
             },
-            onDismiss = { showCompleteWorkoutDialog = false },
+            onDismiss = { onCompleteWorkoutDialogChange(false) },
         )
     }
 
@@ -501,7 +446,7 @@ fun WorkoutScreen(
                 viewModel.applyOneRMUpdate(update)
             },
             onDismiss = {
-                showOneRMUpdateDialog = false
+                onOneRMUpdateDialogChange(false)
                 // If we were waiting to navigate after completion, do it now
                 if (shouldNavigateAfterCompletion) {
                     onBack()
@@ -509,7 +454,7 @@ fun WorkoutScreen(
             },
             onSkip = {
                 viewModel.clearPendingOneRMUpdates()
-                showOneRMUpdateDialog = false
+                onOneRMUpdateDialogChange(false)
                 // If we were waiting to navigate after completion, do it now
                 if (shouldNavigateAfterCompletion) {
                     onBack()
@@ -526,7 +471,7 @@ fun WorkoutScreen(
             repository = viewModel.repository,
             exerciseNames = prExerciseNames,
             onDismiss = {
-                showPRCelebration = false
+                onPRCelebrationChange(false)
                 viewModel.clearPendingPRs()
             },
         )
@@ -539,7 +484,7 @@ fun WorkoutScreen(
         initialNotes = currentNotes,
         onNotesChanged = { newNotes ->
             if (canEdit) {
-                currentNotes = newNotes
+                onCurrentNotesChange(newNotes)
                 // Auto-save notes
                 currentWorkoutId?.let { workoutId ->
                     viewModel.saveWorkoutNotes(workoutId, newNotes)
@@ -547,10 +492,202 @@ fun WorkoutScreen(
             }
         },
         onDismiss = {
-            showNotesModal = false
+            onNotesModalChange(false)
         },
         readOnly = !canEdit,
     )
+}
+
+@Composable
+private fun WorkoutFooter(
+    restTimerSeconds: Int,
+    restTimerInitialSeconds: Int,
+    viewModel: WorkoutViewModel,
+) {
+    if (restTimerSeconds > 0) {
+        CompactRestTimer(
+            seconds = restTimerSeconds,
+            initialSeconds = restTimerInitialSeconds,
+            onSkip = { viewModel.skipRestTimer() },
+            onPresetSelected = { viewModel.selectRestTimerPreset(it) },
+            onAdjustTime = { viewModel.adjustRestTimer(it) },
+            modifier = Modifier.fillMaxWidth(), // No bottom padding - sits right at bottom
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WorkoutHeader(
+    workoutState: WorkoutState,
+    workoutTimerSeconds: Int,
+    totalSets: Int,
+    completedSets: Int,
+    canEdit: Boolean,
+    currentWorkoutId: Long?,
+    currentNotes: String,
+    viewModel: WorkoutViewModel,
+    onBack: () -> Unit,
+    onShowWorkoutMenuDialog: () -> Unit,
+    onShowNotesModal: (Long) -> Unit,
+) {
+    Column {
+        TopAppBar(
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        // Main workout title
+                        Text(
+                            text =
+                                if (workoutState.isProgrammeWorkout) {
+                                    workoutState.programmeWorkoutName ?: viewModel.getWorkoutDisplayName()
+                                } else {
+                                    viewModel.getWorkoutDisplayName()
+                                },
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+
+                        // Subtitle - programme info, template edit, or "Freestyle Workout"
+                        if (workoutState.mode == com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
+                            Text(
+                                text = "Editing Template",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.tertiary,
+                            )
+                        } else if (workoutState.isProgrammeWorkout) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Icon(
+                                    Icons.Filled.FitnessCenter,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(12.dp),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                                Text(
+                                    text =
+                                        buildString {
+                                            workoutState.programmeName?.let { append(it) }
+                                            if (workoutState.weekNumber != null && workoutState.dayNumber != null) {
+                                                if (isNotEmpty()) append(" • ")
+                                                append("W${workoutState.weekNumber}D${workoutState.dayNumber}")
+                                            }
+                                        },
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = "Freestyle Workout",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+
+                    // Workout timer (not shown in template edit mode)
+                    if (workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
+                        WorkoutTimer(
+                            seconds = workoutTimerSeconds,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                }
+            },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            },
+            actions = {
+                // Notes button (not shown in template edit mode)
+                if (workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
+                    IconButton(onClick = {
+                        // Load current notes from repository
+                        currentWorkoutId?.let { workoutId ->
+                            onShowNotesModal(workoutId)
+                        }
+                    }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Notes,
+                            contentDescription = "Workout Notes",
+                            tint = if (currentNotes.isNotBlank()) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                        )
+                    }
+                }
+
+                // Show repeat button for completed workouts, menu for active
+                if (!canEdit && workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
+                    IconButton(onClick = { viewModel.repeatWorkout() }) {
+                        Icon(
+                            Icons.Filled.Refresh,
+                            contentDescription = "Repeat Workout",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                } else if (canEdit) {
+                    IconButton(onClick = onShowWorkoutMenuDialog) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Workout Options")
+                    }
+                }
+            },
+            colors =
+                TopAppBarDefaults.topAppBarColors(
+                    containerColor =
+                        if (!canEdit) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                ),
+        )
+
+        // Progress bar below TopAppBar
+        if (totalSets > 0) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LinearProgressIndicator(
+                    progress = { (completedSets.toFloat() / totalSets).coerceIn(0f, 1f) },
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .height(4.dp),
+                    color =
+                        if (completedSets == totalSets) {
+                            MaterialTheme.colorScheme.tertiary
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "$completedSets / $totalSets",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    color =
+                        if (completedSets == totalSets) {
+                            MaterialTheme.colorScheme.tertiary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                )
+            }
+        }
+    }
 }
 
 @Composable

@@ -65,7 +65,7 @@ class WorkoutCompletionViewModel(
                         isLoading = false,
                         workoutSummary = summary,
                     )
-            } catch (e: Exception) {
+            } catch (e: IllegalStateException) {
                 Log.e(TAG, "Failed to load workout summary for workoutId: $workoutId", e)
                 _uiState.value =
                     _uiState.value.copy(

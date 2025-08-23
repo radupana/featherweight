@@ -98,10 +98,22 @@ class ProfileViewModel(
                 repository.ensureUserProfile(userId)
 
                 _uiState.value = _uiState.value.copy(isLoading = false)
-            } catch (e: Exception) {
+            } catch (e: android.database.sqlite.SQLiteException) {
                 _uiState.value =
                     _uiState.value.copy(
-                        error = "Failed to load profile data: ${e.message}",
+                        error = "Database error loading profile: ${e.message}",
+                        isLoading = false,
+                    )
+            } catch (e: IllegalStateException) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Invalid state loading profile: ${e.message}",
+                        isLoading = false,
+                    )
+            } catch (e: SecurityException) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Permission error loading profile: ${e.message}",
                         isLoading = false,
                     )
             }
@@ -210,10 +222,20 @@ class ProfileViewModel(
                     _uiState.value.copy(
                         successMessage = "Updated 1RM for $exerciseName",
                     )
-            } catch (e: Exception) {
+            } catch (e: android.database.sqlite.SQLiteException) {
                 _uiState.value =
                     _uiState.value.copy(
-                        error = "Failed to update 1RM: ${e.message}",
+                        error = "Database error updating 1RM: ${e.message}",
+                    )
+            } catch (e: IllegalArgumentException) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Invalid 1RM value: ${e.message}",
+                    )
+            } catch (e: SecurityException) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Permission error updating 1RM: ${e.message}",
                     )
             }
         }
@@ -228,10 +250,20 @@ class ProfileViewModel(
                     _uiState.value.copy(
                         successMessage = "Deleted 1RM record",
                     )
-            } catch (e: Exception) {
+            } catch (e: android.database.sqlite.SQLiteException) {
                 _uiState.value =
                     _uiState.value.copy(
-                        error = "Failed to delete 1RM: ${e.message}",
+                        error = "Database error deleting 1RM: ${e.message}",
+                    )
+            } catch (e: IllegalArgumentException) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Invalid exercise ID: ${e.message}",
+                    )
+            } catch (e: SecurityException) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Permission error deleting 1RM: ${e.message}",
                     )
             }
         }
@@ -280,11 +312,29 @@ class ProfileViewModel(
                         seedingState = SeedingState.Success(count),
                         successMessage = "Successfully created $count workouts",
                     )
-            } catch (e: Exception) {
+            } catch (e: android.database.sqlite.SQLiteException) {
                 _uiState.value =
                     _uiState.value.copy(
                         seedingState = SeedingState.Error(e.message),
-                        error = "Failed to seed workouts: ${e.message}",
+                        error = "Database error seeding workouts: ${e.message}",
+                    )
+            } catch (e: IllegalArgumentException) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        seedingState = SeedingState.Error(e.message),
+                        error = "Invalid seeding configuration: ${e.message}",
+                    )
+            } catch (e: IllegalStateException) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        seedingState = SeedingState.Error(e.message),
+                        error = "Invalid state for seeding: ${e.message}",
+                    )
+            } catch (e: SecurityException) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        seedingState = SeedingState.Error(e.message),
+                        error = "Permission error seeding workouts: ${e.message}",
                     )
             }
         }
@@ -301,10 +351,20 @@ class ProfileViewModel(
                     )
                 // Refresh the profile data
                 loadProfileData()
-            } catch (e: Exception) {
+            } catch (e: android.database.sqlite.SQLiteException) {
                 _uiState.value =
                     _uiState.value.copy(
-                        error = "Failed to clear workout data: ${e.message}",
+                        error = "Database error clearing data: ${e.message}",
+                    )
+            } catch (e: IllegalStateException) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Invalid state clearing data: ${e.message}",
+                    )
+            } catch (e: SecurityException) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Permission error clearing data: ${e.message}",
                     )
             }
         }

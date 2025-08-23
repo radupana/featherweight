@@ -136,7 +136,7 @@ class MainActivity : ComponentActivity() {
                             val repository = FeatherweightRepository(application)
                             repository.seedDatabaseIfEmpty()
                             repository.seedTestUsers()
-                        } catch (e: Exception) {
+                        } catch (e: IllegalStateException) {
                             Log.e("MainActivity", "Database seeding error", e)
                             // Database seeding errors are non-critical - app continues to function
                         }
@@ -182,7 +182,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: IllegalStateException) {
             Log.e("MainActivity", "UI initialization error", e)
             // UI initialization errors are handled gracefully by the framework
         }

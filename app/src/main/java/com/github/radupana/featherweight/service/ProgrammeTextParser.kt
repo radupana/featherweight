@@ -60,7 +60,7 @@ class ProgrammeTextParser {
                     success = true,
                     programme = programme,
                 )
-            } catch (e: Exception) {
+            } catch (e: IllegalArgumentException) {
                 Log.e(TAG, "Failed to parse programme: ${e.message}", e)
                 Log.e(TAG, "Exception type: ${e.javaClass.name}")
                 Log.e(TAG, "Stack trace: ${e.stackTraceToString()}")

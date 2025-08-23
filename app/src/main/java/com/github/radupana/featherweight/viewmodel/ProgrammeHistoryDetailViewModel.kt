@@ -36,7 +36,7 @@ class ProgrammeHistoryDetailViewModel(
                 if (details == null) {
                     _error.value = "Programme not found"
                 }
-            } catch (e: Exception) {
+            } catch (e: IllegalStateException) {
                 _error.value = e.message ?: "Failed to load programme details"
             } finally {
                 _isLoading.value = false

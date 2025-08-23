@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.google.gson.JsonSyntaxException
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -34,7 +35,7 @@ data class TrainingAnalysis(
                     keyInsightsJson,
                     object : TypeToken<List<TrainingInsight>>() {}.type,
                 ) ?: emptyList()
-            } catch (e: Exception) {
+            } catch (e: JsonSyntaxException) {
                 Log.w(TAG, "Failed to parse key insights JSON", e)
                 emptyList()
             }
@@ -46,7 +47,7 @@ data class TrainingAnalysis(
                     recommendationsJson,
                     object : TypeToken<List<String>>() {}.type,
                 ) ?: emptyList()
-            } catch (e: Exception) {
+            } catch (e: JsonSyntaxException) {
                 Log.w(TAG, "Failed to parse recommendations JSON", e)
                 emptyList()
             }
@@ -58,7 +59,7 @@ data class TrainingAnalysis(
                     warningsJson,
                     object : TypeToken<List<String>>() {}.type,
                 ) ?: emptyList()
-            } catch (e: Exception) {
+            } catch (e: JsonSyntaxException) {
                 Log.w(TAG, "Failed to parse warnings JSON", e)
                 emptyList()
             }

@@ -17,3 +17,7 @@ local.properties
 nuke_ai_system.md
 .idea/
 gradle.properties
+problems/
+*.md
+*.png
+docker-compose.yml

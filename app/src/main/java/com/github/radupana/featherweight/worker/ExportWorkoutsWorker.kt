@@ -87,7 +87,7 @@ class ExportWorkoutsWorker(
             showCompletionNotification(file)
 
             Result.success(outputData)
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
             showErrorNotification(e.message ?: "Export failed")
             Result.failure()
         }

@@ -112,7 +112,19 @@ class HistoryViewModel(
                     currentProgrammePage = 0,
                     hasMoreProgrammes = hasMoreProgrammes,
                 )
-        } catch (e: Exception) {
+        } catch (e: IllegalArgumentException) {
+            _historyState.value =
+                currentState.copy(
+                    isLoading = false,
+                    error = "Failed to load programmes: ${e.message}",
+                )
+        } catch (e: IllegalStateException) {
+            _historyState.value =
+                currentState.copy(
+                    isLoading = false,
+                    error = "Failed to load programmes: ${e.message}",
+                )
+        } catch (e: NumberFormatException) {
             _historyState.value =
                 currentState.copy(
                     isLoading = false,
@@ -143,7 +155,17 @@ class HistoryViewModel(
                 // Also refresh calendar and week groups
                 loadCalendarData()
                 loadWeekGroups()
-            } catch (e: Exception) {
+            } catch (e: IllegalArgumentException) {
+                _historyState.value =
+                    currentState.copy(
+                        error = "Failed to refresh history: ${e.message}",
+                    )
+            } catch (e: IllegalStateException) {
+                _historyState.value =
+                    currentState.copy(
+                        error = "Failed to refresh history: ${e.message}",
+                    )
+            } catch (e: NumberFormatException) {
                 _historyState.value =
                     currentState.copy(
                         error = "Failed to refresh history: ${e.message}",
@@ -183,7 +205,19 @@ class HistoryViewModel(
                         currentProgrammePage = nextPage,
                         hasMoreProgrammes = hasMoreProgrammes,
                     )
-            } catch (e: Exception) {
+            } catch (e: IllegalArgumentException) {
+                _historyState.value =
+                    currentState.copy(
+                        isLoadingMoreProgrammes = false,
+                        error = "Failed to load more programmes: ${e.message}",
+                    )
+            } catch (e: IllegalStateException) {
+                _historyState.value =
+                    currentState.copy(
+                        isLoadingMoreProgrammes = false,
+                        error = "Failed to load more programmes: ${e.message}",
+                    )
+            } catch (e: NumberFormatException) {
                 _historyState.value =
                     currentState.copy(
                         isLoadingMoreProgrammes = false,
@@ -200,7 +234,23 @@ class HistoryViewModel(
                 // Refresh calendar and week groups after deletion
                 loadCalendarData()
                 loadWeekGroups()
-            } catch (e: Exception) {
+            } catch (e: IllegalArgumentException) {
+                val currentState = _historyState.value
+                _historyState.value =
+                    currentState.copy(
+                        error = "Failed to delete workout: ${e.message}",
+                    )
+                // Refresh on error to ensure UI is accurate
+                refreshHistory()
+            } catch (e: IllegalStateException) {
+                val currentState = _historyState.value
+                _historyState.value =
+                    currentState.copy(
+                        error = "Failed to delete workout: ${e.message}",
+                    )
+                // Refresh on error to ensure UI is accurate
+                refreshHistory()
+            } catch (e: NumberFormatException) {
                 val currentState = _historyState.value
                 _historyState.value =
                     currentState.copy(
@@ -242,8 +292,14 @@ class HistoryViewModel(
                         workoutDayInfo = workoutDayInfo,
                         isLoading = false,
                     )
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to export workout", e)
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Failed to load calendar data", e)
+                _calendarState.value = _calendarState.value.copy(isLoading = false)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Failed to load calendar data", e)
+                _calendarState.value = _calendarState.value.copy(isLoading = false)
+            } catch (e: NumberFormatException) {
+                Log.e(TAG, "Failed to load calendar data", e)
                 _calendarState.value = _calendarState.value.copy(isLoading = false)
             }
         }
@@ -330,7 +386,13 @@ class HistoryViewModel(
                         expandedWeeks = emptySet(),
                         isLoading = false,
                     )
-            } catch (e: Exception) {
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Failed to load week groups for calendar month", e)
+                _weekGroupState.value = _weekGroupState.value.copy(isLoading = false)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Failed to load week groups for calendar month", e)
+                _weekGroupState.value = _weekGroupState.value.copy(isLoading = false)
+            } catch (e: NumberFormatException) {
                 Log.e(TAG, "Failed to load week groups for calendar month", e)
                 _weekGroupState.value = _weekGroupState.value.copy(isLoading = false)
             }

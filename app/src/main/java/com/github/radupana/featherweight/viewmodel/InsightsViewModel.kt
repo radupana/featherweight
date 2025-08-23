@@ -190,7 +190,11 @@ class InsightsViewModel(
                 // Incremental update - only refresh affected data
                 refreshWithNewData(newWorkouts.map { it.id })
             }
-        } catch (e: Exception) {
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e("InsightsViewModel", "Background refresh failed", e)
+            // Background refresh failed - this is expected behavior for offline scenarios
+            _analyticsState.value = _analyticsState.value.copy(error = "Background refresh failed")
+        } catch (e: IllegalStateException) {
             Log.e("InsightsViewModel", "Background refresh failed", e)
             // Background refresh failed - this is expected behavior for offline scenarios
             _analyticsState.value = _analyticsState.value.copy(error = "Background refresh failed")
@@ -230,7 +234,11 @@ class InsightsViewModel(
                     strengthMetrics = strengthMetrics,
                     cachedData = newCachedData,
                 )
-        } catch (e: Exception) {
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e("InsightsViewModel", "Data refresh failed", e)
+            // Refresh failed - update error state for user awareness
+            _analyticsState.value = _analyticsState.value.copy(error = "Data refresh failed: ${e.message}")
+        } catch (e: IllegalStateException) {
             Log.e("InsightsViewModel", "Data refresh failed", e)
             // Refresh failed - update error state for user awareness
             _analyticsState.value = _analyticsState.value.copy(error = "Data refresh failed: ${e.message}")
@@ -300,7 +308,18 @@ class InsightsViewModel(
                     isLoading = false,
                     cachedData = newCachedData,
                 )
-        } catch (e: Exception) {
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e("InsightsViewModel", "Failed to load analytics data", e)
+            _analyticsState.value =
+                _analyticsState.value.copy(
+                    isLoading = false,
+                    isQuickStatsLoading = false,
+                    isVolumeLoading = false,
+                    isStrengthLoading = false,
+                    isPerformanceLoading = false,
+                    error = "Failed to load analytics: ${e.message}",
+                )
+        } catch (e: IllegalStateException) {
             Log.e("InsightsViewModel", "Failed to load analytics data", e)
             _analyticsState.value =
                 _analyticsState.value.copy(
@@ -481,7 +500,11 @@ class InsightsViewModel(
         withContext(Dispatchers.IO) {
             try {
                 repository.getExercisesSummary()
-            } catch (e: Exception) {
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e("InsightsViewModel", "Error", e)
+                com.github.radupana.featherweight.service
+                    .GroupedExerciseSummary(emptyList(), emptyList())
+            } catch (e: IllegalStateException) {
                 Log.e("InsightsViewModel", "Error", e)
                 com.github.radupana.featherweight.service
                     .GroupedExerciseSummary(emptyList(), emptyList())
@@ -524,7 +547,10 @@ class InsightsViewModel(
                     }
 
                 onComplete(recentPRs, weeklyWorkoutCount, currentStreak)
-            } catch (e: Exception) {
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e("InsightsViewModel", "Error", e)
+                onComplete(emptyList(), 0, 0)
+            } catch (e: IllegalStateException) {
                 Log.e("InsightsViewModel", "Error", e)
                 onComplete(emptyList(), 0, 0)
             }
@@ -624,7 +650,15 @@ class InsightsViewModel(
                 repository.saveTrainingAnalysis(analysis)
                 _trainingAnalysis.value = analysis
             }
-        } catch (e: Exception) {
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e("InsightsViewModel", "Training analysis failed", e)
+            // Keep existing cached analysis if API fails
+            _trainingAnalysis.value = repository.getLatestTrainingAnalysis()
+        } catch (e: java.io.IOException) {
+            Log.e("InsightsViewModel", "Training analysis failed", e)
+            // Keep existing cached analysis if API fails
+            _trainingAnalysis.value = repository.getLatestTrainingAnalysis()
+        } catch (e: IllegalStateException) {
             Log.e("InsightsViewModel", "Training analysis failed", e)
             // Keep existing cached analysis if API fails
             _trainingAnalysis.value = repository.getLatestTrainingAnalysis()
@@ -798,14 +832,14 @@ class InsightsViewModel(
                 val category =
                     try {
                         InsightCategory.valueOf(insight.get("category").asString)
-                    } catch (e: Exception) {
+                    } catch (e: IllegalArgumentException) {
                         Log.w(TAG, "Unknown insight category, defaulting to PROGRESSION", e)
                         InsightCategory.PROGRESSION
                     }
                 val severity =
                     try {
                         InsightSeverity.valueOf(insight.get("severity").asString)
-                    } catch (e: Exception) {
+                    } catch (e: IllegalArgumentException) {
                         Log.w(TAG, "Unknown insight severity, defaulting to INFO", e)
                         InsightSeverity.INFO
                     }
@@ -839,7 +873,27 @@ class InsightsViewModel(
                 warningsJson = gson.toJson(warnings),
                 userId = 1,
             )
-        } catch (e: Exception) {
+        } catch (e: com.google.gson.JsonSyntaxException) {
+            Log.e(TAG, "Failed to parse AI analysis, using fallback", e)
+            val fallbackInsights =
+                listOf(
+                    TrainingInsight(
+                        category = InsightCategory.PROGRESSION,
+                        message = "Training data analyzed",
+                        severity = InsightSeverity.INFO,
+                    ),
+                )
+            return TrainingAnalysis(
+                analysisDate = LocalDateTime.now(),
+                periodStart = startDate,
+                periodEnd = endDate,
+                overallAssessment = "Analysis complete. Continue with your current training program.",
+                keyInsightsJson = gson.toJson(fallbackInsights),
+                recommendationsJson = gson.toJson(listOf("Continue current training program")),
+                warningsJson = gson.toJson(emptyList<String>()),
+                userId = 1,
+            )
+        } catch (e: IllegalStateException) {
             Log.e(TAG, "Failed to parse AI analysis, using fallback", e)
             val fallbackInsights =
                 listOf(

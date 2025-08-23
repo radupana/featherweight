@@ -53,7 +53,7 @@ data class Programme(
         weightCalculationRules?.let {
             try {
                 Json.decodeFromString<WeightCalculationRules>(it)
-            } catch (e: Exception) {
+            } catch (e: kotlinx.serialization.SerializationException) {
                 Log.w(TAG, "Failed to parse weight calculation rules JSON", e)
                 null
             }
@@ -63,7 +63,7 @@ data class Programme(
         progressionRules?.let {
             try {
                 Json.decodeFromString<ProgressionRules>(it)
-            } catch (e: Exception) {
+            } catch (e: kotlinx.serialization.SerializationException) {
                 Log.w(TAG, "Failed to parse progression rules JSON", e)
                 null
             }

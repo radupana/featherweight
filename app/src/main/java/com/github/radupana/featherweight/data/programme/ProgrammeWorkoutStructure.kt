@@ -108,7 +108,7 @@ object ProgrammeWorkoutParser {
     fun parseStructure(jsonString: String): ProgrammeStructure? =
         try {
             json.decodeFromString<ProgrammeStructure>(jsonString)
-        } catch (e: Exception) {
+        } catch (e: kotlinx.serialization.SerializationException) {
             Log.w(TAG, "Failed to parse programme structure JSON", e)
             null
         }

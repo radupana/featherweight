@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import android.database.sqlite.SQLiteException
+import java.io.IOException
 
 class ProgrammeViewModel(
     application: Application,
@@ -114,8 +116,15 @@ class ProgrammeViewModel(
                         isLoading = false,
                     )
                 hasLoadedInitialData = true
-            } catch (e: Exception) {
-                Log.e("ProgrammeViewModel", "Error", e)
+            } catch (e: SQLiteException) {
+                Log.e("ProgrammeViewModel", "Database error loading programmes", e)
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Failed to load programmes: ${e.message}",
+                        isLoading = false,
+                    )
+            } catch (e: IOException) {
+                Log.e("ProgrammeViewModel", "IO error loading programmes", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to load programmes: ${e.message}",
@@ -149,7 +158,8 @@ class ProgrammeViewModel(
                 // Programme deleted successfully - no notification needed
                 // Refresh data to update the UI
                 loadProgrammeData()
-            } catch (e: Exception) {
+            } catch (e: SQLiteException) {
+                Log.e("ProgrammeViewModel", "Database error deleting programme", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to delete programme: ${e.message}",
@@ -209,8 +219,8 @@ class ProgrammeViewModel(
                     _uiState.value.copy(
                         successMessage = null,
                     )
-            } catch (e: Exception) {
-                Log.e("ProgrammeViewModel", "Failed to delete parse request ${request.id}", e)
+            } catch (e: SQLiteException) {
+                Log.e("ProgrammeViewModel", "Database error deleting parse request ${request.id}", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to delete: ${e.message}",

@@ -195,14 +195,15 @@ class ExerciseSelectorViewModel(
                             }
                             // Check aliases if not found in name
                             else if (aliasesLower.any { alias ->
-                                alias.split("\\s+".toRegex()).any { it.contains(searchWordLower) }
-                            }) {
+                                    alias.split("\\s+".toRegex()).any { it.contains(searchWordLower) }
+                                }
+                            ) {
                                 matchedWordsInAliases++
                             }
                         }
 
                         val totalMatchedWords = matchedWordsInName + matchedWordsInAliases
-                        
+
                         // Only include if at least one word matches
                         if (totalMatchedWords > 0) {
                             // Higher base score for name matches than alias matches
@@ -240,12 +241,15 @@ class ExerciseSelectorViewModel(
     fun loadExercises() {
         loadExercisesInternal(null, seedIfEmpty = true)
     }
-    
+
     private fun loadExercisesByCategory(category: ExerciseCategory?) {
         loadExercisesInternal(category, seedIfEmpty = false)
     }
-    
-    private fun loadExercisesInternal(category: ExerciseCategory?, seedIfEmpty: Boolean) {
+
+    private fun loadExercisesInternal(
+        category: ExerciseCategory?,
+        seedIfEmpty: Boolean,
+    ) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
@@ -254,20 +258,25 @@ class ExerciseSelectorViewModel(
                     repository.seedDatabaseIfEmpty()
                 }
 
-                val variations = if (category != null) {
-                    repository.getExercisesByCategory(category)
-                } else {
-                    repository.getAllExercises()
-                }
-                
+                val variations =
+                    if (category != null) {
+                        repository.getExercisesByCategory(category)
+                    } else {
+                        repository.getAllExercises()
+                    }
+
                 // Load exercises with full muscle data
                 val exercises =
                     variations.map { variation ->
                         loadExerciseWithDetails(variation)
                     }
                 _allExercises.value = exercises
-            } catch (e: Exception) {
-                _errorMessage.value = "Failed to load exercises: ${e.message}"
+            } catch (e: android.database.sqlite.SQLiteException) {
+                _errorMessage.value = "Database error loading exercises: ${e.message}"
+            } catch (e: IllegalStateException) {
+                _errorMessage.value = "Invalid state loading exercises: ${e.message}"
+            } catch (e: SecurityException) {
+                _errorMessage.value = "Permission error loading exercises: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
@@ -384,8 +393,14 @@ class ExerciseSelectorViewModel(
                             }
                     },
                 )
-            } catch (e: Exception) {
-                _errorMessage.value = "Unexpected error: ${e.message}"
+            } catch (e: android.database.sqlite.SQLiteException) {
+                _errorMessage.value = "Database error creating exercise: ${e.message}"
+            } catch (e: IllegalArgumentException) {
+                _errorMessage.value = "Invalid exercise data: ${e.message}"
+            } catch (e: IllegalStateException) {
+                _errorMessage.value = "Invalid state creating exercise: ${e.message}"
+            } catch (e: SecurityException) {
+                _errorMessage.value = "Permission error creating exercise: ${e.message}"
             }
         }
     }
@@ -492,8 +507,14 @@ class ExerciseSelectorViewModel(
                         _deleteError.value = error.message ?: "Cannot delete this exercise"
                     },
                 )
-            } catch (e: Exception) {
-                _deleteError.value = "Unexpected error: ${e.message}"
+            } catch (e: android.database.sqlite.SQLiteException) {
+                _deleteError.value = "Database error deleting exercise: ${e.message}"
+            } catch (e: IllegalArgumentException) {
+                _deleteError.value = "Invalid exercise ID: ${e.message}"
+            } catch (e: IllegalStateException) {
+                _deleteError.value = "Invalid state deleting exercise: ${e.message}"
+            } catch (e: SecurityException) {
+                _deleteError.value = "Permission error deleting exercise: ${e.message}"
             }
         }
     }
@@ -549,8 +570,12 @@ class ExerciseSelectorViewModel(
                 } else {
                     _currentSwapExerciseName.value = null
                 }
-            } catch (e: Exception) {
-                throw IllegalStateException("Failed to load swap suggestions", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                throw IllegalStateException("Database error loading swap suggestions", e)
+            } catch (e: IllegalArgumentException) {
+                throw IllegalStateException("Invalid exercise ID for swap suggestions", e)
+            } catch (e: SecurityException) {
+                throw IllegalStateException("Permission error loading swap suggestions", e)
             }
         }
     }
@@ -561,14 +586,12 @@ class ExerciseSelectorViewModel(
     ): List<ExerciseSuggestion> {
         // Ensure we have exercises loaded
         val allExercises =
-            if (_allExercises.value.isEmpty()) {
+            _allExercises.value.ifEmpty {
                 repository
                     .getAllExercises()
                     .map { variation ->
                         loadExerciseWithDetails(variation)
                     }.also { _allExercises.value = it }
-            } else {
-                _allExercises.value
             }
 
         val suggestions = mutableListOf<ExerciseSuggestion>()

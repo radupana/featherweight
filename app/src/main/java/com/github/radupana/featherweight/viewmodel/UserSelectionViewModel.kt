@@ -52,7 +52,7 @@ class UserSelectionViewModel(
                             isLoading = false,
                         )
                 }
-            } catch (e: Exception) {
+            } catch (e: IllegalStateException) {
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to load users: ${e.message}",

@@ -54,7 +54,7 @@ class PRDetectionService(
                 if (workoutDateString != null) {
                     try {
                         LocalDateTime.parse(workoutDateString, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                    } catch (e: Exception) {
+                    } catch (e: java.time.format.DateTimeParseException) {
                         Log.w(TAG, "Failed to parse workout date for setLog: ${setLog.id}, using current time", e)
                         LocalDateTime.now()
                     }

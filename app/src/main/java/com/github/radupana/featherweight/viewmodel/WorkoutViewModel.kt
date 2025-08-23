@@ -98,8 +98,11 @@ class WorkoutViewModel(
                 repository.applyOneRMUpdate(update)
                 // Reload 1RM estimates after update
                 loadOneRMEstimatesForCurrentExercises()
-            } catch (e: Exception) {
-                Log.e("WorkoutViewModel", "Failed to apply 1RM update", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to apply 1RM update", e)
+                // Failed to apply 1RM update - operation will be retried
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state when applying 1RM update", e)
                 // Failed to apply 1RM update - operation will be retried
             }
         }
@@ -216,8 +219,11 @@ class WorkoutViewModel(
                 // Create lookup map for exercise details
                 val detailsMap = exercises.associateBy { it.id }
                 exerciseDetailsMap.value = detailsMap
-            } catch (e: Exception) {
-                Log.e("WorkoutViewModel", "Failed to load exercises", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to load exercises", e)
+                // Failed to load exercises - will retry on next navigation
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state when loading exercises", e)
                 // Failed to load exercises - will retry on next navigation
             }
         }
@@ -253,8 +259,11 @@ class WorkoutViewModel(
                                     val sets = repository.getSetsForExercise(exercise.id)
                                     sets.count { it.isCompleted }
                                 }
-                            } catch (e: Exception) {
+                            } catch (e: android.database.sqlite.SQLiteException) {
                                 Log.e(TAG, "Failed to calculate completed sets for workout ${summary.id}", e)
+                                0
+                            } catch (e: IllegalStateException) {
+                                Log.e(TAG, "Invalid state when calculating completed sets for workout ${summary.id}", e)
                                 0
                             }
 
@@ -384,8 +393,11 @@ class WorkoutViewModel(
                 if (workout.isProgrammeWorkout && workout.programmeId != null) {
                     try {
                         repository.getProgrammeById(workout.programmeId)?.name
-                    } catch (e: Exception) {
+                    } catch (e: android.database.sqlite.SQLiteException) {
                         Log.e(TAG, "Failed to get programme name for ID ${workout.programmeId}", e)
+                        null
+                    } catch (e: IllegalStateException) {
+                        Log.e(TAG, "Invalid state when getting programme name for ID ${workout.programmeId}", e)
                         null
                     }
                 } else {
@@ -795,8 +807,11 @@ class WorkoutViewModel(
                 }
 
                 _oneRMEstimates.value = estimatesMap
-            } catch (e: Exception) {
-                Log.e("WorkoutViewModel", "Failed to load 1RM estimates", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to load 1RM estimates", e)
+                // Failed to load 1RM estimates - will show without estimates
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state when loading 1RM estimates", e)
                 // Failed to load 1RM estimates - will show without estimates
             }
         }
@@ -962,8 +977,10 @@ class WorkoutViewModel(
                 exercises.forEachIndexed { index, exercise ->
                     repository.updateExerciseOrder(exercise.id, index)
                 }
-            } catch (e: Exception) {
+            } catch (e: android.database.sqlite.SQLiteException) {
                 Log.e(TAG, "Error reordering exercises", e)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state when reordering exercises", e)
             }
         }
     }
@@ -1274,8 +1291,10 @@ class WorkoutViewModel(
                             )
                     }
                 }
-            } catch (e: Exception) {
+            } catch (e: android.database.sqlite.SQLiteException) {
                 Log.e(TAG, "PR detection failed for set $setId", e)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state during PR detection for set $setId", e)
             }
 
             // Check if we should update 1RM estimate
@@ -1342,8 +1361,10 @@ class WorkoutViewModel(
                         }
                     }
                 }
-            } catch (e: Exception) {
-                Log.e("WorkoutViewModel", "Failed to update 1RM estimate", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to update 1RM estimate", e)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state when updating 1RM estimate", e)
             }
 
             // Auto-collapse exercise when ALL sets are completed
@@ -1543,8 +1564,10 @@ class WorkoutViewModel(
                     // Clear swap state
                     _swappingExercise.value = null
                 }
-            } catch (e: Exception) {
-                Log.e("WorkoutViewModel", "Failed to swap exercise", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to swap exercise", e)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state when swapping exercise", e)
             }
         }
     }
@@ -1644,8 +1667,10 @@ class WorkoutViewModel(
                         _workoutState.value.copy(
                             workoutName = "Repeat Workout",
                         )
-                } catch (e: Exception) {
-                    Log.e("WorkoutViewModel", "Error repeating workout", e)
+                } catch (e: android.database.sqlite.SQLiteException) {
+                    Log.e(TAG, "Error repeating workout", e)
+                } catch (e: IllegalStateException) {
+                    Log.e(TAG, "Invalid state when repeating workout", e)
                 }
             }
         }
@@ -1735,8 +1760,11 @@ class WorkoutViewModel(
 
             // Notify that workout is ready for navigation
             onReady?.invoke()
-        } catch (e: Exception) {
-            Log.e("WorkoutViewModel", "Error starting programme workout", e)
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e(TAG, "Error starting programme workout", e)
+            _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
+        } catch (e: IllegalStateException) {
+            Log.e(TAG, "Invalid state when starting programme workout", e)
             _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
         }
     }
@@ -2031,8 +2059,11 @@ class WorkoutViewModel(
             try {
                 val notes = repository.getWorkoutNotes(workoutId)
                 callback(notes)
-            } catch (e: Exception) {
-                Log.e("WorkoutViewModel", "Failed to load workout notes", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to load workout notes", e)
+                callback(null)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state when loading workout notes", e)
                 callback(null)
             }
         }
@@ -2045,8 +2076,10 @@ class WorkoutViewModel(
         viewModelScope.launch {
             try {
                 repository.updateWorkoutNotes(workoutId, notes)
-            } catch (e: Exception) {
-                Log.e("WorkoutViewModel", "Failed to save workout notes", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to save workout notes", e)
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Invalid state when saving workout notes", e)
             }
         }
     }

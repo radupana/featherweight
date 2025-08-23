@@ -111,7 +111,7 @@ fun ActiveProgrammeScreen(
                     nextWorkout = null
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: IllegalStateException) {
             Log.w("ActiveProgrammeScreen", "Failed to load next programme workout", e)
         } finally {
             isLoading = false

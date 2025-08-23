@@ -87,7 +87,7 @@ class ExerciseValidator(
                     }
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: IllegalArgumentException) {
             errors.add(
                 ValidationError(
                     field = "structure",

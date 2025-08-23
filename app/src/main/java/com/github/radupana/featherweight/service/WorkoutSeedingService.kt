@@ -632,7 +632,7 @@ class WorkoutSeedingService(
                     // Check for PRs
                     try {
                         repository.checkForPR(set, exerciseLog.exerciseVariationId)
-                    } catch (e: Exception) {
+                    } catch (e: IllegalStateException) {
                         Log.w(TAG, "PR check failed during seeding for exerciseId: ${exerciseLog.exerciseVariationId}, setId: ${set.id}", e)
                     }
 
@@ -690,7 +690,7 @@ class WorkoutSeedingService(
                             notes = "Generated from seeded workout",
                             workoutDate = workout.date,
                         )
-                    } catch (e: Exception) {
+                    } catch (e: IllegalStateException) {
                         Log.w(TAG, "1RM update failed during seeding for exerciseId: ${exerciseLog.exerciseVariationId}, workoutId: $workoutId", e)
                     }
                 }
