@@ -572,8 +572,8 @@ private fun SearchBar(
 private fun ExerciseCard(
     exercise: ExerciseWithDetails,
     onSelect: () -> Unit,
-    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    onDelete: (() -> Unit)? = null,
 ) {
     val cardPadding = 12.dp // Keep consistent padding
     Card(
@@ -1084,12 +1084,13 @@ private fun CreateCustomExerciseDialog(
 private fun SuggestionCard(
     suggestion: ExerciseSuggestion,
     onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
     onDelete: (() -> Unit)? = null,
 ) {
     val cardPadding = 12.dp // Keep consistent padding
     Card(
         modifier =
-            Modifier
+            modifier
                 .fillMaxWidth()
                 .clickable { onSelect() },
         elevation = CardDefaults.cardElevation(2.dp),

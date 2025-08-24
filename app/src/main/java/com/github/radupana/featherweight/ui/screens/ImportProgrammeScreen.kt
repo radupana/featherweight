@@ -68,11 +68,11 @@ import com.github.radupana.featherweight.viewmodel.ImportProgrammeViewModel
 fun ImportProgrammeScreen(
     onBack: () -> Unit,
     onProgrammeCreated: () -> Unit,
+    modifier: Modifier = Modifier,
     onNavigateToProgrammes: () -> Unit = onBack, // Default to going back
     onNavigateToWorkoutEdit: (weekIndex: Int, workoutIndex: Int) -> Unit = { _, _ -> },
     onNavigateToExerciseMapping: () -> Unit = {},
     initialText: String? = null,
-    modifier: Modifier = Modifier,
     viewModel: ImportProgrammeViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()

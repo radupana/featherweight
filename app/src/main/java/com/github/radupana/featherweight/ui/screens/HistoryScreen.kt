@@ -122,7 +122,6 @@ fun HistoryScreen(
                         item {
                             CalendarView(
                                 selectedDate = calendarState.selectedDate,
-                                workoutDates = calendarState.workoutCounts.keys,
                                 workoutDayInfo = calendarState.workoutDayInfo,
                                 onDateSelected = { date ->
                                     historyViewModel.selectDate(date)

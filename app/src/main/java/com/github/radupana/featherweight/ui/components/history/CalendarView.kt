@@ -49,11 +49,10 @@ import java.util.Locale
 @Composable
 fun CalendarView(
     selectedDate: LocalDate?,
-    workoutDates: Set<LocalDate>,
     workoutDayInfo: Map<LocalDate, com.github.radupana.featherweight.repository.WorkoutDayInfo>,
+    modifier: Modifier = Modifier,
     onDateSelected: (LocalDate) -> Unit,
     onMonthChanged: (YearMonth) -> Unit = {},
-    modifier: Modifier = Modifier,
 ) {
     val currentMonth = remember { YearMonth.now() }
     val startMonth = remember { currentMonth.minusMonths(12) }

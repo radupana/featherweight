@@ -88,6 +88,7 @@ fun SetEditingModal(
     exercise: ExerciseLog,
     sets: List<SetLog>,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
     onNavigateBack: (() -> Unit)? = null,
     onUpdateSet: (Long, Int, Float, Float?) -> Unit,
     onAddSet: ((Long) -> Unit) -> Unit,
@@ -99,7 +100,6 @@ fun SetEditingModal(
     workoutTimerSeconds: Int = 0,
     isProgrammeWorkout: Boolean = false,
     readOnly: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -543,13 +543,13 @@ fun SetEditingModal(
 @Composable
 fun CleanSetLayout(
     set: SetLog,
+    modifier: Modifier = Modifier,
     oneRMEstimate: Float? = null,
     onUpdateSet: (Int, Float, Float?) -> Unit,
     onToggleCompleted: (Boolean) -> Unit,
     canMarkComplete: Boolean,
     isProgrammeWorkout: Boolean,
     swipeToDismissState: SwipeToDismissBoxState,
-    modifier: Modifier = Modifier,
     readOnly: Boolean = false,
 ) {
     val inputStates = rememberSetInputStates(set)

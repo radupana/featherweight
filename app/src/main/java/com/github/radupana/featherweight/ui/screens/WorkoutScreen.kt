@@ -882,9 +882,9 @@ private fun ExercisesList(
     onDeleteExercise: (Long) -> Unit,
     onSelectExercise: () -> Unit,
     onCompleteWorkout: () -> Unit,
-    onTemplateSaved: () -> Unit = {},
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
+    onTemplateSaved: () -> Unit = {},
 ) {
     val lazyListState = rememberLazyListState()
 
@@ -976,11 +976,11 @@ private fun ExercisesList(
 @Composable
 private fun WorkoutActionButtons(
     canCompleteWorkout: Boolean,
-    isTemplateEdit: Boolean = false,
     onAddExercise: () -> Unit,
     onCompleteWorkout: () -> Unit,
-    onSaveTemplate: () -> Unit = {},
     modifier: Modifier = Modifier,
+    isTemplateEdit: Boolean = false,
+    onSaveTemplate: () -> Unit = {},
 ) {
     var isSaving by remember { mutableStateOf(false) }
     var showSaved by remember { mutableStateOf(false) }

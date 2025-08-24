@@ -75,12 +75,12 @@ fun ExerciseCard(
     exercise: ExerciseLog,
     sets: List<SetLog>,
     isExpanded: Boolean,
-    isDragging: Boolean = false, // Add this parameter for visual feedback
     onToggleExpansion: () -> Unit,
     onDeleteExercise: (Long) -> Unit,
     onSwapExercise: (Long) -> Unit,
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier,
+    isDragging: Boolean = false, // Add this parameter for visual feedback
     showDragHandle: Boolean = false,
     dragHandleModifier: Modifier = Modifier, // Modifier for the drag handle
 ) {

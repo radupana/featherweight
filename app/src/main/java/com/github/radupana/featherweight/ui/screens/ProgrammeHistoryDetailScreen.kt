@@ -61,8 +61,8 @@ fun ProgrammeHistoryDetailScreen(
     programmeId: Long,
     onBack: () -> Unit,
     onViewWorkout: (Long) -> Unit,
-    viewModel: ProgrammeHistoryDetailViewModel = viewModel(),
     modifier: Modifier = Modifier,
+    viewModel: ProgrammeHistoryDetailViewModel = viewModel(),
 ) {
     val programmeDetails by viewModel.programmeDetails.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()

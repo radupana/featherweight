@@ -51,8 +51,8 @@ import kotlinx.coroutines.flow.filter
 @Composable
 fun InsightsScreen(
     viewModel: InsightsViewModel,
-    onNavigateToExercise: (String) -> Unit = {},
     modifier: Modifier = Modifier,
+    onNavigateToExercise: (String) -> Unit = {},
 ) {
     var recentPRs by remember { mutableStateOf<List<com.github.radupana.featherweight.data.PersonalRecord>>(emptyList()) }
     var weeklyWorkoutCount by remember { mutableStateOf(0) }
@@ -128,11 +128,11 @@ fun InsightsScreen(
         item {
             ExerciseProgressSection(
                 viewModel = viewModel,
-                onNavigateToExercise = onNavigateToExercise,
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .height(500.dp), // Fixed height for the entire section
+                onNavigateToExercise = onNavigateToExercise,
             )
         }
     }
@@ -430,8 +430,8 @@ private fun EmptyExercisesState() {
 @Composable
 private fun ExerciseProgressSection(
     viewModel: InsightsViewModel,
-    onNavigateToExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateToExercise: (String) -> Unit,
 ) {
     Column(modifier = modifier) {
         // Header

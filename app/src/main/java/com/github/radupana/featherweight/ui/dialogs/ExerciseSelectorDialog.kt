@@ -153,7 +153,6 @@ fun ExerciseSelectorDialog(
                                     onExerciseSelected(exerciseWithDetails)
                                     onDismiss()
                                 },
-                                isCompact = false,
                             )
                         }
                     }
@@ -167,7 +166,6 @@ fun ExerciseSelectorDialog(
 private fun ExerciseItem(
     exerciseWithDetails: ExerciseWithDetails,
     onClick: () -> Unit,
-    isCompact: Boolean = false,
 ) {
     val exercise = exerciseWithDetails.variation
     val itemPadding = 16.dp

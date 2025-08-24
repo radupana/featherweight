@@ -49,13 +49,6 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun HomeScreen(
     onStartFreestyle: () -> Unit,
-    onBrowseProgrammes: () -> Unit,
-    onNavigateToActiveProgramme: (() -> Unit)? = null,
-    onStartProgrammeWorkout: () -> Unit,
-    onGenerateAIProgramme: () -> Unit,
-    onNavigateToHistory: () -> Unit = {},
-    onNavigateToAnalytics: () -> Unit = {},
-    onNavigateToProfile: () -> Unit = {},
     modifier: Modifier = Modifier,
     workoutViewModel: WorkoutViewModel = viewModel(),
     programmeViewModel: ProgrammeViewModel = viewModel(),
@@ -183,8 +176,8 @@ fun HomeScreen(
 fun InProgressWorkoutCard(
     workout: InProgressWorkout,
     onContinue: () -> Unit,
-    onLongClick: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onLongClick: () -> Unit = {},
 ) {
     Card(
         modifier =
