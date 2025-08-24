@@ -1,5 +1,7 @@
 package com.github.radupana.featherweight.ui.screens
 
+import java.util.Locale
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.tween
@@ -361,7 +363,7 @@ private fun WorkoutInsightsCard(summary: CompletionSummary) {
                     }
                 add(
                     InsightItem(
-                        title = "Average RPE: ${String.format("%.1f", rpe)}",
+                        title = "Average RPE: ${String.format(Locale.US, "%.1f", rpe)}",
                         description = message,
                     ),
                 )

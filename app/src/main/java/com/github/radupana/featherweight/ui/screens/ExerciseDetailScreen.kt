@@ -1,5 +1,7 @@
 package com.github.radupana.featherweight.ui.screens
 
+import java.util.Locale
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -281,7 +283,7 @@ private fun PerformanceStatsCard(
 
                 StatRow(
                     label = "Average RPE",
-                    value = stats.averageRpe?.let { String.format("%.1f", it) } ?: "No data",
+                    value = stats.averageRpe?.let { String.format(Locale.US, "%.1f", it) } ?: "No data",
                 )
 
                 StatRow(
@@ -390,7 +392,7 @@ private fun PRHistoryCard(
 
                                 dataPoint.rpe?.let { rpe ->
                                     Text(
-                                        text = " • RPE: ${String.format("%.1f", rpe)}",
+                                        text = " • RPE: ${String.format(Locale.US, "%.1f", rpe)}",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )

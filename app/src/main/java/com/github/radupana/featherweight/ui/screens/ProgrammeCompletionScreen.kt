@@ -1,5 +1,7 @@
 package com.github.radupana.featherweight.ui.screens
 
+import java.util.Locale
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.tween
@@ -342,7 +344,7 @@ private fun StrengthProgressCard(
             // Average improvement
             if (averageImprovement > 0) {
                 Text(
-                    text = "Average improvement: +${String.format("%.1f", averageImprovement)}%",
+                    text = "Average improvement: +${String.format(Locale.US, "%.1f", averageImprovement)}%",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
@@ -402,7 +404,7 @@ private fun ImprovementItem(improvement: StrengthImprovement) {
                 shape = MaterialTheme.shapes.small,
             ) {
                 Text(
-                    text = "+${String.format("%.1f", improvement.improvementPercentage)}%",
+                    text = "+${String.format(Locale.US, "%.1f", improvement.improvementPercentage)}%",
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -516,7 +518,7 @@ private fun ProgrammeInsightsCard(stats: com.github.radupana.featherweight.data.
                         modifier = Modifier.size(20.dp),
                     )
                     Text(
-                        text = "${String.format("%.1f", stats.insights.averageRestDaysBetweenWorkouts)} average rest days between workouts",
+                        text = "${String.format(Locale.US, "%.1f", stats.insights.averageRestDaysBetweenWorkouts)} average rest days between workouts",
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }

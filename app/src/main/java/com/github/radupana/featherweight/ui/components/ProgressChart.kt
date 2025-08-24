@@ -1,5 +1,7 @@
 package com.github.radupana.featherweight.ui.components
 
+import java.util.Locale
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -125,7 +127,7 @@ fun ProgressChart(
                     }
 
                 Text(
-                    text = "${if (progressPercentage >= 0) "+" else ""}${String.format("%.1f", progressPercentage)}%",
+                    text = "${if (progressPercentage >= 0) "+" else ""}${String.format(Locale.US, "%.1f", progressPercentage)}%",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
                     color = progressColor,

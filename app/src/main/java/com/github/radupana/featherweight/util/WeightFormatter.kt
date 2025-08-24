@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.util
 
+import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.round
 
@@ -18,7 +19,7 @@ object WeightFormatter {
             roundedWeight.toInt().toString()
         } else {
             // Show with at most 2 decimal places
-            String.format("%.2f", roundedWeight).trimEnd('0').trimEnd('.')
+            String.format(Locale.US, "%.2f", roundedWeight).trimEnd('0').trimEnd('.')
         }
     }
 
@@ -43,7 +44,7 @@ object WeightFormatter {
     fun formatDecimal(
         value: Float,
         decimals: Int = 2,
-    ): String = String.format("%.${decimals}f", value).trimEnd('0').trimEnd('.')
+    ): String = String.format(Locale.US, "%.${decimals}f", value).trimEnd('0').trimEnd('.')
 
     /**
      * Formats percentage values (0-1 scale to 0-100%)

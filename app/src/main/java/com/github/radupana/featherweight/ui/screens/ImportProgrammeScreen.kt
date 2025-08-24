@@ -204,7 +204,14 @@ fun ImportProgrammeScreen(
                                 label = { Text("Programme Text") },
                                 placeholder = {
                                     Text(
-                                        "Week 1 - Volume Phase\n\nMonday - Upper Power\nBench Press 3x5 @ 80%\nBarbell Row 3x5 @ 75kg\nOverhead Press 3x8\n\nWednesday - Lower Power\nSquat 3x5 @ 85%\nRomanian Deadlift 3x8\n...",
+                                        "Week 1 - Volume Phase\n\n" +
+                                            "Monday - Upper Power\n" +
+                                            "Bench Press 3x5 @ 80%\n" +
+                                            "Barbell Row 3x5 @ 75kg\n" +
+                                            "Overhead Press 3x8\n\n" +
+                                            "Wednesday - Lower Power\n" +
+                                            "Squat 3x5 @ 85%\n" +
+                                            "Romanian Deadlift 3x8\n...",
                                         style = MaterialTheme.typography.bodySmall,
                                     )
                                 },
