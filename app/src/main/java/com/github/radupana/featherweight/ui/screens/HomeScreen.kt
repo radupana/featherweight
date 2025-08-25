@@ -56,31 +56,16 @@ fun HomeScreen(
     val inProgressWorkouts by workoutViewModel.inProgressWorkouts.collectAsState()
     val activeProgramme by programmeViewModel.activeProgramme.collectAsState()
     val programmeProgress by programmeViewModel.programmeProgress.collectAsState()
-    val lastCompletedWorkout by workoutViewModel.lastCompletedWorkout.collectAsState()
-    val lastCompletedWorkoutExercises by workoutViewModel.lastCompletedWorkoutExercises.collectAsState()
     val scope = rememberCoroutineScope()
     var showWorkoutDialog by remember { mutableStateOf(false) }
     var pendingWorkout by remember { mutableStateOf<InProgressWorkout?>(null) }
 
     // Determine if there's ANY in-progress workout (most recent will be used)
-    inProgressWorkouts.isNotEmpty()
     val mostRecentInProgressWorkout =
         inProgressWorkouts
             .sortedByDescending { it.startDate }
             .firstOrNull()
 
-    // Build detailed workout label
-    mostRecentInProgressWorkout?.let { workout ->
-        when {
-            workout.isProgrammeWorkout && workout.programmeName != null -> {
-                val workoutDetail = workout.programmeWorkoutName ?: "Week ${workout.weekNumber ?: ""} Day ${workout.dayNumber ?: ""}"
-                "${workout.programmeName} $workoutDetail"
-            }
-
-            workout.name != null -> workout.name
-            else -> "Freestyle Workout"
-        }
-    }
 
     // Determine next workout info - needs to be done in LaunchedEffect
     var nextWorkoutInfo by remember { mutableStateOf<NextProgrammeWorkoutInfo?>(null) }
