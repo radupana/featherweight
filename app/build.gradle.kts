@@ -86,7 +86,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
 
     // Reorderable library for drag-and-drop in LazyColumn
-    implementation("sh.calvin.reorderable:reorderable:2.4.0")
+    implementation("sh.calvin.reorderable:reorderable:3.0.0")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
