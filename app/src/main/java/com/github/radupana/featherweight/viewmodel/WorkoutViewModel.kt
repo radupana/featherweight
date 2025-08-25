@@ -955,7 +955,9 @@ class WorkoutViewModel(
         val exercises = _selectedWorkoutExercises.value.toMutableList()
 
         // Validate indices
-        if (fromIndex < 0 || fromIndex >= exercises.size || toIndex < 0 || toIndex >= exercises.size) return
+        val isFromIndexInvalid = fromIndex < 0 || fromIndex >= exercises.size
+        val isToIndexInvalid = toIndex < 0 || toIndex >= exercises.size
+        if (isFromIndexInvalid || isToIndexInvalid) return
 
         // Move the exercise
         val exerciseToMove = exercises.removeAt(fromIndex)

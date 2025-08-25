@@ -332,18 +332,11 @@ class GlobalProgressTracker(
                     }
                     // If we don't have a 1RM yet, use multi-rep sets
                     !hasActual1RM -> {
-                        if (bestEstimate == null ||
-                            // Prefer lower reps
-                            set.actualReps < (
-                                estimableSets.find { it.actualWeight == bestEstimate.estimatedMax }?.actualReps
-                                    ?: Int.MAX_VALUE
-                            ) ||
-                            // If same reps, prefer higher confidence
-                            (
-                                set.actualReps == estimableSets.find { it.actualWeight == bestEstimate.estimatedMax }?.actualReps &&
-                                    estimate.confidence > bestEstimate.confidence
-                            )
-                        ) {
+                        val currentBestReps = estimableSets.find { it.actualWeight == bestEstimate?.estimatedMax }?.actualReps ?: Int.MAX_VALUE
+                        val hasLowerReps = set.actualReps < currentBestReps
+                        val hasSameRepsHigherConfidence = set.actualReps == currentBestReps && estimate.confidence > (bestEstimate?.confidence ?: 0f)
+                        
+                        if (bestEstimate == null || hasLowerReps || hasSameRepsHigherConfidence) {
                             bestEstimate = estimate
                         }
                     }

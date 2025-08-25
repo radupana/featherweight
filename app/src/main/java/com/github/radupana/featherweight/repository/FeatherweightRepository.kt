@@ -383,8 +383,9 @@ class FeatherweightRepository(
         }
 
         // Update programme progress if this is a programme workout
-        if (workout.isProgrammeWorkout && workout.programmeId != null && workout.weekNumber != null && workout.dayNumber != null) {
-            updateProgrammeProgressAfterWorkout(workout.programmeId)
+        val hasProgrammeDetails = workout.programmeId != null && workout.weekNumber != null && workout.dayNumber != null
+        if (workout.isProgrammeWorkout && hasProgrammeDetails) {
+            updateProgrammeProgressAfterWorkout(workout.programmeId!!)
         }
     }
 

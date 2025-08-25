@@ -60,13 +60,6 @@ fun HomeScreen(
     var showWorkoutDialog by remember { mutableStateOf(false) }
     var pendingWorkout by remember { mutableStateOf<InProgressWorkout?>(null) }
 
-    // Determine if there's ANY in-progress workout (most recent will be used)
-    val mostRecentInProgressWorkout =
-        inProgressWorkouts
-            .sortedByDescending { it.startDate }
-            .firstOrNull()
-
-
     // Determine next workout info - needs to be done in LaunchedEffect
     var nextWorkoutInfo by remember { mutableStateOf<NextProgrammeWorkoutInfo?>(null) }
 

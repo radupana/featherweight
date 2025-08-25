@@ -254,11 +254,9 @@ private fun IntensityZoneChartCanvas(
 
             // Handle click detection
             clickPosition?.let { click ->
-                if (click.x >= x &&
-                    click.x <= x + barWidth &&
-                    click.y >= y &&
-                    click.y <= y + barHeight
-                ) {
+                val isWithinHorizontalBounds = click.x >= x && click.x <= x + barWidth
+                val isWithinVerticalBounds = click.y >= y && click.y <= y + barHeight
+                if (isWithinHorizontalBounds && isWithinVerticalBounds) {
                     onZoneSelected(zone)
                     clickPosition = null
                 }

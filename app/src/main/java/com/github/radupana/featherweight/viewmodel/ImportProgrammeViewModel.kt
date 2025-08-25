@@ -204,76 +204,91 @@ class ImportProgrammeViewModel(
         Log.d("ImportProgrammeViewModel", "=== EXERCISE MATCHING START ===")
         Log.d("ImportProgrammeViewModel", "Looking for: '$exerciseName' (normalized: '$nameLower')")
 
+        var matchedId: Long? = null
+
         // 1. Try exact match on name (case-insensitive)
-        allExercises.find { it.name.lowercase() == nameLower }?.let {
-            Log.d("ImportProgrammeViewModel", "Exact name match found: ${it.name} (ID: ${it.id})")
-            return it.id
+        if (matchedId == null) {
+            allExercises.find { it.name.lowercase() == nameLower }?.let {
+                Log.d("ImportProgrammeViewModel", "Exact name match found: ${it.name} (ID: ${it.id})")
+                matchedId = it.id
+            }
         }
 
         // 2. Try exact match on aliases (case-insensitive)
-        allExercises
-            .find { exercise ->
-                exercise.aliases.any { alias -> alias.lowercase() == nameLower }
-            }?.let {
-                Log.d("ImportProgrammeViewModel", "Exact alias match found: ${it.name} (ID: ${it.id})")
-                return it.id
-            }
+        if (matchedId == null) {
+            allExercises
+                .find { exercise ->
+                    exercise.aliases.any { alias -> alias.lowercase() == nameLower }
+                }?.let {
+                    Log.d("ImportProgrammeViewModel", "Exact alias match found: ${it.name} (ID: ${it.id})")
+                    matchedId = it.id
+                }
+        }
 
         // Extract equipment type from the exercise name
         val inputEquipment = extractEquipment(nameLower)
 
         // 3. Try to match with variations preserved (e.g., "Barbell Paused Bench Press")
         // Look for exercises that contain all important words
-        val importantWords = nameLower.split(" ").filter { it.length > 2 }
+        if (matchedId == null) {
+            val importantWords = nameLower.split(" ").filter { it.length > 2 }
 
-        // Find exercises that contain all the important words
-        // For exact word matches, we're more lenient with equipment
-        allExercises
-            .find { exercise ->
-                val exerciseLower = exercise.name.lowercase()
-                val exerciseEquipment = extractEquipment(exerciseLower)
+            // Find exercises that contain all the important words
+            // For exact word matches, we're more lenient with equipment
+            allExercises
+                .find { exercise ->
+                    val exerciseLower = exercise.name.lowercase()
+                    val exerciseEquipment = extractEquipment(exerciseLower)
 
-                // For high-confidence matches (all words present), allow some equipment flexibility
-                // but still prevent obvious mismatches like "dumbbell" to "barbell"
-                val equipmentOk =
-                    when {
-                        inputEquipment == null || exerciseEquipment == null -> true
-                        inputEquipment == exerciseEquipment -> true
-                        // Block only the most egregious mismatches
-                        inputEquipment == "dumbbell" && exerciseEquipment == "barbell" -> false
-                        inputEquipment == "barbell" && exerciseEquipment == "dumbbell" -> false
-                        else -> true // Allow cable/machine variations etc
-                    }
+                    // For high-confidence matches (all words present), allow some equipment flexibility
+                    // but still prevent obvious mismatches like "dumbbell" to "barbell"
+                    val equipmentOk =
+                        when {
+                            inputEquipment == null || exerciseEquipment == null -> true
+                            inputEquipment == exerciseEquipment -> true
+                            // Block only the most egregious mismatches
+                            inputEquipment == "dumbbell" && exerciseEquipment == "barbell" -> false
+                            inputEquipment == "barbell" && exerciseEquipment == "dumbbell" -> false
+                            else -> true // Allow cable/machine variations etc
+                        }
 
-                equipmentOk && importantWords.all { word -> exerciseLower.contains(word) }
-            }?.let {
-                Log.d("ImportProgrammeViewModel", "Important words match found: ${it.name} (ID: ${it.id})")
-                return it.id
-            }
+                    equipmentOk && importantWords.all { word -> exerciseLower.contains(word) }
+                }?.let {
+                    Log.d("ImportProgrammeViewModel", "Important words match found: ${it.name} (ID: ${it.id})")
+                    matchedId = it.id
+                }
+        }
 
         // 3. Special handling for variations like "Paused or Pin"
-        if (nameLower.contains(" or ")) {
+        if (matchedId == null && nameLower.contains(" or ")) {
             // Try each variation separately
             val variations = nameLower.split(" or ")
-            for (variation in variations) {
-                val varTrimmed = variation.trim()
-                allExercises
-                    .find { exercise ->
-                        exercise.name.lowercase().contains(varTrimmed)
-                    }?.let { return it.id }
+            run {
+                for (variation in variations) {
+                    val varTrimmed = variation.trim()
+                    allExercises
+                        .find { exercise ->
+                            exercise.name.lowercase().contains(varTrimmed)
+                        }?.let { 
+                            matchedId = it.id
+                            return@run
+                        }
+                }
             }
         }
 
         // 4. Try with normalized equipment names but keep variations
-        val nameWithVariations =
-            nameLower
-                .replace("weighted ", "") // For "Weighted Dips" -> "Dips"
-                .trim()
+        if (matchedId == null) {
+            val nameWithVariations =
+                nameLower
+                    .replace("weighted ", "") // For "Weighted Dips" -> "Dips"
+                    .trim()
 
-        allExercises
-            .find {
-                it.name.lowercase().contains(nameWithVariations)
-            }?.let { return it.id }
+            allExercises
+                .find {
+                    it.name.lowercase().contains(nameWithVariations)
+                }?.let { matchedId = it.id }
+        }
 
         // 5. Strip equipment and try again (last resort)
         val nameWithoutEquipment =
@@ -294,36 +309,42 @@ class ImportProgrammeViewModel(
 
         // IMPORTANT: For Cable exercises, prefer exact Cable matches
         // Don't match "Cable Fly" to "Cable Rear Delt Fly"
-        if (nameLower.startsWith("cable ")) {
-            // For cable exercises, only match if the core movement matches exactly
-            allExercises
-                .find { exercise ->
-                    val exName = exercise.name.lowercase()
-                    exName.startsWith("cable ") &&
-                        exName.removePrefix("cable ").trim() == nameWithoutEquipment
-                }?.let { return it.id }
-        } else {
-            // For non-cable exercises, try to find exercise that ends with the core movement
-            allExercises
-                .find {
-                    it.name.lowercase().endsWith(nameWithoutEquipment)
-                }?.let { return it.id }
+        if (matchedId == null) {
+            if (nameLower.startsWith("cable ")) {
+                // For cable exercises, only match if the core movement matches exactly
+                allExercises
+                    .find { exercise ->
+                        val exName = exercise.name.lowercase()
+                        exName.startsWith("cable ") &&
+                            exName.removePrefix("cable ").trim() == nameWithoutEquipment
+                    }?.let { matchedId = it.id }
+            } else {
+                // For non-cable exercises, try to find exercise that ends with the core movement
+                allExercises
+                    .find {
+                        it.name.lowercase().endsWith(nameWithoutEquipment)
+                    }?.let { matchedId = it.id }
+            }
         }
 
         // 6. Handle common abbreviations and variations
-        val normalizedName = normalizeExerciseName(nameLower)
-        allExercises
-            .find {
-                normalizeExerciseName(it.name.lowercase()) == normalizedName
-            }?.let {
-                Log.d("ImportProgrammeViewModel", "Normalized name match found: ${it.name} (ID: ${it.id})")
-                return it.id
-            }
+        if (matchedId == null) {
+            val normalizedName = normalizeExerciseName(nameLower)
+            allExercises
+                .find {
+                    normalizeExerciseName(it.name.lowercase()) == normalizedName
+                }?.let {
+                    Log.d("ImportProgrammeViewModel", "Normalized name match found: ${it.name} (ID: ${it.id})")
+                    matchedId = it.id
+                }
+        }
 
-        // 7. No match found
-        Log.d("ImportProgrammeViewModel", "NO MATCH FOUND for: $exerciseName")
+        // 7. Log result
+        if (matchedId == null) {
+            Log.d("ImportProgrammeViewModel", "NO MATCH FOUND for: $exerciseName")
+        }
         Log.d("ImportProgrammeViewModel", "=== EXERCISE MATCHING END ===")
-        return null
+        return matchedId
     }
 
     private fun extractEquipment(exerciseName: String): String? {

@@ -186,12 +186,17 @@ fun <T> SearchableSelectionDialog(
                                                 onDismiss()
                                             }
                                         },
-                                color =
-                                    if (multiSelect && item in tempSelectedItems || !multiSelect && item == tempSelectedItem) {
+                                color = run {
+                                    val isSelectedInMultiMode = multiSelect && item in tempSelectedItems
+                                    val isSelectedInSingleMode = !multiSelect && item == tempSelectedItem
+                                    val isSelected = isSelectedInMultiMode || isSelectedInSingleMode
+                                    
+                                    if (isSelected) {
                                         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                                     } else {
                                         MaterialTheme.colorScheme.surface
-                                    },
+                                    }
+                                },
                             ) {
                                 Row(
                                     modifier =

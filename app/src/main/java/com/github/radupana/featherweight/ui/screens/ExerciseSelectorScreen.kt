@@ -952,12 +952,12 @@ private fun CreateCustomExerciseDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    if (exerciseName.isNotBlank() &&
-                        nameValidationError == null &&
-                        selectedCategory != null &&
-                        selectedPrimaryMuscles.isNotEmpty() &&
-                        selectedEquipment.isNotEmpty()
-                    ) {
+                    val hasValidName = exerciseName.isNotBlank() && nameValidationError == null
+                    val hasCategory = selectedCategory != null
+                    val hasPrimaryMuscles = selectedPrimaryMuscles.isNotEmpty()
+                    val hasEquipment = selectedEquipment.isNotEmpty()
+                    
+                    if (hasValidName && hasCategory && hasPrimaryMuscles && hasEquipment) {
                         onCreate(
                             exerciseName,
                             selectedCategory!!,
