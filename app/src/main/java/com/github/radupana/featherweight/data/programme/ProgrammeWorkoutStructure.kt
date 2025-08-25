@@ -49,6 +49,7 @@ data class ExerciseStructure(
     val note: String? = null,
     val suggestedWeight: Float? = null, // AI-suggested weight in kg
     val weightSource: String? = null, // Source of weight suggestion
+    val exerciseId: Long? = null, // Matched exercise variation ID
 )
 
 @Serializable

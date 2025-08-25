@@ -555,6 +555,12 @@ class ImportProgrammeViewModel(
                 com.github.radupana.featherweight.data.programme.ProgrammeDifficulty.INTERMEDIATE
             }
 
+        Log.d("ImportProgrammeViewModel", "=== CREATING PROGRAMME IN REPOSITORY ===")
+        Log.d("ImportProgrammeViewModel", "Calling repository.createImportedProgramme with:")
+        Log.d("ImportProgrammeViewModel", "  name: ${parsedProgramme.name}")
+        Log.d("ImportProgrammeViewModel", "  durationWeeks: ${parsedProgramme.durationWeeks}")
+        Log.d("ImportProgrammeViewModel", "  jsonStructure length: ${programmeStructure.length} chars")
+        
         val programmeId =
             repository.createImportedProgramme(
                 name = parsedProgramme.name,
@@ -565,7 +571,9 @@ class ImportProgrammeViewModel(
                 difficulty = difficulty,
             )
 
-        Log.d("ImportProgrammeViewModel", "Programme created with ID: $programmeId")
+        Log.d("ImportProgrammeViewModel", "=== PROGRAMME CREATED ===")
+        Log.d("ImportProgrammeViewModel", "Programme ID: $programmeId")
+        Log.d("ImportProgrammeViewModel", "SUCCESS: Programme '${parsedProgramme.name}' created with ID $programmeId")
 
         repository.activateProgramme(programmeId)
         Log.d("ImportProgrammeViewModel", "Programme activated successfully")
@@ -588,8 +596,13 @@ class ImportProgrammeViewModel(
     }
 
     private fun buildProgrammeJson(programme: ParsedProgramme): String {
+        Log.d("ImportProgrammeViewModel", "=== BUILDING PROGRAMME JSON ===")
+        Log.d("ImportProgrammeViewModel", "Programme: ${programme.name}")
+        
         val weeks =
             programme.weeks.map { week ->
+                Log.d("ImportProgrammeViewModel", "Processing Week ${week.weekNumber}: ${week.name}")
+                
                 mapOf(
                     "weekNumber" to week.weekNumber,
                     "name" to week.name,
@@ -601,6 +614,15 @@ class ImportProgrammeViewModel(
                     "phase" to week.phase,
                     "workouts" to
                         week.workouts.map { workout ->
+                            Log.d("ImportProgrammeViewModel", "  Processing Workout: ${workout.name} (${workout.dayOfWeek})")
+                            Log.d("ImportProgrammeViewModel", "    Exercise count: ${workout.exercises.size}")
+                            
+                            workout.exercises.forEachIndexed { index, exercise ->
+                                Log.d("ImportProgrammeViewModel", "    Exercise ${index + 1}: ${exercise.exerciseName}")
+                                Log.d("ImportProgrammeViewModel", "      matchedExerciseId: ${exercise.matchedExerciseId}")
+                                Log.d("ImportProgrammeViewModel", "      sets: ${exercise.sets.size}")
+                            }
+                            
                             mapOf(
                                 "name" to workout.name,
                                 "dayOfWeek" to workout.dayOfWeek,
@@ -625,6 +647,22 @@ class ImportProgrammeViewModel(
                 )
             }
 
+        val totalExercises = programme.weeks.sumOf { week -> 
+            week.workouts.sumOf { it.exercises.size } 
+        }
+        val exercisesWithIds = programme.weeks.sumOf { week -> 
+            week.workouts.sumOf { workout -> 
+                workout.exercises.count { it.matchedExerciseId != null } 
+            } 
+        }
+        
+        Log.d("ImportProgrammeViewModel", "=== PROGRAMME JSON SUMMARY ===")
+        Log.d("ImportProgrammeViewModel", "Total weeks: ${programme.weeks.size}")
+        Log.d("ImportProgrammeViewModel", "Total workouts: ${programme.weeks.sumOf { it.workouts.size }}")
+        Log.d("ImportProgrammeViewModel", "Total exercises: $totalExercises")
+        Log.d("ImportProgrammeViewModel", "Exercises with matched IDs: $exercisesWithIds")
+        Log.d("ImportProgrammeViewModel", "Exercises WITHOUT matched IDs: ${totalExercises - exercisesWithIds}")
+        
         return com.google.gson
             .Gson()
             .toJson(mapOf("weeks" to weeks))

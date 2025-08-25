@@ -273,8 +273,7 @@ fun MainAppWithNavigation(
                         Screen.PROGRAMME_COMPLETION,
                         Screen.EXERCISE_MAPPING,
                     )
-            if (!shouldHideBottomBar
-            ) {
+            if (!shouldHideBottomBar) {
                 NavigationBar {
                     navigationItems.forEach { item ->
                         NavigationBarItem(
@@ -351,6 +350,7 @@ fun MainAppWithNavigation(
                                     val exerciseSets = sets.filter { it.exerciseLogId == exerciseLog.id }
                                     com.github.radupana.featherweight.data.ParsedExercise(
                                         exerciseName = exerciseNames[exerciseLog.exerciseVariationId] ?: "Unknown Exercise",
+                                        matchedExerciseId = exerciseLog.exerciseVariationId,
                                         sets =
                                             exerciseSets.map { setLog ->
                                                 com.github.radupana.featherweight.data.ParsedSet(
