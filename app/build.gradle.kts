@@ -84,7 +84,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    
+
     // Reorderable library for drag-and-drop in LazyColumn
     implementation("sh.calvin.reorderable:reorderable:2.4.0")
     implementation(platform(libs.androidx.compose.bom))
@@ -98,7 +98,26 @@ dependencies {
     // Splash Screen
     implementation(libs.androidx.core.splashscreen)
 
+    // Unit Testing
     testImplementation(libs.junit)
+    testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+
+    // Mocking
+    testImplementation(libs.mockk)
+    testImplementation(libs.mockk.android)
+
+    // Assertion Libraries
+    testImplementation(libs.truth)
+    testImplementation(libs.turbine) // For Flow testing
+
+    // AndroidX Test
+    testImplementation(libs.androidx.core.testing)
+    testImplementation(libs.core.ktx)
+
+    // Robolectric for Context-dependent tests
+    testImplementation(libs.robolectric)
+
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -113,7 +132,7 @@ dependencies {
 
     // Serialization
     implementation(libs.kotlinx.serialization.json)
-    
+
     // Gson for JSON parsing
     implementation("com.google.code.gson:gson:2.10.1")
 
@@ -128,7 +147,7 @@ dependencies {
 
     // Compose Foundation (required for Calendar)
     implementation(libs.androidx.compose.foundation)
-    
+
     // Calendar - using version 2.6.1 which is compatible with latest Compose
     implementation("com.kizitonwose.calendar:compose:2.6.1")
 
@@ -137,7 +156,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.rules)
     androidTestUtil(libs.androidx.test.orchestrator)
-    
+
     // Cucumber-Android for BDD testing
     androidTestImplementation(libs.cucumber.android)
     androidTestImplementation(libs.cucumber.junit)

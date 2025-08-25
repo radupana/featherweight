@@ -26,6 +26,12 @@
 ## Code Quality
 
 - **No TODOs**: Never leave `TODO` comments. Implement the functionality completely.
+- **Test Integrity**: When writing tests, ensure they test DESIRED behavior, not just existing code behavior. Tests should:
+    - Validate what makes sense in a weightlifting context (e.g., PRs should be higher weights/1RMs, not lower)
+    - Catch potential bugs in the functional code
+    - Never be adjusted just to make them pass - if a test fails, investigate whether the code or the test expectation is wrong
+    - Act as documentation of intended behavior
+    - Be based on domain logic, not implementation details
 - **Detekt Compliance**:
     - **MANDATORY**: Run `./gradlew detekt` before EVERY code change
     - **NEW CODE**: Must have ZERO Detekt violations

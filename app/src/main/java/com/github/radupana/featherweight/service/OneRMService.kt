@@ -108,8 +108,12 @@ class OneRMService {
         rpe: Float?,
         percentOf1RM: Float,
     ): Float {
-        // Rep score: lower reps = higher confidence
-        val repScore = (16f - reps) / 15f // 1 rep = 1.0, 15 reps = 0.067
+        // Special case: 0 reps means no lift performed
+        if (reps <= 0) return 0f
+        
+        // Rep score: lower reps = higher confidence, capped at 15 reps
+        val cappedReps = reps.coerceAtMost(15)
+        val repScore = (16f - cappedReps) / 15f // 1 rep = 1.0, 15 reps = 0.067
 
         // RPE score: higher RPE = higher confidence
         val rpeScore =

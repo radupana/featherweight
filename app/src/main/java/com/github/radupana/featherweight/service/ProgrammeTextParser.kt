@@ -9,6 +9,8 @@ import com.github.radupana.featherweight.data.ParsedWeek
 import com.github.radupana.featherweight.data.ParsedWorkout
 import com.github.radupana.featherweight.data.TextParsingRequest
 import com.github.radupana.featherweight.data.TextParsingResult
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,12 +18,12 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONArray
-import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-class ProgrammeTextParser {
+open class ProgrammeTextParser(
+    private val apiKey: String? = null
+) {
     companion object {
         private const val TAG = "ProgrammeTextParser"
         private const val TIMEOUT_SECONDS = 300L // 5 minutes timeout
@@ -97,39 +99,39 @@ class ProgrammeTextParser {
         return ValidationResult(true)
     }
 
-    private fun callOpenAIAPI(request: TextParsingRequest): String {
-        val apiKey = BuildConfig.OPENAI_API_KEY
+    internal open fun callOpenAIAPI(request: TextParsingRequest): String {
+        val effectiveApiKey = apiKey ?: try {
+            BuildConfig.OPENAI_API_KEY
+        } catch (e: Exception) {
+            ""
+        }
+        
+        if (effectiveApiKey.isEmpty() || effectiveApiKey == "null") {
+            throw IllegalArgumentException("OpenAI API key not configured")
+        }
 
         val prompt = buildPrompt(request)
 
-        val requestBody =
-            JSONObject().apply {
-                put("model", "gpt-5-mini")
-                put(
-                    "messages",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
-                                put("role", "system")
-                                put("content", SYSTEM_PROMPT)
-                            },
-                        )
-                        put(
-                            JSONObject().apply {
-                                put("role", "user")
-                                put("content", prompt)
-                            },
-                        )
-                    },
-                )
-                put(
-                    "response_format",
-                    JSONObject().apply {
-                        put("type", "json_object")
-                    },
-                )
-                put("max_completion_tokens", 15000)
-            }
+        val requestBody = JsonObject().apply {
+            addProperty("model", "gpt-5-mini")
+            
+            val messages = JsonArray()
+            messages.add(JsonObject().apply {
+                addProperty("role", "system")
+                addProperty("content", SYSTEM_PROMPT)
+            })
+            messages.add(JsonObject().apply {
+                addProperty("role", "user")
+                addProperty("content", prompt)
+            })
+            add("messages", messages)
+            
+            add("response_format", JsonObject().apply {
+                addProperty("type", "json_object")
+            })
+            
+            addProperty("max_completion_tokens", 15000)
+        }
 
         Log.d(TAG, "Calling OpenAI API with model: gpt-5-mini, text length: ${request.rawText.length} chars")
 
@@ -137,7 +139,7 @@ class ProgrammeTextParser {
             Request
                 .Builder()
                 .url("https://api.openai.com/v1/chat/completions")
-                .addHeader("Authorization", "Bearer $apiKey")
+                .addHeader("Authorization", "Bearer $effectiveApiKey")
                 .addHeader("Content-Type", "application/json")
                 .post(requestBody.toString().toRequestBody("application/json".toMediaType()))
                 .build()
@@ -148,20 +150,19 @@ class ProgrammeTextParser {
         Log.d(TAG, "OpenAI API response: ${response.code}, size: ${responseBody.length} chars")
 
         if (!response.isSuccessful) {
-            val errorJson = JSONObject(responseBody)
-            val errorMessage =
-                errorJson.optJSONObject("error")?.optString("message")
-                    ?: "API call failed with status ${response.code}"
+            val errorJson = JsonParser.parseString(responseBody).asJsonObject
+            val errorMessage = errorJson.getAsJsonObject("error")?.get("message")?.asString
+                ?: "API call failed with status ${response.code}"
 
             throw IOException(errorMessage)
         }
 
-        val jsonResponse = JSONObject(responseBody)
+        val jsonResponse = JsonParser.parseString(responseBody).asJsonObject
         return jsonResponse
-            .getJSONArray("choices")
-            .getJSONObject(0)
-            .getJSONObject("message")
-            .getString("content")
+            .getAsJsonArray("choices")
+            .get(0).asJsonObject
+            .getAsJsonObject("message")
+            .get("content").asString
     }
 
     private fun buildPrompt(request: TextParsingRequest): String {
@@ -277,18 +278,31 @@ class ProgrammeTextParser {
         val json = JsonParser.parseString(jsonString).asJsonObject
 
         // Log parsing_logic if present for debugging
-        json.get("parsing_logic")?.asJsonObject?.let { logic ->
-            Log.d(TAG, "=== PARSING LOGIC DEBUG ===")
-            logic.get("workout_type")?.asString?.let {
-                Log.d(TAG, "Workout type detected: $it")
+        json.get("parsing_logic")?.let { logicElement ->
+            if (!logicElement.isJsonNull && logicElement.isJsonObject) {
+                val logic = logicElement.asJsonObject
+                Log.d(TAG, "=== PARSING LOGIC DEBUG ===")
+                logic.get("workout_type")?.let { workoutType ->
+                    if (!workoutType.isJsonNull) {
+                        Log.d(TAG, "Workout type detected: ${workoutType.asString}")
+                    }
+                }
+                logic.get("disambiguation_applied")?.let { disambig ->
+                    if (disambig.isJsonArray) {
+                        disambig.asJsonArray.forEach { decision ->
+                            Log.d(TAG, "Disambiguation: ${decision.asString}")
+                        }
+                    }
+                }
+                logic.get("set_interpretation")?.let { setInterp ->
+                    if (setInterp.isJsonArray) {
+                        setInterp.asJsonArray.forEach { interpretation ->
+                            Log.d(TAG, "Set interpretation: ${interpretation.asString}")
+                        }
+                    }
+                }
+                Log.d(TAG, "=== END PARSING LOGIC ===")
             }
-            logic.getAsJsonArray("disambiguation_applied")?.forEach { decision ->
-                Log.d(TAG, "Disambiguation: ${decision.asString}")
-            }
-            logic.getAsJsonArray("set_interpretation")?.forEach { interpretation ->
-                Log.d(TAG, "Set interpretation: ${interpretation.asString}")
-            }
-            Log.d(TAG, "=== END PARSING LOGIC ===")
         }
 
         val name = json.get("name")?.asString ?: "Imported Programme"

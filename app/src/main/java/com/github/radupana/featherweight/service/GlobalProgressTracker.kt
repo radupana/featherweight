@@ -6,6 +6,7 @@ import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.ProgressTrend
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.VolumeTrend
+import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
@@ -362,42 +363,54 @@ class GlobalProgressTracker(
                     "Barbell Overhead Press",
                 )
 
-        // Decision logic for prompting user
-        val pendingUpdate =
-            when {
-                // Clear improvement over stored max - prompt update
-                // For actual 1-rep attempts (reps = 1), use a lower threshold (any improvement)
-                // For rep-based estimates, use the 2% threshold
-                currentUserMax != null &&
-                    isBig4Exercise &&
-                    (
-                        (bestEstimate.source.contains("1 rep") && estimated1RM > currentUserMax.oneRMEstimate) ||
-                            (estimated1RM > currentUserMax.oneRMEstimate * 1.02)
-                    ) -> {
-                    PendingOneRMUpdate(
-                        exerciseVariationId = progress.exerciseVariationId,
-                        currentMax = currentUserMax.oneRMEstimate,
-                        suggestedMax = estimated1RM,
-                        confidence = bestEstimate.confidence,
-                        source = bestEstimate.source,
-                        workoutDate = workoutDate,
+        // Automatically update 1RM if it's an improvement or first record
+        val shouldUpdate1RM = when {
+            // First time recording - save if confidence is reasonable
+            currentUserMax == null && bestEstimate.confidence >= 0.60f -> true
+            
+            // Clear improvement - always update
+            currentUserMax != null && estimated1RM > currentUserMax.oneRMEstimate -> true
+            
+            else -> false
+        }
+        
+        if (shouldUpdate1RM) {
+            // Automatically save the new 1RM
+            val bestSet = estimableSets.maxByOrNull { it.actualWeight }
+            if (bestSet != null) {
+                if (currentUserMax != null) {
+                    val updatedMax = currentUserMax.copy(
+                        oneRMEstimate = estimated1RM,
+                        oneRMContext = bestEstimate.source,
+                        oneRMConfidence = bestEstimate.confidence,
+                        oneRMDate = LocalDateTime.now(),
+                        // Update most weight if this set had the most weight
+                        mostWeightLifted = maxOf(currentUserMax.mostWeightLifted, bestSet.actualWeight),
+                        mostWeightReps = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) bestSet.actualReps else currentUserMax.mostWeightReps,
+                        mostWeightRpe = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) bestSet.actualRpe else currentUserMax.mostWeightRpe,
+                        mostWeightDate = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) LocalDateTime.now() else currentUserMax.mostWeightDate
                     )
-                }
-
-                // No stored max but high confidence estimate - suggest adding
-                currentUserMax == null && bestEstimate.confidence >= 0.85f && isBig4Exercise -> {
-                    PendingOneRMUpdate(
+                    database.oneRMDao().updateExerciseMax(updatedMax)
+                } else {
+                    val newMax = UserExerciseMax(
+                        userId = userId,
                         exerciseVariationId = progress.exerciseVariationId,
-                        currentMax = null,
-                        suggestedMax = estimated1RM,
-                        confidence = bestEstimate.confidence,
-                        source = bestEstimate.source,
-                        workoutDate = workoutDate,
+                        oneRMEstimate = estimated1RM,
+                        oneRMContext = bestEstimate.source,
+                        oneRMConfidence = bestEstimate.confidence,
+                        oneRMDate = LocalDateTime.now(),
+                        mostWeightLifted = bestSet.actualWeight,
+                        mostWeightReps = bestSet.actualReps,
+                        mostWeightRpe = bestSet.actualRpe,
+                        mostWeightDate = LocalDateTime.now()
                     )
+                    database.oneRMDao().insertExerciseMax(newMax)
                 }
-
-                else -> null
             }
+        }
+        
+        // No longer return pending updates since we're not prompting users
+        val pendingUpdate: PendingOneRMUpdate? = null
 
         // Always update internal tracking
         val updatedProgress =

@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -468,165 +470,203 @@ private fun GroupedExerciseList(
     viewModel: InsightsViewModel,
     onNavigateToExercise: (String) -> Unit,
 ) {
-    val listState = rememberLazyListState()
-    var groupedExercises by remember { mutableStateOf<com.github.radupana.featherweight.service.GroupedExerciseSummary?>(null) }
-    var displayedOtherExercises by remember { mutableStateOf<List<com.github.radupana.featherweight.service.ExerciseSummary>>(emptyList()) }
-    var isLoadingMore by remember { mutableStateOf(false) }
-    var hasMore by remember { mutableStateOf(true) }
-    var currentPage by remember { mutableStateOf(0) }
-    var isDataInitialized by remember { mutableStateOf(false) }
-    val pageSize = 10
+    val state = rememberGroupedExerciseListState(viewModel)
+    
+    if (!state.isDataInitialized) {
+        return
+    }
 
+    val isEmpty = state.groupedExercises == null || 
+        (state.groupedExercises?.bigFourExercises.isNullOrEmpty() && 
+         state.groupedExercises?.otherExercises.isNullOrEmpty())
+
+    if (isEmpty) {
+        Box(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            EmptyExercisesState()
+        }
+    } else {
+        GroupedExerciseLazyColumn(
+            state = state,
+            onNavigateToExercise = onNavigateToExercise
+        )
+    }
+}
+
+@Composable
+private fun rememberGroupedExerciseListState(
+    viewModel: InsightsViewModel
+): GroupedExerciseListState {
+    val listState = rememberLazyListState()
+    val state = remember { GroupedExerciseListState(listState) }
+    
     // Initial load
     LaunchedEffect(Unit) {
+        state.loadInitialData(viewModel)
+    }
+    
+    // Infinite scroll
+    LaunchedEffect(listState) {
+        state.setupInfiniteScroll()
+    }
+    
+    return state
+}
+
+class GroupedExerciseListState(
+    val listState: LazyListState,
+    private val pageSize: Int = 10
+) {
+    var groupedExercises by mutableStateOf<com.github.radupana.featherweight.service.GroupedExerciseSummary?>(null)
+    var displayedOtherExercises by mutableStateOf<List<com.github.radupana.featherweight.service.ExerciseSummary>>(emptyList())
+    var isLoadingMore by mutableStateOf(false)
+    var hasMore by mutableStateOf(true)
+    var currentPage by mutableStateOf(0)
+    var isDataInitialized by mutableStateOf(false)
+    
+    suspend fun loadInitialData(viewModel: InsightsViewModel) {
         groupedExercises = viewModel.getGroupedExercisesSummary()
-        // Load first page of "Others"
         groupedExercises?.let {
             displayedOtherExercises = it.otherExercises.take(pageSize)
             hasMore = it.otherExercises.size > pageSize
         }
         isDataInitialized = true
     }
-
-    // Don't render until data is loaded
-    if (!isDataInitialized) {
-        return
-    }
-
-    // Infinite scroll detection
-    LaunchedEffect(listState) {
+    
+    suspend fun setupInfiniteScroll() {
         snapshotFlow {
             val layoutInfo = listState.layoutInfo
             val totalItems = layoutInfo.totalItemsCount
             val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-
-            // Trigger when 2 items from bottom
             lastVisibleIndex >= totalItems - 3 && totalItems > 0
         }.distinctUntilChanged()
             .filter { it && hasMore && !isLoadingMore }
-            .collect {
-                isLoadingMore = true
-                // Simulate loading delay
-                kotlinx.coroutines.delay(300)
-
-                groupedExercises?.let {
-                    // Load next page
-                    val nextPage = currentPage + 1
-                    val startIndex = nextPage * pageSize
-                    val endIndex = minOf(startIndex + pageSize, it.otherExercises.size)
-
-                    if (startIndex < it.otherExercises.size) {
-                        val newExercises = it.otherExercises.subList(startIndex, endIndex)
-                        displayedOtherExercises = displayedOtherExercises + newExercises
-                        currentPage = nextPage
-                        hasMore = endIndex < it.otherExercises.size
-                    } else {
-                        hasMore = false
-                    }
-                }
-
-                isLoadingMore = false
-            }
+            .collect { loadNextPage() }
     }
-
-    if (groupedExercises == null || (groupedExercises?.bigFourExercises.isNullOrEmpty() && groupedExercises?.otherExercises.isNullOrEmpty())) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            EmptyExercisesState()
+    
+    private suspend fun loadNextPage() {
+        isLoadingMore = true
+        kotlinx.coroutines.delay(300)
+        
+        groupedExercises?.let {
+            val nextPage = currentPage + 1
+            val startIndex = nextPage * pageSize
+            val endIndex = minOf(startIndex + pageSize, it.otherExercises.size)
+            
+            if (startIndex < it.otherExercises.size) {
+                val newExercises = it.otherExercises.subList(startIndex, endIndex)
+                displayedOtherExercises = displayedOtherExercises + newExercises
+                currentPage = nextPage
+                hasMore = endIndex < it.otherExercises.size
+            } else {
+                hasMore = false
+            }
         }
-    } else {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(16.dp),
-        ) {
-            // Big Four section
-            if (groupedExercises?.bigFourExercises?.isNotEmpty() == true) {
-                item {
-                    Text(
-                        text = "Big Four",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                }
+        
+        isLoadingMore = false
+    }
+}
 
-                items(groupedExercises?.bigFourExercises ?: emptyList()) { exercise ->
-                    ExerciseProgressCard(
-                        exercise = exercise,
-                        onClick = {
-                            onNavigateToExercise(exercise.exerciseName)
-                        },
-                    )
-                }
-            }
-
-            // Others section
-            if (groupedExercises?.otherExercises?.isNotEmpty() == true) {
-                item {
-                    Text(
-                        text = "Others",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier =
-                            Modifier.padding(
-                                top = if (groupedExercises?.bigFourExercises?.isNotEmpty() == true) 16.dp else 0.dp,
-                                bottom = 8.dp,
-                            ),
-                    )
-                }
-
-                items(displayedOtherExercises) { exercise ->
-                    ExerciseProgressCard(
-                        exercise = exercise,
-                        onClick = {
-                            onNavigateToExercise(exercise.exerciseName)
-                        },
+@Composable
+private fun GroupedExerciseLazyColumn(
+    state: GroupedExerciseListState,
+    onNavigateToExercise: (String) -> Unit
+) {
+    LazyColumn(
+        state = state.listState,
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(16.dp),
+    ) {
+        BigFourSection(
+            exercises = state.groupedExercises?.bigFourExercises,
+            onNavigateToExercise = onNavigateToExercise
+        )
+        
+        OthersSection(
+            exercises = state.displayedOtherExercises,
+            hasBigFour = state.groupedExercises?.bigFourExercises?.isNotEmpty() == true,
+            onNavigateToExercise = onNavigateToExercise
+        )
+        
+        if (state.isLoadingMore) {
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
                     )
                 }
             }
-
-            // Loading indicator
-            if (isLoadingMore) {
-                item {
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp,
-                        )
-                    }
-                }
+        }
+        
+        if (!state.hasMore && state.displayedOtherExercises.isNotEmpty()) {
+            item {
+                Text(
+                    "All exercises loaded",
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
+        }
+    }
+}
 
-            // End of list indicator
-            if (!hasMore && displayedOtherExercises.isNotEmpty()) {
-                item {
-                    Text(
-                        "All exercises loaded",
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+fun LazyListScope.BigFourSection(
+    exercises: List<com.github.radupana.featherweight.service.ExerciseSummary>?,
+    onNavigateToExercise: (String) -> Unit
+) {
+    if (exercises?.isNotEmpty() == true) {
+        item {
+            Text(
+                text = "Big Four",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+        }
+        
+        items(exercises) { exercise ->
+            ExerciseProgressCard(
+                exercise = exercise,
+                onClick = { onNavigateToExercise(exercise.exerciseName) },
+            )
+        }
+    }
+}
+
+fun LazyListScope.OthersSection(
+    exercises: List<com.github.radupana.featherweight.service.ExerciseSummary>,
+    hasBigFour: Boolean,
+    onNavigateToExercise: (String) -> Unit
+) {
+    if (exercises.isNotEmpty()) {
+        item {
+            Text(
+                text = "Others",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(
+                    top = if (hasBigFour) 16.dp else 0.dp,
+                    bottom = 8.dp,
+                ),
+            )
+        }
+        
+        items(exercises) { exercise ->
+            ExerciseProgressCard(
+                exercise = exercise,
+                onClick = { onNavigateToExercise(exercise.exerciseName) },
+            )
         }
     }
 }

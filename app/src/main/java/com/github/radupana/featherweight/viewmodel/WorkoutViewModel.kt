@@ -12,6 +12,7 @@ import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutMode
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.repository.FeatherweightRepository
@@ -1208,187 +1209,176 @@ class WorkoutViewModel(
         setId: Long,
         completed: Boolean,
     ) {
-        // Validation: Only allow marking complete if set has reps and weight
-        if (completed) {
-            val set = _selectedExerciseSets.value.find { it.id == setId }
-            if (set == null || !canMarkSetComplete(set)) {
-                return // Don't allow completion without valid data
-            }
-        }
+        // Validation
+        if (!validateSetCompletion(setId, completed)) return
 
-        val timestamp =
-            if (completed) {
-                LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            } else {
-                null
-            }
+        // Update set state
+        val timestamp = if (completed) LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) else null
+        val updatedSets = updateSetState(setId, completed, timestamp)
 
-        // Update local state immediately
-        val updatedSets =
-            _selectedExerciseSets.value.map { set ->
-                if (set.id == setId) {
-                    set.copy(
-                        isCompleted = completed,
-                        completedAt = timestamp,
-                    )
-                } else {
-                    set
-                }
-            }
-        _selectedExerciseSets.value = updatedSets
+        // Update workout status if needed
+        updateWorkoutStatusIfNeeded(setId, completed)
 
-        // Update workout status to IN_PROGRESS when first set is completed
-        val currentWorkoutId = _currentWorkoutId.value
-        if (completed && currentWorkoutId != null) {
-            val currentState = _workoutState.value
-            if (currentState.isActive && currentState.status != WorkoutStatus.COMPLETED) {
-                // Check if this is the first completed set
-                val hasCompletedSets = _selectedExerciseSets.value.any { it.isCompleted && it.id != setId }
-                if (!hasCompletedSets) {
-                    repository.updateWorkoutStatus(currentWorkoutId, WorkoutStatus.IN_PROGRESS)
-                }
-            }
-        }
-
-        // Then persist to database
+        // Persist to database
         repository.markSetCompleted(setId, completed, timestamp)
 
-        // Auto-start rest timer when set is completed
+        // Handle post-completion actions
         if (completed) {
-            startRestTimer(DEFAULT_REST_TIMER_SECONDS)
-
-            // Start workout timer on first set completion
-            if (workoutTimerStartTime == null) {
-                startWorkoutTimer()
-            }
-
-            // Check for 1RM updates
-            val completedSet = _selectedExerciseSets.value.find { it.id == setId }
-            completedSet?.let { set ->
-                checkAndUpdateOneRM(set)
-            }
-        }
-
-        // Check for Personal Records AFTER database save (when completed)
-        if (completed) {
-            try {
-                // Get the set data from local state (which now includes the completion)
-                val completedSet = updatedSets.find { it.id == setId }
-
-                // Get exercise name for this set
-                val exerciseLog =
-                    _selectedWorkoutExercises.value.find { exerciseLog ->
-                        updatedSets.any { it.exerciseLogId == exerciseLog.id && it.id == setId }
-                    }
-
-                if (exerciseLog != null && completedSet != null) {
-                    val allPRs = repository.checkForPR(completedSet, exerciseLog.exerciseVariationId)
-
-                    if (allPRs.isNotEmpty()) {
-                        // Update state to show PR celebration
-                        _workoutState.value =
-                            _workoutState.value.copy(
-                                pendingPRs = _workoutState.value.pendingPRs + allPRs,
-                                shouldShowPRCelebration = true,
-                            )
-                    }
-                }
-            } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "PR detection failed for set $setId", e)
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state during PR detection for set $setId", e)
-            }
-
-            // Check if we should update 1RM estimate
-            try {
-                val completedSet = updatedSets.find { it.id == setId }
-                val exerciseLog =
-                    _selectedWorkoutExercises.value.find { exerciseLog ->
-                        updatedSets.any { it.exerciseLogId == exerciseLog.id && it.id == setId }
-                    }
-
-                if (exerciseLog != null && completedSet != null) {
-                    // Get the exercise variation to determine scaling type
-                    val exerciseVariation = repository.getExerciseById(exerciseLog.exerciseVariationId)
-                    val scalingType = exerciseVariation?.rmScalingType ?: com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
-
-                    val currentEstimate = _oneRMEstimates.value[exerciseLog.exerciseVariationId]
-                    val newEstimate =
-                        oneRMService.calculateEstimated1RM(
-                            completedSet.actualWeight,
-                            completedSet.actualReps,
-                            completedSet.actualRpe, // Pass the RPE!
-                            scalingType, // Pass the correct scaling type!
-                        )
-
-                    if (newEstimate != null &&
-                        oneRMService.shouldUpdateOneRM(
-                            completedSet,
-                            currentEstimate,
-                            newEstimate,
-                        )
-                    ) {
-                        // Calculate confidence
-                        val percentOf1RM =
-                            if (currentEstimate != null && currentEstimate > 0) {
-                                completedSet.actualWeight / currentEstimate
-                            } else {
-                                1f
-                            }
-
-                        val confidence =
-                            oneRMService.calculateConfidence(
-                                completedSet.actualReps,
-                                completedSet.actualRpe,
-                                percentOf1RM,
-                            )
-
-                        // Get current user and update 1RM
-                        val userId = repository.getCurrentUserId()
-                        val exerciseVariationId = exerciseLog.exerciseVariationId
-                        if (exerciseVariationId != null) {
-                            val oneRMRecord =
-                                oneRMService.createOneRMRecord(
-                                    userId = userId,
-                                    exerciseId = exerciseVariationId,
-                                    set = completedSet,
-                                    estimate = newEstimate,
-                                    confidence = confidence,
-                                )
-
-                            repository.updateOrInsertOneRM(oneRMRecord)
-
-                            // Reload 1RM estimates
-                            loadOneRMEstimatesForCurrentExercises()
-                        }
-                    }
-                }
-            } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to update 1RM estimate", e)
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when updating 1RM estimate", e)
-            }
-
-            // Auto-collapse exercise when ALL sets are completed
-            // Find which exercise this set belongs to
-            val exerciseLogId = updatedSets.find { it.id == setId }?.exerciseLogId
-            if (exerciseLogId != null) {
-                // Get all sets for this exercise
-                val exerciseSets = updatedSets.filter { it.exerciseLogId == exerciseLogId }
-
-                // Only collapse if ALL sets are marked as completed
-                // Don't care if they have data or not - if they exist and aren't completed, don't collapse
-                val allSetsCompleted = exerciseSets.isNotEmpty() && exerciseSets.all { it.isCompleted }
-
-                if (allSetsCompleted) {
-                    val currentExpanded = _expandedExerciseIds.value.toMutableSet()
-                    currentExpanded.remove(exerciseLogId)
-                    _expandedExerciseIds.value = currentExpanded
-                }
-            }
+            handleSetCompletion(setId, updatedSets)
         }
 
         loadInProgressWorkouts()
+    }
+
+    private fun validateSetCompletion(setId: Long, completed: Boolean): Boolean {
+        if (!completed) return true
+        val set = _selectedExerciseSets.value.find { it.id == setId }
+        return set != null && canMarkSetComplete(set)
+    }
+
+    private fun updateSetState(
+        setId: Long,
+        completed: Boolean,
+        timestamp: String?
+    ): List<SetLog> {
+        val updatedSets = _selectedExerciseSets.value.map { set ->
+            if (set.id == setId) {
+                set.copy(isCompleted = completed, completedAt = timestamp)
+            } else {
+                set
+            }
+        }
+        _selectedExerciseSets.value = updatedSets
+        return updatedSets
+    }
+
+    private suspend fun updateWorkoutStatusIfNeeded(setId: Long, completed: Boolean) {
+        val currentWorkoutId = _currentWorkoutId.value ?: return
+        if (!completed) return
+
+        val currentState = _workoutState.value
+        if (!currentState.isActive || currentState.status == WorkoutStatus.COMPLETED) return
+
+        val hasOtherCompletedSets = _selectedExerciseSets.value.any { it.isCompleted && it.id != setId }
+        if (!hasOtherCompletedSets) {
+            repository.updateWorkoutStatus(currentWorkoutId, WorkoutStatus.IN_PROGRESS)
+        }
+    }
+
+    private suspend fun handleSetCompletion(setId: Long, updatedSets: List<SetLog>) {
+        // Start timers
+        startRestTimer(DEFAULT_REST_TIMER_SECONDS)
+        if (workoutTimerStartTime == null) {
+            startWorkoutTimer()
+        }
+
+        // Check for 1RM updates
+        val completedSet = _selectedExerciseSets.value.find { it.id == setId }
+        completedSet?.let { checkAndUpdateOneRM(it) }
+
+        // Check for PRs
+        checkForPersonalRecords(setId, updatedSets)
+
+        // Update 1RM estimates
+        updateOneRMEstimate(setId, updatedSets)
+
+        // Auto-collapse if all sets completed
+        autoCollapseExerciseIfComplete(setId, updatedSets)
+    }
+
+    private suspend fun checkForPersonalRecords(setId: Long, updatedSets: List<SetLog>) {
+        try {
+            val completedSet = updatedSets.find { it.id == setId } ?: return
+            val exerciseLog = findExerciseLogForSet(setId, updatedSets) ?: return
+
+            val allPRs = repository.checkForPR(completedSet, exerciseLog.exerciseVariationId)
+            if (allPRs.isNotEmpty()) {
+                _workoutState.value = _workoutState.value.copy(
+                    pendingPRs = _workoutState.value.pendingPRs + allPRs,
+                    shouldShowPRCelebration = true,
+                )
+            }
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e(TAG, "PR detection failed for set $setId", e)
+        } catch (e: IllegalStateException) {
+            Log.e(TAG, "Invalid state during PR detection for set $setId", e)
+        }
+    }
+
+    private suspend fun updateOneRMEstimate(setId: Long, updatedSets: List<SetLog>) {
+        try {
+            val completedSet = updatedSets.find { it.id == setId } ?: return
+            val exerciseLog = findExerciseLogForSet(setId, updatedSets) ?: return
+
+            val exerciseVariation = repository.getExerciseById(exerciseLog.exerciseVariationId)
+            val scalingType = exerciseVariation?.rmScalingType ?: RMScalingType.STANDARD
+
+            val currentEstimate = _oneRMEstimates.value[exerciseLog.exerciseVariationId]
+            val newEstimate = oneRMService.calculateEstimated1RM(
+                completedSet.actualWeight,
+                completedSet.actualReps,
+                completedSet.actualRpe,
+                scalingType,
+            )
+
+            if (newEstimate != null && oneRMService.shouldUpdateOneRM(completedSet, currentEstimate, newEstimate)) {
+                persistOneRMUpdate(exerciseLog.exerciseVariationId, completedSet, newEstimate, currentEstimate)
+            }
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e(TAG, "Failed to update 1RM estimate", e)
+        } catch (e: IllegalStateException) {
+            Log.e(TAG, "Invalid state when updating 1RM estimate", e)
+        }
+    }
+
+    private suspend fun persistOneRMUpdate(
+        exerciseVariationId: Long?,
+        completedSet: SetLog,
+        newEstimate: Float,
+        currentEstimate: Float?
+    ) {
+        exerciseVariationId ?: return
+
+        val percentOf1RM = if (currentEstimate != null && currentEstimate > 0) {
+            completedSet.actualWeight / currentEstimate
+        } else {
+            1f
+        }
+
+        val confidence = oneRMService.calculateConfidence(
+            completedSet.actualReps,
+            completedSet.actualRpe,
+            percentOf1RM,
+        )
+
+        val oneRMRecord = oneRMService.createOneRMRecord(
+            userId = repository.getCurrentUserId(),
+            exerciseId = exerciseVariationId,
+            set = completedSet,
+            estimate = newEstimate,
+            confidence = confidence,
+        )
+
+        repository.updateOrInsertOneRM(oneRMRecord)
+        loadOneRMEstimatesForCurrentExercises()
+    }
+
+    private fun findExerciseLogForSet(setId: Long, updatedSets: List<SetLog>): ExerciseLog? {
+        return _selectedWorkoutExercises.value.find { exerciseLog ->
+            updatedSets.any { it.exerciseLogId == exerciseLog.id && it.id == setId }
+        }
+    }
+
+    private fun autoCollapseExerciseIfComplete(setId: Long, updatedSets: List<SetLog>) {
+        val exerciseLogId = updatedSets.find { it.id == setId }?.exerciseLogId ?: return
+        val exerciseSets = updatedSets.filter { it.exerciseLogId == exerciseLogId }
+        val allSetsCompleted = exerciseSets.isNotEmpty() && exerciseSets.all { it.isCompleted }
+
+        if (allSetsCompleted) {
+            val currentExpanded = _expandedExerciseIds.value.toMutableSet()
+            currentExpanded.remove(exerciseLogId)
+            _expandedExerciseIds.value = currentExpanded
+        }
     }
 
     fun completeAllSetsInExercise(exerciseLogId: Long) {
