@@ -234,11 +234,32 @@ class ExerciseSeeder(
 
     private fun parseEquipment(value: String): Equipment {
         // Special cases that don't follow simple transformation rules
-        return when (value) {
-            "Pull Up Bar" -> Equipment.PULL_UP_BAR
-            "Ghd Machine" -> Equipment.GHD_MACHINE
-            "Trx" -> Equipment.TRX
-            else -> Equipment.valueOf(value.uppercase().replace(" ", "_"))
+        return try {
+            when (value) {
+                "Pull Up Bar" -> Equipment.PULL_UP_BAR
+                "Ghd Machine" -> Equipment.GHD_MACHINE
+                "Trx" -> Equipment.TRX
+                "Ab Wheel" -> Equipment.AB_WHEEL
+                "Assault Bike" -> Equipment.ASSAULT_BIKE
+                "Atlas Stone" -> Equipment.ATLAS_STONE
+                "Axle Bar" -> Equipment.AXLE_BAR
+                "Band" -> Equipment.BAND
+                "Battle Ropes" -> Equipment.BATTLE_ROPES
+                "Buffalo Bar" -> Equipment.BUFFALO_BAR
+                "Cambered Bar" -> Equipment.CAMBERED_BAR
+                "Car Deadlift" -> Equipment.CAR_DEADLIFT
+                "Dip Station" -> Equipment.DIP_STATION
+                "Medicine Ball" -> Equipment.MEDICINE_BALL
+                "Safety Bar" -> Equipment.SAFETY_BAR
+                "Ski Erg" -> Equipment.SKI_ERG
+                "Stability Ball" -> Equipment.STABILITY_BALL
+                "Swiss Bar" -> Equipment.SWISS_BAR
+                "Trap Bar" -> Equipment.TRAP_BAR
+                else -> Equipment.valueOf(value.uppercase().replace(" ", "_"))
+            }
+        } catch (e: IllegalArgumentException) {
+            Log.w(TAG, "Failed to parse equipment: $value, defaulting to MACHINE", e)
+            Equipment.MACHINE
         }
     }
 
@@ -328,22 +349,31 @@ class ExerciseSeeder(
         primaryMuscle: MuscleGroup,
     ): List<MuscleGroup> =
         when (movementPattern.uppercase()) {
-            "PUSH" ->
+            "PUSH", "PRESS" ->
                 when (primaryMuscle) {
-                    MuscleGroup.CHEST -> listOf(MuscleGroup.TRICEPS, MuscleGroup.SHOULDERS)
+                    MuscleGroup.CHEST, MuscleGroup.PECTORALS -> listOf(MuscleGroup.TRICEPS, MuscleGroup.SHOULDERS)
                     MuscleGroup.SHOULDERS -> listOf(MuscleGroup.TRICEPS)
                     MuscleGroup.TRICEPS -> listOf(MuscleGroup.CHEST, MuscleGroup.SHOULDERS)
                     else -> emptyList()
                 }
-            "PULL" ->
+            "PULL", "ROW" ->
                 when (primaryMuscle) {
-                    MuscleGroup.BACK -> listOf(MuscleGroup.BICEPS, MuscleGroup.REAR_DELTS)
+                    MuscleGroup.BACK, MuscleGroup.UPPER_BACK -> listOf(MuscleGroup.BICEPS, MuscleGroup.REAR_DELTS)
                     MuscleGroup.BICEPS -> listOf(MuscleGroup.BACK)
                     MuscleGroup.LATS -> listOf(MuscleGroup.BICEPS, MuscleGroup.MIDDLE_BACK)
                     else -> emptyList()
                 }
-            "SQUAT" -> listOf(MuscleGroup.GLUTES, MuscleGroup.CORE)
+            "SQUAT" -> 
+                when (primaryMuscle) {
+                    MuscleGroup.QUADS, MuscleGroup.QUADRICEPS -> listOf(MuscleGroup.GLUTES, MuscleGroup.CORE)
+                    else -> listOf(MuscleGroup.GLUTES, MuscleGroup.CORE)
+                }
             "HINGE" -> listOf(MuscleGroup.GLUTES, MuscleGroup.CORE)
+            "LUNGE" ->
+                when (primaryMuscle) {
+                    MuscleGroup.QUADS, MuscleGroup.QUADRICEPS -> listOf(MuscleGroup.GLUTES, MuscleGroup.HAMSTRINGS)
+                    else -> listOf(MuscleGroup.GLUTES, MuscleGroup.CORE)
+                }
             else -> emptyList()
         }
 }

@@ -5,6 +5,7 @@ enum class MuscleGroup(
 ) {
     // Upper Body
     CHEST("Chest"),
+    PECTORALS("Pectorals"), // Added for JSON compatibility
     BACK("Back"),
     UPPER_BACK("Upper Back"),
     MIDDLE_BACK("Middle Back"),
@@ -13,6 +14,7 @@ enum class MuscleGroup(
     TRAPS("Traps"),
     RHOMBOIDS("Rhomboids"),
     SHOULDERS("Shoulders"),
+    ROTATOR_CUFF("Rotator Cuff"), // Added for JSON compatibility
 
     // Shoulders
     FRONT_DELTS("Front Delts"),
@@ -26,9 +28,11 @@ enum class MuscleGroup(
 
     // Lower Body
     QUADS("Quadriceps"),
+    QUADRICEPS("Quadriceps"), // Added for JSON compatibility
     HAMSTRINGS("Hamstrings"),
     GLUTES("Glutes"),
     CALVES("Calves"),
+    ADDUCTORS("Adductors"), // Added for JSON compatibility
 
     // Core
     CORE("Core"),
@@ -42,12 +46,12 @@ enum class MuscleGroup(
     companion object {
         fun getByCategory(category: ExerciseCategory): List<MuscleGroup> =
             when (category) {
-                ExerciseCategory.CHEST -> listOf(CHEST, FRONT_DELTS, TRICEPS)
+                ExerciseCategory.CHEST -> listOf(CHEST, PECTORALS, FRONT_DELTS, TRICEPS)
                 ExerciseCategory.BACK -> listOf(UPPER_BACK, LATS, LOWER_BACK, TRAPS, RHOMBOIDS, BICEPS)
-                ExerciseCategory.SHOULDERS -> listOf(FRONT_DELTS, SIDE_DELTS, REAR_DELTS)
+                ExerciseCategory.SHOULDERS -> listOf(FRONT_DELTS, SIDE_DELTS, REAR_DELTS, ROTATOR_CUFF)
                 ExerciseCategory.ARMS -> listOf(BICEPS, TRICEPS, FOREARMS)
-                ExerciseCategory.LEGS -> listOf(QUADS, HAMSTRINGS, GLUTES, CALVES)
-                ExerciseCategory.CORE -> listOf(ABS, OBLIQUES)
+                ExerciseCategory.LEGS -> listOf(QUADS, QUADRICEPS, HAMSTRINGS, GLUTES, CALVES, ADDUCTORS)
+                ExerciseCategory.CORE -> listOf(ABS, OBLIQUES, CORE)
                 ExerciseCategory.CARDIO -> listOf(FULL_BODY)
                 ExerciseCategory.FULL_BODY -> values().toList()
             }
@@ -82,12 +86,12 @@ enum class ExerciseCategory(
     companion object {
         fun fromMuscleGroups(muscles: Set<MuscleGroup>): ExerciseCategory =
             when {
-                muscles.any { it in listOf(MuscleGroup.CHEST) } -> CHEST
+                muscles.any { it in listOf(MuscleGroup.CHEST, MuscleGroup.PECTORALS) } -> CHEST
                 muscles.any { it in listOf(MuscleGroup.UPPER_BACK, MuscleGroup.LATS, MuscleGroup.LOWER_BACK) } -> BACK
-                muscles.any { it in listOf(MuscleGroup.FRONT_DELTS, MuscleGroup.SIDE_DELTS, MuscleGroup.REAR_DELTS) } -> SHOULDERS
+                muscles.any { it in listOf(MuscleGroup.FRONT_DELTS, MuscleGroup.SIDE_DELTS, MuscleGroup.REAR_DELTS, MuscleGroup.ROTATOR_CUFF) } -> SHOULDERS
                 muscles.any { it in listOf(MuscleGroup.BICEPS, MuscleGroup.TRICEPS, MuscleGroup.FOREARMS) } -> ARMS
-                muscles.any { it in listOf(MuscleGroup.QUADS, MuscleGroup.HAMSTRINGS, MuscleGroup.GLUTES, MuscleGroup.CALVES) } -> LEGS
-                muscles.any { it in listOf(MuscleGroup.ABS, MuscleGroup.OBLIQUES) } -> CORE
+                muscles.any { it in listOf(MuscleGroup.QUADS, MuscleGroup.QUADRICEPS, MuscleGroup.HAMSTRINGS, MuscleGroup.GLUTES, MuscleGroup.CALVES, MuscleGroup.ADDUCTORS) } -> LEGS
+                muscles.any { it in listOf(MuscleGroup.ABS, MuscleGroup.OBLIQUES, MuscleGroup.CORE) } -> CORE
                 muscles.contains(MuscleGroup.FULL_BODY) -> CARDIO
                 else -> FULL_BODY
             }
@@ -193,22 +197,58 @@ enum class MovementPattern(
     LUNGE("Lunge"),
     CARRY("Carry"),
     ROTATE("Rotate"),
+    ROTATION("Rotation"), // Added for JSON compatibility
 
     // Exercise-specific patterns
     VERTICAL_PUSH("Vertical Push"),
     HORIZONTAL_PUSH("Horizontal Push"),
     VERTICAL_PULL("Vertical Pull"),
     HORIZONTAL_PULL("Horizontal Pull"),
+    PRESS("Press"), // Added for JSON compatibility
+    ROW("Row"), // Added for JSON compatibility
+    CURL("Curl"), // Added for JSON compatibility
+    EXTENSION("Extension"), // Added for JSON compatibility
+    FLY("Fly"), // Added for JSON compatibility
+    RAISE("Raise"), // Added for JSON compatibility
+    SHRUG("Shrug"), // Added for JSON compatibility
 
     // Core/Stability
     PLANK("Plank/Hold"),
     ANTI_EXTENSION("Anti-Extension"),
     ANTI_ROTATION("Anti-Rotation"),
+    CORE("Core"), // Added for JSON compatibility
+    CRUNCH("Crunch"), // Added for JSON compatibility
+    ROLLOUT("Rollout"), // Added for JSON compatibility
+    HOLD("Hold"), // Added for JSON compatibility
+    ISOMETRIC("Isometric"), // Added for JSON compatibility
+    PIKE("Pike"), // Added for JSON compatibility
+    TUCK("Tuck"), // Added for JSON compatibility
+    ROLL("Roll"), // Added for JSON compatibility
 
     // Cardio/Conditioning
     GAIT("Walking/Running"),
     CONDITIONING("Conditioning"),
     JUMP("Jump/Plyometric"),
+    SPRINT("Sprint"), // Added for JSON compatibility
+    WALK("Walk"), // Added for JSON compatibility
+    STEP("Step"), // Added for JSON compatibility
+    CYCLE("Cycle"), // Added for JSON compatibility
+    CRAWL("Crawl"), // Added for JSON compatibility
+    LOCOMOTION("Locomotion"), // Added for JSON compatibility
+    
+    // Movement specific patterns from JSON
+    ABDUCTION("Abduction"), // Added for JSON compatibility
+    ADDUCTION("Adduction"), // Added for JSON compatibility
+    CIRCLE("Circle"), // Added for JSON compatibility
+    COMPLEX("Complex"), // Added for JSON compatibility
+    EXPLOSIVE("Explosive"), // Added for JSON compatibility
+    FLIP("Flip"), // Added for JSON compatibility
+    KICK("Kick"), // Added for JSON compatibility
+    LIFT("Lift"), // Added for JSON compatibility
+    OLYMPIC("Olympic"), // Added for JSON compatibility
+    SLAM("Slam"), // Added for JSON compatibility
+    SWING("Swing"), // Added for JSON compatibility
+    WAVE("Wave"), // Added for JSON compatibility
     ;
 
     companion object {

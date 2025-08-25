@@ -41,7 +41,10 @@ open class ProgrammeTextParser(
     suspend fun parseText(request: TextParsingRequest): TextParsingResult =
         withContext(Dispatchers.IO) {
             try {
-                Log.d(TAG, "Starting programme parsing with ${request.rawText.length} characters")
+                Log.d(TAG, "=== Starting Programme Text Parsing ===")
+                Log.d(TAG, "Request text length: ${request.rawText.length} characters")
+                Log.d(TAG, "Full request text:\n${request.rawText}")
+                Log.d(TAG, "User maxes provided: ${request.userMaxes.size}")
 
                 val validationResult = validateInput(request.rawText)
                 if (!validationResult.isValid) {
@@ -52,20 +55,51 @@ open class ProgrammeTextParser(
                     )
                 }
 
+                Log.d(TAG, "Validation passed, calling OpenAI API...")
                 val parsedJson = callOpenAIAPI(request)
+                Log.d(TAG, "Received parsed JSON response, length: ${parsedJson.length}")
+                Log.d(TAG, "Full parsed JSON:\n$parsedJson")
 
+                Log.d(TAG, "Parsing JSON to programme object...")
                 val programme = parseJsonToProgramme(parsedJson, request.rawText)
 
-                Log.d(TAG, "Programme parsed successfully: ${programme.name} (${programme.durationWeeks} weeks)")
+                Log.d(TAG, "Programme parsed successfully!")
+                Log.d(TAG, "Programme name: ${programme.name}")
+                Log.d(TAG, "Duration: ${programme.durationWeeks} weeks")
+                Log.d(TAG, "Number of weeks: ${programme.weeks.size}")
+                programme.weeks.forEachIndexed { weekIdx, week ->
+                    Log.d(TAG, "  Week ${weekIdx + 1}: ${week.workouts.size} workouts")
+                    week.workouts.forEachIndexed { workoutIdx, workout ->
+                        Log.d(TAG, "    Workout ${workoutIdx + 1}: ${workout.exercises.size} exercises")
+                    }
+                }
 
                 TextParsingResult(
                     success = true,
                     programme = programme,
                 )
-            } catch (e: IllegalArgumentException) {
-                Log.e(TAG, "Failed to parse programme: ${e.message}", e)
+            } catch (e: IOException) {
+                Log.e(TAG, "=== Programme Parsing FAILED (IOException) ===")
+                Log.e(TAG, "Network or API error: ${e.message}")
                 Log.e(TAG, "Exception type: ${e.javaClass.name}")
-                Log.e(TAG, "Stack trace: ${e.stackTraceToString()}")
+                Log.e(TAG, "Full stack trace:", e)
+
+                val userFriendlyError = when {
+                    e.message?.contains("API key") == true -> "OpenAI API key not configured"
+                    e.message?.contains("timeout") == true -> "Request timed out. Please try again."
+                    e.message?.contains("Network") == true -> "Network error. Check your connection."
+                    else -> "Failed to connect to AI service: ${e.message}"
+                }
+
+                TextParsingResult(
+                    success = false,
+                    error = userFriendlyError,
+                )
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "=== Programme Parsing FAILED (IllegalArgumentException) ===")
+                Log.e(TAG, "Error message: ${e.message}")
+                Log.e(TAG, "Exception type: ${e.javaClass.name}")
+                Log.e(TAG, "Full stack trace:", e)
 
                 // Provide user-friendly error messages
                 val userFriendlyError =
@@ -83,6 +117,16 @@ open class ProgrammeTextParser(
                 TextParsingResult(
                     success = false,
                     error = userFriendlyError,
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "=== Programme Parsing FAILED (Unexpected Exception) ===")
+                Log.e(TAG, "Unexpected error type: ${e.javaClass.name}")
+                Log.e(TAG, "Error message: ${e.message}")
+                Log.e(TAG, "Full stack trace:", e)
+                
+                TextParsingResult(
+                    success = false,
+                    error = "Unexpected error: ${e.message ?: "Unknown error"}",
                 )
             }
         }
@@ -107,10 +151,14 @@ open class ProgrammeTextParser(
         }
         
         if (effectiveApiKey.isEmpty() || effectiveApiKey == "null") {
+            Log.e(TAG, "API key is empty or null")
             throw IllegalArgumentException("OpenAI API key not configured")
         }
 
         val prompt = buildPrompt(request)
+        Log.d(TAG, "=== OpenAI API Request ===")
+        Log.d(TAG, "Prompt length: ${prompt.length} characters")
+        Log.d(TAG, "Full prompt:\n$prompt")
 
         val requestBody = JsonObject().apply {
             addProperty("model", "gpt-5-mini")
@@ -133,7 +181,8 @@ open class ProgrammeTextParser(
             addProperty("max_completion_tokens", 15000)
         }
 
-        Log.d(TAG, "Calling OpenAI API with model: gpt-5-mini, text length: ${request.rawText.length} chars")
+        Log.d(TAG, "Request body JSON:\n${requestBody}")
+        Log.d(TAG, "Calling OpenAI API with model: gpt-5-mini")
 
         val httpRequest =
             Request
@@ -147,13 +196,23 @@ open class ProgrammeTextParser(
         val response = client.newCall(httpRequest).execute()
         val responseBody = response.body.string()
 
-        Log.d(TAG, "OpenAI API response: ${response.code}, size: ${responseBody.length} chars")
+        Log.d(TAG, "=== OpenAI API Response ===")
+        Log.d(TAG, "Response code: ${response.code}")
+        Log.d(TAG, "Response body size: ${responseBody.length} chars")
+        Log.d(TAG, "Full response body:\n$responseBody")
 
         if (!response.isSuccessful) {
-            val errorJson = JsonParser.parseString(responseBody).asJsonObject
-            val errorMessage = errorJson.getAsJsonObject("error")?.get("message")?.asString
+            Log.e(TAG, "API call failed with status ${response.code}")
+            val errorJson = try {
+                JsonParser.parseString(responseBody).asJsonObject
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to parse error response as JSON", e)
+                null
+            }
+            val errorMessage = errorJson?.getAsJsonObject("error")?.get("message")?.asString
                 ?: "API call failed with status ${response.code}"
 
+            Log.e(TAG, "Error message: $errorMessage")
             throw IOException(errorMessage)
         }
 
@@ -273,9 +332,21 @@ open class ProgrammeTextParser(
         jsonString: String,
         rawText: String,
     ): ParsedProgramme {
+        Log.d(TAG, "=== parseJsonToProgramme START ===")
+        Log.d(TAG, "JSON string length: ${jsonString.length}")
+        
         require(jsonString.isNotBlank()) { "JSON string is blank" }
 
-        val json = JsonParser.parseString(jsonString).asJsonObject
+        val json = try {
+            JsonParser.parseString(jsonString).asJsonObject
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse JSON string", e)
+            Log.e(TAG, "Invalid JSON content:\n$jsonString")
+            throw IllegalArgumentException("Failed to parse JSON: ${e.message}", e)
+        }
+        
+        Log.d(TAG, "JSON parsed successfully")
+        Log.d(TAG, "Top-level keys: ${json.keySet()}")
 
         // Log parsing_logic if present for debugging
         json.get("parsing_logic")?.let { logicElement ->
@@ -307,13 +378,17 @@ open class ProgrammeTextParser(
 
         val name = json.get("name")?.asString ?: "Imported Programme"
         val durationWeeks = json.get("duration_weeks")?.asInt ?: 1
+        Log.d(TAG, "Programme name: $name, duration: $durationWeeks weeks")
         // Hardcode these - we don't use them anywhere
         val description = ""
         val programmeType = "GENERAL_FITNESS"
         val difficulty = "INTERMEDIATE"
 
         val weeks = mutableListOf<ParsedWeek>()
-        json.getAsJsonArray("weeks")?.forEach { weekElement ->
+        val weeksArray = json.getAsJsonArray("weeks")
+        Log.d(TAG, "Found ${weeksArray?.size() ?: 0} weeks in JSON")
+        
+        weeksArray?.forEach { weekElement ->
             val weekObj = weekElement.asJsonObject
             val weekNumber = weekObj.get("week_number")?.asInt ?: 1
             val weekName = "Week $weekNumber"
@@ -333,12 +408,19 @@ open class ProgrammeTextParser(
 
                 // Parse exercises and merge duplicates
                 val exerciseMap = mutableMapOf<String, MutableList<ParsedSet>>()
-                workoutObj.getAsJsonArray("exercises")?.forEach { exerciseElement ->
+                val exercisesArray = workoutObj.getAsJsonArray("exercises")
+                Log.d(TAG, "    Workout has ${exercisesArray?.size() ?: 0} exercises")
+                
+                exercisesArray?.forEach { exerciseElement ->
                     val exerciseObj = exerciseElement.asJsonObject
                     val exerciseName = exerciseObj.get("name")?.asString ?: "Unknown Exercise"
+                    Log.d(TAG, "      Processing exercise: $exerciseName")
 
                     val sets = mutableListOf<ParsedSet>()
-                    exerciseObj.getAsJsonArray("sets")?.forEach { setElement ->
+                    val setsArray = exerciseObj.getAsJsonArray("sets")
+                    Log.d(TAG, "        Exercise has ${setsArray?.size() ?: 0} sets")
+                    
+                    setsArray?.forEach { setElement ->
                         val setObj = setElement.asJsonObject
                         sets.add(
                             ParsedSet(
@@ -353,9 +435,12 @@ open class ProgrammeTextParser(
                     val existingSets = exerciseMap[exerciseName]
                     if (existingSets != null) {
                         existingSets.addAll(sets)
-                        Log.w(TAG, "Merging duplicate exercise: $exerciseName (AI created multiple entries)")
+                        Log.w(TAG, "DUPLICATE EXERCISE FOUND: $exerciseName")
+                        Log.w(TAG, "  Existing sets: ${existingSets.size - sets.size}, new sets: ${sets.size}")
+                        Log.w(TAG, "  Total sets after merge: ${existingSets.size}")
                     } else {
                         exerciseMap[exerciseName] = sets
+                        Log.d(TAG, "        Added $exerciseName with ${sets.size} sets")
                     }
                 }
 
@@ -392,8 +477,15 @@ open class ProgrammeTextParser(
                     phase = null,
                 ),
             )
+            Log.d(TAG, "  Week $weekNumber added with ${workouts.size} workouts")
         }
 
+        Log.d(TAG, "=== parseJsonToProgramme COMPLETE ===")
+        Log.d(TAG, "Final programme: $name")
+        Log.d(TAG, "Total weeks: ${weeks.size}")
+        Log.d(TAG, "Total workouts: ${weeks.sumOf { it.workouts.size }}")
+        Log.d(TAG, "Total exercises: ${weeks.sumOf { week -> week.workouts.sumOf { it.exercises.size } }}")
+        
         return ParsedProgramme(
             name = name,
             description = description,
