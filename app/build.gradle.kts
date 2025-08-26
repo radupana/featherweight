@@ -130,7 +130,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     
     // Calendar - using version 2.6.1 which is compatible with latest Compose
-    implementation("com.kizitonwose.calendar:compose:2.6.1")
+    implementation("com.kizitonwose.calendar:compose:2.8.0")
 
     // UI Testing with UI Automator
     androidTestImplementation(libs.androidx.test.uiautomator)
