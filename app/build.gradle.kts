@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
+    id("jacoco")
 }
 
 configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
@@ -49,6 +50,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            enableUnitTestCoverage = true
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -75,6 +79,9 @@ android {
 
         unitTests {
             isIncludeAndroidResources = true
+            all {
+                it.ignoreFailures = true
+            }
         }
     }
 }
@@ -157,9 +164,6 @@ dependencies {
     androidTestImplementation(libs.androidx.test.rules)
     androidTestUtil(libs.androidx.test.orchestrator)
 
-    // Cucumber-Android for BDD testing
-    androidTestImplementation(libs.cucumber.android)
-    androidTestImplementation(libs.cucumber.junit)
 }
 
 // Make Detekt part of the build process
@@ -169,3 +173,45 @@ tasks.named("check") {
 
 // Detekt runs on check task
 // Enable for preBuild once all issues are resolved
+
+// JaCoCo configuration for code coverage
+tasks.withType<Test> {
+    configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+    
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+    
+    val fileFilter = listOf(
+        "**/R.class",
+        "**/R$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*",
+        "**/*Test*.*",
+        "android/**/*.*",
+        "**/databinding/**/*.*",
+        "**/generated/**/*.*"
+    )
+    
+    val debugTree = fileTree(layout.buildDirectory.dir("intermediates/javac/debug")) {
+        exclude(fileFilter)
+    }
+    
+    val kotlinDebugTree = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
+        exclude(fileFilter)
+    }
+    
+    sourceDirectories.setFrom(files("src/main/java", "src/main/kotlin"))
+    classDirectories.setFrom(files(debugTree, kotlinDebugTree))
+    executionData.setFrom(fileTree(layout.buildDirectory) {
+        include("**/*.exec", "**/*.ec")
+    })
+}

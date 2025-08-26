@@ -41,5 +41,7 @@ sonarqube {
         property("sonar.host.url", "http://localhost:9000")
         property("sonar.token", System.getenv("SONAR_TOKEN") ?: "")
         property("sonar.sourceEncoding", "UTF-8")
+        property("sonar.coverage.jacoco.xmlReportPaths", "${project.projectDir}/app/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml")
+        property("sonar.junit.reportPaths", "${project.projectDir}/app/build/test-results/testDebugUnitTest")
     }
 }

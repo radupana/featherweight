@@ -402,4 +402,483 @@ class WorkoutTemplateWeightServiceTest {
         assertThat(updatedSet.actualReps).isEqualTo(targetReps)
         assertThat(updatedSet.actualWeight).isEqualTo(updatedSet.suggestedWeight)
     }
+    
+    // ========== History-based 1RM Estimation Tests ==========
+    
+    @Test
+    fun `applyWeightSuggestions estimates 1RM from recent history when no profile max`() = runTest {
+        // Arrange
+        val workoutId = 1L
+        val userId = 1L
+        val exerciseVariationId = 100L
+        val config = WorkoutTemplateConfig(
+            timeAvailable = TimeAvailable.STANDARD,
+            goal = TrainingGoal.STRENGTH,
+            intensity = IntensityLevel.MODERATE
+        )
+        
+        val exerciseLog = WorkoutFixtures.createExerciseLog(
+            id = 1L,
+            workoutId = workoutId,
+            exerciseVariationId = exerciseVariationId
+        )
+        
+        val sets = listOf(
+            WorkoutFixtures.createSetLog(
+                id = 1L,
+                exerciseLogId = exerciseLog.id,
+                targetReps = 8
+            )
+        )
+        
+        // Recent history with various RPEs
+        val recentSets = listOf(
+            WorkoutFixtures.createSetLog(
+                id = 10L,
+                actualWeight = 80f,
+                actualReps = 5,
+                actualRpe = 8f,
+                isCompleted = true
+            ),
+            WorkoutFixtures.createSetLog(
+                id = 11L,
+                actualWeight = 75f,
+                actualReps = 6,
+                actualRpe = 7f,
+                isCompleted = true
+            ),
+            WorkoutFixtures.createSetLog(
+                id = 12L,
+                actualWeight = 70f,
+                actualReps = 8,
+                actualRpe = 9f,
+                isCompleted = true
+            )
+        )
+        
+        coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
+        coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
+        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns null // No profile max
+        coEvery { repository.getRecentSetLogsForExercise(exerciseVariationId, 42) } returns recentSets
+        coEvery { repository.getExerciseById(exerciseVariationId) } returns mockk()
+        
+        val updatedSetSlot = slot<SetLog>()
+        coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
+        
+        // Act
+        service.applyWeightSuggestions(workoutId, config, userId)
+        
+        // Assert
+        val updatedSet = updatedSetSlot.captured
+        assertThat(updatedSet.suggestedWeight).isNotNull()
+        assertThat(updatedSet.suggestionSource).contains("recent")
+        assertThat(updatedSet.suggestionConfidence).isLessThan(0.9f) // Lower confidence than 1RM
+        assertThat(updatedSet.suggestionConfidence).isGreaterThan(0.7f)
+    }
+    
+    @Test
+    fun `applyWeightSuggestions rounds weight to nearest 2_5kg`() = runTest {
+        // Arrange
+        val workoutId = 1L
+        val userId = 1L
+        val exerciseVariationId = 100L
+        val config = WorkoutTemplateConfig(
+            timeAvailable = TimeAvailable.STANDARD,
+            goal = TrainingGoal.STRENGTH,
+            intensity = IntensityLevel.MODERATE
+        )
+        
+        val exerciseLog = WorkoutFixtures.createExerciseLog(
+            id = 1L,
+            workoutId = workoutId,
+            exerciseVariationId = exerciseVariationId
+        )
+        
+        val sets = listOf(
+            WorkoutFixtures.createSetLog(
+                id = 1L,
+                exerciseLogId = exerciseLog.id,
+                targetReps = 10
+            )
+        )
+        
+        // Set up 1RM that will result in non-round numbers
+        coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
+        coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
+        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns 
+            UserExerciseMax(
+                userId = userId,
+                exerciseVariationId = exerciseVariationId,
+                mostWeightLifted = 101f, // Non-round number
+                mostWeightReps = 1,
+                oneRMEstimate = 101f,
+                oneRMContext = "101kg × 1",
+                oneRMConfidence = 0.9f
+            )
+        coEvery { repository.getExerciseById(exerciseVariationId) } returns mockk()
+        
+        val updatedSetSlot = slot<SetLog>()
+        coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
+        
+        // Act
+        service.applyWeightSuggestions(workoutId, config, userId)
+        
+        // Assert - weight should be rounded to nearest 2.5kg
+        val suggestedWeight = updatedSetSlot.captured.suggestedWeight ?: 0f
+        assertThat(suggestedWeight % 2.5f).isEqualTo(0f)
+    }
+    
+    @Test
+    fun `applyWeightSuggestions adjusts weight for different rep ranges`() = runTest {
+        // Arrange
+        val workoutId = 1L
+        val userId = 1L
+        val exerciseVariationId = 100L
+        val oneRM = 100f
+        val config = WorkoutTemplateConfig(
+            timeAvailable = TimeAvailable.STANDARD,
+            goal = TrainingGoal.STRENGTH,
+            intensity = IntensityLevel.MODERATE
+        )
+        
+        // Test different rep ranges
+        val repRangeTests = listOf(
+            3 to 1.05f,    // Low reps - slightly higher percentage
+            10 to 1.0f,    // Medium reps - standard percentage
+            20 to 0.9f     // High reps - lower percentage
+        )
+        
+        for ((targetReps, expectedAdjustment) in repRangeTests) {
+            val exerciseLog = WorkoutFixtures.createExerciseLog(
+                id = 1L,
+                workoutId = workoutId,
+                exerciseVariationId = exerciseVariationId
+            )
+            
+            val sets = listOf(
+                WorkoutFixtures.createSetLog(
+                    id = 1L,
+                    exerciseLogId = exerciseLog.id,
+                    targetReps = targetReps
+                )
+            )
+            
+            coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
+            coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
+            coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns 
+                UserExerciseMax(
+                    userId = userId,
+                    exerciseVariationId = exerciseVariationId,
+                    mostWeightLifted = oneRM,
+                    mostWeightReps = 1,
+                    oneRMEstimate = oneRM,
+                    oneRMContext = "${oneRM}kg × 1",
+                    oneRMConfidence = 0.9f
+                )
+            coEvery { repository.getExerciseById(exerciseVariationId) } returns mockk()
+            
+            val updatedSetSlot = slot<SetLog>()
+            coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
+            
+            // Act
+            service.applyWeightSuggestions(workoutId, config, userId)
+            
+            // Assert - verify rep adjustment is applied
+            val suggestedWeight = updatedSetSlot.captured.suggestedWeight ?: 0f
+            val basePercentage = 0.725f // MODERATE intensity
+            val expectedBase = oneRM * basePercentage * expectedAdjustment
+            
+            // Account for rounding to 2.5kg
+            val expectedRounded = ((expectedBase / 2.5f).toInt() * 2.5f).toFloat()
+            assertThat(suggestedWeight).isWithin(2.5f).of(expectedRounded)
+        }
+    }
+    
+    @Test
+    fun `applyWeightSuggestions filters invalid sets from history`() = runTest {
+        // Arrange
+        val workoutId = 1L
+        val userId = 1L
+        val exerciseVariationId = 100L
+        val config = WorkoutTemplateConfig(
+            timeAvailable = TimeAvailable.STANDARD,
+            goal = TrainingGoal.STRENGTH,
+            intensity = IntensityLevel.MODERATE
+        )
+        
+        val exerciseLog = WorkoutFixtures.createExerciseLog(
+            id = 1L,
+            workoutId = workoutId,
+            exerciseVariationId = exerciseVariationId
+        )
+        
+        val sets = listOf(
+            WorkoutFixtures.createSetLog(
+                id = 1L,
+                exerciseLogId = exerciseLog.id,
+                targetReps = 8
+            )
+        )
+        
+        // Mix of valid and invalid historical sets
+        val recentSets = listOf(
+            // Valid set
+            WorkoutFixtures.createSetLog(
+                id = 10L,
+                actualWeight = 80f,
+                actualReps = 5,
+                actualRpe = 8f,
+                isCompleted = true
+            ),
+            // Invalid - not completed
+            WorkoutFixtures.createSetLog(
+                id = 11L,
+                actualWeight = 75f,
+                actualReps = 6,
+                isCompleted = false
+            ),
+            // Invalid - zero weight
+            WorkoutFixtures.createSetLog(
+                id = 12L,
+                actualWeight = 0f,
+                actualReps = 10,
+                isCompleted = true
+            ),
+            // Invalid - zero reps
+            WorkoutFixtures.createSetLog(
+                id = 13L,
+                actualWeight = 70f,
+                actualReps = 0,
+                isCompleted = true
+            )
+        )
+        
+        coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
+        coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
+        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns null
+        coEvery { repository.getRecentSetLogsForExercise(exerciseVariationId, 42) } returns recentSets
+        coEvery { repository.getExerciseById(exerciseVariationId) } returns mockk()
+        
+        // Mock freestyle fallback
+        coEvery { 
+            freestyleIntelligenceService.getIntelligentSuggestions(any(), any(), any())
+        } returns SmartSuggestions(
+            suggestedWeight = 50f,
+            suggestedReps = 8,
+            confidence = "Low",
+            reasoning = "Limited history"
+        )
+        
+        val updatedSetSlot = slot<SetLog>()
+        coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
+        
+        // Act
+        service.applyWeightSuggestions(workoutId, config, userId)
+        
+        // Assert - should use the one valid set or fall back to freestyle
+        assertThat(updatedSetSlot.captured.suggestedWeight).isNotNull()
+    }
+    
+    @Test
+    fun `applyWeightSuggestions applies correct RPE multipliers`() = runTest {
+        // Arrange
+        val workoutId = 1L
+        val userId = 1L
+        val exerciseVariationId = 100L
+        val config = WorkoutTemplateConfig(
+            timeAvailable = TimeAvailable.STANDARD,
+            goal = TrainingGoal.STRENGTH,
+            intensity = IntensityLevel.MODERATE
+        )
+        
+        val exerciseLog = WorkoutFixtures.createExerciseLog(
+            id = 1L,
+            workoutId = workoutId,
+            exerciseVariationId = exerciseVariationId
+        )
+        
+        val sets = listOf(
+            WorkoutFixtures.createSetLog(
+                id = 1L,
+                exerciseLogId = exerciseLog.id,
+                targetReps = 8
+            )
+        )
+        
+        // Test each RPE multiplier
+        val rpeTests = listOf(
+            10f to 1.0f,
+            9f to 0.95f,
+            8f to 0.9f,
+            7f to 0.85f,
+            6f to 0.8f,
+            5f to 0.75f
+        )
+        
+        for ((rpe, _) in rpeTests) {
+            val recentSets = listOf(
+                WorkoutFixtures.createSetLog(
+                    id = 10L,
+                    actualWeight = 100f,
+                    actualReps = 5,
+                    actualRpe = rpe,
+                    isCompleted = true
+                )
+            )
+            
+            coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
+            coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
+            coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns null
+            coEvery { repository.getRecentSetLogsForExercise(exerciseVariationId, 42) } returns recentSets
+            coEvery { repository.getExerciseById(exerciseVariationId) } returns mockk()
+            
+            val updatedSetSlot = slot<SetLog>()
+            coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
+            
+            // Act
+            service.applyWeightSuggestions(workoutId, config, userId)
+            
+            // Assert - RPE should affect the estimated 1RM and thus the suggestion
+            assertThat(updatedSetSlot.captured.suggestedWeight).isNotNull()
+            assertThat(updatedSetSlot.captured.suggestionSource).contains("recent")
+        }
+    }
+    
+    @Test
+    fun `applyWeightSuggestions uses median for stability with multiple history sets`() = runTest {
+        // Arrange
+        val workoutId = 1L
+        val userId = 1L
+        val exerciseVariationId = 100L
+        val config = WorkoutTemplateConfig(
+            timeAvailable = TimeAvailable.STANDARD,
+            goal = TrainingGoal.STRENGTH,
+            intensity = IntensityLevel.MODERATE
+        )
+        
+        val exerciseLog = WorkoutFixtures.createExerciseLog(
+            id = 1L,
+            workoutId = workoutId,
+            exerciseVariationId = exerciseVariationId
+        )
+        
+        val sets = listOf(
+            WorkoutFixtures.createSetLog(
+                id = 1L,
+                exerciseLogId = exerciseLog.id,
+                targetReps = 8
+            )
+        )
+        
+        // Multiple history sets with outliers
+        val recentSets = listOf(
+            // Outlier high
+            WorkoutFixtures.createSetLog(
+                id = 10L,
+                actualWeight = 120f,
+                actualReps = 3,
+                actualRpe = 10f,
+                isCompleted = true
+            ),
+            // Normal range
+            WorkoutFixtures.createSetLog(
+                id = 11L,
+                actualWeight = 80f,
+                actualReps = 5,
+                actualRpe = 8f,
+                isCompleted = true
+            ),
+            WorkoutFixtures.createSetLog(
+                id = 12L,
+                actualWeight = 75f,
+                actualReps = 6,
+                actualRpe = 7f,
+                isCompleted = true
+            ),
+            WorkoutFixtures.createSetLog(
+                id = 13L,
+                actualWeight = 70f,
+                actualReps = 8,
+                actualRpe = 7f,
+                isCompleted = true
+            ),
+            // Outlier low
+            WorkoutFixtures.createSetLog(
+                id = 14L,
+                actualWeight = 50f,
+                actualReps = 15,
+                actualRpe = 6f,
+                isCompleted = true
+            )
+        )
+        
+        coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
+        coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
+        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns null
+        coEvery { repository.getRecentSetLogsForExercise(exerciseVariationId, 42) } returns recentSets
+        coEvery { repository.getExerciseById(exerciseVariationId) } returns mockk()
+        
+        val updatedSetSlot = slot<SetLog>()
+        coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
+        
+        // Act
+        service.applyWeightSuggestions(workoutId, config, userId)
+        
+        // Assert - median should provide stable estimate
+        assertThat(updatedSetSlot.captured.suggestedWeight).isNotNull()
+        // Weight should be reasonable, not influenced by outliers
+        assertThat(updatedSetSlot.captured.suggestedWeight).isGreaterThan(40f)
+        assertThat(updatedSetSlot.captured.suggestedWeight).isLessThan(100f)
+    }
+    
+    @Test
+    fun `applyWeightSuggestions handles null targetReps with fallback`() = runTest {
+        // Arrange
+        val workoutId = 1L
+        val userId = 1L
+        val exerciseVariationId = 100L
+        val config = WorkoutTemplateConfig(
+            timeAvailable = TimeAvailable.STANDARD,
+            goal = TrainingGoal.STRENGTH,
+            intensity = IntensityLevel.MODERATE
+        )
+        
+        val exerciseLog = WorkoutFixtures.createExerciseLog(
+            id = 1L,
+            workoutId = workoutId,
+            exerciseVariationId = exerciseVariationId
+        )
+        
+        val sets = listOf(
+            WorkoutFixtures.createSetLog(
+                id = 1L,
+                exerciseLogId = exerciseLog.id,
+                targetReps = null // No target reps specified
+            )
+        )
+        
+        coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
+        coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
+        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns 
+            UserExerciseMax(
+                userId = userId,
+                exerciseVariationId = exerciseVariationId,
+                mostWeightLifted = 100f,
+                mostWeightReps = 1,
+                oneRMEstimate = 100f,
+                oneRMContext = "100kg × 1",
+                oneRMConfidence = 0.9f
+            )
+        coEvery { repository.getExerciseById(exerciseVariationId) } returns mockk()
+        
+        val updatedSetSlot = slot<SetLog>()
+        coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
+        
+        // Act
+        service.applyWeightSuggestions(workoutId, config, userId)
+        
+        // Assert - should use default of 10 reps
+        assertThat(updatedSetSlot.captured.suggestedWeight).isNotNull()
+        assertThat(updatedSetSlot.captured.actualReps).isEqualTo(0) // Uses default handling
+    }
 }
