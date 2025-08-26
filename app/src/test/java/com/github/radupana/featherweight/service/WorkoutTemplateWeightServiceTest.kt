@@ -13,6 +13,7 @@ import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.fixtures.WorkoutFixtures
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.testutil.CoroutineTestRule
+import com.github.radupana.featherweight.testutil.LogMock
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -49,6 +50,8 @@ class WorkoutTemplateWeightServiceTest {
     
     @Before
     fun setUp() {
+        LogMock.setup()
+        
         service = WorkoutTemplateWeightService(
             repository,
             oneRMDao,

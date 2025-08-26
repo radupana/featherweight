@@ -93,7 +93,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
 
     // Reorderable library for drag-and-drop in LazyColumn
-    implementation("sh.calvin.reorderable:reorderable:2.4.0")
+    implementation(libs.reorderable)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
@@ -156,14 +156,13 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
 
     // Calendar - using version 2.6.1 which is compatible with latest Compose
-    implementation("com.kizitonwose.calendar:compose:2.6.1")
+    implementation(libs.compose)
 
     // UI Testing with UI Automator
     androidTestImplementation(libs.androidx.test.uiautomator)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.rules)
     androidTestUtil(libs.androidx.test.orchestrator)
-
 }
 
 // Make Detekt part of the build process
@@ -184,34 +183,39 @@ tasks.withType<Test> {
 
 tasks.register<JacocoReport>("jacocoTestReport") {
     dependsOn("testDebugUnitTest")
-    
+
     reports {
         xml.required.set(true)
         html.required.set(true)
     }
-    
-    val fileFilter = listOf(
-        "**/R.class",
-        "**/R$*.class",
-        "**/BuildConfig.*",
-        "**/Manifest*.*",
-        "**/*Test*.*",
-        "android/**/*.*",
-        "**/databinding/**/*.*",
-        "**/generated/**/*.*"
-    )
-    
-    val debugTree = fileTree(layout.buildDirectory.dir("intermediates/javac/debug")) {
-        exclude(fileFilter)
-    }
-    
-    val kotlinDebugTree = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
-        exclude(fileFilter)
-    }
-    
+
+    val fileFilter =
+        listOf(
+            "**/R.class",
+            "**/R$*.class",
+            "**/BuildConfig.*",
+            "**/Manifest*.*",
+            "**/*Test*.*",
+            "android/**/*.*",
+            "**/databinding/**/*.*",
+            "**/generated/**/*.*",
+        )
+
+    val debugTree =
+        fileTree(layout.buildDirectory.dir("intermediates/javac/debug")) {
+            exclude(fileFilter)
+        }
+
+    val kotlinDebugTree =
+        fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
+            exclude(fileFilter)
+        }
+
     sourceDirectories.setFrom(files("src/main/java", "src/main/kotlin"))
     classDirectories.setFrom(files(debugTree, kotlinDebugTree))
-    executionData.setFrom(fileTree(layout.buildDirectory) {
-        include("**/*.exec", "**/*.ec")
-    })
+    executionData.setFrom(
+        fileTree(layout.buildDirectory) {
+            include("**/*.exec", "**/*.ec")
+        },
+    )
 }

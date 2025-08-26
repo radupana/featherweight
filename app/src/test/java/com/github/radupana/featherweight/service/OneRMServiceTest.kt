@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.service
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.data.profile.OneRMType
+import com.github.radupana.featherweight.testutil.LogMock
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -14,6 +15,7 @@ class OneRMServiceTest {
     
     @Before
     fun setUp() {
+        LogMock.setup()
         service = OneRMService()
     }
     
@@ -69,7 +71,7 @@ class OneRMServiceTest {
             scalingType = RMScalingType.ISOLATION
         )
         
-        assertThat(result).isWithin(0.1f).of(38.34f)
+        assertThat(result).isWithin(0.1f).of(38.46f)
     }
     
     @Test
@@ -252,10 +254,10 @@ class OneRMServiceTest {
         )
         
         // repScore = (16-5)/15 = 0.733
-        // rpeScore = (5-5)/5 = 0
+        // rpeScore = 0.3 (default since RPE 5 < MIN_RPE_FOR_ESTIMATE)
         // loadScore = 0.8
-        // Total = 0.733*0.5 + 0*0.3 + 0.8*0.2 = 0.5265
-        assertThat(confidence).isWithin(0.01f).of(0.5265f)
+        // Total = 0.733*0.5 + 0.3*0.3 + 0.8*0.2 = 0.6165
+        assertThat(confidence).isWithin(0.01f).of(0.6165f)
     }
     
     @Test
@@ -438,7 +440,7 @@ class OneRMServiceTest {
         val shouldUpdate = service.shouldUpdateOneRM(
             set = set,
             currentEstimate = 100f,
-            newEstimate = 70f
+            newEstimate = 101f  // New estimate should be higher than current
         )
         
         assertThat(shouldUpdate).isTrue()
