@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.service
 
 import com.google.common.truth.Truth.assertThat
-import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
