@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LibraryBooks
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
@@ -122,7 +122,7 @@ fun WorkoutHubScreen(
                             .height(48.dp),
                 ) {
                     Icon(
-                        Icons.Filled.LibraryBooks,
+                        Icons.AutoMirrored.Filled.LibraryBooks,
                         contentDescription = "Templates",
                         modifier = Modifier.size(18.dp),
                     )

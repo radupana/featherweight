@@ -243,11 +243,7 @@ class ExerciseProgressViewModel(
         recentBest: Float
     ): ProgressStatusData {
         val now = LocalDate.now()
-        val daysSinceLastWorkout = if (globalProgress.lastUpdated != null) {
-            ChronoUnit.DAYS.between(globalProgress.lastUpdated.toLocalDate(), now)
-        } else {
-            Long.MAX_VALUE
-        }
+        val daysSinceLastWorkout = ChronoUnit.DAYS.between(globalProgress.lastUpdated.toLocalDate(), now)
 
         return when {
             daysSinceLastWorkout >= 14 -> {

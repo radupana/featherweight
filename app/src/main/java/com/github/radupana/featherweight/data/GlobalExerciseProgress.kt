@@ -18,6 +18,7 @@ enum class VolumeTrend {
 
 @Entity(
     tableName = "global_exercise_progress",
+    indices = [androidx.room.Index(value = ["exerciseVariationId"])],
     foreignKeys = [
         androidx.room.ForeignKey(
             entity = com.github.radupana.featherweight.data.exercise.ExerciseVariation::class,

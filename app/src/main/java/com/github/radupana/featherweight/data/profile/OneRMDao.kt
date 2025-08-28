@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import androidx.room.RoomWarnings
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
 
@@ -153,6 +154,7 @@ interface OneRMDao {
         ORDER BY ev.name ASC
     """,
     )
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>>
 
     @Query(
@@ -232,6 +234,7 @@ interface OneRMDao {
         ORDER BY ev.usageCount DESC, ev.name ASC
     """,
     )
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     fun getOtherExercisesWithMaxes(): Flow<List<OneRMWithExerciseName>>
 
     // OneRM History methods

@@ -58,7 +58,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         TrainingAnalysis::class,
         ParseRequest::class,
     ],
-    version = 76,
+    version = 77,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -114,7 +114,7 @@ abstract class FeatherweightDatabase : RoomDatabase() {
                             context.applicationContext,
                             FeatherweightDatabase::class.java,
                             "featherweight-db",
-                        ).fallbackToDestructiveMigration()
+                        ).fallbackToDestructiveMigration(dropAllTables = true)
                         .build()
                 INSTANCE = instance
                 instance

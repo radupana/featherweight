@@ -21,7 +21,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Notes
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -360,7 +360,7 @@ fun WorkoutHistoryCard(
                     // Notes indicator
                     if (workout.hasNotes) {
                         Icon(
-                            Icons.Filled.Notes,
+                            Icons.AutoMirrored.Filled.Notes,
                             contentDescription = "Has notes",
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary,
@@ -746,7 +746,7 @@ fun ProgrammeHistoryCard(
                     // Notes indicator
                     if (!programme.completionNotes.isNullOrBlank()) {
                         Icon(
-                            Icons.Filled.Notes,
+                            Icons.AutoMirrored.Filled.Notes,
                             contentDescription = "Has completion notes",
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.primary,

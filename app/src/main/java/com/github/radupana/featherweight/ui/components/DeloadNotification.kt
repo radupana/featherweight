@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -59,7 +59,7 @@ fun DeloadNotificationCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
-                Icons.Default.TrendingDown,
+                Icons.AutoMirrored.Filled.TrendingDown,
                 contentDescription = "Deload",
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(32.dp),
@@ -123,7 +123,7 @@ fun DeloadIndicator(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Icon(
-                    Icons.Default.TrendingDown,
+                    Icons.AutoMirrored.Filled.TrendingDown,
                     contentDescription = "Deload",
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(12.dp),

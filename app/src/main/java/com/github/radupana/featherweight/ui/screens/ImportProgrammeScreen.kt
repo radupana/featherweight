@@ -327,6 +327,7 @@ fun ImportProgrammeScreen(
 private fun FormatTipsDialog(
     onDismiss: () -> Unit,
 ) {
+    @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
 

@@ -358,6 +358,14 @@ class FeatherweightRepository(
             return
         }
 
+        // Validate that workout has at least one completed set
+        val sets = getSetsForWorkout(workoutId)
+        val completedSetsCount = sets.count { it.isCompleted }
+        if (completedSetsCount == 0) {
+            // Don't mark as completed if no sets were completed
+            return
+        }
+
         val updatedWorkout = workout.copy(status = WorkoutStatus.COMPLETED, durationSeconds = durationSeconds)
 
         workoutDao.updateWorkout(updatedWorkout)
@@ -1037,6 +1045,7 @@ class FeatherweightRepository(
                     
                     val setsData = if (!exerciseStructure.note.isNullOrEmpty()) {
                         try {
+                            @Suppress("UNCHECKED_CAST")
                             Gson().fromJson(exerciseStructure.note, Map::class.java) as? Map<String, Any>
                         } catch (e: JsonSyntaxException) {
                             Log.w("FeatherweightRepository", "Failed to parse sets data from note: ${e.message}")
@@ -1046,6 +1055,7 @@ class FeatherweightRepository(
                         null
                     }
                     
+                    @Suppress("UNCHECKED_CAST")
                     val weights = setsData?.get("weights") as? List<Double>
                     
                     when (val reps = exerciseStructure.reps) {
@@ -1347,12 +1357,14 @@ class FeatherweightRepository(
             Log.d("FeatherweightRepository", "Programme inserted with ID: $programmeId")
 
             // Parse the JSON structure and create weeks/workouts
+            @Suppress("UNCHECKED_CAST")
             val parsedData =
                 Gson().fromJson(
                     jsonStructure,
                     Map::class.java,
                 ) as Map<String, Any>
 
+            @Suppress("UNCHECKED_CAST")
             val weeks = parsedData["weeks"] as List<Map<String, Any>>
             
             Log.d("FeatherweightRepository", "Parsed JSON - Found ${weeks.size} weeks")
@@ -1366,6 +1378,7 @@ class FeatherweightRepository(
                 val volumeLevel = weekData["volumeLevel"] as? String
                 val isDeload = weekData["isDeload"] as? Boolean ?: false
                 val phase = weekData["phase"] as? String
+                @Suppress("UNCHECKED_CAST")
                 val workouts = weekData["workouts"] as List<Map<String, Any>>
                 
                 Log.d("FeatherweightRepository", "Processing Week $weekNumber: $weekName")
@@ -1392,6 +1405,7 @@ class FeatherweightRepository(
                     val estimatedDuration = (workoutData["estimatedDurationMinutes"] as? Double)?.toInt() ?: 60
 
                     // Convert the exercises to WorkoutStructure format - preserving individual sets
+                    @Suppress("UNCHECKED_CAST")
                     val exercisesList = workoutData["exercises"] as? List<Map<String, Any>> ?: emptyList()
                     
                     Log.d("FeatherweightRepository", "  Processing Workout: $workoutName ($dayOfWeek)")
@@ -1403,6 +1417,7 @@ class FeatherweightRepository(
                         exercisesList.map { exerciseData ->
                             val exerciseName = exerciseData["exerciseName"] as String
                             val exerciseId = (exerciseData["exerciseId"] as? Double)?.toLong()
+                            @Suppress("UNCHECKED_CAST")
                             val sets = exerciseData["sets"] as? List<Map<String, Any>> ?: emptyList()
                             
                             Log.d("FeatherweightRepository", "    Exercise: $exerciseName")

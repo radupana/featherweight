@@ -115,7 +115,8 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         // Configure keyboard behavior - this is crucial for proper keyboard handling
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        // Using WindowInsets API instead of deprecated SOFT_INPUT_ADJUST_RESIZE
+        // The WindowCompat.setDecorFitsSystemWindows(window, false) above handles this
 
         try {
             setContent {

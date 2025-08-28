@@ -232,6 +232,7 @@ fun WorkoutScreen(
                     sets = sets,
                     canEdit = canEdit,
                     canCompleteWorkout = workoutState.isActive && workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT,
+                    completedSets = completedSets,
                     expandedExerciseIds = expandedExerciseIds,
                     onDeleteExercise = { exerciseId ->
                         if (canEdit) {
@@ -897,6 +898,7 @@ private fun ExercisesList(
     sets: List<SetLog>,
     canEdit: Boolean,
     canCompleteWorkout: Boolean,
+    completedSets: Int,
     expandedExerciseIds: Set<Long>,
     onDeleteExercise: (Long) -> Unit,
     onSelectExercise: () -> Unit,
@@ -977,7 +979,7 @@ private fun ExercisesList(
             item {
                 val workoutState by viewModel.workoutState.collectAsState()
                 WorkoutActionButtons(
-                    canCompleteWorkout = canCompleteWorkout && exercises.isNotEmpty() && workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT,
+                    canCompleteWorkout = canCompleteWorkout && exercises.isNotEmpty() && completedSets > 0 && workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT,
                     isTemplateEdit = workoutState.mode == com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT,
                     onAddExercise = onSelectExercise,
                     onCompleteWorkout = onCompleteWorkout,

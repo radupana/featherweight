@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.data
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.RoomWarnings
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
 
@@ -34,6 +35,7 @@ interface PersonalRecordDao {
         LIMIT :limit
     """,
     )
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord>
 
     @Query("SELECT * FROM PersonalRecord WHERE recordDate >= :sinceDate ORDER BY recordDate DESC")

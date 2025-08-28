@@ -2,9 +2,14 @@ package com.github.radupana.featherweight.data
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
+    indices = [
+        Index(value = ["workoutId"]),
+        Index(value = ["exerciseVariationId"])
+    ],
     foreignKeys = [
         ForeignKey(
             entity = Workout::class,

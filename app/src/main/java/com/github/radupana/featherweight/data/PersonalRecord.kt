@@ -12,6 +12,7 @@ enum class PRType {
 }
 
 @Entity(
+    indices = [androidx.room.Index(value = ["exerciseVariationId"])],
     foreignKeys = [
         androidx.room.ForeignKey(
             entity = com.github.radupana.featherweight.data.exercise.ExerciseVariation::class,
