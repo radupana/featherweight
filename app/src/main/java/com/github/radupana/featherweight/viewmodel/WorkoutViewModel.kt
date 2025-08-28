@@ -190,6 +190,7 @@ class WorkoutViewModel(
     val restTimerInitialSeconds: StateFlow<Int> = _restTimerInitialSeconds
 
     private var restTimerJob: Job? = null
+    private var restTimerEndTime: LocalDateTime? = null
 
     // Exercise card expansion state
     private val _expandedExerciseIds = MutableStateFlow<Set<Long>>(emptySet())
@@ -1835,12 +1836,27 @@ class WorkoutViewModel(
         restTimerJob?.cancel()
         _restTimerSeconds.value = seconds
         _restTimerInitialSeconds.value = seconds
+        
+        // Store the end time for accurate tracking even when backgrounded
+        restTimerEndTime = LocalDateTime.now().plusSeconds(seconds.toLong())
+        val endTime = restTimerEndTime!!
 
         restTimerJob =
             viewModelScope.launch {
-                while (_restTimerSeconds.value > 0) {
-                    delay(1000)
-                    _restTimerSeconds.value -= 1
+                while (coroutineContext.isActive) {
+                    val now = LocalDateTime.now()
+                    if (now.isAfter(endTime) || now.isEqual(endTime)) {
+                        // Timer completed
+                        _restTimerSeconds.value = 0
+                        restTimerEndTime = null
+                        break
+                    }
+                    
+                    // Calculate actual remaining seconds based on system time
+                    val remaining = java.time.Duration.between(now, endTime).seconds
+                    _restTimerSeconds.value = remaining.toInt().coerceAtLeast(0)
+                    
+                    delay(100) // Check more frequently for better accuracy when resuming
                 }
                 // Timer completed - vibration will be handled by UI
             }
@@ -1848,6 +1864,7 @@ class WorkoutViewModel(
 
     fun skipRestTimer() {
         restTimerJob?.cancel()
+        restTimerEndTime = null
         _restTimerSeconds.value = 0
         _restTimerInitialSeconds.value = 0
     }
@@ -1855,11 +1872,35 @@ class WorkoutViewModel(
     fun adjustRestTimer(adjustment: Int) {
         val newValue = (_restTimerSeconds.value + adjustment).coerceAtLeast(0)
         if (newValue > 0) {
+            // Update the end time when adjusting
+            restTimerEndTime = LocalDateTime.now().plusSeconds(newValue.toLong())
             _restTimerSeconds.value = newValue
             // Only update initialSeconds when adding time (+15s), not when subtracting (-15s)
             if (adjustment > 0) {
                 _restTimerInitialSeconds.value = newValue
             }
+            
+            // Restart the timer with the new end time
+            val endTime = restTimerEndTime!!
+            restTimerJob?.cancel()
+            restTimerJob =
+                viewModelScope.launch {
+                    while (coroutineContext.isActive) {
+                        val now = LocalDateTime.now()
+                        if (now.isAfter(endTime) || now.isEqual(endTime)) {
+                            // Timer completed
+                            _restTimerSeconds.value = 0
+                            restTimerEndTime = null
+                            break
+                        }
+                        
+                        // Calculate actual remaining seconds based on system time
+                        val remaining = java.time.Duration.between(now, endTime).seconds
+                        _restTimerSeconds.value = remaining.toInt().coerceAtLeast(0)
+                        
+                        delay(100) // Check more frequently for better accuracy when resuming
+                    }
+                }
         } else {
             skipRestTimer()
         }
@@ -1867,6 +1908,48 @@ class WorkoutViewModel(
 
     fun selectRestTimerPreset(seconds: Int) {
         startRestTimer(seconds)
+    }
+    
+    // Resume rest timer when app returns from background
+    fun resumeRestTimerIfActive() {
+        val endTime = restTimerEndTime ?: return
+        
+        val now = LocalDateTime.now()
+        if (now.isAfter(endTime) || now.isEqual(endTime)) {
+            // Timer already expired while in background
+            Log.d("WorkoutViewModel", "Rest timer expired while app was backgrounded")
+            _restTimerSeconds.value = 0
+            _restTimerInitialSeconds.value = 0
+            restTimerEndTime = null
+            restTimerJob?.cancel()
+            return
+        }
+        
+        // Calculate remaining time and resume
+        val remaining = java.time.Duration.between(now, endTime).seconds
+        _restTimerSeconds.value = remaining.toInt().coerceAtLeast(0)
+        Log.d("WorkoutViewModel", "Resuming rest timer with $remaining seconds remaining")
+        
+        // Restart the timer coroutine
+        restTimerJob?.cancel()
+        restTimerJob =
+            viewModelScope.launch {
+                while (coroutineContext.isActive) {
+                    val currentTime = LocalDateTime.now()
+                    if (currentTime.isAfter(endTime) || currentTime.isEqual(endTime)) {
+                        // Timer completed
+                        _restTimerSeconds.value = 0
+                        restTimerEndTime = null
+                        break
+                    }
+                    
+                    // Calculate actual remaining seconds based on system time
+                    val remainingSeconds = java.time.Duration.between(currentTime, endTime).seconds
+                    _restTimerSeconds.value = remainingSeconds.toInt().coerceAtLeast(0)
+                    
+                    delay(100) // Check more frequently for better accuracy
+                }
+            }
     }
 
     // Workout timer functions
