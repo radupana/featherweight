@@ -42,13 +42,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.radupana.featherweight.data.UserPreferences
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
 import com.github.radupana.featherweight.ui.screens.HistoryScreen
 import com.github.radupana.featherweight.ui.screens.InsightsScreen
 import com.github.radupana.featherweight.ui.screens.SplashScreen
-import com.github.radupana.featherweight.ui.screens.UserSelectionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutCompletionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
@@ -65,7 +63,6 @@ import kotlinx.coroutines.launch
 
 enum class Screen {
     SPLASH,
-    USER_SELECTION,
     WORKOUT_HUB,
     ACTIVE_WORKOUT,
     EXERCISE_SELECTOR,
@@ -123,7 +120,6 @@ class MainActivity : ComponentActivity() {
         try {
             setContent {
                 FeatherweightTheme {
-                    val userPreferences = remember { UserPreferences(application) }
                     var currentScreen by rememberSaveable { mutableStateOf(Screen.SPLASH) }
                     var previousScreen by rememberSaveable { mutableStateOf<Screen?>(null) }
                     var selectedExerciseName by rememberSaveable { mutableStateOf("") }
@@ -135,7 +131,6 @@ class MainActivity : ComponentActivity() {
                         try {
                             val repository = FeatherweightRepository(application)
                             repository.seedDatabaseIfEmpty()
-                            repository.seedTestUsers()
                         } catch (e: IllegalStateException) {
                             Log.e("MainActivity", "Database seeding error", e)
                             // Database seeding errors are non-critical - app continues to function
@@ -146,18 +141,6 @@ class MainActivity : ComponentActivity() {
                         Screen.SPLASH ->
                             SplashScreen(
                                 onSplashFinished = {
-                                    currentScreen =
-                                        if (userPreferences.hasSelectedUser()) {
-                                            Screen.WORKOUTS
-                                        } else {
-                                            Screen.USER_SELECTION
-                                        }
-                                },
-                            )
-
-                        Screen.USER_SELECTION ->
-                            UserSelectionScreen(
-                                onUserSelected = {
                                     currentScreen = Screen.WORKOUTS
                                 },
                             )
@@ -264,7 +247,6 @@ fun MainAppWithNavigation(
                 currentScreen in
                     setOf(
                         Screen.SPLASH,
-                        Screen.USER_SELECTION,
                         Screen.ACTIVE_WORKOUT,
                         Screen.EXERCISE_SELECTOR,
                         Screen.PROGRAMME_HISTORY_DETAIL,
@@ -587,9 +569,6 @@ fun MainAppWithNavigation(
                 // Should not reach here
             }
 
-            Screen.USER_SELECTION -> {
-                // Should not reach here - handled in parent
-            }
 
             Screen.PROFILE -> {
                 val profileViewModel: ProfileViewModel = viewModel()
@@ -628,7 +607,6 @@ fun MainAppWithNavigation(
                                     repository.applyTemplateWeightSuggestions(
                                         workoutId = workoutId,
                                         config = config,
-                                        userId = repository.getCurrentUserId(),
                                     )
                                     workoutViewModel.resumeWorkout(workoutId)
                                     onScreenChange(Screen.ACTIVE_WORKOUT)

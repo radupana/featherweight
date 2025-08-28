@@ -640,7 +640,6 @@ class InsightsViewModel(
                                 listOf("Complete more workouts to enable analysis"),
                             ),
                         warningsJson = gson.toJson(emptyList<String>()),
-                        userId = 1,
                     )
                 repository.saveTrainingAnalysis(insufficientDataAnalysis)
                 _trainingAnalysis.value = insufficientDataAnalysis
@@ -871,7 +870,6 @@ class InsightsViewModel(
                 keyInsightsJson = gson.toJson(keyInsights),
                 recommendationsJson = gson.toJson(recommendations),
                 warningsJson = gson.toJson(warnings),
-                userId = 1,
             )
         } catch (e: com.google.gson.JsonSyntaxException) {
             Log.e(TAG, "Failed to parse AI analysis, using fallback", e)
@@ -891,7 +889,6 @@ class InsightsViewModel(
                 keyInsightsJson = gson.toJson(fallbackInsights),
                 recommendationsJson = gson.toJson(listOf("Continue current training program")),
                 warningsJson = gson.toJson(emptyList<String>()),
-                userId = 1,
             )
         } catch (e: IllegalStateException) {
             Log.e(TAG, "Failed to parse AI analysis, using fallback", e)
@@ -911,7 +908,6 @@ class InsightsViewModel(
                 keyInsightsJson = gson.toJson(fallbackInsights),
                 recommendationsJson = gson.toJson(listOf("Continue current training program")),
                 warningsJson = gson.toJson(emptyList<String>()),
-                userId = 1,
             )
         }
     }

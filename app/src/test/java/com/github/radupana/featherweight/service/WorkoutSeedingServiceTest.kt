@@ -8,6 +8,7 @@ import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.impl.annotations.MockK
+import io.mockk.mockk
 import io.mockk.unmockkAll
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -49,8 +50,7 @@ class WorkoutSeedingServiceTest {
             status = WorkoutStatus.COMPLETED
         )
         
-        coEvery { mockRepository.getCurrentUserId() } returns 1L
-        coEvery { mockRepository.getExercise1RM(any(), any()) } returns null
+        coEvery { mockRepository.getExercise1RM(any()) } returns null
         coEvery { mockRepository.getExerciseByName(any()) } returns null
         coEvery { mockRepository.insertWorkout(any()) } returns 1L
         coEvery { mockRepository.getWorkoutForDate(any()) } returns null
@@ -70,18 +70,26 @@ class WorkoutSeedingServiceTest {
     }
     
     @Test
-    fun `seedRealisticWorkouts throws error when no user selected`() = runTest {
+    fun `seedRealisticWorkouts creates workouts successfully`() = runTest {
         // Arrange
         val config = WorkoutSeedingService.SeedConfig(numberOfWeeks = 1)
-        coEvery { mockRepository.getCurrentUserId() } returns -1L
         
-        // Act & Assert
-        try {
-            service.seedRealisticWorkouts(config)
-            assertThat(false).isTrue() // Should not reach here
-        } catch (e: IllegalStateException) {
-            assertThat(e.message).contains("No user selected")
-        }
+        // Use relaxed mock for repository to allow all calls
+        val relaxedRepository: FeatherweightRepository = mockk(relaxed = true)
+        val relaxedService = WorkoutSeedingService(relaxedRepository)
+        
+        coEvery { relaxedRepository.getExercise1RM(any()) } returns null
+        coEvery { relaxedRepository.getWorkoutForDate(any()) } returns null
+        coEvery { relaxedRepository.insertWorkout(any()) } returns 1L
+        coEvery { relaxedRepository.insertExerciseLog(any()) } returns 1L
+        coEvery { relaxedRepository.insertSetLog(any()) } returns 1L
+        
+        // Act
+        val result = relaxedService.seedRealisticWorkouts(config)
+        
+        // Assert
+        assertThat(result).isGreaterThan(0)
+        coVerify(atLeast = 1) { relaxedRepository.insertWorkout(any()) }
     }
     
     @Test
@@ -98,11 +106,10 @@ class WorkoutSeedingServiceTest {
             status = WorkoutStatus.COMPLETED
         )
         
-        coEvery { mockRepository.getCurrentUserId() } returns 1L
-        coEvery { mockRepository.getExercise1RM("Barbell Back Squat", 1L) } returns null
-        coEvery { mockRepository.getExercise1RM("Barbell Bench Press", 1L) } returns null
-        coEvery { mockRepository.getExercise1RM("Barbell Deadlift", 1L) } returns null
-        coEvery { mockRepository.getExercise1RM("Barbell Overhead Press", 1L) } returns null
+        coEvery { mockRepository.getExercise1RM("Barbell Back Squat") } returns null
+        coEvery { mockRepository.getExercise1RM("Barbell Bench Press") } returns null
+        coEvery { mockRepository.getExercise1RM("Barbell Deadlift") } returns null
+        coEvery { mockRepository.getExercise1RM("Barbell Overhead Press") } returns null
         coEvery { mockRepository.getExerciseByName(any()) } returns null
         coEvery { mockRepository.insertWorkout(any()) } returns 1L
         coEvery { mockRepository.getWorkoutForDate(any()) } returns null
@@ -118,7 +125,7 @@ class WorkoutSeedingServiceTest {
         
         // Assert
         assertThat(result).isGreaterThan(0)
-        coVerify { mockRepository.getExercise1RM("Barbell Back Squat", 1L) }
+        coVerify { mockRepository.getExercise1RM("Barbell Back Squat") }
     }
     
     @Test
@@ -189,8 +196,7 @@ class WorkoutSeedingServiceTest {
             status = WorkoutStatus.COMPLETED
         )
         
-        coEvery { mockRepository.getCurrentUserId() } returns 1L
-        coEvery { mockRepository.getExercise1RM(any(), any()) } returns null
+        coEvery { mockRepository.getExercise1RM(any()) } returns null
         coEvery { 
             mockRepository.getWorkoutForDate(LocalDate.now().minusDays(1)) 
         } returns existingWorkout

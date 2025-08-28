@@ -12,15 +12,14 @@ interface TrainingAnalysisDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAnalysis(analysis: TrainingAnalysis): Long
 
-    @Query("SELECT * FROM training_analysis WHERE userId = :userId ORDER BY analysisDate DESC LIMIT 1")
-    suspend fun getLatestAnalysis(userId: Long): TrainingAnalysis?
+    @Query("SELECT * FROM training_analysis ORDER BY analysisDate DESC LIMIT 1")
+    suspend fun getLatestAnalysis(): TrainingAnalysis?
 
-    @Query("DELETE FROM training_analysis WHERE userId = :userId AND analysisDate < :olderThan")
+    @Query("DELETE FROM training_analysis WHERE analysisDate < :olderThan")
     suspend fun deleteOldAnalyses(
-        userId: Long,
         olderThan: LocalDateTime,
     )
 
-    @Query("DELETE FROM training_analysis WHERE userId = :userId")
-    suspend fun deleteAllAnalyses(userId: Long)
+    @Query("DELETE FROM training_analysis")
+    suspend fun deleteAllAnalyses()
 }

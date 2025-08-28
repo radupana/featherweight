@@ -359,7 +359,6 @@ class WorkoutDataModelTest {
         val now = LocalDateTime.now()
         val progress = GlobalExerciseProgress(
             id = 1L,
-            userId = 1L,
             exerciseVariationId = 100L,
             currentWorkingWeight = 90f,
             estimatedMax = 120f,
@@ -378,7 +377,6 @@ class WorkoutDataModelTest {
             best8Rep = 90f
         )
         
-        assertThat(progress.userId).isEqualTo(1L)
         assertThat(progress.exerciseVariationId).isEqualTo(100L)
         assertThat(progress.currentWorkingWeight).isEqualTo(90f)
         assertThat(progress.estimatedMax).isEqualTo(120f)
@@ -512,7 +510,6 @@ class WorkoutDataModelTest {
         val now = LocalDateTime.now()
         val swap = ExerciseSwapHistory(
             id = 1L,
-            userId = 1L,
             originalExerciseId = 100L,
             swappedToExerciseId = 200L,
             swapDate = now,

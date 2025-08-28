@@ -21,7 +21,6 @@ class OneRMDaoTest {
         testDate = LocalDateTime.of(2024, 1, 1, 10, 0)
         mockMax = UserExerciseMax(
             id = 1L,
-            userId = 1L,
             exerciseVariationId = 1L,
             mostWeightLifted = 90f,
             mostWeightReps = 5,
@@ -77,22 +76,22 @@ class OneRMDaoTest {
     @Test
     fun `deleteAllMaxesForExercise_validIds_deletesAll`() = runTest {
         // Arrange
-        coEvery { dao.deleteAllMaxesForExercise(1L, 1L) } just runs
+        coEvery { dao.deleteAllMaxesForExercise(1L) } just runs
 
         // Act
-        dao.deleteAllMaxesForExercise(1L, 1L)
+        dao.deleteAllMaxesForExercise(1L)
 
         // Assert
-        coVerify(exactly = 1) { dao.deleteAllMaxesForExercise(1L, 1L) }
+        coVerify(exactly = 1) { dao.deleteAllMaxesForExercise(1L) }
     }
 
     @Test
     fun `getCurrentMax_existingMax_returnsLatest`() = runTest {
         // Arrange
-        coEvery { dao.getCurrentMax(1L, 1L) } returns mockMax
+        coEvery { dao.getCurrentMax(1L) } returns mockMax
 
         // Act
-        val result = dao.getCurrentMax(1L, 1L)
+        val result = dao.getCurrentMax(1L)
 
         // Assert
         assertThat(result).isEqualTo(mockMax)
@@ -102,10 +101,10 @@ class OneRMDaoTest {
     @Test
     fun `getCurrentMax_noMax_returnsNull`() = runTest {
         // Arrange
-        coEvery { dao.getCurrentMax(1L, 999L) } returns null
+        coEvery { dao.getCurrentMax(999L) } returns null
 
         // Act
-        val result = dao.getCurrentMax(1L, 999L)
+        val result = dao.getCurrentMax(999L)
 
         // Assert
         assertThat(result).isNull()
@@ -115,10 +114,10 @@ class OneRMDaoTest {
     fun `getCurrentMaxFlow_existingMax_emitsMax`() = runTest {
         // Arrange
         val flow: Flow<UserExerciseMax?> = flowOf(mockMax)
-        every { dao.getCurrentMaxFlow(1L, 1L) } returns flow
+        every { dao.getCurrentMaxFlow(1L) } returns flow
 
         // Act
-        val result = dao.getCurrentMaxFlow(1L, 1L).first()
+        val result = dao.getCurrentMaxFlow(1L).first()
 
         // Assert
         assertThat(result).isEqualTo(mockMax)
@@ -128,10 +127,10 @@ class OneRMDaoTest {
     fun `getCurrentMaxFlow_noMax_emitsNull`() = runTest {
         // Arrange
         val flow: Flow<UserExerciseMax?> = flowOf(null)
-        every { dao.getCurrentMaxFlow(1L, 999L) } returns flow
+        every { dao.getCurrentMaxFlow(999L) } returns flow
 
         // Act
-        val result = dao.getCurrentMaxFlow(1L, 999L).first()
+        val result = dao.getCurrentMaxFlow(999L).first()
 
         // Assert
         assertThat(result).isNull()
@@ -140,10 +139,10 @@ class OneRMDaoTest {
     @Test
     fun `getCurrentOneRMEstimate_existingEstimate_returnsValue`() = runTest {
         // Arrange
-        coEvery { dao.getCurrentOneRMEstimate(1L, 1L) } returns 100f
+        coEvery { dao.getCurrentOneRMEstimate(1L) } returns 100f
 
         // Act
-        val result = dao.getCurrentOneRMEstimate(1L, 1L)
+        val result = dao.getCurrentOneRMEstimate(1L)
 
         // Assert
         assertThat(result).isEqualTo(100f)
@@ -152,10 +151,10 @@ class OneRMDaoTest {
     @Test
     fun `getCurrentOneRMEstimate_noEstimate_returnsNull`() = runTest {
         // Arrange
-        coEvery { dao.getCurrentOneRMEstimate(1L, 999L) } returns null
+        coEvery { dao.getCurrentOneRMEstimate(999L) } returns null
 
         // Act
-        val result = dao.getCurrentOneRMEstimate(1L, 999L)
+        val result = dao.getCurrentOneRMEstimate(999L)
 
         // Assert
         assertThat(result).isNull()
@@ -168,10 +167,10 @@ class OneRMDaoTest {
             mockMax,
             mockMax.copy(id = 2, exerciseVariationId = 2L, oneRMEstimate = 150f)
         )
-        coEvery { dao.getCurrentMaxesForExercises(1L, listOf(1L, 2L)) } returns maxes
+        coEvery { dao.getCurrentMaxesForExercises(listOf(1L, 2L)) } returns maxes
 
         // Act
-        val result = dao.getCurrentMaxesForExercises(1L, listOf(1L, 2L))
+        val result = dao.getCurrentMaxesForExercises(listOf(1L, 2L))
 
         // Assert
         assertThat(result).hasSize(2)
@@ -182,10 +181,10 @@ class OneRMDaoTest {
     @Test
     fun `getCurrentMaxesForExercises_noMaxes_returnsEmptyList`() = runTest {
         // Arrange
-        coEvery { dao.getCurrentMaxesForExercises(1L, listOf(999L)) } returns emptyList()
+        coEvery { dao.getCurrentMaxesForExercises(listOf(999L)) } returns emptyList()
 
         // Act
-        val result = dao.getCurrentMaxesForExercises(1L, listOf(999L))
+        val result = dao.getCurrentMaxesForExercises(listOf(999L))
 
         // Assert
         assertThat(result).isEmpty()
@@ -200,10 +199,10 @@ class OneRMDaoTest {
             mockMax.copy(id = 3, oneRMDate = testDate.minusDays(14), oneRMEstimate = 90f)
         )
         val flow: Flow<List<UserExerciseMax>> = flowOf(history)
-        every { dao.getMaxHistory(1L, 1L) } returns flow
+        every { dao.getMaxHistory(1L) } returns flow
 
         // Act
-        val result = dao.getMaxHistory(1L, 1L).first()
+        val result = dao.getMaxHistory(1L).first()
 
         // Assert
         assertThat(result).hasSize(3)
@@ -216,10 +215,10 @@ class OneRMDaoTest {
     fun `getMaxHistory_noHistory_returnsEmptyFlow`() = runTest {
         // Arrange
         val flow: Flow<List<UserExerciseMax>> = flowOf(emptyList())
-        every { dao.getMaxHistory(1L, 999L) } returns flow
+        every { dao.getMaxHistory(999L) } returns flow
 
         // Act
-        val result = dao.getMaxHistory(1L, 999L).first()
+        val result = dao.getMaxHistory(999L).first()
 
         // Assert
         assertThat(result).isEmpty()
@@ -228,14 +227,14 @@ class OneRMDaoTest {
     @Test
     fun `upsertExerciseMax_newMax_inserts`() = runTest {
         // Arrange
-        coEvery { dao.upsertExerciseMax(1L, 1L, 110f, "Test note") } just runs
+        coEvery { dao.upsertExerciseMax(1L, 110f, "Test note") } just runs
 
         // Act
-        dao.upsertExerciseMax(1L, 1L, 110f, "Test note")
+        dao.upsertExerciseMax(1L, 110f, "Test note")
 
         // Assert
         coVerify(exactly = 1) { 
-            dao.upsertExerciseMax(1L, 1L, 110f, "Test note") 
+            dao.upsertExerciseMax(1L, 110f, "Test note") 
         }
     }
 }

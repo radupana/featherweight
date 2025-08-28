@@ -65,13 +65,8 @@ class WorkoutSeedingService(
 
     suspend fun seedRealisticWorkouts(config: SeedConfig): Int =
         withContext(Dispatchers.IO) {
-            val userId = repository.getCurrentUserId()
-            if (userId == -1L) {
-                error("No user selected")
-            }
-
             // Get 1RMs from profile or use defaults
-            val oneRMs = get1RMs(userId)
+            val oneRMs = get1RMs()
 
             // Generate workout dates, skipping existing workouts
             val workoutDates = generateAvailableWorkoutDates(config)
@@ -103,7 +98,7 @@ class WorkoutSeedingService(
                     )
 
                 // Process workout completion to trigger all side effects
-                processWorkoutCompletion(workoutId, userId)
+                processWorkoutCompletion(workoutId)
 
                 workoutsCreated++
             }
@@ -111,12 +106,12 @@ class WorkoutSeedingService(
             workoutsCreated
         }
 
-    private suspend fun get1RMs(userId: Long): Map<String, Float> {
+    private suspend fun get1RMs(): Map<String, Float> {
         val profile1RMs = mutableMapOf<String, Float>()
 
         // Get 1RMs from profile if available
         for (exerciseName in default1RMs.keys) {
-            val profileRM = repository.getExercise1RM(exerciseName, userId)
+            val profileRM = repository.getExercise1RM(exerciseName)
             if (profileRM != null && profileRM > 0) {
                 profile1RMs[exerciseName] = profileRM
             } else {
@@ -600,7 +595,6 @@ class WorkoutSeedingService(
 
     private suspend fun processWorkoutCompletion(
         workoutId: Long,
-        userId: Long,
     ) {
         // Use OneRMService for proper validation
         val oneRMService = OneRMService()
@@ -620,7 +614,7 @@ class WorkoutSeedingService(
                 // Get current 1RM for this exercise
                 val currentMax =
                     repository
-                        .getCurrentMaxesForExercises(userId, listOf(exerciseLog.exerciseVariationId))
+                        .getCurrentMaxesForExercises(listOf(exerciseLog.exerciseVariationId))
                         .firstOrNull()
                         ?.oneRMEstimate
 
@@ -683,7 +677,6 @@ class WorkoutSeedingService(
 
                     try {
                         repository.upsertExerciseMax(
-                            userId = userId,
                             exerciseVariationId = exerciseLog.exerciseVariationId,
                             oneRMEstimate = bestEstimated1RM,
                             oneRMContext = context,

@@ -6,7 +6,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
 import com.github.radupana.featherweight.data.ProgressTrend
-import com.github.radupana.featherweight.data.UserPreferences
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.ui.components.ExerciseDataPoint
 import com.github.radupana.featherweight.ui.components.FrequencyDataPoint
@@ -24,7 +23,6 @@ class ExerciseProgressViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     val repository = FeatherweightRepository(application)
-    private val userPreferences = UserPreferences(application)
 
     sealed class ExerciseProgressState {
         object Loading : ExerciseProgressState()
@@ -111,13 +109,7 @@ class ExerciseProgressViewModel(
             _state.value = ExerciseProgressState.Loading
 
             try {
-                val userId = userPreferences.getCurrentUserId()
-                if (userId == -1L) {
-                    _state.value = ExerciseProgressState.Error("No user selected")
-                    return@launch
-                }
-
-                val globalProgress = repository.getGlobalExerciseProgress(userId, exerciseVariationId)
+                val globalProgress = repository.getGlobalExerciseProgress(exerciseVariationId)
                 if (globalProgress == null) {
                     _state.value = ExerciseProgressState.Success(null)
                     return@launch
@@ -308,8 +300,6 @@ class ExerciseProgressViewModel(
     fun loadChartData(exerciseVariationId: Long) {
         viewModelScope.launch {
             try {
-                val userId = userPreferences.getCurrentUserId()
-                if (userId == -1L) return@launch
 
                 // Get exercise name for display
                 val exercise = repository.getExerciseById(exerciseVariationId)
@@ -376,8 +366,6 @@ class ExerciseProgressViewModel(
     fun loadMaxWeightChartData(exerciseVariationId: Long) {
         viewModelScope.launch {
             try {
-                val userId = userPreferences.getCurrentUserId()
-                if (userId == -1L) return@launch
 
                 // Get workout data for this exercise in the last 2 years
                 val startDate = LocalDate.now().minusYears(2)
@@ -445,8 +433,6 @@ class ExerciseProgressViewModel(
     fun loadVolumeChartData(exerciseVariationId: Long) {
         viewModelScope.launch {
             try {
-                val userId = userPreferences.getCurrentUserId()
-                if (userId == -1L) return@launch
 
                 // Get workout data for this exercise in the last 12 weeks
                 val startDate = LocalDate.now().minusWeeks(12)
@@ -499,8 +485,6 @@ class ExerciseProgressViewModel(
     fun loadTrainingPatternsData(exerciseVariationId: Long) {
         viewModelScope.launch {
             try {
-                val userId = userPreferences.getCurrentUserId()
-                if (userId == -1L) return@launch
 
                 loadFrequencyData(exerciseVariationId)
                 loadRepRangeData(exerciseVariationId)

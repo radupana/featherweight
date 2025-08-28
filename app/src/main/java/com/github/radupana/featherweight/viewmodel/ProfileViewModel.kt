@@ -93,9 +93,7 @@ class ProfileViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                // Ensure user profile exists
-                val userId = repository.getCurrentUserId()
-                repository.ensureUserProfile(userId)
+                // Profile data loaded immediately
 
                 _uiState.value = _uiState.value.copy(isLoading = false)
             } catch (e: android.database.sqlite.SQLiteException) {
@@ -122,8 +120,7 @@ class ProfileViewModel(
 
     private fun observeCurrentMaxes() {
         viewModelScope.launch {
-            val userId = repository.getCurrentUserId()
-            repository.getAllCurrentMaxesWithNames(userId).collect { maxes ->
+            repository.getAllCurrentMaxesWithNames().collect { maxes ->
                 _uiState.value =
                     _uiState.value.copy(
                         currentMaxes =
@@ -147,11 +144,9 @@ class ProfileViewModel(
 
     private fun observeBig4AndOtherExercises() {
         viewModelScope.launch {
-            val userId = repository.getCurrentUserId()
-
             // Get Big 4 exercises
             launch {
-                repository.getBig4ExercisesWithMaxes(userId).collect { big4 ->
+                repository.getBig4ExercisesWithMaxes().collect { big4 ->
                     _uiState.value =
                         _uiState.value.copy(
                             big4Exercises =
@@ -172,7 +167,7 @@ class ProfileViewModel(
 
             // Get other exercises
             launch {
-                repository.getOtherExercisesWithMaxes(userId).collect { others ->
+                repository.getOtherExercisesWithMaxes().collect { others ->
                     _uiState.value =
                         _uiState.value.copy(
                             otherExercises =
@@ -210,9 +205,7 @@ class ProfileViewModel(
     ) {
         viewModelScope.launch {
             try {
-                val userId = repository.getCurrentUserId()
                 repository.upsertExerciseMax(
-                    userId = userId,
                     exerciseVariationId = exerciseId,
                     oneRMEstimate = newMax,
                     oneRMContext = "Manually set",
@@ -244,7 +237,6 @@ class ProfileViewModel(
     fun deleteMax(exerciseId: Long) {
         viewModelScope.launch {
             try {
-                repository.getCurrentUserId()
                 repository.deleteAllMaxesForExercise(exerciseId)
                 _uiState.value =
                     _uiState.value.copy(

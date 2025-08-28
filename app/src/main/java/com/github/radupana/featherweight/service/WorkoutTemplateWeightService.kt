@@ -22,7 +22,6 @@ class WorkoutTemplateWeightService(
     suspend fun applyWeightSuggestions(
         workoutId: Long,
         config: WorkoutTemplateConfig,
-        userId: Long,
     ) {
         val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
 
@@ -36,7 +35,6 @@ class WorkoutTemplateWeightService(
                     exerciseVariationId = exerciseLog.exerciseVariationId,
                     targetReps = sets.firstOrNull()?.targetReps ?: 10,
                     intensity = config.intensity,
-                    userId = userId,
                 )
 
             // Update all sets with the suggested weight
@@ -60,10 +58,9 @@ class WorkoutTemplateWeightService(
         exerciseVariationId: Long,
         targetReps: Int,
         intensity: IntensityLevel,
-        userId: Long,
     ): WeightSuggestion {
         // First, check for profile 1RM
-        val exerciseMax = oneRMDao.getCurrentMax(userId, exerciseVariationId)
+        val exerciseMax = oneRMDao.getCurrentMax(exerciseVariationId)
         if (exerciseMax != null) {
             val percentage = getIntensityPercentage(intensity)
             val weight = calculateWeightFromPercentage(exerciseMax.oneRMEstimate.toDouble(), percentage, targetReps)
@@ -116,7 +113,6 @@ class WorkoutTemplateWeightService(
         val smartSuggestions =
             freestyleIntelligenceService.getIntelligentSuggestions(
                 exerciseVariationId = exerciseVariationId,
-                userId = userId,
                 targetReps = targetReps,
             )
 

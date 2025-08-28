@@ -20,7 +20,6 @@ data class TrainingAnalysis(
     val keyInsightsJson: String, // Store as JSON string
     val recommendationsJson: String, // Store as JSON string
     val warningsJson: String, // Store as JSON string
-    val userId: Long = 1,
 ) {
     companion object {
         private const val TAG = "TrainingAnalysis"

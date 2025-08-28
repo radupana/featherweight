@@ -298,7 +298,7 @@ class ExerciseRepository(
     }
 
     suspend fun recordExerciseSwap(
-        userId: Long,
+        
         originalExerciseId: Long,
         swappedToExerciseId: Long,
         workoutId: Long? = null,
@@ -306,7 +306,7 @@ class ExerciseRepository(
     ) {
         val swapHistory =
             ExerciseSwapHistory(
-                userId = userId,
+                
                 originalExerciseId = originalExerciseId,
                 swappedToExerciseId = swappedToExerciseId,
                 swapDate = LocalDateTime.now(),
@@ -317,11 +317,11 @@ class ExerciseRepository(
     }
 
     suspend fun getSwapHistoryForExercise(
-        userId: Long,
+        
         exerciseId: Long,
     ): List<SwapHistoryCount> =
         withContext(Dispatchers.IO) {
-            exerciseSwapHistoryDao.getSwapHistoryForExercise(userId, exerciseId)
+            exerciseSwapHistoryDao.getSwapHistoryForExercise(exerciseId)
         }
 
     // ===== CREATE CUSTOM EXERCISE =====
@@ -335,7 +335,7 @@ class ExerciseRepository(
         difficulty: ExerciseDifficulty = ExerciseDifficulty.BEGINNER,
         requiresWeight: Boolean = true,
         movementPattern: MovementPattern = MovementPattern.PUSH,
-        userId: Long,
+        
     ): Result<ExerciseVariation> =
         withContext(Dispatchers.IO) {
             try {
@@ -384,7 +384,7 @@ class ExerciseRepository(
                             requiresWeight = requiresWeight,
                             usageCount = 0,
                             isCustom = true,
-                            createdBy = userId,
+                            
                             createdAt = LocalDateTime.now(),
                             updatedAt = LocalDateTime.now(),
                         ),

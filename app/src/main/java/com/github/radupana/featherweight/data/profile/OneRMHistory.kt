@@ -11,12 +11,6 @@ import java.time.LocalDateTime
     tableName = "one_rm_history",
     foreignKeys = [
         ForeignKey(
-            entity = UserProfile::class,
-            parentColumns = ["id"],
-            childColumns = ["userId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-        ForeignKey(
             entity = ExerciseVariation::class,
             parentColumns = ["id"],
             childColumns = ["exerciseVariationId"],
@@ -24,15 +18,12 @@ import java.time.LocalDateTime
         ),
     ],
     indices = [
-        Index(value = ["userId", "exerciseVariationId", "recordedAt"]),
         Index(value = ["exerciseVariationId", "recordedAt"]),
-        Index(value = ["userId"]),
     ],
 )
 data class OneRMHistory(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val userId: Long,
     val exerciseVariationId: Long,
     val oneRMEstimate: Float,
     val context: String, // e.g., "140kg × 3 @ RPE 8"

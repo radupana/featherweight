@@ -475,14 +475,12 @@ class OneRMServiceTest {
         )
         
         val record = service.createOneRMRecord(
-            userId = 1L,
             exerciseId = 123L,
             set = set,
             estimate = 115f,
             confidence = 0.85f
         )
         
-        assertThat(record.userId).isEqualTo(1L)
         assertThat(record.exerciseVariationId).isEqualTo(123L)
         assertThat(record.mostWeightLifted).isEqualTo(100f)
         assertThat(record.mostWeightReps).isEqualTo(5)
@@ -509,7 +507,6 @@ class OneRMServiceTest {
         )
         
         val record = service.createOneRMRecord(
-            userId = 1L,
             exerciseId = 123L,
             set = set,
             estimate = 120f,
@@ -533,7 +530,6 @@ class OneRMServiceTest {
         )
         
         val record = service.createOneRMRecord(
-            userId = 1L,
             exerciseId = 123L,
             set = set,
             estimate = 112f,
@@ -650,7 +646,6 @@ class OneRMServiceTest {
         assertThat(shouldUpdate).isTrue()
         
         val record = service.createOneRMRecord(
-            userId = 1L,
             exerciseId = 123L,
             set = set,
             estimate = estimate,

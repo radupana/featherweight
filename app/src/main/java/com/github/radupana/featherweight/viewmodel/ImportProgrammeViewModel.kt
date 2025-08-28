@@ -84,8 +84,7 @@ class ImportProgrammeViewModel(
     private fun processProgrammeAsync(requestId: Long) {
         viewModelScope.launch {
             try {
-                val userId = repository.getCurrentUserId()
-                val allMaxes = repository.getAllCurrentMaxesWithNames(userId).first()
+                val allMaxes = repository.getAllCurrentMaxesWithNames().first()
 
                 val userMaxesMap =
                     allMaxes.associate {

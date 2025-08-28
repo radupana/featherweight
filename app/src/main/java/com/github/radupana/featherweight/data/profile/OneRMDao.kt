@@ -21,88 +21,81 @@ interface OneRMDao {
     @Delete
     suspend fun deleteExerciseMax(max: UserExerciseMax)
 
-    @Query("DELETE FROM user_exercise_maxes WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId")
+    @Query("DELETE FROM user_exercise_maxes WHERE exerciseVariationId = :exerciseVariationId")
     suspend fun deleteAllMaxesForExercise(
-        userId: Long,
         exerciseVariationId: Long,
     )
 
     @Query(
         """
         SELECT * FROM user_exercise_maxes
-        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId
+        WHERE exerciseVariationId = :exerciseVariationId
         ORDER BY oneRMDate DESC
         LIMIT 1
     """,
     )
     suspend fun getCurrentMax(
-        userId: Long,
         exerciseVariationId: Long,
     ): UserExerciseMax?
 
     @Query(
         """
         SELECT * FROM user_exercise_maxes
-        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId
+        WHERE exerciseVariationId = :exerciseVariationId
         ORDER BY oneRMDate DESC
         LIMIT 1
     """,
     )
     fun getCurrentMaxFlow(
-        userId: Long,
         exerciseVariationId: Long,
     ): Flow<UserExerciseMax?>
 
     @Query(
         """
         SELECT oneRMEstimate FROM user_exercise_maxes
-        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId
+        WHERE exerciseVariationId = :exerciseVariationId
         AND oneRMEstimate > 0
         ORDER BY oneRMDate DESC
         LIMIT 1
     """,
     )
     suspend fun getCurrentOneRMEstimate(
-        userId: Long,
         exerciseVariationId: Long,
     ): Float?
 
     @Query(
         """
         SELECT * FROM user_exercise_maxes
-        WHERE userId = :userId AND exerciseVariationId IN (:exerciseVariationIds)
+        WHERE exerciseVariationId IN (:exerciseVariationIds)
         AND id IN (
             SELECT MAX(id) FROM user_exercise_maxes
-            WHERE userId = :userId AND exerciseVariationId IN (:exerciseVariationIds)
+            WHERE exerciseVariationId IN (:exerciseVariationIds)
             GROUP BY exerciseVariationId
         )
     """,
     )
     suspend fun getCurrentMaxesForExercises(
-        userId: Long,
         exerciseVariationIds: List<Long>,
     ): List<UserExerciseMax>
 
     @Query(
         """
         SELECT * FROM user_exercise_maxes
-        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId
+        WHERE exerciseVariationId = :exerciseVariationId
         ORDER BY oneRMDate DESC
     """,
     )
     fun getMaxHistory(
-        userId: Long,
         exerciseVariationId: Long,
     ): Flow<List<UserExerciseMax>>
 
     @Transaction
     suspend fun upsertExerciseMax(
-        userId: Long,
         exerciseVariationId: Long,
         maxWeight: Float,
         notes: String? = null,
     ) {
-        val currentMax = getCurrentMax(userId, exerciseVariationId)
+        val currentMax = getCurrentMax(exerciseVariationId)
         if (currentMax != null && currentMax.oneRMEstimate == maxWeight) {
             // Same weight, just update the date
             updateExerciseMax(currentMax.copy(oneRMDate = LocalDateTime.now()))
@@ -110,7 +103,6 @@ interface OneRMDao {
             // New max, insert new record
             insertExerciseMax(
                 UserExerciseMax(
-                    userId = userId,
                     exerciseVariationId = exerciseVariationId,
                     mostWeightLifted = maxWeight,
                     mostWeightReps = 1,
@@ -133,7 +125,6 @@ interface OneRMDao {
         """
         SELECT 
             uem.id,
-            uem.userId,
             uem.exerciseVariationId,
             ev.name as exerciseName,
             uem.oneRMEstimate,
@@ -155,22 +146,19 @@ interface OneRMDao {
             ) as sessionCount
         FROM user_exercise_maxes uem
         INNER JOIN exercise_variations ev ON ev.id = uem.exerciseVariationId
-        WHERE uem.userId = :userId
-        AND uem.id IN (
+        WHERE uem.id IN (
             SELECT MAX(id) FROM user_exercise_maxes
-            WHERE userId = :userId
             GROUP BY exerciseVariationId
         )
         ORDER BY ev.name ASC
     """,
     )
-    fun getAllCurrentMaxesWithNames(userId: Long): Flow<List<OneRMWithExerciseName>>
+    fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>>
 
     @Query(
         """
         SELECT 
             COALESCE(uem.id, 0) as id,
-            :userId as userId,
             ev.id as exerciseVariationId,
             ev.name as exerciseName,
             uem.oneRMEstimate,
@@ -193,10 +181,8 @@ interface OneRMDao {
         FROM exercise_variations ev
         LEFT JOIN (
             SELECT * FROM user_exercise_maxes
-            WHERE userId = :userId
-            AND id IN (
+            WHERE id IN (
                 SELECT MAX(id) FROM user_exercise_maxes
-                WHERE userId = :userId
                 GROUP BY exerciseVariationId
             )
         ) uem ON ev.id = uem.exerciseVariationId
@@ -210,13 +196,12 @@ interface OneRMDao {
             END
     """,
     )
-    fun getBig4ExercisesWithMaxes(userId: Long): Flow<List<Big4ExerciseWithOptionalMax>>
+    fun getBig4ExercisesWithMaxes(): Flow<List<Big4ExerciseWithOptionalMax>>
 
     @Query(
         """
         SELECT 
             uem.id,
-            uem.userId,
             uem.exerciseVariationId,
             ev.name as exerciseName,
             uem.oneRMEstimate,
@@ -239,17 +224,15 @@ interface OneRMDao {
             ) as sessionCount
         FROM user_exercise_maxes uem
         INNER JOIN exercise_variations ev ON ev.id = uem.exerciseVariationId
-        WHERE uem.userId = :userId
-        AND ev.name NOT IN ('Barbell Back Squat', 'Barbell Deadlift', 'Barbell Bench Press', 'Barbell Overhead Press')
+        WHERE ev.name NOT IN ('Barbell Back Squat', 'Barbell Deadlift', 'Barbell Bench Press', 'Barbell Overhead Press')
         AND uem.id IN (
             SELECT MAX(id) FROM user_exercise_maxes
-            WHERE userId = :userId
             GROUP BY exerciseVariationId
         )
         ORDER BY ev.usageCount DESC, ev.name ASC
     """,
     )
-    fun getOtherExercisesWithMaxes(userId: Long): Flow<List<OneRMWithExerciseName>>
+    fun getOtherExercisesWithMaxes(): Flow<List<OneRMWithExerciseName>>
 
     // OneRM History methods
     @Insert
@@ -273,30 +256,27 @@ interface OneRMDao {
     @Query(
         """
         SELECT * FROM one_rm_history
-        WHERE userId = :userId
-        AND exerciseVariationId = :exerciseVariationId
+        WHERE exerciseVariationId = :exerciseVariationId
         ORDER BY recordedAt DESC
         LIMIT :limit
         """,
     )
     suspend fun getRecentOneRMHistory(
-        userId: Long,
         exerciseVariationId: Long,
         limit: Int = 10,
     ): List<OneRMHistory>
 
-    @Query("DELETE FROM user_exercise_maxes WHERE userId = :userId")
-    suspend fun deleteAllUserExerciseMaxes(userId: Long)
+    @Query("DELETE FROM user_exercise_maxes")
+    suspend fun deleteAllUserExerciseMaxes()
 
-    @Query("DELETE FROM one_rm_history WHERE userId = :userId")
-    suspend fun deleteAllOneRMHistory(userId: Long)
+    @Query("DELETE FROM one_rm_history")
+    suspend fun deleteAllOneRMHistory()
 
     // Export-related queries
     @Query(
         """
         SELECT 
             h.id,
-            h.userId,
             h.exerciseVariationId,
             ev.name as exerciseName,
             h.oneRMEstimate,
@@ -318,7 +298,6 @@ interface OneRMDao {
         """
         SELECT 
             uem.id,
-            uem.userId,
             uem.exerciseVariationId,
             ev.name as exerciseName,
             uem.mostWeightLifted,
@@ -333,21 +312,18 @@ interface OneRMDao {
             uem.notes
         FROM user_exercise_maxes uem
         INNER JOIN exercise_variations ev ON ev.id = uem.exerciseVariationId
-        WHERE uem.userId = :userId
-        AND uem.id IN (
+        WHERE uem.id IN (
             SELECT MAX(id) FROM user_exercise_maxes
-            WHERE userId = :userId
             GROUP BY exerciseVariationId
         )
         ORDER BY ev.name ASC
         """,
     )
-    suspend fun getAllCurrentMaxesForExport(userId: Long): List<UserExerciseMaxWithName>
+    suspend fun getAllCurrentMaxesForExport(): List<UserExerciseMaxWithName>
 }
 
 data class OneRMWithExerciseName(
     val id: Long,
-    val userId: Long,
     val exerciseVariationId: Long,
     val exerciseName: String,
     val oneRMEstimate: Float,
@@ -365,7 +341,6 @@ data class OneRMWithExerciseName(
 
 data class Big4ExerciseWithOptionalMax(
     val id: Long,
-    val userId: Long,
     val exerciseVariationId: Long,
     val exerciseName: String,
     val oneRMEstimate: Float?,
@@ -383,7 +358,6 @@ data class Big4ExerciseWithOptionalMax(
 
 data class OneRMHistoryWithName(
     val id: Long,
-    val userId: Long,
     val exerciseVariationId: Long,
     val exerciseName: String,
     val oneRMEstimate: Float,
@@ -393,7 +367,6 @@ data class OneRMHistoryWithName(
 
 data class UserExerciseMaxWithName(
     val id: Long,
-    val userId: Long,
     val exerciseVariationId: Long,
     val exerciseName: String,
     val mostWeightLifted: Float,

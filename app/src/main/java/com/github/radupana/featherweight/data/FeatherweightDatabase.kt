@@ -22,9 +22,7 @@ import com.github.radupana.featherweight.data.exercise.VariationRelation
 import com.github.radupana.featherweight.data.exercise.VariationRelationDao
 import com.github.radupana.featherweight.data.profile.OneRMDao
 import com.github.radupana.featherweight.data.profile.OneRMHistory
-import com.github.radupana.featherweight.data.profile.ProfileDao
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
-import com.github.radupana.featherweight.data.profile.UserProfile
 import com.github.radupana.featherweight.data.programme.ExerciseSubstitution
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeDao
@@ -50,7 +48,6 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         ProgrammeWorkout::class,
         ExerciseSubstitution::class,
         ProgrammeProgress::class,
-        UserProfile::class,
         UserExerciseMax::class,
         OneRMHistory::class,
         ExerciseSwapHistory::class,
@@ -61,7 +58,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         TrainingAnalysis::class,
         ParseRequest::class,
     ],
-    version = 75,
+    version = 76,
     exportSchema = false,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -88,8 +85,6 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun variationMuscleDao(): VariationMuscleDao
 
     abstract fun programmeDao(): ProgrammeDao
-
-    abstract fun profileDao(): ProfileDao
 
     abstract fun oneRMDao(): OneRMDao
 

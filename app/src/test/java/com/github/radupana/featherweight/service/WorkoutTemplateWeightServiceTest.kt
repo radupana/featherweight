@@ -67,7 +67,6 @@ class WorkoutTemplateWeightServiceTest {
     fun `applyWeightSuggestions calculates weight from 1RM`() = runTest {
         // Arrange
         val workoutId = 1L
-        val userId = 1L
         val exerciseVariationId = 100L
         val config = WorkoutTemplateConfig(
             timeAvailable = TimeAvailable.STANDARD,
@@ -92,7 +91,6 @@ class WorkoutTemplateWeightServiceTest {
         
         // Mock 1RM data
         val oneRM = UserExerciseMax(
-            userId = userId,
             exerciseVariationId = exerciseVariationId,
             mostWeightLifted = 100f,
             mostWeightReps = 1,
@@ -103,14 +101,14 @@ class WorkoutTemplateWeightServiceTest {
         
         coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
         coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns oneRM
+        coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns oneRM
         coEvery { repository.getExerciseById(exerciseVariationId) } returns mockk()
         
         val updatedSetSlot = slot<SetLog>()
         coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
         
         // Act
-        service.applyWeightSuggestions(workoutId, config, userId)
+        service.applyWeightSuggestions(workoutId, config)
         
         // Assert
         val updatedSet = updatedSetSlot.captured
@@ -126,7 +124,6 @@ class WorkoutTemplateWeightServiceTest {
     fun `applyWeightSuggestions uses different percentages for intensity levels`() = runTest {
         // Arrange
         val workoutId = 1L
-        val userId = 1L
         val exerciseVariationId = 100L
         val oneRM = 100f
         
@@ -146,9 +143,8 @@ class WorkoutTemplateWeightServiceTest {
         
         coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
         coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns 
+        coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns 
             UserExerciseMax(
-                userId = userId,
                 exerciseVariationId = exerciseVariationId,
                 mostWeightLifted = oneRM,
                 mostWeightReps = 1,
@@ -177,7 +173,7 @@ class WorkoutTemplateWeightServiceTest {
             )
             
             // Act
-            service.applyWeightSuggestions(workoutId, config, userId)
+            service.applyWeightSuggestions(workoutId, config)
             
             // Assert
             val suggestedWeight = capturedSets.first().suggestedWeight ?: 0f
@@ -192,7 +188,6 @@ class WorkoutTemplateWeightServiceTest {
     fun `applyWeightSuggestions handles missing 1RM data`() = runTest {
         // Arrange
         val workoutId = 1L
-        val userId = 1L
         val exerciseVariationId = 100L
         val config = WorkoutTemplateConfig(
             timeAvailable = TimeAvailable.STANDARD,
@@ -216,12 +211,12 @@ class WorkoutTemplateWeightServiceTest {
         
         coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
         coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns null // No 1RM
+        coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null // No 1RM
         coEvery { repository.getExerciseById(exerciseVariationId) } returns mockk()
         
         // Mock freestyle intelligence service fallback
         coEvery { 
-            freestyleIntelligenceService.getIntelligentSuggestions(any(), any(), any())
+            freestyleIntelligenceService.getIntelligentSuggestions(any(), any())
         } returns SmartSuggestions(
             suggestedWeight = 60f,
             suggestedReps = 10,
@@ -233,7 +228,7 @@ class WorkoutTemplateWeightServiceTest {
         coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
         
         // Act
-        service.applyWeightSuggestions(workoutId, config, userId)
+        service.applyWeightSuggestions(workoutId, config)
         
         // Assert - should use fallback suggestion
         val updatedSet = updatedSetSlot.captured
@@ -245,7 +240,6 @@ class WorkoutTemplateWeightServiceTest {
     fun `applyWeightSuggestions applies to all sets in exercise`() = runTest {
         // Arrange
         val workoutId = 1L
-        val userId = 1L
         val exerciseVariationId = 100L
         val config = WorkoutTemplateConfig(
             timeAvailable = TimeAvailable.STANDARD,
@@ -268,9 +262,8 @@ class WorkoutTemplateWeightServiceTest {
         
         coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
         coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns 
+        coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns 
             UserExerciseMax(
-                userId = userId,
                 exerciseVariationId = exerciseVariationId,
                 mostWeightLifted = 100f,
                 mostWeightReps = 1,
@@ -281,7 +274,7 @@ class WorkoutTemplateWeightServiceTest {
         coEvery { repository.getExerciseById(exerciseVariationId) } returns mockk()
         
         // Act
-        service.applyWeightSuggestions(workoutId, config, userId)
+        service.applyWeightSuggestions(workoutId, config)
         
         // Assert - all sets should be updated
         coVerify(exactly = 3) { setLogDao.update(any()) }
@@ -291,7 +284,6 @@ class WorkoutTemplateWeightServiceTest {
     fun `applyWeightSuggestions handles multiple exercises`() = runTest {
         // Arrange
         val workoutId = 1L
-        val userId = 1L
         val config = WorkoutTemplateConfig(
             timeAvailable = TimeAvailable.STANDARD,
             goal = TrainingGoal.STRENGTH,
@@ -310,10 +302,9 @@ class WorkoutTemplateWeightServiceTest {
                 WorkoutFixtures.createSetLog(id = log.id * 10, exerciseLogId = log.id, targetReps = 10)
             )
             coEvery { setLogDao.getSetLogsForExercise(log.id) } returns sets
-            coEvery { oneRMDao.getCurrentMax(userId, log.exerciseVariationId) } returns 
+            coEvery { oneRMDao.getCurrentMax(log.exerciseVariationId) } returns 
                 UserExerciseMax(
-                    userId = userId,
-                    exerciseVariationId = log.exerciseVariationId,
+                            exerciseVariationId = log.exerciseVariationId,
                     mostWeightLifted = 100f,
                     mostWeightReps = 1,
                     oneRMEstimate = 100f,
@@ -324,7 +315,7 @@ class WorkoutTemplateWeightServiceTest {
         }
         
         // Act
-        service.applyWeightSuggestions(workoutId, config, userId)
+        service.applyWeightSuggestions(workoutId, config)
         
         // Assert - both exercises should have weights applied
         coVerify(exactly = 2) { setLogDao.update(any()) }
@@ -336,7 +327,6 @@ class WorkoutTemplateWeightServiceTest {
     fun `applyWeightSuggestions handles empty workout`() = runTest {
         // Arrange
         val workoutId = 1L
-        val userId = 1L
         val config = WorkoutTemplateConfig(
             timeAvailable = TimeAvailable.STANDARD,
             goal = TrainingGoal.STRENGTH,
@@ -346,7 +336,7 @@ class WorkoutTemplateWeightServiceTest {
         coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns emptyList()
         
         // Act
-        service.applyWeightSuggestions(workoutId, config, userId)
+        service.applyWeightSuggestions(workoutId, config)
         
         // Assert - should not crash, no updates
         coVerify(exactly = 0) { setLogDao.update(any()) }
@@ -356,7 +346,6 @@ class WorkoutTemplateWeightServiceTest {
     fun `applyWeightSuggestions preserves actual values in sets`() = runTest {
         // Arrange
         val workoutId = 1L
-        val userId = 1L
         val exerciseVariationId = 100L
         val config = WorkoutTemplateConfig(
             timeAvailable = TimeAvailable.STANDARD,
@@ -382,9 +371,8 @@ class WorkoutTemplateWeightServiceTest {
         
         coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
         coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns 
+        coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns 
             UserExerciseMax(
-                userId = userId,
                 exerciseVariationId = exerciseVariationId,
                 mostWeightLifted = 100f,
                 mostWeightReps = 1,
@@ -398,7 +386,7 @@ class WorkoutTemplateWeightServiceTest {
         coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
         
         // Act
-        service.applyWeightSuggestions(workoutId, config, userId)
+        service.applyWeightSuggestions(workoutId, config)
         
         // Assert - actual values should be populated for checkbox to work
         val updatedSet = updatedSetSlot.captured
@@ -412,7 +400,6 @@ class WorkoutTemplateWeightServiceTest {
     fun `applyWeightSuggestions estimates 1RM from recent history when no profile max`() = runTest {
         // Arrange
         val workoutId = 1L
-        val userId = 1L
         val exerciseVariationId = 100L
         val config = WorkoutTemplateConfig(
             timeAvailable = TimeAvailable.STANDARD,
@@ -461,7 +448,7 @@ class WorkoutTemplateWeightServiceTest {
         
         coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
         coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns null // No profile max
+        coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null // No profile max
         coEvery { repository.getRecentSetLogsForExercise(exerciseVariationId, 42) } returns recentSets
         coEvery { repository.getExerciseById(exerciseVariationId) } returns mockk()
         
@@ -469,7 +456,7 @@ class WorkoutTemplateWeightServiceTest {
         coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
         
         // Act
-        service.applyWeightSuggestions(workoutId, config, userId)
+        service.applyWeightSuggestions(workoutId, config)
         
         // Assert
         val updatedSet = updatedSetSlot.captured
@@ -483,7 +470,6 @@ class WorkoutTemplateWeightServiceTest {
     fun `applyWeightSuggestions rounds weight to nearest 2_5kg`() = runTest {
         // Arrange
         val workoutId = 1L
-        val userId = 1L
         val exerciseVariationId = 100L
         val config = WorkoutTemplateConfig(
             timeAvailable = TimeAvailable.STANDARD,
@@ -508,9 +494,8 @@ class WorkoutTemplateWeightServiceTest {
         // Set up 1RM that will result in non-round numbers
         coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
         coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns 
+        coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns 
             UserExerciseMax(
-                userId = userId,
                 exerciseVariationId = exerciseVariationId,
                 mostWeightLifted = 101f, // Non-round number
                 mostWeightReps = 1,
@@ -524,7 +509,7 @@ class WorkoutTemplateWeightServiceTest {
         coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
         
         // Act
-        service.applyWeightSuggestions(workoutId, config, userId)
+        service.applyWeightSuggestions(workoutId, config)
         
         // Assert - weight should be rounded to nearest 2.5kg
         val suggestedWeight = updatedSetSlot.captured.suggestedWeight ?: 0f
@@ -535,7 +520,6 @@ class WorkoutTemplateWeightServiceTest {
     fun `applyWeightSuggestions adjusts weight for different rep ranges`() = runTest {
         // Arrange
         val workoutId = 1L
-        val userId = 1L
         val exerciseVariationId = 100L
         val oneRM = 100f
         val config = WorkoutTemplateConfig(
@@ -568,10 +552,9 @@ class WorkoutTemplateWeightServiceTest {
             
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns 
+            coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns 
                 UserExerciseMax(
-                    userId = userId,
-                    exerciseVariationId = exerciseVariationId,
+                            exerciseVariationId = exerciseVariationId,
                     mostWeightLifted = oneRM,
                     mostWeightReps = 1,
                     oneRMEstimate = oneRM,
@@ -584,7 +567,7 @@ class WorkoutTemplateWeightServiceTest {
             coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
             
             // Act
-            service.applyWeightSuggestions(workoutId, config, userId)
+            service.applyWeightSuggestions(workoutId, config)
             
             // Assert - verify rep adjustment is applied
             val suggestedWeight = updatedSetSlot.captured.suggestedWeight ?: 0f
@@ -601,7 +584,6 @@ class WorkoutTemplateWeightServiceTest {
     fun `applyWeightSuggestions filters invalid sets from history`() = runTest {
         // Arrange
         val workoutId = 1L
-        val userId = 1L
         val exerciseVariationId = 100L
         val config = WorkoutTemplateConfig(
             timeAvailable = TimeAvailable.STANDARD,
@@ -658,13 +640,13 @@ class WorkoutTemplateWeightServiceTest {
         
         coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
         coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns null
+        coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null
         coEvery { repository.getRecentSetLogsForExercise(exerciseVariationId, 42) } returns recentSets
         coEvery { repository.getExerciseById(exerciseVariationId) } returns mockk()
         
         // Mock freestyle fallback
         coEvery { 
-            freestyleIntelligenceService.getIntelligentSuggestions(any(), any(), any())
+            freestyleIntelligenceService.getIntelligentSuggestions(any(), any())
         } returns SmartSuggestions(
             suggestedWeight = 50f,
             suggestedReps = 8,
@@ -676,7 +658,7 @@ class WorkoutTemplateWeightServiceTest {
         coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
         
         // Act
-        service.applyWeightSuggestions(workoutId, config, userId)
+        service.applyWeightSuggestions(workoutId, config)
         
         // Assert - should use the one valid set or fall back to freestyle
         assertThat(updatedSetSlot.captured.suggestedWeight).isNotNull()
@@ -686,7 +668,6 @@ class WorkoutTemplateWeightServiceTest {
     fun `applyWeightSuggestions applies correct RPE multipliers`() = runTest {
         // Arrange
         val workoutId = 1L
-        val userId = 1L
         val exerciseVariationId = 100L
         val config = WorkoutTemplateConfig(
             timeAvailable = TimeAvailable.STANDARD,
@@ -731,7 +712,7 @@ class WorkoutTemplateWeightServiceTest {
             
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null
             coEvery { repository.getRecentSetLogsForExercise(exerciseVariationId, 42) } returns recentSets
             coEvery { repository.getExerciseById(exerciseVariationId) } returns mockk()
             
@@ -739,7 +720,7 @@ class WorkoutTemplateWeightServiceTest {
             coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
             
             // Act
-            service.applyWeightSuggestions(workoutId, config, userId)
+            service.applyWeightSuggestions(workoutId, config)
             
             // Assert - RPE should affect the estimated 1RM and thus the suggestion
             assertThat(updatedSetSlot.captured.suggestedWeight).isNotNull()
@@ -751,7 +732,6 @@ class WorkoutTemplateWeightServiceTest {
     fun `applyWeightSuggestions uses median for stability with multiple history sets`() = runTest {
         // Arrange
         val workoutId = 1L
-        val userId = 1L
         val exerciseVariationId = 100L
         val config = WorkoutTemplateConfig(
             timeAvailable = TimeAvailable.STANDARD,
@@ -817,7 +797,7 @@ class WorkoutTemplateWeightServiceTest {
         
         coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
         coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns null
+        coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null
         coEvery { repository.getRecentSetLogsForExercise(exerciseVariationId, 42) } returns recentSets
         coEvery { repository.getExerciseById(exerciseVariationId) } returns mockk()
         
@@ -825,7 +805,7 @@ class WorkoutTemplateWeightServiceTest {
         coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
         
         // Act
-        service.applyWeightSuggestions(workoutId, config, userId)
+        service.applyWeightSuggestions(workoutId, config)
         
         // Assert - median should provide stable estimate
         assertThat(updatedSetSlot.captured.suggestedWeight).isNotNull()
@@ -838,7 +818,6 @@ class WorkoutTemplateWeightServiceTest {
     fun `applyWeightSuggestions handles null targetReps with fallback`() = runTest {
         // Arrange
         val workoutId = 1L
-        val userId = 1L
         val exerciseVariationId = 100L
         val config = WorkoutTemplateConfig(
             timeAvailable = TimeAvailable.STANDARD,
@@ -862,9 +841,8 @@ class WorkoutTemplateWeightServiceTest {
         
         coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
         coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-        coEvery { oneRMDao.getCurrentMax(userId, exerciseVariationId) } returns 
+        coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns 
             UserExerciseMax(
-                userId = userId,
                 exerciseVariationId = exerciseVariationId,
                 mostWeightLifted = 100f,
                 mostWeightReps = 1,
@@ -878,7 +856,7 @@ class WorkoutTemplateWeightServiceTest {
         coEvery { setLogDao.update(capture(updatedSetSlot)) } returns Unit
         
         // Act
-        service.applyWeightSuggestions(workoutId, config, userId)
+        service.applyWeightSuggestions(workoutId, config)
         
         // Assert - should use default of 10 reps
         assertThat(updatedSetSlot.captured.suggestedWeight).isNotNull()

@@ -23,7 +23,7 @@ class GlobalProgressTracker(
      */
     suspend fun updateProgressAfterWorkout(
         workoutId: Long,
-        userId: Long,
+        
     ): List<PendingOneRMUpdate> {
         val pendingUpdates = mutableListOf<PendingOneRMUpdate>()
 
@@ -33,7 +33,7 @@ class GlobalProgressTracker(
         for (exercise in exercises) {
             val pendingUpdate =
                 updateExerciseProgress(
-                    userId = userId,
+                    
                     exerciseVariationId = exercise.exerciseVariationId,
                     workoutId = workoutId,
                     isProgrammeWorkout = workout.programmeId != null,
@@ -46,7 +46,7 @@ class GlobalProgressTracker(
     }
 
     private suspend fun updateExerciseProgress(
-        userId: Long,
+        
         exerciseVariationId: Long,
         workoutId: Long,
         isProgrammeWorkout: Boolean,
@@ -83,8 +83,8 @@ class GlobalProgressTracker(
 
         // Get or create progress record
         var progress =
-            globalProgressDao.getProgressForExercise(userId, exerciseVariationId)
-                ?: createInitialProgress(userId, exerciseVariationId)
+            globalProgressDao.getProgressForExercise(exerciseVariationId)
+                ?: createInitialProgress(exerciseVariationId)
 
         // Update working weight
         val previousWeight = progress.currentWorkingWeight
@@ -118,7 +118,7 @@ class GlobalProgressTracker(
         progress = updateVolumeTrends(progress, sessionVolume)
 
         // Update 1RM estimate and get pending update if applicable
-        val (updatedProgress, pendingUpdate) = updateEstimatedMax(progress, completedSets, userId, workoutDate)
+        val (updatedProgress, pendingUpdate) = updateEstimatedMax(progress, completedSets, workoutDate)
         progress = updatedProgress
 
         // Track workout source
@@ -136,15 +136,15 @@ class GlobalProgressTracker(
     }
 
     private suspend fun createInitialProgress(
-        userId: Long,
+        
         exerciseVariationId: Long,
     ): GlobalExerciseProgress {
         // Try to get 1RM from UserExerciseMax
-        val userMax = database.oneRMDao().getCurrentMax(userId, exerciseVariationId)
+        val userMax = database.oneRMDao().getCurrentMax(exerciseVariationId)
         val estimatedMax = userMax?.oneRMEstimate ?: 0f
 
         return GlobalExerciseProgress(
-            userId = userId,
+            
             exerciseVariationId = exerciseVariationId,
             currentWorkingWeight = 0f,
             estimatedMax = estimatedMax,
@@ -300,7 +300,7 @@ class GlobalProgressTracker(
     private suspend fun updateEstimatedMax(
         progress: GlobalExerciseProgress,
         sets: List<SetLog>,
-        userId: Long,
+        
         workoutDate: LocalDateTime? = null,
     ): Pair<GlobalExerciseProgress, PendingOneRMUpdate?> {
         // Only consider sets with sufficient data for estimation
@@ -312,7 +312,7 @@ class GlobalProgressTracker(
         if (estimableSets.isEmpty()) return Pair(progress, null)
 
         // Get current stored max from profile FIRST for confidence calculation
-        val currentUserMax = database.oneRMDao().getCurrentMax(userId, progress.exerciseVariationId)
+        val currentUserMax = database.oneRMDao().getCurrentMax(progress.exerciseVariationId)
         val storedMaxWeight = currentUserMax?.oneRMEstimate
 
         // Find the best set for 1RM calculation
@@ -393,7 +393,7 @@ class GlobalProgressTracker(
                     database.oneRMDao().updateExerciseMax(updatedMax)
                 } else {
                     val newMax = UserExerciseMax(
-                        userId = userId,
+                        
                         exerciseVariationId = progress.exerciseVariationId,
                         oneRMEstimate = estimated1RM,
                         oneRMContext = bestEstimate.source,

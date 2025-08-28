@@ -182,7 +182,7 @@ class WorkoutCompletionViewModel(
 
         for (set in completedSets) {
             val exerciseLog = exercises.find { it.id == set.exerciseLogId } ?: continue
-            val oneRM = repository.getCurrentOneRMEstimate(1L, exerciseLog.exerciseVariationId) ?: continue
+            val oneRM = repository.getCurrentOneRMEstimate(exerciseLog.exerciseVariationId) ?: continue
 
             if (oneRM > 0) {
                 val intensity = (set.actualWeight / oneRM) * 100

@@ -38,7 +38,6 @@ class ExportWorkoutsWorker(
             exerciseLogDao = database.exerciseLogDao(),
             setLogDao = database.setLogDao(),
             oneRMDao = database.oneRMDao(),
-            profileDao = database.profileDao(),
             repository = repository,
         )
 

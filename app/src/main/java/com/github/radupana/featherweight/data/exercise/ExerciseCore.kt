@@ -53,7 +53,6 @@ data class ExerciseVariation(
     val rmScalingType: RMScalingType = RMScalingType.STANDARD,
     val usageCount: Int = 0,
     val isCustom: Boolean = false,
-    val createdBy: Long? = null,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now(),
 )

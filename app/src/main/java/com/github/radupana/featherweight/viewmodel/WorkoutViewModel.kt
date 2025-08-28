@@ -797,8 +797,7 @@ class WorkoutViewModel(
             }
 
             try {
-                val userId = repository.getCurrentUserId()
-                val maxes = repository.getCurrentMaxesForExercises(userId, exerciseIds)
+                val maxes = repository.getCurrentMaxesForExercises(exerciseIds)
 
                 val estimatesMap = mutableMapOf<Long, Float>()
                 maxes.forEach { max ->
@@ -1352,7 +1351,6 @@ class WorkoutViewModel(
         )
 
         val oneRMRecord = oneRMService.createOneRMRecord(
-            userId = repository.getCurrentUserId(),
             exerciseId = exerciseVariationId,
             set = completedSet,
             estimate = newEstimate,
@@ -1539,9 +1537,7 @@ class WorkoutViewModel(
                         repository.deleteSetsForExerciseLog(swappingExercise.id)
 
                         // Record swap history
-                        val userId = repository.getCurrentUserId()
                         repository.recordExerciseSwap(
-                            userId = userId,
                             originalExerciseId = swappingExercise.originalVariationId ?: swappingExercise.exerciseVariationId,
                             swappedToExerciseId = newExerciseId,
                             workoutId = _currentWorkoutId.value,
@@ -1998,10 +1994,9 @@ class WorkoutViewModel(
             val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps, set.actualRpe, scalingType) ?: return@launch
 
             // Get current 1RM
-            val userId = repository.getCurrentUserId()
             val currentMax =
                 repository
-                    .getCurrentMaxesForExercises(userId, listOf(exerciseVariationId))
+                    .getCurrentMaxesForExercises(listOf(exerciseVariationId))
                     .firstOrNull()
                     ?.oneRMEstimate
 
@@ -2025,7 +2020,6 @@ class WorkoutViewModel(
 
                 // Update the 1RM with the workout date
                 repository.upsertExerciseMax(
-                    userId = userId,
                     exerciseVariationId = exerciseVariationId,
                     oneRMEstimate = estimated1RM,
                     oneRMContext = context,

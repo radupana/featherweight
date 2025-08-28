@@ -116,7 +116,7 @@ class ExerciseSeeder(
                                     rmScalingType = rmScalingType,
                                     usageCount = 0,
                                     isCustom = false,
-                                    createdBy = null,
+                                    
                                     createdAt = LocalDateTime.now(),
                                     updatedAt = LocalDateTime.now(),
                                 )

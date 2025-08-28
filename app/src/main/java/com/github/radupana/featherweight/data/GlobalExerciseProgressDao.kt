@@ -19,92 +19,82 @@ interface GlobalExerciseProgressDao {
     @Query(
         """
         SELECT * FROM global_exercise_progress 
-        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId 
+        WHERE exerciseVariationId = :exerciseVariationId 
         LIMIT 1
     """,
     )
     suspend fun getProgressForExercise(
-        userId: Long,
         exerciseVariationId: Long,
     ): GlobalExerciseProgress?
 
     @Query(
         """
         SELECT * FROM global_exercise_progress 
-        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId 
+        WHERE exerciseVariationId = :exerciseVariationId 
         LIMIT 1
     """,
     )
     fun observeProgressForExercise(
-        userId: Long,
         exerciseVariationId: Long,
     ): Flow<GlobalExerciseProgress?>
 
     @Query(
         """
         SELECT * FROM global_exercise_progress 
-        WHERE userId = :userId 
         ORDER BY lastUpdated DESC
     """,
     )
-    fun getAllProgressForUser(userId: Long): Flow<List<GlobalExerciseProgress>>
+    fun getAllProgressForUser(): Flow<List<GlobalExerciseProgress>>
 
     @Query(
         """
         SELECT * FROM global_exercise_progress 
-        WHERE userId = :userId 
         ORDER BY lastUpdated DESC
     """,
     )
-    suspend fun getAllProgress(userId: Long): List<GlobalExerciseProgress>
+    suspend fun getAllProgress(): List<GlobalExerciseProgress>
 
     @Query(
         """
         SELECT * FROM global_exercise_progress 
-        WHERE userId = :userId AND trend = :trend
+        WHERE trend = :trend
         ORDER BY consecutiveStalls DESC
     """,
     )
     suspend fun getExercisesByTrend(
-        userId: Long,
         trend: ProgressTrend,
     ): List<GlobalExerciseProgress>
 
     @Query(
         """
         SELECT * FROM global_exercise_progress 
-        WHERE userId = :userId AND consecutiveStalls >= :minStalls
+        WHERE consecutiveStalls >= :minStalls
         ORDER BY consecutiveStalls DESC
     """,
     )
     suspend fun getStalledExercises(
-        userId: Long,
         minStalls: Int = 3,
     ): List<GlobalExerciseProgress>
 
     @Query(
         """
         SELECT * FROM global_exercise_progress 
-        WHERE userId = :userId 
         ORDER BY totalVolumeLast30Days DESC
         LIMIT :limit
     """,
     )
     suspend fun getTopVolumeExercises(
-        userId: Long,
         limit: Int = 10,
     ): List<GlobalExerciseProgress>
 
     @Query(
         """
         SELECT * FROM global_exercise_progress 
-        WHERE userId = :userId 
-        AND lastUpdated < :cutoffDate
+        WHERE lastUpdated < :cutoffDate
         ORDER BY lastUpdated ASC
     """,
     )
     suspend fun getNeglectedExercises(
-        userId: Long,
         cutoffDate: LocalDateTime,
     ): List<GlobalExerciseProgress>
 
@@ -112,11 +102,10 @@ interface GlobalExerciseProgressDao {
         """
         UPDATE global_exercise_progress 
         SET estimatedMax = :newMax, lastUpdated = :updateTime 
-        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId
+        WHERE exerciseVariationId = :exerciseVariationId
     """,
     )
     suspend fun updateEstimatedMax(
-        userId: Long,
         exerciseVariationId: Long,
         newMax: Float,
         updateTime: LocalDateTime,
@@ -126,11 +115,10 @@ interface GlobalExerciseProgressDao {
         """
         UPDATE global_exercise_progress 
         SET lastPrDate = :prDate, lastPrWeight = :prWeight, lastUpdated = :updateTime 
-        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId
+        WHERE exerciseVariationId = :exerciseVariationId
     """,
     )
     suspend fun recordNewPR(
-        userId: Long,
         exerciseVariationId: Long,
         prWeight: Float,
         prDate: LocalDateTime,
@@ -143,11 +131,10 @@ interface GlobalExerciseProgressDao {
         SET consecutiveStalls = consecutiveStalls + 1, 
             weeksAtCurrentWeight = :weeksAtWeight,
             lastUpdated = :updateTime 
-        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId
+        WHERE exerciseVariationId = :exerciseVariationId
     """,
     )
     suspend fun incrementStallCount(
-        userId: Long,
         exerciseVariationId: Long,
         weeksAtWeight: Int,
         updateTime: LocalDateTime,
@@ -161,29 +148,27 @@ interface GlobalExerciseProgressDao {
             lastProgressionDate = :progressDate,
             currentWorkingWeight = :newWeight,
             lastUpdated = :updateTime 
-        WHERE userId = :userId AND exerciseVariationId = :exerciseVariationId
+        WHERE exerciseVariationId = :exerciseVariationId
     """,
     )
     suspend fun recordProgression(
-        userId: Long,
         exerciseVariationId: Long,
         newWeight: Float,
         progressDate: LocalDateTime,
         updateTime: LocalDateTime,
     )
 
-    @Query("DELETE FROM global_exercise_progress WHERE userId = :userId")
-    suspend fun deleteAllForUser(userId: Long)
+    @Query("DELETE FROM global_exercise_progress")
+    suspend fun deleteAllForUser()
 
     @Query(
         """
         SELECT exerciseVariationId, totalVolumeLast30Days 
         FROM global_exercise_progress 
-        WHERE userId = :userId 
         ORDER BY totalVolumeLast30Days DESC
     """,
     )
-    suspend fun getVolumeDistribution(userId: Long): List<ExerciseVolumeInfo>
+    suspend fun getVolumeDistribution(): List<ExerciseVolumeInfo>
 
     data class ExerciseVolumeInfo(
         val exerciseVariationId: Long,

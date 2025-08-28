@@ -30,7 +30,6 @@ enum class VolumeTrend {
 data class GlobalExerciseProgress(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val userId: Long,
     val exerciseVariationId: Long,
     val currentWorkingWeight: Float, // Most recent working weight
     val estimatedMax: Float, // Calculated or from UserExerciseMax

@@ -27,12 +27,11 @@ class FreestyleIntelligenceServiceTest {
     @Test
     fun `getIntelligentSuggestions returns basic suggestions when no progress data exists`() = runTest {
         // Given
-        coEvery { globalProgressDao.getProgressForExercise(1L, 100L) } returns null
+        coEvery { globalProgressDao.getProgressForExercise(100L) } returns null
 
         // When
         val result = service.getIntelligentSuggestions(
             exerciseVariationId = 100L,
-            userId = 1L,
             targetReps = 8
         )
 
@@ -54,12 +53,11 @@ class FreestyleIntelligenceServiceTest {
             consecutiveStalls = 0,
             trend = ProgressTrend.IMPROVING
         )
-        coEvery { globalProgressDao.getProgressForExercise(1L, 100L) } returns progress
+        coEvery { globalProgressDao.getProgressForExercise(100L) } returns progress
 
         // When
         val result = service.getIntelligentSuggestions(
             exerciseVariationId = 100L,
-            userId = 1L,
             targetReps = 5
         )
 
@@ -80,12 +78,11 @@ class FreestyleIntelligenceServiceTest {
             avgRpe = 5.5f,
             consecutiveStalls = 0
         )
-        coEvery { globalProgressDao.getProgressForExercise(1L, 100L) } returns progress
+        coEvery { globalProgressDao.getProgressForExercise(100L) } returns progress
 
         // When
         val result = service.getIntelligentSuggestions(
             exerciseVariationId = 100L,
-            userId = 1L,
             targetReps = 5
         )
 
@@ -102,12 +99,11 @@ class FreestyleIntelligenceServiceTest {
             avgRpe = 8.5f,
             consecutiveStalls = 3
         )
-        coEvery { globalProgressDao.getProgressForExercise(1L, 100L) } returns progress
+        coEvery { globalProgressDao.getProgressForExercise(100L) } returns progress
 
         // When
         val result = service.getIntelligentSuggestions(
             exerciseVariationId = 100L,
-            userId = 1L,
             targetReps = 5
         )
 
@@ -127,12 +123,11 @@ class FreestyleIntelligenceServiceTest {
             avgRpe = 9f,
             consecutiveStalls = 4
         )
-        coEvery { globalProgressDao.getProgressForExercise(1L, 100L) } returns progress
+        coEvery { globalProgressDao.getProgressForExercise(100L) } returns progress
 
         // When
         val result = service.getIntelligentSuggestions(
             exerciseVariationId = 100L,
-            userId = 1L,
             targetReps = 5
         )
 
@@ -164,12 +159,11 @@ class FreestyleIntelligenceServiceTest {
             avgRpe = 9.2f,
             consecutiveStalls = 1
         )
-        coEvery { globalProgressDao.getProgressForExercise(1L, 100L) } returns progress
+        coEvery { globalProgressDao.getProgressForExercise(100L) } returns progress
 
         // When
         val result = service.getIntelligentSuggestions(
             exerciseVariationId = 100L,
-            userId = 1L,
             targetReps = 5
         )
 
@@ -188,12 +182,11 @@ class FreestyleIntelligenceServiceTest {
             avgRpe = 9.7f,
             consecutiveStalls = 0
         )
-        coEvery { globalProgressDao.getProgressForExercise(1L, 100L) } returns progress
+        coEvery { globalProgressDao.getProgressForExercise(100L) } returns progress
 
         // When
         val result = service.getIntelligentSuggestions(
             exerciseVariationId = 100L,
-            userId = 1L,
             targetReps = 5
         )
 
@@ -211,12 +204,11 @@ class FreestyleIntelligenceServiceTest {
             consecutiveStalls = 0,
             trend = ProgressTrend.IMPROVING
         )
-        coEvery { globalProgressDao.getProgressForExercise(1L, 100L) } returns progress
+        coEvery { globalProgressDao.getProgressForExercise(100L) } returns progress
 
         // When
         val result = service.getIntelligentSuggestions(
             exerciseVariationId = 100L,
-            userId = 1L,
             targetReps = 5
         )
 
@@ -235,12 +227,11 @@ class FreestyleIntelligenceServiceTest {
             consecutiveStalls = 2,
             trend = ProgressTrend.STALLING
         )
-        coEvery { globalProgressDao.getProgressForExercise(1L, 100L) } returns progress
+        coEvery { globalProgressDao.getProgressForExercise(100L) } returns progress
 
         // When
         val result = service.getIntelligentSuggestions(
             exerciseVariationId = 100L,
-            userId = 1L,
             targetReps = 5
         )
 
@@ -259,12 +250,11 @@ class FreestyleIntelligenceServiceTest {
             consecutiveStalls = 0,
             trend = ProgressTrend.DECLINING
         )
-        coEvery { globalProgressDao.getProgressForExercise(1L, 100L) } returns progress
+        coEvery { globalProgressDao.getProgressForExercise(100L) } returns progress
 
         // When
         val result = service.getIntelligentSuggestions(
             exerciseVariationId = 100L,
-            userId = 1L,
             targetReps = 5
         )
 
@@ -278,12 +268,11 @@ class FreestyleIntelligenceServiceTest {
     fun `getIntelligentSuggestions uses default reps when not specified`() = runTest {
         // Given
         val progress = createProgress(currentWeight = 100f)
-        coEvery { globalProgressDao.getProgressForExercise(1L, 100L) } returns progress
+        coEvery { globalProgressDao.getProgressForExercise(100L) } returns progress
 
         // When
         val result = service.getIntelligentSuggestions(
             exerciseVariationId = 100L,
-            userId = 1L,
             targetReps = null
         )
 
@@ -299,12 +288,11 @@ class FreestyleIntelligenceServiceTest {
             avgRpe = 8f,
             estimatedMax = 100f
         )
-        coEvery { globalProgressDao.getProgressForExercise(1L, 100L) } returns progress
+        coEvery { globalProgressDao.getProgressForExercise(100L) } returns progress
 
         // When
         val result = service.getIntelligentSuggestions(
             exerciseVariationId = 100L,
-            userId = 1L,
             targetReps = 5
         )
 
@@ -331,12 +319,11 @@ class FreestyleIntelligenceServiceTest {
             avgRpe = 8f,
             estimatedMax = 0f // No 1RM data
         )
-        coEvery { globalProgressDao.getProgressForExercise(1L, 100L) } returns progress
+        coEvery { globalProgressDao.getProgressForExercise(100L) } returns progress
 
         // When
         val result = service.getIntelligentSuggestions(
             exerciseVariationId = 100L,
-            userId = 1L,
             targetReps = 5
         )
 
@@ -359,14 +346,13 @@ class FreestyleIntelligenceServiceTest {
     fun `getSuggestionsForReps emits suggestions for each rep value`() = runTest {
         // Given
         val progress = createProgress(currentWeight = 100f, avgRpe = 8f)
-        coEvery { globalProgressDao.getProgressForExercise(1L, 100L) } returns progress
+        coEvery { globalProgressDao.getProgressForExercise(100L) } returns progress
         
         val repsFlow = flowOf(3, 5, 8)
 
         // When
         val results = service.getSuggestionsForReps(
             exerciseVariationId = 100L,
-            userId = 1L,
             repsFlow = repsFlow
         ).toList()
 
@@ -377,7 +363,7 @@ class FreestyleIntelligenceServiceTest {
         assertThat(results[2].suggestedReps).isEqualTo(8)
         
         // Verify dao was called 3 times
-        coVerify(exactly = 3) { globalProgressDao.getProgressForExercise(1L, 100L) }
+        coVerify(exactly = 3) { globalProgressDao.getProgressForExercise(100L) }
     }
 
     @Test
@@ -387,14 +373,14 @@ class FreestyleIntelligenceServiceTest {
         val progress2 = createProgress(currentWeight = 102.4f, avgRpe = 8f)
         val progress3 = createProgress(currentWeight = 103.9f, avgRpe = 8f)
         
-        coEvery { globalProgressDao.getProgressForExercise(1L, 101L) } returns progress1
-        coEvery { globalProgressDao.getProgressForExercise(1L, 102L) } returns progress2
-        coEvery { globalProgressDao.getProgressForExercise(1L, 103L) } returns progress3
+        coEvery { globalProgressDao.getProgressForExercise(101L) } returns progress1
+        coEvery { globalProgressDao.getProgressForExercise(102L) } returns progress2
+        coEvery { globalProgressDao.getProgressForExercise(103L) } returns progress3
 
         // When
-        val result1 = service.getIntelligentSuggestions(101L, 1L, 5)
-        val result2 = service.getIntelligentSuggestions(102L, 1L, 5)
-        val result3 = service.getIntelligentSuggestions(103L, 1L, 5)
+        val result1 = service.getIntelligentSuggestions(101L, 5)
+        val result2 = service.getIntelligentSuggestions(102L, 5)
+        val result3 = service.getIntelligentSuggestions(103L, 5)
 
         // Then - weights should be rounded to nearest 2.5kg
         assertThat(result1.suggestedWeight % 2.5f).isEqualTo(0f)
@@ -406,26 +392,26 @@ class FreestyleIntelligenceServiceTest {
     fun `analyzeRpeTrend categorizes RPE correctly`() = runTest {
         // Test TOO_EASY
         val progressEasy = createProgress(avgRpe = 6.5f)
-        coEvery { globalProgressDao.getProgressForExercise(1L, 1L) } returns progressEasy
-        val resultEasy = service.getIntelligentSuggestions(1L, 1L, 5)
+        coEvery { globalProgressDao.getProgressForExercise(1L) } returns progressEasy
+        val resultEasy = service.getIntelligentSuggestions(1L, 5)
         assertThat(resultEasy.reasoning).contains("capacity for more weight")
 
         // Test TOO_HARD
         val progressHard = createProgress(avgRpe = 9.5f)
-        coEvery { globalProgressDao.getProgressForExercise(1L, 2L) } returns progressHard
-        val resultHard = service.getIntelligentSuggestions(2L, 1L, 5)
+        coEvery { globalProgressDao.getProgressForExercise(2L) } returns progressHard
+        val resultHard = service.getIntelligentSuggestions(2L, 5)
         assertThat(resultHard.reasoning).contains("high effort")
 
         // Test OPTIMAL
         val progressOptimal = createProgress(avgRpe = 8f)
-        coEvery { globalProgressDao.getProgressForExercise(1L, 3L) } returns progressOptimal
-        val resultOptimal = service.getIntelligentSuggestions(3L, 1L, 5)
+        coEvery { globalProgressDao.getProgressForExercise(3L) } returns progressOptimal
+        val resultOptimal = service.getIntelligentSuggestions(3L, 5)
         assertThat(resultOptimal.suggestedRpe).isEqualTo(8f)
 
         // Test UNKNOWN
         val progressUnknown = createProgress(avgRpe = null)
-        coEvery { globalProgressDao.getProgressForExercise(1L, 4L) } returns progressUnknown
-        val resultUnknown = service.getIntelligentSuggestions(4L, 1L, 5)
+        coEvery { globalProgressDao.getProgressForExercise(4L) } returns progressUnknown
+        val resultUnknown = service.getIntelligentSuggestions(4L, 5)
         assertThat(resultUnknown.reasoning).doesNotContain("RPE")
     }
 
@@ -433,8 +419,8 @@ class FreestyleIntelligenceServiceTest {
     fun `confidence levels reflect data quality`() = runTest {
         // Test high confidence with many sessions and low RPE (progressive overload case)
         val progressMany = createProgress(sessionsTracked = 20, avgRpe = 6.5f)
-        coEvery { globalProgressDao.getProgressForExercise(1L, 1L) } returns progressMany
-        val resultMany = service.getIntelligentSuggestions(1L, 1L, 5)
+        coEvery { globalProgressDao.getProgressForExercise(1L) } returns progressMany
+        val resultMany = service.getIntelligentSuggestions(1L, 5)
         assertThat(resultMany.confidence).contains("High")
         assertThat(resultMany.confidence).contains("20 sessions")
 
@@ -444,13 +430,13 @@ class FreestyleIntelligenceServiceTest {
             avgRpe = 8f,
             trend = ProgressTrend.IMPROVING
         )
-        coEvery { globalProgressDao.getProgressForExercise(1L, 2L) } returns progressTrend
-        val resultTrend = service.getIntelligentSuggestions(2L, 1L, 5)
+        coEvery { globalProgressDao.getProgressForExercise(2L) } returns progressTrend
+        val resultTrend = service.getIntelligentSuggestions(2L, 5)
         assertThat(resultTrend.confidence).contains("Medium")
 
         // Test low confidence with no data
-        coEvery { globalProgressDao.getProgressForExercise(1L, 3L) } returns null
-        val resultNoData = service.getIntelligentSuggestions(3L, 1L, 5)
+        coEvery { globalProgressDao.getProgressForExercise(3L) } returns null
+        val resultNoData = service.getIntelligentSuggestions(3L, 5)
         assertThat(resultNoData.confidence).contains("Low")
     }
 
@@ -458,26 +444,26 @@ class FreestyleIntelligenceServiceTest {
     fun `weight adjustments respect percentage calculations`() = runTest {
         // Test 7.5% increase for very low RPE
         val progress1 = createProgress(currentWeight = 100f, avgRpe = 5.5f)
-        coEvery { globalProgressDao.getProgressForExercise(1L, 1L) } returns progress1
-        val result1 = service.getIntelligentSuggestions(1L, 1L, 5)
+        coEvery { globalProgressDao.getProgressForExercise(1L) } returns progress1
+        val result1 = service.getIntelligentSuggestions(1L, 5)
         assertThat(result1.suggestedWeight).isEqualTo(107.5f)
 
         // Test 5% increase for low RPE
         val progress2 = createProgress(currentWeight = 100f, avgRpe = 6.5f)
-        coEvery { globalProgressDao.getProgressForExercise(1L, 2L) } returns progress2
-        val result2 = service.getIntelligentSuggestions(2L, 1L, 5)
+        coEvery { globalProgressDao.getProgressForExercise(2L) } returns progress2
+        val result2 = service.getIntelligentSuggestions(2L, 5)
         assertThat(result2.suggestedWeight).isEqualTo(105f)
 
         // Test 2.5% standard progression
         val progress3 = createProgress(currentWeight = 100f, avgRpe = 7.5f)
-        coEvery { globalProgressDao.getProgressForExercise(1L, 3L) } returns progress3
-        val result3 = service.getIntelligentSuggestions(3L, 1L, 5)
+        coEvery { globalProgressDao.getProgressForExercise(3L) } returns progress3
+        val result3 = service.getIntelligentSuggestions(3L, 5)
         assertThat(result3.suggestedWeight).isEqualTo(102.5f)
 
         // Test 15% deload
         val progress4 = createProgress(currentWeight = 100f, consecutiveStalls = 3)
-        coEvery { globalProgressDao.getProgressForExercise(1L, 4L) } returns progress4
-        val result4 = service.getIntelligentSuggestions(4L, 1L, 5)
+        coEvery { globalProgressDao.getProgressForExercise(4L) } returns progress4
+        val result4 = service.getIntelligentSuggestions(4L, 5)
         assertThat(result4.suggestedWeight).isEqualTo(85f)
 
         // Test 5% decrease for declining
@@ -486,8 +472,8 @@ class FreestyleIntelligenceServiceTest {
             avgRpe = 8f,
             trend = ProgressTrend.DECLINING
         )
-        coEvery { globalProgressDao.getProgressForExercise(1L, 5L) } returns progress5
-        val result5 = service.getIntelligentSuggestions(5L, 1L, 5)
+        coEvery { globalProgressDao.getProgressForExercise(5L) } returns progress5
+        val result5 = service.getIntelligentSuggestions(5L, 5)
         assertThat(result5.suggestedWeight).isEqualTo(95f)
     }
 
@@ -502,7 +488,6 @@ class FreestyleIntelligenceServiceTest {
     ) = GlobalExerciseProgress(
         id = 1L,
         exerciseVariationId = 100L,
-        userId = 1L,
         currentWorkingWeight = currentWeight,
         estimatedMax = estimatedMax,
         recentAvgRpe = avgRpe,

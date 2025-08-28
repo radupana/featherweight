@@ -10,7 +10,6 @@ import com.github.radupana.featherweight.data.WorkoutDao
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.export.ExportOptions
 import com.github.radupana.featherweight.data.profile.OneRMDao
-import com.github.radupana.featherweight.data.profile.ProfileDao
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,7 +21,6 @@ class WorkoutExportService(
     private val exerciseLogDao: ExerciseLogDao,
     private val setLogDao: SetLogDao,
     private val oneRMDao: OneRMDao,
-    private val profileDao: ProfileDao,
     private val repository: FeatherweightRepository,
 ) {
     suspend fun exportWorkoutsToFile(
@@ -117,19 +115,15 @@ class WorkoutExportService(
         if (exportOptions.includeOneRepMaxes) {
             writer.name("oneRepMaxHistory").beginArray()
 
-            // Get current user ID (assuming single user for now)
-            val userProfile = profileDao.getUserProfile()
-            if (userProfile != null) {
-                val currentMaxes = oneRMDao.getAllCurrentMaxesForExport(userProfile.id)
+            val currentMaxes = oneRMDao.getAllCurrentMaxesForExport()
 
-                for (max in currentMaxes) {
-                    writer.beginObject()
-                    writer.name("exerciseId").value(max.exerciseVariationId)
-                    writer.name("exerciseName").value(max.exerciseName)
-                    writer.name("weight").value(max.oneRMEstimate)
-                    writer.name("recordedDate").value(max.oneRMDate.toString())
-                    writer.endObject()
-                }
+            for (max in currentMaxes) {
+                writer.beginObject()
+                writer.name("exerciseId").value(max.exerciseVariationId)
+                writer.name("exerciseName").value(max.exerciseName)
+                writer.name("weight").value(max.oneRMEstimate)
+                writer.name("recordedDate").value(max.oneRMDate.toString())
+                writer.endObject()
             }
 
             writer.endArray()

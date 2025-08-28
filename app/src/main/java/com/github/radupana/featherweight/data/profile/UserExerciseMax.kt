@@ -11,12 +11,6 @@ import java.time.LocalDateTime
     tableName = "user_exercise_maxes",
     foreignKeys = [
         ForeignKey(
-            entity = UserProfile::class,
-            parentColumns = ["id"],
-            childColumns = ["userId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-        ForeignKey(
             entity = ExerciseVariation::class,
             parentColumns = ["id"],
             childColumns = ["exerciseVariationId"],
@@ -24,15 +18,12 @@ import java.time.LocalDateTime
         ),
     ],
     indices = [
-        Index(value = ["userId", "exerciseVariationId"], unique = true),
-        Index(value = ["exerciseVariationId"]),
-        Index(value = ["userId"]),
+        Index(value = ["exerciseVariationId"], unique = true),
     ],
 )
 data class UserExerciseMax(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val userId: Long,
     val exerciseVariationId: Long,
     // Most weight ever lifted
     val mostWeightLifted: Float,
