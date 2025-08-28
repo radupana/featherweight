@@ -281,6 +281,11 @@ class FeatherweightRepository(
 
     suspend fun getSetsForExercise(exerciseLogId: Long): List<SetLog> = exerciseRepository.getSetsForExercise(exerciseLogId)
 
+    suspend fun getLastPerformanceForExercise(exerciseVariationId: Long): SetLog? = 
+        withContext(Dispatchers.IO) {
+            setLogDao.getLastCompletedSetForExercise(exerciseVariationId)
+        }
+
     suspend fun getSetsForWorkout(workoutId: Long): List<SetLog> =
         withContext(Dispatchers.IO) {
             val exercises = getExercisesForWorkout(workoutId)

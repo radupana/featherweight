@@ -144,6 +144,10 @@ class WorkoutViewModel(
     private val _exerciseHistory = MutableStateFlow<Map<Long, ExerciseHistory>>(emptyMap())
     val exerciseHistory: StateFlow<Map<Long, ExerciseHistory>> = _exerciseHistory
 
+    // Track last performance for each exercise variation
+    private val _lastPerformance = MutableStateFlow<Map<Long, SetLog>>(emptyMap())
+    val lastPerformance: StateFlow<Map<Long, SetLog>> = _lastPerformance
+
     // In-progress workouts for home screen
     private val _inProgressWorkouts = MutableStateFlow<List<InProgressWorkout>>(emptyList())
     val inProgressWorkouts: StateFlow<List<InProgressWorkout>> = _inProgressWorkouts
@@ -730,15 +734,22 @@ class WorkoutViewModel(
         try {
             _selectedWorkoutExercises.value = repository.getExercisesForWorkout(workoutId)
 
-            // Load exercise names for all exercises
+            // Load exercise names and last performance for all exercises
             val namesMap = mutableMapOf<Long, String>()
+            val performanceMap = mutableMapOf<Long, SetLog>()
             _selectedWorkoutExercises.value.forEach { exerciseLog ->
                 val exercise = repository.getExerciseById(exerciseLog.exerciseVariationId)
                 exercise?.let {
                     namesMap[exerciseLog.exerciseVariationId] = it.name
                 }
+                // Load last performance for this exercise variation
+                val lastPerf = repository.getLastPerformanceForExercise(exerciseLog.exerciseVariationId)
+                lastPerf?.let {
+                    performanceMap[exerciseLog.exerciseVariationId] = it
+                }
             }
             _exerciseNames.value = namesMap
+            _lastPerformance.value = performanceMap
 
             // Wait for sets to be loaded completely
             loadAllSetsForCurrentExercisesAndWait()

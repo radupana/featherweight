@@ -121,4 +121,19 @@ interface SetLogDao {
         startDate: String,
         endDate: String,
     ): Float?
+
+    @Query(
+        """
+        SELECT s.* FROM SetLog s
+        INNER JOIN ExerciseLog e ON s.exerciseLogId = e.id
+        INNER JOIN Workout w ON e.workoutId = w.id
+        WHERE e.exerciseVariationId = :exerciseVariationId
+        AND s.isCompleted = 1
+        AND w.status = 'COMPLETED'
+        AND s.actualWeight > 0
+        ORDER BY w.date DESC, s.setOrder DESC
+        LIMIT 1
+    """,
+    )
+    suspend fun getLastCompletedSetForExercise(exerciseVariationId: Long): SetLog?
 }

@@ -341,4 +341,61 @@ class SetLogDaoTest {
         // Assert
         assertThat(result).isNull()
     }
+
+    @Test
+    fun `getLastCompletedSetForExercise_hasCompletedSets_returnsLastSet`() = runTest {
+        // Arrange
+        val expectedSet = SetLog(
+            id = 5L,
+            exerciseLogId = 2L,
+            setOrder = 3,
+            targetReps = 8,
+            actualReps = 8,
+            targetWeight = 100f,
+            actualWeight = 100f,
+            actualRpe = 8f,
+            suggestedWeight = null,
+            suggestedReps = null,
+            suggestionSource = null,
+            suggestionConfidence = null,
+            calculationDetails = null,
+            tag = null,
+            notes = null,
+            isCompleted = true,
+            completedAt = "2024-01-20T10:30:00"
+        )
+        coEvery { dao.getLastCompletedSetForExercise(1L) } returns expectedSet
+
+        // Act
+        val result = dao.getLastCompletedSetForExercise(1L)
+
+        // Assert
+        assertThat(result).isEqualTo(expectedSet)
+        assertThat(result?.actualWeight).isEqualTo(100f)
+        assertThat(result?.actualReps).isEqualTo(8)
+    }
+
+    @Test
+    fun `getLastCompletedSetForExercise_noCompletedSets_returnsNull`() = runTest {
+        // Arrange
+        coEvery { dao.getLastCompletedSetForExercise(1L) } returns null
+
+        // Act
+        val result = dao.getLastCompletedSetForExercise(1L)
+
+        // Assert
+        assertThat(result).isNull()
+    }
+
+    @Test
+    fun `getLastCompletedSetForExercise_nonExistentExercise_returnsNull`() = runTest {
+        // Arrange
+        coEvery { dao.getLastCompletedSetForExercise(999L) } returns null
+
+        // Act
+        val result = dao.getLastCompletedSetForExercise(999L)
+
+        // Assert
+        assertThat(result).isNull()
+    }
 }

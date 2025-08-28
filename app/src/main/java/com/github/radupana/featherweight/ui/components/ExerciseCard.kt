@@ -189,12 +189,28 @@ fun ExerciseCard(
             // Exercise name (no progress info for cleaner look)
             val exerciseNames by viewModel.exerciseNames.collectAsState()
             val exerciseName = exerciseNames[exercise.exerciseVariationId] ?: "Unknown Exercise"
-            Text(
-                text = exerciseName,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
+            
+            // Exercise name with last performance
+            val lastPerformance by viewModel.lastPerformance.collectAsState()
+            val lastSet = lastPerformance[exercise.exerciseVariationId]
+            
+            Column(
                 modifier = Modifier.weight(1f),
-            )
+            ) {
+                Text(
+                    text = exerciseName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                // Show last performance if available
+                lastSet?.let { set ->
+                    Text(
+                        text = "Last: ${WeightFormatter.formatWeight(set.actualWeight)} × ${set.actualReps}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    )
+                }
+            }
 
             // Set completion counter
             if (sets.isNotEmpty()) {
