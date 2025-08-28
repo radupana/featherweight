@@ -709,7 +709,10 @@ private fun CleanSetRow(
                             value = rpeValue,
                             onValueChange = { newValue ->
                                 rpeValue = newValue
-                                val rpe = newValue.text.toIntOrNull()?.toFloat()
+                                val rpe = newValue.text.toFloatOrNull()?.let { value ->
+                                    // Round to nearest 0.5 and clamp between 0 and 10
+                                    (kotlin.math.round(value * 2) / 2).coerceIn(0f, 10f)
+                                }
                                 onUpdateSet(set.actualReps, set.actualWeight, rpe)
                             },
                             fieldType = InputFieldType.RPE,

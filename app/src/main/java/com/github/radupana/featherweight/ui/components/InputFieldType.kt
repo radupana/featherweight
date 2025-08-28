@@ -105,21 +105,25 @@ fun CenteredInputField(
 
                     InputFieldType.RPE -> {
                         val text = newValue.text
-                        // Allow only digits, max 2 characters
-                        val validChars = text.all { it.isDigit() } && text.length <= 2
-
-                        // Additional check: if value > 10, we'll clamp it in the finalValue logic
-                        validChars
+                        // Allow digits and one decimal point, max 4 chars (e.g., "10.0")
+                        val validChars = text.all { it.isDigit() || it == '.' }
+                        val maxLength = text.length <= 4
+                        val maxOneDecimal = text.count { it == '.' } <= 1
+                        // Don't allow decimal at start or multiple decimals in a row
+                        val validFormat = !text.startsWith(".") && !text.contains("..")
+                        
+                        validChars && maxLength && maxOneDecimal && validFormat
                     }
                 }
 
             val finalValue =
                 if (isValid) {
-                    // Input is valid, but check for RPE clamping
+                    // For RPE, don't auto-round during typing - let user type freely
+                    // We'll handle rounding when they finish editing
                     if (fieldType == InputFieldType.RPE && newValue.text.isNotEmpty()) {
-                        val rpeValue = newValue.text.toIntOrNull()
-                        if (rpeValue != null && rpeValue > 10) {
-                            // Clamp to 10
+                        val rpeValue = newValue.text.toFloatOrNull()
+                        if (rpeValue != null && rpeValue > 10f) {
+                            // Only clamp if > 10, don't round while typing
                             newValue.copy(text = "10", selection = TextRange(2))
                         } else {
                             newValue
