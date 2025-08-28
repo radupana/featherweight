@@ -31,7 +31,9 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.repository.WorkoutSummary
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.time.temporal.WeekFields
 import java.util.Locale
 
@@ -170,14 +172,28 @@ private fun CompactWorkoutCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
+                // Clean up workout name if it starts with "Repeat Workout from "
+                val displayName = workout.name?.let { name ->
+                    if (name.startsWith("Repeat Workout from ")) {
+                        name.removePrefix("Repeat Workout from ")
+                    } else {
+                        name
+                    }
+                }
+                
                 Text(
-                    text =
-                        workout.name ?: workout.date.format(
-                            DateTimeFormatter.ofPattern("MMM d 'at' h:mm a"),
-                        ),
+                    text = displayName ?: "Workout",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
+                )
+                
+                // Show relative time for the workout date
+                val relativeTime = formatRelativeTime(workout.date)
+                Text(
+                    text = relativeTime,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
                 Text(
@@ -186,6 +202,45 @@ private fun CompactWorkoutCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
+
+/**
+ * Formats a date/time into a user-friendly relative format.
+ */
+internal fun formatRelativeTime(dateTime: LocalDateTime): String {
+    val now = LocalDateTime.now()
+    val daysDiff = ChronoUnit.DAYS.between(dateTime.toLocalDate(), now.toLocalDate())
+    
+    return when {
+        daysDiff == 0L -> {
+            // Today - show time
+            "Today at ${dateTime.format(DateTimeFormatter.ofPattern("h:mm a"))}"
+        }
+        daysDiff == 1L -> {
+            // Yesterday
+            "Yesterday at ${dateTime.format(DateTimeFormatter.ofPattern("h:mm a"))}"
+        }
+        daysDiff < 7L -> {
+            // This week - show day name and time
+            "${dateTime.format(DateTimeFormatter.ofPattern("EEEE"))} at ${dateTime.format(DateTimeFormatter.ofPattern("h:mm a"))}"
+        }
+        daysDiff < 14L -> {
+            // Last week
+            "Last ${dateTime.format(DateTimeFormatter.ofPattern("EEEE"))}"
+        }
+        daysDiff < 30L -> {
+            // Within a month - show date
+            dateTime.format(DateTimeFormatter.ofPattern("MMM d"))
+        }
+        dateTime.year == now.year -> {
+            // This year - show month and day
+            dateTime.format(DateTimeFormatter.ofPattern("MMM d"))
+        }
+        else -> {
+            // Different year - show full date
+            dateTime.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
         }
     }
 }
