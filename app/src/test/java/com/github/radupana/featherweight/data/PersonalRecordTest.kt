@@ -58,7 +58,7 @@ class PersonalRecordTest {
             previousReps = null,
             previousDate = null,
             improvementPercentage = 0f,
-            recordType = PRType.REPS
+            recordType = PRType.WEIGHT
         )
 
         assertThat(pr.id).isEqualTo(0L) // Default value
@@ -71,7 +71,7 @@ class PersonalRecordTest {
         assertThat(pr.previousReps).isNull()
         assertThat(pr.previousDate).isNull()
         assertThat(pr.improvementPercentage).isEqualTo(0f)
-        assertThat(pr.recordType).isEqualTo(PRType.REPS)
+        assertThat(pr.recordType).isEqualTo(PRType.WEIGHT)
         assertThat(pr.volume).isEqualTo(500f) // 50 * 10
         assertThat(pr.estimated1RM).isNull()
         assertThat(pr.notes).isNull()
@@ -89,7 +89,7 @@ class PersonalRecordTest {
             previousReps = null,
             previousDate = null,
             improvementPercentage = 0f,
-            recordType = PRType.VOLUME
+            recordType = PRType.ESTIMATED_1RM
         )
         assertThat(pr1.volume).isEqualTo(1000f)
 
@@ -102,7 +102,7 @@ class PersonalRecordTest {
             previousReps = null,
             previousDate = null,
             improvementPercentage = 0f,
-            recordType = PRType.VOLUME
+            recordType = PRType.ESTIMATED_1RM
         )
         assertThat(pr2.volume).isEqualTo(676.5f)
 
@@ -115,7 +115,7 @@ class PersonalRecordTest {
             previousReps = null,
             previousDate = null,
             improvementPercentage = 0f,
-            recordType = PRType.VOLUME
+            recordType = PRType.ESTIMATED_1RM
         )
         assertThat(pr3.volume).isEqualTo(0f)
     }
@@ -146,9 +146,9 @@ class PersonalRecordTest {
             previousReps = 10,
             previousDate = baseDate.minusDays(7),
             improvementPercentage = 20f,
-            recordType = PRType.REPS
+            recordType = PRType.WEIGHT
         )
-        assertThat(repsPR.recordType).isEqualTo(PRType.REPS)
+        assertThat(repsPR.recordType).isEqualTo(PRType.WEIGHT)
 
         val volumePR = PersonalRecord(
             exerciseVariationId = 1L,
@@ -159,9 +159,9 @@ class PersonalRecordTest {
             previousReps = 10,
             previousDate = baseDate.minusDays(7),
             improvementPercentage = 6.25f,
-            recordType = PRType.VOLUME
+            recordType = PRType.ESTIMATED_1RM
         )
-        assertThat(volumePR.recordType).isEqualTo(PRType.VOLUME)
+        assertThat(volumePR.recordType).isEqualTo(PRType.ESTIMATED_1RM)
 
         val estimated1RMPR = PersonalRecord(
             exerciseVariationId = 1L,
@@ -395,7 +395,7 @@ class PersonalRecordTest {
             previousReps = 90,
             previousDate = LocalDateTime.now().minusDays(7),
             improvementPercentage = 11.11f,
-            recordType = PRType.REPS
+            recordType = PRType.WEIGHT
         )
         
         assertThat(pr.reps).isEqualTo(100)

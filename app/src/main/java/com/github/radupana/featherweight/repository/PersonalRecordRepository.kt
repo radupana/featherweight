@@ -76,23 +76,15 @@ class PersonalRecordRepository(
             val exerciseExists = db.exerciseDao().getExerciseVariationById(exerciseVariationId) != null
             if (!exerciseExists) return@withContext null
 
-            // Check weight PR
+            // Check weight PR - any time we lift more weight than before
             val currentWeightPR = getCurrentPR(exerciseVariationId, PRType.WEIGHT)
-            val isWeightPR = currentWeightPR == null || 
-                (setLog.actualWeight > currentWeightPR.weight && setLog.actualReps >= currentWeightPR.reps)
+            val isWeightPR = currentWeightPR == null || setLog.actualWeight > currentWeightPR.weight
 
-            // Check reps PR
-            val currentRepsPR = getCurrentPR(exerciseVariationId, PRType.REPS)
-            val isRepsPR = currentRepsPR == null || 
-                (setLog.actualReps > currentRepsPR.reps && setLog.actualWeight >= currentRepsPR.weight)
-
-            // Check volume PR
+            // Calculate volume and estimated 1RM for record keeping
             val volume = setLog.actualWeight * setLog.actualReps
-            val currentVolumePR = getCurrentPR(exerciseVariationId, PRType.VOLUME)
-            val isVolumePR = currentVolumePR == null || volume > currentVolumePR.volume
-
-            // Check estimated 1RM PR
             val estimated1RM = oneRMService.calculateEstimated1RM(setLog.actualWeight, setLog.actualReps)
+            
+            // Check estimated 1RM PR
             val current1RMPR = getCurrentPR(exerciseVariationId, PRType.ESTIMATED_1RM)
             val is1RMPR = current1RMPR == null || 
                 (estimated1RM != null && current1RMPR.estimated1RM != null && estimated1RM > current1RMPR.estimated1RM)
@@ -114,50 +106,6 @@ class PersonalRecordRepository(
                             previous = currentWeightPR?.weight,
                         ),
                         recordType = PRType.WEIGHT,
-                        volume = volume,
-                        estimated1RM = estimated1RM,
-                        workoutId = workoutId,
-                    )
-                    val id = recordPR(pr)
-                    pr.copy(id = id)
-                }
-                isRepsPR -> {
-                    val pr = PersonalRecord(
-                        exerciseVariationId = exerciseVariationId,
-                        weight = setLog.actualWeight,
-                        reps = setLog.actualReps,
-                        rpe = setLog.actualRpe,
-                        recordDate = LocalDateTime.now(),
-                        previousWeight = currentRepsPR?.weight,
-                        previousReps = currentRepsPR?.reps,
-                        previousDate = currentRepsPR?.recordDate,
-                        improvementPercentage = calculateImprovement(
-                            current = setLog.actualReps.toFloat(),
-                            previous = currentRepsPR?.reps?.toFloat(),
-                        ),
-                        recordType = PRType.REPS,
-                        volume = volume,
-                        estimated1RM = estimated1RM,
-                        workoutId = workoutId,
-                    )
-                    val id = recordPR(pr)
-                    pr.copy(id = id)
-                }
-                isVolumePR -> {
-                    val pr = PersonalRecord(
-                        exerciseVariationId = exerciseVariationId,
-                        weight = setLog.actualWeight,
-                        reps = setLog.actualReps,
-                        rpe = setLog.actualRpe,
-                        recordDate = LocalDateTime.now(),
-                        previousWeight = currentVolumePR?.weight,
-                        previousReps = currentVolumePR?.reps,
-                        previousDate = currentVolumePR?.recordDate,
-                        improvementPercentage = calculateImprovement(
-                            current = volume,
-                            previous = currentVolumePR?.volume,
-                        ),
-                        recordType = PRType.VOLUME,
                         volume = volume,
                         estimated1RM = estimated1RM,
                         workoutId = workoutId,
@@ -198,8 +146,6 @@ class PersonalRecordRepository(
     suspend fun getPRSummary(exerciseVariationId: Long): PRSummary {
         return withContext(Dispatchers.IO) {
             val weightPR = getCurrentPR(exerciseVariationId, PRType.WEIGHT)
-            val repsPR = getCurrentPR(exerciseVariationId, PRType.REPS)
-            val volumePR = getCurrentPR(exerciseVariationId, PRType.VOLUME)
             val estimated1RMPR = getCurrentPR(exerciseVariationId, PRType.ESTIMATED_1RM)
             
             val allPRs = getPRsForExercise(exerciseVariationId)
@@ -209,8 +155,8 @@ class PersonalRecordRepository(
             PRSummary(
                 exerciseVariationId = exerciseVariationId,
                 maxWeight = weightPR?.weight,
-                maxReps = repsPR?.reps,
-                maxVolume = volumePR?.volume,
+                maxReps = weightPR?.reps,  // Reps from the weight PR
+                maxVolume = weightPR?.let { it.weight * it.reps },  // Calculate from weight PR
                 estimated1RM = estimated1RMPR?.estimated1RM,
                 totalPRs = totalPRs,
                 lastPRDate = lastPRDate,

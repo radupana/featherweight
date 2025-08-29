@@ -70,7 +70,7 @@ interface PersonalRecordDao {
         SELECT MAX(volume) 
         FROM PersonalRecord 
         WHERE exerciseVariationId = :exerciseVariationId 
-        AND recordType = 'VOLUME'
+        AND volume IS NOT NULL
     """,
     )
     suspend fun getMaxVolumeForExercise(exerciseVariationId: Long): Float?

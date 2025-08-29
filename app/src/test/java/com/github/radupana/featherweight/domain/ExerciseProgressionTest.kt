@@ -45,25 +45,25 @@ class ExerciseProgressionTest {
     }
     
     @Test
-    fun `volume PR calculation is correct`() {
-        val volumePR = PersonalRecord(
+    fun `estimated 1RM PR with higher volume is tracked correctly`() {
+        val estimated1RMPR = PersonalRecord(
             exerciseVariationId = 1L,
             weight = 80f,
             reps = 12,
-            recordType = PRType.VOLUME,
+            recordType = PRType.ESTIMATED_1RM,
             recordDate = LocalDateTime.now(),
             previousWeight = 80f,
             previousReps = 10,
             previousDate = LocalDateTime.now().minusDays(7),
-            improvementPercentage = 20f, // 20% more volume
+            improvementPercentage = 20f, // Better estimated 1RM due to more reps
             volume = 960f // 80kg × 12 reps
         )
         
-        assertThat(volumePR.volume).isEqualTo(80f * 12)
-        assertThat(volumePR.recordType).isEqualTo(PRType.VOLUME)
+        assertThat(estimated1RMPR.volume).isEqualTo(80f * 12)
+        assertThat(estimated1RMPR.recordType).isEqualTo(PRType.ESTIMATED_1RM)
         
-        val previousVolume = volumePR.previousWeight!! * volumePR.previousReps!!
-        assertThat(volumePR.volume).isGreaterThan(previousVolume)
+        val previousVolume = estimated1RMPR.previousWeight!! * estimated1RMPR.previousReps!!
+        assertThat(estimated1RMPR.volume).isGreaterThan(previousVolume)
     }
     
     @Test

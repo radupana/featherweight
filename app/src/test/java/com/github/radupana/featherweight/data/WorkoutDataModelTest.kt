@@ -303,7 +303,7 @@ class WorkoutDataModelTest {
             previousReps = 18,
             previousDate = now.minusWeeks(1),
             improvementPercentage = 11.11f,
-            recordType = PRType.REPS,
+            recordType = PRType.WEIGHT,
             workoutId = 51L
         )
         
@@ -317,21 +317,19 @@ class WorkoutDataModelTest {
             previousReps = 24,
             previousDate = now.minusWeeks(1),
             improvementPercentage = 8.7f,
-            recordType = PRType.VOLUME,
+            recordType = PRType.ESTIMATED_1RM,
             workoutId = 52L
         )
         
         assertThat(weightPR.recordType).isEqualTo(PRType.WEIGHT)
-        assertThat(repsPR.recordType).isEqualTo(PRType.REPS)
-        assertThat(volumePR.recordType).isEqualTo(PRType.VOLUME)
+        assertThat(repsPR.recordType).isEqualTo(PRType.WEIGHT)
+        assertThat(volumePR.recordType).isEqualTo(PRType.ESTIMATED_1RM)
     }
 
     @Test
     fun `PRType enum has expected values`() {
         assertThat(PRType.values().toList()).containsExactly(
             PRType.WEIGHT,
-            PRType.REPS,
-            PRType.VOLUME,
             PRType.ESTIMATED_1RM
         )
     }
@@ -348,7 +346,7 @@ class WorkoutDataModelTest {
             previousReps = null,
             previousDate = null,
             improvementPercentage = 0f,
-            recordType = PRType.VOLUME
+            recordType = PRType.ESTIMATED_1RM
         )
         
         assertThat(pr.volume).isEqualTo(1000f) // 100 * 10

@@ -5,10 +5,8 @@ import androidx.room.PrimaryKey
 import java.time.LocalDateTime
 
 enum class PRType {
-    WEIGHT, // Higher weight for same reps
-    REPS, // More reps with same weight
-    VOLUME, // Total volume (weight × reps)
-    ESTIMATED_1RM, // Estimated 1RM improvement
+    WEIGHT, // Higher weight lifted
+    ESTIMATED_1RM, // Higher estimated 1 rep max
 }
 
 @Entity(
