@@ -6,7 +6,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -293,28 +292,12 @@ fun ExerciseCard(
                             )
                         }
 
-                        // Target column for programme workouts
-                        val isProgrammeWorkout =
-                            viewModel.workoutState
-                                .collectAsState()
-                                .value.isProgrammeWorkout
-                        if (isProgrammeWorkout) {
-                            Text(
-                                "Target",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.weight(0.8f),
-                                textAlign = TextAlign.Center,
-                            )
-                        }
-
                         Text(
                             "Weight",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(0.8f),
+                            modifier = Modifier.weight(1f),
                             textAlign = TextAlign.Center,
                         )
 
@@ -323,7 +306,7 @@ fun ExerciseCard(
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(0.6f),
+                            modifier = Modifier.weight(0.7f),
                             textAlign = TextAlign.Center,
                         )
 
@@ -332,7 +315,7 @@ fun ExerciseCard(
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(0.6f),
+                            modifier = Modifier.weight(0.7f),
                             textAlign = TextAlign.Center,
                         )
 
@@ -560,42 +543,9 @@ private fun CleanSetRow(
                     )
                 }
 
-                // Target column for programme workouts
-                if (isProgrammeWorkout) {
-                    val targetDisplay =
-                        if (set.targetReps != null && set.targetReps > 0) {
-                            if (set.targetWeight != null && set.targetWeight > 0) {
-                                "${set.targetReps}×${WeightFormatter.formatWeight(set.targetWeight)}"
-                            } else {
-                                "${set.targetReps}"
-                            }
-                        } else {
-                            ""
-                        }
-
-                    Box(
-                        modifier =
-                            Modifier
-                                .weight(0.8f)
-                                .height(48.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                    shape = RoundedCornerShape(8.dp),
-                                ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = targetDisplay,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = if (targetDisplay.isNotEmpty()) FontWeight.Medium else FontWeight.Normal,
-                        )
-                    }
-                }
-
                 // Weight input with % of 1RM below
                 Box(
-                    modifier = Modifier.weight(0.8f),
+                    modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.TopCenter,
                 ) {
                     Column(
@@ -616,6 +566,13 @@ private fun CleanSetRow(
                                     )
                                 }
 
+                                // Use target weight as placeholder if available
+                                val weightPlaceholder = if (isProgrammeWorkout && set.targetWeight != null && set.targetWeight > 0) {
+                                    WeightFormatter.formatWeight(set.targetWeight)
+                                } else {
+                                    ""
+                                }
+                                
                                 CenteredInputField(
                                     value = weightValue,
                                     onValueChange = { newValue ->
@@ -624,7 +581,7 @@ private fun CleanSetRow(
                                         onUpdateSet(set.actualReps, weight, set.actualRpe)
                                     },
                                     fieldType = InputFieldType.WEIGHT,
-                                    placeholder = "",
+                                    placeholder = weightPlaceholder,
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             } else {
@@ -653,7 +610,7 @@ private fun CleanSetRow(
                 Box(
                     modifier =
                         Modifier
-                            .weight(0.6f)
+                            .weight(0.7f)
                             .height(48.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -667,6 +624,13 @@ private fun CleanSetRow(
                             )
                         }
 
+                        // Use target reps as placeholder if available
+                        val repsPlaceholder = if (isProgrammeWorkout && set.targetReps != null && set.targetReps > 0) {
+                            set.targetReps.toString()
+                        } else {
+                            ""
+                        }
+
                         CenteredInputField(
                             value = repsValue,
                             onValueChange = { newValue ->
@@ -675,7 +639,7 @@ private fun CleanSetRow(
                                 onUpdateSet(reps, set.actualWeight, set.actualRpe)
                             },
                             fieldType = InputFieldType.REPS,
-                            placeholder = "",
+                            placeholder = repsPlaceholder,
                             modifier = Modifier.fillMaxSize(),
                         )
                     } else {
@@ -691,7 +655,7 @@ private fun CleanSetRow(
                 Box(
                     modifier =
                         Modifier
-                            .weight(0.6f)
+                            .weight(0.7f)
                             .height(48.dp),
                     contentAlignment = Alignment.Center,
                 ) {

@@ -2,6 +2,8 @@ package com.github.radupana.featherweight.ui.components
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.LocalTextStyle
@@ -14,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
@@ -51,8 +54,8 @@ fun CenteredInputField(
     // Users can still manually type "." for weight fields
     val keyboardType = KeyboardType.Number
 
-    // Show placeholder only when not focused AND value is empty
-    val showPlaceholder = !isFocused && value.text.isEmpty()
+    // Show placeholder when value is empty (regardless of focus state)
+    val showPlaceholder = value.text.isEmpty()
 
     // Handle focus events
     LaunchedEffect(isFocused) {
@@ -139,12 +142,20 @@ fun CenteredInputField(
             onValueChange(finalValue)
         },
         placeholder =
-            if (showPlaceholder) {
+            if (showPlaceholder && placeholder.isNotEmpty()) {
                 {
-                    Text(
-                        text = placeholder,
-                        style = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = placeholder,
+                            style = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
+                            // Use a darker color for better visibility as target values
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             } else {
                 null
