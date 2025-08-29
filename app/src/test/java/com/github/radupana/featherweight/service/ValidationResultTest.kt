@@ -3,9 +3,18 @@ package com.github.radupana.featherweight.service
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
+/**
+ * Unit tests for ValidationResult sealed class used by ExerciseNamingService
+ * 
+ * Tests validation result types and equality:
+ * - Valid result representation
+ * - Invalid result with reason and suggestion
+ * - Equality and type checking
+ */
 class ValidationResultTest {
     @Test
     fun `Valid result indicates success`() {
+        // This tests the ValidationResult from ExerciseNamingService
         val result = ValidationResult.Valid
 
         assertThat(result).isInstanceOf(ValidationResult.Valid::class.java)

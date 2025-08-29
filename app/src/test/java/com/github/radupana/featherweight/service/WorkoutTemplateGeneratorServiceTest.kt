@@ -1,9 +1,16 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.data.exercise.*
-import com.github.radupana.featherweight.data.model.*
+import com.github.radupana.featherweight.data.exercise.Equipment
+import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
+import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
+import com.github.radupana.featherweight.data.model.SkillLevel
+import com.github.radupana.featherweight.data.model.TimeAvailable
+import com.github.radupana.featherweight.data.model.TrainingGoal
+import com.github.radupana.featherweight.data.model.WorkoutTemplateGenerationConfig
 import com.google.common.truth.Truth.assertThat
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
