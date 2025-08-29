@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.ktlint) apply true
     alias(libs.plugins.detekt) apply true
-    id("org.sonarqube") version "6.2.0.5505"
+    id("org.sonarqube") version "6.3.1.5724"
 }
 
 configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
