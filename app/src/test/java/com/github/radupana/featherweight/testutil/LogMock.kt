@@ -16,5 +16,6 @@ object LogMock {
         every { android.util.Log.w(any<String>(), any<String>()) } returns 0
         every { android.util.Log.w(any<String>(), any<String>(), any()) } returns 0
         every { android.util.Log.v(any<String>(), any<String>()) } returns 0
+        every { android.util.Log.isLoggable(any<String>(), any<Int>()) } returns false
     }
 }

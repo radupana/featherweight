@@ -36,7 +36,7 @@ class WeightCalculator {
             // 2. Calculated from user's 1RM in database
             user1RM != null -> {
                 val percentage = calculatePercentageForRepRange(repRange, programmeType)
-                val weight = user1RM * (percentage / 100f)
+                val weight = (user1RM * percentage) / 100f
                 WeightCalculation(
                     weight = weight,
                     percentageOf1RM = percentage,
@@ -150,16 +150,21 @@ class WeightCalculator {
         val name = exerciseName.lowercase()
 
         return when {
+            // Bodyweight exercises - check first to avoid false matches
+            name.contains("push-up") ||
+                name.contains("push up") ||
+                name.contains("bodyweight") ||
+                name.contains("plank") -> ExerciseCategory.BODYWEIGHT
+
             // Heavy compounds (typically heaviest lifts)
-            name.contains("squat") ||
+            name.contains("squat") && !name.contains("front squat") && !name.contains("bulgarian") ||
                 name.contains("deadlift") -> ExerciseCategory.HEAVY_COMPOUND
 
             // Medium compounds
             name.contains("bench press") ||
                 name.contains("overhead press") ||
                 name.contains("row") ||
-                name.contains("pull-up") &&
-                !name.contains("assisted") -> ExerciseCategory.MEDIUM_COMPOUND
+                (name.contains("pull-up") && !name.contains("assisted")) -> ExerciseCategory.MEDIUM_COMPOUND
 
             // Light compounds
             name.contains("lunge") ||
@@ -173,12 +178,6 @@ class WeightCalculator {
                 name.contains("raise") ||
                 name.contains("fly") ||
                 name.contains("flye") -> ExerciseCategory.ISOLATION
-
-            // Bodyweight exercises
-            name.contains("push-up") ||
-                name.contains("push up") ||
-                name.contains("bodyweight") ||
-                name.contains("plank") -> ExerciseCategory.BODYWEIGHT
 
             else -> ExerciseCategory.UNKNOWN
         }

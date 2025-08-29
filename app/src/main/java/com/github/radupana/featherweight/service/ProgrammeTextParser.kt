@@ -424,9 +424,9 @@ open class ProgrammeTextParser(
                         val setObj = setElement.asJsonObject
                         sets.add(
                             ParsedSet(
-                                reps = setObj.get("reps")?.asInt,
-                                weight = setObj.get("weight")?.asFloat,
-                                rpe = setObj.get("rpe")?.asFloat,
+                                reps = setObj.get("reps")?.takeIf { !it.isJsonNull }?.asInt,
+                                weight = setObj.get("weight")?.takeIf { !it.isJsonNull }?.asFloat,
+                                rpe = setObj.get("rpe")?.takeIf { !it.isJsonNull }?.asFloat,
                             ),
                         )
                     }
