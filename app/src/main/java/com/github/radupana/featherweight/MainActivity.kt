@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -569,7 +568,6 @@ fun MainAppWithNavigation(
             Screen.SPLASH -> {
                 // Should not reach here
             }
-
 
             Screen.PROFILE -> {
                 val profileViewModel: ProfileViewModel = viewModel()

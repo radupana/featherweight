@@ -21,9 +21,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -471,14 +471,17 @@ private fun GroupedExerciseList(
     onNavigateToExercise: (String) -> Unit,
 ) {
     val state = rememberGroupedExerciseListState(viewModel)
-    
+
     if (!state.isDataInitialized) {
         return
     }
 
-    val isEmpty = state.groupedExercises == null || 
-        (state.groupedExercises?.bigFourExercises.isNullOrEmpty() && 
-         state.groupedExercises?.otherExercises.isNullOrEmpty())
+    val isEmpty =
+        state.groupedExercises == null ||
+            (
+                state.groupedExercises?.bigFourExercises.isNullOrEmpty() &&
+                    state.groupedExercises?.otherExercises.isNullOrEmpty()
+            )
 
     if (isEmpty) {
         Box(
@@ -490,34 +493,34 @@ private fun GroupedExerciseList(
     } else {
         GroupedExerciseLazyColumn(
             state = state,
-            onNavigateToExercise = onNavigateToExercise
+            onNavigateToExercise = onNavigateToExercise,
         )
     }
 }
 
 @Composable
 private fun rememberGroupedExerciseListState(
-    viewModel: InsightsViewModel
+    viewModel: InsightsViewModel,
 ): GroupedExerciseListState {
     val listState = rememberLazyListState()
     val state = remember { GroupedExerciseListState(listState) }
-    
+
     // Initial load
     LaunchedEffect(Unit) {
         state.loadInitialData(viewModel)
     }
-    
+
     // Infinite scroll
     LaunchedEffect(listState) {
         state.setupInfiniteScroll()
     }
-    
+
     return state
 }
 
 class GroupedExerciseListState(
     val listState: LazyListState,
-    private val pageSize: Int = 10
+    private val pageSize: Int = 10,
 ) {
     var groupedExercises by mutableStateOf<com.github.radupana.featherweight.service.GroupedExerciseSummary?>(null)
     var displayedOtherExercises by mutableStateOf<List<com.github.radupana.featherweight.service.ExerciseSummary>>(emptyList())
@@ -525,7 +528,7 @@ class GroupedExerciseListState(
     var hasMore by mutableStateOf(true)
     var currentPage by mutableStateOf(0)
     var isDataInitialized by mutableStateOf(false)
-    
+
     suspend fun loadInitialData(viewModel: InsightsViewModel) {
         groupedExercises = viewModel.getGroupedExercisesSummary()
         groupedExercises?.let {
@@ -534,7 +537,7 @@ class GroupedExerciseListState(
         }
         isDataInitialized = true
     }
-    
+
     suspend fun setupInfiniteScroll() {
         snapshotFlow {
             val layoutInfo = listState.layoutInfo
@@ -545,16 +548,16 @@ class GroupedExerciseListState(
             .filter { it && hasMore && !isLoadingMore }
             .collect { loadNextPage() }
     }
-    
+
     private suspend fun loadNextPage() {
         isLoadingMore = true
         kotlinx.coroutines.delay(300)
-        
+
         groupedExercises?.let {
             val nextPage = currentPage + 1
             val startIndex = nextPage * pageSize
             val endIndex = minOf(startIndex + pageSize, it.otherExercises.size)
-            
+
             if (startIndex < it.otherExercises.size) {
                 val newExercises = it.otherExercises.subList(startIndex, endIndex)
                 displayedOtherExercises = displayedOtherExercises + newExercises
@@ -564,7 +567,7 @@ class GroupedExerciseListState(
                 hasMore = false
             }
         }
-        
+
         isLoadingMore = false
     }
 }
@@ -572,7 +575,7 @@ class GroupedExerciseListState(
 @Composable
 private fun GroupedExerciseLazyColumn(
     state: GroupedExerciseListState,
-    onNavigateToExercise: (String) -> Unit
+    onNavigateToExercise: (String) -> Unit,
 ) {
     LazyColumn(
         state = state.listState,
@@ -582,15 +585,15 @@ private fun GroupedExerciseLazyColumn(
     ) {
         BigFourSection(
             exercises = state.groupedExercises?.bigFourExercises,
-            onNavigateToExercise = onNavigateToExercise
+            onNavigateToExercise = onNavigateToExercise,
         )
-        
+
         OthersSection(
             exercises = state.displayedOtherExercises,
             hasBigFour = state.groupedExercises?.bigFourExercises?.isNotEmpty() == true,
-            onNavigateToExercise = onNavigateToExercise
+            onNavigateToExercise = onNavigateToExercise,
         )
-        
+
         if (state.isLoadingMore) {
             item {
                 Box(
@@ -604,7 +607,7 @@ private fun GroupedExerciseLazyColumn(
                 }
             }
         }
-        
+
         if (!state.hasMore && state.displayedOtherExercises.isNotEmpty()) {
             item {
                 Text(
@@ -621,7 +624,7 @@ private fun GroupedExerciseLazyColumn(
 
 fun LazyListScope.BigFourSection(
     exercises: List<com.github.radupana.featherweight.service.ExerciseSummary>?,
-    onNavigateToExercise: (String) -> Unit
+    onNavigateToExercise: (String) -> Unit,
 ) {
     if (exercises?.isNotEmpty() == true) {
         item {
@@ -633,7 +636,7 @@ fun LazyListScope.BigFourSection(
                 modifier = Modifier.padding(bottom = 8.dp),
             )
         }
-        
+
         items(exercises) { exercise ->
             ExerciseProgressCard(
                 exercise = exercise,
@@ -646,7 +649,7 @@ fun LazyListScope.BigFourSection(
 fun LazyListScope.OthersSection(
     exercises: List<com.github.radupana.featherweight.service.ExerciseSummary>,
     hasBigFour: Boolean,
-    onNavigateToExercise: (String) -> Unit
+    onNavigateToExercise: (String) -> Unit,
 ) {
     if (exercises.isNotEmpty()) {
         item {
@@ -655,13 +658,14 @@ fun LazyListScope.OthersSection(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(
-                    top = if (hasBigFour) 16.dp else 0.dp,
-                    bottom = 8.dp,
-                ),
+                modifier =
+                    Modifier.padding(
+                        top = if (hasBigFour) 16.dp else 0.dp,
+                        bottom = 8.dp,
+                    ),
             )
         }
-        
+
         items(exercises) { exercise ->
             ExerciseProgressCard(
                 exercise = exercise,

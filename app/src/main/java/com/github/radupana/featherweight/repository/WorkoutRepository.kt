@@ -1,13 +1,13 @@
 package com.github.radupana.featherweight.repository
 
 import com.github.radupana.featherweight.data.ExerciseLog
+import com.github.radupana.featherweight.data.ExerciseLogDao
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.SetLog
-import com.github.radupana.featherweight.data.Workout
-import com.github.radupana.featherweight.data.WorkoutStatus
-import com.github.radupana.featherweight.data.ExerciseLogDao
 import com.github.radupana.featherweight.data.SetLogDao
+import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutDao
+import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.service.PRDetectionService
@@ -50,7 +50,7 @@ class WorkoutRepository(
      */
     suspend fun getOngoingWorkout(): Workout? {
         val workouts = // Get workouts that are IN_PROGRESS
-        workoutDao.getAllWorkouts().filter { it.status == WorkoutStatus.IN_PROGRESS }
+            workoutDao.getAllWorkouts().filter { it.status == WorkoutStatus.IN_PROGRESS }
         return workouts.firstOrNull()
     }
 
@@ -62,8 +62,7 @@ class WorkoutRepository(
     /**
      * Gets all exercises for a specific workout
      */
-    suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> = 
-        exerciseLogDao.getExerciseLogsForWorkout(workoutId)
+    suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
 
     /**
      * Gets all sets for a specific workout
@@ -88,24 +87,28 @@ class WorkoutRepository(
             val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
 
             // Calculate workout duration
-            val durationSeconds = workout.timerStartTime?.let {
-                Duration.between(it, LocalDateTime.now()).seconds
-            } ?: workout.timerElapsedSeconds.toLong()
+            val durationSeconds =
+                workout.timerStartTime?.let {
+                    Duration.between(it, LocalDateTime.now()).seconds
+                } ?: workout.timerElapsedSeconds.toLong()
 
             // Update workout status
-            val updatedWorkout = workout.copy(
-                status = WorkoutStatus.COMPLETED,
-                notes = notes,
-                notesUpdatedAt = notes?.let { LocalDateTime.now() },
-                durationSeconds = durationSeconds,
-            )
+            val updatedWorkout =
+                workout.copy(
+                    status = WorkoutStatus.COMPLETED,
+                    notes = notes,
+                    notesUpdatedAt = notes?.let { LocalDateTime.now() },
+                    durationSeconds = durationSeconds,
+                )
             workoutDao.updateWorkout(updatedWorkout)
 
             // Process personal records
             val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
             for (exerciseLog in exerciseLogs) {
-                val sets = setLogDao.getSetLogsForExercise(exerciseLog.id)
-                    .filter { it.isCompleted }
+                val sets =
+                    setLogDao
+                        .getSetLogsForExercise(exerciseLog.id)
+                        .filter { it.isCompleted }
 
                 if (sets.isNotEmpty()) {
                     // Check for PRs
@@ -126,19 +129,23 @@ class WorkoutRepository(
     /**
      * Gets workout history with summary statistics
      */
-    suspend fun getWorkoutHistory(): List<WorkoutSummary> {
-        return withContext(Dispatchers.IO) {
+    suspend fun getWorkoutHistory(): List<WorkoutSummary> =
+        withContext(Dispatchers.IO) {
             val workouts = workoutDao.getAllWorkouts()
             workouts.map { workout ->
                 val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                val setCount = exerciseLogs.sumOf { exerciseLog ->
-                    setLogDao.getSetLogsForExercise(exerciseLog.id).size
-                }
-                val totalWeight = exerciseLogs.sumOf { exerciseLog ->
-                    setLogDao.getSetLogsForExercise(exerciseLog.id)
-                        .filter { it.isCompleted }
-                        .sumOf { set -> (set.actualWeight * set.actualReps).toDouble() }
-                }.toFloat()
+                val setCount =
+                    exerciseLogs.sumOf { exerciseLog ->
+                        setLogDao.getSetLogsForExercise(exerciseLog.id).size
+                    }
+                val totalWeight =
+                    exerciseLogs
+                        .sumOf { exerciseLog ->
+                            setLogDao
+                                .getSetLogsForExercise(exerciseLog.id)
+                                .filter { it.isCompleted }
+                                .sumOf { set -> (set.actualWeight * set.actualReps).toDouble() }
+                        }.toFloat()
 
                 WorkoutSummary(
                     id = workout.id,
@@ -153,7 +160,6 @@ class WorkoutRepository(
                 )
             }
         }
-    }
 
     /**
      * Gets exercise history for a specific exercise variation
@@ -163,9 +169,11 @@ class WorkoutRepository(
         currentWorkoutId: Long,
     ): ExerciseHistory? {
         return withContext(Dispatchers.IO) {
-            val allWorkouts = workoutDao.getAllWorkouts()
-                .filter { it.status == WorkoutStatus.COMPLETED }
-                .sortedByDescending { it.date }
+            val allWorkouts =
+                workoutDao
+                    .getAllWorkouts()
+                    .filter { it.status == WorkoutStatus.COMPLETED }
+                    .sortedByDescending { it.date }
 
             for (workout in allWorkouts) {
                 if (workout.id == currentWorkoutId) continue
@@ -174,8 +182,10 @@ class WorkoutRepository(
                 val matchingExercise = exercises.find { it.exerciseVariationId == exerciseVariationId }
 
                 if (matchingExercise != null) {
-                    val sets = setLogDao.getSetLogsForExercise(matchingExercise.id)
-                        .filter { it.isCompleted }
+                    val sets =
+                        setLogDao
+                            .getSetLogsForExercise(matchingExercise.id)
+                            .filter { it.isCompleted }
 
                     if (sets.isNotEmpty()) {
                         return@withContext ExerciseHistory(
@@ -193,16 +203,17 @@ class WorkoutRepository(
     /**
      * Gets workouts filtered by various criteria
      */
-    suspend fun getFilteredWorkouts(filters: WorkoutFilters): List<WorkoutSummary> {
-        return withContext(Dispatchers.IO) {
+    suspend fun getFilteredWorkouts(filters: WorkoutFilters): List<WorkoutSummary> =
+        withContext(Dispatchers.IO) {
             var workouts = workoutDao.getAllWorkouts()
 
             // Apply date range filter
             filters.dateRange?.let { (startDate, endDate) ->
-                workouts = workouts.filter { workout ->
-                    val workoutDate = workout.date.toLocalDate()
-                    workoutDate >= startDate && workoutDate <= endDate
-                }
+                workouts =
+                    workouts.filter { workout ->
+                        val workoutDate = workout.date.toLocalDate()
+                        workoutDate >= startDate && workoutDate <= endDate
+                    }
             }
 
             // Apply programme filter
@@ -212,38 +223,49 @@ class WorkoutRepository(
 
             // Apply exercise and muscle group filters (requires loading exercise data)
             if (filters.exercises.isNotEmpty() || filters.muscleGroups.isNotEmpty()) {
-                workouts = workouts.filter { workout ->
-                    val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                    
-                    val hasExercise = if (filters.exercises.isNotEmpty()) {
-                        exerciseLogs.any { log ->
-                            val exercise = db.exerciseDao().getExerciseVariationById(log.exerciseVariationId)
-                            exercise?.name in filters.exercises
-                        }
-                    } else true
+                workouts =
+                    workouts.filter { workout ->
+                        val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
 
-                    val hasMuscleGroup = if (filters.muscleGroups.isNotEmpty()) {
-                        exerciseLogs.any { log ->
-                            val muscles = db.variationMuscleDao().getMusclesForVariation(log.exerciseVariationId)
-                            muscles.any { it.muscle.displayName in filters.muscleGroups }
-                        }
-                    } else true
+                        val hasExercise =
+                            if (filters.exercises.isNotEmpty()) {
+                                exerciseLogs.any { log ->
+                                    val exercise = db.exerciseDao().getExerciseVariationById(log.exerciseVariationId)
+                                    exercise?.name in filters.exercises
+                                }
+                            } else {
+                                true
+                            }
 
-                    hasExercise && hasMuscleGroup
-                }
+                        val hasMuscleGroup =
+                            if (filters.muscleGroups.isNotEmpty()) {
+                                exerciseLogs.any { log ->
+                                    val muscles = db.variationMuscleDao().getMusclesForVariation(log.exerciseVariationId)
+                                    muscles.any { it.muscle.displayName in filters.muscleGroups }
+                                }
+                            } else {
+                                true
+                            }
+
+                        hasExercise && hasMuscleGroup
+                    }
             }
 
             // Convert to WorkoutSummary
             workouts.map { workout ->
                 val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                val setCount = exerciseLogs.sumOf { exerciseLog ->
-                    setLogDao.getSetLogsForExercise(exerciseLog.id).size
-                }
-                val totalWeight = exerciseLogs.sumOf { exerciseLog ->
-                    setLogDao.getSetLogsForExercise(exerciseLog.id)
-                        .filter { it.isCompleted }
-                        .sumOf { set -> (set.actualWeight * set.actualReps).toDouble() }
-                }.toFloat()
+                val setCount =
+                    exerciseLogs.sumOf { exerciseLog ->
+                        setLogDao.getSetLogsForExercise(exerciseLog.id).size
+                    }
+                val totalWeight =
+                    exerciseLogs
+                        .sumOf { exerciseLog ->
+                            setLogDao
+                                .getSetLogsForExercise(exerciseLog.id)
+                                .filter { it.isCompleted }
+                                .sumOf { set -> (set.actualWeight * set.actualReps).toDouble() }
+                        }.toFloat()
 
                 WorkoutSummary(
                     id = workout.id,
@@ -258,17 +280,17 @@ class WorkoutRepository(
                 )
             }
         }
-    }
 
     /**
      * Gets workout statistics for a specific date
      */
-    suspend fun getWorkoutDayInfo(date: LocalDate): WorkoutDayInfo {
-        return withContext(Dispatchers.IO) {
-            val dayWorkouts = workoutDao.getWorkoutsInDateRange(
-                startDate = date.atStartOfDay(),
-                endDate = date.plusDays(1).atStartOfDay(),
-            )
+    suspend fun getWorkoutDayInfo(date: LocalDate): WorkoutDayInfo =
+        withContext(Dispatchers.IO) {
+            val dayWorkouts =
+                workoutDao.getWorkoutsInDateRange(
+                    startDate = date.atStartOfDay(),
+                    endDate = date.plusDays(1).atStartOfDay(),
+                )
 
             WorkoutDayInfo(
                 completedCount = dayWorkouts.count { it.status == WorkoutStatus.COMPLETED },
@@ -276,15 +298,15 @@ class WorkoutRepository(
                 notStartedCount = dayWorkouts.count { it.status == WorkoutStatus.NOT_STARTED },
             )
         }
-    }
 
     /**
      * Gets recent workouts
      */
     // Note: This would need a proper Flow implementation in the DAO
     // For now, returning empty flow
-    fun getRecentWorkoutsFlow(@Suppress("UNUSED_PARAMETER") limit: Int = 10): Flow<List<Workout>> = 
-        kotlinx.coroutines.flow.flowOf(emptyList())
+    fun getRecentWorkoutsFlow(
+        @Suppress("UNUSED_PARAMETER") limit: Int = 10,
+    ): Flow<List<Workout>> = kotlinx.coroutines.flow.flowOf(emptyList())
 
     /**
      * Gets total volume for a time period
@@ -293,15 +315,17 @@ class WorkoutRepository(
         withContext(Dispatchers.IO) {
             val endDate = startDate.plusWeeks(1)
             val workouts = workoutDao.getWorkoutsInDateRange(startDate, endDate)
-            
-            workouts.sumOf { workout ->
-                val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                exerciseLogs.sumOf { exerciseLog ->
-                    setLogDao.getSetLogsForExercise(exerciseLog.id)
-                        .filter { it.isCompleted }
-                        .sumOf { set -> (set.actualWeight * set.actualReps).toDouble() }
-                }
-            }.toFloat()
+
+            workouts
+                .sumOf { workout ->
+                    val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                    exerciseLogs.sumOf { exerciseLog ->
+                        setLogDao
+                            .getSetLogsForExercise(exerciseLog.id)
+                            .filter { it.isCompleted }
+                            .sumOf { set -> (set.actualWeight * set.actualReps).toDouble() }
+                    }
+                }.toFloat()
         }
 
     /**
@@ -311,36 +335,46 @@ class WorkoutRepository(
         withContext(Dispatchers.IO) {
             val endDate = startDate.plusMonths(1)
             val workouts = workoutDao.getWorkoutsInDateRange(startDate, endDate)
-            
-            workouts.sumOf { workout ->
-                val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                exerciseLogs.sumOf { exerciseLog ->
-                    setLogDao.getSetLogsForExercise(exerciseLog.id)
-                        .filter { it.isCompleted }
-                        .sumOf { set -> (set.actualWeight * set.actualReps).toDouble() }
-                }
-            }.toFloat()
+
+            workouts
+                .sumOf { workout ->
+                    val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                    exerciseLogs.sumOf { exerciseLog ->
+                        setLogDao
+                            .getSetLogsForExercise(exerciseLog.id)
+                            .filter { it.isCompleted }
+                            .sumOf { set -> (set.actualWeight * set.actualReps).toDouble() }
+                    }
+                }.toFloat()
         }
 
     /**
      * Gets training frequency for a period
      */
-    suspend fun getTrainingFrequency(startDate: LocalDateTime, endDate: LocalDateTime): Int =
+    suspend fun getTrainingFrequency(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime,
+    ): Int =
         withContext(Dispatchers.IO) {
-            workoutDao.getWorkoutsInDateRange(startDate, endDate)
+            workoutDao
+                .getWorkoutsInDateRange(startDate, endDate)
                 .count { it.status == WorkoutStatus.COMPLETED }
         }
 
     /**
      * Updates workout timer information
      */
-    suspend fun updateWorkoutTimer(workoutId: Long, elapsedSeconds: Int) {
+    suspend fun updateWorkoutTimer(
+        workoutId: Long,
+        elapsedSeconds: Int,
+    ) {
         withContext(Dispatchers.IO) {
             val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
-            val updatedWorkout = workout.copy(
-                timerElapsedSeconds = elapsedSeconds,
-                timerStartTime = workout.timerStartTime ?: LocalDateTime.now(),
-            )
+            val updatedWorkout =
+                workout.copy(
+                    timerElapsedSeconds = elapsedSeconds,
+                    timerStartTime = workout.timerStartTime ?: LocalDateTime.now(),
+                )
             workoutDao.updateWorkout(updatedWorkout)
         }
     }
@@ -355,16 +389,17 @@ class WorkoutRepository(
         dayNumber: Int? = null,
         programmeWorkoutName: String? = null,
     ): Long {
-        val workout = Workout(
-            date = LocalDateTime.now(),
-            name = name,
-            programmeId = programmeId,
-            weekNumber = weekNumber,
-            dayNumber = dayNumber,
-            programmeWorkoutName = programmeWorkoutName,
-            isProgrammeWorkout = programmeId != null,
-            status = WorkoutStatus.NOT_STARTED,
-        )
+        val workout =
+            Workout(
+                date = LocalDateTime.now(),
+                name = name,
+                programmeId = programmeId,
+                weekNumber = weekNumber,
+                dayNumber = dayNumber,
+                programmeWorkoutName = programmeWorkoutName,
+                isProgrammeWorkout = programmeId != null,
+                status = WorkoutStatus.NOT_STARTED,
+            )
         return insertWorkout(workout)
     }
 
@@ -375,10 +410,11 @@ class WorkoutRepository(
         withContext(Dispatchers.IO) {
             val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
             if (workout.status == WorkoutStatus.NOT_STARTED) {
-                val updatedWorkout = workout.copy(
-                    status = WorkoutStatus.IN_PROGRESS,
-                    timerStartTime = LocalDateTime.now(),
-                )
+                val updatedWorkout =
+                    workout.copy(
+                        status = WorkoutStatus.IN_PROGRESS,
+                        timerStartTime = LocalDateTime.now(),
+                    )
                 workoutDao.updateWorkout(updatedWorkout)
             }
         }

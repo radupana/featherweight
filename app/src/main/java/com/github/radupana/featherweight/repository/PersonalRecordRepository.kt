@@ -3,8 +3,8 @@ package com.github.radupana.featherweight.repository
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
-import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.PersonalRecordDao
+import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.service.OneRMService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -28,26 +28,25 @@ class PersonalRecordRepository(
     /**
      * Gets all PRs for an exercise
      */
-    suspend fun getPRsForExercise(exerciseVariationId: Long): List<PersonalRecord> =
-        personalRecordDao.getRecentPRsForExercise(exerciseVariationId, 100)
+    suspend fun getPRsForExercise(exerciseVariationId: Long): List<PersonalRecord> = personalRecordDao.getRecentPRsForExercise(exerciseVariationId, 100)
 
     /**
      * Gets recent PRs across all exercises
      */
-    suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord> =
-        personalRecordDao.getRecentPRs(limit)
+    suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord> = personalRecordDao.getRecentPRs(limit)
 
     /**
      * Gets PRs for a specific workout
      */
-    suspend fun getPRsForWorkout(workoutId: Long): List<PersonalRecord> =
-        personalRecordDao.getPersonalRecordsForWorkout(workoutId)
+    suspend fun getPRsForWorkout(workoutId: Long): List<PersonalRecord> = personalRecordDao.getPersonalRecordsForWorkout(workoutId)
 
     /**
      * Gets the current PR for an exercise by type
      */
-    suspend fun getCurrentPR(exerciseVariationId: Long, prType: PRType): PersonalRecord? =
-        personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, prType)
+    suspend fun getCurrentPR(
+        exerciseVariationId: Long,
+        prType: PRType,
+    ): PersonalRecord? = personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, prType)
 
     /**
      * Gets PR history for an exercise
@@ -55,13 +54,12 @@ class PersonalRecordRepository(
     suspend fun getPRHistory(
         exerciseVariationId: Long,
         prType: PRType? = null,
-    ): List<PersonalRecord> {
-        return if (prType != null) {
+    ): List<PersonalRecord> =
+        if (prType != null) {
             personalRecordDao.getRecentPRsForExercise(exerciseVariationId, 100).filter { it.recordType == prType }
         } else {
             personalRecordDao.getRecentPRsForExercise(exerciseVariationId, 100)
         }
-    }
 
     /**
      * Checks if a set is a personal record and records it if so
@@ -83,55 +81,60 @@ class PersonalRecordRepository(
             // Calculate volume and estimated 1RM for record keeping
             val volume = setLog.actualWeight * setLog.actualReps
             val estimated1RM = oneRMService.calculateEstimated1RM(setLog.actualWeight, setLog.actualReps)
-            
+
             // Check estimated 1RM PR
             val current1RMPR = getCurrentPR(exerciseVariationId, PRType.ESTIMATED_1RM)
-            val is1RMPR = current1RMPR == null || 
-                (estimated1RM != null && current1RMPR.estimated1RM != null && estimated1RM > current1RMPR.estimated1RM)
+            val is1RMPR =
+                current1RMPR == null ||
+                    (estimated1RM != null && current1RMPR.estimated1RM != null && estimated1RM > current1RMPR.estimated1RM)
 
             // Determine which type of PR to record (prioritize by significance)
             when {
                 isWeightPR -> {
-                    val pr = PersonalRecord(
-                        exerciseVariationId = exerciseVariationId,
-                        weight = setLog.actualWeight,
-                        reps = setLog.actualReps,
-                        rpe = setLog.actualRpe,
-                        recordDate = LocalDateTime.now(),
-                        previousWeight = currentWeightPR?.weight,
-                        previousReps = currentWeightPR?.reps,
-                        previousDate = currentWeightPR?.recordDate,
-                        improvementPercentage = calculateImprovement(
-                            current = setLog.actualWeight,
-                            previous = currentWeightPR?.weight,
-                        ),
-                        recordType = PRType.WEIGHT,
-                        volume = volume,
-                        estimated1RM = estimated1RM,
-                        workoutId = workoutId,
-                    )
+                    val pr =
+                        PersonalRecord(
+                            exerciseVariationId = exerciseVariationId,
+                            weight = setLog.actualWeight,
+                            reps = setLog.actualReps,
+                            rpe = setLog.actualRpe,
+                            recordDate = LocalDateTime.now(),
+                            previousWeight = currentWeightPR?.weight,
+                            previousReps = currentWeightPR?.reps,
+                            previousDate = currentWeightPR?.recordDate,
+                            improvementPercentage =
+                                calculateImprovement(
+                                    current = setLog.actualWeight,
+                                    previous = currentWeightPR?.weight,
+                                ),
+                            recordType = PRType.WEIGHT,
+                            volume = volume,
+                            estimated1RM = estimated1RM,
+                            workoutId = workoutId,
+                        )
                     val id = recordPR(pr)
                     pr.copy(id = id)
                 }
                 is1RMPR && estimated1RM != null -> {
-                    val pr = PersonalRecord(
-                        exerciseVariationId = exerciseVariationId,
-                        weight = setLog.actualWeight,
-                        reps = setLog.actualReps,
-                        rpe = setLog.actualRpe,
-                        recordDate = LocalDateTime.now(),
-                        previousWeight = current1RMPR?.weight,
-                        previousReps = current1RMPR?.reps,
-                        previousDate = current1RMPR?.recordDate,
-                        improvementPercentage = calculateImprovement(
-                            current = estimated1RM,
-                            previous = current1RMPR?.estimated1RM,
-                        ),
-                        recordType = PRType.ESTIMATED_1RM,
-                        volume = volume,
-                        estimated1RM = estimated1RM,
-                        workoutId = workoutId,
-                    )
+                    val pr =
+                        PersonalRecord(
+                            exerciseVariationId = exerciseVariationId,
+                            weight = setLog.actualWeight,
+                            reps = setLog.actualReps,
+                            rpe = setLog.actualRpe,
+                            recordDate = LocalDateTime.now(),
+                            previousWeight = current1RMPR?.weight,
+                            previousReps = current1RMPR?.reps,
+                            previousDate = current1RMPR?.recordDate,
+                            improvementPercentage =
+                                calculateImprovement(
+                                    current = estimated1RM,
+                                    previous = current1RMPR?.estimated1RM,
+                                ),
+                            recordType = PRType.ESTIMATED_1RM,
+                            volume = volume,
+                            estimated1RM = estimated1RM,
+                            workoutId = workoutId,
+                        )
                     val id = recordPR(pr)
                     pr.copy(id = id)
                 }
@@ -143,11 +146,11 @@ class PersonalRecordRepository(
     /**
      * Gets PR summary statistics for an exercise
      */
-    suspend fun getPRSummary(exerciseVariationId: Long): PRSummary {
-        return withContext(Dispatchers.IO) {
+    suspend fun getPRSummary(exerciseVariationId: Long): PRSummary =
+        withContext(Dispatchers.IO) {
             val weightPR = getCurrentPR(exerciseVariationId, PRType.WEIGHT)
             val estimated1RMPR = getCurrentPR(exerciseVariationId, PRType.ESTIMATED_1RM)
-            
+
             val allPRs = getPRsForExercise(exerciseVariationId)
             val totalPRs = allPRs.size
             val lastPRDate = allPRs.maxByOrNull { it.recordDate }?.recordDate
@@ -155,21 +158,19 @@ class PersonalRecordRepository(
             PRSummary(
                 exerciseVariationId = exerciseVariationId,
                 maxWeight = weightPR?.weight,
-                maxReps = weightPR?.reps,  // Reps from the weight PR
-                maxVolume = weightPR?.let { it.weight * it.reps },  // Calculate from weight PR
+                maxReps = weightPR?.reps, // Reps from the weight PR
+                maxVolume = weightPR?.let { it.weight * it.reps }, // Calculate from weight PR
                 estimated1RM = estimated1RMPR?.estimated1RM,
                 totalPRs = totalPRs,
                 lastPRDate = lastPRDate,
                 recentPRs = allPRs.sortedByDescending { it.recordDate }.take(5),
             )
         }
-    }
 
     /**
      * Gets PR timeline for an exercise
      */
-    fun getPRTimelineFlow(exerciseVariationId: Long): Flow<List<PersonalRecord>> =
-        personalRecordDao.getPRHistoryForExercise(exerciseVariationId)
+    fun getPRTimelineFlow(exerciseVariationId: Long): Flow<List<PersonalRecord>> = personalRecordDao.getPRHistoryForExercise(exerciseVariationId)
 
     /**
      * Deletes a personal record
@@ -187,8 +188,7 @@ class PersonalRecordRepository(
     /**
      * Gets the most impressive PRs (biggest improvements)
      */
-    suspend fun getMostImpressivePRs(limit: Int = 5): List<PersonalRecord> =
-        personalRecordDao.getRecentPRs(limit).sortedByDescending { it.improvementPercentage }
+    suspend fun getMostImpressivePRs(limit: Int = 5): List<PersonalRecord> = personalRecordDao.getRecentPRs(limit).sortedByDescending { it.improvementPercentage }
 
     /**
      * Checks if user has any PRs
@@ -203,18 +203,19 @@ class PersonalRecordRepository(
     /**
      * Gets PR count for an exercise
      */
-    suspend fun getPRCountForExercise(exerciseVariationId: Long): Int =
-        personalRecordDao.getPRCountForExercise(exerciseVariationId)
+    suspend fun getPRCountForExercise(exerciseVariationId: Long): Int = personalRecordDao.getPRCountForExercise(exerciseVariationId)
 
     // Helper functions
 
-    private fun calculateImprovement(current: Float?, previous: Float?): Float {
-        return if (previous != null && previous > 0 && current != null) {
+    private fun calculateImprovement(
+        current: Float?,
+        previous: Float?,
+    ): Float =
+        if (previous != null && previous > 0 && current != null) {
             ((current - previous) / previous) * 100
         } else {
             0f
         }
-    }
 
     /**
      * Data class for PR summary information

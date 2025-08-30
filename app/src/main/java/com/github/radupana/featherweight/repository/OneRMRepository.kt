@@ -46,44 +46,48 @@ class OneRMRepository(
             if (exerciseVariation == null) return@withContext
 
             val currentMax = oneRMDao.getCurrentMax(update.exerciseVariationId)
-            
+
             if (currentMax != null) {
                 // Update existing max
-                val updatedMax = currentMax.copy(
-                    mostWeightLifted = update.suggestedMax,
-                    oneRMEstimate = update.suggestedMax,
-                    oneRMContext = update.source,
-                    oneRMDate = LocalDateTime.now(),
-                )
+                val updatedMax =
+                    currentMax.copy(
+                        mostWeightLifted = update.suggestedMax,
+                        oneRMEstimate = update.suggestedMax,
+                        oneRMContext = update.source,
+                        oneRMDate = LocalDateTime.now(),
+                    )
                 oneRMDao.updateExerciseMax(updatedMax)
             } else {
                 // Insert new max
-                val newMax = UserExerciseMax(
-                    exerciseVariationId = update.exerciseVariationId,
-                    mostWeightLifted = update.suggestedMax,
-                    mostWeightReps = 1,
-                    oneRMEstimate = update.suggestedMax,
-                    oneRMContext = update.source,
-                    oneRMConfidence = update.confidence,
-                    oneRMDate = update.workoutDate ?: LocalDateTime.now(),
-                )
+                val newMax =
+                    UserExerciseMax(
+                        exerciseVariationId = update.exerciseVariationId,
+                        mostWeightLifted = update.suggestedMax,
+                        mostWeightReps = 1,
+                        oneRMEstimate = update.suggestedMax,
+                        oneRMContext = update.source,
+                        oneRMConfidence = update.confidence,
+                        oneRMDate = update.workoutDate ?: LocalDateTime.now(),
+                    )
                 oneRMDao.insertExerciseMax(newMax)
             }
 
             // Save to history
-            val history = OneRMHistory(
-                exerciseVariationId = update.exerciseVariationId,
-                oneRMEstimate = update.suggestedMax,
-                context = update.source,
-                recordedAt = update.workoutDate ?: LocalDateTime.now(),
-            )
+            val history =
+                OneRMHistory(
+                    exerciseVariationId = update.exerciseVariationId,
+                    oneRMEstimate = update.suggestedMax,
+                    context = update.source,
+                    recordedAt = update.workoutDate ?: LocalDateTime.now(),
+                )
             oneRMDao.insertOneRMHistory(history)
 
             // Remove from pending updates (filtering by all fields since there's no id)
-            _pendingOneRMUpdates.value = _pendingOneRMUpdates.value.filter { 
-                it.exerciseVariationId != update.exerciseVariationId ||
-                it.suggestedMax != update.suggestedMax
-            }
+            _pendingOneRMUpdates.value =
+                _pendingOneRMUpdates.value.filter {
+                    it.exerciseVariationId != update.exerciseVariationId ||
+                        it.suggestedMax != update.suggestedMax
+                }
         }
     }
 
@@ -100,17 +104,20 @@ class OneRMRepository(
      */
     suspend fun getEstimated1RM(exerciseVariationId: Long): Float? =
         withContext(Dispatchers.IO) {
-            val lastSet = db.setLogDao().getLastCompletedSetForExercise(exerciseVariationId)
-                ?: return@withContext null
-            
+            val lastSet =
+                db.setLogDao().getLastCompletedSetForExercise(exerciseVariationId)
+                    ?: return@withContext null
+
             oneRMService.calculateEstimated1RM(lastSet.actualWeight, lastSet.actualReps)
         }
 
     /**
      * Calculates current 1RM estimate from a set
      */
-    suspend fun getCurrentOneRMEstimate(weight: Float, reps: Int): Float? =
-        oneRMService.calculateEstimated1RM(weight, reps)
+    suspend fun getCurrentOneRMEstimate(
+        weight: Float,
+        reps: Int,
+    ): Float? = oneRMService.calculateEstimated1RM(weight, reps)
 
     /**
      * Updates or inserts a 1RM record
@@ -118,20 +125,21 @@ class OneRMRepository(
     suspend fun updateOrInsertOneRM(oneRMRecord: UserExerciseMax) {
         withContext(Dispatchers.IO) {
             val existing = oneRMDao.getCurrentMax(oneRMRecord.exerciseVariationId)
-            
+
             if (existing != null) {
-                val updated = existing.copy(
-                    mostWeightLifted = oneRMRecord.mostWeightLifted,
-                    mostWeightReps = oneRMRecord.mostWeightReps,
-                    mostWeightRpe = oneRMRecord.mostWeightRpe,
-                    mostWeightDate = oneRMRecord.mostWeightDate,
-                    oneRMEstimate = oneRMRecord.oneRMEstimate,
-                    oneRMContext = oneRMRecord.oneRMContext,
-                    oneRMConfidence = oneRMRecord.oneRMConfidence,
-                    oneRMDate = oneRMRecord.oneRMDate,
-                    oneRMType = oneRMRecord.oneRMType,
-                    notes = oneRMRecord.notes,
-                )
+                val updated =
+                    existing.copy(
+                        mostWeightLifted = oneRMRecord.mostWeightLifted,
+                        mostWeightReps = oneRMRecord.mostWeightReps,
+                        mostWeightRpe = oneRMRecord.mostWeightRpe,
+                        mostWeightDate = oneRMRecord.mostWeightDate,
+                        oneRMEstimate = oneRMRecord.oneRMEstimate,
+                        oneRMContext = oneRMRecord.oneRMContext,
+                        oneRMConfidence = oneRMRecord.oneRMConfidence,
+                        oneRMDate = oneRMRecord.oneRMDate,
+                        oneRMType = oneRMRecord.oneRMType,
+                        notes = oneRMRecord.notes,
+                    )
                 oneRMDao.updateExerciseMax(updated)
             } else {
                 oneRMDao.insertExerciseMax(oneRMRecord)
@@ -154,11 +162,12 @@ class OneRMRepository(
         oneRMEstimate: Float,
         context: String,
     ): Long {
-        val history = OneRMHistory(
-            exerciseVariationId = exerciseVariationId,
-            oneRMEstimate = oneRMEstimate,
-            context = context,
-        )
+        val history =
+            OneRMHistory(
+                exerciseVariationId = exerciseVariationId,
+                oneRMEstimate = oneRMEstimate,
+                context = context,
+            )
         return oneRMDao.insertOneRMHistory(history)
     }
 
@@ -194,8 +203,7 @@ class OneRMRepository(
     /**
      * Gets all current maxes with exercise names
      */
-    fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>> =
-        oneRMDao.getAllCurrentMaxesWithNames()
+    fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>> = oneRMDao.getAllCurrentMaxesWithNames()
 
     /**
      * Gets big 4 exercises (Squat, Bench, Deadlift, OHP)
@@ -208,14 +216,12 @@ class OneRMRepository(
     /**
      * Gets big 4 exercises with their maxes
      */
-    fun getBig4ExercisesWithMaxes(): Flow<List<Big4ExerciseWithOptionalMax>> = 
-        oneRMDao.getBig4ExercisesWithMaxes()
+    fun getBig4ExercisesWithMaxes(): Flow<List<Big4ExerciseWithOptionalMax>> = oneRMDao.getBig4ExercisesWithMaxes()
 
     /**
      * Gets other exercises with maxes (non-big 4)
      */
-    fun getOtherExercisesWithMaxes(): Flow<List<OneRMWithExerciseName>> =
-        oneRMDao.getOtherExercisesWithMaxes()
+    fun getOtherExercisesWithMaxes(): Flow<List<OneRMWithExerciseName>> = oneRMDao.getOtherExercisesWithMaxes()
 
     /**
      * Deletes all maxes for an exercise
@@ -233,31 +239,34 @@ class OneRMRepository(
         setLog: SetLog,
     ): PendingOneRMUpdate? {
         return withContext(Dispatchers.IO) {
-            val estimated1RM = oneRMService.calculateEstimated1RM(setLog.actualWeight, setLog.actualReps)
-                ?: return@withContext null
+            val estimated1RM =
+                oneRMService.calculateEstimated1RM(setLog.actualWeight, setLog.actualReps)
+                    ?: return@withContext null
 
             val currentMax = getOneRMForExercise(exerciseVariationId) ?: 0f
-            
+
             if (estimated1RM > currentMax * 1.05f) { // Only suggest if > 5% improvement
-                val confidence = when {
-                    setLog.actualReps <= 3 -> 0.95f
-                    setLog.actualReps <= 5 -> 0.90f
-                    setLog.actualReps <= 8 -> 0.85f
-                    else -> 0.75f
-                }
-                
-                val update = PendingOneRMUpdate(
-                    exerciseVariationId = exerciseVariationId,
-                    currentMax = if (currentMax > 0) currentMax else null,
-                    suggestedMax = estimated1RM,
-                    confidence = confidence,
-                    source = "${setLog.actualWeight}kg × ${setLog.actualReps}${setLog.actualRpe?.let { " @ RPE $it" } ?: ""}",
-                    workoutDate = LocalDateTime.now(),
-                )
-                
+                val confidence =
+                    when {
+                        setLog.actualReps <= 3 -> 0.95f
+                        setLog.actualReps <= 5 -> 0.90f
+                        setLog.actualReps <= 8 -> 0.85f
+                        else -> 0.75f
+                    }
+
+                val update =
+                    PendingOneRMUpdate(
+                        exerciseVariationId = exerciseVariationId,
+                        currentMax = if (currentMax > 0) currentMax else null,
+                        suggestedMax = estimated1RM,
+                        confidence = confidence,
+                        source = "${setLog.actualWeight}kg × ${setLog.actualReps}${setLog.actualRpe?.let { " @ RPE $it" } ?: ""}",
+                        workoutDate = LocalDateTime.now(),
+                    )
+
                 // Add to pending updates
                 _pendingOneRMUpdates.value = _pendingOneRMUpdates.value + update
-                
+
                 update
             } else {
                 null

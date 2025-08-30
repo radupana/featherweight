@@ -10,7 +10,6 @@ import java.time.LocalDateTime
  * Test fixtures for workout-related data
  */
 object WorkoutFixtures {
-    
     fun createWorkout(
         id: Long = 1L,
         date: LocalDateTime = LocalDateTime.now(),
@@ -24,7 +23,7 @@ object WorkoutFixtures {
         isProgrammeWorkout: Boolean = false,
         durationSeconds: Long? = null,
         timerStartTime: LocalDateTime? = null,
-        timerElapsedSeconds: Int = 0
+        timerElapsedSeconds: Int = 0,
     ) = Workout(
         id = id,
         date = date,
@@ -39,9 +38,9 @@ object WorkoutFixtures {
         status = status,
         durationSeconds = durationSeconds,
         timerStartTime = timerStartTime,
-        timerElapsedSeconds = timerElapsedSeconds
+        timerElapsedSeconds = timerElapsedSeconds,
     )
-    
+
     fun createExerciseLog(
         id: Long = 1L,
         workoutId: Long = 1L,
@@ -50,7 +49,7 @@ object WorkoutFixtures {
         supersetGroup: Int? = null,
         notes: String? = null,
         originalVariationId: Long? = null,
-        isSwapped: Boolean = false
+        isSwapped: Boolean = false,
     ) = ExerciseLog(
         id = id,
         workoutId = workoutId,
@@ -59,9 +58,9 @@ object WorkoutFixtures {
         supersetGroup = supersetGroup,
         notes = notes,
         originalVariationId = originalVariationId,
-        isSwapped = isSwapped
+        isSwapped = isSwapped,
     )
-    
+
     fun createSetLog(
         id: Long = 1L,
         exerciseLogId: Long = 1L,
@@ -79,7 +78,7 @@ object WorkoutFixtures {
         suggestionConfidence: Float? = null,
         calculationDetails: String? = null,
         tag: String? = null,
-        notes: String? = null
+        notes: String? = null,
     ) = SetLog(
         id = id,
         exerciseLogId = exerciseLogId,
@@ -97,11 +96,15 @@ object WorkoutFixtures {
         tag = tag,
         notes = notes,
         isCompleted = isCompleted,
-        completedAt = completedAt
+        completedAt = completedAt,
     )
-    
-    fun createCompletedSets(count: Int = 3, weight: Float = 100f, reps: Int = 5): List<SetLog> {
-        return (1..count).map { setNumber ->
+
+    fun createCompletedSets(
+        count: Int = 3,
+        weight: Float = 100f,
+        reps: Int = 5,
+    ): List<SetLog> =
+        (1..count).map { setNumber ->
             createSetLog(
                 id = setNumber.toLong(),
                 setOrder = setNumber,
@@ -109,8 +112,7 @@ object WorkoutFixtures {
                 targetWeight = weight,
                 actualReps = reps,
                 actualWeight = weight,
-                isCompleted = true
+                isCompleted = true,
             )
         }
-    }
 }

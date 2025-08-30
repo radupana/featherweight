@@ -23,7 +23,6 @@ class GlobalProgressTracker(
      */
     suspend fun updateProgressAfterWorkout(
         workoutId: Long,
-        
     ): List<PendingOneRMUpdate> {
         val pendingUpdates = mutableListOf<PendingOneRMUpdate>()
 
@@ -33,7 +32,6 @@ class GlobalProgressTracker(
         for (exercise in exercises) {
             val pendingUpdate =
                 updateExerciseProgress(
-                    
                     exerciseVariationId = exercise.exerciseVariationId,
                     workoutId = workoutId,
                     isProgrammeWorkout = workout.programmeId != null,
@@ -46,7 +44,6 @@ class GlobalProgressTracker(
     }
 
     private suspend fun updateExerciseProgress(
-        
         exerciseVariationId: Long,
         workoutId: Long,
         isProgrammeWorkout: Boolean,
@@ -136,7 +133,6 @@ class GlobalProgressTracker(
     }
 
     private suspend fun createInitialProgress(
-        
         exerciseVariationId: Long,
     ): GlobalExerciseProgress {
         // Try to get 1RM from UserExerciseMax
@@ -144,7 +140,6 @@ class GlobalProgressTracker(
         val estimatedMax = userMax?.oneRMEstimate ?: 0f
 
         return GlobalExerciseProgress(
-            
             exerciseVariationId = exerciseVariationId,
             currentWorkingWeight = 0f,
             estimatedMax = estimatedMax,
@@ -300,7 +295,6 @@ class GlobalProgressTracker(
     private suspend fun updateEstimatedMax(
         progress: GlobalExerciseProgress,
         sets: List<SetLog>,
-        
         workoutDate: LocalDateTime? = null,
     ): Pair<GlobalExerciseProgress, PendingOneRMUpdate?> {
         // Only consider sets with sufficient data for estimation
@@ -336,7 +330,7 @@ class GlobalProgressTracker(
                         val currentBestReps = estimableSets.find { it.actualWeight == bestEstimate?.estimatedMax }?.actualReps ?: Int.MAX_VALUE
                         val hasLowerReps = set.actualReps < currentBestReps
                         val hasSameRepsHigherConfidence = set.actualReps == currentBestReps && estimate.confidence > (bestEstimate?.confidence ?: 0f)
-                        
+
                         if (bestEstimate == null || hasLowerReps || hasSameRepsHigherConfidence) {
                             bestEstimate = estimate
                         }
@@ -364,51 +358,53 @@ class GlobalProgressTracker(
                 )
 
         // Automatically update 1RM if it's an improvement or first record
-        val shouldUpdate1RM = when {
-            // First time recording - save if confidence is reasonable
-            currentUserMax == null && bestEstimate.confidence >= 0.60f -> true
-            
-            // Clear improvement - always update
-            currentUserMax != null && estimated1RM > currentUserMax.oneRMEstimate -> true
-            
-            else -> false
-        }
-        
+        val shouldUpdate1RM =
+            when {
+                // First time recording - save if confidence is reasonable
+                currentUserMax == null && bestEstimate.confidence >= 0.60f -> true
+
+                // Clear improvement - always update
+                currentUserMax != null && estimated1RM > currentUserMax.oneRMEstimate -> true
+
+                else -> false
+            }
+
         if (shouldUpdate1RM) {
             // Automatically save the new 1RM
             val bestSet = estimableSets.maxByOrNull { it.actualWeight }
             if (bestSet != null) {
                 if (currentUserMax != null) {
-                    val updatedMax = currentUserMax.copy(
-                        oneRMEstimate = estimated1RM,
-                        oneRMContext = bestEstimate.source,
-                        oneRMConfidence = bestEstimate.confidence,
-                        oneRMDate = LocalDateTime.now(),
-                        // Update most weight if this set had the most weight
-                        mostWeightLifted = maxOf(currentUserMax.mostWeightLifted, bestSet.actualWeight),
-                        mostWeightReps = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) bestSet.actualReps else currentUserMax.mostWeightReps,
-                        mostWeightRpe = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) bestSet.actualRpe else currentUserMax.mostWeightRpe,
-                        mostWeightDate = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) LocalDateTime.now() else currentUserMax.mostWeightDate
-                    )
+                    val updatedMax =
+                        currentUserMax.copy(
+                            oneRMEstimate = estimated1RM,
+                            oneRMContext = bestEstimate.source,
+                            oneRMConfidence = bestEstimate.confidence,
+                            oneRMDate = LocalDateTime.now(),
+                            // Update most weight if this set had the most weight
+                            mostWeightLifted = maxOf(currentUserMax.mostWeightLifted, bestSet.actualWeight),
+                            mostWeightReps = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) bestSet.actualReps else currentUserMax.mostWeightReps,
+                            mostWeightRpe = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) bestSet.actualRpe else currentUserMax.mostWeightRpe,
+                            mostWeightDate = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) LocalDateTime.now() else currentUserMax.mostWeightDate,
+                        )
                     database.oneRMDao().updateExerciseMax(updatedMax)
                 } else {
-                    val newMax = UserExerciseMax(
-                        
-                        exerciseVariationId = progress.exerciseVariationId,
-                        oneRMEstimate = estimated1RM,
-                        oneRMContext = bestEstimate.source,
-                        oneRMConfidence = bestEstimate.confidence,
-                        oneRMDate = LocalDateTime.now(),
-                        mostWeightLifted = bestSet.actualWeight,
-                        mostWeightReps = bestSet.actualReps,
-                        mostWeightRpe = bestSet.actualRpe,
-                        mostWeightDate = LocalDateTime.now()
-                    )
+                    val newMax =
+                        UserExerciseMax(
+                            exerciseVariationId = progress.exerciseVariationId,
+                            oneRMEstimate = estimated1RM,
+                            oneRMContext = bestEstimate.source,
+                            oneRMConfidence = bestEstimate.confidence,
+                            oneRMDate = LocalDateTime.now(),
+                            mostWeightLifted = bestSet.actualWeight,
+                            mostWeightReps = bestSet.actualReps,
+                            mostWeightRpe = bestSet.actualRpe,
+                            mostWeightDate = LocalDateTime.now(),
+                        )
                     database.oneRMDao().insertExerciseMax(newMax)
                 }
             }
         }
-        
+
         // No longer return pending updates since we're not prompting users
         val pendingUpdate: PendingOneRMUpdate? = null
 

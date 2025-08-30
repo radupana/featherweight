@@ -46,10 +46,11 @@ data class ExerciseStructure(
     val intensity: List<Int>? = null, // Percentages for 1RM-based programs
     val customizable: Boolean = false,
     val category: String? = null, // For accessory categorization
-    val note: String? = null,
-    val suggestedWeight: Float? = null, // AI-suggested weight in kg
+    val note: String? = null, // User notes like "shoulder felt tight"
     val weightSource: String? = null, // Source of weight suggestion
     val exerciseId: Long? = null, // Matched exercise variation ID
+    val weights: List<Float>? = null, // Per-set weights in kg
+    val rpeValues: List<Float?>? = null, // Per-set RPE values (1-10), null if not specified
 )
 
 @Serializable

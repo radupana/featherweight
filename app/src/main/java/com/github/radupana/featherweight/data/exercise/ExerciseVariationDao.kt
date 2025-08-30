@@ -70,7 +70,6 @@ interface ExerciseVariationDao {
     @Query("SELECT * FROM exercise_variations WHERE isCustom = :isCustom ORDER BY usageCount DESC, name ASC")
     suspend fun getExerciseVariationsByCustomStatus(isCustom: Boolean): List<ExerciseVariation>
 
-
     // Usage tracking
     @Query("UPDATE exercise_variations SET usageCount = usageCount + 1 WHERE id = :id")
     suspend fun incrementUsageCount(id: Long)

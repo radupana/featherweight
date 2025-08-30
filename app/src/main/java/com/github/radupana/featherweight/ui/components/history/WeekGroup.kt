@@ -173,21 +173,22 @@ private fun CompactWorkoutCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 // Clean up workout name if it starts with "Repeat Workout from "
-                val displayName = workout.name?.let { name ->
-                    if (name.startsWith("Repeat Workout from ")) {
-                        name.removePrefix("Repeat Workout from ")
-                    } else {
-                        name
+                val displayName =
+                    workout.name?.let { name ->
+                        if (name.startsWith("Repeat Workout from ")) {
+                            name.removePrefix("Repeat Workout from ")
+                        } else {
+                            name
+                        }
                     }
-                }
-                
+
                 Text(
                     text = displayName ?: "Workout",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                
+
                 // Show relative time for the workout date
                 val relativeTime = formatRelativeTime(workout.date)
                 Text(
@@ -212,7 +213,7 @@ private fun CompactWorkoutCard(
 internal fun formatRelativeTime(dateTime: LocalDateTime): String {
     val now = LocalDateTime.now()
     val daysDiff = ChronoUnit.DAYS.between(dateTime.toLocalDate(), now.toLocalDate())
-    
+
     return when {
         daysDiff == 0L -> {
             // Today - show time

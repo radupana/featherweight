@@ -7,7 +7,6 @@ import org.junit.Before
 import org.junit.Test
 
 class ExerciseTypeConvertersTest {
-
     private lateinit var converters: ExerciseTypeConverters
 
     @Before

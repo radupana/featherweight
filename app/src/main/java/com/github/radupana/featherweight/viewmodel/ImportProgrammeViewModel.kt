@@ -204,13 +204,14 @@ class ImportProgrammeViewModel(
         Log.d("ImportProgrammeViewModel", "Looking for: '$exerciseName' (normalized: '$nameLower')")
 
         // Try matching strategies in order of preference
-        val matchedId = tryExactNameMatch(nameLower, allExercises)
-            ?: tryExactAliasMatch(nameLower, allExercises)
-            ?: tryImportantWordsMatch(nameLower, allExercises)
-            ?: tryVariationMatch(nameLower, allExercises)
-            ?: tryNormalizedMatch(nameLower, allExercises)
-            ?: tryEquipmentStrippedMatch(nameLower, allExercises)
-            ?: tryAbbreviationMatch(nameLower, allExercises)
+        val matchedId =
+            tryExactNameMatch(nameLower, allExercises)
+                ?: tryExactAliasMatch(nameLower, allExercises)
+                ?: tryImportantWordsMatch(nameLower, allExercises)
+                ?: tryVariationMatch(nameLower, allExercises)
+                ?: tryNormalizedMatch(nameLower, allExercises)
+                ?: tryEquipmentStrippedMatch(nameLower, allExercises)
+                ?: tryAbbreviationMatch(nameLower, allExercises)
 
         if (matchedId == null) {
             Log.d("ImportProgrammeViewModel", "NO MATCH FOUND for: $exerciseName")
@@ -221,116 +222,123 @@ class ImportProgrammeViewModel(
 
     private fun tryExactNameMatch(
         nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>
-    ): Long? {
-        return allExercises.find { it.name.lowercase() == nameLower }?.let {
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
+    ): Long? =
+        allExercises.find { it.name.lowercase() == nameLower }?.let {
             Log.d("ImportProgrammeViewModel", "Exact name match found: ${it.name} (ID: ${it.id})")
             it.id
         }
-    }
 
     private fun tryExactAliasMatch(
         nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>
-    ): Long? {
-        return allExercises.find { exercise ->
-            exercise.aliases.any { alias -> alias.lowercase() == nameLower }
-        }?.let {
-            Log.d("ImportProgrammeViewModel", "Exact alias match found: ${it.name} (ID: ${it.id})")
-            it.id
-        }
-    }
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
+    ): Long? =
+        allExercises
+            .find { exercise ->
+                exercise.aliases.any { alias -> alias.lowercase() == nameLower }
+            }?.let {
+                Log.d("ImportProgrammeViewModel", "Exact alias match found: ${it.name} (ID: ${it.id})")
+                it.id
+            }
 
     private fun tryImportantWordsMatch(
         nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
     ): Long? {
         val inputEquipment = extractEquipment(nameLower)
         val importantWords = nameLower.split(" ").filter { it.length > 2 }
 
-        return allExercises.find { exercise ->
-            val exerciseLower = exercise.name.lowercase()
-            val exerciseEquipment = extractEquipment(exerciseLower)
-            val equipmentOk = isEquipmentCompatible(inputEquipment, exerciseEquipment)
-            equipmentOk && importantWords.all { word -> exerciseLower.contains(word) }
-        }?.let {
-            Log.d("ImportProgrammeViewModel", "Important words match found: ${it.name} (ID: ${it.id})")
-            it.id
-        }
+        return allExercises
+            .find { exercise ->
+                val exerciseLower = exercise.name.lowercase()
+                val exerciseEquipment = extractEquipment(exerciseLower)
+                val equipmentOk = isEquipmentCompatible(inputEquipment, exerciseEquipment)
+                equipmentOk && importantWords.all { word -> exerciseLower.contains(word) }
+            }?.let {
+                Log.d("ImportProgrammeViewModel", "Important words match found: ${it.name} (ID: ${it.id})")
+                it.id
+            }
     }
 
-    private fun isEquipmentCompatible(inputEquipment: String?, exerciseEquipment: String?): Boolean {
-        return when {
+    private fun isEquipmentCompatible(
+        inputEquipment: String?,
+        exerciseEquipment: String?,
+    ): Boolean =
+        when {
             inputEquipment == null || exerciseEquipment == null -> true
             inputEquipment == exerciseEquipment -> true
             inputEquipment == "dumbbell" && exerciseEquipment == "barbell" -> false
             inputEquipment == "barbell" && exerciseEquipment == "dumbbell" -> false
             else -> true
         }
-    }
 
     private fun tryVariationMatch(
         nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
     ): Long? {
         if (!nameLower.contains(" or ")) return null
 
         val variations = nameLower.split(" or ")
         for (variation in variations) {
             val varTrimmed = variation.trim()
-            allExercises.find { exercise ->
-                exercise.name.lowercase().contains(varTrimmed)
-            }?.let { return it.id }
+            allExercises
+                .find { exercise ->
+                    exercise.name.lowercase().contains(varTrimmed)
+                }?.let { return it.id }
         }
         return null
     }
 
     private fun tryNormalizedMatch(
         nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
     ): Long? {
         val nameWithVariations = nameLower.replace("weighted ", "").trim()
-        return allExercises.find {
-            it.name.lowercase().contains(nameWithVariations)
-        }?.id
+        return allExercises
+            .find {
+                it.name.lowercase().contains(nameWithVariations)
+            }?.id
     }
 
     private fun tryEquipmentStrippedMatch(
         nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
     ): Long? {
         val nameWithoutEquipment = stripEquipmentFromName(nameLower)
 
         // Special handling for cable exercises
         if (nameLower.startsWith("cable ")) {
-            return allExercises.find { exercise ->
-                val exName = exercise.name.lowercase()
-                exName.startsWith("cable ") &&
-                    exName.removePrefix("cable ").trim() == nameWithoutEquipment
-            }?.id
+            return allExercises
+                .find { exercise ->
+                    val exName = exercise.name.lowercase()
+                    exName.startsWith("cable ") &&
+                        exName.removePrefix("cable ").trim() == nameWithoutEquipment
+                }?.id
         }
 
         // For non-cable exercises, try to find exercise that ends with the core movement
-        return allExercises.find {
-            it.name.lowercase().endsWith(nameWithoutEquipment)
-        }?.id
+        return allExercises
+            .find {
+                it.name.lowercase().endsWith(nameWithoutEquipment)
+            }?.id
     }
 
     private fun tryAbbreviationMatch(
         nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
     ): Long? {
         val normalizedName = normalizeExerciseName(nameLower)
-        return allExercises.find {
-            normalizeExerciseName(it.name.lowercase()) == normalizedName
-        }?.let {
-            Log.d("ImportProgrammeViewModel", "Normalized name match found: ${it.name} (ID: ${it.id})")
-            it.id
-        }
+        return allExercises
+            .find {
+                normalizeExerciseName(it.name.lowercase()) == normalizedName
+            }?.let {
+                Log.d("ImportProgrammeViewModel", "Normalized name match found: ${it.name} (ID: ${it.id})")
+                it.id
+            }
     }
 
-    private fun stripEquipmentFromName(name: String): String {
-        return name
+    private fun stripEquipmentFromName(name: String): String =
+        name
             .replace("barbell ", "")
             .replace("dumbbell ", "")
             .replace("db ", "")
@@ -344,7 +352,6 @@ class ImportProgrammeViewModel(
             .replace("paused ", "")
             .replace("pin ", "")
             .trim()
-    }
 
     private fun extractEquipment(exerciseName: String): String? {
         val name = exerciseName.lowercase()
@@ -559,7 +566,7 @@ class ImportProgrammeViewModel(
         Log.d("ImportProgrammeViewModel", "  name: ${parsedProgramme.name}")
         Log.d("ImportProgrammeViewModel", "  durationWeeks: ${parsedProgramme.durationWeeks}")
         Log.d("ImportProgrammeViewModel", "  jsonStructure length: ${programmeStructure.length} chars")
-        
+
         val programmeId =
             repository.createImportedProgramme(
                 name = parsedProgramme.name,
@@ -597,11 +604,11 @@ class ImportProgrammeViewModel(
     private fun buildProgrammeJson(programme: ParsedProgramme): String {
         Log.d("ImportProgrammeViewModel", "=== BUILDING PROGRAMME JSON ===")
         Log.d("ImportProgrammeViewModel", "Programme: ${programme.name}")
-        
+
         val weeks =
             programme.weeks.map { week ->
                 Log.d("ImportProgrammeViewModel", "Processing Week ${week.weekNumber}: ${week.name}")
-                
+
                 mapOf(
                     "weekNumber" to week.weekNumber,
                     "name" to week.name,
@@ -615,13 +622,13 @@ class ImportProgrammeViewModel(
                         week.workouts.map { workout ->
                             Log.d("ImportProgrammeViewModel", "  Processing Workout: ${workout.name} (${workout.dayOfWeek})")
                             Log.d("ImportProgrammeViewModel", "    Exercise count: ${workout.exercises.size}")
-                            
+
                             workout.exercises.forEachIndexed { index, exercise ->
                                 Log.d("ImportProgrammeViewModel", "    Exercise ${index + 1}: ${exercise.exerciseName}")
                                 Log.d("ImportProgrammeViewModel", "      matchedExerciseId: ${exercise.matchedExerciseId}")
                                 Log.d("ImportProgrammeViewModel", "      sets: ${exercise.sets.size}")
                             }
-                            
+
                             mapOf(
                                 "name" to workout.name,
                                 "dayOfWeek" to workout.dayOfWeek,
@@ -646,22 +653,24 @@ class ImportProgrammeViewModel(
                 )
             }
 
-        val totalExercises = programme.weeks.sumOf { week -> 
-            week.workouts.sumOf { it.exercises.size } 
-        }
-        val exercisesWithIds = programme.weeks.sumOf { week -> 
-            week.workouts.sumOf { workout -> 
-                workout.exercises.count { it.matchedExerciseId != null } 
-            } 
-        }
-        
+        val totalExercises =
+            programme.weeks.sumOf { week ->
+                week.workouts.sumOf { it.exercises.size }
+            }
+        val exercisesWithIds =
+            programme.weeks.sumOf { week ->
+                week.workouts.sumOf { workout ->
+                    workout.exercises.count { it.matchedExerciseId != null }
+                }
+            }
+
         Log.d("ImportProgrammeViewModel", "=== PROGRAMME JSON SUMMARY ===")
         Log.d("ImportProgrammeViewModel", "Total weeks: ${programme.weeks.size}")
         Log.d("ImportProgrammeViewModel", "Total workouts: ${programme.weeks.sumOf { it.workouts.size }}")
         Log.d("ImportProgrammeViewModel", "Total exercises: $totalExercises")
         Log.d("ImportProgrammeViewModel", "Exercises with matched IDs: $exercisesWithIds")
         Log.d("ImportProgrammeViewModel", "Exercises WITHOUT matched IDs: ${totalExercises - exercisesWithIds}")
-        
+
         return com.google.gson
             .Gson()
             .toJson(mapOf("weeks" to weeks))

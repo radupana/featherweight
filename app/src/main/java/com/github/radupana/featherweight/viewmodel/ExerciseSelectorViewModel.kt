@@ -570,12 +570,13 @@ class ExerciseSelectorViewModel(
                     _currentSwapExerciseName.value = null
                 }
             } catch (e: Exception) {
-                val message = when (e) {
-                    is android.database.sqlite.SQLiteException -> "Database error loading swap suggestions"
-                    is IllegalArgumentException -> "Invalid exercise ID for swap suggestions"
-                    is SecurityException -> "Permission error loading swap suggestions"
-                    else -> "Error loading swap suggestions"
-                }
+                val message =
+                    when (e) {
+                        is android.database.sqlite.SQLiteException -> "Database error loading swap suggestions"
+                        is IllegalArgumentException -> "Invalid exercise ID for swap suggestions"
+                        is SecurityException -> "Permission error loading swap suggestions"
+                        else -> "Error loading swap suggestions"
+                    }
                 throw IllegalStateException(message, e)
             }
         }

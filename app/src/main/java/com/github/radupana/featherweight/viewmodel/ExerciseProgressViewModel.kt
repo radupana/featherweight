@@ -127,11 +127,11 @@ class ExerciseProgressViewModel(
 
     private suspend fun buildExerciseProgressData(
         exerciseVariationId: Long,
-        globalProgress: GlobalExerciseProgress
+        globalProgress: GlobalExerciseProgress,
     ): ExerciseProgressData {
         val exercise = repository.getExerciseById(exerciseVariationId)
         val exerciseName = exercise?.name ?: "Unknown Exercise"
-        
+
         val prData = calculatePRData(exerciseVariationId)
         val recentBestData = calculateRecentBest(exerciseVariationId)
         val frequencyData = calculateFrequencyData(exerciseVariationId)
@@ -144,9 +144,12 @@ class ExerciseProgressViewModel(
             allTimePRDate = prData.date,
             recentBest = recentBestData.weight,
             recentBestDate = recentBestData.date ?: globalProgress.lastUpdated.toLocalDate(),
-            recentBestPercentOfPR = if (prData.weight > 0) {
-                ((recentBestData.weight / prData.weight) * 100).toInt()
-            } else 0,
+            recentBestPercentOfPR =
+                if (prData.weight > 0) {
+                    ((recentBestData.weight / prData.weight) * 100).toInt()
+                } else {
+                    0
+                },
             weeklyFrequency = frequencyData.weeklyFrequency,
             frequencyTrend = frequencyData.trend,
             lastPerformed = globalProgress.lastUpdated.toLocalDate(),
@@ -156,20 +159,32 @@ class ExerciseProgressViewModel(
         )
     }
 
-    private data class PRData(val weight: Float, val date: LocalDate?)
-    private data class RecentBestData(val weight: Float, val date: LocalDate?)
-    private data class FrequencyData(val weeklyFrequency: Float, val trend: FrequencyTrend)
+    private data class PRData(
+        val weight: Float,
+        val date: LocalDate?,
+    )
+
+    private data class RecentBestData(
+        val weight: Float,
+        val date: LocalDate?,
+    )
+
+    private data class FrequencyData(
+        val weeklyFrequency: Float,
+        val trend: FrequencyTrend,
+    )
+
     private data class ProgressStatusData(
         val status: ProgressStatus,
         val detail: String,
-        val plateauWeeks: Int
+        val plateauWeeks: Int,
     )
 
     private suspend fun calculatePRData(exerciseVariationId: Long): PRData {
         val prRecord = repository.getPersonalRecordForExercise(exerciseVariationId)
         return PRData(
             weight = prRecord?.weight ?: 0f,
-            date = prRecord?.recordDate?.toLocalDate()
+            date = prRecord?.recordDate?.toLocalDate(),
         )
     }
 
@@ -177,31 +192,36 @@ class ExerciseProgressViewModel(
         val now = LocalDate.now()
         val thirtyDaysAgo = now.minusDays(30)
         var recentBestDate: LocalDate? = null
-        
-        val recentBest = repository.getMaxWeightForExerciseInDateRange(
-            exerciseVariationId = exerciseVariationId,
-            startDate = thirtyDaysAgo,
-            endDate = now,
-        )?.also {
-            recentBestDate = repository.getDateOfMaxWeightForExercise(
-                exerciseVariationId = exerciseVariationId,
-                weight = it,
-                startDate = thirtyDaysAgo,
-                endDate = now,
-            )
-        } ?: repository.getMaxWeightForExerciseInDateRange(
-            exerciseVariationId = exerciseVariationId,
-            startDate = now.minusDays(60),
-            endDate = now,
-        )?.also {
-            recentBestDate = repository.getDateOfMaxWeightForExercise(
-                exerciseVariationId = exerciseVariationId,
-                weight = it,
-                startDate = now.minusDays(60),
-                endDate = now,
-            )
-        } ?: 0f
-        
+
+        val recentBest =
+            repository
+                .getMaxWeightForExerciseInDateRange(
+                    exerciseVariationId = exerciseVariationId,
+                    startDate = thirtyDaysAgo,
+                    endDate = now,
+                )?.also {
+                    recentBestDate =
+                        repository.getDateOfMaxWeightForExercise(
+                            exerciseVariationId = exerciseVariationId,
+                            weight = it,
+                            startDate = thirtyDaysAgo,
+                            endDate = now,
+                        )
+                } ?: repository
+                .getMaxWeightForExerciseInDateRange(
+                    exerciseVariationId = exerciseVariationId,
+                    startDate = now.minusDays(60),
+                    endDate = now,
+                )?.also {
+                    recentBestDate =
+                        repository.getDateOfMaxWeightForExercise(
+                            exerciseVariationId = exerciseVariationId,
+                            weight = it,
+                            startDate = now.minusDays(60),
+                            endDate = now,
+                        )
+                } ?: 0f
+
         return RecentBestData(recentBest, recentBestDate)
     }
 
@@ -210,37 +230,44 @@ class ExerciseProgressViewModel(
         val eightWeeksAgo = now.minusWeeks(8)
         val fourWeeksAgo = now.minusWeeks(4)
 
-        val sessionCountLast8Weeks = repository.getDistinctWorkoutDatesForExercise(
-            exerciseVariationId = exerciseVariationId,
-            startDate = eightWeeksAgo,
-            endDate = now,
-        ).size
+        val sessionCountLast8Weeks =
+            repository
+                .getDistinctWorkoutDatesForExercise(
+                    exerciseVariationId = exerciseVariationId,
+                    startDate = eightWeeksAgo,
+                    endDate = now,
+                ).size
 
-        val sessionCountLast4Weeks = repository.getDistinctWorkoutDatesForExercise(
-            exerciseVariationId = exerciseVariationId,
-            startDate = fourWeeksAgo,
-            endDate = now,
-        ).size
+        val sessionCountLast4Weeks =
+            repository
+                .getDistinctWorkoutDatesForExercise(
+                    exerciseVariationId = exerciseVariationId,
+                    startDate = fourWeeksAgo,
+                    endDate = now,
+                ).size
 
-        val sessionCountPrevious4Weeks = repository.getDistinctWorkoutDatesForExercise(
-            exerciseVariationId = exerciseVariationId,
-            startDate = eightWeeksAgo,
-            endDate = fourWeeksAgo,
-        ).size
+        val sessionCountPrevious4Weeks =
+            repository
+                .getDistinctWorkoutDatesForExercise(
+                    exerciseVariationId = exerciseVariationId,
+                    startDate = eightWeeksAgo,
+                    endDate = fourWeeksAgo,
+                ).size
 
         val weeklyFrequency = sessionCountLast8Weeks / 8.0f
-        val frequencyTrend = when {
-            sessionCountLast4Weeks > sessionCountPrevious4Weeks * 1.2 -> FrequencyTrend.UP
-            sessionCountLast4Weeks < sessionCountPrevious4Weeks * 0.8 -> FrequencyTrend.DOWN
-            else -> FrequencyTrend.STABLE
-        }
+        val frequencyTrend =
+            when {
+                sessionCountLast4Weeks > sessionCountPrevious4Weeks * 1.2 -> FrequencyTrend.UP
+                sessionCountLast4Weeks < sessionCountPrevious4Weeks * 0.8 -> FrequencyTrend.DOWN
+                else -> FrequencyTrend.STABLE
+            }
 
         return FrequencyData(weeklyFrequency, frequencyTrend)
     }
 
     private fun determineProgressStatus(
         globalProgress: GlobalExerciseProgress,
-        recentBest: Float
+        recentBest: Float,
     ): ProgressStatusData {
         val now = LocalDate.now()
         val daysSinceLastWorkout = ChronoUnit.DAYS.between(globalProgress.lastUpdated.toLocalDate(), now)
@@ -250,7 +277,7 @@ class ExerciseProgressViewModel(
                 ProgressStatusData(
                     ProgressStatus.EXTENDED_BREAK,
                     "Last session $daysSinceLastWorkout days ago",
-                    0
+                    0,
                 )
             }
 
@@ -258,8 +285,8 @@ class ExerciseProgressViewModel(
                 ProgressStatusData(
                     ProgressStatus.WORKING_LIGHTER,
                     "Working: ${WeightFormatter.formatWeightWithUnit(recentBest)} | " +
-                    "Est. Max: ${WeightFormatter.formatWeightWithUnit(globalProgress.estimatedMax)}",
-                    0
+                        "Est. Max: ${WeightFormatter.formatWeightWithUnit(globalProgress.estimatedMax)}",
+                    0,
                 )
             }
 
@@ -268,21 +295,23 @@ class ExerciseProgressViewModel(
                 ProgressStatusData(
                     ProgressStatus.PLATEAU,
                     "$weeks weeks at ${WeightFormatter.formatWeightWithUnit(globalProgress.currentWorkingWeight)}",
-                    weeks
+                    weeks,
                 )
             }
 
             globalProgress.trend == ProgressTrend.IMPROVING -> {
-                val lastProgressDate = globalProgress.lastProgressionDate?.toLocalDate()
-                    ?: globalProgress.lastUpdated.toLocalDate()
+                val lastProgressDate =
+                    globalProgress.lastProgressionDate?.toLocalDate()
+                        ?: globalProgress.lastUpdated.toLocalDate()
                 val daysSinceProgress = ChronoUnit.DAYS.between(lastProgressDate, now)
                 val progressAmount = recentBest - (globalProgress.lastPrWeight ?: recentBest)
-                
-                val detail = if (progressAmount > 0 && daysSinceProgress <= 30) {
-                    "+${WeightFormatter.formatWeight(progressAmount)}kg this month"
-                } else {
-                    "Weight increasing"
-                }
+
+                val detail =
+                    if (progressAmount > 0 && daysSinceProgress <= 30) {
+                        "+${WeightFormatter.formatWeight(progressAmount)}kg this month"
+                    } else {
+                        "Weight increasing"
+                    }
                 ProgressStatusData(ProgressStatus.MAKING_GAINS, detail, 0)
             }
 
@@ -292,11 +321,9 @@ class ExerciseProgressViewModel(
         }
     }
 
-
     fun loadChartData(exerciseVariationId: Long) {
         viewModelScope.launch {
             try {
-
                 // Get exercise name for display
                 val exercise = repository.getExerciseById(exerciseVariationId)
                 val exerciseName = exercise?.name ?: "Unknown Exercise"
@@ -362,7 +389,6 @@ class ExerciseProgressViewModel(
     fun loadMaxWeightChartData(exerciseVariationId: Long) {
         viewModelScope.launch {
             try {
-
                 // Get workout data for this exercise in the last 2 years
                 val startDate = LocalDate.now().minusYears(2)
                 val endDate = LocalDate.now()
@@ -429,7 +455,6 @@ class ExerciseProgressViewModel(
     fun loadVolumeChartData(exerciseVariationId: Long) {
         viewModelScope.launch {
             try {
-
                 // Get workout data for this exercise in the last 12 weeks
                 val startDate = LocalDate.now().minusWeeks(12)
                 val endDate = LocalDate.now()
@@ -481,7 +506,6 @@ class ExerciseProgressViewModel(
     fun loadTrainingPatternsData(exerciseVariationId: Long) {
         viewModelScope.launch {
             try {
-
                 loadFrequencyData(exerciseVariationId)
                 loadRepRangeData(exerciseVariationId)
                 loadRPEZoneData(exerciseVariationId)

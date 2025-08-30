@@ -157,7 +157,9 @@ class WeightCalculator {
                 name.contains("plank") -> ExerciseCategory.BODYWEIGHT
 
             // Heavy compounds (typically heaviest lifts)
-            name.contains("squat") && !name.contains("front squat") && !name.contains("bulgarian") ||
+            name.contains("squat") &&
+                !name.contains("front squat") &&
+                !name.contains("bulgarian") ||
                 name.contains("deadlift") -> ExerciseCategory.HEAVY_COMPOUND
 
             // Medium compounds

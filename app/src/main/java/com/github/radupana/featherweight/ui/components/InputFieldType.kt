@@ -114,7 +114,7 @@ fun CenteredInputField(
                         val maxOneDecimal = text.count { it == '.' } <= 1
                         // Don't allow decimal at start or multiple decimals in a row
                         val validFormat = !text.startsWith(".") && !text.contains("..")
-                        
+
                         validChars && maxLength && maxOneDecimal && validFormat
                     }
                 }
@@ -146,7 +146,7 @@ fun CenteredInputField(
                 {
                     Box(
                         modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = placeholder,

@@ -149,13 +149,14 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
 }
 
 private fun triggerHapticFeedback(context: Context) {
-    val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-        val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
-        vibratorManager?.defaultVibrator
-    } else {
-        @Suppress("DEPRECATION")
-        context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-    }
+    val vibrator =
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+            vibratorManager?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        }
     vibrator?.let {
         // Modern haptic feedback - short sharp impact
         it.vibrate(VibrationEffect.createOneShot(SplashConstants.HAPTIC_DURATION_MS, VibrationEffect.DEFAULT_AMPLITUDE))

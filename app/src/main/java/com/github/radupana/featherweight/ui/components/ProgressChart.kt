@@ -1,7 +1,5 @@
 package com.github.radupana.featherweight.ui.components
 
-import java.util.Locale
-
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,6 +29,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.service.ProgressDataPoint
 import com.github.radupana.featherweight.ui.theme.ChartTheme
+import java.util.Locale
 
 enum class ChartType {
     LINE,

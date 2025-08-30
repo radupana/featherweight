@@ -116,7 +116,6 @@ class ExerciseSeeder(
                                     rmScalingType = rmScalingType,
                                     usageCount = 0,
                                     isCustom = false,
-                                    
                                     createdAt = LocalDateTime.now(),
                                     updatedAt = LocalDateTime.now(),
                                 )
@@ -363,7 +362,7 @@ class ExerciseSeeder(
                     MuscleGroup.LATS -> listOf(MuscleGroup.BICEPS, MuscleGroup.MIDDLE_BACK)
                     else -> emptyList()
                 }
-            "SQUAT" -> 
+            "SQUAT" ->
                 when (primaryMuscle) {
                     MuscleGroup.QUADS, MuscleGroup.QUADRICEPS -> listOf(MuscleGroup.GLUTES, MuscleGroup.CORE)
                     else -> listOf(MuscleGroup.GLUTES, MuscleGroup.CORE)

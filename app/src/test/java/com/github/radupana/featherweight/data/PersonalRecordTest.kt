@@ -5,28 +5,28 @@ import org.junit.Test
 import java.time.LocalDateTime
 
 class PersonalRecordTest {
-
     @Test
     fun personalRecord_creation_withAllFields_createsCorrectly() {
         val recordDate = LocalDateTime.of(2024, 1, 15, 10, 30)
         val previousDate = LocalDateTime.of(2024, 1, 1, 9, 0)
-        
-        val pr = PersonalRecord(
-            id = 1L,
-            exerciseVariationId = 100L,
-            weight = 100f,
-            reps = 5,
-            rpe = 8.5f,
-            recordDate = recordDate,
-            previousWeight = 95f,
-            previousReps = 5,
-            previousDate = previousDate,
-            improvementPercentage = 5.26f,
-            recordType = PRType.WEIGHT,
-            estimated1RM = 116.67f,
-            notes = "Felt strong today",
-            workoutId = 42L
-        )
+
+        val pr =
+            PersonalRecord(
+                id = 1L,
+                exerciseVariationId = 100L,
+                weight = 100f,
+                reps = 5,
+                rpe = 8.5f,
+                recordDate = recordDate,
+                previousWeight = 95f,
+                previousReps = 5,
+                previousDate = previousDate,
+                improvementPercentage = 5.26f,
+                recordType = PRType.WEIGHT,
+                estimated1RM = 116.67f,
+                notes = "Felt strong today",
+                workoutId = 42L,
+            )
 
         assertThat(pr.id).isEqualTo(1L)
         assertThat(pr.exerciseVariationId).isEqualTo(100L)
@@ -48,18 +48,19 @@ class PersonalRecordTest {
     @Test
     fun personalRecord_creation_withMinimalFields_createsWithNulls() {
         val recordDate = LocalDateTime.now()
-        
-        val pr = PersonalRecord(
-            exerciseVariationId = 50L,
-            weight = 50f,
-            reps = 10,
-            recordDate = recordDate,
-            previousWeight = null,
-            previousReps = null,
-            previousDate = null,
-            improvementPercentage = 0f,
-            recordType = PRType.WEIGHT
-        )
+
+        val pr =
+            PersonalRecord(
+                exerciseVariationId = 50L,
+                weight = 50f,
+                reps = 10,
+                recordDate = recordDate,
+                previousWeight = null,
+                previousReps = null,
+                previousDate = null,
+                improvementPercentage = 0f,
+                recordType = PRType.WEIGHT,
+            )
 
         assertThat(pr.id).isEqualTo(0L) // Default value
         assertThat(pr.exerciseVariationId).isEqualTo(50L)
@@ -80,118 +81,126 @@ class PersonalRecordTest {
 
     @Test
     fun personalRecord_volumeCalculation_isCorrect() {
-        val pr1 = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 100f,
-            reps = 10,
-            recordDate = LocalDateTime.now(),
-            previousWeight = null,
-            previousReps = null,
-            previousDate = null,
-            improvementPercentage = 0f,
-            recordType = PRType.ESTIMATED_1RM
-        )
+        val pr1 =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 100f,
+                reps = 10,
+                recordDate = LocalDateTime.now(),
+                previousWeight = null,
+                previousReps = null,
+                previousDate = null,
+                improvementPercentage = 0f,
+                recordType = PRType.ESTIMATED_1RM,
+            )
         assertThat(pr1.volume).isEqualTo(1000f)
 
-        val pr2 = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 225.5f,
-            reps = 3,
-            recordDate = LocalDateTime.now(),
-            previousWeight = null,
-            previousReps = null,
-            previousDate = null,
-            improvementPercentage = 0f,
-            recordType = PRType.ESTIMATED_1RM
-        )
+        val pr2 =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 225.5f,
+                reps = 3,
+                recordDate = LocalDateTime.now(),
+                previousWeight = null,
+                previousReps = null,
+                previousDate = null,
+                improvementPercentage = 0f,
+                recordType = PRType.ESTIMATED_1RM,
+            )
         assertThat(pr2.volume).isEqualTo(676.5f)
 
-        val pr3 = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 0f,
-            reps = 20,
-            recordDate = LocalDateTime.now(),
-            previousWeight = null,
-            previousReps = null,
-            previousDate = null,
-            improvementPercentage = 0f,
-            recordType = PRType.ESTIMATED_1RM
-        )
+        val pr3 =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 0f,
+                reps = 20,
+                recordDate = LocalDateTime.now(),
+                previousWeight = null,
+                previousReps = null,
+                previousDate = null,
+                improvementPercentage = 0f,
+                recordType = PRType.ESTIMATED_1RM,
+            )
         assertThat(pr3.volume).isEqualTo(0f)
     }
 
     @Test
     fun personalRecord_allPRTypes_areValid() {
         val baseDate = LocalDateTime.now()
-        
-        val weightPR = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 100f,
-            reps = 5,
-            recordDate = baseDate,
-            previousWeight = 95f,
-            previousReps = 5,
-            previousDate = baseDate.minusDays(7),
-            improvementPercentage = 5.26f,
-            recordType = PRType.WEIGHT
-        )
+
+        val weightPR =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 100f,
+                reps = 5,
+                recordDate = baseDate,
+                previousWeight = 95f,
+                previousReps = 5,
+                previousDate = baseDate.minusDays(7),
+                improvementPercentage = 5.26f,
+                recordType = PRType.WEIGHT,
+            )
         assertThat(weightPR.recordType).isEqualTo(PRType.WEIGHT)
 
-        val repsPR = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 80f,
-            reps = 12,
-            recordDate = baseDate,
-            previousWeight = 80f,
-            previousReps = 10,
-            previousDate = baseDate.minusDays(7),
-            improvementPercentage = 20f,
-            recordType = PRType.WEIGHT
-        )
+        val repsPR =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 80f,
+                reps = 12,
+                recordDate = baseDate,
+                previousWeight = 80f,
+                previousReps = 10,
+                previousDate = baseDate.minusDays(7),
+                improvementPercentage = 20f,
+                recordType = PRType.WEIGHT,
+            )
         assertThat(repsPR.recordType).isEqualTo(PRType.WEIGHT)
 
-        val volumePR = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 85f,
-            reps = 10,
-            recordDate = baseDate,
-            previousWeight = 80f,
-            previousReps = 10,
-            previousDate = baseDate.minusDays(7),
-            improvementPercentage = 6.25f,
-            recordType = PRType.ESTIMATED_1RM
-        )
+        val volumePR =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 85f,
+                reps = 10,
+                recordDate = baseDate,
+                previousWeight = 80f,
+                previousReps = 10,
+                previousDate = baseDate.minusDays(7),
+                improvementPercentage = 6.25f,
+                recordType = PRType.ESTIMATED_1RM,
+            )
         assertThat(volumePR.recordType).isEqualTo(PRType.ESTIMATED_1RM)
 
-        val estimated1RMPR = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 90f,
-            reps = 8,
-            recordDate = baseDate,
-            previousWeight = 85f,
-            previousReps = 8,
-            previousDate = baseDate.minusDays(7),
-            improvementPercentage = 5.88f,
-            recordType = PRType.ESTIMATED_1RM,
-            estimated1RM = 113f
-        )
+        val estimated1RMPR =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 90f,
+                reps = 8,
+                recordDate = baseDate,
+                previousWeight = 85f,
+                previousReps = 8,
+                previousDate = baseDate.minusDays(7),
+                improvementPercentage = 5.88f,
+                recordType = PRType.ESTIMATED_1RM,
+                estimated1RM = 113f,
+            )
         assertThat(estimated1RMPR.recordType).isEqualTo(PRType.ESTIMATED_1RM)
     }
 
     @Test
     fun personalRecord_withHighImprovementPercentage_isValid() {
-        val pr = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 100f,
-            reps = 10,
-            recordDate = LocalDateTime.now(),
-            previousWeight = 50f,
-            previousReps = 10,
-            previousDate = LocalDateTime.now().minusDays(30),
-            improvementPercentage = 100f, // Doubled the weight
-            recordType = PRType.WEIGHT
-        )
-        
+        val pr =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 100f,
+                reps = 10,
+                recordDate = LocalDateTime.now(),
+                previousWeight = 50f,
+                previousReps = 10,
+                previousDate = LocalDateTime.now().minusDays(30),
+                improvementPercentage = 100f, // Doubled the weight
+                recordType = PRType.WEIGHT,
+            )
+
         assertThat(pr.improvementPercentage).isEqualTo(100f)
         assertThat(pr.weight).isEqualTo(100f)
         assertThat(pr.previousWeight).isEqualTo(50f)
@@ -200,87 +209,93 @@ class PersonalRecordTest {
     @Test
     fun personalRecord_withNegativeImprovementPercentage_isValid() {
         // This shouldn't normally happen for a PR, but testing edge case
-        val pr = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 90f,
-            reps = 5,
-            recordDate = LocalDateTime.now(),
-            previousWeight = 100f,
-            previousReps = 5,
-            previousDate = LocalDateTime.now().minusDays(7),
-            improvementPercentage = -10f,
-            recordType = PRType.WEIGHT
-        )
-        
+        val pr =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 90f,
+                reps = 5,
+                recordDate = LocalDateTime.now(),
+                previousWeight = 100f,
+                previousReps = 5,
+                previousDate = LocalDateTime.now().minusDays(7),
+                improvementPercentage = -10f,
+                recordType = PRType.WEIGHT,
+            )
+
         assertThat(pr.improvementPercentage).isEqualTo(-10f)
     }
 
     @Test
     fun personalRecord_withRPE_validatesRange() {
-        val pr1 = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 100f,
-            reps = 5,
-            rpe = 10f, // Maximum RPE
-            recordDate = LocalDateTime.now(),
-            previousWeight = null,
-            previousReps = null,
-            previousDate = null,
-            improvementPercentage = 0f,
-            recordType = PRType.WEIGHT
-        )
+        val pr1 =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 100f,
+                reps = 5,
+                rpe = 10f, // Maximum RPE
+                recordDate = LocalDateTime.now(),
+                previousWeight = null,
+                previousReps = null,
+                previousDate = null,
+                improvementPercentage = 0f,
+                recordType = PRType.WEIGHT,
+            )
         assertThat(pr1.rpe).isEqualTo(10f)
 
-        val pr2 = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 100f,
-            reps = 5,
-            rpe = 6.5f, // Mid-range RPE
-            recordDate = LocalDateTime.now(),
-            previousWeight = null,
-            previousReps = null,
-            previousDate = null,
-            improvementPercentage = 0f,
-            recordType = PRType.WEIGHT
-        )
+        val pr2 =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 100f,
+                reps = 5,
+                rpe = 6.5f, // Mid-range RPE
+                recordDate = LocalDateTime.now(),
+                previousWeight = null,
+                previousReps = null,
+                previousDate = null,
+                improvementPercentage = 0f,
+                recordType = PRType.WEIGHT,
+            )
         assertThat(pr2.rpe).isEqualTo(6.5f)
 
-        val pr3 = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 100f,
-            reps = 5,
-            rpe = 0f, // Edge case - minimum
-            recordDate = LocalDateTime.now(),
-            previousWeight = null,
-            previousReps = null,
-            previousDate = null,
-            improvementPercentage = 0f,
-            recordType = PRType.WEIGHT
-        )
+        val pr3 =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 100f,
+                reps = 5,
+                rpe = 0f, // Edge case - minimum
+                recordDate = LocalDateTime.now(),
+                previousWeight = null,
+                previousReps = null,
+                previousDate = null,
+                improvementPercentage = 0f,
+                recordType = PRType.WEIGHT,
+            )
         assertThat(pr3.rpe).isEqualTo(0f)
     }
 
     @Test
     fun personalRecord_withLongNotes_storesCorrectly() {
-        val longNotes = "This was an amazing PR! I felt incredibly strong today. " +
-            "Perfect form throughout all reps. The warm-up was thorough and I made sure " +
-            "to rest adequately between sets. This is a 10lb increase from my previous best. " +
-            "I think the recent focus on technique and progressive overload is really paying off. " +
-            "Next goal is to hit 105kg for 5 reps."
-        
-        val pr = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 100f,
-            reps = 5,
-            recordDate = LocalDateTime.now(),
-            previousWeight = 95f,
-            previousReps = 5,
-            previousDate = LocalDateTime.now().minusWeeks(2),
-            improvementPercentage = 5.26f,
-            recordType = PRType.WEIGHT,
-            notes = longNotes
-        )
-        
+        val longNotes =
+            "This was an amazing PR! I felt incredibly strong today. " +
+                "Perfect form throughout all reps. The warm-up was thorough and I made sure " +
+                "to rest adequately between sets. This is a 10lb increase from my previous best. " +
+                "I think the recent focus on technique and progressive overload is really paying off. " +
+                "Next goal is to hit 105kg for 5 reps."
+
+        val pr =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 100f,
+                reps = 5,
+                recordDate = LocalDateTime.now(),
+                previousWeight = 95f,
+                previousReps = 5,
+                previousDate = LocalDateTime.now().minusWeeks(2),
+                improvementPercentage = 5.26f,
+                recordType = PRType.WEIGHT,
+                notes = longNotes,
+            )
+
         assertThat(pr.notes).isEqualTo(longNotes)
         assertThat(pr.notes).hasLength(longNotes.length)
     }
@@ -289,19 +304,20 @@ class PersonalRecordTest {
     fun personalRecord_dateTimeFields_maintainPrecision() {
         val recordDate = LocalDateTime.of(2024, 3, 15, 14, 30, 45, 123456789)
         val previousDate = LocalDateTime.of(2024, 2, 28, 9, 15, 30, 987654321)
-        
-        val pr = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 100f,
-            reps = 5,
-            recordDate = recordDate,
-            previousWeight = 95f,
-            previousReps = 5,
-            previousDate = previousDate,
-            improvementPercentage = 5.26f,
-            recordType = PRType.WEIGHT
-        )
-        
+
+        val pr =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 100f,
+                reps = 5,
+                recordDate = recordDate,
+                previousWeight = 95f,
+                previousReps = 5,
+                previousDate = previousDate,
+                improvementPercentage = 5.26f,
+                recordType = PRType.WEIGHT,
+            )
+
         assertThat(pr.recordDate).isEqualTo(recordDate)
         assertThat(pr.previousDate).isEqualTo(previousDate)
         assertThat(pr.recordDate.year).isEqualTo(2024)
@@ -314,90 +330,95 @@ class PersonalRecordTest {
 
     @Test
     fun personalRecord_withEstimated1RM_storesCorrectly() {
-        val pr = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 85f,
-            reps = 8,
-            recordDate = LocalDateTime.now(),
-            previousWeight = 80f,
-            previousReps = 8,
-            previousDate = LocalDateTime.now().minusDays(14),
-            improvementPercentage = 6.25f,
-            recordType = PRType.ESTIMATED_1RM,
-            estimated1RM = 106.25f // 85 * 1.25 for 8 reps approximation
-        )
-        
+        val pr =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 85f,
+                reps = 8,
+                recordDate = LocalDateTime.now(),
+                previousWeight = 80f,
+                previousReps = 8,
+                previousDate = LocalDateTime.now().minusDays(14),
+                improvementPercentage = 6.25f,
+                recordType = PRType.ESTIMATED_1RM,
+                estimated1RM = 106.25f, // 85 * 1.25 for 8 reps approximation
+            )
+
         assertThat(pr.estimated1RM).isEqualTo(106.25f)
         assertThat(pr.recordType).isEqualTo(PRType.ESTIMATED_1RM)
     }
 
     @Test
     fun personalRecord_withWorkoutId_linksToWorkout() {
-        val pr = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 100f,
-            reps = 5,
-            recordDate = LocalDateTime.now(),
-            previousWeight = null,
-            previousReps = null,
-            previousDate = null,
-            improvementPercentage = 0f,
-            recordType = PRType.WEIGHT,
-            workoutId = 999L
-        )
-        
+        val pr =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 100f,
+                reps = 5,
+                recordDate = LocalDateTime.now(),
+                previousWeight = null,
+                previousReps = null,
+                previousDate = null,
+                improvementPercentage = 0f,
+                recordType = PRType.WEIGHT,
+                workoutId = 999L,
+            )
+
         assertThat(pr.workoutId).isEqualTo(999L)
     }
 
     @Test
     fun personalRecord_withZeroReps_calculatesZeroVolume() {
-        val pr = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 100f,
-            reps = 0,
-            recordDate = LocalDateTime.now(),
-            previousWeight = null,
-            previousReps = null,
-            previousDate = null,
-            improvementPercentage = 0f,
-            recordType = PRType.WEIGHT
-        )
-        
+        val pr =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 100f,
+                reps = 0,
+                recordDate = LocalDateTime.now(),
+                previousWeight = null,
+                previousReps = null,
+                previousDate = null,
+                improvementPercentage = 0f,
+                recordType = PRType.WEIGHT,
+            )
+
         assertThat(pr.volume).isEqualTo(0f)
     }
 
     @Test
     fun personalRecord_withVeryHighWeight_handlesCorrectly() {
-        val pr = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 500f, // Very heavy weight
-            reps = 1,
-            recordDate = LocalDateTime.now(),
-            previousWeight = 495f,
-            previousReps = 1,
-            previousDate = LocalDateTime.now().minusMonths(1),
-            improvementPercentage = 1.01f,
-            recordType = PRType.WEIGHT
-        )
-        
+        val pr =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 500f, // Very heavy weight
+                reps = 1,
+                recordDate = LocalDateTime.now(),
+                previousWeight = 495f,
+                previousReps = 1,
+                previousDate = LocalDateTime.now().minusMonths(1),
+                improvementPercentage = 1.01f,
+                recordType = PRType.WEIGHT,
+            )
+
         assertThat(pr.weight).isEqualTo(500f)
         assertThat(pr.volume).isEqualTo(500f)
     }
 
     @Test
     fun personalRecord_withVeryHighReps_handlesCorrectly() {
-        val pr = PersonalRecord(
-            exerciseVariationId = 1L,
-            weight = 20f,
-            reps = 100, // Very high reps for endurance
-            recordDate = LocalDateTime.now(),
-            previousWeight = 20f,
-            previousReps = 90,
-            previousDate = LocalDateTime.now().minusDays(7),
-            improvementPercentage = 11.11f,
-            recordType = PRType.WEIGHT
-        )
-        
+        val pr =
+            PersonalRecord(
+                exerciseVariationId = 1L,
+                weight = 20f,
+                reps = 100, // Very high reps for endurance
+                recordDate = LocalDateTime.now(),
+                previousWeight = 20f,
+                previousReps = 90,
+                previousDate = LocalDateTime.now().minusDays(7),
+                improvementPercentage = 11.11f,
+                recordType = PRType.WEIGHT,
+            )
+
         assertThat(pr.reps).isEqualTo(100)
         assertThat(pr.volume).isEqualTo(2000f)
     }
@@ -406,52 +427,55 @@ class PersonalRecordTest {
     fun personalRecord_equality_basedOnAllFields() {
         val date = LocalDateTime.now()
         val prevDate = date.minusDays(7)
-        
-        val pr1 = PersonalRecord(
-            id = 1L,
-            exerciseVariationId = 100L,
-            weight = 100f,
-            reps = 5,
-            rpe = 8f,
-            recordDate = date,
-            previousWeight = 95f,
-            previousReps = 5,
-            previousDate = prevDate,
-            improvementPercentage = 5.26f,
-            recordType = PRType.WEIGHT,
-            notes = "Good lift"
-        )
-        
-        val pr2 = PersonalRecord(
-            id = 1L,
-            exerciseVariationId = 100L,
-            weight = 100f,
-            reps = 5,
-            rpe = 8f,
-            recordDate = date,
-            previousWeight = 95f,
-            previousReps = 5,
-            previousDate = prevDate,
-            improvementPercentage = 5.26f,
-            recordType = PRType.WEIGHT,
-            notes = "Good lift"
-        )
-        
-        val pr3 = PersonalRecord(
-            id = 2L, // Different ID
-            exerciseVariationId = 100L,
-            weight = 100f,
-            reps = 5,
-            rpe = 8f,
-            recordDate = date,
-            previousWeight = 95f,
-            previousReps = 5,
-            previousDate = prevDate,
-            improvementPercentage = 5.26f,
-            recordType = PRType.WEIGHT,
-            notes = "Good lift"
-        )
-        
+
+        val pr1 =
+            PersonalRecord(
+                id = 1L,
+                exerciseVariationId = 100L,
+                weight = 100f,
+                reps = 5,
+                rpe = 8f,
+                recordDate = date,
+                previousWeight = 95f,
+                previousReps = 5,
+                previousDate = prevDate,
+                improvementPercentage = 5.26f,
+                recordType = PRType.WEIGHT,
+                notes = "Good lift",
+            )
+
+        val pr2 =
+            PersonalRecord(
+                id = 1L,
+                exerciseVariationId = 100L,
+                weight = 100f,
+                reps = 5,
+                rpe = 8f,
+                recordDate = date,
+                previousWeight = 95f,
+                previousReps = 5,
+                previousDate = prevDate,
+                improvementPercentage = 5.26f,
+                recordType = PRType.WEIGHT,
+                notes = "Good lift",
+            )
+
+        val pr3 =
+            PersonalRecord(
+                id = 2L, // Different ID
+                exerciseVariationId = 100L,
+                weight = 100f,
+                reps = 5,
+                rpe = 8f,
+                recordDate = date,
+                previousWeight = 95f,
+                previousReps = 5,
+                previousDate = prevDate,
+                improvementPercentage = 5.26f,
+                recordType = PRType.WEIGHT,
+                notes = "Good lift",
+            )
+
         assertThat(pr1).isEqualTo(pr2)
         assertThat(pr1).isNotEqualTo(pr3)
         assertThat(pr1.hashCode()).isEqualTo(pr2.hashCode())
@@ -459,19 +483,20 @@ class PersonalRecordTest {
 
     @Test
     fun personalRecord_toString_includesKeyInfo() {
-        val pr = PersonalRecord(
-            id = 1L,
-            exerciseVariationId = 100L,
-            weight = 100f,
-            reps = 5,
-            recordDate = LocalDateTime.of(2024, 1, 15, 10, 0),
-            previousWeight = null,
-            previousReps = null,
-            previousDate = null,
-            improvementPercentage = 0f,
-            recordType = PRType.WEIGHT
-        )
-        
+        val pr =
+            PersonalRecord(
+                id = 1L,
+                exerciseVariationId = 100L,
+                weight = 100f,
+                reps = 5,
+                recordDate = LocalDateTime.of(2024, 1, 15, 10, 0),
+                previousWeight = null,
+                previousReps = null,
+                previousDate = null,
+                improvementPercentage = 0f,
+                recordType = PRType.WEIGHT,
+            )
+
         val toString = pr.toString()
         assertThat(toString).contains("PersonalRecord")
         assertThat(toString).contains("id=1")
@@ -481,23 +506,25 @@ class PersonalRecordTest {
 
     @Test
     fun personalRecord_copy_createsIndependentInstance() {
-        val original = PersonalRecord(
-            exerciseVariationId = 100L,
-            weight = 100f,
-            reps = 5,
-            recordDate = LocalDateTime.now(),
-            previousWeight = null,
-            previousReps = null,
-            previousDate = null,
-            improvementPercentage = 0f,
-            recordType = PRType.WEIGHT
-        )
-        
-        val copy = original.copy(
-            weight = 105f,
-            improvementPercentage = 5f
-        )
-        
+        val original =
+            PersonalRecord(
+                exerciseVariationId = 100L,
+                weight = 100f,
+                reps = 5,
+                recordDate = LocalDateTime.now(),
+                previousWeight = null,
+                previousReps = null,
+                previousDate = null,
+                improvementPercentage = 0f,
+                recordType = PRType.WEIGHT,
+            )
+
+        val copy =
+            original.copy(
+                weight = 105f,
+                improvementPercentage = 5f,
+            )
+
         assertThat(copy.weight).isEqualTo(105f)
         assertThat(copy.improvementPercentage).isEqualTo(5f)
         assertThat(copy.exerciseVariationId).isEqualTo(original.exerciseVariationId)
@@ -508,34 +535,36 @@ class PersonalRecordTest {
         assertThat(original.weight).isEqualTo(100f) // Original unchanged
         assertThat(original.volume).isEqualTo(500f) // Original volume unchanged
     }
-    
+
     @Test
     fun personalRecord_volumeRecalculation_requiresNewInstance() {
-        val original = PersonalRecord(
-            exerciseVariationId = 100L,
-            weight = 100f,
-            reps = 5,
-            recordDate = LocalDateTime.now(),
-            previousWeight = null,
-            previousReps = null,
-            previousDate = null,
-            improvementPercentage = 0f,
-            recordType = PRType.WEIGHT
-        )
-        
+        val original =
+            PersonalRecord(
+                exerciseVariationId = 100L,
+                weight = 100f,
+                reps = 5,
+                recordDate = LocalDateTime.now(),
+                previousWeight = null,
+                previousReps = null,
+                previousDate = null,
+                improvementPercentage = 0f,
+                recordType = PRType.WEIGHT,
+            )
+
         // To get recalculated volume, need to create a new instance
-        val updated = PersonalRecord(
-            exerciseVariationId = original.exerciseVariationId,
-            weight = 105f,
-            reps = original.reps,
-            recordDate = original.recordDate,
-            previousWeight = original.previousWeight,
-            previousReps = original.previousReps,
-            previousDate = original.previousDate,
-            improvementPercentage = 5f,
-            recordType = original.recordType
-        )
-        
+        val updated =
+            PersonalRecord(
+                exerciseVariationId = original.exerciseVariationId,
+                weight = 105f,
+                reps = original.reps,
+                recordDate = original.recordDate,
+                previousWeight = original.previousWeight,
+                previousReps = original.previousReps,
+                previousDate = original.previousDate,
+                improvementPercentage = 5f,
+                recordType = original.recordType,
+            )
+
         assertThat(updated.weight).isEqualTo(105f)
         assertThat(updated.volume).isEqualTo(525f) // Correctly recalculated
         assertThat(original.volume).isEqualTo(500f) // Original unchanged

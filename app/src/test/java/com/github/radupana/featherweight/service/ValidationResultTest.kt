@@ -5,7 +5,7 @@ import org.junit.Test
 
 /**
  * Unit tests for ValidationResult sealed class used by ExerciseNamingService
- * 
+ *
  * Tests validation result types and equality:
  * - Valid result representation
  * - Invalid result with reason and suggestion

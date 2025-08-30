@@ -1,7 +1,5 @@
 package com.github.radupana.featherweight.ui.screens
 
-import java.util.Locale
-
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.tween
@@ -47,6 +45,7 @@ import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.CompletionSummary
 import com.github.radupana.featherweight.viewmodel.WorkoutCompletionViewModel
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.random.Random
 
 @Composable

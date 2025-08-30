@@ -235,7 +235,7 @@ enum class MovementPattern(
     CYCLE("Cycle"), // Added for JSON compatibility
     CRAWL("Crawl"), // Added for JSON compatibility
     LOCOMOTION("Locomotion"), // Added for JSON compatibility
-    
+
     // Movement specific patterns from JSON
     ABDUCTION("Abduction"), // Added for JSON compatibility
     ADDUCTION("Adduction"), // Added for JSON compatibility

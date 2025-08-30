@@ -40,50 +40,42 @@ class ProgrammeRepository(
     /**
      * Creates a new programme
      */
-    suspend fun createProgramme(programme: Programme): Long = 
-        programmeDao.insertProgramme(programme)
+    suspend fun createProgramme(programme: Programme): Long = programmeDao.insertProgramme(programme)
 
     /**
      * Updates an existing programme
      */
-    suspend fun updateProgramme(programme: Programme) = 
-        programmeDao.updateProgramme(programme)
+    suspend fun updateProgramme(programme: Programme) = programmeDao.updateProgramme(programme)
 
     /**
      * Gets a programme by ID
      */
-    suspend fun getProgrammeById(programmeId: Long): Programme? = 
-        programmeDao.getProgrammeById(programmeId)
+    suspend fun getProgrammeById(programmeId: Long): Programme? = programmeDao.getProgrammeById(programmeId)
 
     /**
      * Gets all programmes
      */
-    suspend fun getAllProgrammes(): List<Programme> = 
-        programmeDao.getAllProgrammes()
+    suspend fun getAllProgrammes(): List<Programme> = programmeDao.getAllProgrammes()
 
     /**
      * Gets the active programme
      */
-    suspend fun getActiveProgramme(): Programme? = 
-        programmeDao.getActiveProgramme()
+    suspend fun getActiveProgramme(): Programme? = programmeDao.getActiveProgramme()
 
     /**
      * Deletes a programme
      */
-    suspend fun deleteProgramme(programme: Programme) = 
-        programmeDao.deleteProgramme(programme)
+    suspend fun deleteProgramme(programme: Programme) = programmeDao.deleteProgramme(programme)
 
     /**
      * Gets programme weeks
      */
-    suspend fun getProgrammeWeeks(programmeId: Long): List<ProgrammeWeek> = 
-        programmeDao.getWeeksForProgramme(programmeId)
+    suspend fun getProgrammeWeeks(programmeId: Long): List<ProgrammeWeek> = programmeDao.getWeeksForProgramme(programmeId)
 
     /**
      * Gets workouts for a programme week
      */
-    suspend fun getWorkoutsForWeek(weekId: Long): List<ProgrammeWorkout> = 
-        programmeDao.getWorkoutsForWeek(weekId)
+    suspend fun getWorkoutsForWeek(weekId: Long): List<ProgrammeWorkout> = programmeDao.getWorkoutsForWeek(weekId)
 
     /**
      * Gets or creates programme progress
@@ -93,18 +85,19 @@ class ProgrammeRepository(
         if (existing != null) {
             return existing
         }
-        
+
         // Create new progress
-        val progress = ProgrammeProgress(
-            programmeId = programmeId,
-            currentWeek = 1,
-            currentDay = 1,
-            completedWorkouts = 0,
-            totalWorkouts = 0,
-            lastWorkoutDate = null,
-            adherencePercentage = 0f,
-            strengthProgress = null,
-        )
+        val progress =
+            ProgrammeProgress(
+                programmeId = programmeId,
+                currentWeek = 1,
+                currentDay = 1,
+                completedWorkouts = 0,
+                totalWorkouts = 0,
+                lastWorkoutDate = null,
+                adherencePercentage = 0f,
+                strengthProgress = null,
+            )
         programmeDao.insertOrUpdateProgress(progress)
         return progress
     }
@@ -125,7 +118,7 @@ class ProgrammeRepository(
                 day = day,
                 date = LocalDateTime.now().toString(),
             )
-            
+
             if (incrementCompleted) {
                 programmeDao.incrementCompletedWorkouts(programmeId)
             }
@@ -135,8 +128,7 @@ class ProgrammeRepository(
     /**
      * Gets programme with full details
      */
-    suspend fun getProgrammeWithDetails(programmeId: Long): ProgrammeWithDetailsRaw? = 
-        programmeDao.getProgrammeWithDetails(programmeId)
+    suspend fun getProgrammeWithDetails(programmeId: Long): ProgrammeWithDetailsRaw? = programmeDao.getProgrammeWithDetails(programmeId)
 
     /**
      * Activates a programme
@@ -167,8 +159,7 @@ class ProgrammeRepository(
     /**
      * Gets workouts for a programme
      */
-    suspend fun getWorkoutsForProgramme(programmeId: Long): List<Workout> = 
-        workoutDao.getWorkoutsByProgramme(programmeId)
+    suspend fun getWorkoutsForProgramme(programmeId: Long): List<Workout> = workoutDao.getWorkoutsByProgramme(programmeId)
 
     /**
      * Gets programme completion statistics
@@ -178,16 +169,18 @@ class ProgrammeRepository(
             val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext null
             val progress = programmeDao.getProgressForProgramme(programmeId)
             val workouts = workoutDao.getWorkoutsByProgramme(programmeId)
-            
+
             val completedWorkouts = workouts.count { it.status == WorkoutStatus.COMPLETED }
             val totalScheduled = progress?.totalWorkouts ?: 0
+
             @Suppress("UNUSED_VARIABLE")
-            val adherence = if (totalScheduled > 0) {
-                (completedWorkouts.toFloat() / totalScheduled) * 100
-            } else {
-                0f
-            }
-            
+            val adherence =
+                if (totalScheduled > 0) {
+                    (completedWorkouts.toFloat() / totalScheduled) * 100
+                } else {
+                    0f
+                }
+
             ProgrammeCompletionStats(
                 programmeId = programmeId,
                 programmeName = programme.name,
@@ -200,11 +193,12 @@ class ProgrammeRepository(
                 totalPRs = 0, // Would need to calculate from PRs
                 strengthImprovements = emptyList(), // Would need to calculate from PRs
                 averageStrengthImprovement = 0f,
-                insights = ProgrammeInsights(
-                    totalTrainingDays = completedWorkouts,
-                    mostConsistentDay = null,
-                    averageRestDaysBetweenWorkouts = 0f,
-                ),
+                insights =
+                    ProgrammeInsights(
+                        totalTrainingDays = completedWorkouts,
+                        mostConsistentDay = null,
+                        averageRestDaysBetweenWorkouts = 0f,
+                    ),
             )
         }
     }
@@ -212,72 +206,66 @@ class ProgrammeRepository(
     /**
      * Gets completed programmes with pagination
      */
-    suspend fun getCompletedProgrammesPaged(limit: Int, offset: Int): List<Programme> = 
-        programmeDao.getCompletedProgrammesPaged(limit, offset)
+    suspend fun getCompletedProgrammesPaged(
+        limit: Int,
+        offset: Int,
+    ): List<Programme> = programmeDao.getCompletedProgrammesPaged(limit, offset)
 
     /**
      * Creates exercise substitution
      */
-    suspend fun createSubstitution(substitution: ExerciseSubstitution): Long = 
-        programmeDao.insertSubstitution(substitution)
+    suspend fun createSubstitution(substitution: ExerciseSubstitution): Long = programmeDao.insertSubstitution(substitution)
 
     /**
      * Gets substitutions for a programme
      */
-    suspend fun getSubstitutionsForProgramme(programmeId: Long): List<ExerciseSubstitution> = 
-        programmeDao.getSubstitutionsForProgramme(programmeId)
+    suspend fun getSubstitutionsForProgramme(programmeId: Long): List<ExerciseSubstitution> = programmeDao.getSubstitutionsForProgramme(programmeId)
 
     /**
      * Creates a parse request
      */
     suspend fun createParseRequest(rawText: String): Long {
-        val request = ParseRequest(
-            rawText = rawText,
-            status = ParseStatus.PROCESSING,
-            createdAt = LocalDateTime.now(),
-        )
+        val request =
+            ParseRequest(
+                rawText = rawText,
+                status = ParseStatus.PROCESSING,
+                createdAt = LocalDateTime.now(),
+            )
         return parseRequestDao.insert(request)
     }
 
     /**
      * Updates a parse request
      */
-    suspend fun updateParseRequest(request: ParseRequest) = 
-        parseRequestDao.update(request)
+    suspend fun updateParseRequest(request: ParseRequest) = parseRequestDao.update(request)
 
     /**
      * Gets a parse request
      */
-    suspend fun getParseRequest(id: Long): ParseRequest? = 
-        parseRequestDao.getRequest(id)
+    suspend fun getParseRequest(id: Long): ParseRequest? = parseRequestDao.getRequest(id)
 
     /**
      * Gets all parse requests
      */
-    fun getAllParseRequests(): Flow<List<ParseRequest>> = 
-        parseRequestDao.getAllRequests()
+    fun getAllParseRequests(): Flow<List<ParseRequest>> = parseRequestDao.getAllRequests()
 
     /**
      * Deletes a parse request
      */
-    suspend fun deleteParseRequest(request: ParseRequest) = 
-        parseRequestDao.delete(request)
+    suspend fun deleteParseRequest(request: ParseRequest) = parseRequestDao.delete(request)
 
     /**
      * Gets average adherence across all programmes
      */
-    suspend fun getAverageAdherence(): Float? = 
-        programmeDao.getAverageAdherence()
+    suspend fun getAverageAdherence(): Float? = programmeDao.getAverageAdherence()
 
     /**
      * Gets count of completed programmes
      */
-    suspend fun getCompletedProgrammeCount(): Int = 
-        programmeDao.getCompletedProgrammeCount()
+    suspend fun getCompletedProgrammeCount(): Int = programmeDao.getCompletedProgrammeCount()
 
     /**
      * Gets count of active programmes
      */
-    suspend fun getActiveProgrammeCount(): Int = 
-        programmeDao.getActiveProgrammeCount()
+    suspend fun getActiveProgrammeCount(): Int = programmeDao.getActiveProgrammeCount()
 }

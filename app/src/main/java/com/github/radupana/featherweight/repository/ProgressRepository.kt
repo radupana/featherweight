@@ -28,26 +28,22 @@ class ProgressRepository(
     /**
      * Gets global progress for an exercise
      */
-    suspend fun getGlobalExerciseProgress(exerciseVariationId: Long): GlobalExerciseProgress? =
-        globalProgressDao.getProgressForExercise(exerciseVariationId)
+    suspend fun getGlobalExerciseProgress(exerciseVariationId: Long): GlobalExerciseProgress? = globalProgressDao.getProgressForExercise(exerciseVariationId)
 
     /**
      * Updates global exercise progress
      */
-    suspend fun updateGlobalProgress(progress: GlobalExerciseProgress) =
-        globalProgressDao.insertOrUpdate(progress)
+    suspend fun updateGlobalProgress(progress: GlobalExerciseProgress) = globalProgressDao.insertOrUpdate(progress)
 
     /**
      * Gets all global progress records
      */
-    suspend fun getAllGlobalProgress(): List<GlobalExerciseProgress> =
-        globalProgressDao.getAllProgress()
+    suspend fun getAllGlobalProgress(): List<GlobalExerciseProgress> = globalProgressDao.getAllProgress()
 
     /**
      * Gets progress flow for an exercise
      */
-    fun getProgressFlow(exerciseVariationId: Long): Flow<GlobalExerciseProgress?> =
-        globalProgressDao.observeProgressForExercise(exerciseVariationId)
+    fun getProgressFlow(exerciseVariationId: Long): Flow<GlobalExerciseProgress?> = globalProgressDao.observeProgressForExercise(exerciseVariationId)
 
     /**
      * Updates progress based on completed workout
@@ -62,14 +58,12 @@ class ProgressRepository(
     suspend fun getPerformanceTracking(
         programmeId: Long,
         exerciseName: String,
-    ): ExercisePerformanceTracking? =
-        performanceDao.getLastSuccess(programmeId, exerciseName)
+    ): ExercisePerformanceTracking? = performanceDao.getLastSuccess(programmeId, exerciseName)
 
     /**
      * Records performance tracking data
      */
-    suspend fun recordPerformanceTracking(tracking: ExercisePerformanceTracking) =
-        performanceDao.insertPerformanceRecord(tracking)
+    suspend fun recordPerformanceTracking(tracking: ExercisePerformanceTracking) = performanceDao.insertPerformanceRecord(tracking)
 
     /**
      * Gets consecutive failures for an exercise in a programme
@@ -156,14 +150,12 @@ class ProgressRepository(
     /**
      * Gets stalled exercises
      */
-    suspend fun getStalledExercises(minStalls: Int = 3): List<GlobalExerciseProgress> =
-        globalProgressDao.getStalledExercises(minStalls)
+    suspend fun getStalledExercises(minStalls: Int = 3): List<GlobalExerciseProgress> = globalProgressDao.getStalledExercises(minStalls)
 
     /**
      * Gets top volume exercises
      */
-    suspend fun getTopVolumeExercises(limit: Int = 10): List<GlobalExerciseProgress> =
-        globalProgressDao.getTopVolumeExercises(limit)
+    suspend fun getTopVolumeExercises(limit: Int = 10): List<GlobalExerciseProgress> = globalProgressDao.getTopVolumeExercises(limit)
 
     /**
      * Gets neglected exercises

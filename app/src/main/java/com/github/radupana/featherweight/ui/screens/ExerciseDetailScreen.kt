@@ -1,7 +1,5 @@
 package com.github.radupana.featherweight.ui.screens
 
-import java.util.Locale
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +42,7 @@ import com.github.radupana.featherweight.ui.components.ChartData
 import com.github.radupana.featherweight.ui.components.ChartType
 import com.github.radupana.featherweight.ui.components.ProgressChart
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

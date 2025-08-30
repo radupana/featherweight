@@ -4,7 +4,6 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class WeightFormatterTest {
-
     @Test
     fun `formatWeight formats whole numbers without decimal`() {
         assertThat(WeightFormatter.formatWeight(82.0f)).isEqualTo("82")
@@ -134,8 +133,8 @@ class WeightFormatterTest {
 
     @Test
     fun `formatWeight handles very small values`() {
-        assertThat(WeightFormatter.formatWeight(0.1f)).isEqualTo("0")  // 0.1 rounds to 0
-        assertThat(WeightFormatter.formatWeight(0.125f)).isEqualTo("0")  // 0.125 rounds to 0
+        assertThat(WeightFormatter.formatWeight(0.1f)).isEqualTo("0") // 0.1 rounds to 0
+        assertThat(WeightFormatter.formatWeight(0.125f)).isEqualTo("0") // 0.125 rounds to 0
         assertThat(WeightFormatter.formatWeight(0.25f)).isEqualTo("0.25")
         assertThat(WeightFormatter.formatWeight(0.5f)).isEqualTo("0.5")
         assertThat(WeightFormatter.formatWeight(0.75f)).isEqualTo("0.75")

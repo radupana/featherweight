@@ -110,7 +110,7 @@ class OneRMService {
     ): Float {
         // Special case: 0 reps means no lift performed
         if (reps <= 0) return 0f
-        
+
         // Rep score: lower reps = higher confidence, capped at 15 reps
         val cappedReps = reps.coerceAtMost(15)
         val repScore = (16f - cappedReps) / 15f // 1 rep = 1.0, 15 reps = 0.067
@@ -204,7 +204,6 @@ class OneRMService {
             )
 
         return UserExerciseMax(
-            
             exerciseVariationId = exerciseId,
             mostWeightLifted = mostWeight.weight,
             mostWeightReps = mostWeight.reps,

@@ -645,14 +645,15 @@ class WorkoutViewModel(
                                 setOrder = setIndex + 1,
                                 targetReps = parsedSet.reps, // TEMPLATE EDIT: Goes to targetReps
                                 targetWeight = parsedSet.weight, // TEMPLATE EDIT: Goes to targetWeight
+                                targetRpe = parsedSet.rpe, // TEMPLATE EDIT: Goes to targetRpe
                                 // Prepopulate actual values with target values for easier completion
                                 actualReps = parsedSet.reps ?: 0,
                                 actualWeight = parsedSet.weight ?: 0f,
-                                actualRpe = parsedSet.rpe,
+                                actualRpe = null, // Don't prepopulate RPE - let user enter their perceived exertion
                                 isCompleted = false,
                             )
 
-                        Log.d("WorkoutViewModel", "  SetLog created: targetReps=${setLog.targetReps}, targetWeight=${setLog.targetWeight}")
+                        Log.d("WorkoutViewModel", "  SetLog created: targetReps=${setLog.targetReps}, targetWeight=${setLog.targetWeight}, targetRpe=${setLog.targetRpe}")
                         tempSets.add(setLog)
                     }
                 } else {
@@ -1241,7 +1242,10 @@ class WorkoutViewModel(
         loadInProgressWorkouts()
     }
 
-    private fun validateSetCompletion(setId: Long, completed: Boolean): Boolean {
+    private fun validateSetCompletion(
+        setId: Long,
+        completed: Boolean,
+    ): Boolean {
         if (!completed) return true
         val set = _selectedExerciseSets.value.find { it.id == setId }
         return set != null && canMarkSetComplete(set)
@@ -1250,20 +1254,24 @@ class WorkoutViewModel(
     private fun updateSetState(
         setId: Long,
         completed: Boolean,
-        timestamp: String?
+        timestamp: String?,
     ): List<SetLog> {
-        val updatedSets = _selectedExerciseSets.value.map { set ->
-            if (set.id == setId) {
-                set.copy(isCompleted = completed, completedAt = timestamp)
-            } else {
-                set
+        val updatedSets =
+            _selectedExerciseSets.value.map { set ->
+                if (set.id == setId) {
+                    set.copy(isCompleted = completed, completedAt = timestamp)
+                } else {
+                    set
+                }
             }
-        }
         _selectedExerciseSets.value = updatedSets
         return updatedSets
     }
 
-    private suspend fun updateWorkoutStatusIfNeeded(setId: Long, completed: Boolean) {
+    private suspend fun updateWorkoutStatusIfNeeded(
+        setId: Long,
+        completed: Boolean,
+    ) {
         val currentWorkoutId = _currentWorkoutId.value ?: return
         if (!completed) return
 
@@ -1276,7 +1284,10 @@ class WorkoutViewModel(
         }
     }
 
-    private suspend fun handleSetCompletion(setId: Long, updatedSets: List<SetLog>) {
+    private suspend fun handleSetCompletion(
+        setId: Long,
+        updatedSets: List<SetLog>,
+    ) {
         // Start timers
         startRestTimer(DEFAULT_REST_TIMER_SECONDS)
         if (workoutTimerStartTime == null) {
@@ -1297,17 +1308,21 @@ class WorkoutViewModel(
         autoCollapseExerciseIfComplete(setId, updatedSets)
     }
 
-    private suspend fun checkForPersonalRecords(setId: Long, updatedSets: List<SetLog>) {
+    private suspend fun checkForPersonalRecords(
+        setId: Long,
+        updatedSets: List<SetLog>,
+    ) {
         try {
             val completedSet = updatedSets.find { it.id == setId } ?: return
             val exerciseLog = findExerciseLogForSet(setId, updatedSets) ?: return
 
             val allPRs = repository.checkForPR(completedSet, exerciseLog.exerciseVariationId)
             if (allPRs.isNotEmpty()) {
-                _workoutState.value = _workoutState.value.copy(
-                    pendingPRs = _workoutState.value.pendingPRs + allPRs,
-                    shouldShowPRCelebration = true,
-                )
+                _workoutState.value =
+                    _workoutState.value.copy(
+                        pendingPRs = _workoutState.value.pendingPRs + allPRs,
+                        shouldShowPRCelebration = true,
+                    )
             }
         } catch (e: android.database.sqlite.SQLiteException) {
             Log.e(TAG, "PR detection failed for set $setId", e)
@@ -1316,7 +1331,10 @@ class WorkoutViewModel(
         }
     }
 
-    private suspend fun updateOneRMEstimate(setId: Long, updatedSets: List<SetLog>) {
+    private suspend fun updateOneRMEstimate(
+        setId: Long,
+        updatedSets: List<SetLog>,
+    ) {
         try {
             val completedSet = updatedSets.find { it.id == setId } ?: return
             val exerciseLog = findExerciseLogForSet(setId, updatedSets) ?: return
@@ -1325,12 +1343,13 @@ class WorkoutViewModel(
             val scalingType = exerciseVariation?.rmScalingType ?: RMScalingType.STANDARD
 
             val currentEstimate = _oneRMEstimates.value[exerciseLog.exerciseVariationId]
-            val newEstimate = oneRMService.calculateEstimated1RM(
-                completedSet.actualWeight,
-                completedSet.actualReps,
-                completedSet.actualRpe,
-                scalingType,
-            )
+            val newEstimate =
+                oneRMService.calculateEstimated1RM(
+                    completedSet.actualWeight,
+                    completedSet.actualReps,
+                    completedSet.actualRpe,
+                    scalingType,
+                )
 
             if (newEstimate != null && oneRMService.shouldUpdateOneRM(completedSet, currentEstimate, newEstimate)) {
                 persistOneRMUpdate(exerciseLog.exerciseVariationId, completedSet, newEstimate, currentEstimate)
@@ -1346,40 +1365,48 @@ class WorkoutViewModel(
         exerciseVariationId: Long?,
         completedSet: SetLog,
         newEstimate: Float,
-        currentEstimate: Float?
+        currentEstimate: Float?,
     ) {
         exerciseVariationId ?: return
 
-        val percentOf1RM = if (currentEstimate != null && currentEstimate > 0) {
-            completedSet.actualWeight / currentEstimate
-        } else {
-            1f
-        }
+        val percentOf1RM =
+            if (currentEstimate != null && currentEstimate > 0) {
+                completedSet.actualWeight / currentEstimate
+            } else {
+                1f
+            }
 
-        val confidence = oneRMService.calculateConfidence(
-            completedSet.actualReps,
-            completedSet.actualRpe,
-            percentOf1RM,
-        )
+        val confidence =
+            oneRMService.calculateConfidence(
+                completedSet.actualReps,
+                completedSet.actualRpe,
+                percentOf1RM,
+            )
 
-        val oneRMRecord = oneRMService.createOneRMRecord(
-            exerciseId = exerciseVariationId,
-            set = completedSet,
-            estimate = newEstimate,
-            confidence = confidence,
-        )
+        val oneRMRecord =
+            oneRMService.createOneRMRecord(
+                exerciseId = exerciseVariationId,
+                set = completedSet,
+                estimate = newEstimate,
+                confidence = confidence,
+            )
 
         repository.updateOrInsertOneRM(oneRMRecord)
         loadOneRMEstimatesForCurrentExercises()
     }
 
-    private fun findExerciseLogForSet(setId: Long, updatedSets: List<SetLog>): ExerciseLog? {
-        return _selectedWorkoutExercises.value.find { exerciseLog ->
+    private fun findExerciseLogForSet(
+        setId: Long,
+        updatedSets: List<SetLog>,
+    ): ExerciseLog? =
+        _selectedWorkoutExercises.value.find { exerciseLog ->
             updatedSets.any { it.exerciseLogId == exerciseLog.id && it.id == setId }
         }
-    }
 
-    private fun autoCollapseExerciseIfComplete(setId: Long, updatedSets: List<SetLog>) {
+    private fun autoCollapseExerciseIfComplete(
+        setId: Long,
+        updatedSets: List<SetLog>,
+    ) {
         val exerciseLogId = updatedSets.find { it.id == setId }?.exerciseLogId ?: return
         val exerciseSets = updatedSets.filter { it.exerciseLogId == exerciseLogId }
         val allSetsCompleted = exerciseSets.isNotEmpty() && exerciseSets.all { it.isCompleted }
@@ -1847,7 +1874,7 @@ class WorkoutViewModel(
         restTimerJob?.cancel()
         _restTimerSeconds.value = seconds
         _restTimerInitialSeconds.value = seconds
-        
+
         // Store the end time for accurate tracking even when backgrounded
         restTimerEndTime = LocalDateTime.now().plusSeconds(seconds.toLong())
         val endTime = restTimerEndTime!!
@@ -1862,11 +1889,14 @@ class WorkoutViewModel(
                         restTimerEndTime = null
                         break
                     }
-                    
+
                     // Calculate actual remaining seconds based on system time
-                    val remaining = java.time.Duration.between(now, endTime).seconds
+                    val remaining =
+                        java.time.Duration
+                            .between(now, endTime)
+                            .seconds
                     _restTimerSeconds.value = remaining.toInt().coerceAtLeast(0)
-                    
+
                     delay(100) // Check more frequently for better accuracy when resuming
                 }
                 // Timer completed - vibration will be handled by UI
@@ -1890,7 +1920,7 @@ class WorkoutViewModel(
             if (adjustment > 0) {
                 _restTimerInitialSeconds.value = newValue
             }
-            
+
             // Restart the timer with the new end time
             val endTime = restTimerEndTime!!
             restTimerJob?.cancel()
@@ -1904,11 +1934,14 @@ class WorkoutViewModel(
                             restTimerEndTime = null
                             break
                         }
-                        
+
                         // Calculate actual remaining seconds based on system time
-                        val remaining = java.time.Duration.between(now, endTime).seconds
+                        val remaining =
+                            java.time.Duration
+                                .between(now, endTime)
+                                .seconds
                         _restTimerSeconds.value = remaining.toInt().coerceAtLeast(0)
-                        
+
                         delay(100) // Check more frequently for better accuracy when resuming
                     }
                 }
@@ -1920,11 +1953,11 @@ class WorkoutViewModel(
     fun selectRestTimerPreset(seconds: Int) {
         startRestTimer(seconds)
     }
-    
+
     // Resume rest timer when app returns from background
     fun resumeRestTimerIfActive() {
         val endTime = restTimerEndTime ?: return
-        
+
         val now = LocalDateTime.now()
         if (now.isAfter(endTime) || now.isEqual(endTime)) {
             // Timer already expired while in background
@@ -1935,12 +1968,15 @@ class WorkoutViewModel(
             restTimerJob?.cancel()
             return
         }
-        
+
         // Calculate remaining time and resume
-        val remaining = java.time.Duration.between(now, endTime).seconds
+        val remaining =
+            java.time.Duration
+                .between(now, endTime)
+                .seconds
         _restTimerSeconds.value = remaining.toInt().coerceAtLeast(0)
         Log.d("WorkoutViewModel", "Resuming rest timer with $remaining seconds remaining")
-        
+
         // Restart the timer coroutine
         restTimerJob?.cancel()
         restTimerJob =
@@ -1953,11 +1989,14 @@ class WorkoutViewModel(
                         restTimerEndTime = null
                         break
                     }
-                    
+
                     // Calculate actual remaining seconds based on system time
-                    val remainingSeconds = java.time.Duration.between(currentTime, endTime).seconds
+                    val remainingSeconds =
+                        java.time.Duration
+                            .between(currentTime, endTime)
+                            .seconds
                     _restTimerSeconds.value = remainingSeconds.toInt().coerceAtLeast(0)
-                    
+
                     delay(100) // Check more frequently for better accuracy
                 }
             }

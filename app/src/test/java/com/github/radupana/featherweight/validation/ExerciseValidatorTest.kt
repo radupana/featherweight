@@ -1,10 +1,10 @@
 package com.github.radupana.featherweight.validation
 
+import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
+import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
-import com.github.radupana.featherweight.data.exercise.Equipment
-import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.google.common.truth.Truth.assertThat
 import io.mockk.MockKAnnotations
@@ -18,7 +18,6 @@ import org.junit.Before
 import org.junit.Test
 
 class ExerciseValidatorTest {
-
     @MockK
     private lateinit var mockExerciseDao: ExerciseDao
 
@@ -36,220 +35,238 @@ class ExerciseValidatorTest {
     }
 
     @Test
-    fun `initialize loads exercise names and ids from database`() = runTest {
-        // Arrange
-        val mockExercises = listOf(
-            createMockExerciseWithDetails(1L, "Barbell Squat"),
-            createMockExerciseWithDetails(2L, "Bench Press"),
-            createMockExerciseWithDetails(3L, "Deadlift")
-        )
-        coEvery { mockExerciseDao.getAllExercisesWithDetails() } returns mockExercises
+    fun `initialize loads exercise names and ids from database`() =
+        runTest {
+            // Arrange
+            val mockExercises =
+                listOf(
+                    createMockExerciseWithDetails(1L, "Barbell Squat"),
+                    createMockExerciseWithDetails(2L, "Bench Press"),
+                    createMockExerciseWithDetails(3L, "Deadlift"),
+                )
+            coEvery { mockExerciseDao.getAllExercisesWithDetails() } returns mockExercises
 
-        // Act
-        validator.initialize()
+            // Act
+            validator.initialize()
 
-        // Assert
-        coVerify { mockExerciseDao.getAllExercisesWithDetails() }
-    }
-
-    @Test
-    fun `validateExerciseName returns Valid for existing exercise`() = runTest {
-        // Arrange
-        setupMockExercises()
-        validator.initialize()
-
-        // Act
-        val result = validator.validateExerciseName("Barbell Squat")
-
-        // Assert
-        assertThat(result).isEqualTo(ValidationResult.Valid)
-    }
+            // Assert
+            coVerify { mockExerciseDao.getAllExercisesWithDetails() }
+        }
 
     @Test
-    fun `validateExerciseName returns Invalid for non-existing exercise`() = runTest {
-        // Arrange
-        setupMockExercises()
-        validator.initialize()
+    fun `validateExerciseName returns Valid for existing exercise`() =
+        runTest {
+            // Arrange
+            setupMockExercises()
+            validator.initialize()
 
-        // Act
-        val result = validator.validateExerciseName("Non-Existent Exercise")
+            // Act
+            val result = validator.validateExerciseName("Barbell Squat")
 
-        // Assert
-        assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
-        val invalidResult = result as ValidationResult.Invalid
-        assertThat(invalidResult.providedName).isEqualTo("Non-Existent Exercise")
-        assertThat(invalidResult.reason).contains("does not exist")
-    }
+            // Assert
+            assertThat(result).isEqualTo(ValidationResult.Valid)
+        }
 
     @Test
-    fun `validateExerciseName suggests closest match for similar name`() = runTest {
-        // Arrange
-        setupMockExercises()
-        validator.initialize()
+    fun `validateExerciseName returns Invalid for non-existing exercise`() =
+        runTest {
+            // Arrange
+            setupMockExercises()
+            validator.initialize()
 
-        // Act
-        val result = validator.validateExerciseName("Squat")
+            // Act
+            val result = validator.validateExerciseName("Non-Existent Exercise")
 
-        // Assert
-        assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
-        val invalidResult = result as ValidationResult.Invalid
-        assertThat(invalidResult.suggestion).isEqualTo("Barbell Squat")
-    }
-
-    @Test
-    fun `validateExerciseId returns Valid for existing id`() = runTest {
-        // Arrange
-        setupMockExercises()
-        validator.initialize()
-
-        // Act
-        val result = validator.validateExerciseId(1L)
-
-        // Assert
-        assertThat(result).isEqualTo(ValidationResult.Valid)
-    }
+            // Assert
+            assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
+            val invalidResult = result as ValidationResult.Invalid
+            assertThat(invalidResult.providedName).isEqualTo("Non-Existent Exercise")
+            assertThat(invalidResult.reason).contains("does not exist")
+        }
 
     @Test
-    fun `validateExerciseId returns Invalid for non-existing id`() = runTest {
-        // Arrange
-        setupMockExercises()
-        validator.initialize()
+    fun `validateExerciseName suggests closest match for similar name`() =
+        runTest {
+            // Arrange
+            setupMockExercises()
+            validator.initialize()
 
-        // Act
-        val result = validator.validateExerciseId(999L)
+            // Act
+            val result = validator.validateExerciseName("Squat")
 
-        // Assert
-        assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
-        val invalidResult = result as ValidationResult.Invalid
-        assertThat(invalidResult.reason).contains("ID 999 does not exist")
-    }
-
-    @Test
-    fun `validateExerciseNames validates multiple names`() = runTest {
-        // Arrange
-        setupMockExercises()
-        validator.initialize()
-
-        // Act
-        val results = validator.validateExerciseNames(
-            listOf("Barbell Squat", "Invalid Exercise", "Bench Press")
-        )
-
-        // Assert
-        assertThat(results).hasSize(3)
-        assertThat(results["Barbell Squat"]).isEqualTo(ValidationResult.Valid)
-        assertThat(results["Bench Press"]).isEqualTo(ValidationResult.Valid)
-        assertThat(results["Invalid Exercise"]).isInstanceOf(ValidationResult.Invalid::class.java)
-    }
+            // Assert
+            assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
+            val invalidResult = result as ValidationResult.Invalid
+            assertThat(invalidResult.suggestion).isEqualTo("Barbell Squat")
+        }
 
     @Test
-    fun `validateProgrammeStructure finds invalid exercises in JSON`() = runTest {
-        // Arrange
-        setupMockExercises()
-        validator.initialize()
-        val jsonStructure = """
-            {
-                "exercises": [
-                    {"name": "Barbell Squat", "sets": 3},
-                    {"name": "Invalid Exercise", "sets": 3},
-                    {"name": "Bench Press", "sets": 3}
-                ]
-            }
-        """.trimIndent()
+    fun `validateExerciseId returns Valid for existing id`() =
+        runTest {
+            // Arrange
+            setupMockExercises()
+            validator.initialize()
 
-        // Act
-        val errors = validator.validateProgrammeStructure(jsonStructure)
+            // Act
+            val result = validator.validateExerciseId(1L)
 
-        // Assert
-        assertThat(errors).hasSize(1)
-        assertThat(errors[0].value).isEqualTo("Invalid Exercise")
-        assertThat(errors[0].field).isEqualTo("exercise")
-    }
+            // Assert
+            assertThat(result).isEqualTo(ValidationResult.Valid)
+        }
 
     @Test
-    fun `validateProgrammeStructure returns empty list for valid exercises`() = runTest {
-        // Arrange
-        setupMockExercises()
-        validator.initialize()
-        val jsonStructure = """
-            {
-                "exercises": [
-                    {"name": "Barbell Squat", "sets": 3},
-                    {"name": "Bench Press", "sets": 3}
-                ]
-            }
-        """.trimIndent()
+    fun `validateExerciseId returns Invalid for non-existing id`() =
+        runTest {
+            // Arrange
+            setupMockExercises()
+            validator.initialize()
 
-        // Act
-        val errors = validator.validateProgrammeStructure(jsonStructure)
+            // Act
+            val result = validator.validateExerciseId(999L)
 
-        // Assert
-        assertThat(errors).isEmpty()
-    }
+            // Assert
+            assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
+            val invalidResult = result as ValidationResult.Invalid
+            assertThat(invalidResult.reason).contains("ID 999 does not exist")
+        }
 
     @Test
-    fun `validateProgrammeStructure handles malformed JSON gracefully`() = runTest {
-        // Arrange
-        setupMockExercises()
-        validator.initialize()
-        val malformedJson = "not a valid json structure"
+    fun `validateExerciseNames validates multiple names`() =
+        runTest {
+            // Arrange
+            setupMockExercises()
+            validator.initialize()
 
-        // Act
-        val errors = validator.validateProgrammeStructure(malformedJson)
+            // Act
+            val results =
+                validator.validateExerciseNames(
+                    listOf("Barbell Squat", "Invalid Exercise", "Bench Press"),
+                )
 
-        // Assert
-        assertThat(errors).isEmpty() // No exercises pattern found, so no errors
-    }
-
-    @Test
-    fun `findClosestMatch finds exact substring matches`() = runTest {
-        // Arrange
-        val mockExercises = listOf(
-            createMockExerciseWithDetails(1L, "Barbell Back Squat"),
-            createMockExerciseWithDetails(2L, "Front Squat"),
-            createMockExerciseWithDetails(3L, "Bulgarian Split Squat")
-        )
-        coEvery { mockExerciseDao.getAllExercisesWithDetails() } returns mockExercises
-        validator.initialize()
-
-        // Act
-        val result = validator.validateExerciseName("Back Squat")
-
-        // Assert
-        assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
-        val invalidResult = result as ValidationResult.Invalid
-        assertThat(invalidResult.suggestion).isEqualTo("Barbell Back Squat")
-    }
+            // Assert
+            assertThat(results).hasSize(3)
+            assertThat(results["Barbell Squat"]).isEqualTo(ValidationResult.Valid)
+            assertThat(results["Bench Press"]).isEqualTo(ValidationResult.Valid)
+            assertThat(results["Invalid Exercise"]).isInstanceOf(ValidationResult.Invalid::class.java)
+        }
 
     @Test
-    fun `findClosestMatch handles word-based matching`() = runTest {
-        // Arrange
-        setupMockExercises()
-        validator.initialize()
+    fun `validateProgrammeStructure finds invalid exercises in JSON`() =
+        runTest {
+            // Arrange
+            setupMockExercises()
+            validator.initialize()
+            val jsonStructure =
+                """
+                {
+                    "exercises": [
+                        {"name": "Barbell Squat", "sets": 3},
+                        {"name": "Invalid Exercise", "sets": 3},
+                        {"name": "Bench Press", "sets": 3}
+                    ]
+                }
+                """.trimIndent()
 
-        // Act
-        val result = validator.validateExerciseName("Overhead Press")
+            // Act
+            val errors = validator.validateProgrammeStructure(jsonStructure)
 
-        // Assert
-        assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
-        val invalidResult = result as ValidationResult.Invalid
-        assertThat(invalidResult.suggestion).isEqualTo("Barbell Overhead Press")
-    }
+            // Assert
+            assertThat(errors).hasSize(1)
+            assertThat(errors[0].value).isEqualTo("Invalid Exercise")
+            assertThat(errors[0].field).isEqualTo("exercise")
+        }
 
     @Test
-    fun `findClosestMatch returns null when no exercises loaded`() = runTest {
-        // Arrange
-        coEvery { mockExerciseDao.getAllExercisesWithDetails() } returns emptyList()
-        validator.initialize()
+    fun `validateProgrammeStructure returns empty list for valid exercises`() =
+        runTest {
+            // Arrange
+            setupMockExercises()
+            validator.initialize()
+            val jsonStructure =
+                """
+                {
+                    "exercises": [
+                        {"name": "Barbell Squat", "sets": 3},
+                        {"name": "Bench Press", "sets": 3}
+                    ]
+                }
+                """.trimIndent()
 
-        // Act
-        val result = validator.validateExerciseName("Some Exercise")
+            // Act
+            val errors = validator.validateProgrammeStructure(jsonStructure)
 
-        // Assert
-        assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
-        val invalidResult = result as ValidationResult.Invalid
-        assertThat(invalidResult.suggestion).isNull()
-    }
+            // Assert
+            assertThat(errors).isEmpty()
+        }
+
+    @Test
+    fun `validateProgrammeStructure handles malformed JSON gracefully`() =
+        runTest {
+            // Arrange
+            setupMockExercises()
+            validator.initialize()
+            val malformedJson = "not a valid json structure"
+
+            // Act
+            val errors = validator.validateProgrammeStructure(malformedJson)
+
+            // Assert
+            assertThat(errors).isEmpty() // No exercises pattern found, so no errors
+        }
+
+    @Test
+    fun `findClosestMatch finds exact substring matches`() =
+        runTest {
+            // Arrange
+            val mockExercises =
+                listOf(
+                    createMockExerciseWithDetails(1L, "Barbell Back Squat"),
+                    createMockExerciseWithDetails(2L, "Front Squat"),
+                    createMockExerciseWithDetails(3L, "Bulgarian Split Squat"),
+                )
+            coEvery { mockExerciseDao.getAllExercisesWithDetails() } returns mockExercises
+            validator.initialize()
+
+            // Act
+            val result = validator.validateExerciseName("Back Squat")
+
+            // Assert
+            assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
+            val invalidResult = result as ValidationResult.Invalid
+            assertThat(invalidResult.suggestion).isEqualTo("Barbell Back Squat")
+        }
+
+    @Test
+    fun `findClosestMatch handles word-based matching`() =
+        runTest {
+            // Arrange
+            setupMockExercises()
+            validator.initialize()
+
+            // Act
+            val result = validator.validateExerciseName("Overhead Press")
+
+            // Assert
+            assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
+            val invalidResult = result as ValidationResult.Invalid
+            assertThat(invalidResult.suggestion).isEqualTo("Barbell Overhead Press")
+        }
+
+    @Test
+    fun `findClosestMatch returns null when no exercises loaded`() =
+        runTest {
+            // Arrange
+            coEvery { mockExerciseDao.getAllExercisesWithDetails() } returns emptyList()
+            validator.initialize()
+
+            // Act
+            val result = validator.validateExerciseName("Some Exercise")
+
+            // Assert
+            assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
+            val invalidResult = result as ValidationResult.Invalid
+            assertThat(invalidResult.suggestion).isNull()
+        }
 
     @Test
     fun `ValidationResult Valid is singleton`() {
@@ -260,11 +277,12 @@ class ExerciseValidatorTest {
     @Test
     fun `ValidationResult Invalid contains all fields`() {
         // Arrange & Act
-        val invalid = ValidationResult.Invalid(
-            providedName = "Test",
-            suggestion = "Suggestion",
-            reason = "Reason"
-        )
+        val invalid =
+            ValidationResult.Invalid(
+                providedName = "Test",
+                suggestion = "Suggestion",
+                reason = "Reason",
+            )
 
         // Assert
         assertThat(invalid.providedName).isEqualTo("Test")
@@ -275,12 +293,13 @@ class ExerciseValidatorTest {
     @Test
     fun `ValidationError data class properties`() {
         // Arrange & Act
-        val error = ValidationError(
-            field = "exercise",
-            value = "Invalid",
-            error = "Not found",
-            suggestion = "Valid Exercise"
-        )
+        val error =
+            ValidationError(
+                field = "exercise",
+                value = "Invalid",
+                error = "Not found",
+                suggestion = "Valid Exercise",
+            )
 
         // Assert
         assertThat(error.field).isEqualTo("exercise")
@@ -290,74 +309,81 @@ class ExerciseValidatorTest {
     }
 
     @Test
-    fun `validateProgrammeStructure handles nested exercises arrays`() = runTest {
-        // Arrange
-        setupMockExercises()
-        validator.initialize()
-        val jsonStructure = """
-            {
-                "week1": {
-                    "exercises": [
-                        {"name": "Barbell Squat"},
-                        {"name": "Invalid Exercise"}
-                    ]
-                },
-                "week2": {
-                    "exercises": [
-                        {"name": "Bench Press"},
-                        {"name": "Another Invalid"}
-                    ]
+    fun `validateProgrammeStructure handles nested exercises arrays`() =
+        runTest {
+            // Arrange
+            setupMockExercises()
+            validator.initialize()
+            val jsonStructure =
+                """
+                {
+                    "week1": {
+                        "exercises": [
+                            {"name": "Barbell Squat"},
+                            {"name": "Invalid Exercise"}
+                        ]
+                    },
+                    "week2": {
+                        "exercises": [
+                            {"name": "Bench Press"},
+                            {"name": "Another Invalid"}
+                        ]
+                    }
                 }
-            }
-        """.trimIndent()
+                """.trimIndent()
 
-        // Act
-        val errors = validator.validateProgrammeStructure(jsonStructure)
+            // Act
+            val errors = validator.validateProgrammeStructure(jsonStructure)
 
-        // Assert
-        assertThat(errors).hasSize(2)
-        assertThat(errors.map { it.value }).containsExactly("Invalid Exercise", "Another Invalid")
-    }
+            // Assert
+            assertThat(errors).hasSize(2)
+            assertThat(errors.map { it.value }).containsExactly("Invalid Exercise", "Another Invalid")
+        }
 
     @Test
-    fun `case insensitive matching for exercise suggestions`() = runTest {
-        // Arrange
-        setupMockExercises()
-        validator.initialize()
+    fun `case insensitive matching for exercise suggestions`() =
+        runTest {
+            // Arrange
+            setupMockExercises()
+            validator.initialize()
 
-        // Act
-        val result = validator.validateExerciseName("barbell squat") // lowercase
+            // Act
+            val result = validator.validateExerciseName("barbell squat") // lowercase
 
-        // Assert
-        assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
-        val invalidResult = result as ValidationResult.Invalid
-        assertThat(invalidResult.suggestion).isEqualTo("Barbell Squat")
-    }
+            // Assert
+            assertThat(result).isInstanceOf(ValidationResult.Invalid::class.java)
+            val invalidResult = result as ValidationResult.Invalid
+            assertThat(invalidResult.suggestion).isEqualTo("Barbell Squat")
+        }
 
     private fun setupMockExercises() {
-        val mockExercises = listOf(
-            createMockExerciseWithDetails(1L, "Barbell Squat"),
-            createMockExerciseWithDetails(2L, "Bench Press"),
-            createMockExerciseWithDetails(3L, "Deadlift"),
-            createMockExerciseWithDetails(4L, "Barbell Overhead Press"),
-            createMockExerciseWithDetails(5L, "Pull Up")
-        )
+        val mockExercises =
+            listOf(
+                createMockExerciseWithDetails(1L, "Barbell Squat"),
+                createMockExerciseWithDetails(2L, "Bench Press"),
+                createMockExerciseWithDetails(3L, "Deadlift"),
+                createMockExerciseWithDetails(4L, "Barbell Overhead Press"),
+                createMockExerciseWithDetails(5L, "Pull Up"),
+            )
         coEvery { mockExerciseDao.getAllExercisesWithDetails() } returns mockExercises
     }
 
-    private fun createMockExerciseWithDetails(id: Long, name: String): ExerciseWithDetails {
-        return ExerciseWithDetails(
-            variation = ExerciseVariation(
-                id = id,
-                coreExerciseId = 1L,
-                name = name,
-                equipment = Equipment.BARBELL,
-                difficulty = ExerciseDifficulty.INTERMEDIATE,
-                requiresWeight = true,
-                recommendedRepRange = "8-12",
-                rmScalingType = RMScalingType.STANDARD,
-                usageCount = 0
-            )
+    private fun createMockExerciseWithDetails(
+        id: Long,
+        name: String,
+    ): ExerciseWithDetails =
+        ExerciseWithDetails(
+            variation =
+                ExerciseVariation(
+                    id = id,
+                    coreExerciseId = 1L,
+                    name = name,
+                    equipment = Equipment.BARBELL,
+                    difficulty = ExerciseDifficulty.INTERMEDIATE,
+                    requiresWeight = true,
+                    recommendedRepRange = "8-12",
+                    rmScalingType = RMScalingType.STANDARD,
+                    usageCount = 0,
+                ),
         )
-    }
 }
