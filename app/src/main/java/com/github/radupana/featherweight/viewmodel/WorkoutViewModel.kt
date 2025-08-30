@@ -649,7 +649,7 @@ class WorkoutViewModel(
                                 // Prepopulate actual values with target values for easier completion
                                 actualReps = parsedSet.reps ?: 0,
                                 actualWeight = parsedSet.weight ?: 0f,
-                                actualRpe = null, // Don't prepopulate RPE - let user enter their perceived exertion
+                                actualRpe = parsedSet.rpe, // Prepopulate RPE for template editing
                                 isCompleted = false,
                             )
 
@@ -2088,7 +2088,7 @@ class WorkoutViewModel(
                                 com.github.radupana.featherweight.data.ParsedSet(
                                     reps = setLog.targetReps,
                                     weight = setLog.targetWeight,
-                                    rpe = null,
+                                    rpe = setLog.actualRpe ?: setLog.targetRpe, // Preserve RPE values
                                 )
                             },
                     )
