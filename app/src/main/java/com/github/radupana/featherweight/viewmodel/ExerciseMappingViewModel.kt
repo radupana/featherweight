@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.util.ExerciseSearchUtil
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -81,20 +82,12 @@ class ExerciseMappingViewModel(
             return
         }
 
-        val queryLower = query.lowercase().trim()
-        val results =
-            allExercises
-                .filter { exercise ->
-                    exercise.name.lowercase().contains(queryLower) ||
-                        normalizeExerciseName(exercise.name.lowercase()).contains(normalizeExerciseName(queryLower))
-                }.sortedBy { exercise ->
-                    // Sort by relevance - exact matches first
-                    when {
-                        exercise.name.lowercase() == queryLower -> 0
-                        exercise.name.lowercase().startsWith(queryLower) -> 1
-                        else -> 2
-                    }
-                }.take(MAX_SEARCH_RESULTS) // Limit results for performance
+        // Use the shared search utility for consistent search behavior
+        val results = ExerciseSearchUtil.filterAndSortExercises(
+            exercises = allExercises,
+            query = query,
+            nameExtractor = { it.name }
+        ).take(MAX_SEARCH_RESULTS) // Limit results for performance
 
         _searchResults.value = results
     }
@@ -113,17 +106,4 @@ class ExerciseMappingViewModel(
             mapping.exerciseId
         }
 
-    private fun normalizeExerciseName(name: String): String =
-        name
-            .replace("ohp", "overhead press")
-            .replace("rdl", "romanian deadlift")
-            .replace("sldl", "stiff leg deadlift")
-            .replace("ghr", "glute ham raise")
-            .replace("db", "dumbbell")
-            .replace("bb", "barbell")
-            .replace("kb", "kettlebell")
-            .replace("&", "and")
-            .replace("-", " ")
-            .replace("  ", " ")
-            .trim()
 }

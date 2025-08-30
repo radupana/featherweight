@@ -13,6 +13,7 @@ import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.ExerciseNamingService
 import com.github.radupana.featherweight.service.ValidationResult
+import com.github.radupana.featherweight.util.ExerciseSearchUtil
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -136,102 +137,31 @@ class ExerciseSelectorViewModel(
                     } ?: true
                 }
 
-        // Then apply text search with multi-word support
+        // Then apply text search using the shared utility
         return if (query.isNotEmpty()) {
-            val searchWords = query.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-
-            // Score each exercise based on word matches
-            val scoredExercises =
-                filteredByAttributes.mapNotNull { exerciseWithDetails ->
-                    val exercise = exerciseWithDetails.variation
-                    val nameLower = exercise.name.lowercase()
-                    val queryLower = query.lowercase()
-                    val aliasesLower = exerciseWithDetails.aliases.map { it.alias.lowercase() }
-
-                    // Calculate score
-                    var score = 0
-
-                    // 1. Exact match on name gets highest score
-                    if (nameLower == queryLower) {
-                        score = 1000
-                    }
-                    // 2. Exact match on alias gets second highest score
-                    else if (aliasesLower.any { it == queryLower }) {
-                        score = 900
-                    }
-                    // 3. Name contains full query
-                    else if (nameLower.contains(queryLower)) {
-                        score = 800
-                        // Bonus if it starts with the query
-                        if (nameLower.startsWith(queryLower)) {
-                            score += 100
-                        }
-                    }
-                    // 4. Alias contains full query
-                    else if (aliasesLower.any { it.contains(queryLower) }) {
-                        score = 700
-                        // Bonus if any alias starts with the query
-                        if (aliasesLower.any { it.startsWith(queryLower) }) {
-                            score += 50
-                        }
-                    }
-                    // 5. Multi-word matching
-                    else {
-                        val nameWords = nameLower.split("\\s+".toRegex())
-                        var matchedWordsInName = 0
-                        var matchedWordsInAliases = 0
-                        var positionBonus = 0
-
-                        searchWords.forEachIndexed { index, searchWord ->
-                            val searchWordLower = searchWord.lowercase()
-
-                            // Check if any word in the exercise name contains this search word
-                            if (nameWords.any { it.contains(searchWordLower) }) {
-                                matchedWordsInName++
-                                // Bonus for words at the beginning
-                                if (index == 0 && nameWords.first().startsWith(searchWordLower)) {
-                                    positionBonus += 50
-                                }
-                            }
-                            // Check aliases if not found in name
-                            else if (aliasesLower.any { alias ->
-                                    alias.split("\\s+".toRegex()).any { it.contains(searchWordLower) }
-                                }
-                            ) {
-                                matchedWordsInAliases++
-                            }
-                        }
-
-                        val totalMatchedWords = matchedWordsInName + matchedWordsInAliases
-
-                        // Only include if at least one word matches
-                        if (totalMatchedWords > 0) {
-                            // Higher base score for name matches than alias matches
-                            score = (matchedWordsInName * 100) + (matchedWordsInAliases * 50)
-                            // Bonus for matching all search words
-                            if (totalMatchedWords == searchWords.size) {
-                                score += 200
-                            }
-                            // Add position bonus
-                            score += positionBonus
-                            // Small bonus based on usage
-                            score += exercise.usageCount / 10
-                        }
-                    }
-
-                    if (score > 0) {
-                        exerciseWithDetails to score
+            // Use the shared search utility with usage count bonus
+            filteredByAttributes
+                .mapNotNull { exerciseWithDetails ->
+                    val aliases = exerciseWithDetails.aliases.map { it.alias }
+                    val baseScore = ExerciseSearchUtil.scoreExerciseMatch(
+                        exerciseName = exerciseWithDetails.variation.name,
+                        query = query,
+                        aliases = aliases
+                    )
+                    
+                    if (baseScore > 0) {
+                        // Add small usage bonus to the score
+                        val finalScore = baseScore + (exerciseWithDetails.variation.usageCount / 10)
+                        exerciseWithDetails to finalScore
                     } else {
                         null
                     }
                 }
-
-            // Sort by score (highest first), then by name
-            scoredExercises
                 .sortedWith(
                     compareByDescending<Pair<ExerciseWithDetails, Int>> { it.second }
-                        .thenBy { it.first.variation.name },
-                ).map { it.first }
+                        .thenBy { it.first.variation.name }
+                )
+                .map { it.first }
         } else {
             // When not searching, maintain the usage-based order
             filteredByAttributes
