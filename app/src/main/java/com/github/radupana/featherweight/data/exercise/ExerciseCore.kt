@@ -37,7 +37,7 @@ data class ExerciseCore(
     ],
     indices = [
         Index(value = ["coreExerciseId"]),
-        Index(value = ["name"]),
+        Index(value = ["name"], unique = true),
         Index(value = ["equipment"]),
     ],
 )

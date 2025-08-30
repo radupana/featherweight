@@ -22,6 +22,9 @@
 - NEVER make parallel changes across multiple files without compiling after each individual change.
   ALWAYS work incrementally: make one small change, compile, verify it works, then move to the next
   change.
+- **Testable Code**: Always make production code testable through proper dependency injection rather 
+  than trying to work around poor design with complex mocking strategies. If tests are hard to write,
+  fix the production code design, don't hack the tests.
 
 ## Code Quality
 

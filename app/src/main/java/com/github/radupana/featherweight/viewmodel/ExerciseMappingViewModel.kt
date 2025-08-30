@@ -23,12 +23,11 @@ data class ExerciseMappingUiState(
 
 class ExerciseMappingViewModel(
     application: Application,
+    private val repository: FeatherweightRepository = FeatherweightRepository(application)
 ) : AndroidViewModel(application) {
     companion object {
         private const val MAX_SEARCH_RESULTS = 20
     }
-
-    private val repository = FeatherweightRepository(application)
 
     private val _uiState = MutableStateFlow(ExerciseMappingUiState())
     val uiState: StateFlow<ExerciseMappingUiState> = _uiState

@@ -12,10 +12,10 @@ import androidx.room.Update
 @Dao
 interface ExerciseVariationDao {
     // Basic CRUD operations
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertExerciseVariation(variation: ExerciseVariation): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertExerciseVariations(variations: List<ExerciseVariation>): List<Long>
 
     @Update

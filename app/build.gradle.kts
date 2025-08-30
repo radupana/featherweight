@@ -37,7 +37,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "cucumber.api.android.CucumberAndroidJUnitRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Read API key from local.properties (git-ignored file)
         val localProperties = Properties()

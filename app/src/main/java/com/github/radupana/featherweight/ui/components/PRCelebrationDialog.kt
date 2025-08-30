@@ -146,7 +146,6 @@ fun PRCelebrationDialog(
                                 when (personalRecords.first().recordType) {
                                     PRType.WEIGHT -> "NEW WEIGHT PR!"
                                     PRType.ESTIMATED_1RM -> "NEW ESTIMATED 1RM!"
-                                    else -> "PERSONAL RECORD!"
                                 }
                             hasWeightPR && hasOneRMPR -> "DOUBLE PR!"
                             personalRecords.size > 1 -> "Multiple PRs!"
@@ -232,7 +231,6 @@ private fun PRDetailCard(
                     PRType.ESTIMATED_1RM -> {
                         "Est. 1RM: ${WeightFormatter.formatWeightWithUnit(personalRecord.estimated1RM ?: 0f)}"
                     }
-                    else -> formatPRText(personalRecord)
                 }
 
             Text(

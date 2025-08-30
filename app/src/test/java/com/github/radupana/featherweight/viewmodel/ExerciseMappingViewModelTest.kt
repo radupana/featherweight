@@ -8,9 +8,7 @@ import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.testutil.CoroutineTestRule
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkConstructor
 import io.mockk.unmockkAll
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -92,14 +90,10 @@ class ExerciseMappingViewModelTest {
         application = mockk(relaxed = true)
         mockRepository = mockk(relaxed = true)
         
-        // Mock the repository constructor to return our mock
-        mockkConstructor(FeatherweightRepository::class)
-        every { anyConstructed<FeatherweightRepository>() } returns mockRepository
-        
         // Setup the repository to return test exercises
         coEvery { mockRepository.getAllExercises() } returns testExercises
         
-        viewModel = ExerciseMappingViewModel(application)
+        viewModel = ExerciseMappingViewModel(application, mockRepository)
     }
     
     @After
@@ -196,7 +190,7 @@ class ExerciseMappingViewModelTest {
         coEvery { mockRepository.getAllExercises() } returns manyExercises
         
         // Reinitialize viewModel to load new exercises
-        viewModel = ExerciseMappingViewModel(application)
+        viewModel = ExerciseMappingViewModel(application, mockRepository)
         
         // When
         viewModel.searchExercises("squat")
@@ -234,7 +228,7 @@ class ExerciseMappingViewModelTest {
             usageCount = 0
         )
         coEvery { mockRepository.getAllExercises() } returns exercisesWithExactMatch
-        viewModel = ExerciseMappingViewModel(application)
+        viewModel = ExerciseMappingViewModel(application, mockRepository)
         
         // When
         viewModel.searchExercises("squat")

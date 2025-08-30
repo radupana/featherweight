@@ -182,7 +182,6 @@ class FeatherweightRepository(
 
     private val exerciseSeeder =
         ExerciseSeeder(
-            exerciseDao = exerciseDao,
             exerciseCoreDao = exerciseCoreDao,
             exerciseVariationDao = exerciseVariationDao,
             variationMuscleDao = variationMuscleDao,

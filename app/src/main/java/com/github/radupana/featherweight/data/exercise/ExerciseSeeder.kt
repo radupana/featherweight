@@ -35,7 +35,6 @@ data class ExercisesJson(
  * Creates ExerciseCore, ExerciseVariation, VariationMuscle, and VariationAlias entries.
  */
 class ExerciseSeeder(
-    private val exerciseDao: ExerciseDao,
     private val exerciseCoreDao: ExerciseCoreDao,
     private val exerciseVariationDao: ExerciseVariationDao,
     private val variationMuscleDao: VariationMuscleDao,
@@ -55,9 +54,10 @@ class ExerciseSeeder(
 
     suspend fun seedExercises() =
         withContext(Dispatchers.IO) {
-            // Check if already seeded
-            val existingCount = exerciseDao.getAllExercises().size
-            if (existingCount > 0) {
+            // Check if already seeded - check variations table directly
+            val existingVariations = exerciseVariationDao.getAllExerciseVariations()
+            if (existingVariations.isNotEmpty()) {
+                Log.d(TAG, "Database already seeded with ${existingVariations.size} variations")
                 return@withContext
             }
 
@@ -66,6 +66,8 @@ class ExerciseSeeder(
                     "Cannot initialize exercise database: Context is null. App cannot function without proper exercise data.",
                 )
             }
+
+            Log.d(TAG, "Starting exercise database seeding...")
 
             try {
                 // Load from bundled JSON
