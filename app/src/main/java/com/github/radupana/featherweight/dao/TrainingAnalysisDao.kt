@@ -19,7 +19,4 @@ interface TrainingAnalysisDao {
     suspend fun deleteOldAnalyses(
         olderThan: LocalDateTime,
     )
-
-    @Query("DELETE FROM training_analysis")
-    suspend fun deleteAllAnalyses()
 }

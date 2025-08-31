@@ -4,7 +4,6 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.Date
 
 class DateConvertersTest {
     @Test
@@ -80,38 +79,6 @@ class DateConvertersTest {
         assertThat(result).isNull()
     }
 
-    @Test
-    fun `fromDate converts Date to timestamp`() {
-        val date = Date(1705315200000L)
-
-        val result = DateConverters.fromDate(date)
-
-        assertThat(result).isEqualTo(1705315200000L)
-    }
-
-    @Test
-    fun `fromDate returns null for null input`() {
-        val result = DateConverters.fromDate(null)
-
-        assertThat(result).isNull()
-    }
-
-    @Test
-    fun `toDate converts timestamp to Date`() {
-        val timestamp = 1705315200000L
-
-        val result = DateConverters.toDate(timestamp)
-
-        assertThat(result).isNotNull()
-        assertThat(result?.time).isEqualTo(timestamp)
-    }
-
-    @Test
-    fun `toDate returns null for null input`() {
-        val result = DateConverters.toDate(null)
-
-        assertThat(result).isNull()
-    }
 
     @Test
     fun `round trip conversion for LocalDateTime`() {
@@ -133,15 +100,6 @@ class DateConvertersTest {
         assertThat(result).isEqualTo(original)
     }
 
-    @Test
-    fun `round trip conversion for Date`() {
-        val original = Date(System.currentTimeMillis())
-
-        val timestamp = DateConverters.fromDate(original)
-        val result = DateConverters.toDate(timestamp)
-
-        assertThat(result).isEqualTo(original)
-    }
 
     @Test
     fun `fromTimestamp handles leap year`() {
@@ -183,39 +141,6 @@ class DateConvertersTest {
         assertThat(result).isEqualTo("2024-12-31T23:59:59")
     }
 
-    @Test
-    fun `fromDate handles epoch time`() {
-        val epochDate = Date(0L)
-
-        val result = DateConverters.fromDate(epochDate)
-
-        assertThat(result).isEqualTo(0L)
-    }
-
-    @Test
-    fun `toDate handles epoch time`() {
-        val result = DateConverters.toDate(0L)
-
-        assertThat(result).isNotNull()
-        assertThat(result?.time).isEqualTo(0L)
-    }
-
-    @Test
-    fun `fromDate handles negative timestamp for dates before epoch`() {
-        val beforeEpoch = Date(-86400000L)
-
-        val result = DateConverters.fromDate(beforeEpoch)
-
-        assertThat(result).isEqualTo(-86400000L)
-    }
-
-    @Test
-    fun `toDate handles negative timestamp for dates before epoch`() {
-        val result = DateConverters.toDate(-86400000L)
-
-        assertThat(result).isNotNull()
-        assertThat(result?.time).isEqualTo(-86400000L)
-    }
 
     @Test
     fun `localDateToString handles start of year`() {
@@ -263,12 +188,4 @@ class DateConvertersTest {
         assertThat(result).isEqualTo("2024-03-05")
     }
 
-    @Test
-    fun `fromDate handles max long value`() {
-        val maxDate = Date(Long.MAX_VALUE)
-
-        val result = DateConverters.fromDate(maxDate)
-
-        assertThat(result).isEqualTo(Long.MAX_VALUE)
-    }
 }
