@@ -528,7 +528,7 @@ private fun CleanSetRow(
                         .fillMaxWidth()
                         .padding(horizontal = 4.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.Top,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Set number column - match header layout
                 Box(
@@ -546,7 +546,7 @@ private fun CleanSetRow(
                 // Weight input with % of 1RM below
                 Box(
                     modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.TopCenter,
+                    contentAlignment = Alignment.Center,
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
