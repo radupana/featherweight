@@ -115,7 +115,7 @@ class GlobalProgressTracker(
         progress = updateVolumeTrends(progress, sessionVolume)
 
         // Update 1RM estimate and get pending update if applicable
-        val (updatedProgress, pendingUpdate) = updateEstimatedMax(progress, completedSets, workoutDate)
+        val (updatedProgress, pendingUpdate) = updateEstimatedMax(progress, completedSets)
         progress = updatedProgress
 
         // Track workout source
@@ -295,7 +295,6 @@ class GlobalProgressTracker(
     private suspend fun updateEstimatedMax(
         progress: GlobalExerciseProgress,
         sets: List<SetLog>,
-        workoutDate: LocalDateTime? = null,
     ): Pair<GlobalExerciseProgress, PendingOneRMUpdate?> {
         // Only consider sets with sufficient data for estimation
         val estimableSets =
@@ -348,14 +347,6 @@ class GlobalProgressTracker(
 
         // Check if this is a Big 4 exercise
         val exerciseVariation = database.exerciseVariationDao().getExerciseVariationById(progress.exerciseVariationId)
-        val isBig4Exercise =
-            exerciseVariation?.name in
-                listOf(
-                    "Barbell Back Squat",
-                    "Barbell Deadlift",
-                    "Barbell Bench Press",
-                    "Barbell Overhead Press",
-                )
 
         // Automatically update 1RM if it's an improvement or first record
         val shouldUpdate1RM =

@@ -10,6 +10,7 @@ import com.github.radupana.featherweight.data.ParseStatus
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -49,6 +50,10 @@ class ProgrammeViewModel(
     private val _parseRequests = MutableStateFlow<List<ParseRequest>>(emptyList())
     val parseRequests: StateFlow<List<ParseRequest>> = _parseRequests
 
+    // Next workout info
+    private val _nextWorkoutInfo = MutableStateFlow<NextProgrammeWorkoutInfo?>(null)
+    val nextWorkoutInfo: StateFlow<NextProgrammeWorkoutInfo?> = _nextWorkoutInfo
+
     init {
         // Start with immediate loading
         _uiState.value = _uiState.value.copy(isLoading = true)
@@ -79,6 +84,20 @@ class ProgrammeViewModel(
             if (active != null) {
                 val progress = repository.getProgrammeWithDetails(active.id)?.progress
                 _programmeProgress.value = progress
+                // Also refresh next workout info
+                loadNextWorkoutInfo()
+            }
+        }
+    }
+
+    // Load next workout info
+    fun loadNextWorkoutInfo() {
+        viewModelScope.launch {
+            val active = _activeProgramme.value
+            if (active != null) {
+                _nextWorkoutInfo.value = repository.getNextProgrammeWorkout(active.id)
+            } else {
+                _nextWorkoutInfo.value = null
             }
         }
     }
@@ -101,6 +120,8 @@ class ProgrammeViewModel(
                 if (active != null) {
                     val progress = repository.getProgrammeWithDetails(active.id)?.progress
                     _programmeProgress.value = progress
+                    // Load next workout info
+                    _nextWorkoutInfo.value = repository.getNextProgrammeWorkout(active.id)
                 }
 
                 // Load all programmes (including inactive)

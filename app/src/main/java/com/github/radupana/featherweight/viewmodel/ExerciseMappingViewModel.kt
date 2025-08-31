@@ -23,12 +23,12 @@ data class ExerciseMappingUiState(
 
 class ExerciseMappingViewModel(
     application: Application,
-    private val repository: FeatherweightRepository = FeatherweightRepository(application)
 ) : AndroidViewModel(application) {
     companion object {
         private const val MAX_SEARCH_RESULTS = 20
     }
 
+    private val repository = FeatherweightRepository(application)
     private val _uiState = MutableStateFlow(ExerciseMappingUiState())
     val uiState: StateFlow<ExerciseMappingUiState> = _uiState
 
@@ -82,11 +82,13 @@ class ExerciseMappingViewModel(
         }
 
         // Use the shared search utility for consistent search behavior
-        val results = ExerciseSearchUtil.filterAndSortExercises(
-            exercises = allExercises,
-            query = query,
-            nameExtractor = { it.name }
-        ).take(MAX_SEARCH_RESULTS) // Limit results for performance
+        val results =
+            ExerciseSearchUtil
+                .filterAndSortExercises(
+                    exercises = allExercises,
+                    query = query,
+                    nameExtractor = { it.name },
+                ).take(MAX_SEARCH_RESULTS) // Limit results for performance
 
         _searchResults.value = results
     }
@@ -104,5 +106,4 @@ class ExerciseMappingViewModel(
         _uiState.value.mappings.mapValues { (_, mapping) ->
             mapping.exerciseId
         }
-
 }

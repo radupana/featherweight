@@ -51,11 +51,11 @@ data class WeekWorkouts(
 class HistoryViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
+    private val repository = FeatherweightRepository(application)
+
     companion object {
         private const val TAG = "HistoryViewModel"
     }
-
-    private val repository = FeatherweightRepository(application)
 
     private val _historyState = MutableStateFlow(PaginatedHistoryState())
     val historyState: StateFlow<PaginatedHistoryState> = _historyState

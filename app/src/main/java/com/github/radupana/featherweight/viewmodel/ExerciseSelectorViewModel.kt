@@ -143,12 +143,13 @@ class ExerciseSelectorViewModel(
             filteredByAttributes
                 .mapNotNull { exerciseWithDetails ->
                     val aliases = exerciseWithDetails.aliases.map { it.alias }
-                    val baseScore = ExerciseSearchUtil.scoreExerciseMatch(
-                        exerciseName = exerciseWithDetails.variation.name,
-                        query = query,
-                        aliases = aliases
-                    )
-                    
+                    val baseScore =
+                        ExerciseSearchUtil.scoreExerciseMatch(
+                            exerciseName = exerciseWithDetails.variation.name,
+                            query = query,
+                            aliases = aliases,
+                        )
+
                     if (baseScore > 0) {
                         // Add small usage bonus to the score
                         val finalScore = baseScore + (exerciseWithDetails.variation.usageCount / 10)
@@ -156,12 +157,10 @@ class ExerciseSelectorViewModel(
                     } else {
                         null
                     }
-                }
-                .sortedWith(
+                }.sortedWith(
                     compareByDescending<Pair<ExerciseWithDetails, Int>> { it.second }
-                        .thenBy { it.first.variation.name }
-                )
-                .map { it.first }
+                        .thenBy { it.first.variation.name },
+                ).map { it.first }
         } else {
             // When not searching, maintain the usage-based order
             filteredByAttributes

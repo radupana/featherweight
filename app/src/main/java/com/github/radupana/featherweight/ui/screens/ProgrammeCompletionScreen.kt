@@ -50,7 +50,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.programme.StrengthImprovement
 import com.github.radupana.featherweight.ui.dialogs.NotesInputModal
-import com.github.radupana.featherweight.ui.theme.GlassCard
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.ProgrammeCompletionViewModel
 import java.time.format.DateTimeFormatter
@@ -205,7 +204,7 @@ fun ProgrammeCompletionScreen(
 
 @Composable
 private fun ProgrammeHeroCard(stats: com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats) {
-    GlassCard(
+    Card(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -250,7 +249,7 @@ private fun ProgrammeHeroCard(stats: com.github.radupana.featherweight.data.prog
 
 @Composable
 private fun PrimaryStatsCard(stats: com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats) {
-    GlassCard(
+    Card(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -312,7 +311,7 @@ private fun StrengthProgressCard(
     improvements: List<StrengthImprovement>,
     averageImprovement: Float,
 ) {
-    GlassCard(
+    Card(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -416,7 +415,7 @@ private fun ImprovementItem(improvement: StrengthImprovement) {
 
 @Composable
 private fun PersonalRecordsCard(totalPRs: Int) {
-    GlassCard(
+    Card(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -452,7 +451,7 @@ private fun PersonalRecordsCard(totalPRs: Int) {
 
 @Composable
 private fun ProgrammeInsightsCard(stats: com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats) {
-    GlassCard(
+    Card(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -531,7 +530,7 @@ private fun NotesCard(
     notes: String,
     onEditNotes: () -> Unit,
 ) {
-    GlassCard(
+    Card(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(

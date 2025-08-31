@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -39,6 +40,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,28 +51,36 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
+import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
 import com.github.radupana.featherweight.ui.components.ParseRequestCard
 import com.github.radupana.featherweight.ui.utils.NavigationContext
 import com.github.radupana.featherweight.ui.utils.rememberKeyboardState
 import com.github.radupana.featherweight.ui.utils.systemBarsPadding
+import com.github.radupana.featherweight.viewmodel.InProgressWorkout
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
+import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProgrammesScreen(
     modifier: Modifier = Modifier,
     viewModel: ProgrammeViewModel = viewModel(),
-    onNavigateToActiveProgramme: (() -> Unit)? = null,
+    workoutViewModel: WorkoutViewModel = viewModel(),
     onNavigateToImport: (() -> Unit)? = null,
     onNavigateToImportWithText: ((String) -> Unit)? = null,
     onNavigateToImportWithParsedProgramme: ((com.github.radupana.featherweight.data.ParsedProgramme, Long) -> Unit)? = null,
     onClearImportedProgramme: (() -> Unit)? = null,
+    onStartProgrammeWorkout: (() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val activeProgramme by viewModel.activeProgramme.collectAsState()
     val programmeProgress by viewModel.programmeProgress.collectAsState()
+    val nextWorkoutInfo by viewModel.nextWorkoutInfo.collectAsState()
     val parseRequests by viewModel.parseRequests.collectAsState()
+    val inProgressWorkouts by workoutViewModel.inProgressWorkouts.collectAsState()
     val isKeyboardVisible by rememberKeyboardState()
     val compactPadding = if (isKeyboardVisible) 8.dp else 16.dp
+    val scope = rememberCoroutineScope()
 
     // Check if any parse request is currently being processed
     val isParsingInProgress = parseRequests.any { it.status == com.github.radupana.featherweight.data.ParseStatus.PROCESSING }
@@ -92,7 +102,11 @@ fun ProgrammesScreen(
         }
     }
 
-    // Data is loaded once in ViewModel init - no need for refresh on every screen appear
+    // Refresh programme progress and workouts when screen appears
+    LaunchedEffect(Unit) {
+        viewModel.refreshProgrammeProgress()
+        workoutViewModel.loadInProgressWorkouts()
+    }
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -267,8 +281,20 @@ fun ProgrammesScreen(
                         ActiveProgrammeCard(
                             programme = programme,
                             progress = programmeProgress,
+                            nextWorkoutInfo = nextWorkoutInfo,
+                            inProgressWorkouts = inProgressWorkouts,
                             onDelete = { showDeleteConfirmDialog = true },
-                            onNavigateToProgramme = onNavigateToActiveProgramme,
+                            onStartWorkout = {
+                                scope.launch {
+                                    handleStartProgrammeWorkout(
+                                        programme = programme,
+                                        nextWorkoutInfo = nextWorkoutInfo,
+                                        inProgressWorkouts = inProgressWorkouts,
+                                        workoutViewModel = workoutViewModel,
+                                        onNavigate = onStartProgrammeWorkout,
+                                    )
+                                }
+                            },
                             isCompact = isKeyboardVisible,
                         )
                     }
@@ -516,22 +542,31 @@ fun ProgrammesScreen(
 private fun ActiveProgrammeCard(
     programme: Programme,
     progress: ProgrammeProgress?,
+    nextWorkoutInfo: NextProgrammeWorkoutInfo?,
+    inProgressWorkouts: List<InProgressWorkout>,
     onDelete: () -> Unit,
-    onNavigateToProgramme: (() -> Unit)? = null,
+    onStartWorkout: () -> Unit,
     isCompact: Boolean = false,
 ) {
     val cardPadding = if (isCompact) 16.dp else 20.dp
+
+    // Check for existing in-progress programme workout
+    val existingWorkout =
+        inProgressWorkouts.find { workout ->
+            workout.isProgrammeWorkout &&
+                workout.programmeId == programme.id &&
+                nextWorkoutInfo != null &&
+                workout.weekNumber == nextWorkoutInfo.actualWeekNumber &&
+                workout.dayNumber == nextWorkoutInfo.workoutStructure.day
+        }
+
+    // Check if there's ANY in-progress workout (not just for this programme)
+    val hasAnyInProgressWorkout = inProgressWorkouts.isNotEmpty()
+
     Card(
         modifier =
             Modifier
-                .fillMaxWidth()
-                .then(
-                    if (onNavigateToProgramme != null) {
-                        Modifier.clickable { onNavigateToProgramme() }
-                    } else {
-                        Modifier
-                    },
-                ),
+                .fillMaxWidth(),
         colors =
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
@@ -625,7 +660,122 @@ private fun ActiveProgrammeCard(
                     trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                 )
             }
+
+            // Next Workout Section
+            nextWorkoutInfo?.let { info ->
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = if (existingWorkout != null) "Workout In Progress" else "Next Workout",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium,
+                    )
+
+                    Text(
+                        text = info.workoutStructure.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+
+                    Text(
+                        text =
+                            if (existingWorkout != null) {
+                                "Week ${info.actualWeekNumber} • Day ${info.workoutStructure.day} • ${existingWorkout.completedSets}/${existingWorkout.setCount} sets"
+                            } else {
+                                "Week ${info.actualWeekNumber} • Day ${info.workoutStructure.day} • ${info.workoutStructure.exercises.size} exercises"
+                            },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Button(
+                        onClick = onStartWorkout,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = existingWorkout != null || !hasAnyInProgressWorkout,
+                    ) {
+                        Icon(
+                            Icons.Filled.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (existingWorkout != null) "Continue Workout" else "Start Next Workout",
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+
+                    // Show message if button is disabled due to another workout in progress
+                    if (existingWorkout == null && hasAnyInProgressWorkout) {
+                        Text(
+                            text = "Complete or discard existing in-progress workout first",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            } ?: run {
+                // Programme completed
+                if (progress?.completedWorkouts == progress?.totalWorkouts && progress?.totalWorkouts ?: 0 > 0) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = "🎉 Programme Complete!",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+            }
         }
+    }
+}
+
+// Helper function to handle starting programme workouts
+private suspend fun handleStartProgrammeWorkout(
+    programme: Programme,
+    nextWorkoutInfo: NextProgrammeWorkoutInfo?,
+    inProgressWorkouts: List<InProgressWorkout>,
+    workoutViewModel: WorkoutViewModel,
+    onNavigate: (() -> Unit)?,
+) {
+    if (nextWorkoutInfo == null) return
+
+    val existingWorkout =
+        inProgressWorkouts.find { workout ->
+            workout.isProgrammeWorkout &&
+                workout.programmeId == programme.id &&
+                workout.weekNumber == nextWorkoutInfo.actualWeekNumber &&
+                workout.dayNumber == nextWorkoutInfo.workoutStructure.day
+        }
+
+    if (existingWorkout != null) {
+        // Resume existing workout
+        workoutViewModel.resumeWorkout(existingWorkout.id)
+        onNavigate?.invoke()
+    } else {
+        // Start new workout
+        workoutViewModel.startProgrammeWorkout(
+            programmeId = programme.id,
+            weekNumber = nextWorkoutInfo.actualWeekNumber,
+            dayNumber = nextWorkoutInfo.workoutStructure.day,
+            onReady = {
+                // Navigate only after workout is fully created
+                onNavigate?.invoke()
+            },
+        )
     }
 }
 

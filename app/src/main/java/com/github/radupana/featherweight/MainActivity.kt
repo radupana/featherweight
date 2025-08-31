@@ -69,7 +69,6 @@ enum class Screen {
     HISTORY,
     INSIGHTS,
     PROGRAMMES,
-    ACTIVE_PROGRAMME,
     PROFILE,
     EXERCISE_PROGRESS,
     PROGRAMME_HISTORY_DETAIL,
@@ -511,18 +510,20 @@ fun MainAppWithNavigation(
 
             Screen.PROGRAMMES -> {
                 val programmeViewModel: ProgrammeViewModel = viewModel()
+                val workoutViewModel: WorkoutViewModel = viewModel()
                 val importViewModel: ImportProgrammeViewModel = viewModel()
 
                 // Refresh data when navigating to this screen
                 LaunchedEffect(currentScreen) {
                     if (currentScreen == Screen.PROGRAMMES) {
                         programmeViewModel.refreshData()
+                        workoutViewModel.loadInProgressWorkouts()
                     }
                 }
 
                 com.github.radupana.featherweight.ui.screens.ProgrammesScreen(
                     viewModel = programmeViewModel,
-                    onNavigateToActiveProgramme = { onScreenChange(Screen.ACTIVE_PROGRAMME) },
+                    workoutViewModel = workoutViewModel,
                     onNavigateToImport = { onScreenChange(Screen.IMPORT_PROGRAMME) },
                     onNavigateToImportWithText = { text ->
                         importProgrammeInitialText = text
@@ -540,27 +541,7 @@ fun MainAppWithNavigation(
                         importProgrammeInitialText = null
                         importViewModel.clearAll() // Clear the view model state too
                     },
-                    modifier = Modifier.padding(innerPadding),
-                )
-            }
-
-            Screen.ACTIVE_PROGRAMME -> {
-                val programmeViewModel: ProgrammeViewModel = viewModel()
-                val workoutViewModel: WorkoutViewModel = viewModel()
-
-                // Refresh programme data and in-progress workouts when returning to this screen
-                LaunchedEffect(currentScreen) {
-                    if (currentScreen == Screen.ACTIVE_PROGRAMME) {
-                        programmeViewModel.refreshData()
-                        workoutViewModel.loadInProgressWorkouts()
-                    }
-                }
-
-                com.github.radupana.featherweight.ui.screens.ActiveProgrammeScreen(
-                    onBack = { onScreenChange(Screen.PROGRAMMES) },
                     onStartProgrammeWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
-                    programmeViewModel = programmeViewModel,
-                    workoutViewModel = workoutViewModel,
                     modifier = Modifier.padding(innerPadding),
                 )
             }

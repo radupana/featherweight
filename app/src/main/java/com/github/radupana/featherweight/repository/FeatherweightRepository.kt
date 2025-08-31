@@ -2,7 +2,6 @@ package com.github.radupana.featherweight.repository
 
 import android.app.Application
 import android.util.Log
-import com.github.radupana.featherweight.ai.ProgrammeType
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
@@ -43,6 +42,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeDifficulty
 import com.github.radupana.featherweight.data.programme.ProgrammeInsights
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
 import com.github.radupana.featherweight.data.programme.ProgrammeStatus
+import com.github.radupana.featherweight.data.programme.ProgrammeType
 import com.github.radupana.featherweight.data.programme.ProgrammeWeek
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
 import com.github.radupana.featherweight.data.programme.RepsStructure
@@ -70,7 +70,6 @@ import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
-import com.github.radupana.featherweight.data.programme.ProgrammeType as DataProgrammeType
 
 data class NextProgrammeWorkoutInfo(
     val workoutStructure: WorkoutStructure,
@@ -1341,7 +1340,7 @@ class FeatherweightRepository(
         description: String,
         durationWeeks: Int,
         jsonStructure: String,
-        programmeType: DataProgrammeType = DataProgrammeType.GENERAL_FITNESS,
+        programmeType: ProgrammeType = ProgrammeType.GENERAL_FITNESS,
         difficulty: ProgrammeDifficulty = ProgrammeDifficulty.INTERMEDIATE,
     ): Long =
         withContext(Dispatchers.IO) {
@@ -2661,7 +2660,7 @@ class FeatherweightRepository(
                     durationWeeks = programme.durationWeeks,
                     completedWorkouts = completedWorkouts,
                     totalWorkouts = workouts.size,
-                    programmeType = programme.programmeType.toAiProgrammeType(),
+                    programmeType = programme.programmeType,
                     difficulty = programme.difficulty,
                     completionNotes = programme.completionNotes,
                 )
@@ -2751,7 +2750,7 @@ class FeatherweightRepository(
             ProgrammeHistoryDetails(
                 id = programme.id,
                 name = programme.name,
-                programmeType = programme.programmeType.toAiProgrammeType(),
+                programmeType = programme.programmeType,
                 difficulty = programme.difficulty,
                 durationWeeks = programme.durationWeeks,
                 startedAt = programme.startedAt,
@@ -2894,7 +2893,7 @@ data class ProgrammeSummary(
     val durationWeeks: Int,
     val completedWorkouts: Int,
     val totalWorkouts: Int = 0,
-    val programmeType: ProgrammeType = ProgrammeType.GENERAL,
+    val programmeType: ProgrammeType = ProgrammeType.GENERAL_FITNESS,
     val difficulty: ProgrammeDifficulty = ProgrammeDifficulty.INTERMEDIATE,
     val completionNotes: String? = null,
 )
@@ -2940,12 +2939,3 @@ data class WorkoutHistoryEntry(
 )
 
 // Extension function to convert from data.programme.ProgrammeType to ai.ProgrammeType
-private fun DataProgrammeType.toAiProgrammeType(): ProgrammeType =
-    when (this) {
-        DataProgrammeType.STRENGTH -> ProgrammeType.STRENGTH
-        DataProgrammeType.POWERLIFTING -> ProgrammeType.STRENGTH
-        DataProgrammeType.BODYBUILDING -> ProgrammeType.HYPERTROPHY
-        DataProgrammeType.GENERAL_FITNESS -> ProgrammeType.GENERAL
-        DataProgrammeType.OLYMPIC_LIFTING -> ProgrammeType.STRENGTH
-        DataProgrammeType.HYBRID -> ProgrammeType.GENERAL
-    }
