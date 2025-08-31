@@ -158,6 +158,9 @@ dependencies {
     // Calendar - using version 2.6.1 which is compatible with latest Compose
     implementation(libs.compose)
 
+    // Lottie for professional animations
+    implementation(libs.lottie.compose)
+
     // UI Testing with UI Automator
     androidTestImplementation(libs.androidx.test.uiautomator)
     androidTestImplementation(libs.androidx.test.runner)
