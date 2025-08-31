@@ -614,8 +614,7 @@ private fun WorkoutHeader(
                         }
                     }
 
-                    // Workout timer (not shown in template edit mode)
-                    if (workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
+                    if (workoutState.mode != WorkoutMode.TEMPLATE_EDIT && completedSets > 0) {
                         WorkoutTimer(
                             seconds = workoutTimerSeconds,
                             modifier = Modifier.padding(start = 8.dp),
@@ -629,10 +628,8 @@ private fun WorkoutHeader(
                 }
             },
             actions = {
-                // Notes button (not shown in template edit mode)
-                if (workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
+                if (workoutState.mode != WorkoutMode.TEMPLATE_EDIT) {
                     IconButton(onClick = {
-                        // Load current notes from repository
                         currentWorkoutId?.let { workoutId ->
                             onShowNotesModal(workoutId)
                         }
