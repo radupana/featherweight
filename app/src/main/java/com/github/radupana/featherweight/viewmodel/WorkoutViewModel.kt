@@ -1149,9 +1149,10 @@ class WorkoutViewModel(
                         currentSet.copy(
                             targetReps = reps,
                             targetWeight = weight,
-                            // Also update actual values so UI displays the changes
+                            targetRpe = rpe,
                             actualReps = reps,
                             actualWeight = weight,
+                            actualRpe = rpe,
                         )
                     } else {
                         currentSet.copy(
@@ -2082,13 +2083,13 @@ class WorkoutViewModel(
                     val exerciseSets = sets.filter { it.exerciseLogId == exerciseLog.id }
                     com.github.radupana.featherweight.data.ParsedExercise(
                         exerciseName = _exerciseNames.value[exerciseLog.exerciseVariationId] ?: "Unknown Exercise",
-                        matchedExerciseId = exerciseLog.exerciseVariationId, // Preserve the exercise ID
+                        matchedExerciseId = exerciseLog.exerciseVariationId,
                         sets =
                             exerciseSets.map { setLog ->
                                 com.github.radupana.featherweight.data.ParsedSet(
                                     reps = setLog.targetReps,
                                     weight = setLog.targetWeight,
-                                    rpe = setLog.actualRpe ?: setLog.targetRpe, // Preserve RPE values
+                                    rpe = setLog.targetRpe ?: setLog.actualRpe, // Prioritize targetRpe for template editing
                                 )
                             },
                     )

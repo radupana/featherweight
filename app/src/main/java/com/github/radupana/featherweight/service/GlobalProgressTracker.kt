@@ -35,7 +35,6 @@ class GlobalProgressTracker(
                     exerciseVariationId = exercise.exerciseVariationId,
                     workoutId = workoutId,
                     isProgrammeWorkout = workout.programmeId != null,
-                    workoutDate = workout.date,
                 )
             pendingUpdate?.let { pendingUpdates.add(it) }
         }
@@ -47,7 +46,6 @@ class GlobalProgressTracker(
         exerciseVariationId: Long,
         workoutId: Long,
         isProgrammeWorkout: Boolean,
-        workoutDate: LocalDateTime? = null,
     ): PendingOneRMUpdate? {
         val exerciseLogs =
             database
@@ -344,9 +342,6 @@ class GlobalProgressTracker(
         }
 
         val estimated1RM = bestEstimate.estimatedMax
-
-        // Check if this is a Big 4 exercise
-        val exerciseVariation = database.exerciseVariationDao().getExerciseVariationById(progress.exerciseVariationId)
 
         // Automatically update 1RM if it's an improvement or first record
         val shouldUpdate1RM =

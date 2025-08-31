@@ -1437,7 +1437,12 @@ class FeatherweightRepository(
                             val repsList = sets.map { (it["reps"] as? Double)?.toInt()?.toString() ?: "0" }
                             val weightsList = sets.map { (it["weight"] as? Double)?.toFloat() ?: 0f }
                             // Keep nulls in the list to preserve set indices, but map to null instead of missing
-                            val rpeList = sets.map { (it["rpe"] as? Double)?.toFloat() }.takeIf { list -> list.any { it != null } }
+                            val rpeList = sets.map { setData ->
+                                val rpeValue = setData["rpe"] as? Double
+                                Log.d("FeatherweightRepository", "        Set data keys: ${setData.keys}, rpe raw value: $rpeValue")
+                                rpeValue?.toFloat()
+                            }.takeIf { list -> list.any { it != null } }
+                            Log.d("FeatherweightRepository", "      RPE list after parsing: $rpeList")
 
                             // Store reps as PerSet to preserve individual values
                             val repsStructure = RepsStructure.PerSet(repsList)

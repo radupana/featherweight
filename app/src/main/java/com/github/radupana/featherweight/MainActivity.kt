@@ -338,7 +338,7 @@ fun MainAppWithNavigation(
                                                     // In template edit mode, we're editing TARGET values (what the programme prescribes)
                                                     reps = setLog.targetReps,
                                                     weight = setLog.targetWeight,
-                                                    rpe = null,
+                                                    rpe = setLog.targetRpe,  // Preserve RPE from parsed programme
                                                 )
                                             },
                                         notes = exerciseLog.notes,
