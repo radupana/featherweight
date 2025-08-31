@@ -13,7 +13,7 @@ class ProgrammeTextParserTest {
     // Test implementation that allows us to control the API response
     private inner class TestProgrammeTextParser(
         private var mockApiResponse: String? = null,
-    ) : ProgrammeTextParser(apiKey = "test-key") {
+    ) : ProgrammeTextParser() {
         override fun callOpenAIAPI(request: TextParsingRequest): String = mockApiResponse ?: error("No mock response set")
 
         fun setMockResponse(response: String) {

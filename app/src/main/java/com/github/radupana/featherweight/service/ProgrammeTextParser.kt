@@ -21,12 +21,10 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-open class ProgrammeTextParser(
-    private val apiKey: String? = null,
-) {
+open class ProgrammeTextParser {
     companion object {
         private const val TAG = "ProgrammeTextParser"
-        private const val TIMEOUT_SECONDS = 300L // 5 minutes timeout
+        private const val TIMEOUT_SECONDS = 300L
         private const val SYSTEM_PROMPT = "You are a fitness programme parser. Extract workout programmes into structured JSON format."
     }
 
@@ -102,7 +100,6 @@ open class ProgrammeTextParser(
                 Log.e(TAG, "Exception type: ${e.javaClass.name}")
                 Log.e(TAG, "Full stack trace:", e)
 
-                // Provide user-friendly error messages
                 val userFriendlyError =
                     when {
                         e.message?.contains("too complex") == true -> e.message
@@ -146,7 +143,7 @@ open class ProgrammeTextParser(
 
     internal open fun callOpenAIAPI(request: TextParsingRequest): String {
         val effectiveApiKey =
-            apiKey ?: try {
+            try {
                 BuildConfig.OPENAI_API_KEY
             } catch (e: Exception) {
                 ""
@@ -363,7 +360,6 @@ open class ProgrammeTextParser(
         Log.d(TAG, "JSON parsed successfully")
         Log.d(TAG, "Top-level keys: ${json.keySet()}")
 
-        // Log parsing_logic if present for debugging
         json.get("parsing_logic")?.let { logicElement ->
             if (!logicElement.isJsonNull && logicElement.isJsonObject) {
                 val logic = logicElement.asJsonObject
@@ -394,7 +390,6 @@ open class ProgrammeTextParser(
         val name = json.get("name")?.asString ?: "Imported Programme"
         val durationWeeks = json.get("duration_weeks")?.asInt ?: 1
         Log.d(TAG, "Programme name: $name, duration: $durationWeeks weeks")
-        // Hardcode these - we don't use them anywhere
         val description = ""
         val programmeType = "GENERAL_FITNESS"
         val difficulty = "INTERMEDIATE"
@@ -411,7 +406,6 @@ open class ProgrammeTextParser(
             val workouts = mutableListOf<ParsedWorkout>()
             weekObj.getAsJsonArray("workouts")?.forEachIndexed { workoutIndex, workoutElement ->
                 val workoutObj = workoutElement.asJsonObject
-                // Handle null day - if null or JsonNull, use null (will display as Day 1, Day 2, etc.)
                 val dayJson = workoutObj.get("day")
                 val day =
                     when {
@@ -421,7 +415,6 @@ open class ProgrammeTextParser(
                 val workoutName = workoutObj.get("name")?.asString ?: "Workout"
                 val estimatedDuration = workoutObj.get("estimated_duration")?.asInt ?: 60
 
-                // Parse exercises and merge duplicates
                 val exerciseMap = mutableMapOf<String, MutableList<ParsedSet>>()
                 val exercisesArray = workoutObj.getAsJsonArray("exercises")
                 Log.d(TAG, "    Workout has ${exercisesArray?.size() ?: 0} exercises")
@@ -446,7 +439,6 @@ open class ProgrammeTextParser(
                         )
                     }
 
-                    // Merge sets if exercise already exists
                     val existingSets = exerciseMap[exerciseName]
                     if (existingSets != null) {
                         existingSets.addAll(sets)
@@ -459,13 +451,12 @@ open class ProgrammeTextParser(
                     }
                 }
 
-                // Convert map back to list
                 val exercises =
                     exerciseMap.map { (name, sets) ->
                         ParsedExercise(
                             exerciseName = name,
                             sets = sets,
-                            notes = null, // We don't use notes
+                            notes = null,
                         )
                     }
 
