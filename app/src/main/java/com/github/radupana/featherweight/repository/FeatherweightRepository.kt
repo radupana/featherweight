@@ -5,7 +5,6 @@ import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
-import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.ParseRequest
 import com.github.radupana.featherweight.data.ParseStatus
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
@@ -22,7 +21,6 @@ import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.ExerciseSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases
-import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.data.exercise.VariationAlias
@@ -53,8 +51,6 @@ import com.github.radupana.featherweight.domain.ExerciseStats
 import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.service.FreestyleIntelligenceService
 import com.github.radupana.featherweight.service.GlobalProgressTracker
-import com.github.radupana.featherweight.service.OneRMService
-import com.github.radupana.featherweight.service.PRDetectionService
 import com.github.radupana.featherweight.service.ProgressionService
 import com.github.radupana.featherweight.service.WorkoutTemplateGeneratorService
 import com.github.radupana.featherweight.service.WorkoutTemplateWeightService
@@ -62,10 +58,7 @@ import com.github.radupana.featherweight.util.WeightFormatter
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.LocalDate
@@ -122,6 +115,7 @@ class FeatherweightRepository(
     private val oneRMRepository = OneRMRepository(application)
     private val programmeRepository = ProgrammeRepository(application)
     private val workoutRepository = WorkoutRepository(application)
+    private val personalRecordRepository = PersonalRecordRepository(application)
 
     private val workoutDao = db.workoutDao()
     private val exerciseLogDao = db.exerciseLogDao()
@@ -141,7 +135,6 @@ class FeatherweightRepository(
     // Initialize GlobalProgressTracker
     private val globalProgressTracker = GlobalProgressTracker(this, db)
     private val freestyleIntelligenceService = FreestyleIntelligenceService(db.globalExerciseProgressDao())
-    private val prDetectionService = PRDetectionService(personalRecordDao, setLogDao, exerciseVariationDao)
     private val workoutTemplateGeneratorService =
         WorkoutTemplateGeneratorService(exerciseVariationDao)
     private val workoutTemplateWeightService =
@@ -185,16 +178,12 @@ class FeatherweightRepository(
 
     // ===== EXERCISE METHODS (Delegated to ExerciseRepository) =====
 
-    suspend fun getAllExercises(): List<ExerciseVariation> = exerciseRepository.getAllExercises()
-
-    suspend fun getAllExercisesWithAliases(): List<ExerciseVariationWithAliases> = exerciseRepository.getAllExercisesWithAliases()
-
-    suspend fun getExerciseById(id: Long): ExerciseVariation? = exerciseRepository.getExerciseById(id)
-
-    suspend fun searchExercises(query: String): List<ExerciseVariation> = exerciseRepository.searchExercises(query)
-
-    suspend fun getExercisesByCategory(category: ExerciseCategory): List<ExerciseVariation> = exerciseRepository.getExercisesByCategory(category)
-
+    // Exercise methods - delegated to ExerciseRepository
+    suspend fun getAllExercises() = exerciseRepository.getAllExercises()
+    suspend fun getAllExercisesWithAliases() = exerciseRepository.getAllExercisesWithAliases()
+    suspend fun getExerciseById(id: Long) = exerciseRepository.getExerciseById(id)
+    suspend fun searchExercises(query: String) = exerciseRepository.searchExercises(query)
+    suspend fun getExercisesByCategory(category: ExerciseCategory) = exerciseRepository.getExercisesByCategory(category)
 
     // Get muscles for a variation
     suspend fun getMusclesForVariation(variationId: Long): List<VariationMuscle> = variationMuscleDao.getMusclesForVariation(variationId)
@@ -617,9 +606,6 @@ class FeatherweightRepository(
 
     // ===== ANALYTICS METHODS =====
 
-
-
-
     suspend fun getRecentSetLogsForExercise(
         exerciseVariationId: Long,
         daysBack: Int,
@@ -703,13 +689,6 @@ class FeatherweightRepository(
         workoutId: Long,
         config: WorkoutTemplateConfig,
     ) = workoutTemplateWeightService.applyWeightSuggestions(workoutId, config)
-
-
-
-
-
-
-
 
     // ===== PROGRAMME-WORKOUT INTEGRATION METHODS =====
 
@@ -1152,11 +1131,13 @@ class FeatherweightRepository(
                             val repsList = sets.map { (it["reps"] as? Double)?.toInt()?.toString() ?: "0" }
                             val weightsList = sets.map { (it["weight"] as? Double)?.toFloat() ?: 0f }
                             // Keep nulls in the list to preserve set indices, but map to null instead of missing
-                            val rpeList = sets.map { setData ->
-                                val rpeValue = setData["rpe"] as? Double
-                                Log.d("FeatherweightRepository", "        Set data keys: ${setData.keys}, rpe raw value: $rpeValue")
-                                rpeValue?.toFloat()
-                            }.takeIf { list -> list.any { it != null } }
+                            val rpeList =
+                                sets
+                                    .map { setData ->
+                                        val rpeValue = setData["rpe"] as? Double
+                                        Log.d("FeatherweightRepository", "        Set data keys: ${setData.keys}, rpe raw value: $rpeValue")
+                                        rpeValue?.toFloat()
+                                    }.takeIf { list -> list.any { it != null } }
                             Log.d("FeatherweightRepository", "      RPE list after parsing: $rpeList")
 
                             // Store reps as PerSet to preserve individual values
@@ -1481,60 +1462,27 @@ class FeatherweightRepository(
             exerciseVariationId = exerciseVariationId,
             estimatedMax = roundedWeight,
             source = oneRMContext,
-            confidence = if (oneRMType == OneRMType.MANUALLY_ENTERED) 1.0f else 0.9f,
             date = dateToUse,
         )
     }
 
     // Remove getAllCurrentMaxes - this should only be used in Insights
 
-    suspend fun getCurrentMaxesForExercises(exerciseIds: List<Long>) = 
-        oneRMRepository.getCurrentMaxesForExercises(exerciseIds)
+    suspend fun getCurrentMaxesForExercises(exerciseIds: List<Long>) = oneRMRepository.getCurrentMaxesForExercises(exerciseIds)
 
     suspend fun getBig4Exercises() = oneRMRepository.getBig4Exercises()
 
-    fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>> =
-        oneRMRepository.getAllCurrentMaxesWithNames()
+    fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>> = oneRMRepository.getAllCurrentMaxesWithNames()
 
     fun getBig4ExercisesWithMaxes() = oneRMRepository.getBig4ExercisesWithMaxes()
 
     fun getOtherExercisesWithMaxes() = oneRMRepository.getOtherExercisesWithMaxes()
 
-    suspend fun getOneRMForExercise(exerciseVariationId: Long): Float? =
-        oneRMRepository.getOneRMForExercise(exerciseVariationId)
+    suspend fun getOneRMForExercise(exerciseVariationId: Long): Float? = oneRMRepository.getOneRMForExercise(exerciseVariationId)
 
-    suspend fun deleteAllMaxesForExercise(exerciseId: Long) =
-        oneRMRepository.deleteAllMaxesForExercise(exerciseId)
+    suspend fun deleteAllMaxesForExercise(exerciseId: Long) = oneRMRepository.deleteAllMaxesForExercise(exerciseId)
 
-    suspend fun updateOrInsertOneRM(oneRMRecord: UserExerciseMax) =
-        withContext(Dispatchers.IO) {
-            // Check if we have an existing record for this exercise
-            val existing = db.oneRMDao().getCurrentMax(oneRMRecord.exerciseVariationId)
-
-            val shouldSaveHistory =
-                if (existing != null) {
-                    // Update existing record if new estimate is higher
-                    if (oneRMRecord.oneRMEstimate > existing.oneRMEstimate) {
-                        db.oneRMDao().updateExerciseMax(oneRMRecord.copy(id = existing.id))
-                        true
-                    } else {
-                        false
-                    }
-                } else {
-                    // Insert new record
-                    db.oneRMDao().insertExerciseMax(oneRMRecord)
-                    true
-                }
-
-            // Save to history if we made a change
-            if (shouldSaveHistory) {
-                saveOneRMToHistory(
-                    exerciseVariationId = oneRMRecord.exerciseVariationId,
-                    oneRM = oneRMRecord.oneRMEstimate,
-                    context = oneRMRecord.oneRMContext,
-                )
-            }
-        }
+    suspend fun updateOrInsertOneRM(oneRMRecord: UserExerciseMax) = oneRMRepository.updateOrInsertOneRM(oneRMRecord)
 
     private suspend fun recordWorkoutPerformanceData(
         workoutId: Long,
@@ -1571,7 +1519,6 @@ class FeatherweightRepository(
 
     // getOneRMForExercise is defined above at line 2015
 
-
     suspend fun getRecentPerformance(
         exerciseVariationId: Long,
         limit: Int = 10,
@@ -1604,7 +1551,6 @@ class FeatherweightRepository(
                 }.sortedByDescending { it.timestamp }
         }
 
-
     suspend fun getGlobalExerciseProgress(
         exerciseVariationId: Long,
     ): GlobalExerciseProgress? =
@@ -1619,51 +1565,19 @@ class FeatherweightRepository(
     suspend fun checkForPR(
         setLog: SetLog,
         exerciseVariationId: Long,
-    ): List<PersonalRecord> =
-        withContext(Dispatchers.IO) {
-            val prs = prDetectionService.checkForPR(setLog, exerciseVariationId)
-
-            // If we detected an estimated 1RM PR, update the UserExerciseMax table
-            val oneRMPR = prs.find { it.recordType == PRType.ESTIMATED_1RM }
-            if (oneRMPR != null && oneRMPR.estimated1RM != null) {
-                val oneRMService = OneRMService()
-
-                // Create UserExerciseMax record from the PR
-                val userExerciseMax =
-                    oneRMService.createOneRMRecord(
-                        exerciseId = exerciseVariationId,
-                        set = setLog,
-                        estimate = oneRMPR.estimated1RM,
-                        confidence = 1.0f, // High confidence since it's a PR
-                    )
-
-                // Update or insert the 1RM record
-                updateOrInsertOneRM(userExerciseMax)
-            }
-            // Note: If PRs detected but no 1RM update needed, we simply return the PRs
-
-            prs
-        }
+    ): List<PersonalRecord> = personalRecordRepository.checkForPR(setLog, exerciseVariationId, ::updateOrInsertOneRM)
 
     /**
      * Get recent personal records across all exercises
      */
-    suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord> =
-        withContext(Dispatchers.IO) {
-            prDetectionService.getRecentPRs(limit)
-        }
-
+    suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord> = personalRecordRepository.getRecentPRs(limit)
 
     /**
      * Get personal records achieved during a specific workout
      */
-    suspend fun getPersonalRecordsForWorkout(workoutId: Long): List<PersonalRecord> =
-        withContext(Dispatchers.IO) {
-            personalRecordDao.getPersonalRecordsForWorkout(workoutId)
-        }
+    suspend fun getPersonalRecordsForWorkout(workoutId: Long): List<PersonalRecord> = personalRecordRepository.getPersonalRecordsForWorkout(workoutId)
 
-    suspend fun getCurrentOneRMEstimate(exerciseId: Long): Float? =
-        oneRMRepository.getCurrentOneRMEstimate(exerciseId)
+    suspend fun getCurrentOneRMEstimate(exerciseId: Long): Float? = oneRMRepository.getCurrentOneRMEstimate(exerciseId)
 
     suspend fun saveOneRMToHistory(
         exerciseVariationId: Long,
@@ -1674,8 +1588,7 @@ class FeatherweightRepository(
         exerciseVariationId = exerciseVariationId,
         estimatedMax = oneRM,
         source = context,
-        confidence = 0.9f,
-        date = recordedAt ?: LocalDateTime.now()
+        date = recordedAt ?: LocalDateTime.now(),
     )
 
     suspend fun getOneRMHistoryForExercise(
@@ -1995,10 +1908,7 @@ class FeatherweightRepository(
 
     suspend fun getPersonalRecordForExercise(
         exerciseVariationId: Long,
-    ): PersonalRecord? =
-        withContext(Dispatchers.IO) {
-            personalRecordDao.getLatestRecordForExercise(exerciseVariationId)
-        }
+    ): PersonalRecord? = personalRecordRepository.getPersonalRecordForExercise(exerciseVariationId)
 
     private suspend fun getTotalSessionsForExercise(
         exerciseVariationId: Long,

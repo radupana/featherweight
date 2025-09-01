@@ -9,132 +9,155 @@ import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.service.OneRMService
 import com.github.radupana.featherweight.util.WeightFormatter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
 /**
  * Repository for managing One Rep Max (1RM) data and calculations
  */
-class OneRMRepository(application: Application) {
+class OneRMRepository(
+    application: Application,
+) {
     private val db = FeatherweightDatabase.getDatabase(application)
     private val oneRMDao = db.oneRMDao()
     private val oneRMService = OneRMService()
-    
+
     // Pending 1RM updates management
     private val _pendingOneRMUpdates = MutableStateFlow<List<PendingOneRMUpdate>>(emptyList())
     val pendingOneRMUpdates = _pendingOneRMUpdates.asStateFlow()
-    
+
     fun clearPendingOneRMUpdates() {
         _pendingOneRMUpdates.value = emptyList()
     }
-    
+
     suspend fun applyOneRMUpdate(update: PendingOneRMUpdate) {
         // Round weight to nearest 0.25kg
         val roundedWeight = WeightFormatter.roundToNearestQuarter(update.suggestedMax)
-        
+
         // Update the max
         oneRMDao.upsertExerciseMax(
             exerciseVariationId = update.exerciseVariationId,
             maxWeight = roundedWeight,
-            notes = "Updated from ${update.source}"
+            notes = "Updated from ${update.source}",
         )
-        
+
         // Save to history
         saveOneRMToHistory(
             exerciseVariationId = update.exerciseVariationId,
             estimatedMax = roundedWeight,
             source = update.source,
-            confidence = update.confidence,
-            date = update.workoutDate ?: LocalDateTime.now()
+            date = update.workoutDate ?: LocalDateTime.now(),
         )
-        
+
         // Remove from pending
-        _pendingOneRMUpdates.value = _pendingOneRMUpdates.value.filter { 
-            it.exerciseVariationId != update.exerciseVariationId 
-        }
+        _pendingOneRMUpdates.value =
+            _pendingOneRMUpdates.value.filter {
+                it.exerciseVariationId != update.exerciseVariationId
+            }
     }
-    
+
     suspend fun upsertExerciseMax(
         exerciseVariationId: Long,
         maxWeight: Float,
-        notes: String? = null
+        notes: String? = null,
     ) {
         oneRMDao.upsertExerciseMax(exerciseVariationId, maxWeight, notes)
     }
-    
+
     suspend fun getCurrentMaxesForExercises(
-        exerciseIds: List<Long>
+        exerciseIds: List<Long>,
     ): Map<Long, Float> {
         val maxes = oneRMDao.getCurrentMaxesForExercises(exerciseIds)
         return maxes.associate { max ->
             max.exerciseVariationId to (max.oneRMEstimate ?: 0f)
         }
     }
-    
+
     suspend fun getBig4Exercises() = db.exerciseDao().getBig4Exercises()
-    
-    fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>> = 
-        oneRMDao.getAllCurrentMaxesWithNames()
-    
-    fun getBig4ExercisesWithMaxes(): Flow<List<Big4ExerciseWithOptionalMax>> = 
-        oneRMDao.getBig4ExercisesWithMaxes()
-    
-    fun getOtherExercisesWithMaxes(): Flow<List<OneRMWithExerciseName>> = 
-        oneRMDao.getOtherExercisesWithMaxes()
-    
+
+    fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>> = oneRMDao.getAllCurrentMaxesWithNames()
+
+    fun getBig4ExercisesWithMaxes(): Flow<List<Big4ExerciseWithOptionalMax>> = oneRMDao.getBig4ExercisesWithMaxes()
+
+    fun getOtherExercisesWithMaxes(): Flow<List<OneRMWithExerciseName>> = oneRMDao.getOtherExercisesWithMaxes()
+
     suspend fun getOneRMForExercise(exerciseVariationId: Long): Float? {
         val exerciseMax = oneRMDao.getCurrentMax(exerciseVariationId)
         return exerciseMax?.oneRMEstimate
     }
-    
-    suspend fun deleteAllMaxesForExercise(exerciseId: Long) =
-        oneRMDao.deleteAllMaxesForExercise(exerciseId)
-    
+
+    suspend fun deleteAllMaxesForExercise(exerciseId: Long) = oneRMDao.deleteAllMaxesForExercise(exerciseId)
+
     suspend fun updateOrInsertOneRM(oneRMRecord: UserExerciseMax) =
-        oneRMDao.upsertExerciseMax(
-            exerciseVariationId = oneRMRecord.exerciseVariationId,
-            maxWeight = oneRMRecord.oneRMEstimate ?: oneRMRecord.mostWeightLifted,
-            notes = oneRMRecord.oneRMContext
-        )
-    
+        withContext(Dispatchers.IO) {
+            // Check if we have an existing record for this exercise
+            val existing = oneRMDao.getCurrentMax(oneRMRecord.exerciseVariationId)
+
+            val shouldSaveHistory =
+                if (existing != null) {
+                    // Update existing record if new estimate is higher
+                    if (oneRMRecord.oneRMEstimate > existing.oneRMEstimate) {
+                        oneRMDao.updateExerciseMax(oneRMRecord.copy(id = existing.id))
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    // Insert new record
+                    oneRMDao.insertExerciseMax(oneRMRecord)
+                    true
+                }
+
+            // Save to history if we made a change
+            if (shouldSaveHistory) {
+                saveOneRMToHistory(
+                    exerciseVariationId = oneRMRecord.exerciseVariationId,
+                    estimatedMax = oneRMRecord.oneRMEstimate,
+                    source = oneRMRecord.oneRMContext,
+                )
+            }
+        }
+
     suspend fun getCurrentOneRMEstimate(
-        exerciseVariationId: Long
+        exerciseVariationId: Long,
     ): Float? = oneRMDao.getCurrentOneRMEstimate(exerciseVariationId)
-    
+
     suspend fun saveOneRMToHistory(
         exerciseVariationId: Long,
         estimatedMax: Float,
         source: String,
-        confidence: Float,
-        date: LocalDateTime = LocalDateTime.now()
+        date: LocalDateTime = LocalDateTime.now(),
     ) {
-        val history = OneRMHistory(
-            exerciseVariationId = exerciseVariationId,
-            oneRMEstimate = estimatedMax,
-            context = source,
-            recordedAt = date
-        )
+        val history =
+            OneRMHistory(
+                exerciseVariationId = exerciseVariationId,
+                oneRMEstimate = estimatedMax,
+                context = source,
+                recordedAt = date,
+            )
         oneRMDao.insertOneRMHistory(history)
     }
-    
+
     suspend fun getOneRMHistoryForExercise(
         exerciseVariationId: Long,
-        limit: Int = 10
+        limit: Int = 10,
     ): List<OneRMHistory> = oneRMDao.getRecentOneRMHistory(exerciseVariationId, limit)
-    
+
     suspend fun getExercise1RM(
-        exerciseVariationId: Long
+        exerciseVariationId: Long,
     ): Float? {
         val exerciseMax = oneRMDao.getCurrentMax(exerciseVariationId)
         return exerciseMax?.oneRMEstimate
     }
-    
+
     // Add pending update
     fun addPendingOneRMUpdate(update: PendingOneRMUpdate) {
-        _pendingOneRMUpdates.value = _pendingOneRMUpdates.value.filter { 
-            it.exerciseVariationId != update.exerciseVariationId 
+        _pendingOneRMUpdates.value = _pendingOneRMUpdates.value.filter {
+            it.exerciseVariationId != update.exerciseVariationId
         } + update
     }
 }

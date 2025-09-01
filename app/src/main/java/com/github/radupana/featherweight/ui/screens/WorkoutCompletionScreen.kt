@@ -22,7 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
+import com.github.radupana.featherweight.ui.theme.GlassCard
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -153,7 +153,7 @@ fun WorkoutCompletionScreen(
 
 @Composable
 private fun PrimaryStatsCard(summary: CompletionSummary) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -208,7 +208,7 @@ private fun PrimaryStatsCard(summary: CompletionSummary) {
 
 @Composable
 private fun WorkoutStatsCard(summary: CompletionSummary) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -272,7 +272,7 @@ private fun PersonalRecordsCard(
     repository: com.github.radupana.featherweight.repository.FeatherweightRepository,
     exerciseNames: Map<Long, String>,
 ) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -380,7 +380,7 @@ private fun WorkoutInsightsCard(summary: CompletionSummary) {
         }
 
     if (insights.isNotEmpty()) {
-        Card(
+        GlassCard(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
@@ -447,7 +447,7 @@ private fun MotivationalMessageCard(summary: CompletionSummary) {
             else -> messages[Random.nextInt(messages.size)]
         }
 
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Text(
