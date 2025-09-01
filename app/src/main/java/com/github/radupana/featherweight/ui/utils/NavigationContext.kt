@@ -28,17 +28,6 @@ fun rememberKeyboardState(): State<Boolean> {
     }
 }
 
-@Composable
-fun rememberKeyboardHeight(): State<Int> {
-    val ime = WindowInsets.ime
-    val density = LocalDensity.current
-    return remember {
-        derivedStateOf {
-            ime.getBottom(density)
-        }
-    }
-}
-
 /**
  * Context-aware system padding that only applies what's needed.
  * For screens in bottom navigation, navigation bar padding is NOT needed.
@@ -67,17 +56,3 @@ fun Modifier.systemBarsPadding(
         }
     }
 
-/**
- * @deprecated Use systemBarsPadding with NavigationContext instead.
- * This function causes double padding when used in bottom navigation.
- */
-@Deprecated("Use systemBarsPadding instead", ReplaceWith("systemBarsPadding()"))
-fun Modifier.keyboardHandling(): Modifier =
-    this
-        .imePadding() // Adds padding when keyboard is visible
-        .navigationBarsPadding() // Adds padding for navigation bars
-
-/**
- * Simple keyboard-only padding for cases where you're sure navigation bars are handled elsewhere.
- */
-fun Modifier.keyboardPadding(): Modifier = this.imePadding()
