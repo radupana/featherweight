@@ -141,7 +141,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     // Gson for JSON parsing
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.google.code.gson:gson:2.13.1")
 
     // HTTP Client
     implementation(libs.okhttp)
