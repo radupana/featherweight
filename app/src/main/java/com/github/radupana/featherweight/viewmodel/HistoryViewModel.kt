@@ -315,26 +315,6 @@ class HistoryViewModel(
         _calendarState.value = _calendarState.value.copy(selectedDate = date)
     }
 
-    fun navigateToPreviousMonth() {
-        val newMonth = _calendarState.value.currentMonth.minusMonths(1)
-        navigateToMonth(newMonth)
-    }
-
-    fun navigateToNextMonth() {
-        val newMonth = _calendarState.value.currentMonth.plusMonths(1)
-        navigateToMonth(newMonth)
-    }
-
-    fun navigateToToday() {
-        val today = LocalDate.now()
-        _calendarState.value =
-            _calendarState.value.copy(
-                currentMonth = YearMonth.from(today),
-                selectedDate = today,
-            )
-        loadCalendarData()
-        loadWeekGroups() // Also reload week groups for the current month
-    }
 
     // Week grouping methods
 
@@ -412,17 +392,6 @@ class HistoryViewModel(
             )
     }
 
-    fun expandAllWeeks() {
-        val allWeekIds =
-            _weekGroupState.value.weeks
-                .map { it.weekStart.toString() }
-                .toSet()
-        _weekGroupState.value = _weekGroupState.value.copy(expandedWeeks = allWeekIds)
-    }
-
-    fun collapseAllWeeks() {
-        _weekGroupState.value = _weekGroupState.value.copy(expandedWeeks = emptySet())
-    }
 
     // Get workouts for a specific date (used by calendar view)
     fun getWorkoutsForDate(date: LocalDate): List<WorkoutSummary> {

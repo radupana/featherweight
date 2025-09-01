@@ -14,7 +14,6 @@ import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.domain.ExerciseHistory
-import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
 import com.github.radupana.featherweight.service.OneRMService
@@ -168,7 +167,6 @@ class WorkoutViewModel(
     // Exercise swap state
     private val _swappingExercise = MutableStateFlow<ExerciseLog?>(null)
     val swappingExercise: StateFlow<ExerciseLog?> = _swappingExercise
-
 
     // Rest timer state
     private val _restTimerSeconds = MutableStateFlow(0)
@@ -919,7 +917,6 @@ class WorkoutViewModel(
         }
     }
 
-
     // ===== EXERCISE CARD EXPANSION MANAGEMENT =====
 
     fun toggleExerciseExpansion(exerciseId: Long) {
@@ -1453,21 +1450,6 @@ class WorkoutViewModel(
     fun canCompleteAllSetsInExercise(exerciseLogId: Long): Boolean {
         val exerciseSets = _selectedExerciseSets.value.filter { it.exerciseLogId == exerciseLogId }
         return exerciseSets.isNotEmpty() && exerciseSets.any { canMarkSetComplete(it) && !it.isCompleted }
-    }
-
-    // Smart suggestions
-    suspend fun getSmartSuggestions(exerciseVariationId: Long): SmartSuggestions? {
-        val currentId = _currentWorkoutId.value ?: return null
-        return repository.getSmartSuggestions(exerciseVariationId, currentId)
-    }
-
-    // Get intelligent suggestions with reasoning and alternatives
-    suspend fun getIntelligentSuggestions(exerciseVariationId: Long): SmartSuggestions = repository.getSmartSuggestionsEnhanced(exerciseVariationId)
-
-    fun loadSetsForExercise() {
-        viewModelScope.launch {
-            loadAllSetsForCurrentExercises()
-        }
     }
 
     fun deleteExercise(exerciseLogId: Long) {
