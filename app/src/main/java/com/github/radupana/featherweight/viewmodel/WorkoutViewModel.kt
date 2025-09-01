@@ -21,10 +21,7 @@ import com.github.radupana.featherweight.service.OneRMService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -172,19 +169,6 @@ class WorkoutViewModel(
     private val _swappingExercise = MutableStateFlow<ExerciseLog?>(null)
     val swappingExercise: StateFlow<ExerciseLog?> = _swappingExercise
 
-    // Helper to get exercise name for a specific exercise log
-    fun getExerciseNameForLog(exerciseLogId: Long): StateFlow<String> =
-        _selectedWorkoutExercises
-            .map { exercises ->
-                val exerciseLog = exercises.find { it.id == exerciseLogId }
-                exerciseLog?.let { log ->
-                    _exerciseNames.value[log.exerciseVariationId] ?: "Unknown Exercise"
-                } ?: "Unknown Exercise"
-            }.stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = "Loading...",
-            )
 
     // Rest timer state
     private val _restTimerSeconds = MutableStateFlow(0)
@@ -935,10 +919,6 @@ class WorkoutViewModel(
         }
     }
 
-    // Public method to load exercise history by ID
-    fun loadExerciseHistoryForId(exerciseVariationId: Long) {
-        loadExerciseHistory(exerciseVariationId)
-    }
 
     // ===== EXERCISE CARD EXPANSION MANAGEMENT =====
 

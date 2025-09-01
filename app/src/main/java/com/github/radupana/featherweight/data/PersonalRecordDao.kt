@@ -81,9 +81,6 @@ interface PersonalRecordDao {
     @Query("DELETE FROM PersonalRecord")
     suspend fun deleteAllPersonalRecords()
 
-    @Query("SELECT * FROM PersonalRecord ORDER BY recordDate DESC")
-    suspend fun getAllPersonalRecords(): List<PersonalRecord>
-
     @Query(
         """
         SELECT * FROM PersonalRecord 

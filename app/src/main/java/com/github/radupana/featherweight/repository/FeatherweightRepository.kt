@@ -220,19 +220,6 @@ class FeatherweightRepository(
 
     suspend fun getExercisesByCategory(category: ExerciseCategory): List<ExerciseVariation> = exerciseRepository.getExercisesByCategory(category)
 
-    // Get exercise with full details including muscles
-    suspend fun getExerciseWithDetails(id: Long): ExerciseWithDetails? {
-        val variation = exerciseRepository.getExerciseById(id) ?: return null
-        val muscles = variationMuscleDao.getMusclesForVariation(id)
-        val aliases = variationAliasDao.getAliasesForVariation(id)
-        val instructions = variationInstructionDao.getInstructionsForVariation(id)
-        return ExerciseWithDetails(
-            variation = variation,
-            muscles = muscles,
-            aliases = aliases,
-            instructions = instructions,
-        )
-    }
 
     // Get muscles for a variation
     suspend fun getMusclesForVariation(variationId: Long): List<VariationMuscle> = variationMuscleDao.getMusclesForVariation(variationId)
@@ -2082,13 +2069,6 @@ class FeatherweightRepository(
             prDetectionService.getRecentPRs(limit)
         }
 
-    /**
-     * Get all personal records from database for debugging
-     */
-    suspend fun getAllPersonalRecordsFromDB(): List<PersonalRecord> =
-        withContext(Dispatchers.IO) {
-            personalRecordDao.getAllPersonalRecords()
-        }
 
     /**
      * Get personal records achieved during a specific workout

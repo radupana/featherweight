@@ -48,14 +48,6 @@ interface GlobalExerciseProgressDao {
 
     @Query(
         """
-        SELECT * FROM global_exercise_progress 
-        ORDER BY lastUpdated DESC
-    """,
-    )
-    suspend fun getAllProgress(): List<GlobalExerciseProgress>
-
-    @Query(
-        """
         UPDATE global_exercise_progress 
         SET estimatedMax = :newMax, lastUpdated = :updateTime 
         WHERE exerciseVariationId = :exerciseVariationId
@@ -64,53 +56,6 @@ interface GlobalExerciseProgressDao {
     suspend fun updateEstimatedMax(
         exerciseVariationId: Long,
         newMax: Float,
-        updateTime: LocalDateTime,
-    )
-
-    @Query(
-        """
-        UPDATE global_exercise_progress 
-        SET lastPrDate = :prDate, lastPrWeight = :prWeight, lastUpdated = :updateTime 
-        WHERE exerciseVariationId = :exerciseVariationId
-    """,
-    )
-    suspend fun recordNewPR(
-        exerciseVariationId: Long,
-        prWeight: Float,
-        prDate: LocalDateTime,
-        updateTime: LocalDateTime,
-    )
-
-    @Query(
-        """
-        UPDATE global_exercise_progress 
-        SET consecutiveStalls = consecutiveStalls + 1, 
-            weeksAtCurrentWeight = :weeksAtWeight,
-            lastUpdated = :updateTime 
-        WHERE exerciseVariationId = :exerciseVariationId
-    """,
-    )
-    suspend fun incrementStallCount(
-        exerciseVariationId: Long,
-        weeksAtWeight: Int,
-        updateTime: LocalDateTime,
-    )
-
-    @Query(
-        """
-        UPDATE global_exercise_progress 
-        SET consecutiveStalls = 0, 
-            weeksAtCurrentWeight = 0,
-            lastProgressionDate = :progressDate,
-            currentWorkingWeight = :newWeight,
-            lastUpdated = :updateTime 
-        WHERE exerciseVariationId = :exerciseVariationId
-    """,
-    )
-    suspend fun recordProgression(
-        exerciseVariationId: Long,
-        newWeight: Float,
-        progressDate: LocalDateTime,
         updateTime: LocalDateTime,
     )
 
