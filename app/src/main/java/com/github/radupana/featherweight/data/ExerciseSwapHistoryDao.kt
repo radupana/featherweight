@@ -22,16 +22,6 @@ interface ExerciseSwapHistoryDao {
         originalExerciseId: Long,
     ): List<SwapHistoryCount>
 
-    @Query(
-        """
-        SELECT * FROM exercise_swap_history
-        ORDER BY swapDate DESC
-        LIMIT :limit
-    """,
-    )
-    suspend fun getRecentSwaps(
-        limit: Int = 10,
-    ): List<ExerciseSwapHistory>
 }
 
 data class SwapHistoryCount(

@@ -11,9 +11,6 @@ interface ExerciseLogDao {
     @Insert
     suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long
 
-    @Insert
-    suspend fun insert(exerciseLog: ExerciseLog): Long
-
     @Query("SELECT * FROM ExerciseLog WHERE workoutId = :workoutId ORDER BY exerciseOrder")
     suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog>
 
@@ -29,39 +26,6 @@ interface ExerciseLogDao {
         newOrder: Int,
     )
 
-    // Optimized queries with JOINs to get exercise names
-    @Query(
-        """
-        SELECT el.*, ev.name as exerciseName 
-        FROM ExerciseLog el 
-        JOIN exercise_variations ev ON el.exerciseVariationId = ev.id 
-        WHERE el.workoutId = :workoutId 
-        ORDER BY el.exerciseOrder
-    """,
-    )
-    suspend fun getExerciseLogsWithNames(workoutId: Long): List<ExerciseLogWithName>
-
-    @Query(
-        """
-        SELECT el.*, ev.name as exerciseName 
-        FROM ExerciseLog el 
-        JOIN exercise_variations ev ON el.exerciseVariationId = ev.id 
-        WHERE el.id = :exerciseLogId
-    """,
-    )
-    suspend fun getExerciseLogWithName(exerciseLogId: Long): ExerciseLogWithName?
-
-    // Flow versions for reactive UI
-    @Query(
-        """
-        SELECT el.*, ev.name as exerciseName 
-        FROM ExerciseLog el 
-        JOIN exercise_variations ev ON el.exerciseVariationId = ev.id 
-        WHERE el.workoutId = :workoutId 
-        ORDER BY el.exerciseOrder
-    """,
-    )
-    fun getExerciseLogsWithNamesFlow(workoutId: Long): Flow<List<ExerciseLogWithName>>
 
     @Update
     suspend fun update(exerciseLog: ExerciseLog)
@@ -127,23 +91,4 @@ interface ExerciseLogDao {
         endDate: java.time.LocalDateTime,
     ): List<Workout>
 
-    @Query(
-        """
-        SELECT el.exerciseVariationId, COUNT(*) as count
-        FROM ExerciseLog el
-        INNER JOIN Workout w ON el.workoutId = w.id
-        WHERE w.status = 'COMPLETED'
-        GROUP BY el.exerciseVariationId
-        ORDER BY count DESC
-    """,
-    )
-    suspend fun getExerciseVariationUsageStatistics(): List<ExerciseUsageStatistic>
 }
-
-/**
- * Data class for exercise usage statistics.
- */
-data class ExerciseUsageStatistic(
-    val exerciseVariationId: Long,
-    val count: Int,
-)

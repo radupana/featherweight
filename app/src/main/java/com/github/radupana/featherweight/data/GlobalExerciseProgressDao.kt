@@ -56,50 +56,6 @@ interface GlobalExerciseProgressDao {
 
     @Query(
         """
-        SELECT * FROM global_exercise_progress 
-        WHERE trend = :trend
-        ORDER BY consecutiveStalls DESC
-    """,
-    )
-    suspend fun getExercisesByTrend(
-        trend: ProgressTrend,
-    ): List<GlobalExerciseProgress>
-
-    @Query(
-        """
-        SELECT * FROM global_exercise_progress 
-        WHERE consecutiveStalls >= :minStalls
-        ORDER BY consecutiveStalls DESC
-    """,
-    )
-    suspend fun getStalledExercises(
-        minStalls: Int = 3,
-    ): List<GlobalExerciseProgress>
-
-    @Query(
-        """
-        SELECT * FROM global_exercise_progress 
-        ORDER BY totalVolumeLast30Days DESC
-        LIMIT :limit
-    """,
-    )
-    suspend fun getTopVolumeExercises(
-        limit: Int = 10,
-    ): List<GlobalExerciseProgress>
-
-    @Query(
-        """
-        SELECT * FROM global_exercise_progress 
-        WHERE lastUpdated < :cutoffDate
-        ORDER BY lastUpdated ASC
-    """,
-    )
-    suspend fun getNeglectedExercises(
-        cutoffDate: LocalDateTime,
-    ): List<GlobalExerciseProgress>
-
-    @Query(
-        """
         UPDATE global_exercise_progress 
         SET estimatedMax = :newMax, lastUpdated = :updateTime 
         WHERE exerciseVariationId = :exerciseVariationId
@@ -156,23 +112,6 @@ interface GlobalExerciseProgressDao {
         newWeight: Float,
         progressDate: LocalDateTime,
         updateTime: LocalDateTime,
-    )
-
-    @Query("DELETE FROM global_exercise_progress")
-    suspend fun deleteAllForUser()
-
-    @Query(
-        """
-        SELECT exerciseVariationId, totalVolumeLast30Days 
-        FROM global_exercise_progress 
-        ORDER BY totalVolumeLast30Days DESC
-    """,
-    )
-    suspend fun getVolumeDistribution(): List<ExerciseVolumeInfo>
-
-    data class ExerciseVolumeInfo(
-        val exerciseVariationId: Long,
-        val totalVolumeLast30Days: Float,
     )
 
     @Query("DELETE FROM global_exercise_progress")
