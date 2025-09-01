@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.data
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
@@ -15,9 +14,6 @@ interface ParseRequestDao {
     @Update
     suspend fun update(request: ParseRequest)
 
-    @Delete
-    suspend fun delete(request: ParseRequest)
-
     @Query("DELETE FROM parse_requests WHERE id = :id")
     suspend fun deleteById(id: Long)
 
@@ -26,10 +22,4 @@ interface ParseRequestDao {
 
     @Query("SELECT * FROM parse_requests WHERE id = :id")
     suspend fun getRequest(id: Long): ParseRequest?
-
-    @Query("SELECT * FROM parse_requests WHERE status = :status ORDER BY createdAt DESC")
-    fun getRequestsByStatus(status: ParseStatus): Flow<List<ParseRequest>>
-
-    @Query("DELETE FROM parse_requests WHERE status = 'FAILED' OR status = 'COMPLETED'")
-    suspend fun clearCompletedRequests()
 }

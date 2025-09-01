@@ -546,7 +546,7 @@ private fun CleanSetRow(
                 // Weight input with % of 1RM below
                 Box(
                     modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.Center,
+                    contentAlignment = Alignment.TopCenter,
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -594,111 +594,135 @@ private fun CleanSetRow(
                             }
                         }
 
-                        // Show percentage of 1RM below the weight
-                        val displayWeight = if (set.actualWeight > 0) set.actualWeight else set.targetWeight ?: 0f
-                        if (oneRMEstimate != null && oneRMEstimate > 0 && displayWeight > 0) {
-                            val percentage = ((displayWeight / oneRMEstimate) * 100).toInt()
-                            Text(
-                                text = "$percentage% of 1RM",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            )
+                        Box(
+                            modifier = Modifier.height(20.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            val displayWeight = if (set.actualWeight > 0) set.actualWeight else set.targetWeight ?: 0f
+                            if (oneRMEstimate != null && oneRMEstimate > 0 && displayWeight > 0) {
+                                val percentage = ((displayWeight / oneRMEstimate) * 100).toInt()
+                                Text(
+                                    text = "$percentage% of 1RM",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                )
+                            }
                         }
                     }
                 }
 
                 // Reps input
                 Box(
-                    modifier =
-                        Modifier
-                            .weight(0.7f)
-                            .height(48.dp),
-                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.weight(0.7f),
+                    contentAlignment = Alignment.TopCenter,
                 ) {
-                    if (!set.isCompleted && !readOnly) {
-                        var repsValue by remember(set.id) {
-                            mutableStateOf(
-                                TextFieldValue(
-                                    text = if (set.actualReps > 0) set.actualReps.toString() else "",
-                                    selection = TextRange.Zero,
-                                ),
-                            )
-                        }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier.height(48.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (!set.isCompleted && !readOnly) {
+                                var repsValue by remember(set.id) {
+                                    mutableStateOf(
+                                        TextFieldValue(
+                                            text = if (set.actualReps > 0) set.actualReps.toString() else "",
+                                            selection = TextRange.Zero,
+                                        ),
+                                    )
+                                }
 
-                        // Use target reps as placeholder if available
-                        val repsPlaceholder =
-                            if (isProgrammeWorkout && set.targetReps != null && set.targetReps > 0) {
-                                set.targetReps.toString()
+                                // Use target reps as placeholder if available
+                                val repsPlaceholder =
+                                    if (isProgrammeWorkout && set.targetReps != null && set.targetReps > 0) {
+                                        set.targetReps.toString()
+                                    } else {
+                                        ""
+                                    }
+
+                                CenteredInputField(
+                                    value = repsValue,
+                                    onValueChange = { newValue ->
+                                        repsValue = newValue
+                                        val reps = newValue.text.toIntOrNull() ?: 0
+                                        onUpdateSet(reps, set.actualWeight, set.actualRpe)
+                                    },
+                                    fieldType = InputFieldType.REPS,
+                                    placeholder = repsPlaceholder,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
                             } else {
-                                ""
+                                Text(
+                                    text = if (set.actualReps > 0) set.actualReps.toString() else "-",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (set.isCompleted) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
-
-                        CenteredInputField(
-                            value = repsValue,
-                            onValueChange = { newValue ->
-                                repsValue = newValue
-                                val reps = newValue.text.toIntOrNull() ?: 0
-                                onUpdateSet(reps, set.actualWeight, set.actualRpe)
-                            },
-                            fieldType = InputFieldType.REPS,
-                            placeholder = repsPlaceholder,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    } else {
-                        Text(
-                            text = if (set.actualReps > 0) set.actualReps.toString() else "-",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (set.isCompleted) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                        }
+                        Box(
+                            modifier = Modifier.height(20.dp)
                         )
                     }
                 }
 
                 // RPE input
                 Box(
-                    modifier =
-                        Modifier
-                            .weight(0.7f)
-                            .height(48.dp),
-                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.weight(0.7f),
+                    contentAlignment = Alignment.TopCenter,
                 ) {
-                    if (!set.isCompleted && !readOnly) {
-                        var rpeValue by remember(set.id) {
-                            mutableStateOf(
-                                TextFieldValue(
-                                    text = set.actualRpe?.toString() ?: "",
-                                    selection = TextRange.Zero,
-                                ),
-                            )
-                        }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier.height(48.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (!set.isCompleted && !readOnly) {
+                                var rpeValue by remember(set.id) {
+                                    mutableStateOf(
+                                        TextFieldValue(
+                                            text = set.actualRpe?.toString() ?: "",
+                                            selection = TextRange.Zero,
+                                        ),
+                                    )
+                                }
 
-                        // Use target RPE as placeholder if available
-                        val rpePlaceholder =
-                            if (isProgrammeWorkout && set.targetRpe != null && set.targetRpe > 0) {
-                                set.targetRpe.toString()
-                            } else {
-                                ""
-                            }
-
-                        CenteredInputField(
-                            value = rpeValue,
-                            onValueChange = { newValue ->
-                                rpeValue = newValue
-                                val rpe =
-                                    newValue.text.toFloatOrNull()?.let { value ->
-                                        // Round to nearest 0.5 and clamp between 0 and 10
-                                        (kotlin.math.round(value * 2) / 2).coerceIn(0f, 10f)
+                                // Use target RPE as placeholder if available
+                                val rpePlaceholder =
+                                    if (isProgrammeWorkout && set.targetRpe != null && set.targetRpe > 0) {
+                                        set.targetRpe.toString()
+                                    } else {
+                                        ""
                                     }
-                                onUpdateSet(set.actualReps, set.actualWeight, rpe)
-                            },
-                            fieldType = InputFieldType.RPE,
-                            placeholder = rpePlaceholder,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    } else {
-                        Text(
-                            text = set.actualRpe?.toString() ?: "-",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (set.isCompleted) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+
+                                CenteredInputField(
+                                    value = rpeValue,
+                                    onValueChange = { newValue ->
+                                        rpeValue = newValue
+                                        val rpe =
+                                            newValue.text.toFloatOrNull()?.let { value ->
+                                                // Round to nearest 0.5 and clamp between 0 and 10
+                                                (kotlin.math.round(value * 2) / 2).coerceIn(0f, 10f)
+                                            }
+                                        onUpdateSet(set.actualReps, set.actualWeight, rpe)
+                                    },
+                                    fieldType = InputFieldType.RPE,
+                                    placeholder = rpePlaceholder,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            } else {
+                                Text(
+                                    text = set.actualRpe?.toString() ?: "-",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (set.isCompleted) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        Box(
+                            modifier = Modifier.height(20.dp)
                         )
                     }
                 }

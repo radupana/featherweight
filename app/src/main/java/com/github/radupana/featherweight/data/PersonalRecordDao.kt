@@ -4,16 +4,12 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.RoomWarnings
-import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
 
 @Dao
 interface PersonalRecordDao {
     @Insert
     suspend fun insertPersonalRecord(personalRecord: PersonalRecord): Long
-
-    @Query("SELECT * FROM PersonalRecord WHERE exerciseVariationId = :exerciseVariationId ORDER BY recordDate DESC")
-    fun getPRHistoryForExercise(exerciseVariationId: Long): Flow<List<PersonalRecord>>
 
     @Query("SELECT * FROM PersonalRecord WHERE exerciseVariationId = :exerciseVariationId ORDER BY recordDate DESC LIMIT :limit")
     suspend fun getRecentPRsForExercise(
@@ -37,9 +33,6 @@ interface PersonalRecordDao {
     )
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord>
-
-    @Query("SELECT * FROM PersonalRecord WHERE recordDate >= :sinceDate ORDER BY recordDate DESC")
-    suspend fun getPRsSince(sinceDate: String): List<PersonalRecord>
 
     @Query(
         """
@@ -67,16 +60,6 @@ interface PersonalRecordDao {
 
     @Query(
         """
-        SELECT MAX(volume) 
-        FROM PersonalRecord 
-        WHERE exerciseVariationId = :exerciseVariationId 
-        AND volume IS NOT NULL
-    """,
-    )
-    suspend fun getMaxVolumeForExercise(exerciseVariationId: Long): Float?
-
-    @Query(
-        """
         SELECT MAX(estimated1RM) 
         FROM PersonalRecord 
         WHERE exerciseVariationId = :exerciseVariationId 
@@ -84,15 +67,6 @@ interface PersonalRecordDao {
     """,
     )
     suspend fun getMaxEstimated1RMForExercise(exerciseVariationId: Long): Float?
-
-    @Query("SELECT COUNT(*) FROM PersonalRecord WHERE exerciseVariationId = :exerciseVariationId")
-    suspend fun getPRCountForExercise(exerciseVariationId: Long): Int
-
-    @Query("SELECT COUNT(*) FROM PersonalRecord WHERE recordDate >= :sinceDate")
-    suspend fun getPRCountSince(sinceDate: String): Int
-
-    @Query("DELETE FROM PersonalRecord WHERE id = :id")
-    suspend fun deletePersonalRecord(id: Long)
 
     @Query(
         """
@@ -105,22 +79,10 @@ interface PersonalRecordDao {
     suspend fun getLatestRecordForExercise(exerciseVariationId: Long): PersonalRecord?
 
     @Query("DELETE FROM PersonalRecord")
-    suspend fun clearAllPersonalRecords()
-
-    @Query("DELETE FROM PersonalRecord")
     suspend fun deleteAllPersonalRecords()
 
     @Query("SELECT * FROM PersonalRecord ORDER BY recordDate DESC")
     suspend fun getAllPersonalRecords(): List<PersonalRecord>
-
-    @Query(
-        """
-        SELECT * FROM PersonalRecord 
-        WHERE DATE(recordDate) = DATE(:workoutDate) 
-        ORDER BY recordDate DESC
-    """,
-    )
-    suspend fun getPersonalRecordsForDate(workoutDate: String): List<PersonalRecord>
 
     @Query(
         """

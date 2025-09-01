@@ -54,16 +54,6 @@ interface SetLogDao {
 
     @Query(
         """
-        SELECT DISTINCT e.exerciseVariationId 
-        FROM ExerciseLog e 
-        INNER JOIN SetLog s ON e.id = s.exerciseLogId 
-        WHERE s.isCompleted = 1
-    """,
-    )
-    suspend fun getAllCompletedExerciseVariationIds(): List<Long>
-
-    @Query(
-        """
         SELECT w.date 
         FROM Workout w 
         INNER JOIN ExerciseLog e ON w.id = e.workoutId 
@@ -83,22 +73,6 @@ interface SetLogDao {
     """,
     )
     suspend fun getWorkoutIdForSetLog(setLogId: Long): Long?
-
-    @Query(
-        """
-        SELECT MAX(s.actualWeight) 
-        FROM SetLog s 
-        INNER JOIN ExerciseLog e ON s.exerciseLogId = e.id 
-        INNER JOIN Workout w ON e.workoutId = w.id
-        WHERE e.exerciseVariationId = :exerciseVariationId 
-        AND s.isCompleted = 1 
-        AND w.date < :beforeDate
-    """,
-    )
-    suspend fun getMaxWeightForExerciseBefore(
-        exerciseVariationId: Long,
-        beforeDate: String,
-    ): Float?
 
     @Query("DELETE FROM SetLog")
     suspend fun deleteAllSetLogs()

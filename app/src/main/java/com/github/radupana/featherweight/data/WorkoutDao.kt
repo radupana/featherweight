@@ -39,18 +39,6 @@ interface WorkoutDao {
     @Query("SELECT * FROM Workout WHERE programmeId = :programmeId ORDER BY date DESC")
     suspend fun getWorkoutsByProgramme(programmeId: Long): List<Workout>
 
-    @Query("SELECT * FROM Workout WHERE programmeId = :programmeId AND weekNumber = :weekNumber ORDER BY dayNumber ASC")
-    suspend fun getProgrammeWorkoutsByWeek(
-        programmeId: Long,
-        weekNumber: Int,
-    ): List<Workout>
-
-    @Query("SELECT * FROM Workout WHERE isProgrammeWorkout = 0 ORDER BY date DESC")
-    suspend fun getFreestyleWorkouts(): List<Workout>
-
-    @Query("SELECT * FROM Workout WHERE isProgrammeWorkout = 1 ORDER BY date DESC")
-    suspend fun getProgrammeWorkouts(): List<Workout>
-
     @Query(
         """
         SELECT COALESCE(pp.completedWorkouts, 0) 
@@ -68,16 +56,6 @@ interface WorkoutDao {
     """,
     )
     suspend fun getTotalProgrammeWorkoutCount(programmeId: Long): Int
-
-    @Query(
-        """
-        SELECT DISTINCT weekNumber FROM Workout 
-        WHERE programmeId = :programmeId 
-        AND weekNumber IS NOT NULL 
-        ORDER BY weekNumber ASC
-    """,
-    )
-    suspend fun getCompletedWeeksForProgramme(programmeId: Long): List<Int>
 
     // ===== INTELLIGENT SUGGESTIONS QUERIES =====
 
@@ -133,20 +111,6 @@ interface WorkoutDao {
     @Query("DELETE FROM Workout")
     suspend fun deleteAllWorkouts()
 
-    // Paginated query for completed workouts
-    @Query(
-        """
-        SELECT * FROM Workout 
-        WHERE status = 'COMPLETED' 
-        ORDER BY date DESC 
-        LIMIT :limit OFFSET :offset
-    """,
-    )
-    suspend fun getCompletedWorkoutsPaged(
-        limit: Int,
-        offset: Int,
-    ): List<Workout>
-
     // Get the workout date when a specific weight was achieved for an exercise
     @Query(
         """
@@ -176,21 +140,6 @@ interface WorkoutDao {
 
     @Query(
         """
-        SELECT date, COUNT(*) as count 
-        FROM workout 
-        WHERE date >= :startDate 
-        AND date < :endDate 
-        AND status = 'COMPLETED'
-        GROUP BY date
-    """,
-    )
-    suspend fun getCompletedWorkoutCountsByDateRange(
-        startDate: LocalDateTime,
-        endDate: LocalDateTime,
-    ): List<WorkoutDateCount>
-
-    @Query(
-        """
         SELECT date, status, COUNT(*) as count 
         FROM workout 
         WHERE date >= :startDate 
@@ -207,12 +156,6 @@ interface WorkoutDao {
     suspend fun getWorkoutsByWeek(
         startOfWeek: LocalDateTime,
         endOfWeek: LocalDateTime,
-    ): List<Workout>
-
-    @Query("SELECT w.* FROM workout w WHERE w.name LIKE '%' || :searchQuery || '%' OR w.notes LIKE '%' || :searchQuery || '%' ORDER BY date DESC LIMIT :limit")
-    suspend fun searchWorkouts(
-        searchQuery: String,
-        limit: Int = 100,
     ): List<Workout>
 
     // Export-related queries
