@@ -793,15 +793,7 @@ class WorkoutViewModel(
 
             try {
                 val maxes = repository.getCurrentMaxesForExercises(exerciseIds)
-
-                val estimatesMap = mutableMapOf<Long, Float>()
-                maxes.forEach { max ->
-                    if (max.oneRMEstimate > 0) {
-                        estimatesMap[max.exerciseVariationId] = max.oneRMEstimate
-                    }
-                }
-
-                _oneRMEstimates.value = estimatesMap
+                _oneRMEstimates.value = maxes.filterValues { it > 0 }
             } catch (e: android.database.sqlite.SQLiteException) {
                 Log.e(TAG, "Failed to load 1RM estimates", e)
                 // Failed to load 1RM estimates - will show without estimates
@@ -2093,8 +2085,7 @@ class WorkoutViewModel(
             val currentMax =
                 repository
                     .getCurrentMaxesForExercises(listOf(exerciseVariationId))
-                    .firstOrNull()
-                    ?.oneRMEstimate
+                    .get(exerciseVariationId)
 
             // Check if we should update
             if (oneRMService.shouldUpdateOneRM(set, currentMax, estimated1RM)) {

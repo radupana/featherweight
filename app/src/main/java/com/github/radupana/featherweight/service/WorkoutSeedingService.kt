@@ -615,8 +615,7 @@ class WorkoutSeedingService(
                 val currentMax =
                     repository
                         .getCurrentMaxesForExercises(listOf(exerciseLog.exerciseVariationId))
-                        .firstOrNull()
-                        ?.oneRMEstimate
+                        .get(exerciseLog.exerciseVariationId)
 
                 // Find the best set that would actually update the 1RM
                 var shouldUpdate = false

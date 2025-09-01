@@ -119,6 +119,9 @@ class FeatherweightRepository(
 
     // Sub-repositories
     private val exerciseRepository = ExerciseRepository(db)
+    private val oneRMRepository = OneRMRepository(application)
+    private val programmeRepository = ProgrammeRepository(application)
+    private val workoutRepository = WorkoutRepository(application)
 
     private val workoutDao = db.workoutDao()
     private val exerciseLogDao = db.exerciseLogDao()
@@ -144,40 +147,12 @@ class FeatherweightRepository(
     private val workoutTemplateWeightService =
         WorkoutTemplateWeightService(this, db.oneRMDao(), setLogDao, exerciseLogDao, freestyleIntelligenceService)
 
-    // StateFlow for pending 1RM updates
-    private val _pendingOneRMUpdates = MutableStateFlow<List<PendingOneRMUpdate>>(emptyList())
-    val pendingOneRMUpdates: StateFlow<List<PendingOneRMUpdate>> = _pendingOneRMUpdates.asStateFlow()
+    // Delegate OneRM functionality to OneRMRepository
+    val pendingOneRMUpdates: StateFlow<List<PendingOneRMUpdate>> = oneRMRepository.pendingOneRMUpdates
 
-    // Clear pending updates after user has seen them
-    fun clearPendingOneRMUpdates() {
-        _pendingOneRMUpdates.value = emptyList()
-    }
+    fun clearPendingOneRMUpdates() = oneRMRepository.clearPendingOneRMUpdates()
 
-    // Apply a pending 1RM update by updating the user's max
-    suspend fun applyOneRMUpdate(update: PendingOneRMUpdate) {
-        // Round weight to nearest 0.25
-        val roundedWeight = WeightFormatter.roundToNearestQuarter(update.suggestedMax)
-
-        db.oneRMDao().upsertExerciseMax(
-            exerciseVariationId = update.exerciseVariationId,
-            maxWeight = roundedWeight,
-            notes = "Updated from ${update.source}",
-        )
-
-        // Save to history with the correct date from the workout
-        saveOneRMToHistory(
-            exerciseVariationId = update.exerciseVariationId,
-            oneRM = roundedWeight,
-            context = update.source, // Use the source from the update (e.g., "3×100kg @ RPE 9")
-            recordedAt = update.workoutDate, // Use the workout date from the update
-        )
-
-        // Remove this update from pending list
-        _pendingOneRMUpdates.value =
-            _pendingOneRMUpdates.value.filter {
-                it.exerciseVariationId != update.exerciseVariationId
-            }
-    }
+    suspend fun applyOneRMUpdate(update: PendingOneRMUpdate) = oneRMRepository.applyOneRMUpdate(update)
 
     private val exerciseSeeder =
         ExerciseSeeder(
@@ -257,7 +232,7 @@ class FeatherweightRepository(
     // ===== EXISTING WORKOUT METHODS (Updated to work with new Exercise system) =====
 
     // Basic CRUD operations
-    suspend fun insertWorkout(workout: Workout): Long = workoutDao.insertWorkout(workout)
+    suspend fun insertWorkout(workout: Workout): Long = workoutRepository.createWorkout(workout)
 
     suspend fun getExercisesForWorkout(workoutId: Long): List<ExerciseLog> = exerciseRepository.getExercisesForWorkout(workoutId)
 
@@ -367,7 +342,9 @@ class FeatherweightRepository(
 
         // Store pending 1RM updates for later retrieval by UI
         if (pendingOneRMUpdates.isNotEmpty()) {
-            _pendingOneRMUpdates.value = pendingOneRMUpdates
+            pendingOneRMUpdates.forEach { update ->
+                oneRMRepository.addPendingOneRMUpdate(update)
+            }
         }
 
         // Update programme progress if this is a programme workout
@@ -595,9 +572,9 @@ class FeatherweightRepository(
         )
     }
 
-    suspend fun getWorkoutById(workoutId: Long): Workout? = workoutDao.getWorkoutById(workoutId)
+    suspend fun getWorkoutById(workoutId: Long): Workout? = workoutRepository.getWorkoutById(workoutId)
 
-    suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
+    suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> = workoutRepository.getExerciseLogsForWorkout(workoutId)
 
     suspend fun getSetLogsForExercise(exerciseLogId: Long): List<SetLog> = setLogDao.getSetLogsForExercise(exerciseLogId)
 
@@ -611,7 +588,7 @@ class FeatherweightRepository(
     ) = exerciseRepository.updateExerciseOrder(exerciseLogId, newOrder)
 
     // Delete an entire workout (will cascade delete all exercises and sets)
-    suspend fun deleteWorkout(workoutId: Long) = workoutDao.deleteWorkout(workoutId)
+    suspend fun deleteWorkout(workoutId: Long) = workoutRepository.deleteWorkoutById(workoutId)
 
     suspend fun deleteSetsForExerciseLog(exerciseLogId: Long) = exerciseRepository.deleteSetsForExercise(exerciseLogId)
 
@@ -902,25 +879,10 @@ class FeatherweightRepository(
         }
 
     // Get workouts for a specific programme
-    suspend fun getWorkoutsByProgramme(programmeId: Long): List<Workout> =
-        withContext(Dispatchers.IO) {
-            workoutDao.getWorkoutsByProgramme(programmeId)
-        }
+    suspend fun getWorkoutsByProgramme(programmeId: Long): List<Workout> = programmeRepository.getWorkoutsByProgramme(programmeId)
 
     // Get programme workout progress
-    suspend fun getProgrammeWorkoutProgress(programmeId: Long): Pair<Int, Int> =
-        withContext(Dispatchers.IO) {
-            // Get from the progress table which is the source of truth
-            val progress = programmeDao.getProgressForProgramme(programmeId)
-            if (progress != null) {
-                Pair(progress.completedWorkouts, progress.totalWorkouts)
-            } else {
-                // Fallback to counting workouts
-                val completed = workoutDao.getCompletedProgrammeWorkoutCount(programmeId)
-                val total = workoutDao.getTotalProgrammeWorkoutCount(programmeId)
-                Pair(completed, total)
-            }
-        }
+    suspend fun getProgrammeWorkoutProgress(programmeId: Long): Pair<Int, Int> = programmeRepository.getProgrammeWorkoutProgress(programmeId)
 
     // Get next programme workout to do
     suspend fun getNextProgrammeWorkout(programmeId: Long): NextProgrammeWorkoutInfo? =
@@ -1244,25 +1206,13 @@ class FeatherweightRepository(
             programmeId
         }
 
-    suspend fun getAllProgrammes() =
-        withContext(Dispatchers.IO) {
-            programmeDao.getAllProgrammes()
-        }
+    suspend fun getAllProgrammes() = programmeRepository.getAllProgrammes()
 
-    suspend fun getActiveProgramme() =
-        withContext(Dispatchers.IO) {
-            programmeDao.getActiveProgramme()
-        }
+    suspend fun getActiveProgramme() = programmeRepository.getActiveProgramme()
 
-    suspend fun getProgrammeById(programmeId: Long) =
-        withContext(Dispatchers.IO) {
-            programmeDao.getProgrammeById(programmeId)
-        }
+    suspend fun getProgrammeById(programmeId: Long) = programmeRepository.getProgrammeById(programmeId)
 
-    suspend fun getProgrammeWithDetails(programmeId: Long) =
-        withContext(Dispatchers.IO) {
-            programmeDao.getProgrammeWithDetails(programmeId)
-        }
+    suspend fun getProgrammeWithDetails(programmeId: Long) = programmeRepository.getProgrammeWithDetails(programmeId)
 
     suspend fun calculateProgrammeCompletionStats(programmeId: Long): ProgrammeCompletionStats? =
         withContext(Dispatchers.IO) {
@@ -1412,15 +1362,7 @@ class FeatherweightRepository(
     suspend fun updateProgrammeCompletionNotes(
         programmeId: Long,
         notes: String?,
-    ) = withContext(Dispatchers.IO) {
-        val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext
-        programmeDao.updateProgramme(
-            programme.copy(
-                completionNotes = notes,
-                notesCreatedAt = if (notes != null) LocalDateTime.now() else null,
-            ),
-        )
-    }
+    ) = programmeRepository.updateProgrammeCompletionNotes(programmeId, notes)
 
     suspend fun activateProgramme(programmeId: Long) =
         withContext(Dispatchers.IO) {
@@ -1481,19 +1423,12 @@ class FeatherweightRepository(
             programmeDao.deleteProgramme(programme)
         }
 
-    suspend fun getInProgressWorkoutCountByProgramme(programmeId: Long): Int =
-        withContext(Dispatchers.IO) {
-            workoutDao.getInProgressWorkoutCountByProgramme(programmeId)
-        }
+    suspend fun getInProgressWorkoutCountByProgramme(programmeId: Long): Int = programmeRepository.getInProgressWorkoutCountByProgramme(programmeId)
 
     suspend fun updateWorkoutStatus(
         workoutId: Long,
         status: WorkoutStatus,
-    ) = withContext(Dispatchers.IO) {
-        val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
-        val updatedWorkout = workout.copy(status = status)
-        workoutDao.updateWorkout(updatedWorkout)
-    }
+    ) = workoutRepository.updateWorkoutStatus(workoutId, status)
 
     suspend fun updateWorkoutTimerStart(
         workoutId: Long,
@@ -1542,63 +1477,34 @@ class FeatherweightRepository(
         db.oneRMDao().insertOrUpdateExerciseMax(userExerciseMax)
 
         // Also save to OneRMHistory for chart tracking with the correct date
-        saveOneRMToHistory(
+        oneRMRepository.saveOneRMToHistory(
             exerciseVariationId = exerciseVariationId,
-            oneRM = roundedWeight,
-            context = oneRMContext,
-            recordedAt = dateToUse,
+            estimatedMax = roundedWeight,
+            source = oneRMContext,
+            confidence = if (oneRMType == OneRMType.MANUALLY_ENTERED) 1.0f else 0.9f,
+            date = dateToUse,
         )
     }
 
     // Remove getAllCurrentMaxes - this should only be used in Insights
 
-    suspend fun getCurrentMaxesForExercises(
-        exerciseIds: List<Long>,
-    ) = withContext(Dispatchers.IO) {
-        db.oneRMDao().getCurrentMaxesForExercises(exerciseIds)
-    }
+    suspend fun getCurrentMaxesForExercises(exerciseIds: List<Long>) = 
+        oneRMRepository.getCurrentMaxesForExercises(exerciseIds)
 
-    suspend fun getBig4Exercises() =
-        withContext(Dispatchers.IO) {
-            db.exerciseDao().getBig4Exercises()
-        }
+    suspend fun getBig4Exercises() = oneRMRepository.getBig4Exercises()
 
     fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>> =
-        db.oneRMDao().getAllCurrentMaxesWithNames().map { maxes ->
-            maxes.map { max ->
-                OneRMWithExerciseName(
-                    id = max.id,
-                    exerciseVariationId = max.exerciseVariationId,
-                    exerciseName = max.exerciseName,
-                    oneRMEstimate = max.oneRMEstimate,
-                    oneRMDate = max.oneRMDate,
-                    oneRMContext = max.oneRMContext,
-                    mostWeightLifted = max.mostWeightLifted,
-                    mostWeightReps = max.mostWeightReps,
-                    mostWeightRpe = max.mostWeightRpe,
-                    mostWeightDate = max.mostWeightDate,
-                    oneRMConfidence = max.oneRMConfidence,
-                    oneRMType = max.oneRMType,
-                    notes = max.notes,
-                )
-            }
-        }
+        oneRMRepository.getAllCurrentMaxesWithNames()
 
-    fun getBig4ExercisesWithMaxes(): Flow<List<com.github.radupana.featherweight.data.profile.Big4ExerciseWithOptionalMax>> = db.oneRMDao().getBig4ExercisesWithMaxes()
+    fun getBig4ExercisesWithMaxes() = oneRMRepository.getBig4ExercisesWithMaxes()
 
-    fun getOtherExercisesWithMaxes(): Flow<List<OneRMWithExerciseName>> = db.oneRMDao().getOtherExercisesWithMaxes()
+    fun getOtherExercisesWithMaxes() = oneRMRepository.getOtherExercisesWithMaxes()
 
     suspend fun getOneRMForExercise(exerciseVariationId: Long): Float? =
-        withContext(Dispatchers.IO) {
-            val exerciseMax = db.oneRMDao().getCurrentMax(exerciseVariationId)
-            return@withContext exerciseMax?.oneRMEstimate
-        }
-
+        oneRMRepository.getOneRMForExercise(exerciseVariationId)
 
     suspend fun deleteAllMaxesForExercise(exerciseId: Long) =
-        withContext(Dispatchers.IO) {
-            db.oneRMDao().deleteAllMaxesForExercise(exerciseId)
-        }
+        oneRMRepository.deleteAllMaxesForExercise(exerciseId)
 
     suspend fun updateOrInsertOneRM(oneRMRecord: UserExerciseMax) =
         withContext(Dispatchers.IO) {
@@ -1756,28 +1662,21 @@ class FeatherweightRepository(
             personalRecordDao.getPersonalRecordsForWorkout(workoutId)
         }
 
-    suspend fun getCurrentOneRMEstimate(
-        exerciseId: Long,
-    ): Float? =
-        withContext(Dispatchers.IO) {
-            db.oneRMDao().getCurrentOneRMEstimate(exerciseId)
-        }
+    suspend fun getCurrentOneRMEstimate(exerciseId: Long): Float? =
+        oneRMRepository.getCurrentOneRMEstimate(exerciseId)
 
     suspend fun saveOneRMToHistory(
         exerciseVariationId: Long,
         oneRM: Float,
         context: String,
         recordedAt: LocalDateTime? = null,
-    ) = withContext(Dispatchers.IO) {
-        db.oneRMDao().insertOneRMHistory(
-            OneRMHistory(
-                exerciseVariationId = exerciseVariationId,
-                oneRMEstimate = oneRM,
-                context = context,
-                recordedAt = recordedAt ?: LocalDateTime.now(),
-            ),
-        )
-    }
+    ) = oneRMRepository.saveOneRMToHistory(
+        exerciseVariationId = exerciseVariationId,
+        estimatedMax = oneRM,
+        source = context,
+        confidence = 0.9f,
+        date = recordedAt ?: LocalDateTime.now()
+    )
 
     suspend fun getOneRMHistoryForExercise(
         exerciseName: String,
@@ -1996,12 +1895,10 @@ class FeatherweightRepository(
     /**
      * Get exercise 1RM from user profile
      */
-    suspend fun getExercise1RM(
-        exerciseName: String,
-    ): Float? =
+    suspend fun getExercise1RM(exerciseName: String): Float? =
         withContext(Dispatchers.IO) {
             val exercise = getExerciseByName(exerciseName) ?: return@withContext null
-            db.oneRMDao().getCurrentMax(exercise.id)?.oneRMEstimate
+            oneRMRepository.getExercise1RM(exercise.id)
         }
 
     /**
