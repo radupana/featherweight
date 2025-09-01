@@ -39,6 +39,7 @@ import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.core.DayPosition
 import com.kizitonwose.calendar.core.daysOfWeek
+import com.github.radupana.featherweight.domain.WorkoutDayInfo
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
@@ -49,7 +50,7 @@ import java.util.Locale
 @Composable
 fun CalendarView(
     selectedDate: LocalDate?,
-    workoutDayInfo: Map<LocalDate, com.github.radupana.featherweight.repository.WorkoutDayInfo>,
+    workoutDayInfo: Map<LocalDate, WorkoutDayInfo>,
     modifier: Modifier = Modifier,
     onDateSelected: (LocalDate) -> Unit,
     onMonthChanged: (YearMonth) -> Unit = {},
@@ -171,7 +172,7 @@ fun CalendarView(
 private fun CalendarDayContent(
     calendarDay: CalendarDay,
     isSelected: Boolean,
-    workoutDayInfo: com.github.radupana.featherweight.repository.WorkoutDayInfo?,
+    workoutDayInfo: WorkoutDayInfo?,
     isToday: Boolean,
     onClick: () -> Unit,
 ) {
@@ -224,7 +225,7 @@ private fun CalendarDayContent(
 
 @Composable
 private fun WorkoutIndicators(
-    dayInfo: com.github.radupana.featherweight.repository.WorkoutDayInfo,
+    dayInfo: WorkoutDayInfo,
     isSelected: Boolean,
     isToday: Boolean,
 ) {

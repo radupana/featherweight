@@ -142,7 +142,7 @@ class ProgrammeRepository(application: Application) {
             programmeDao.insertProgrammeWeek(week)
         }
     
-    suspend fun getProgrammeWeeks(programmeId: Long): List<ProgrammeWeek> = 
+    suspend fun getProgrammeWeeks(@Suppress("UNUSED_PARAMETER") programmeId: Long): List<ProgrammeWeek> = 
         withContext(Dispatchers.IO) {
             // Programme weeks not yet implemented in DAO
             emptyList()
@@ -154,7 +154,7 @@ class ProgrammeRepository(application: Application) {
             programmeDao.insertProgrammeWorkout(workout)
         }
     
-    suspend fun getProgrammeWorkoutsForWeek(weekId: Long): List<ProgrammeWorkout> = 
+    suspend fun getProgrammeWorkoutsForWeek(@Suppress("UNUSED_PARAMETER") weekId: Long): List<ProgrammeWorkout> = 
         withContext(Dispatchers.IO) {
             // Programme workouts for week not yet implemented in DAO  
             emptyList()
@@ -169,18 +169,17 @@ class ProgrammeRepository(application: Application) {
             val workouts = workoutDao.getWorkoutsByProgramme(programmeId)
             val completedWorkouts = workouts.filter { it.status == WorkoutStatus.COMPLETED }
             
-            // Calculate basic stats
             // Get total workouts from database
             val totalWorkouts = workoutDao.getTotalProgrammeWorkoutCount(programmeId)
             val completedCount = completedWorkouts.size
-            val completionPercentage = if (totalWorkouts > 0) {
+            if (totalWorkouts > 0) {
                 (completedCount.toFloat() / totalWorkouts * 100).toInt()
             } else 0
             
             // Calculate duration
             val startDate = programme.startedAt?.toLocalDate()
             val endDate = programme.completedAt?.toLocalDate() ?: LocalDate.now()
-            val durationWeeks = if (startDate != null) {
+            if (startDate != null) {
                 java.time.temporal.ChronoUnit.WEEKS.between(startDate, endDate).toInt()
             } else 0
             

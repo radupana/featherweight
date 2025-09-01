@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.repository.FeatherweightRepository
-import com.github.radupana.featherweight.repository.ProgrammeHistoryDetails
+import com.github.radupana.featherweight.domain.ProgrammeHistoryDetails
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

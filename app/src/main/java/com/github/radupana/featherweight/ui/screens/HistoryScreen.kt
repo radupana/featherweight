@@ -54,7 +54,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.radupana.featherweight.repository.WorkoutSummary
+import com.github.radupana.featherweight.domain.WorkoutSummary
+import com.github.radupana.featherweight.domain.ProgrammeSummary
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.ui.components.history.CalendarView
 import com.github.radupana.featherweight.ui.components.history.WeekGroupView
@@ -595,7 +596,7 @@ fun WorkoutsHistorySection(
 
 @Composable
 fun ProgrammesHistorySection(
-    programmes: List<com.github.radupana.featherweight.repository.ProgrammeSummary>,
+    programmes: List<ProgrammeSummary>,
     isLoading: Boolean,
     isLoadingMore: Boolean,
     hasMoreData: Boolean,
@@ -700,7 +701,7 @@ fun ProgrammesHistorySection(
 
 @Composable
 fun ProgrammeHistoryCard(
-    programme: com.github.radupana.featherweight.repository.ProgrammeSummary,
+    programme: ProgrammeSummary,
     onViewProgramme: (Long) -> Unit,
 ) {
     Card(

@@ -8,6 +8,7 @@ import com.github.radupana.featherweight.data.InsightCategory
 import com.github.radupana.featherweight.data.InsightSeverity
 import com.github.radupana.featherweight.data.TrainingAnalysis
 import com.github.radupana.featherweight.data.TrainingInsight
+import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.TrainingAnalysisService
 import com.google.gson.Gson
@@ -248,7 +249,7 @@ class InsightsViewModel(
             parseAIResponse(response, startDate, endDate)
         }
 
-    private suspend fun buildAnalysisPayload(workouts: List<com.github.radupana.featherweight.repository.WorkoutSummary>): String {
+    private suspend fun buildAnalysisPayload(workouts: List<WorkoutSummary>): String {
         val payload = JsonObject()
 
         // Analysis period

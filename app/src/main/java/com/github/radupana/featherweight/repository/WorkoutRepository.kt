@@ -1,16 +1,16 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
+import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
+import com.github.radupana.featherweight.domain.WorkoutSummary
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 /**
  * Repository for managing Workout-related data
@@ -20,6 +20,11 @@ class WorkoutRepository(application: Application) {
     private val workoutDao = db.workoutDao()
     private val exerciseLogDao = db.exerciseLogDao()
     private val setLogDao = db.setLogDao()
+    private val programmeDao = db.programmeDao()
+    
+    companion object {
+        private const val TAG = "WorkoutRepository"
+    }
     
     // Basic Workout CRUD operations
     suspend fun createWorkout(workout: Workout): Long = 
@@ -206,5 +211,55 @@ class WorkoutRepository(application: Application) {
                 totalSets += setLogDao.getSetLogsForExercise(exerciseLog.id).size
             }
             totalSets
+        }
+    
+    // Get workout history with summaries
+    suspend fun getWorkoutHistory(): List<WorkoutSummary> = 
+        withContext(Dispatchers.IO) {
+            val allWorkouts = workoutDao.getAllWorkouts()
+            allWorkouts.mapNotNull { workout ->
+                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                
+                // Include completed workouts even if they have no exercises
+                if (workout.status != WorkoutStatus.COMPLETED && exercises.isEmpty()) return@mapNotNull null
+                
+                val allSets = mutableListOf<SetLog>()
+                exercises.forEach { exercise ->
+                    allSets.addAll(setLogDao.getSetLogsForExercise(exercise.id))
+                }
+                
+                val completedSets = allSets.filter { it.isCompleted }
+                val totalWeight = completedSets.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
+                
+                // Get programme information if this is a programme workout
+                val programmeName = if (workout.isProgrammeWorkout && workout.programmeId != null) {
+                    try {
+                        programmeDao.getProgrammeById(workout.programmeId)?.name
+                    } catch (e: android.database.sqlite.SQLiteException) {
+                        Log.e(TAG, "Failed to get programme name for programmeId: ${workout.programmeId}", e)
+                        null
+                    }
+                } else {
+                    null
+                }
+                
+                WorkoutSummary(
+                    id = workout.id,
+                    date = workout.date,
+                    name = workout.name ?: workout.programmeWorkoutName,
+                    exerciseCount = exercises.size,
+                    setCount = allSets.size,
+                    totalWeight = totalWeight,
+                    duration = workout.durationSeconds,
+                    status = workout.status,
+                    hasNotes = !workout.notes.isNullOrBlank(),
+                    isProgrammeWorkout = workout.isProgrammeWorkout,
+                    programmeId = workout.programmeId,
+                    programmeName = programmeName,
+                    programmeWorkoutName = workout.programmeWorkoutName,
+                    weekNumber = workout.weekNumber,
+                    dayNumber = workout.dayNumber
+                )
+            }.sortedByDescending { it.date }
         }
 }

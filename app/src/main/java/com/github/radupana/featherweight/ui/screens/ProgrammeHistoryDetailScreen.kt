@@ -50,8 +50,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.radupana.featherweight.repository.ProgrammeHistoryDetails
-import com.github.radupana.featherweight.repository.WorkoutHistoryEntry
+import com.github.radupana.featherweight.domain.ProgrammeHistoryDetails
+import com.github.radupana.featherweight.domain.WorkoutHistoryEntry
 import com.github.radupana.featherweight.viewmodel.ProgrammeHistoryDetailViewModel
 import java.time.format.DateTimeFormatter
 

@@ -5,7 +5,9 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.repository.FeatherweightRepository
-import com.github.radupana.featherweight.repository.WorkoutSummary
+import com.github.radupana.featherweight.domain.WorkoutSummary
+import com.github.radupana.featherweight.domain.ProgrammeSummary
+import com.github.radupana.featherweight.domain.WorkoutDayInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +19,7 @@ import java.time.temporal.WeekFields
 import java.util.Locale
 
 data class PaginatedHistoryState(
-    val programmes: List<com.github.radupana.featherweight.repository.ProgrammeSummary> = emptyList(),
+    val programmes: List<ProgrammeSummary> = emptyList(),
     val isLoading: Boolean = false,
     val isLoadingMoreProgrammes: Boolean = false,
     val hasMoreProgrammes: Boolean = true,
@@ -30,7 +32,7 @@ data class CalendarState(
     val currentMonth: YearMonth,
     val selectedDate: LocalDate? = null,
     val workoutCounts: Map<LocalDate, Int> = emptyMap(),
-    val workoutDayInfo: Map<LocalDate, com.github.radupana.featherweight.repository.WorkoutDayInfo> = emptyMap(),
+    val workoutDayInfo: Map<LocalDate, WorkoutDayInfo> = emptyMap(),
     val isLoading: Boolean = false,
 )
 

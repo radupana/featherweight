@@ -4,13 +4,10 @@ import android.app.Application
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
-import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SwapHistoryCount
 import com.github.radupana.featherweight.data.TrainingAnalysis
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.ExerciseStats
-import com.github.radupana.featherweight.service.GlobalProgressTracker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -26,15 +23,14 @@ class ProgressRepository(application: Application) {
     private val workoutDao = db.workoutDao()
     private val exerciseVariationDao = db.exerciseVariationDao()
     
-    // Global progress management
-    suspend fun updateProgressAfterWorkout(workoutId: Long): List<PendingOneRMUpdate> = 
+    suspend fun updateProgressAfterWorkout(@Suppress("UNUSED_PARAMETER") workoutId: Long): List<PendingOneRMUpdate> = 
         withContext(Dispatchers.IO) {
             emptyList()
         }
     
     suspend fun getGlobalExerciseProgress(
         exerciseVariationId: Long,
-        lookbackDays: Int = 30
+        @Suppress("UNUSED_PARAMETER") lookbackDays: Int = 30
     ): GlobalExerciseProgress? = 
         withContext(Dispatchers.IO) {
             globalExerciseProgressDao.getProgressForExercise(exerciseVariationId)
@@ -147,8 +143,9 @@ class ProgressRepository(application: Application) {
         }
     
     suspend fun incrementSwapCount(
-        originalExerciseId: Long,
-        swappedExerciseId: Long
+        @Suppress("UNUSED_PARAMETER") originalExerciseId: Long,
+        @Suppress("UNUSED_PARAMETER") swappedExerciseId: Long
     ) = withContext(Dispatchers.IO) {
+        // Currently no-op, will be implemented when swap history is needed
     }
 }

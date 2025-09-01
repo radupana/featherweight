@@ -7,7 +7,6 @@ import com.github.radupana.featherweight.data.profile.Big4ExerciseWithOptionalMa
 import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
-import com.github.radupana.featherweight.service.OneRMService
 import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -24,9 +23,6 @@ class OneRMRepository(
 ) {
     private val db = FeatherweightDatabase.getDatabase(application)
     private val oneRMDao = db.oneRMDao()
-    private val oneRMService = OneRMService()
-
-    // Pending 1RM updates management
     private val _pendingOneRMUpdates = MutableStateFlow<List<PendingOneRMUpdate>>(emptyList())
     val pendingOneRMUpdates = _pendingOneRMUpdates.asStateFlow()
 
