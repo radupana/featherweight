@@ -54,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
@@ -556,42 +557,40 @@ private fun CleanSetRow(
                             modifier = Modifier.height(48.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            if (!set.isCompleted && !readOnly) {
-                                var weightValue by remember(set.id) {
-                                    mutableStateOf(
-                                        TextFieldValue(
-                                            text = if (set.actualWeight > 0) WeightFormatter.formatWeight(set.actualWeight) else "",
-                                            selection = TextRange.Zero,
-                                        ),
-                                    )
+                            var weightValue by remember(set.id) {
+                                mutableStateOf(
+                                    TextFieldValue(
+                                        text = if (set.actualWeight > 0) WeightFormatter.formatWeight(set.actualWeight) else "",
+                                        selection = TextRange.Zero,
+                                    ),
+                                )
+                            }
+
+                            // Use target weight as placeholder if available
+                            val weightPlaceholder =
+                                if (isProgrammeWorkout && set.targetWeight != null && set.targetWeight > 0) {
+                                    WeightFormatter.formatWeight(set.targetWeight)
+                                } else {
+                                    ""
                                 }
 
-                                // Use target weight as placeholder if available
-                                val weightPlaceholder =
-                                    if (isProgrammeWorkout && set.targetWeight != null && set.targetWeight > 0) {
-                                        WeightFormatter.formatWeight(set.targetWeight)
-                                    } else {
-                                        ""
-                                    }
-
-                                CenteredInputField(
-                                    value = weightValue,
-                                    onValueChange = { newValue ->
+                            CenteredInputField(
+                                value = weightValue,
+                                onValueChange = { newValue ->
+                                    if (!set.isCompleted && !readOnly) {
                                         weightValue = newValue
                                         val weight = newValue.text.toFloatOrNull() ?: 0f
                                         onUpdateSet(set.actualReps, weight, set.actualRpe)
-                                    },
-                                    fieldType = InputFieldType.WEIGHT,
-                                    placeholder = weightPlaceholder,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            } else {
-                                Text(
-                                    text = if (set.actualWeight > 0) WeightFormatter.formatWeight(set.actualWeight) else "-",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = if (set.isCompleted) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+                                    }
+                                },
+                                fieldType = InputFieldType.WEIGHT,
+                                placeholder = weightPlaceholder,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .alpha(if (set.isCompleted) 0.6f else 1f),
+                                enabled = !set.isCompleted && !readOnly,
+                                readOnly = set.isCompleted || readOnly,
+                            )
                         }
 
                         Box(
@@ -624,42 +623,40 @@ private fun CleanSetRow(
                             modifier = Modifier.height(48.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            if (!set.isCompleted && !readOnly) {
-                                var repsValue by remember(set.id) {
-                                    mutableStateOf(
-                                        TextFieldValue(
-                                            text = if (set.actualReps > 0) set.actualReps.toString() else "",
-                                            selection = TextRange.Zero,
-                                        ),
-                                    )
+                            var repsValue by remember(set.id) {
+                                mutableStateOf(
+                                    TextFieldValue(
+                                        text = if (set.actualReps > 0) set.actualReps.toString() else "",
+                                        selection = TextRange.Zero,
+                                    ),
+                                )
+                            }
+
+                            // Use target reps as placeholder if available
+                            val repsPlaceholder =
+                                if (isProgrammeWorkout && set.targetReps != null && set.targetReps > 0) {
+                                    set.targetReps.toString()
+                                } else {
+                                    ""
                                 }
 
-                                // Use target reps as placeholder if available
-                                val repsPlaceholder =
-                                    if (isProgrammeWorkout && set.targetReps != null && set.targetReps > 0) {
-                                        set.targetReps.toString()
-                                    } else {
-                                        ""
-                                    }
-
-                                CenteredInputField(
-                                    value = repsValue,
-                                    onValueChange = { newValue ->
+                            CenteredInputField(
+                                value = repsValue,
+                                onValueChange = { newValue ->
+                                    if (!set.isCompleted && !readOnly) {
                                         repsValue = newValue
                                         val reps = newValue.text.toIntOrNull() ?: 0
                                         onUpdateSet(reps, set.actualWeight, set.actualRpe)
-                                    },
-                                    fieldType = InputFieldType.REPS,
-                                    placeholder = repsPlaceholder,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            } else {
-                                Text(
-                                    text = if (set.actualReps > 0) set.actualReps.toString() else "-",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = if (set.isCompleted) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+                                    }
+                                },
+                                fieldType = InputFieldType.REPS,
+                                placeholder = repsPlaceholder,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .alpha(if (set.isCompleted) 0.6f else 1f),
+                                enabled = !set.isCompleted && !readOnly,
+                                readOnly = set.isCompleted || readOnly,
+                            )
                         }
                         Box(
                             modifier = Modifier.height(20.dp)
@@ -680,27 +677,27 @@ private fun CleanSetRow(
                             modifier = Modifier.height(48.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            if (!set.isCompleted && !readOnly) {
-                                var rpeValue by remember(set.id) {
-                                    mutableStateOf(
-                                        TextFieldValue(
-                                            text = set.actualRpe?.toString() ?: "",
-                                            selection = TextRange.Zero,
-                                        ),
-                                    )
+                            var rpeValue by remember(set.id) {
+                                mutableStateOf(
+                                    TextFieldValue(
+                                        text = set.actualRpe?.toString() ?: "",
+                                        selection = TextRange.Zero,
+                                    ),
+                                )
+                            }
+
+                            // Use target RPE as placeholder if available
+                            val rpePlaceholder =
+                                if (isProgrammeWorkout && set.targetRpe != null && set.targetRpe > 0) {
+                                    set.targetRpe.toString()
+                                } else {
+                                    ""
                                 }
 
-                                // Use target RPE as placeholder if available
-                                val rpePlaceholder =
-                                    if (isProgrammeWorkout && set.targetRpe != null && set.targetRpe > 0) {
-                                        set.targetRpe.toString()
-                                    } else {
-                                        ""
-                                    }
-
-                                CenteredInputField(
-                                    value = rpeValue,
-                                    onValueChange = { newValue ->
+                            CenteredInputField(
+                                value = rpeValue,
+                                onValueChange = { newValue ->
+                                    if (!set.isCompleted && !readOnly) {
                                         rpeValue = newValue
                                         val rpe =
                                             newValue.text.toFloatOrNull()?.let { value ->
@@ -708,18 +705,16 @@ private fun CleanSetRow(
                                                 (kotlin.math.round(value * 2) / 2).coerceIn(0f, 10f)
                                             }
                                         onUpdateSet(set.actualReps, set.actualWeight, rpe)
-                                    },
-                                    fieldType = InputFieldType.RPE,
-                                    placeholder = rpePlaceholder,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            } else {
-                                Text(
-                                    text = set.actualRpe?.toString() ?: "-",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = if (set.isCompleted) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+                                    }
+                                },
+                                fieldType = InputFieldType.RPE,
+                                placeholder = rpePlaceholder,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .alpha(if (set.isCompleted) 0.6f else 1f),
+                                enabled = !set.isCompleted && !readOnly,
+                                readOnly = set.isCompleted || readOnly,
+                            )
                         }
                         Box(
                             modifier = Modifier.height(20.dp)
