@@ -45,14 +45,14 @@ import com.github.radupana.featherweight.data.programme.StrengthImprovement
 import com.github.radupana.featherweight.data.programme.WorkoutStructure
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.ExerciseStats
-import com.github.radupana.featherweight.domain.SmartSuggestions
-import com.github.radupana.featherweight.domain.WorkoutSummary
-import com.github.radupana.featherweight.domain.WorkoutDayInfo
-import com.github.radupana.featherweight.domain.ProgrammeSummary
 import com.github.radupana.featherweight.domain.ProgrammeHistoryDetails
+import com.github.radupana.featherweight.domain.ProgrammeSummary
 import com.github.radupana.featherweight.domain.ProgrammeWeekHistory
+import com.github.radupana.featherweight.domain.SmartSuggestions
+import com.github.radupana.featherweight.domain.WorkoutDayInfo
 import com.github.radupana.featherweight.domain.WorkoutHistoryDetail
 import com.github.radupana.featherweight.domain.WorkoutHistoryEntry
+import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.service.FreestyleIntelligenceService
 import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.service.ProgressionService
@@ -65,7 +65,6 @@ import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
-
 
 class FeatherweightRepository(
     application: Application,
@@ -102,6 +101,7 @@ class FeatherweightRepository(
     // Initialize GlobalProgressTracker
     private val globalProgressTracker = GlobalProgressTracker(this, db)
     private val freestyleIntelligenceService = FreestyleIntelligenceService(db.globalExerciseProgressDao())
+
     // Delegate OneRM functionality to OneRMRepository
     val pendingOneRMUpdates: StateFlow<List<PendingOneRMUpdate>> = oneRMRepository.pendingOneRMUpdates
 
@@ -142,9 +142,13 @@ class FeatherweightRepository(
 
     // Exercise methods - delegated to ExerciseRepository
     suspend fun getAllExercises() = exerciseRepository.getAllExercises()
+
     suspend fun getAllExercisesWithAliases() = exerciseRepository.getAllExercisesWithAliases()
+
     suspend fun getExerciseById(id: Long) = exerciseRepository.getExerciseById(id)
+
     suspend fun searchExercises(query: String) = exerciseRepository.searchExercises(query)
+
     suspend fun getExercisesByCategory(category: ExerciseCategory) = exerciseRepository.getExercisesByCategory(category)
 
     // Get muscles for a variation
@@ -536,7 +540,7 @@ class FeatherweightRepository(
 
     suspend fun applyTemplateWeightSuggestions(
         workoutId: Long,
-        config: WorkoutTemplateConfig
+        config: WorkoutTemplateConfig,
     ) = workoutTemplateRepository.applyTemplateWeightSuggestions(workoutId, config)
 
     // ===== PROGRAMME-WORKOUT INTEGRATION METHODS =====
@@ -546,9 +550,13 @@ class FeatherweightRepository(
         programmeId: Long,
         weekNumber: Int,
         dayNumber: Int,
-    ): Long = workoutTemplateRepository.createWorkoutFromProgrammeTemplate(
-        programmeId, weekNumber, dayNumber, ::getNextProgrammeWorkout
-    )
+    ): Long =
+        workoutTemplateRepository.createWorkoutFromProgrammeTemplate(
+            programmeId,
+            weekNumber,
+            dayNumber,
+            ::getNextProgrammeWorkout,
+        )
 
     // Get workouts for a specific programme
     suspend fun getWorkoutsByProgramme(programmeId: Long): List<Workout> = programmeRepository.getWorkoutsByProgramme(programmeId)
@@ -579,52 +587,6 @@ class FeatherweightRepository(
 
             // All programmes are now custom (AI-generated or user-created) with direct workout storage
             return@withContext getNextWorkoutFromDatabase(programmeId, progress)
-
-            /* REMOVED - Programme templates no longer supported
-            // Handle template-based programmes (existing logic)
-            // Use templateName if available (for custom-named programmes), otherwise use programme name
-            val templateNameToSearch = programme.templateName ?: programme.name
-            val allTemplates = programmeDao.getAllTemplates()
-
-            val template =
-                allTemplates.find { it.name == templateNameToSearch }
-                    ?: run {
-                        return@withContext null
-                    }
-
-            // Parse the JSON structure
-            val structure =
-                ProgrammeWorkoutParser.parseStructure(template.jsonStructure)
-                    ?: return@withContext null
-
-            // Calculate workouts per week from template structure
-            val workoutsPerWeek = structure.weeks.flatMap { it.workouts }.size / structure.weeks.size
-
-            // Calculate the next workout position based on completed workouts
-            val nextWorkoutIndex = progress.completedWorkouts
-            val nextWeek = (nextWorkoutIndex / workoutsPerWeek) + 1
-            val nextDay = (nextWorkoutIndex % workoutsPerWeek) + 1
-
-            // Make sure we haven't exceeded programme duration
-            if (nextWeek > programme.durationWeeks) {
-                return@withContext null
-            }
-
-            // Get the workout structure for this position
-            val templateWeekIndex = ((nextWeek - 1) % structure.weeks.size) + 1
-            val workoutStructure =
-                ProgrammeWorkoutParser.getWorkoutForWeekAndDay(
-                    structure,
-                    templateWeekIndex,
-                    nextDay,
-                ) ?: return@withContext null
-
-            // Return the workout info
-            return@withContext NextProgrammeWorkoutInfo(
-                workoutStructure = workoutStructure,
-                actualWeekNumber = nextWeek,
-            )
-             */
         }
 
     // Handle next workout for custom programmes (AI-generated or user-created)

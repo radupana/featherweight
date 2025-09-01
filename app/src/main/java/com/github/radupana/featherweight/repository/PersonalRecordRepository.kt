@@ -8,13 +8,17 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.service.OneRMService
 import com.github.radupana.featherweight.service.PRDetectionService
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
  * Repository for managing Personal Record data
  */
-class PersonalRecordRepository(application: Application) {
+class PersonalRecordRepository(
+    application: Application,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+) {
     private val db = FeatherweightDatabase.getDatabase(application)
     private val personalRecordDao = db.personalRecordDao()
     private val setLogDao = db.setLogDao()
@@ -22,17 +26,17 @@ class PersonalRecordRepository(application: Application) {
     private val prDetectionService = PRDetectionService(personalRecordDao, setLogDao, exerciseVariationDao)
     
     suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             personalRecordDao.getRecentPRs(limit)
         }
     
     suspend fun getPersonalRecordsForWorkout(workoutId: Long): List<PersonalRecord> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             personalRecordDao.getPersonalRecordsForWorkout(workoutId)
         }
     
     suspend fun getPersonalRecordForExercise(exerciseVariationId: Long): PersonalRecord? = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             personalRecordDao.getLatestRecordForExercise(exerciseVariationId)
         }
     
@@ -41,7 +45,7 @@ class PersonalRecordRepository(application: Application) {
         exerciseVariationId: Long,
         updateOrInsertOneRM: suspend (UserExerciseMax) -> Unit
     ): List<PersonalRecord> =
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val prs = prDetectionService.checkForPR(setLog, exerciseVariationId)
 
             // If we detected an estimated 1RM PR, update the UserExerciseMax table

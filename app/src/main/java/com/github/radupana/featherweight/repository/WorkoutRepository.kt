@@ -8,6 +8,7 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.domain.WorkoutSummary
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -15,7 +16,10 @@ import java.time.LocalDate
 /**
  * Repository for managing Workout-related data
  */
-class WorkoutRepository(application: Application) {
+class WorkoutRepository(
+    application: Application,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+) {
     private val db = FeatherweightDatabase.getDatabase(application)
     private val workoutDao = db.workoutDao()
     private val exerciseLogDao = db.exerciseLogDao()
@@ -28,22 +32,22 @@ class WorkoutRepository(application: Application) {
     
     // Basic Workout CRUD operations
     suspend fun createWorkout(workout: Workout): Long = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             workoutDao.insertWorkout(workout)
         }
     
     suspend fun getWorkoutById(workoutId: Long): Workout? = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             workoutDao.getWorkoutById(workoutId)
         }
     
     suspend fun updateWorkout(workout: Workout) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             workoutDao.updateWorkout(workout)
         }
     
     suspend fun deleteWorkout(workout: Workout) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             // Delete all exercise logs for this workout
             val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
             exerciseLogs.forEach { exerciseLog ->
@@ -58,7 +62,7 @@ class WorkoutRepository(application: Application) {
         }
     
     suspend fun deleteWorkoutById(workoutId: Long) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val workout = workoutDao.getWorkoutById(workoutId)
             if (workout != null) {
                 deleteWorkout(workout)
@@ -67,13 +71,13 @@ class WorkoutRepository(application: Application) {
     
     // Workout status management
     suspend fun updateWorkoutStatus(workoutId: Long, status: WorkoutStatus) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
             workoutDao.updateWorkout(workout.copy(status = status))
         }
     
     suspend fun completeWorkout(workoutId: Long, duration: Long? = null) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
             workoutDao.updateWorkout(
                 workout.copy(
@@ -84,7 +88,7 @@ class WorkoutRepository(application: Application) {
         }
     
     suspend fun abandonWorkout(workoutId: Long) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
             workoutDao.updateWorkout(
                 workout.copy(
@@ -95,55 +99,55 @@ class WorkoutRepository(application: Application) {
     
     // Workout queries
     suspend fun getAllWorkouts(): List<Workout> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             workoutDao.getAllWorkouts()
         }
     
     suspend fun getActiveWorkout(): Workout? = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             workoutDao.getAllWorkouts().firstOrNull { it.status == WorkoutStatus.IN_PROGRESS }
         }
     
     suspend fun getInProgressWorkouts(): List<Workout> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             workoutDao.getAllWorkouts().filter { it.status == WorkoutStatus.IN_PROGRESS }
         }
     
     suspend fun getWorkoutsForDateRange(startDate: LocalDate, endDate: LocalDate): List<Workout> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.plusDays(1).atStartOfDay()
             workoutDao.getWorkoutsInDateRange(startDateTime, endDateTime)
         }
     
     suspend fun getCompletedWorkoutsCount(): Int = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             workoutDao.getAllWorkouts().count { it.status == WorkoutStatus.COMPLETED }
         }
     
     suspend fun getLastWorkout(): Workout? = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             workoutDao.getAllWorkouts().maxByOrNull { it.date }
         }
     
     suspend fun getRecentWorkouts(limit: Int = 10): List<Workout> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             workoutDao.getAllWorkouts().sortedByDescending { it.date }.take(limit)
         }
     
     // Exercise logs management
     suspend fun createExerciseLog(exerciseLog: ExerciseLog): Long = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             exerciseLogDao.insertExerciseLog(exerciseLog)
         }
     
     suspend fun updateExerciseLog(exerciseLog: ExerciseLog) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             exerciseLogDao.update(exerciseLog)
         }
     
     suspend fun deleteExerciseLog(exerciseLog: ExerciseLog) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             // Delete all set logs first
             val setLogs = setLogDao.getSetLogsForExercise(exerciseLog.id)
             setLogs.forEach { setLogDao.deleteSetLog(it.id) }
@@ -152,39 +156,39 @@ class WorkoutRepository(application: Application) {
         }
     
     suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             exerciseLogDao.getExerciseLogsForWorkout(workoutId)
         }
     
     // Set logs management
     suspend fun createSetLog(setLog: SetLog): Long = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             setLogDao.insertSetLog(setLog)
         }
     
     suspend fun updateSetLog(setLog: SetLog) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             setLogDao.updateSetLog(setLog)
         }
     
     suspend fun deleteSetLog(setLog: SetLog) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             setLogDao.deleteSetLog(setLog.id)
         }
     
     suspend fun getSetLogsForExercise(exerciseLogId: Long): List<SetLog> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             setLogDao.getSetLogsForExercise(exerciseLogId)
         }
     
     suspend fun getCompletedSetsCount(exerciseLogId: Long): Int = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             setLogDao.getSetLogsForExercise(exerciseLogId).count { it.isCompleted }
         }
     
     // Workout volume calculations
     suspend fun calculateWorkoutVolume(workoutId: Long): Float = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
             var totalVolume = 0f
             
@@ -199,12 +203,12 @@ class WorkoutRepository(application: Application) {
         }
     
     suspend fun getWorkoutExerciseCount(workoutId: Long): Int = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             exerciseLogDao.getExerciseLogsForWorkout(workoutId).size
         }
     
     suspend fun getWorkoutSetCount(workoutId: Long): Int = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
             var totalSets = 0
             for (exerciseLog in exerciseLogs) {
@@ -215,7 +219,7 @@ class WorkoutRepository(application: Application) {
     
     // Get workout history with summaries
     suspend fun getWorkoutHistory(): List<WorkoutSummary> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val allWorkouts = workoutDao.getAllWorkouts()
             allWorkouts.mapNotNull { workout ->
                 val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)

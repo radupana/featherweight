@@ -14,6 +14,7 @@ import com.github.radupana.featherweight.data.model.WorkoutTemplateGenerationCon
 import com.github.radupana.featherweight.data.programme.RepsStructure
 import com.github.radupana.featherweight.service.WorkoutTemplateGeneratorService
 import com.github.radupana.featherweight.service.WorkoutTemplateWeightService
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -23,7 +24,8 @@ import java.time.LocalDateTime
  */
 class WorkoutTemplateRepository(
     application: Application,
-    private val featherweightRepository: FeatherweightRepository
+    private val featherweightRepository: FeatherweightRepository,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
     private val db = FeatherweightDatabase.getDatabase(application)
     private val workoutDao = db.workoutDao()
@@ -47,7 +49,7 @@ class WorkoutTemplateRepository(
     suspend fun generateWorkoutFromTemplate(
         template: WorkoutTemplate,
         config: WorkoutTemplateConfig
-    ): Long = withContext(Dispatchers.IO) {
+    ): Long = withContext(ioDispatcher) {
         val workoutId = workoutDao.insertWorkout(
             Workout(
                 id = 0,
@@ -109,7 +111,7 @@ class WorkoutTemplateRepository(
     suspend fun applyTemplateWeightSuggestions(
         workoutId: Long,
         config: WorkoutTemplateConfig
-    ) = withContext(Dispatchers.IO) {
+    ) = withContext(ioDispatcher) {
         workoutTemplateWeightService.applyWeightSuggestions(workoutId, config)
     }
     
@@ -118,7 +120,7 @@ class WorkoutTemplateRepository(
         weekNumber: Int,
         dayNumber: Int,
         getNextProgrammeWorkout: suspend (Long) -> Any?
-    ): Long = withContext(Dispatchers.IO) {
+    ): Long = withContext(ioDispatcher) {
         Log.d("WorkoutTemplateRepository", "=== CREATING WORKOUT FROM PROGRAMME TEMPLATE ===")
         Log.d("WorkoutTemplateRepository", "Programme ID: $programmeId, Week: $weekNumber, Day: $dayNumber")
         
@@ -271,3 +273,4 @@ data class NextProgrammeWorkoutInfo(
     val workoutStructure: com.github.radupana.featherweight.data.programme.WorkoutStructure,
     val actualWeekNumber: Int
 )
+

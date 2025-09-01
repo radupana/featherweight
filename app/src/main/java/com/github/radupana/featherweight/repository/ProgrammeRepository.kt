@@ -11,6 +11,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeStatus
 import com.github.radupana.featherweight.data.programme.ProgrammeWeek
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
 import com.github.radupana.featherweight.data.programme.StrengthImprovement
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Duration
@@ -20,49 +21,52 @@ import java.time.LocalDateTime
 /**
  * Repository for managing Programme-related data
  */
-class ProgrammeRepository(application: Application) {
+class ProgrammeRepository(
+    application: Application,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+) {
     private val db = FeatherweightDatabase.getDatabase(application)
     private val programmeDao = db.programmeDao()
     private val workoutDao = db.workoutDao()
     
     // Basic Programme CRUD operations
     suspend fun getAllProgrammes() = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             programmeDao.getAllProgrammes()
         }
     
     suspend fun getActiveProgramme() = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             programmeDao.getActiveProgramme()
         }
     
     suspend fun getProgrammeById(programmeId: Long) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             programmeDao.getProgrammeById(programmeId)
         }
     
     suspend fun getProgrammeWithDetails(programmeId: Long) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             programmeDao.getProgrammeWithDetails(programmeId)
         }
     
     suspend fun insertProgramme(programme: Programme): Long = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             programmeDao.insertProgramme(programme)
         }
     
     suspend fun updateProgramme(programme: Programme) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             programmeDao.updateProgramme(programme)
         }
     
     suspend fun deleteProgramme(programme: Programme) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             programmeDao.deleteProgramme(programme)
         }
     
     suspend fun activateProgramme(programmeId: Long) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             // Deactivate all other programmes
             programmeDao.deactivateAllProgrammes()
             
@@ -82,13 +86,13 @@ class ProgrammeRepository(application: Application) {
         }
     
     suspend fun deactivateProgramme(programmeId: Long) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             programmeDao.updateProgrammeStatus(programmeId, ProgrammeStatus.NOT_STARTED)
         }
     
     // Programme Progress tracking
     suspend fun getProgrammeWorkoutProgress(programmeId: Long): Pair<Int, Int> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val programme = programmeDao.getProgrammeById(programmeId)
             if (programme == null) {
                 return@withContext Pair(0, 0)
@@ -102,17 +106,17 @@ class ProgrammeRepository(application: Application) {
         }
     
     suspend fun getWorkoutsByProgramme(programmeId: Long): List<Workout> =
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             workoutDao.getWorkoutsByProgramme(programmeId)
         }
     
     suspend fun getInProgressWorkoutCountByProgramme(programmeId: Long): Int =
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             workoutDao.getInProgressWorkoutCountByProgramme(programmeId)
         }
     
     suspend fun updateProgrammeProgressAfterWorkout(programmeId: Long) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext
             
             // Get total and completed workouts
@@ -125,7 +129,7 @@ class ProgrammeRepository(application: Application) {
         }
     
     private suspend fun completeProgramme(programmeId: Long) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext
             
             programmeDao.updateProgramme(
@@ -138,31 +142,31 @@ class ProgrammeRepository(application: Application) {
     
     // Programme Weeks
     suspend fun insertProgrammeWeek(week: ProgrammeWeek): Long = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             programmeDao.insertProgrammeWeek(week)
         }
     
     suspend fun getProgrammeWeeks(@Suppress("UNUSED_PARAMETER") programmeId: Long): List<ProgrammeWeek> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             // Programme weeks not yet implemented in DAO
             emptyList()
         }
     
     // Programme Workouts
     suspend fun insertProgrammeWorkout(workout: ProgrammeWorkout): Long = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             programmeDao.insertProgrammeWorkout(workout)
         }
     
     suspend fun getProgrammeWorkoutsForWeek(@Suppress("UNUSED_PARAMETER") weekId: Long): List<ProgrammeWorkout> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             // Programme workouts for week not yet implemented in DAO  
             emptyList()
         }
     
     // Programme Completion Stats
     suspend fun calculateProgrammeCompletionStats(programmeId: Long): ProgrammeCompletionStats? =
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext null
             
             // Get all workouts for this programme
@@ -215,7 +219,7 @@ class ProgrammeRepository(application: Application) {
     suspend fun updateProgrammeCompletionNotes(
         programmeId: Long,
         notes: String?
-    ) = withContext(Dispatchers.IO) {
+    ) = withContext(ioDispatcher) {
         val programme = programmeDao.getProgrammeById(programmeId)
         if (programme != null) {
             programmeDao.updateProgramme(

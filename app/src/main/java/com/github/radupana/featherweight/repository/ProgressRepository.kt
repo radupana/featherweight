@@ -8,6 +8,7 @@ import com.github.radupana.featherweight.data.SwapHistoryCount
 import com.github.radupana.featherweight.data.TrainingAnalysis
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.ExerciseStats
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -15,7 +16,10 @@ import java.time.LocalDateTime
 /**
  * Repository for managing progress tracking and analytics
  */
-class ProgressRepository(application: Application) {
+class ProgressRepository(
+    application: Application,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+) {
     private val db = FeatherweightDatabase.getDatabase(application)
     private val globalExerciseProgressDao = db.globalExerciseProgressDao()
     private val setLogDao = db.setLogDao()
@@ -24,7 +28,7 @@ class ProgressRepository(application: Application) {
     private val exerciseVariationDao = db.exerciseVariationDao()
     
     suspend fun updateProgressAfterWorkout(@Suppress("UNUSED_PARAMETER") workoutId: Long): List<PendingOneRMUpdate> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             emptyList()
         }
     
@@ -32,17 +36,17 @@ class ProgressRepository(application: Application) {
         exerciseVariationId: Long,
         @Suppress("UNUSED_PARAMETER") lookbackDays: Int = 30
     ): GlobalExerciseProgress? = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             globalExerciseProgressDao.getProgressForExercise(exerciseVariationId)
         }
     
     suspend fun updateGlobalExerciseProgress(progress: GlobalExerciseProgress) = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             globalExerciseProgressDao.insertOrUpdate(progress)
         }
     
     suspend fun getAllGlobalProgress(): List<GlobalExerciseProgress> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             // Get all unique exercise variation IDs
             val exerciseIds = exerciseLogDao.getAllUniqueExerciseVariationIds()
             exerciseIds.mapNotNull { id ->
@@ -55,7 +59,7 @@ class ProgressRepository(application: Application) {
         exerciseVariationId: Long,
         limit: Int = 10
     ): ExerciseHistory = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             // Get recent sets
             val recentSets = setLogDao.getSetLogsForExercise(exerciseVariationId)
                 .sortedByDescending { it.completedAt }
@@ -73,7 +77,7 @@ class ProgressRepository(application: Application) {
         }
     
     suspend fun getExerciseStats(exerciseVariationId: Long): ExerciseStats = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
             val sets = setLogDao.getSetLogsForExercise(exerciseVariationId)
                 .filter { it.isCompleted }
@@ -104,7 +108,7 @@ class ProgressRepository(application: Application) {
         startDate: LocalDateTime,
         endDate: LocalDateTime
     ): TrainingAnalysis = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val workouts = workoutDao.getWorkoutsInDateRange(startDate, endDate)
             val completedWorkouts = workouts.filter { it.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED }
             
@@ -138,14 +142,14 @@ class ProgressRepository(application: Application) {
     
     // Swap history tracking
     suspend fun getSwapHistoryCounts(): List<SwapHistoryCount> = 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             emptyList()
         }
     
     suspend fun incrementSwapCount(
         @Suppress("UNUSED_PARAMETER") originalExerciseId: Long,
         @Suppress("UNUSED_PARAMETER") swappedExerciseId: Long
-    ) = withContext(Dispatchers.IO) {
+    ) = withContext(ioDispatcher) {
         // Currently no-op, will be implemented when swap history is needed
     }
 }

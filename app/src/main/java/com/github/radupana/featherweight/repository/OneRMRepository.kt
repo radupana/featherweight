@@ -8,6 +8,7 @@ import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.util.WeightFormatter
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,7 @@ import java.time.LocalDateTime
  */
 class OneRMRepository(
     application: Application,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
     private val db = FeatherweightDatabase.getDatabase(application)
     private val oneRMDao = db.oneRMDao()
@@ -89,7 +91,7 @@ class OneRMRepository(
     suspend fun deleteAllMaxesForExercise(exerciseId: Long) = oneRMDao.deleteAllMaxesForExercise(exerciseId)
 
     suspend fun updateOrInsertOneRM(oneRMRecord: UserExerciseMax) =
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             // Check if we have an existing record for this exercise
             val existing = oneRMDao.getCurrentMax(oneRMRecord.exerciseVariationId)
 
