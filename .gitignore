@@ -27,3 +27,5 @@ app/schemas/
 
 # Firebase configuration - NEVER commit this!
 app/google-services.json
+
+featherweight-release.keystore

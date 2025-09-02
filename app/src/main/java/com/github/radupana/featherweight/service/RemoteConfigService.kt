@@ -2,11 +2,14 @@ package com.github.radupana.featherweight.service
 
 import android.util.Log
 import com.google.firebase.Firebase
+import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
 import kotlinx.coroutines.tasks.await
 
-class RemoteConfigService {
+class RemoteConfigService(
+    private val remoteConfig: FirebaseRemoteConfig = Firebase.remoteConfig,
+) : ConfigService {
     companion object {
         private const val TAG = "RemoteConfigService"
         private const val OPENAI_API_KEY = "openai_api_key"
@@ -20,7 +23,6 @@ class RemoteConfigService {
             }
     }
 
-    private val remoteConfig = Firebase.remoteConfig
     private var isInitialized = false
     private var cachedApiKey: String? = null
 
@@ -38,7 +40,7 @@ class RemoteConfigService {
         )
     }
 
-    suspend fun initialize() {
+    override suspend fun initialize() {
         if (isInitialized) return
 
         try {
@@ -50,7 +52,7 @@ class RemoteConfigService {
         }
     }
 
-    suspend fun getOpenAIApiKey(): String? {
+    override suspend fun getOpenAIApiKey(): String? {
         if (!isInitialized) {
             initialize()
         }
