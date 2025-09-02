@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -45,9 +44,10 @@ class TrainingAnalysisService {
         userPrompt: String,
     ): String =
         withContext(Dispatchers.IO) {
-            val apiKey = BuildConfig.OPENAI_API_KEY
-            if (apiKey.isEmpty()) {
-                error("OpenAI API key not configured")
+            val remoteConfigService = RemoteConfigService.getInstance()
+            val apiKey = remoteConfigService.getOpenAIApiKey()
+            if (apiKey.isNullOrEmpty()) {
+                error("OpenAI API key not configured. Please check your internet connection and try again.")
             }
 
             val messages =

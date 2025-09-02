@@ -58,8 +58,8 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         TrainingAnalysis::class,
         ParseRequest::class,
     ],
-    version = 79,
-    exportSchema = false,
+    version = 1,
+    exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
 abstract class FeatherweightDatabase : RoomDatabase() {

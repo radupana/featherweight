@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.service
 
 import android.util.Log
-import com.github.radupana.featherweight.BuildConfig
 import com.github.radupana.featherweight.data.ParsedExercise
 import com.github.radupana.featherweight.data.ParsedProgramme
 import com.github.radupana.featherweight.data.ParsedSet
@@ -141,17 +140,13 @@ open class ProgrammeTextParser {
         return ValidationResult(true)
     }
 
-    internal open fun callOpenAIAPI(request: TextParsingRequest): String {
-        val effectiveApiKey =
-            try {
-                BuildConfig.OPENAI_API_KEY
-            } catch (e: Exception) {
-                ""
-            }
+    internal open suspend fun callOpenAIAPI(request: TextParsingRequest): String {
+        val remoteConfigService = RemoteConfigService.getInstance()
+        val effectiveApiKey = remoteConfigService.getOpenAIApiKey()
 
-        if (effectiveApiKey.isEmpty() || effectiveApiKey == "null") {
-            Log.e(TAG, "API key is empty or null")
-            throw IllegalArgumentException("OpenAI API key not configured")
+        if (effectiveApiKey.isNullOrEmpty()) {
+            Log.e(TAG, "API key not available from Remote Config")
+            throw IllegalArgumentException("OpenAI API key not configured. Please check your internet connection and try again.")
         }
 
         val prompt = buildPrompt(request)

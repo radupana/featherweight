@@ -8,6 +8,8 @@ plugins {
     alias(libs.plugins.ktlint) apply true
     alias(libs.plugins.detekt) apply true
     id("org.sonarqube") version "6.3.1.5724"
+    id("com.google.gms.google-services") version "4.4.3" apply false
+    id("com.google.firebase.crashlytics") version "3.0.6" apply false
 }
 
 configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {

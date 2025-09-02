@@ -21,3 +21,9 @@ problems/
 *.md
 *.png
 docker-compose.yml
+
+# Room schemas - not needed during alpha (using destructive migration)
+app/schemas/
+
+# Firebase configuration - NEVER commit this!
+app/google-services.json

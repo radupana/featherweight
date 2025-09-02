@@ -1,5 +1,3 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -9,6 +7,8 @@ plugins {
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
     id("jacoco")
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
@@ -38,15 +38,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // Read API key from local.properties (git-ignored file)
-        val localProperties = Properties()
-        val localPropertiesFile = rootProject.file("local.properties")
-        if (localPropertiesFile.exists()) {
-            localProperties.load(localPropertiesFile.inputStream())
-        }
-
-        buildConfigField("String", "OPENAI_API_KEY", "\"${localProperties.getProperty("OPENAI_API_KEY", "YOUR_API_KEY_HERE")}\"")
     }
 
     buildTypes {
@@ -84,6 +75,10 @@ android {
             }
         }
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -141,7 +136,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     // Gson for JSON parsing
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation(libs.gson)
 
     // HTTP Client
     implementation(libs.okhttp)
@@ -166,6 +161,12 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.rules)
     androidTestUtil(libs.androidx.test.orchestrator)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics.ndk)
+    implementation(libs.google.firebase.analytics)
+    implementation(libs.firebase.config)
 }
 
 // Make Detekt part of the build process

@@ -48,10 +48,6 @@
             android:foregroundServiceType="dataSync"
             android:exported="false" />
         
-        <service
-            android:name="androidx.work.multiprocess.RemoteForegroundService"
-            android:foregroundServiceType="dataSync"
-            android:exported="false" />
     </application>
 
 </manifest>

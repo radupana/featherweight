@@ -14,7 +14,7 @@ class ProgrammeTextParserTest {
     private inner class TestProgrammeTextParser(
         private var mockApiResponse: String? = null,
     ) : ProgrammeTextParser() {
-        override fun callOpenAIAPI(request: TextParsingRequest): String = mockApiResponse ?: error("No mock response set")
+        override suspend fun callOpenAIAPI(request: TextParsingRequest): String = mockApiResponse ?: error("No mock response set")
 
         fun setMockResponse(response: String) {
             mockApiResponse = response

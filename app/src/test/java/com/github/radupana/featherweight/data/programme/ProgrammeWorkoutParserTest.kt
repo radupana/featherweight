@@ -1,16 +1,9 @@
 package com.github.radupana.featherweight.data.programme
 
 import com.google.common.truth.Truth.assertThat
-import kotlinx.serialization.json.Json
 import org.junit.Test
 
 class ProgrammeWorkoutParserTest {
-    private val json =
-        Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-        }
-
     @Test
     fun parseStructure_withValidJson_shouldReturnProgrammeStructure() {
         val jsonString =

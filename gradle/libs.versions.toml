@@ -3,6 +3,8 @@ agp = "8.11.1"
 compose = "2.8.0"
 coreKtxVersion = "1.7.0"
 coreTesting = "2.2.0"
+firebaseBom = "34.2.0"
+gson = "2.13.1"
 kotlin = "2.2.10"
 coreKtx = "1.17.0"
 junit = "4.13.2"
@@ -48,6 +50,12 @@ androidx-material-icons-extended = { module = "androidx.compose.material:materia
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
 compose = { module = "com.kizitonwose.calendar:compose", version.ref = "compose" }
 core-ktx = { module = "androidx.test:core-ktx", version.ref = "coreKtxVersion" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-config = { module = "com.google.firebase:firebase-config" }
+firebase-crashlytics-ndk = { module = "com.google.firebase:firebase-crashlytics-ndk" }
+google-firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
