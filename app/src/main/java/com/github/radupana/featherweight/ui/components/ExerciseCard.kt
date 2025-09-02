@@ -529,11 +529,13 @@ private fun CleanSetRow(
                         .fillMaxWidth()
                         .padding(horizontal = 4.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
             ) {
                 // Set number column - match header layout
                 Box(
-                    modifier = Modifier.width(32.dp),
+                    modifier = Modifier
+                        .width(32.dp)
+                        .height(48.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -727,7 +729,9 @@ private fun CleanSetRow(
 
                 // Dedicated checkbox column - match header layout
                 Box(
-                    modifier = Modifier.width(48.dp),
+                    modifier = Modifier
+                        .width(48.dp)
+                        .height(48.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Box(
