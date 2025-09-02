@@ -58,7 +58,6 @@ fun ProfileScreen(
     viewModel: ProfileViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    insightsViewModel: com.github.radupana.featherweight.viewmodel.InsightsViewModel? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -153,7 +152,6 @@ fun ProfileScreen(
                 onSeedWorkoutData = { viewModel.seedWorkoutData() },
                 onResetSeedingState = { viewModel.resetSeedingState() },
                 onClearAllData = { viewModel.clearAllWorkoutData() },
-                onForceAnalysis = { insightsViewModel?.forceAnalysis() },
             )
         }
     }
@@ -387,7 +385,6 @@ private fun SettingsSection(
     onSeedWorkoutData: () -> Unit,
     onResetSeedingState: () -> Unit,
     onClearAllData: () -> Unit,
-    onForceAnalysis: () -> Unit,
 ) {
     CollapsibleSection(
         title = "Developer Tools",
@@ -493,32 +490,6 @@ private fun SettingsSection(
                 }
             }
 
-            GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text(
-                        text = "Training Analysis",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = "Force training analysis to run (bypasses weekly schedule)",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    FilledTonalButton(
-                        onClick = onForceAnalysis,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Force Training Analysis")
-                    }
-                }
-            }
         }
     }
 }

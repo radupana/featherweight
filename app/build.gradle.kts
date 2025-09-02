@@ -43,8 +43,23 @@ android {
         applicationId = "com.github.radupana.featherweight"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        
+        // Read version from gradle.properties
+        val appVersion = project.findProperty("appVersion") as String? ?: "1.0.0"
+        versionName = appVersion
+        
+        // Calculate versionCode from semantic version
+        // Format: MAJOR * 10000 + MINOR * 100 + PATCH
+        // Example: 1.2.3 becomes 10203
+        val versionParts = appVersion.split(".")
+        versionCode = if (versionParts.size == 3) {
+            val major = versionParts[0].toIntOrNull() ?: 0
+            val minor = versionParts[1].toIntOrNull() ?: 0
+            val patch = versionParts[2].toIntOrNull() ?: 0
+            major * 10000 + minor * 100 + patch
+        } else {
+            1
+        }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

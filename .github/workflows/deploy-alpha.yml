@@ -4,6 +4,11 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      version_override:
+        description: 'Optional: Override version (e.g., 2.0.0)'
+        required: false
+        type: string
 
 jobs:
   deploy:
@@ -43,6 +48,19 @@ jobs:
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: ./gradlew assembleRelease
     
+    - name: Extract version from gradle.properties
+      id: get_version
+      run: |
+        if [ -n "${{ github.event.inputs.version_override }}" ]; then
+          VERSION="${{ github.event.inputs.version_override }}"
+          echo "Using override version: $VERSION"
+        else
+          VERSION=$(grep "^appVersion=" gradle.properties | cut -d'=' -f2)
+          echo "Using gradle.properties version: $VERSION"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Deploying version: $VERSION"
+    
     - name: Upload to Firebase App Distribution
       uses: wzieba/Firebase-Distribution-Github-Action@v1.7.1
       with:
@@ -50,7 +68,9 @@ jobs:
         serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         groups: alpha-testers
         releaseNotes: |
-          Automated build from commit ${{ github.sha }}
+          Version: ${{ steps.get_version.outputs.version }}
+          Build: ${{ github.run_number }}
+          Commit: ${{ github.sha }}
           
           Changes: ${{ github.event.head_commit.message }}
         file: app/build/outputs/apk/release/app-release.apk

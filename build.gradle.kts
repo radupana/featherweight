@@ -24,7 +24,6 @@ configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
     buildUponDefaultConfig = true
     allRules = false
     config.setFrom("$projectDir/detekt-config.yml")
-    // NO BASELINE - WE FIX EVERYTHING
 
     source.setFrom(
         "app/src/main/java",
@@ -33,7 +32,7 @@ configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
     )
 
     parallel = true
-    autoCorrect = true // AUTO-FIX EVERYTHING POSSIBLE
+    autoCorrect = true
 }
 
 sonarqube {

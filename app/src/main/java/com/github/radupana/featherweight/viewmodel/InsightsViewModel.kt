@@ -166,11 +166,6 @@ class InsightsViewModel(
         }
     }
 
-    fun forceAnalysis() { // For developer tools only
-        viewModelScope.launch {
-            runAnalysis()
-        }
-    }
 
     private suspend fun runAnalysis() {
         _isAnalyzing.value = true

@@ -552,12 +552,10 @@ fun MainAppWithNavigation(
 
             Screen.PROFILE -> {
                 val profileViewModel: ProfileViewModel = viewModel()
-                val insightsViewModel: InsightsViewModel = viewModel()
                 com.github.radupana.featherweight.ui.screens.ProfileScreen(
                     viewModel = profileViewModel,
                     onBack = { onScreenChange(previousScreen ?: Screen.WORKOUTS) },
                     modifier = Modifier.padding(innerPadding),
-                    insightsViewModel = insightsViewModel,
                 )
             }
 
