@@ -6,21 +6,21 @@ import org.junit.Test
 import java.time.LocalDateTime
 
 class ProgrammeDataModelsTest {
-
     @Test
     fun programmeWeek_withAllData_shouldStoreCorrectly() {
-        val week = ProgrammeWeek(
-            id = 1L,
-            programmeId = 10L,
-            weekNumber = 1,
-            name = "Foundation Week",
-            description = "Build base strength",
-            focusAreas = "[\"legs\", \"back\"]",
-            intensityLevel = "moderate",
-            volumeLevel = "high",
-            isDeload = false,
-            phase = "Foundation"
-        )
+        val week =
+            ProgrammeWeek(
+                id = 1L,
+                programmeId = 10L,
+                weekNumber = 1,
+                name = "Foundation Week",
+                description = "Build base strength",
+                focusAreas = "[\"legs\", \"back\"]",
+                intensityLevel = "moderate",
+                volumeLevel = "high",
+                isDeload = false,
+                phase = "Foundation",
+            )
 
         assertThat(week.id).isEqualTo(1L)
         assertThat(week.programmeId).isEqualTo(10L)
@@ -36,17 +36,18 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun programmeWeek_withDeloadWeek_shouldIdentifyAsDeload() {
-        val week = ProgrammeWeek(
-            programmeId = 5L,
-            weekNumber = 4,
-            name = "Deload Week",
-            description = "Recovery week",
-            focusAreas = null,
-            intensityLevel = "low",
-            volumeLevel = "low",
-            isDeload = true,
-            phase = "Recovery"
-        )
+        val week =
+            ProgrammeWeek(
+                programmeId = 5L,
+                weekNumber = 4,
+                name = "Deload Week",
+                description = "Recovery week",
+                focusAreas = null,
+                intensityLevel = "low",
+                volumeLevel = "low",
+                isDeload = true,
+                phase = "Recovery",
+            )
 
         assertThat(week.isDeload).isTrue()
         assertThat(week.intensityLevel).isEqualTo("low")
@@ -55,17 +56,18 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun programmeWeek_withNullOptionalFields_shouldHandleMissingData() {
-        val week = ProgrammeWeek(
-            programmeId = 3L,
-            weekNumber = 2,
-            name = null,
-            description = null,
-            focusAreas = null,
-            intensityLevel = null,
-            volumeLevel = null,
-            isDeload = false,
-            phase = null
-        )
+        val week =
+            ProgrammeWeek(
+                programmeId = 3L,
+                weekNumber = 2,
+                name = null,
+                description = null,
+                focusAreas = null,
+                intensityLevel = null,
+                volumeLevel = null,
+                isDeload = false,
+                phase = null,
+            )
 
         assertThat(week.name).isNull()
         assertThat(week.description).isNull()
@@ -77,17 +79,18 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun programmeWeek_withHighIntensity_shouldStoreCorrectly() {
-        val week = ProgrammeWeek(
-            programmeId = 7L,
-            weekNumber = 3,
-            name = "Peak Week",
-            description = "Maximum intensity",
-            focusAreas = "[\"full_body\"]",
-            intensityLevel = "very_high",
-            volumeLevel = "low",
-            isDeload = false,
-            phase = "Peak"
-        )
+        val week =
+            ProgrammeWeek(
+                programmeId = 7L,
+                weekNumber = 3,
+                name = "Peak Week",
+                description = "Maximum intensity",
+                focusAreas = "[\"full_body\"]",
+                intensityLevel = "very_high",
+                volumeLevel = "low",
+                isDeload = false,
+                phase = "Peak",
+            )
 
         assertThat(week.intensityLevel).isEqualTo("very_high")
         assertThat(week.volumeLevel).isEqualTo("low")
@@ -96,23 +99,25 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun programmeWeek_dataClassCopy_shouldWorkCorrectly() {
-        val original = ProgrammeWeek(
-            programmeId = 1L,
-            weekNumber = 1,
-            name = "Week 1",
-            description = "Introduction",
-            focusAreas = "[\"chest\", \"triceps\"]",
-            intensityLevel = "moderate",
-            volumeLevel = "moderate",
-            isDeload = false,
-            phase = "Accumulation"
-        )
+        val original =
+            ProgrammeWeek(
+                programmeId = 1L,
+                weekNumber = 1,
+                name = "Week 1",
+                description = "Introduction",
+                focusAreas = "[\"chest\", \"triceps\"]",
+                intensityLevel = "moderate",
+                volumeLevel = "moderate",
+                isDeload = false,
+                phase = "Accumulation",
+            )
 
-        val modified = original.copy(
-            weekNumber = 2,
-            name = "Week 2",
-            intensityLevel = "high"
-        )
+        val modified =
+            original.copy(
+                weekNumber = 2,
+                name = "Week 2",
+                intensityLevel = "high",
+            )
 
         assertThat(modified.weekNumber).isEqualTo(2)
         assertThat(modified.name).isEqualTo("Week 2")
@@ -123,15 +128,16 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun programmeWorkout_withAllData_shouldStoreCorrectly() {
-        val workout = ProgrammeWorkout(
-            id = 1L,
-            weekId = 10L,
-            dayNumber = 1,
-            name = "Upper Power",
-            description = "Heavy upper body workout",
-            estimatedDuration = 75,
-            workoutStructure = "{\"exercises\":[{\"name\":\"Bench Press\",\"sets\":5,\"reps\":\"3-5\"}]}"
-        )
+        val workout =
+            ProgrammeWorkout(
+                id = 1L,
+                weekId = 10L,
+                dayNumber = 1,
+                name = "Upper Power",
+                description = "Heavy upper body workout",
+                estimatedDuration = 75,
+                workoutStructure = "{\"exercises\":[{\"name\":\"Bench Press\",\"sets\":5,\"reps\":\"3-5\"}]}",
+            )
 
         assertThat(workout.id).isEqualTo(1L)
         assertThat(workout.weekId).isEqualTo(10L)
@@ -145,17 +151,18 @@ class ProgrammeDataModelsTest {
     @Test
     fun programmeWorkout_withValidDayNumbers_shouldAcceptWeekdays() {
         val validDays = 1..7
-        
+
         validDays.forEach { day ->
-            val workout = ProgrammeWorkout(
-                weekId = 1L,
-                dayNumber = day,
-                name = "Day $day Workout",
-                description = null,
-                estimatedDuration = 60,
-                workoutStructure = "{}"
-            )
-            
+            val workout =
+                ProgrammeWorkout(
+                    weekId = 1L,
+                    dayNumber = day,
+                    name = "Day $day Workout",
+                    description = null,
+                    estimatedDuration = 60,
+                    workoutStructure = "{}",
+                )
+
             assertThat(workout.dayNumber).isEqualTo(day)
             assertThat(workout.dayNumber).isIn(1..7)
         }
@@ -163,14 +170,15 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun programmeWorkout_withNullDescription_shouldHandleMissingData() {
-        val workout = ProgrammeWorkout(
-            weekId = 5L,
-            dayNumber = 3,
-            name = "Quick Workout",
-            description = null,
-            estimatedDuration = null,
-            workoutStructure = "{\"exercises\":[]}"
-        )
+        val workout =
+            ProgrammeWorkout(
+                weekId = 5L,
+                dayNumber = 3,
+                name = "Quick Workout",
+                description = null,
+                estimatedDuration = null,
+                workoutStructure = "{\"exercises\":[]}",
+            )
 
         assertThat(workout.description).isNull()
         assertThat(workout.estimatedDuration).isNull()
@@ -178,28 +186,30 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun programmeWorkout_withLongDuration_shouldHandleExtendedWorkouts() {
-        val workout = ProgrammeWorkout(
-            weekId = 2L,
-            dayNumber = 6,
-            name = "Saturday Marathon Session",
-            description = "Long volume day",
-            estimatedDuration = 180,
-            workoutStructure = "{}"
-        )
+        val workout =
+            ProgrammeWorkout(
+                weekId = 2L,
+                dayNumber = 6,
+                name = "Saturday Marathon Session",
+                description = "Long volume day",
+                estimatedDuration = 180,
+                workoutStructure = "{}",
+            )
 
         assertThat(workout.estimatedDuration).isEqualTo(180)
     }
 
     @Test
     fun exerciseSubstitution_withAllData_shouldStoreCorrectly() {
-        val substitution = ExerciseSubstitution(
-            id = 1L,
-            programmeId = 10L,
-            originalExerciseName = "Barbell Squat",
-            substitutionCategory = ExerciseCategory.LEGS,
-            substitutionCriteria = "{\"equipment\":[\"dumbbell\",\"machine\"],\"pattern\":\"squat\"}",
-            isUserDefined = true
-        )
+        val substitution =
+            ExerciseSubstitution(
+                id = 1L,
+                programmeId = 10L,
+                originalExerciseName = "Barbell Squat",
+                substitutionCategory = ExerciseCategory.LEGS,
+                substitutionCriteria = "{\"equipment\":[\"dumbbell\",\"machine\"],\"pattern\":\"squat\"}",
+                isUserDefined = true,
+            )
 
         assertThat(substitution.id).isEqualTo(1L)
         assertThat(substitution.programmeId).isEqualTo(10L)
@@ -211,39 +221,42 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun exerciseSubstitution_withSystemDefined_shouldNotBeUserDefined() {
-        val substitution = ExerciseSubstitution(
-            programmeId = 5L,
-            originalExerciseName = "Bench Press",
-            substitutionCategory = ExerciseCategory.CHEST,
-            substitutionCriteria = null,
-            isUserDefined = false
-        )
+        val substitution =
+            ExerciseSubstitution(
+                programmeId = 5L,
+                originalExerciseName = "Bench Press",
+                substitutionCategory = ExerciseCategory.CHEST,
+                substitutionCriteria = null,
+                isUserDefined = false,
+            )
 
         assertThat(substitution.isUserDefined).isFalse()
     }
 
     @Test
     fun exerciseSubstitution_differentCategories_shouldHandleAllCategories() {
-        val categories = listOf(
-            ExerciseCategory.CHEST,
-            ExerciseCategory.BACK,
-            ExerciseCategory.LEGS,
-            ExerciseCategory.SHOULDERS,
-            ExerciseCategory.ARMS,
-            ExerciseCategory.CORE,
-            ExerciseCategory.CARDIO,
-            ExerciseCategory.FULL_BODY
-        )
+        val categories =
+            listOf(
+                ExerciseCategory.CHEST,
+                ExerciseCategory.BACK,
+                ExerciseCategory.LEGS,
+                ExerciseCategory.SHOULDERS,
+                ExerciseCategory.ARMS,
+                ExerciseCategory.CORE,
+                ExerciseCategory.CARDIO,
+                ExerciseCategory.FULL_BODY,
+            )
 
         categories.forEach { category ->
-            val substitution = ExerciseSubstitution(
-                programmeId = 1L,
-                originalExerciseName = "Exercise",
-                substitutionCategory = category,
-                substitutionCriteria = null,
-                isUserDefined = false
-            )
-            
+            val substitution =
+                ExerciseSubstitution(
+                    programmeId = 1L,
+                    originalExerciseName = "Exercise",
+                    substitutionCategory = category,
+                    substitutionCriteria = null,
+                    isUserDefined = false,
+                )
+
             assertThat(substitution.substitutionCategory).isEqualTo(category)
         }
     }
@@ -251,17 +264,18 @@ class ProgrammeDataModelsTest {
     @Test
     fun programmeProgress_withAllData_shouldStoreCorrectly() {
         val now = LocalDateTime.now()
-        val progress = ProgrammeProgress(
-            id = 1L,
-            programmeId = 10L,
-            currentWeek = 3,
-            currentDay = 2,
-            completedWorkouts = 8,
-            totalWorkouts = 36,
-            lastWorkoutDate = now,
-            adherencePercentage = 88.9f,
-            strengthProgress = "{\"squat\":\"120kg\",\"bench\":\"90kg\"}"
-        )
+        val progress =
+            ProgrammeProgress(
+                id = 1L,
+                programmeId = 10L,
+                currentWeek = 3,
+                currentDay = 2,
+                completedWorkouts = 8,
+                totalWorkouts = 36,
+                lastWorkoutDate = now,
+                adherencePercentage = 88.9f,
+                strengthProgress = "{\"squat\":\"120kg\",\"bench\":\"90kg\"}",
+            )
 
         assertThat(progress.id).isEqualTo(1L)
         assertThat(progress.programmeId).isEqualTo(10L)
@@ -276,16 +290,17 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun programmeProgress_withZeroProgress_shouldHandleNewProgramme() {
-        val progress = ProgrammeProgress(
-            programmeId = 5L,
-            currentWeek = 1,
-            currentDay = 1,
-            completedWorkouts = 0,
-            totalWorkouts = 48,
-            lastWorkoutDate = null,
-            adherencePercentage = 0f,
-            strengthProgress = null
-        )
+        val progress =
+            ProgrammeProgress(
+                programmeId = 5L,
+                currentWeek = 1,
+                currentDay = 1,
+                completedWorkouts = 0,
+                totalWorkouts = 48,
+                lastWorkoutDate = null,
+                adherencePercentage = 0f,
+                strengthProgress = null,
+            )
 
         assertThat(progress.completedWorkouts).isEqualTo(0)
         assertThat(progress.lastWorkoutDate).isNull()
@@ -295,16 +310,17 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun programmeProgress_withPerfectAdherence_shouldShow100Percent() {
-        val progress = ProgrammeProgress(
-            programmeId = 3L,
-            currentWeek = 4,
-            currentDay = 3,
-            completedWorkouts = 12,
-            totalWorkouts = 12,
-            lastWorkoutDate = LocalDateTime.now(),
-            adherencePercentage = 100f,
-            strengthProgress = "{}"
-        )
+        val progress =
+            ProgrammeProgress(
+                programmeId = 3L,
+                currentWeek = 4,
+                currentDay = 3,
+                completedWorkouts = 12,
+                totalWorkouts = 12,
+                lastWorkoutDate = LocalDateTime.now(),
+                adherencePercentage = 100f,
+                strengthProgress = "{}",
+            )
 
         assertThat(progress.adherencePercentage).isEqualTo(100f)
         assertThat(progress.completedWorkouts).isEqualTo(progress.totalWorkouts)
@@ -312,16 +328,17 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun programmeProgress_calculatedCompletion_shouldMatchPercentage() {
-        val progress = ProgrammeProgress(
-            programmeId = 7L,
-            currentWeek = 6,
-            currentDay = 2,
-            completedWorkouts = 17,
-            totalWorkouts = 24,
-            lastWorkoutDate = LocalDateTime.now(),
-            adherencePercentage = 70.83f,
-            strengthProgress = null
-        )
+        val progress =
+            ProgrammeProgress(
+                programmeId = 7L,
+                currentWeek = 6,
+                currentDay = 2,
+                completedWorkouts = 17,
+                totalWorkouts = 24,
+                lastWorkoutDate = LocalDateTime.now(),
+                adherencePercentage = 70.83f,
+                strengthProgress = null,
+            )
 
         val calculatedPercentage = (progress.completedWorkouts.toFloat() / progress.totalWorkouts) * 100
         assertThat(calculatedPercentage).isWithin(0.01f).of(70.83f)
@@ -329,67 +346,74 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun programmeWithDetails_shouldCombineAllData() {
-        val programme = Programme(
-            id = 1L,
-            name = "Test Programme",
-            description = "Test",
-            durationWeeks = 4,
-            programmeType = ProgrammeType.STRENGTH,
-            difficulty = ProgrammeDifficulty.BEGINNER
-        )
+        val programme =
+            Programme(
+                id = 1L,
+                name = "Test Programme",
+                description = "Test",
+                durationWeeks = 4,
+                programmeType = ProgrammeType.STRENGTH,
+                difficulty = ProgrammeDifficulty.BEGINNER,
+            )
 
-        val week1 = ProgrammeWeek(
-            id = 1L,
-            programmeId = 1L,
-            weekNumber = 1,
-            name = "Week 1",
-            description = null,
-            focusAreas = null,
-            intensityLevel = "moderate",
-            volumeLevel = "moderate",
-            isDeload = false,
-            phase = "Foundation"
-        )
+        val week1 =
+            ProgrammeWeek(
+                id = 1L,
+                programmeId = 1L,
+                weekNumber = 1,
+                name = "Week 1",
+                description = null,
+                focusAreas = null,
+                intensityLevel = "moderate",
+                volumeLevel = "moderate",
+                isDeload = false,
+                phase = "Foundation",
+            )
 
-        val workout1 = ProgrammeWorkout(
-            weekId = 1L,
-            dayNumber = 1,
-            name = "Day 1",
-            description = null,
-            estimatedDuration = 60,
-            workoutStructure = "{}"
-        )
+        val workout1 =
+            ProgrammeWorkout(
+                weekId = 1L,
+                dayNumber = 1,
+                name = "Day 1",
+                description = null,
+                estimatedDuration = 60,
+                workoutStructure = "{}",
+            )
 
-        val weekWithWorkouts = ProgrammeWeekWithWorkouts(
-            week = week1,
-            workouts = listOf(workout1)
-        )
+        val weekWithWorkouts =
+            ProgrammeWeekWithWorkouts(
+                week = week1,
+                workouts = listOf(workout1),
+            )
 
-        val progress = ProgrammeProgress(
-            programmeId = 1L,
-            currentWeek = 1,
-            currentDay = 1,
-            completedWorkouts = 0,
-            totalWorkouts = 4,
-            lastWorkoutDate = null,
-            adherencePercentage = 0f,
-            strengthProgress = null
-        )
+        val progress =
+            ProgrammeProgress(
+                programmeId = 1L,
+                currentWeek = 1,
+                currentDay = 1,
+                completedWorkouts = 0,
+                totalWorkouts = 4,
+                lastWorkoutDate = null,
+                adherencePercentage = 0f,
+                strengthProgress = null,
+            )
 
-        val substitution = ExerciseSubstitution(
-            programmeId = 1L,
-            originalExerciseName = "Barbell Squat",
-            substitutionCategory = ExerciseCategory.LEGS,
-            substitutionCriteria = null,
-            isUserDefined = false
-        )
+        val substitution =
+            ExerciseSubstitution(
+                programmeId = 1L,
+                originalExerciseName = "Barbell Squat",
+                substitutionCategory = ExerciseCategory.LEGS,
+                substitutionCriteria = null,
+                isUserDefined = false,
+            )
 
-        val details = ProgrammeWithDetails(
-            programme = programme,
-            weeks = listOf(weekWithWorkouts),
-            progress = progress,
-            substitutions = listOf(substitution)
-        )
+        val details =
+            ProgrammeWithDetails(
+                programme = programme,
+                weeks = listOf(weekWithWorkouts),
+                progress = progress,
+                substitutions = listOf(substitution),
+            )
 
         assertThat(details.programme.name).isEqualTo("Test Programme")
         assertThat(details.weeks).hasSize(1)
@@ -401,24 +425,26 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun programmeWeekWithWorkouts_shouldGroupWorkoutsCorrectly() {
-        val week = ProgrammeWeek(
-            id = 1L,
-            programmeId = 1L,
-            weekNumber = 1,
-            name = "Week 1",
-            description = null,
-            focusAreas = null,
-            intensityLevel = null,
-            volumeLevel = null,
-            isDeload = false,
-            phase = null
-        )
+        val week =
+            ProgrammeWeek(
+                id = 1L,
+                programmeId = 1L,
+                weekNumber = 1,
+                name = "Week 1",
+                description = null,
+                focusAreas = null,
+                intensityLevel = null,
+                volumeLevel = null,
+                isDeload = false,
+                phase = null,
+            )
 
-        val workouts = listOf(
-            ProgrammeWorkout(weekId = 1L, dayNumber = 1, name = "Monday", description = null, estimatedDuration = 60, workoutStructure = "{}"),
-            ProgrammeWorkout(weekId = 1L, dayNumber = 3, name = "Wednesday", description = null, estimatedDuration = 60, workoutStructure = "{}"),
-            ProgrammeWorkout(weekId = 1L, dayNumber = 5, name = "Friday", description = null, estimatedDuration = 60, workoutStructure = "{}")
-        )
+        val workouts =
+            listOf(
+                ProgrammeWorkout(weekId = 1L, dayNumber = 1, name = "Monday", description = null, estimatedDuration = 60, workoutStructure = "{}"),
+                ProgrammeWorkout(weekId = 1L, dayNumber = 3, name = "Wednesday", description = null, estimatedDuration = 60, workoutStructure = "{}"),
+                ProgrammeWorkout(weekId = 1L, dayNumber = 5, name = "Friday", description = null, estimatedDuration = 60, workoutStructure = "{}"),
+            )
 
         val weekWithWorkouts = ProgrammeWeekWithWorkouts(week, workouts)
 
@@ -429,20 +455,22 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun programmeWithDetails_withNullProgress_shouldHandleNotStarted() {
-        val programme = Programme(
-            name = "Not Started",
-            description = null,
-            durationWeeks = 8,
-            programmeType = ProgrammeType.STRENGTH,
-            difficulty = ProgrammeDifficulty.BEGINNER
-        )
+        val programme =
+            Programme(
+                name = "Not Started",
+                description = null,
+                durationWeeks = 8,
+                programmeType = ProgrammeType.STRENGTH,
+                difficulty = ProgrammeDifficulty.BEGINNER,
+            )
 
-        val details = ProgrammeWithDetails(
-            programme = programme,
-            weeks = emptyList(),
-            progress = null,
-            substitutions = emptyList()
-        )
+        val details =
+            ProgrammeWithDetails(
+                programme = programme,
+                weeks = emptyList(),
+                progress = null,
+                substitutions = emptyList(),
+            )
 
         assertThat(details.progress).isNull()
         assertThat(details.programme.status).isEqualTo(ProgrammeStatus.NOT_STARTED)
@@ -450,23 +478,25 @@ class ProgrammeDataModelsTest {
 
     @Test
     fun exerciseSubstitution_dataClassEquality_shouldWorkCorrectly() {
-        val sub1 = ExerciseSubstitution(
-            id = 1L,
-            programmeId = 10L,
-            originalExerciseName = "Barbell Squat",
-            substitutionCategory = ExerciseCategory.LEGS,
-            substitutionCriteria = "{\"equipment\":\"any\"}",
-            isUserDefined = true
-        )
+        val sub1 =
+            ExerciseSubstitution(
+                id = 1L,
+                programmeId = 10L,
+                originalExerciseName = "Barbell Squat",
+                substitutionCategory = ExerciseCategory.LEGS,
+                substitutionCriteria = "{\"equipment\":\"any\"}",
+                isUserDefined = true,
+            )
 
-        val sub2 = ExerciseSubstitution(
-            id = 1L,
-            programmeId = 10L,
-            originalExerciseName = "Barbell Squat",
-            substitutionCategory = ExerciseCategory.LEGS,
-            substitutionCriteria = "{\"equipment\":\"any\"}",
-            isUserDefined = true
-        )
+        val sub2 =
+            ExerciseSubstitution(
+                id = 1L,
+                programmeId = 10L,
+                originalExerciseName = "Barbell Squat",
+                substitutionCategory = ExerciseCategory.LEGS,
+                substitutionCriteria = "{\"equipment\":\"any\"}",
+                isUserDefined = true,
+            )
 
         assertThat(sub1).isEqualTo(sub2)
         assertThat(sub1.hashCode()).isEqualTo(sub2.hashCode())

@@ -5,19 +5,19 @@ import kotlinx.serialization.json.Json
 import org.junit.Test
 
 class ProgrammeSerializersTest {
-
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
 
     @Test
     fun incrementSerializer_withSingleValue_shouldSerializeAndDeserialize() {
         val increment = IncrementStructure.Single(2.5f)
-        
+
         val jsonString = json.encodeToString(IncrementSerializer, increment)
         val deserialized = json.decodeFromString(IncrementSerializer, jsonString)
-        
+
         assertThat(jsonString).isEqualTo("2.5")
         assertThat(deserialized).isInstanceOf(IncrementStructure.Single::class.java)
         assertThat((deserialized as IncrementStructure.Single).value).isEqualTo(2.5f)
@@ -25,17 +25,18 @@ class ProgrammeSerializersTest {
 
     @Test
     fun incrementSerializer_withPerExerciseValues_shouldSerializeAndDeserialize() {
-        val increment = IncrementStructure.PerExercise(
-            mapOf("squat" to 5f, "bench" to 2.5f, "deadlift" to 10f)
-        )
-        
+        val increment =
+            IncrementStructure.PerExercise(
+                mapOf("squat" to 5f, "bench" to 2.5f, "deadlift" to 10f),
+            )
+
         val jsonString = json.encodeToString(IncrementSerializer, increment)
         val deserialized = json.decodeFromString(IncrementSerializer, jsonString)
-        
+
         assertThat(jsonString).contains("\"squat\":5.0")
         assertThat(jsonString).contains("\"bench\":2.5")
         assertThat(deserialized).isInstanceOf(IncrementStructure.PerExercise::class.java)
-        
+
         val perExercise = deserialized as IncrementStructure.PerExercise
         assertThat(perExercise.values["squat"]).isEqualTo(5f)
         assertThat(perExercise.values["bench"]).isEqualTo(2.5f)
@@ -45,9 +46,9 @@ class ProgrammeSerializersTest {
     @Test
     fun incrementSerializer_deserializeStringPrimitive_shouldHandleAsFloat() {
         val jsonString = "\"5.0\""
-        
+
         val deserialized = json.decodeFromString(IncrementSerializer, jsonString)
-        
+
         assertThat(deserialized).isInstanceOf(IncrementStructure.Single::class.java)
         assertThat((deserialized as IncrementStructure.Single).value).isEqualTo(5f)
     }
@@ -55,9 +56,9 @@ class ProgrammeSerializersTest {
     @Test
     fun incrementSerializer_deserializeInvalidValue_shouldUseDefault() {
         val jsonString = "\"invalid\""
-        
+
         val deserialized = json.decodeFromString(IncrementSerializer, jsonString)
-        
+
         assertThat(deserialized).isInstanceOf(IncrementStructure.Single::class.java)
         assertThat((deserialized as IncrementStructure.Single).value).isEqualTo(2.5f)
     }
@@ -65,9 +66,9 @@ class ProgrammeSerializersTest {
     @Test
     fun incrementSerializer_deserializeObject_shouldParseAsPerExercise() {
         val jsonString = """{"squat": 5, "bench": "2.5"}"""
-        
+
         val deserialized = json.decodeFromString(IncrementSerializer, jsonString)
-        
+
         assertThat(deserialized).isInstanceOf(IncrementStructure.PerExercise::class.java)
         val perExercise = deserialized as IncrementStructure.PerExercise
         assertThat(perExercise.values["squat"]).isEqualTo(5f)
@@ -77,10 +78,10 @@ class ProgrammeSerializersTest {
     @Test
     fun repsSerializer_withSingleValue_shouldSerializeAndDeserialize() {
         val reps = RepsStructure.Single(5)
-        
+
         val jsonString = json.encodeToString(RepsSerializer, reps)
         val deserialized = json.decodeFromString(RepsSerializer, jsonString)
-        
+
         assertThat(jsonString).isEqualTo("5")
         assertThat(deserialized).isInstanceOf(RepsStructure.Single::class.java)
         assertThat((deserialized as RepsStructure.Single).value).isEqualTo(5)
@@ -89,10 +90,10 @@ class ProgrammeSerializersTest {
     @Test
     fun repsSerializer_withRange_shouldSerializeAsString() {
         val reps = RepsStructure.Range(8, 12)
-        
+
         val jsonString = json.encodeToString(RepsSerializer, reps)
         val deserialized = json.decodeFromString(RepsSerializer, jsonString)
-        
+
         assertThat(jsonString).isEqualTo("\"8-12\"")
         assertThat(deserialized).isInstanceOf(RepsStructure.RangeString::class.java)
         assertThat((deserialized as RepsStructure.RangeString).value).isEqualTo("8-12")
@@ -101,10 +102,10 @@ class ProgrammeSerializersTest {
     @Test
     fun repsSerializer_withRangeString_shouldSerializeAndDeserialize() {
         val reps = RepsStructure.RangeString("10-15")
-        
+
         val jsonString = json.encodeToString(RepsSerializer, reps)
         val deserialized = json.decodeFromString(RepsSerializer, jsonString)
-        
+
         assertThat(jsonString).isEqualTo("\"10-15\"")
         assertThat(deserialized).isInstanceOf(RepsStructure.RangeString::class.java)
         assertThat((deserialized as RepsStructure.RangeString).value).isEqualTo("10-15")
@@ -113,13 +114,13 @@ class ProgrammeSerializersTest {
     @Test
     fun repsSerializer_withPerSet_shouldSerializeAsArray() {
         val reps = RepsStructure.PerSet(listOf("5", "3", "1+"))
-        
+
         val jsonString = json.encodeToString(RepsSerializer, reps)
         val deserialized = json.decodeFromString(RepsSerializer, jsonString)
-        
+
         assertThat(jsonString).isEqualTo("[\"5\",\"3\",\"1+\"]")
         assertThat(deserialized).isInstanceOf(RepsStructure.PerSet::class.java)
-        
+
         val perSet = deserialized as RepsStructure.PerSet
         assertThat(perSet.values).containsExactly("5", "3", "1+")
     }
@@ -127,9 +128,9 @@ class ProgrammeSerializersTest {
     @Test
     fun repsSerializer_deserializeStringWithDash_shouldParseAsRangeString() {
         val jsonString = "\"8-10\""
-        
+
         val deserialized = json.decodeFromString(RepsSerializer, jsonString)
-        
+
         assertThat(deserialized).isInstanceOf(RepsStructure.RangeString::class.java)
         assertThat((deserialized as RepsStructure.RangeString).value).isEqualTo("8-10")
     }
@@ -137,9 +138,9 @@ class ProgrammeSerializersTest {
     @Test
     fun repsSerializer_deserializeStringNumber_shouldParseAsSingle() {
         val jsonString = "\"5\""
-        
+
         val deserialized = json.decodeFromString(RepsSerializer, jsonString)
-        
+
         assertThat(deserialized).isInstanceOf(RepsStructure.Single::class.java)
         assertThat((deserialized as RepsStructure.Single).value).isEqualTo(5)
     }
@@ -147,9 +148,9 @@ class ProgrammeSerializersTest {
     @Test
     fun repsSerializer_deserializeAmrapNotation_shouldKeepAsString() {
         val jsonString = "\"5+\""
-        
+
         val deserialized = json.decodeFromString(RepsSerializer, jsonString)
-        
+
         assertThat(deserialized).isInstanceOf(RepsStructure.RangeString::class.java)
         assertThat((deserialized as RepsStructure.RangeString).value).isEqualTo("5+")
     }
@@ -157,9 +158,9 @@ class ProgrammeSerializersTest {
     @Test
     fun repsSerializer_deserializeArray_shouldParseAsPerSet() {
         val jsonString = "[5, \"3\", \"1+\"]"
-        
+
         val deserialized = json.decodeFromString(RepsSerializer, jsonString)
-        
+
         assertThat(deserialized).isInstanceOf(RepsStructure.PerSet::class.java)
         val perSet = deserialized as RepsStructure.PerSet
         assertThat(perSet.values).containsExactly("5", "3", "1+")
@@ -168,53 +169,58 @@ class ProgrammeSerializersTest {
     @Test
     fun repsSerializer_deserializeInvalidString_shouldUseDefault() {
         val jsonString = "null"
-        
+
         val deserialized = json.decodeFromString(RepsSerializer, jsonString)
-        
+
         assertThat(deserialized).isInstanceOf(RepsStructure.Single::class.java)
         assertThat((deserialized as RepsStructure.Single).value).isEqualTo(5)
     }
 
     @Test
     fun programmeStructure_serialization_shouldWorkCorrectly() {
-        val structure = ProgrammeStructure(
-            weeks = listOf(
-                ProgrammeWeekStructure(
-                    weekNumber = 1,
-                    name = "Week 1",
-                    workouts = listOf(
-                        WorkoutStructure(
-                            day = 1,
-                            name = "Upper Power",
-                            exercises = listOf(
-                                ExerciseStructure(
-                                    name = "Bench Press",
-                                    sets = 5,
-                                    reps = RepsStructure.Single(5),
-                                    progression = "linear",
-                                    intensity = listOf(70, 80, 90),
-                                    customizable = false,
-                                    category = "compound",
-                                    note = null,
-                                    weightSource = "80% 1RM",
-                                    exerciseId = 1L,
-                                    weights = listOf(100f),
-                                    rpeValues = null
-                                )
-                            ),
-                            estimatedDuration = 60
-                        )
-                    )
-                )
-            ),
-            progression = ProgressionStructure(
-                type = "linear",
-                increment = IncrementStructure.Single(2.5f),
-                cycle = null,
-                deloadThreshold = 3,
-                note = "Increase when all sets completed"
+        val structure =
+            ProgrammeStructure(
+                weeks =
+                    listOf(
+                        ProgrammeWeekStructure(
+                            weekNumber = 1,
+                            name = "Week 1",
+                            workouts =
+                                listOf(
+                                    WorkoutStructure(
+                                        day = 1,
+                                        name = "Upper Power",
+                                        exercises =
+                                            listOf(
+                                                ExerciseStructure(
+                                                    name = "Bench Press",
+                                                    sets = 5,
+                                                    reps = RepsStructure.Single(5),
+                                                    progression = "linear",
+                                                    intensity = listOf(70, 80, 90),
+                                                    customizable = false,
+                                                    category = "compound",
+                                                    note = null,
+                                                    weightSource = "80% 1RM",
+                                                    exerciseId = 1L,
+                                                    weights = listOf(100f),
+                                                    rpeValues = null,
+                                                ),
+                                            ),
+                                        estimatedDuration = 60,
+                                    ),
+                                ),
+                        ),
+                    ),
+                progression =
+                    ProgressionStructure(
+                        type = "linear",
+                        increment = IncrementStructure.Single(2.5f),
+                        cycle = null,
+                        deloadThreshold = 3,
+                        note = "Increase when all sets completed",
+                    ),
             )
-        )
 
         val jsonString = json.encodeToString(ProgrammeStructure.serializer(), structure)
         val deserialized = json.decodeFromString(ProgrammeStructure.serializer(), jsonString)
@@ -228,20 +234,21 @@ class ProgrammeSerializersTest {
 
     @Test
     fun exerciseStructure_withNullableFields_shouldSerializeCorrectly() {
-        val exercise = ExerciseStructure(
-            name = "Squat",
-            sets = 3,
-            reps = RepsStructure.Single(5),
-            progression = "linear",
-            intensity = null,
-            customizable = false,
-            category = null,
-            note = null,
-            weightSource = null,
-            exerciseId = null,
-            weights = null,
-            rpeValues = null
-        )
+        val exercise =
+            ExerciseStructure(
+                name = "Squat",
+                sets = 3,
+                reps = RepsStructure.Single(5),
+                progression = "linear",
+                intensity = null,
+                customizable = false,
+                category = null,
+                note = null,
+                weightSource = null,
+                exerciseId = null,
+                weights = null,
+                rpeValues = null,
+            )
 
         val jsonString = json.encodeToString(ExerciseStructure.serializer(), exercise)
         val deserialized = json.decodeFromString(ExerciseStructure.serializer(), jsonString)
@@ -256,19 +263,21 @@ class ProgrammeSerializersTest {
 
     @Test
     fun workoutStructure_withOptionalDuration_shouldSerializeCorrectly() {
-        val workout1 = WorkoutStructure(
-            day = 1,
-            name = "Quick Workout",
-            exercises = emptyList(),
-            estimatedDuration = null
-        )
+        val workout1 =
+            WorkoutStructure(
+                day = 1,
+                name = "Quick Workout",
+                exercises = emptyList(),
+                estimatedDuration = null,
+            )
 
-        val workout2 = WorkoutStructure(
-            day = 2,
-            name = "Long Workout",
-            exercises = emptyList(),
-            estimatedDuration = 90
-        )
+        val workout2 =
+            WorkoutStructure(
+                day = 2,
+                name = "Long Workout",
+                exercises = emptyList(),
+                estimatedDuration = 90,
+            )
 
         val json1 = json.encodeToString(WorkoutStructure.serializer(), workout1)
         val json2 = json.encodeToString(WorkoutStructure.serializer(), workout2)
@@ -283,9 +292,10 @@ class ProgrammeSerializersTest {
     @Test
     fun incrementStructure_roundTrip_shouldPreserveValues() {
         val single = IncrementStructure.Single(5f)
-        val perExercise = IncrementStructure.PerExercise(
-            mapOf("squat" to 5f, "bench" to 2.5f)
-        )
+        val perExercise =
+            IncrementStructure.PerExercise(
+                mapOf("squat" to 5f, "bench" to 2.5f),
+            )
 
         val singleJson = json.encodeToString(IncrementSerializer, single)
         val perExerciseJson = json.encodeToString(IncrementSerializer, perExercise)
@@ -317,21 +327,23 @@ class ProgrammeSerializersTest {
 
     @Test
     fun progressionStructure_withNullableFields_shouldSerializeCorrectly() {
-        val progression1 = ProgressionStructure(
-            type = "linear",
-            increment = IncrementStructure.Single(2.5f),
-            cycle = null,
-            deloadThreshold = null,
-            note = null
-        )
+        val progression1 =
+            ProgressionStructure(
+                type = "linear",
+                increment = IncrementStructure.Single(2.5f),
+                cycle = null,
+                deloadThreshold = null,
+                note = null,
+            )
 
-        val progression2 = ProgressionStructure(
-            type = "wave",
-            increment = IncrementStructure.PerExercise(mapOf("all" to 5f)),
-            cycle = 3,
-            deloadThreshold = 2,
-            note = "Deload on week 4"
-        )
+        val progression2 =
+            ProgressionStructure(
+                type = "wave",
+                increment = IncrementStructure.PerExercise(mapOf("all" to 5f)),
+                cycle = 3,
+                deloadThreshold = 2,
+                note = "Deload on week 4",
+            )
 
         val json1 = json.encodeToString(ProgressionStructure.serializer(), progression1)
         val json2 = json.encodeToString(ProgressionStructure.serializer(), progression2)

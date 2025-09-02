@@ -6,16 +6,16 @@ import java.time.Duration
 import java.time.LocalDateTime
 
 class ProgrammeCompletionModelsTest {
-
     @Test
     fun strengthImprovement_shouldCalculateCorrectly() {
-        val improvement = StrengthImprovement(
-            exerciseName = "Barbell Squat",
-            startingMax = 100f,
-            endingMax = 120f,
-            improvementKg = 20f,
-            improvementPercentage = 20f
-        )
+        val improvement =
+            StrengthImprovement(
+                exerciseName = "Barbell Squat",
+                startingMax = 100f,
+                endingMax = 120f,
+                improvementKg = 20f,
+                improvementPercentage = 20f,
+            )
 
         assertThat(improvement.exerciseName).isEqualTo("Barbell Squat")
         assertThat(improvement.startingMax).isEqualTo(100f)
@@ -26,13 +26,14 @@ class ProgrammeCompletionModelsTest {
 
     @Test
     fun strengthImprovement_withNegativeImprovement_shouldHandleRegression() {
-        val regression = StrengthImprovement(
-            exerciseName = "Overhead Press",
-            startingMax = 60f,
-            endingMax = 55f,
-            improvementKg = -5f,
-            improvementPercentage = -8.33f
-        )
+        val regression =
+            StrengthImprovement(
+                exerciseName = "Overhead Press",
+                startingMax = 60f,
+                endingMax = 55f,
+                improvementKg = -5f,
+                improvementPercentage = -8.33f,
+            )
 
         assertThat(regression.improvementKg).isLessThan(0f)
         assertThat(regression.improvementPercentage).isLessThan(0f)
@@ -41,13 +42,14 @@ class ProgrammeCompletionModelsTest {
 
     @Test
     fun strengthImprovement_withZeroImprovement_shouldHandleStagnation() {
-        val stagnation = StrengthImprovement(
-            exerciseName = "Bench Press",
-            startingMax = 80f,
-            endingMax = 80f,
-            improvementKg = 0f,
-            improvementPercentage = 0f
-        )
+        val stagnation =
+            StrengthImprovement(
+                exerciseName = "Bench Press",
+                startingMax = 80f,
+                endingMax = 80f,
+                improvementKg = 0f,
+                improvementPercentage = 0f,
+            )
 
         assertThat(stagnation.improvementKg).isEqualTo(0f)
         assertThat(stagnation.improvementPercentage).isEqualTo(0f)
@@ -56,13 +58,14 @@ class ProgrammeCompletionModelsTest {
 
     @Test
     fun strengthImprovement_withLargeImprovement_shouldHandleSignificantGains() {
-        val bigGains = StrengthImprovement(
-            exerciseName = "Deadlift",
-            startingMax = 140f,
-            endingMax = 200f,
-            improvementKg = 60f,
-            improvementPercentage = 42.86f
-        )
+        val bigGains =
+            StrengthImprovement(
+                exerciseName = "Deadlift",
+                startingMax = 140f,
+                endingMax = 200f,
+                improvementKg = 60f,
+                improvementPercentage = 42.86f,
+            )
 
         assertThat(bigGains.improvementKg).isEqualTo(60f)
         assertThat(bigGains.improvementPercentage).isWithin(0.01f).of(42.86f)
@@ -70,11 +73,12 @@ class ProgrammeCompletionModelsTest {
 
     @Test
     fun programmeInsights_withAllData_shouldStoreCorrectly() {
-        val insights = ProgrammeInsights(
-            totalTrainingDays = 48,
-            mostConsistentDay = "Monday",
-            averageRestDaysBetweenWorkouts = 1.5f
-        )
+        val insights =
+            ProgrammeInsights(
+                totalTrainingDays = 48,
+                mostConsistentDay = "Monday",
+                averageRestDaysBetweenWorkouts = 1.5f,
+            )
 
         assertThat(insights.totalTrainingDays).isEqualTo(48)
         assertThat(insights.mostConsistentDay).isEqualTo("Monday")
@@ -83,11 +87,12 @@ class ProgrammeCompletionModelsTest {
 
     @Test
     fun programmeInsights_withNullMostConsistentDay_shouldHandleNoPattern() {
-        val insights = ProgrammeInsights(
-            totalTrainingDays = 10,
-            mostConsistentDay = null,
-            averageRestDaysBetweenWorkouts = 2.0f
-        )
+        val insights =
+            ProgrammeInsights(
+                totalTrainingDays = 10,
+                mostConsistentDay = null,
+                averageRestDaysBetweenWorkouts = 2.0f,
+            )
 
         assertThat(insights.mostConsistentDay).isNull()
         assertThat(insights.totalTrainingDays).isEqualTo(10)
@@ -95,11 +100,12 @@ class ProgrammeCompletionModelsTest {
 
     @Test
     fun programmeInsights_withHighRestDays_shouldHandleInfrequentTraining() {
-        val insights = ProgrammeInsights(
-            totalTrainingDays = 8,
-            mostConsistentDay = "Saturday",
-            averageRestDaysBetweenWorkouts = 6.0f
-        )
+        val insights =
+            ProgrammeInsights(
+                totalTrainingDays = 8,
+                mostConsistentDay = "Saturday",
+                averageRestDaysBetweenWorkouts = 6.0f,
+            )
 
         assertThat(insights.averageRestDaysBetweenWorkouts).isEqualTo(6.0f)
         assertThat(insights.totalTrainingDays).isEqualTo(8)
@@ -109,29 +115,31 @@ class ProgrammeCompletionModelsTest {
     fun programmeCompletionStats_withFullData_shouldCalculateCorrectly() {
         val now = LocalDateTime.now()
         val twelveWeeksAgo = now.minusWeeks(12)
-        
-        val improvements = listOf(
-            StrengthImprovement("Squat", 100f, 120f, 20f, 20f),
-            StrengthImprovement("Bench", 80f, 90f, 10f, 12.5f),
-            StrengthImprovement("Deadlift", 140f, 170f, 30f, 21.43f)
-        )
-        
+
+        val improvements =
+            listOf(
+                StrengthImprovement("Squat", 100f, 120f, 20f, 20f),
+                StrengthImprovement("Bench", 80f, 90f, 10f, 12.5f),
+                StrengthImprovement("Deadlift", 140f, 170f, 30f, 21.43f),
+            )
+
         val insights = ProgrammeInsights(48, "Monday", 1.5f)
-        
-        val stats = ProgrammeCompletionStats(
-            programmeId = 1L,
-            programmeName = "StrongLifts 5x5",
-            startDate = twelveWeeksAgo,
-            endDate = now,
-            totalWorkouts = 36,
-            completedWorkouts = 35,
-            totalVolume = 250000f,
-            averageWorkoutDuration = Duration.ofMinutes(75),
-            totalPRs = 15,
-            strengthImprovements = improvements,
-            averageStrengthImprovement = 17.98f,
-            insights = insights
-        )
+
+        val stats =
+            ProgrammeCompletionStats(
+                programmeId = 1L,
+                programmeName = "StrongLifts 5x5",
+                startDate = twelveWeeksAgo,
+                endDate = now,
+                totalWorkouts = 36,
+                completedWorkouts = 35,
+                totalVolume = 250000f,
+                averageWorkoutDuration = Duration.ofMinutes(75),
+                totalPRs = 15,
+                strengthImprovements = improvements,
+                averageStrengthImprovement = 17.98f,
+                insights = insights,
+            )
 
         assertThat(stats.programmeId).isEqualTo(1L)
         assertThat(stats.programmeName).isEqualTo("StrongLifts 5x5")
@@ -147,20 +155,21 @@ class ProgrammeCompletionModelsTest {
     @Test
     fun programmeCompletionStats_withZeroWorkouts_shouldHandleEmptyProgramme() {
         val now = LocalDateTime.now()
-        val stats = ProgrammeCompletionStats(
-            programmeId = 2L,
-            programmeName = "Custom Programme",
-            startDate = now,
-            endDate = now,
-            totalWorkouts = 0,
-            completedWorkouts = 0,
-            totalVolume = 0f,
-            averageWorkoutDuration = Duration.ZERO,
-            totalPRs = 0,
-            strengthImprovements = emptyList(),
-            averageStrengthImprovement = 0f,
-            insights = ProgrammeInsights(0, null, 0f)
-        )
+        val stats =
+            ProgrammeCompletionStats(
+                programmeId = 2L,
+                programmeName = "Custom Programme",
+                startDate = now,
+                endDate = now,
+                totalWorkouts = 0,
+                completedWorkouts = 0,
+                totalVolume = 0f,
+                averageWorkoutDuration = Duration.ZERO,
+                totalPRs = 0,
+                strengthImprovements = emptyList(),
+                averageStrengthImprovement = 0f,
+                insights = ProgrammeInsights(0, null, 0f),
+            )
 
         assertThat(stats.completedWorkouts).isEqualTo(0)
         assertThat(stats.totalVolume).isEqualTo(0f)
@@ -171,22 +180,24 @@ class ProgrammeCompletionModelsTest {
     @Test
     fun programmeCompletionStats_withPartialCompletion_shouldCalculateCompletionRate() {
         val now = LocalDateTime.now()
-        val stats = ProgrammeCompletionStats(
-            programmeId = 3L,
-            programmeName = "5/3/1",
-            startDate = now.minusWeeks(4),
-            endDate = now,
-            totalWorkouts = 12,
-            completedWorkouts = 9,
-            totalVolume = 75000f,
-            averageWorkoutDuration = Duration.ofMinutes(60),
-            totalPRs = 3,
-            strengthImprovements = listOf(
-                StrengthImprovement("Squat", 100f, 105f, 5f, 5f)
-            ),
-            averageStrengthImprovement = 5f,
-            insights = ProgrammeInsights(9, "Tuesday", 2.3f)
-        )
+        val stats =
+            ProgrammeCompletionStats(
+                programmeId = 3L,
+                programmeName = "5/3/1",
+                startDate = now.minusWeeks(4),
+                endDate = now,
+                totalWorkouts = 12,
+                completedWorkouts = 9,
+                totalVolume = 75000f,
+                averageWorkoutDuration = Duration.ofMinutes(60),
+                totalPRs = 3,
+                strengthImprovements =
+                    listOf(
+                        StrengthImprovement("Squat", 100f, 105f, 5f, 5f),
+                    ),
+                averageStrengthImprovement = 5f,
+                insights = ProgrammeInsights(9, "Tuesday", 2.3f),
+            )
 
         val completionRate = stats.completedWorkouts.toFloat() / stats.totalWorkouts
         assertThat(completionRate).isWithin(0.01f).of(0.75f)
@@ -197,25 +208,27 @@ class ProgrammeCompletionModelsTest {
     fun programmeCompletionStats_withLongDuration_shouldHandleExtendedProgrammes() {
         val endDate = LocalDateTime.now()
         val startDate = endDate.minusMonths(6)
-        
-        val stats = ProgrammeCompletionStats(
-            programmeId = 4L,
-            programmeName = "Long Term Strength",
-            startDate = startDate,
-            endDate = endDate,
-            totalWorkouts = 72,
-            completedWorkouts = 70,
-            totalVolume = 500000f,
-            averageWorkoutDuration = Duration.ofMinutes(90),
-            totalPRs = 25,
-            strengthImprovements = listOf(
-                StrengthImprovement("Squat", 80f, 140f, 60f, 75f),
-                StrengthImprovement("Bench", 60f, 90f, 30f, 50f),
-                StrengthImprovement("Deadlift", 100f, 180f, 80f, 80f)
-            ),
-            averageStrengthImprovement = 68.33f,
-            insights = ProgrammeInsights(70, "Wednesday", 1.6f)
-        )
+
+        val stats =
+            ProgrammeCompletionStats(
+                programmeId = 4L,
+                programmeName = "Long Term Strength",
+                startDate = startDate,
+                endDate = endDate,
+                totalWorkouts = 72,
+                completedWorkouts = 70,
+                totalVolume = 500000f,
+                averageWorkoutDuration = Duration.ofMinutes(90),
+                totalPRs = 25,
+                strengthImprovements =
+                    listOf(
+                        StrengthImprovement("Squat", 80f, 140f, 60f, 75f),
+                        StrengthImprovement("Bench", 60f, 90f, 30f, 50f),
+                        StrengthImprovement("Deadlift", 100f, 180f, 80f, 80f),
+                    ),
+                averageStrengthImprovement = 68.33f,
+                insights = ProgrammeInsights(70, "Wednesday", 1.6f),
+            )
 
         val durationDays = Duration.between(startDate, endDate).toDays()
         assertThat(durationDays).isGreaterThan(150)
@@ -227,53 +240,56 @@ class ProgrammeCompletionModelsTest {
     fun programmeCompletionStats_dataClassEquality_shouldWorkCorrectly() {
         val now = LocalDateTime.now()
         val insights = ProgrammeInsights(10, "Monday", 2f)
-        
-        val stats1 = ProgrammeCompletionStats(
-            programmeId = 1L,
-            programmeName = "Test",
-            startDate = now,
-            endDate = now.plusWeeks(4),
-            totalWorkouts = 12,
-            completedWorkouts = 12,
-            totalVolume = 50000f,
-            averageWorkoutDuration = Duration.ofMinutes(60),
-            totalPRs = 5,
-            strengthImprovements = emptyList(),
-            averageStrengthImprovement = 10f,
-            insights = insights
-        )
-        
-        val stats2 = ProgrammeCompletionStats(
-            programmeId = 1L,
-            programmeName = "Test",
-            startDate = now,
-            endDate = now.plusWeeks(4),
-            totalWorkouts = 12,
-            completedWorkouts = 12,
-            totalVolume = 50000f,
-            averageWorkoutDuration = Duration.ofMinutes(60),
-            totalPRs = 5,
-            strengthImprovements = emptyList(),
-            averageStrengthImprovement = 10f,
-            insights = insights
-        )
-        
+
+        val stats1 =
+            ProgrammeCompletionStats(
+                programmeId = 1L,
+                programmeName = "Test",
+                startDate = now,
+                endDate = now.plusWeeks(4),
+                totalWorkouts = 12,
+                completedWorkouts = 12,
+                totalVolume = 50000f,
+                averageWorkoutDuration = Duration.ofMinutes(60),
+                totalPRs = 5,
+                strengthImprovements = emptyList(),
+                averageStrengthImprovement = 10f,
+                insights = insights,
+            )
+
+        val stats2 =
+            ProgrammeCompletionStats(
+                programmeId = 1L,
+                programmeName = "Test",
+                startDate = now,
+                endDate = now.plusWeeks(4),
+                totalWorkouts = 12,
+                completedWorkouts = 12,
+                totalVolume = 50000f,
+                averageWorkoutDuration = Duration.ofMinutes(60),
+                totalPRs = 5,
+                strengthImprovements = emptyList(),
+                averageStrengthImprovement = 10f,
+                insights = insights,
+            )
+
         assertThat(stats1).isEqualTo(stats2)
         assertThat(stats1.hashCode()).isEqualTo(stats2.hashCode())
     }
 
     @Test
     fun strengthImprovement_dataClassCopy_shouldWorkCorrectly() {
-        val original = StrengthImprovement(
-            exerciseName = "Squat",
-            startingMax = 100f,
-            endingMax = 120f,
-            improvementKg = 20f,
-            improvementPercentage = 20f
-        )
-        
+        val original =
+            StrengthImprovement(
+                exerciseName = "Squat",
+                startingMax = 100f,
+                endingMax = 120f,
+                improvementKg = 20f,
+                improvementPercentage = 20f,
+            )
+
         val modified = original.copy(endingMax = 130f, improvementKg = 30f, improvementPercentage = 30f)
-        
+
         assertThat(modified.exerciseName).isEqualTo(original.exerciseName)
         assertThat(modified.startingMax).isEqualTo(original.startingMax)
         assertThat(modified.endingMax).isEqualTo(130f)
@@ -284,49 +300,52 @@ class ProgrammeCompletionModelsTest {
     @Test
     fun programmeInsights_withDifferentDays_shouldHandleAllWeekdays() {
         val weekdays = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
-        
+
         weekdays.forEach { day ->
-            val insights = ProgrammeInsights(
-                totalTrainingDays = 20,
-                mostConsistentDay = day,
-                averageRestDaysBetweenWorkouts = 2f
-            )
-            
+            val insights =
+                ProgrammeInsights(
+                    totalTrainingDays = 20,
+                    mostConsistentDay = day,
+                    averageRestDaysBetweenWorkouts = 2f,
+                )
+
             assertThat(insights.mostConsistentDay).isEqualTo(day)
         }
     }
 
     @Test
     fun programmeCompletionStats_withHighVolume_shouldHandleLargeNumbers() {
-        val stats = ProgrammeCompletionStats(
-            programmeId = 5L,
-            programmeName = "High Volume",
-            startDate = LocalDateTime.now().minusMonths(1),
-            endDate = LocalDateTime.now(),
-            totalWorkouts = 30,
-            completedWorkouts = 30,
-            totalVolume = 1_000_000f,
-            averageWorkoutDuration = Duration.ofMinutes(120),
-            totalPRs = 50,
-            strengthImprovements = emptyList(),
-            averageStrengthImprovement = 0f,
-            insights = ProgrammeInsights(30, "Monday", 1f)
-        )
-        
+        val stats =
+            ProgrammeCompletionStats(
+                programmeId = 5L,
+                programmeName = "High Volume",
+                startDate = LocalDateTime.now().minusMonths(1),
+                endDate = LocalDateTime.now(),
+                totalWorkouts = 30,
+                completedWorkouts = 30,
+                totalVolume = 1_000_000f,
+                averageWorkoutDuration = Duration.ofMinutes(120),
+                totalPRs = 50,
+                strengthImprovements = emptyList(),
+                averageStrengthImprovement = 0f,
+                insights = ProgrammeInsights(30, "Monday", 1f),
+            )
+
         assertThat(stats.totalVolume).isEqualTo(1_000_000f)
         assertThat(stats.averageWorkoutDuration.toHours()).isEqualTo(2)
     }
 
     @Test
     fun strengthImprovement_withFractionalPercentages_shouldHandlePrecision() {
-        val improvement = StrengthImprovement(
-            exerciseName = "Overhead Press",
-            startingMax = 47.5f,
-            endingMax = 52.5f,
-            improvementKg = 5f,
-            improvementPercentage = 10.526f
-        )
-        
+        val improvement =
+            StrengthImprovement(
+                exerciseName = "Overhead Press",
+                startingMax = 47.5f,
+                endingMax = 52.5f,
+                improvementKg = 5f,
+                improvementPercentage = 10.526f,
+            )
+
         assertThat(improvement.startingMax).isEqualTo(47.5f)
         assertThat(improvement.endingMax).isEqualTo(52.5f)
         assertThat(improvement.improvementPercentage).isWithin(0.001f).of(10.526f)

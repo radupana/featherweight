@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -31,14 +32,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.graphics.toArgb
+import com.airbnb.lottie.LottieProperty
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.rememberLottieDynamicProperties
 import com.airbnb.lottie.compose.rememberLottieDynamicProperty
-import com.airbnb.lottie.LottieProperty
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.util.WeightFormatter
@@ -72,22 +72,23 @@ fun PRCelebrationDialog(
     )
 
     val composition by rememberLottieComposition(
-        LottieCompositionSpec.Asset("trophy_animation.json")
+        LottieCompositionSpec.Asset("trophy_animation.json"),
     )
     val progress by animateLottieCompositionAsState(
         composition = composition,
         iterations = 1,
         isPlaying = true,
-        restartOnPlay = true
+        restartOnPlay = true,
     )
-    
-    val dynamicProperties = rememberLottieDynamicProperties(
-        rememberLottieDynamicProperty(
-            property = LottieProperty.STROKE_COLOR,
-            value = Color(0xFFFFD700).toArgb(),
-            keyPath = arrayOf("**")
+
+    val dynamicProperties =
+        rememberLottieDynamicProperties(
+            rememberLottieDynamicProperty(
+                property = LottieProperty.STROKE_COLOR,
+                value = Color(0xFFFFD700).toArgb(),
+                keyPath = arrayOf("**"),
+            ),
         )
-    )
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -102,7 +103,6 @@ fun PRCelebrationDialog(
             modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
         ) {
-
             Card(
                 modifier =
                     Modifier
@@ -126,9 +126,10 @@ fun PRCelebrationDialog(
                         composition = composition,
                         progress = { progress },
                         dynamicProperties = dynamicProperties,
-                        modifier = Modifier
-                            .size(100.dp)
-                            .padding(bottom = 8.dp),
+                        modifier =
+                            Modifier
+                                .size(100.dp)
+                                .padding(bottom = 8.dp),
                     )
 
                     Text(
@@ -199,7 +200,7 @@ private fun PRDetailCard(
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
                 )
-                
+
                 val notes = personalRecord.notes ?: ""
                 if (notes.contains("could potentially lift")) {
                     val potentialMatch = "\\(Based on your ([0-9.]+)kg 1RM.*\\)".toRegex().find(notes)

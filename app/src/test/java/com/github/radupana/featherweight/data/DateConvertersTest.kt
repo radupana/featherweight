@@ -79,7 +79,6 @@ class DateConvertersTest {
         assertThat(result).isNull()
     }
 
-
     @Test
     fun `round trip conversion for LocalDateTime`() {
         val original = LocalDateTime.of(2024, 8, 26, 16, 30, 45, 123456789)
@@ -99,7 +98,6 @@ class DateConvertersTest {
 
         assertThat(result).isEqualTo(original)
     }
-
 
     @Test
     fun `fromTimestamp handles leap year`() {
@@ -140,7 +138,6 @@ class DateConvertersTest {
 
         assertThat(result).isEqualTo("2024-12-31T23:59:59")
     }
-
 
     @Test
     fun `localDateToString handles start of year`() {
@@ -187,5 +184,4 @@ class DateConvertersTest {
 
         assertThat(result).isEqualTo("2024-03-05")
     }
-
 }

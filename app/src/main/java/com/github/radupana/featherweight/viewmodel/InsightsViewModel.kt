@@ -23,7 +23,6 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
-
 class InsightsViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
@@ -60,7 +59,6 @@ class InsightsViewModel(
             _exerciseNames.value = exercises.associate { it.id to it.name }
         }
     }
-
 
     suspend fun getGroupedExercisesSummary(): com.github.radupana.featherweight.service.GroupedExerciseSummary =
         withContext(Dispatchers.IO) {

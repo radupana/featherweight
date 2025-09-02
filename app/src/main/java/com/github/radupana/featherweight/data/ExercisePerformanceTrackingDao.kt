@@ -43,5 +43,4 @@ interface ExercisePerformanceTrackingDao {
         programmeId: Long,
         exerciseName: String,
     ): Int
-
 }

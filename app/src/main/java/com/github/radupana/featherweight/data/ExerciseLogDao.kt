@@ -25,7 +25,6 @@ interface ExerciseLogDao {
         newOrder: Int,
     )
 
-
     @Update
     suspend fun update(exerciseLog: ExerciseLog)
 
@@ -89,5 +88,4 @@ interface ExerciseLogDao {
         startDate: java.time.LocalDateTime,
         endDate: java.time.LocalDateTime,
     ): List<Workout>
-
 }

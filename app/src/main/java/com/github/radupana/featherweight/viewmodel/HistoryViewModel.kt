@@ -4,10 +4,10 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.radupana.featherweight.repository.FeatherweightRepository
-import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.domain.ProgrammeSummary
 import com.github.radupana.featherweight.domain.WorkoutDayInfo
+import com.github.radupana.featherweight.domain.WorkoutSummary
+import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -316,7 +316,6 @@ class HistoryViewModel(
         _calendarState.value = _calendarState.value.copy(selectedDate = date)
     }
 
-
     // Week grouping methods
 
     fun loadWeekGroups() {
@@ -392,7 +391,6 @@ class HistoryViewModel(
                     },
             )
     }
-
 
     // Get workouts for a specific date (used by calendar view)
     fun getWorkoutsForDate(date: LocalDate): List<WorkoutSummary> {

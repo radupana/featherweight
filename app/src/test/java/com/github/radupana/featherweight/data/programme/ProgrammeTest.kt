@@ -7,20 +7,20 @@ import java.time.LocalDateTime
 import kotlin.test.assertFailsWith
 
 class ProgrammeTest {
-
     @Test
     fun programme_withValidData_shouldCreateSuccessfully() {
-        val programme = Programme(
-            id = 1L,
-            name = "StrongLifts 5x5",
-            description = "Simple strength programme",
-            durationWeeks = 12,
-            programmeType = ProgrammeType.STRENGTH,
-            difficulty = ProgrammeDifficulty.BEGINNER,
-            isCustom = false,
-            isActive = true,
-            status = ProgrammeStatus.NOT_STARTED
-        )
+        val programme =
+            Programme(
+                id = 1L,
+                name = "StrongLifts 5x5",
+                description = "Simple strength programme",
+                durationWeeks = 12,
+                programmeType = ProgrammeType.STRENGTH,
+                difficulty = ProgrammeDifficulty.BEGINNER,
+                isCustom = false,
+                isActive = true,
+                status = ProgrammeStatus.NOT_STARTED,
+            )
 
         assertThat(programme.name).isEqualTo("StrongLifts 5x5")
         assertThat(programme.durationWeeks).isEqualTo(12)
@@ -33,16 +33,17 @@ class ProgrammeTest {
     @Test
     fun programme_withInProgressStatus_canBeActive() {
         val now = LocalDateTime.now()
-        val programme = Programme(
-            name = "5/3/1",
-            description = "Wendler's 5/3/1",
-            durationWeeks = 4,
-            programmeType = ProgrammeType.POWERLIFTING,
-            difficulty = ProgrammeDifficulty.INTERMEDIATE,
-            isActive = true,
-            status = ProgrammeStatus.IN_PROGRESS,
-            startedAt = now
-        )
+        val programme =
+            Programme(
+                name = "5/3/1",
+                description = "Wendler's 5/3/1",
+                durationWeeks = 4,
+                programmeType = ProgrammeType.POWERLIFTING,
+                difficulty = ProgrammeDifficulty.INTERMEDIATE,
+                isActive = true,
+                status = ProgrammeStatus.IN_PROGRESS,
+                startedAt = now,
+            )
 
         assertThat(programme.status).isEqualTo(ProgrammeStatus.IN_PROGRESS)
         assertThat(programme.isActive).isTrue()
@@ -52,17 +53,18 @@ class ProgrammeTest {
     @Test
     fun programme_withCompletedStatus_mustHaveCompletedAt() {
         val now = LocalDateTime.now()
-        val programme = Programme(
-            name = "Completed Programme",
-            description = null,
-            durationWeeks = 8,
-            programmeType = ProgrammeType.BODYBUILDING,
-            difficulty = ProgrammeDifficulty.INTERMEDIATE,
-            isActive = false,
-            status = ProgrammeStatus.COMPLETED,
-            startedAt = now.minusWeeks(8),
-            completedAt = now
-        )
+        val programme =
+            Programme(
+                name = "Completed Programme",
+                description = null,
+                durationWeeks = 8,
+                programmeType = ProgrammeType.BODYBUILDING,
+                difficulty = ProgrammeDifficulty.INTERMEDIATE,
+                isActive = false,
+                status = ProgrammeStatus.COMPLETED,
+                startedAt = now.minusWeeks(8),
+                completedAt = now,
+            )
 
         assertThat(programme.status).isEqualTo(ProgrammeStatus.COMPLETED)
         assertThat(programme.completedAt).isNotNull()
@@ -81,7 +83,7 @@ class ProgrammeTest {
                 isActive = false,
                 status = ProgrammeStatus.COMPLETED,
                 startedAt = LocalDateTime.now(),
-                completedAt = null // Invalid: COMPLETED must have completedAt
+                completedAt = null, // Invalid: COMPLETED must have completedAt
             )
         }
     }
@@ -98,7 +100,7 @@ class ProgrammeTest {
                 isActive = true,
                 status = ProgrammeStatus.IN_PROGRESS,
                 startedAt = LocalDateTime.now(),
-                completedAt = LocalDateTime.now() // Invalid: IN_PROGRESS cannot have completedAt
+                completedAt = LocalDateTime.now(), // Invalid: IN_PROGRESS cannot have completedAt
             )
         }
     }
@@ -115,7 +117,7 @@ class ProgrammeTest {
                 isActive = true, // Invalid: COMPLETED cannot be active
                 status = ProgrammeStatus.COMPLETED,
                 startedAt = LocalDateTime.now().minusWeeks(8),
-                completedAt = LocalDateTime.now()
+                completedAt = LocalDateTime.now(),
             )
         }
     }
@@ -131,7 +133,7 @@ class ProgrammeTest {
                 difficulty = ProgrammeDifficulty.ADVANCED,
                 isActive = true, // Invalid: CANCELLED cannot be active
                 status = ProgrammeStatus.CANCELLED,
-                startedAt = LocalDateTime.now().minusWeeks(2)
+                startedAt = LocalDateTime.now().minusWeeks(2),
             )
         }
     }
@@ -147,7 +149,7 @@ class ProgrammeTest {
                 difficulty = ProgrammeDifficulty.NOVICE,
                 isActive = false,
                 status = ProgrammeStatus.NOT_STARTED,
-                startedAt = LocalDateTime.now() // Invalid: NOT_STARTED cannot have startedAt
+                startedAt = LocalDateTime.now(), // Invalid: NOT_STARTED cannot have startedAt
             )
         }
     }
@@ -163,24 +165,25 @@ class ProgrammeTest {
                 difficulty = ProgrammeDifficulty.EXPERT,
                 isActive = true,
                 status = ProgrammeStatus.IN_PROGRESS,
-                startedAt = null // Invalid: IN_PROGRESS must have startedAt
+                startedAt = null, // Invalid: IN_PROGRESS must have startedAt
             )
         }
     }
 
     @Test
     fun programme_withMaxValues_shouldStoreCorrectly() {
-        val programme = Programme(
-            name = "Powerlifting Programme",
-            description = "Focus on the big three",
-            durationWeeks = 16,
-            programmeType = ProgrammeType.POWERLIFTING,
-            difficulty = ProgrammeDifficulty.ADVANCED,
-            squatMax = 180f,
-            benchMax = 120f,
-            deadliftMax = 220f,
-            ohpMax = 80f
-        )
+        val programme =
+            Programme(
+                name = "Powerlifting Programme",
+                description = "Focus on the big three",
+                durationWeeks = 16,
+                programmeType = ProgrammeType.POWERLIFTING,
+                difficulty = ProgrammeDifficulty.ADVANCED,
+                squatMax = 180f,
+                benchMax = 120f,
+                deadliftMax = 220f,
+                ohpMax = 80f,
+            )
 
         assertThat(programme.squatMax).isEqualTo(180f)
         assertThat(programme.benchMax).isEqualTo(120f)
@@ -190,22 +193,24 @@ class ProgrammeTest {
 
     @Test
     fun programme_withWeightCalculationRules_shouldSerializeCorrectly() {
-        val rules = WeightCalculationRules(
-            baseOn = WeightBasis.TRAINING_MAX,
-            trainingMaxPercentage = 0.9f,
-            roundingIncrement = 2.5f,
-            minimumBarWeight = 20f,
-            unit = WeightUnit.KG
-        )
-        
-        val programme = Programme(
-            name = "Programme with Rules",
-            description = null,
-            durationWeeks = 8,
-            programmeType = ProgrammeType.STRENGTH,
-            difficulty = ProgrammeDifficulty.INTERMEDIATE,
-            weightCalculationRules = Programme.encodeWeightCalculationRules(rules)
-        )
+        val rules =
+            WeightCalculationRules(
+                baseOn = WeightBasis.TRAINING_MAX,
+                trainingMaxPercentage = 0.9f,
+                roundingIncrement = 2.5f,
+                minimumBarWeight = 20f,
+                unit = WeightUnit.KG,
+            )
+
+        val programme =
+            Programme(
+                name = "Programme with Rules",
+                description = null,
+                durationWeeks = 8,
+                programmeType = ProgrammeType.STRENGTH,
+                difficulty = ProgrammeDifficulty.INTERMEDIATE,
+                weightCalculationRules = Programme.encodeWeightCalculationRules(rules),
+            )
 
         val decodedRules = programme.getWeightCalculationRulesObject()
         assertThat(decodedRules).isNotNull()
@@ -215,20 +220,22 @@ class ProgrammeTest {
 
     @Test
     fun programme_withProgressionRules_shouldSerializeCorrectly() {
-        val rules = ProgressionRules(
-            type = ProgressionType.LINEAR,
-            incrementRules = mapOf("squat" to 5f, "bench" to 2.5f),
-            autoProgressionEnabled = true
-        )
-        
-        val programme = Programme(
-            name = "Programme with Progression",
-            description = null,
-            durationWeeks = 12,
-            programmeType = ProgrammeType.STRENGTH,
-            difficulty = ProgrammeDifficulty.BEGINNER,
-            progressionRules = Programme.encodeProgressionRules(rules)
-        )
+        val rules =
+            ProgressionRules(
+                type = ProgressionType.LINEAR,
+                incrementRules = mapOf("squat" to 5f, "bench" to 2.5f),
+                autoProgressionEnabled = true,
+            )
+
+        val programme =
+            Programme(
+                name = "Programme with Progression",
+                description = null,
+                durationWeeks = 12,
+                programmeType = ProgrammeType.STRENGTH,
+                difficulty = ProgrammeDifficulty.BEGINNER,
+                progressionRules = Programme.encodeProgressionRules(rules),
+            )
 
         val decodedRules = programme.getProgressionRulesObject()
         assertThat(decodedRules).isNotNull()
@@ -242,15 +249,16 @@ class ProgrammeTest {
 
     @Test
     fun programme_withNullRules_shouldReturnNull() {
-        val programme = Programme(
-            name = "Programme without Rules",
-            description = null,
-            durationWeeks = 8,
-            programmeType = ProgrammeType.GENERAL_FITNESS,
-            difficulty = ProgrammeDifficulty.BEGINNER,
-            weightCalculationRules = null,
-            progressionRules = null
-        )
+        val programme =
+            Programme(
+                name = "Programme without Rules",
+                description = null,
+                durationWeeks = 8,
+                programmeType = ProgrammeType.GENERAL_FITNESS,
+                difficulty = ProgrammeDifficulty.BEGINNER,
+                weightCalculationRules = null,
+                progressionRules = null,
+            )
 
         assertThat(programme.getWeightCalculationRulesObject()).isNull()
         assertThat(programme.getProgressionRulesObject()).isNull()
@@ -258,29 +266,31 @@ class ProgrammeTest {
 
     @Test
     fun programme_withCustomFlag_shouldIdentifyAsCustom() {
-        val programme = Programme(
-            name = "My Custom Programme",
-            description = "Created by user",
-            durationWeeks = 10,
-            programmeType = ProgrammeType.HYBRID,
-            difficulty = ProgrammeDifficulty.INTERMEDIATE,
-            isCustom = true
-        )
+        val programme =
+            Programme(
+                name = "My Custom Programme",
+                description = "Created by user",
+                durationWeeks = 10,
+                programmeType = ProgrammeType.HYBRID,
+                difficulty = ProgrammeDifficulty.INTERMEDIATE,
+                isCustom = true,
+            )
 
         assertThat(programme.isCustom).isTrue()
     }
 
     @Test
     fun programme_withTemplateName_shouldStoreTemplateReference() {
-        val programme = Programme(
-            name = "My Modified 5/3/1",
-            description = "Based on Wendler's 5/3/1",
-            durationWeeks = 4,
-            programmeType = ProgrammeType.POWERLIFTING,
-            difficulty = ProgrammeDifficulty.INTERMEDIATE,
-            isCustom = true,
-            templateName = "5/3/1"
-        )
+        val programme =
+            Programme(
+                name = "My Modified 5/3/1",
+                description = "Based on Wendler's 5/3/1",
+                durationWeeks = 4,
+                programmeType = ProgrammeType.POWERLIFTING,
+                difficulty = ProgrammeDifficulty.INTERMEDIATE,
+                isCustom = true,
+                templateName = "5/3/1",
+            )
 
         assertThat(programme.templateName).isEqualTo("5/3/1")
         assertThat(programme.isCustom).isTrue()
@@ -289,19 +299,20 @@ class ProgrammeTest {
     @Test
     fun programme_withCompletionNotes_shouldStoreNotesWithTimestamp() {
         val now = LocalDateTime.now()
-        val programme = Programme(
-            name = "Completed Programme",
-            description = null,
-            durationWeeks = 8,
-            programmeType = ProgrammeType.STRENGTH,
-            difficulty = ProgrammeDifficulty.INTERMEDIATE,
-            status = ProgrammeStatus.COMPLETED,
-            isActive = false,
-            startedAt = now.minusWeeks(8),
-            completedAt = now,
-            completionNotes = "Great progress! Increased squat by 20kg",
-            notesCreatedAt = now
-        )
+        val programme =
+            Programme(
+                name = "Completed Programme",
+                description = null,
+                durationWeeks = 8,
+                programmeType = ProgrammeType.STRENGTH,
+                difficulty = ProgrammeDifficulty.INTERMEDIATE,
+                status = ProgrammeStatus.COMPLETED,
+                isActive = false,
+                startedAt = now.minusWeeks(8),
+                completedAt = now,
+                completionNotes = "Great progress! Increased squat by 20kg",
+                notesCreatedAt = now,
+            )
 
         assertThat(programme.completionNotes).contains("Great progress")
         assertThat(programme.notesCreatedAt).isEqualTo(now)
@@ -310,7 +321,7 @@ class ProgrammeTest {
     @Test
     fun programme_allProgrammeTypes_shouldBeDefined() {
         val types = ProgrammeType.values()
-        
+
         assertThat(types).asList().contains(ProgrammeType.STRENGTH)
         assertThat(types).asList().contains(ProgrammeType.POWERLIFTING)
         assertThat(types).asList().contains(ProgrammeType.BODYBUILDING)
@@ -323,7 +334,7 @@ class ProgrammeTest {
     @Test
     fun programme_allDifficultyLevels_shouldBeDefined() {
         val difficulties = ProgrammeDifficulty.values()
-        
+
         assertThat(difficulties).asList().contains(ProgrammeDifficulty.BEGINNER)
         assertThat(difficulties).asList().contains(ProgrammeDifficulty.NOVICE)
         assertThat(difficulties).asList().contains(ProgrammeDifficulty.INTERMEDIATE)
@@ -335,7 +346,7 @@ class ProgrammeTest {
     @Test
     fun programme_allStatuses_shouldBeDefined() {
         val statuses = ProgrammeStatus.values()
-        
+
         assertThat(statuses).asList().contains(ProgrammeStatus.NOT_STARTED)
         assertThat(statuses).asList().contains(ProgrammeStatus.IN_PROGRESS)
         assertThat(statuses).asList().contains(ProgrammeStatus.COMPLETED)
@@ -345,13 +356,14 @@ class ProgrammeTest {
 
     @Test
     fun programme_withDefaultValues_shouldUseDefaults() {
-        val programme = Programme(
-            name = "Basic Programme",
-            description = null,
-            durationWeeks = 4,
-            programmeType = ProgrammeType.GENERAL_FITNESS,
-            difficulty = ProgrammeDifficulty.BEGINNER
-        )
+        val programme =
+            Programme(
+                name = "Basic Programme",
+                description = null,
+                durationWeeks = 4,
+                programmeType = ProgrammeType.GENERAL_FITNESS,
+                difficulty = ProgrammeDifficulty.BEGINNER,
+            )
 
         assertThat(programme.id).isEqualTo(0L)
         assertThat(programme.isCustom).isFalse()
@@ -363,33 +375,36 @@ class ProgrammeTest {
 
     @Test
     fun programme_withLongDuration_shouldHandleExtendedProgrammes() {
-        val programme = Programme(
-            name = "Year-long Programme",
-            description = "52 week programme",
-            durationWeeks = 52,
-            programmeType = ProgrammeType.HYBRID,
-            difficulty = ProgrammeDifficulty.ADVANCED
-        )
+        val programme =
+            Programme(
+                name = "Year-long Programme",
+                description = "52 week programme",
+                durationWeeks = 52,
+                programmeType = ProgrammeType.HYBRID,
+                difficulty = ProgrammeDifficulty.ADVANCED,
+            )
 
         assertThat(programme.durationWeeks).isEqualTo(52)
     }
 
     @Test
     fun programme_dataClassCopy_shouldWorkCorrectly() {
-        val original = Programme(
-            name = "Original",
-            description = "Test programme",
-            durationWeeks = 8,
-            programmeType = ProgrammeType.STRENGTH,
-            difficulty = ProgrammeDifficulty.INTERMEDIATE
-        )
-        
-        val modified = original.copy(
-            name = "Modified",
-            durationWeeks = 12,
-            isActive = true
-        )
-        
+        val original =
+            Programme(
+                name = "Original",
+                description = "Test programme",
+                durationWeeks = 8,
+                programmeType = ProgrammeType.STRENGTH,
+                difficulty = ProgrammeDifficulty.INTERMEDIATE,
+            )
+
+        val modified =
+            original.copy(
+                name = "Modified",
+                durationWeeks = 12,
+                isActive = true,
+            )
+
         assertThat(modified.name).isEqualTo("Modified")
         assertThat(modified.durationWeeks).isEqualTo(12)
         assertThat(modified.isActive).isTrue()
@@ -399,16 +414,17 @@ class ProgrammeTest {
 
     @Test
     fun programme_cancelledStatus_withStartedAt_shouldBeValid() {
-        val programme = Programme(
-            name = "Cancelled Programme",
-            description = null,
-            durationWeeks = 12,
-            programmeType = ProgrammeType.STRENGTH,
-            difficulty = ProgrammeDifficulty.INTERMEDIATE,
-            status = ProgrammeStatus.CANCELLED,
-            isActive = false,
-            startedAt = LocalDateTime.now().minusWeeks(2)
-        )
+        val programme =
+            Programme(
+                name = "Cancelled Programme",
+                description = null,
+                durationWeeks = 12,
+                programmeType = ProgrammeType.STRENGTH,
+                difficulty = ProgrammeDifficulty.INTERMEDIATE,
+                status = ProgrammeStatus.CANCELLED,
+                isActive = false,
+                startedAt = LocalDateTime.now().minusWeeks(2),
+            )
 
         assertThat(programme.status).isEqualTo(ProgrammeStatus.CANCELLED)
         assertThat(programme.startedAt).isNotNull()
@@ -417,17 +433,18 @@ class ProgrammeTest {
 
     @Test
     fun programme_withPartialMaxes_shouldHandleMissingData() {
-        val programme = Programme(
-            name = "Upper Body Focus",
-            description = null,
-            durationWeeks = 8,
-            programmeType = ProgrammeType.BODYBUILDING,
-            difficulty = ProgrammeDifficulty.INTERMEDIATE,
-            squatMax = null,
-            benchMax = 100f,
-            deadliftMax = null,
-            ohpMax = 60f
-        )
+        val programme =
+            Programme(
+                name = "Upper Body Focus",
+                description = null,
+                durationWeeks = 8,
+                programmeType = ProgrammeType.BODYBUILDING,
+                difficulty = ProgrammeDifficulty.INTERMEDIATE,
+                squatMax = null,
+                benchMax = 100f,
+                deadliftMax = null,
+                ohpMax = 60f,
+            )
 
         assertThat(programme.squatMax).isNull()
         assertThat(programme.benchMax).isEqualTo(100f)
@@ -437,21 +454,22 @@ class ProgrammeTest {
 
     @Test
     fun programme_encodeWeightCalculationRules_shouldProduceValidJson() {
-        val rules = WeightCalculationRules(
-            baseOn = WeightBasis.TRAINING_MAX,  // Use non-default value to ensure it's serialized
-            trainingMaxPercentage = 0.85f,
-            roundingIncrement = 5f,
-            minimumBarWeight = 45f,
-            unit = WeightUnit.LB
-        )
-        
+        val rules =
+            WeightCalculationRules(
+                baseOn = WeightBasis.TRAINING_MAX, // Use non-default value to ensure it's serialized
+                trainingMaxPercentage = 0.85f,
+                roundingIncrement = 5f,
+                minimumBarWeight = 45f,
+                unit = WeightUnit.LB,
+            )
+
         val json = Programme.encodeWeightCalculationRules(rules)
-        
+
         assertThat(json).isNotEmpty()
-        assertThat(json).contains("TRAINING_MAX")  // Non-default value should be included
+        assertThat(json).contains("TRAINING_MAX") // Non-default value should be included
         assertThat(json).contains("0.85")
         assertThat(json).contains("LB")
-        
+
         val decoded = Json.decodeFromString<WeightCalculationRules>(json)
         assertThat(decoded.baseOn).isEqualTo(WeightBasis.TRAINING_MAX)
         assertThat(decoded.trainingMaxPercentage).isEqualTo(0.85f)
@@ -460,18 +478,19 @@ class ProgrammeTest {
 
     @Test
     fun programme_encodeProgressionRules_shouldProduceValidJson() {
-        val rules = ProgressionRules(
-            type = ProgressionType.WAVE,
-            cycleLength = 3,
-            autoProgressionEnabled = false
-        )
-        
+        val rules =
+            ProgressionRules(
+                type = ProgressionType.WAVE,
+                cycleLength = 3,
+                autoProgressionEnabled = false,
+            )
+
         val json = Programme.encodeProgressionRules(rules)
-        
+
         assertThat(json).isNotEmpty()
         assertThat(json).contains("WAVE")
         assertThat(json).contains("3")
-        
+
         val decoded = Json.decodeFromString<ProgressionRules>(json)
         assertThat(decoded.type).isEqualTo(ProgressionType.WAVE)
         assertThat(decoded.cycleLength).isEqualTo(3)

@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.programme.StrengthImprovement
+import com.github.radupana.featherweight.ui.components.GlassmorphicCard
 import com.github.radupana.featherweight.ui.dialogs.NotesInputModal
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.ProgrammeCompletionViewModel
@@ -154,7 +155,7 @@ fun ProgrammeCompletionScreen(
                             ),
                     ) {
                         Text(
-                            text = "Save & Continue",
+                            text = "Continue",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                         )
@@ -204,14 +205,11 @@ fun ProgrammeCompletionScreen(
 
 @Composable
 private fun ProgrammeHeroCard(stats: com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats) {
-    Card(
+    GlassmorphicCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -249,14 +247,11 @@ private fun ProgrammeHeroCard(stats: com.github.radupana.featherweight.data.prog
 
 @Composable
 private fun PrimaryStatsCard(stats: com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats) {
-    Card(
+    GlassmorphicCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -311,14 +306,11 @@ private fun StrengthProgressCard(
     improvements: List<StrengthImprovement>,
     averageImprovement: Float,
 ) {
-    Card(
+    GlassmorphicCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -415,14 +407,11 @@ private fun ImprovementItem(improvement: StrengthImprovement) {
 
 @Composable
 private fun PersonalRecordsCard(totalPRs: Int) {
-    Card(
+    GlassmorphicCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -451,14 +440,11 @@ private fun PersonalRecordsCard(totalPRs: Int) {
 
 @Composable
 private fun ProgrammeInsightsCard(stats: com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats) {
-    Card(
+    GlassmorphicCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
                 text = "Programme Insights",
@@ -530,14 +516,11 @@ private fun NotesCard(
     notes: String,
     onEditNotes: () -> Unit,
 ) {
-    Card(
+    GlassmorphicCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

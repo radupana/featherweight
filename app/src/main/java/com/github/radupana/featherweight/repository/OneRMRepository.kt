@@ -21,7 +21,7 @@ import java.time.LocalDateTime
  */
 class OneRMRepository(
     application: Application,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val db = FeatherweightDatabase.getDatabase(application)
     private val oneRMDao = db.oneRMDao()
@@ -33,25 +33,18 @@ class OneRMRepository(
     }
 
     suspend fun applyOneRMUpdate(update: PendingOneRMUpdate) {
-        // Round weight to nearest 0.25kg
         val roundedWeight = WeightFormatter.roundToNearestQuarter(update.suggestedMax)
-
-        // Update the max
         oneRMDao.upsertExerciseMax(
             exerciseVariationId = update.exerciseVariationId,
             maxWeight = roundedWeight,
             notes = "Updated from ${update.source}",
         )
-
-        // Save to history
         saveOneRMToHistory(
             exerciseVariationId = update.exerciseVariationId,
             estimatedMax = roundedWeight,
             source = update.source,
             date = update.workoutDate ?: LocalDateTime.now(),
         )
-
-        // Remove from pending
         _pendingOneRMUpdates.value =
             _pendingOneRMUpdates.value.filter {
                 it.exerciseVariationId != update.exerciseVariationId
@@ -92,12 +85,10 @@ class OneRMRepository(
 
     suspend fun updateOrInsertOneRM(oneRMRecord: UserExerciseMax) =
         withContext(ioDispatcher) {
-            // Check if we have an existing record for this exercise
             val existing = oneRMDao.getCurrentMax(oneRMRecord.exerciseVariationId)
 
             val shouldSaveHistory =
                 if (existing != null) {
-                    // Update existing record if new estimate is higher
                     if (oneRMRecord.oneRMEstimate > existing.oneRMEstimate) {
                         oneRMDao.updateExerciseMax(oneRMRecord.copy(id = existing.id))
                         true
@@ -105,12 +96,10 @@ class OneRMRepository(
                         false
                     }
                 } else {
-                    // Insert new record
                     oneRMDao.insertExerciseMax(oneRMRecord)
                     true
                 }
 
-            // Save to history if we made a change
             if (shouldSaveHistory) {
                 saveOneRMToHistory(
                     exerciseVariationId = oneRMRecord.exerciseVariationId,
@@ -152,7 +141,6 @@ class OneRMRepository(
         return exerciseMax?.oneRMEstimate
     }
 
-    // Add pending update
     fun addPendingOneRMUpdate(update: PendingOneRMUpdate) {
         _pendingOneRMUpdates.value = _pendingOneRMUpdates.value.filter {
             it.exerciseVariationId != update.exerciseVariationId

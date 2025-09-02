@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import com.github.radupana.featherweight.ui.theme.GlassCard
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -41,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.PersonalRecord
+import com.github.radupana.featherweight.ui.components.GlassmorphicCard
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.CompletionSummary
 import com.github.radupana.featherweight.viewmodel.WorkoutCompletionViewModel
@@ -153,7 +153,7 @@ fun WorkoutCompletionScreen(
 
 @Composable
 private fun PrimaryStatsCard(summary: CompletionSummary) {
-    GlassCard(
+    GlassmorphicCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -208,7 +208,7 @@ private fun PrimaryStatsCard(summary: CompletionSummary) {
 
 @Composable
 private fun WorkoutStatsCard(summary: CompletionSummary) {
-    GlassCard(
+    GlassmorphicCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -272,7 +272,7 @@ private fun PersonalRecordsCard(
     repository: com.github.radupana.featherweight.repository.FeatherweightRepository,
     exerciseNames: Map<Long, String>,
 ) {
-    GlassCard(
+    GlassmorphicCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -380,7 +380,7 @@ private fun WorkoutInsightsCard(summary: CompletionSummary) {
         }
 
     if (insights.isNotEmpty()) {
-        GlassCard(
+        GlassmorphicCard(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
@@ -447,7 +447,7 @@ private fun MotivationalMessageCard(summary: CompletionSummary) {
             else -> messages[Random.nextInt(messages.size)]
         }
 
-    GlassCard(
+    GlassmorphicCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Text(

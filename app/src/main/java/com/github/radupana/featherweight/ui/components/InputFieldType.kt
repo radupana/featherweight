@@ -174,10 +174,17 @@ fun CenteredInputField(
         modifier = modifier,
         enabled = enabled,
         readOnly = readOnly,
-        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-            disabledTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-            disabledBorderColor = androidx.compose.material3.MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-            disabledContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f),
-        ),
+        colors =
+            androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                disabledTextColor =
+                    androidx.compose.material3.MaterialTheme.colorScheme.onSurface
+                        .copy(alpha = 0.7f),
+                disabledBorderColor =
+                    androidx.compose.material3.MaterialTheme.colorScheme.outline
+                        .copy(alpha = 0.3f),
+                disabledContainerColor =
+                    androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant
+                        .copy(alpha = 0.1f),
+            ),
     )
 }

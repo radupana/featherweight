@@ -585,9 +585,10 @@ private fun CleanSetRow(
                                 },
                                 fieldType = InputFieldType.WEIGHT,
                                 placeholder = weightPlaceholder,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .alpha(if (set.isCompleted) 0.6f else 1f),
+                                modifier =
+                                    Modifier
+                                        .fillMaxSize()
+                                        .alpha(if (set.isCompleted) 0.6f else 1f),
                                 enabled = !set.isCompleted && !readOnly,
                                 readOnly = set.isCompleted || readOnly,
                             )
@@ -651,15 +652,16 @@ private fun CleanSetRow(
                                 },
                                 fieldType = InputFieldType.REPS,
                                 placeholder = repsPlaceholder,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .alpha(if (set.isCompleted) 0.6f else 1f),
+                                modifier =
+                                    Modifier
+                                        .fillMaxSize()
+                                        .alpha(if (set.isCompleted) 0.6f else 1f),
                                 enabled = !set.isCompleted && !readOnly,
                                 readOnly = set.isCompleted || readOnly,
                             )
                         }
                         Box(
-                            modifier = Modifier.height(20.dp)
+                            modifier = Modifier.height(20.dp),
                         )
                     }
                 }
@@ -709,15 +711,16 @@ private fun CleanSetRow(
                                 },
                                 fieldType = InputFieldType.RPE,
                                 placeholder = rpePlaceholder,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .alpha(if (set.isCompleted) 0.6f else 1f),
+                                modifier =
+                                    Modifier
+                                        .fillMaxSize()
+                                        .alpha(if (set.isCompleted) 0.6f else 1f),
                                 enabled = !set.isCompleted && !readOnly,
                                 readOnly = set.isCompleted || readOnly,
                             )
                         }
                         Box(
-                            modifier = Modifier.height(20.dp)
+                            modifier = Modifier.height(20.dp),
                         )
                     }
                 }

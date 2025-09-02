@@ -54,8 +54,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.domain.ProgrammeSummary
+import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.ui.components.history.CalendarView
 import com.github.radupana.featherweight.ui.components.history.WeekGroupView

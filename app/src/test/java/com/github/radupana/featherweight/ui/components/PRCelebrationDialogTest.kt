@@ -11,7 +11,7 @@ class PRCelebrationDialogTest {
     fun `dialog displays New Personal Record title for weight PRs`() {
         val weightPR = createWeightPR()
         val records = listOf(weightPR)
-        
+
         // Verify the title text would be "New Personal Record!"
         // The actual dialog always shows this title now
         val expectedTitle = "New Personal Record!"
@@ -22,7 +22,7 @@ class PRCelebrationDialogTest {
     fun `dialog displays New Personal Record title for 1RM PRs`() {
         val oneRmPR = createOneRMPR()
         val records = listOf(oneRmPR)
-        
+
         // Verify the title text would be "New Personal Record!"
         val expectedTitle = "New Personal Record!"
         assertThat(expectedTitle).isEqualTo("New Personal Record!")
@@ -33,7 +33,7 @@ class PRCelebrationDialogTest {
         val weightPR = createWeightPR()
         val oneRmPR = createOneRMPR()
         val records = listOf(weightPR, oneRmPR)
-        
+
         // The dialog now only shows the first PR from the list
         val primaryPR = records.firstOrNull()
         assertThat(primaryPR).isEqualTo(weightPR)
@@ -44,17 +44,17 @@ class PRCelebrationDialogTest {
     fun `dialog detects when a new 1RM exists in the records`() {
         val weightPR = createWeightPR()
         val oneRmPR = createOneRMPR()
-        
+
         // Test with only weight PR
         val recordsWeightOnly = listOf(weightPR)
         val hasNewOneRMWeightOnly = recordsWeightOnly.any { it.recordType == PRType.ESTIMATED_1RM }
         assertThat(hasNewOneRMWeightOnly).isFalse()
-        
+
         // Test with both PRs
         val recordsBoth = listOf(weightPR, oneRmPR)
         val hasNewOneRMBoth = recordsBoth.any { it.recordType == PRType.ESTIMATED_1RM }
         assertThat(hasNewOneRMBoth).isTrue()
-        
+
         // Test with only 1RM PR
         val recordsOneRMOnly = listOf(oneRmPR)
         val hasNewOneRMOnly = recordsOneRMOnly.any { it.recordType == PRType.ESTIMATED_1RM }
@@ -65,7 +65,7 @@ class PRCelebrationDialogTest {
     fun `dialog extracts correct 1RM value from 1RM PR`() {
         val oneRmPR = createOneRMPR()
         val records = listOf(oneRmPR)
-        
+
         val oneRMValue = records.find { it.recordType == PRType.ESTIMATED_1RM }?.estimated1RM
         assertThat(oneRMValue).isEqualTo(150f)
     }
@@ -82,15 +82,15 @@ class PRCelebrationDialogTest {
         // Test with RPE
         val prWithRpe = createWeightPR().copy(rpe = 8.5f)
         val expectedWithRpe = "${prWithRpe.weight}kg × ${prWithRpe.reps} @ RPE 8"
-        
+
         // Test without RPE
         val prWithoutRpe = createWeightPR().copy(rpe = null)
         val expectedWithoutRpe = "${prWithoutRpe.weight}kg × ${prWithoutRpe.reps}"
-        
+
         // Verify the formatting logic
         val formattedWithRpe = formatPRText(prWithRpe)
         val formattedWithoutRpe = formatPRText(prWithoutRpe)
-        
+
         assertThat(formattedWithRpe).isEqualTo(expectedWithRpe)
         assertThat(formattedWithoutRpe).isEqualTo(expectedWithoutRpe)
     }
@@ -98,7 +98,7 @@ class PRCelebrationDialogTest {
     @Test
     fun `dialog handles empty PR list gracefully`() {
         val records = emptyList<PersonalRecord>()
-        
+
         // The dialog should not display anything if there are no PRs
         val primaryPR = records.firstOrNull()
         assertThat(primaryPR).isNull()
@@ -108,7 +108,7 @@ class PRCelebrationDialogTest {
     fun `dialog displays weight and reps from primary PR`() {
         val weightPR = createWeightPR()
         val records = listOf(weightPR)
-        
+
         val primaryPR = records.firstOrNull()
         assertThat(primaryPR?.weight).isEqualTo(100f)
         assertThat(primaryPR?.reps).isEqualTo(5)
@@ -116,16 +116,17 @@ class PRCelebrationDialogTest {
 
     @Test
     fun `dialog shows previous record comparison when available`() {
-        val prWithPrevious = createWeightPR().copy(
-            previousWeight = 95f,
-            previousReps = 5,
-            previousDate = LocalDateTime.of(2024, 1, 1, 10, 0),
-            improvementPercentage = 5.26f
-        )
-        
+        val prWithPrevious =
+            createWeightPR().copy(
+                previousWeight = 95f,
+                previousReps = 5,
+                previousDate = LocalDateTime.of(2024, 1, 1, 10, 0),
+                improvementPercentage = 5.26f,
+            )
+
         val records = listOf(prWithPrevious)
         val primaryPR = records.firstOrNull()
-        
+
         assertThat(primaryPR?.previousWeight).isEqualTo(95f)
         assertThat(primaryPR?.previousReps).isEqualTo(5)
         assertThat(primaryPR?.previousDate).isNotNull()
@@ -133,41 +134,43 @@ class PRCelebrationDialogTest {
     }
 
     // Helper functions
-    private fun createWeightPR() = PersonalRecord(
-        id = 1,
-        exerciseVariationId = 1,
-        weight = 100f,
-        reps = 5,
-        rpe = 8.5f,
-        recordDate = LocalDateTime.now(),
-        previousWeight = null,
-        previousReps = null,
-        previousDate = null,
-        improvementPercentage = 0f,
-        recordType = PRType.WEIGHT,
-        volume = 500f,
-        estimated1RM = 120f,
-        notes = null,
-        workoutId = 1
-    )
+    private fun createWeightPR() =
+        PersonalRecord(
+            id = 1,
+            exerciseVariationId = 1,
+            weight = 100f,
+            reps = 5,
+            rpe = 8.5f,
+            recordDate = LocalDateTime.now(),
+            previousWeight = null,
+            previousReps = null,
+            previousDate = null,
+            improvementPercentage = 0f,
+            recordType = PRType.WEIGHT,
+            volume = 500f,
+            estimated1RM = 120f,
+            notes = null,
+            workoutId = 1,
+        )
 
-    private fun createOneRMPR() = PersonalRecord(
-        id = 2,
-        exerciseVariationId = 1,
-        weight = 100f,
-        reps = 5,
-        rpe = 8.5f,
-        recordDate = LocalDateTime.now(),
-        previousWeight = null,
-        previousReps = null,
-        previousDate = null,
-        improvementPercentage = 0f,
-        recordType = PRType.ESTIMATED_1RM,
-        volume = 500f,
-        estimated1RM = 150f,
-        notes = null,
-        workoutId = 1
-    )
+    private fun createOneRMPR() =
+        PersonalRecord(
+            id = 2,
+            exerciseVariationId = 1,
+            weight = 100f,
+            reps = 5,
+            rpe = 8.5f,
+            recordDate = LocalDateTime.now(),
+            previousWeight = null,
+            previousReps = null,
+            previousDate = null,
+            improvementPercentage = 0f,
+            recordType = PRType.ESTIMATED_1RM,
+            volume = 500f,
+            estimated1RM = 150f,
+            notes = null,
+            workoutId = 1,
+        )
 
     private fun formatPRText(pr: PersonalRecord): String {
         val baseText = "${pr.weight}kg × ${pr.reps}"

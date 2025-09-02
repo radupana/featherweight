@@ -17,43 +17,41 @@ import kotlinx.coroutines.withContext
  */
 class PersonalRecordRepository(
     application: Application,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val db = FeatherweightDatabase.getDatabase(application)
     private val personalRecordDao = db.personalRecordDao()
     private val setLogDao = db.setLogDao()
     private val exerciseVariationDao = db.exerciseVariationDao()
     private val prDetectionService = PRDetectionService(personalRecordDao, setLogDao, exerciseVariationDao)
-    
-    suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord> = 
+
+    suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord> =
         withContext(ioDispatcher) {
             personalRecordDao.getRecentPRs(limit)
         }
-    
-    suspend fun getPersonalRecordsForWorkout(workoutId: Long): List<PersonalRecord> = 
+
+    suspend fun getPersonalRecordsForWorkout(workoutId: Long): List<PersonalRecord> =
         withContext(ioDispatcher) {
             personalRecordDao.getPersonalRecordsForWorkout(workoutId)
         }
-    
-    suspend fun getPersonalRecordForExercise(exerciseVariationId: Long): PersonalRecord? = 
+
+    suspend fun getPersonalRecordForExercise(exerciseVariationId: Long): PersonalRecord? =
         withContext(ioDispatcher) {
             personalRecordDao.getLatestRecordForExercise(exerciseVariationId)
         }
-    
+
     suspend fun checkForPR(
         setLog: SetLog,
         exerciseVariationId: Long,
-        updateOrInsertOneRM: suspend (UserExerciseMax) -> Unit
+        updateOrInsertOneRM: suspend (UserExerciseMax) -> Unit,
     ): List<PersonalRecord> =
         withContext(ioDispatcher) {
             val prs = prDetectionService.checkForPR(setLog, exerciseVariationId)
 
-            // If we detected an estimated 1RM PR, update the UserExerciseMax table
             val oneRMPR = prs.find { it.recordType == PRType.ESTIMATED_1RM }
             if (oneRMPR != null && oneRMPR.estimated1RM != null) {
                 val oneRMService = OneRMService()
 
-                // Create UserExerciseMax record from the PR
                 val userExerciseMax =
                     oneRMService.createOneRMRecord(
                         exerciseId = exerciseVariationId,
@@ -62,7 +60,6 @@ class PersonalRecordRepository(
                         confidence = 1.0f, // High confidence since it's a PR
                     )
 
-                // Update or insert the 1RM record
                 updateOrInsertOneRM(userExerciseMax)
             }
 

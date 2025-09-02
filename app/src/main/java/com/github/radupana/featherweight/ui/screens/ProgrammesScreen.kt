@@ -52,6 +52,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
+import com.github.radupana.featherweight.ui.components.GlassmorphicCard
 import com.github.radupana.featherweight.ui.components.ParseRequestCard
 import com.github.radupana.featherweight.ui.utils.NavigationContext
 import com.github.radupana.featherweight.ui.utils.rememberKeyboardState
@@ -82,27 +83,22 @@ fun ProgrammesScreen(
     val compactPadding = if (isKeyboardVisible) 8.dp else 16.dp
     val scope = rememberCoroutineScope()
 
-    // Check if any parse request is currently being processed
     val isParsingInProgress = parseRequests.any { it.status == com.github.radupana.featherweight.data.ParseStatus.PROCESSING }
     val hasPendingParseRequests =
         parseRequests.any {
             it.status != com.github.radupana.featherweight.data.ParseStatus.IMPORTED
         }
 
-    // Dialog states
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var showRawTextDialog by remember { mutableStateOf<String?>(null) }
 
-    // Handle error messages
     LaunchedEffect(uiState.error) {
-        // Auto-clear error messages after 3 seconds
         if (uiState.error != null) {
             kotlinx.coroutines.delay(3000)
             viewModel.clearMessages()
         }
     }
 
-    // Refresh programme progress and workouts when screen appears
     LaunchedEffect(Unit) {
         viewModel.refreshProgrammeProgress()
         workoutViewModel.loadInProgressWorkouts()
@@ -127,19 +123,12 @@ fun ProgrammesScreen(
                     .fillMaxSize()
                     .padding(horizontal = compactPadding),
         ) {
-            // Header - outside the scrollable area
-
-            // Success Messages
             uiState.successMessage?.let { message ->
-                Card(
+                GlassmorphicCard(
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .padding(bottom = compactPadding),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        ),
                 ) {
                     Text(
                         text = message,
@@ -149,17 +138,12 @@ fun ProgrammesScreen(
                 }
             }
 
-            // Error Messages
             uiState.error?.let { error ->
-                Card(
+                GlassmorphicCard(
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .padding(bottom = compactPadding),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                        ),
                 ) {
                     Text(
                         text = error,
@@ -177,10 +161,9 @@ fun ProgrammesScreen(
                         .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
                 contentPadding = PaddingValues(bottom = compactPadding),
             ) {
-                // Import Programme Button - Prominent placement at the top
                 if (activeProgramme == null) {
                     item {
-                        Card(
+                        GlassmorphicCard(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
@@ -189,11 +172,6 @@ fun ProgrammesScreen(
                                             onNavigateToImport?.invoke()
                                         }
                                     },
-                            colors =
-                                CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                         ) {
                             Column(
                                 modifier =
@@ -203,7 +181,6 @@ fun ProgrammesScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
                                 if (hasPendingParseRequests) {
-                                    // Show why import is disabled
                                     if (isParsingInProgress) {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
@@ -275,7 +252,6 @@ fun ProgrammesScreen(
                     }
                 }
 
-                // Active Programme Section
                 activeProgramme?.let { programme ->
                     item {
                         ActiveProgrammeCard(
@@ -299,10 +275,8 @@ fun ProgrammesScreen(
                         )
                     }
 
-                    // Removed secondary import button - users should not import when active programme exists
                 }
 
-                // Parse Requests Section
                 if (parseRequests.isNotEmpty()) {
                     item {
                         Text(
@@ -322,14 +296,12 @@ fun ProgrammesScreen(
                         ParseRequestCard(
                             request = request,
                             onView = { parsedProgramme, requestId ->
-                                // Navigate to import screen with the parsed programme for preview
                                 onNavigateToImportWithParsedProgramme?.invoke(parsedProgramme, requestId)
                             },
                             onViewRawText = { rawText ->
                                 showRawTextDialog = rawText
                             },
                             onEditAndRetry = { rawText ->
-                                // Navigate to import screen with pre-filled text
                                 if (onNavigateToImportWithText != null) {
                                     onNavigateToImportWithText(rawText)
                                 } else {
@@ -338,7 +310,6 @@ fun ProgrammesScreen(
                             },
                             onDelete = {
                                 viewModel.deleteParseRequest(request)
-                                // Clear any imported programme state when deleting the parse request
                                 onClearImportedProgramme?.invoke()
                             },
                         )
@@ -348,26 +319,10 @@ fun ProgrammesScreen(
         }
     }
 
-    // Profile Update Prompt Dialog - commented out for now
-    /*
-    if (uiState.showProfileUpdatePrompt && uiState.pendingProfileUpdates.isNotEmpty()) {
-        com.github.radupana.featherweight.ui.dialogs.ProfileUpdatePromptDialog(
-            updates = uiState.pendingProfileUpdates,
-            onConfirm = {
-                viewModel.confirmProfileUpdate()
-            },
-            onDismiss = {
-                viewModel.dismissProfileUpdatePrompt()
-            },
-        )
-    }
-     */
 
-    // Delete Confirmation Dialog
     if (showDeleteConfirmDialog) {
         var inProgressWorkoutCount by remember { mutableStateOf(0) }
 
-        // Check for in-progress workouts when dialog opens
         LaunchedEffect(showDeleteConfirmDialog) {
             activeProgramme?.let { programme ->
                 inProgressWorkoutCount = viewModel.getInProgressWorkoutCount(programme)
@@ -430,55 +385,7 @@ fun ProgrammesScreen(
         )
     }
 
-    // Overwrite Warning Dialog - commented out (templates removed)
-    /*
-    if (uiState.showOverwriteWarning) {
-        AlertDialog(
-            onDismissRequest = { viewModel.cancelOverwriteProgramme() },
-            title = { Text("Active Programme Warning") },
-            text = {
-                Column {
-                    Text(
-                        text = "You already have an active programme: ${activeProgramme?.name}",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "To start a new programme, you must first delete your current one.",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Would you like to delete it and continue?",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        activeProgramme?.let { programme ->
-                            viewModel.deleteProgramme(programme)
-                        }
-                        viewModel.confirmOverwriteProgramme()
-                    },
-                ) {
-                    Text("Delete & Continue")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { viewModel.cancelOverwriteProgramme() },
-                ) {
-                    Text("Cancel")
-                }
-            },
-        )
-    }
-     */
 
-    // Raw Text Dialog - Now scrollable!
     showRawTextDialog?.let { rawText ->
         AlertDialog(
             onDismissRequest = { showRawTextDialog = null },
@@ -488,7 +395,7 @@ fun ProgrammesScreen(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .height(400.dp), // Fixed height so it doesn't take full screen
+                            .height(400.dp),
                 ) {
                     Text(
                         text = "This is what was sent for parsing:",
@@ -503,7 +410,7 @@ fun ProgrammesScreen(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .weight(1f), // Take remaining space
+                                .weight(1f),
                     ) {
                         Text(
                             text = rawText,
@@ -512,7 +419,6 @@ fun ProgrammesScreen(
                                 Modifier
                                     .padding(12.dp)
                                     .verticalScroll(rememberScrollState()),
-                            // Make text scrollable
                             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                         )
                     }
@@ -527,7 +433,6 @@ fun ProgrammesScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        // Copy to clipboard would be nice here
                         showRawTextDialog = null
                     },
                 ) {
@@ -550,7 +455,6 @@ private fun ActiveProgrammeCard(
 ) {
     val cardPadding = if (isCompact) 16.dp else 20.dp
 
-    // Check for existing in-progress programme workout
     val existingWorkout =
         inProgressWorkouts.find { workout ->
             workout.isProgrammeWorkout &&
@@ -560,18 +464,12 @@ private fun ActiveProgrammeCard(
                 workout.dayNumber == nextWorkoutInfo.workoutStructure.day
         }
 
-    // Check if there's ANY in-progress workout (not just for this programme)
     val hasAnyInProgressWorkout = inProgressWorkouts.isNotEmpty()
 
-    Card(
+    GlassmorphicCard(
         modifier =
             Modifier
                 .fillMaxWidth(),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-            ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
             modifier =
@@ -599,7 +497,6 @@ private fun ActiveProgrammeCard(
                         overflow = TextOverflow.Ellipsis,
                     )
 
-                    // Move progress info here, below the programme name
                     progress?.let { prog ->
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -610,7 +507,6 @@ private fun ActiveProgrammeCard(
                     }
                 }
 
-                // Delete button
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Filled.Delete,
@@ -620,7 +516,6 @@ private fun ActiveProgrammeCard(
                 }
             }
 
-            // Progress indicators
             progress?.let { prog ->
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -642,7 +537,6 @@ private fun ActiveProgrammeCard(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Progress bar
                 val progressValue =
                     if (prog.totalWorkouts > 0) {
                         (prog.completedWorkouts.toFloat() / prog.totalWorkouts.toFloat()).coerceIn(0f, 1f)
@@ -661,7 +555,6 @@ private fun ActiveProgrammeCard(
                 )
             }
 
-            // Next Workout Section
             nextWorkoutInfo?.let { info ->
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -711,7 +604,6 @@ private fun ActiveProgrammeCard(
                         )
                     }
 
-                    // Show message if button is disabled due to another workout in progress
                     if (existingWorkout == null && hasAnyInProgressWorkout) {
                         Text(
                             text = "Complete or discard existing in-progress workout first",
@@ -723,7 +615,6 @@ private fun ActiveProgrammeCard(
                     }
                 }
             } ?: run {
-                // Programme completed
                 if (progress?.completedWorkouts == progress?.totalWorkouts && progress?.totalWorkouts ?: 0 > 0) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Column(
@@ -743,7 +634,6 @@ private fun ActiveProgrammeCard(
     }
 }
 
-// Helper function to handle starting programme workouts
 private suspend fun handleStartProgrammeWorkout(
     programme: Programme,
     nextWorkoutInfo: NextProgrammeWorkoutInfo?,
@@ -762,17 +652,14 @@ private suspend fun handleStartProgrammeWorkout(
         }
 
     if (existingWorkout != null) {
-        // Resume existing workout
         workoutViewModel.resumeWorkout(existingWorkout.id)
         onNavigate?.invoke()
     } else {
-        // Start new workout
         workoutViewModel.startProgrammeWorkout(
             programmeId = programme.id,
             weekNumber = nextWorkoutInfo.actualWeekNumber,
             dayNumber = nextWorkoutInfo.workoutStructure.day,
             onReady = {
-                // Navigate only after workout is fully created
                 onNavigate?.invoke()
             },
         )

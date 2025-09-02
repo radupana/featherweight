@@ -31,5 +31,4 @@ interface ExerciseCoreDao {
     // Count queries
     @Query("SELECT COUNT(*) FROM exercise_cores")
     suspend fun getExerciseCoreCount(): Int
-
 }

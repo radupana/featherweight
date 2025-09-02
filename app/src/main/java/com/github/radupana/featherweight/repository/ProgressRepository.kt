@@ -18,7 +18,7 @@ import java.time.LocalDateTime
  */
 class ProgressRepository(
     application: Application,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val db = FeatherweightDatabase.getDatabase(application)
     private val globalExerciseProgressDao = db.globalExerciseProgressDao()
@@ -26,62 +26,66 @@ class ProgressRepository(
     private val exerciseLogDao = db.exerciseLogDao()
     private val workoutDao = db.workoutDao()
     private val exerciseVariationDao = db.exerciseVariationDao()
-    
-    suspend fun updateProgressAfterWorkout(@Suppress("UNUSED_PARAMETER") workoutId: Long): List<PendingOneRMUpdate> = 
+
+    suspend fun updateProgressAfterWorkout(
+        @Suppress("UNUSED_PARAMETER") workoutId: Long,
+    ): List<PendingOneRMUpdate> =
         withContext(ioDispatcher) {
             emptyList()
         }
-    
+
     suspend fun getGlobalExerciseProgress(
         exerciseVariationId: Long,
-        @Suppress("UNUSED_PARAMETER") lookbackDays: Int = 30
-    ): GlobalExerciseProgress? = 
+        @Suppress("UNUSED_PARAMETER") lookbackDays: Int = 30,
+    ): GlobalExerciseProgress? =
         withContext(ioDispatcher) {
             globalExerciseProgressDao.getProgressForExercise(exerciseVariationId)
         }
-    
-    suspend fun updateGlobalExerciseProgress(progress: GlobalExerciseProgress) = 
+
+    suspend fun updateGlobalExerciseProgress(progress: GlobalExerciseProgress) =
         withContext(ioDispatcher) {
             globalExerciseProgressDao.insertOrUpdate(progress)
         }
-    
-    suspend fun getAllGlobalProgress(): List<GlobalExerciseProgress> = 
+
+    suspend fun getAllGlobalProgress(): List<GlobalExerciseProgress> =
         withContext(ioDispatcher) {
-            // Get all unique exercise variation IDs
             val exerciseIds = exerciseLogDao.getAllUniqueExerciseVariationIds()
             exerciseIds.mapNotNull { id ->
                 globalExerciseProgressDao.getProgressForExercise(id)
             }
         }
-    
-    // Exercise history and stats
+
     suspend fun getExerciseHistory(
         exerciseVariationId: Long,
-        limit: Int = 10
-    ): ExerciseHistory = 
+        limit: Int = 10,
+    ): ExerciseHistory =
         withContext(ioDispatcher) {
-            // Get recent sets
-            val recentSets = setLogDao.getSetLogsForExercise(exerciseVariationId)
-                .sortedByDescending { it.completedAt }
-                .take(limit)
-            
-            val lastWorkoutDate = recentSets.firstOrNull()?.completedAt?.let {
-                LocalDateTime.parse(it)
-            } ?: LocalDateTime.now()
-            
+            val recentSets =
+                setLogDao
+                    .getSetLogsForExercise(exerciseVariationId)
+                    .sortedByDescending { it.completedAt }
+                    .take(limit)
+
+            val lastWorkoutDate =
+                recentSets.firstOrNull()?.completedAt?.let {
+                    LocalDateTime.parse(it)
+                } ?: LocalDateTime.now()
+
             ExerciseHistory(
                 exerciseVariationId = exerciseVariationId,
                 lastWorkoutDate = lastWorkoutDate,
-                sets = recentSets
+                sets = recentSets,
             )
         }
-    
-    suspend fun getExerciseStats(exerciseVariationId: Long): ExerciseStats = 
+
+    suspend fun getExerciseStats(exerciseVariationId: Long): ExerciseStats =
         withContext(ioDispatcher) {
             val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
-            val sets = setLogDao.getSetLogsForExercise(exerciseVariationId)
-                .filter { it.isCompleted }
-            
+            val sets =
+                setLogDao
+                    .getSetLogsForExercise(exerciseVariationId)
+                    .filter { it.isCompleted }
+
             if (sets.isEmpty()) {
                 return@withContext ExerciseStats(
                     exerciseName = exercise?.name ?: "Unknown",
@@ -89,35 +93,39 @@ class ProgressRepository(
                     avgReps = 0,
                     avgRpe = null,
                     maxWeight = 0f,
-                    totalSets = 0
+                    totalSets = 0,
                 )
             }
-            
+
             ExerciseStats(
                 exerciseName = exercise?.name ?: "Unknown",
                 avgWeight = sets.map { it.actualWeight }.average().toFloat(),
                 avgReps = sets.map { it.actualReps }.average().toInt(),
-                avgRpe = sets.mapNotNull { it.actualRpe }.takeIf { it.isNotEmpty() }?.average()?.toFloat(),
+                avgRpe =
+                    sets
+                        .mapNotNull { it.actualRpe }
+                        .takeIf { it.isNotEmpty() }
+                        ?.average()
+                        ?.toFloat(),
                 maxWeight = sets.maxOf { it.actualWeight },
-                totalSets = sets.size
+                totalSets = sets.size,
             )
         }
-    
+
     // Training analysis
     suspend fun getTrainingAnalysis(
         startDate: LocalDateTime,
-        endDate: LocalDateTime
-    ): TrainingAnalysis = 
+        endDate: LocalDateTime,
+    ): TrainingAnalysis =
         withContext(ioDispatcher) {
             val workouts = workoutDao.getWorkoutsInDateRange(startDate, endDate)
             val completedWorkouts = workouts.filter { it.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED }
-            
+
             val totalWorkouts = completedWorkouts.size
-            
-            // Calculate total volume
+
             var totalVolume = 0f
             var totalSets = 0
-            
+
             for (workout in completedWorkouts) {
                 val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
                 for (exerciseLog in exerciseLogs) {
@@ -128,7 +136,7 @@ class ProgressRepository(
                     }
                 }
             }
-            
+
             TrainingAnalysis(
                 analysisDate = LocalDateTime.now(),
                 periodStart = startDate.toLocalDate(),
@@ -136,20 +144,18 @@ class ProgressRepository(
                 overallAssessment = "Analysis of $totalWorkouts workouts",
                 keyInsightsJson = "[]",
                 recommendationsJson = "[]",
-                warningsJson = "[]"
+                warningsJson = "[]",
             )
         }
-    
-    // Swap history tracking
-    suspend fun getSwapHistoryCounts(): List<SwapHistoryCount> = 
+
+    suspend fun getSwapHistoryCounts(): List<SwapHistoryCount> =
         withContext(ioDispatcher) {
             emptyList()
         }
-    
+
     suspend fun incrementSwapCount(
         @Suppress("UNUSED_PARAMETER") originalExerciseId: Long,
-        @Suppress("UNUSED_PARAMETER") swappedExerciseId: Long
+        @Suppress("UNUSED_PARAMETER") swappedExerciseId: Long,
     ) = withContext(ioDispatcher) {
-        // Currently no-op, will be implemented when swap history is needed
     }
 }
