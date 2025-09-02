@@ -67,4 +67,13 @@ object WeightFormatter {
             volume >= 1000 -> "${formatDecimal(volume / 1000, 2)}k kg"
             else -> formatWeightWithUnit(volume)
         }
+
+    fun formatRPE(rpe: Float?): String {
+        if (rpe == null) return ""
+        return if (rpe % 1 == 0f) {
+            rpe.toInt().toString()
+        } else {
+            String.format(Locale.US, "%.1f", rpe)
+        }
+    }
 }

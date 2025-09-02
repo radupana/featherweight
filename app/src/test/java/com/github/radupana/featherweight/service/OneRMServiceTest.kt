@@ -157,7 +157,7 @@ class OneRMServiceTest {
 
     @Test
     fun `calculateEstimated1RM handles fractional RPE values`() {
-        // 5 reps @ RPE 8.5 = 6.5 total capacity (1.5 RIR, rounded to 1)
+        // 5 reps @ RPE 8.5 = 6.5 total capacity (1.5 RIR)
         val result =
             service.calculateEstimated1RM(
                 weight = 100f,
@@ -166,8 +166,8 @@ class OneRMServiceTest {
                 scalingType = RMScalingType.STANDARD,
             )
 
-        // 100 / (1.0278 - 0.0278 * 6) = 100 / 0.861 = 116.14
-        assertThat(result).isWithin(0.1f).of(116.14f)
+        // 100 / (1.0278 - 0.0278 * 6.5) = 100 / (1.0278 - 0.1807) = 100 / 0.8471 = 118.07
+        assertThat(result).isWithin(0.1f).of(118.07f)
     }
 
     @Test
@@ -600,7 +600,7 @@ class OneRMServiceTest {
                 rpe = 8.5f,
             )
 
-        assertThat(context).isEqualTo("102.5kg × 3 @ RPE 9")
+        assertThat(context).isEqualTo("102.5kg × 3 @ RPE 8.5")
     }
 
     @Test
@@ -628,15 +628,15 @@ class OneRMServiceTest {
     }
 
     @Test
-    fun `buildContext rounds RPE to nearest integer`() {
-        val context1 = service.buildContext(weight = 100f, reps = 5, rpe = 7.4f)
-        assertThat(context1).isEqualTo("100kg × 5 @ RPE 7")
+    fun `buildContext preserves decimal RPE values`() {
+        val context1 = service.buildContext(weight = 100f, reps = 5, rpe = 7.5f)
+        assertThat(context1).isEqualTo("100kg × 5 @ RPE 7.5")
 
-        val context2 = service.buildContext(weight = 100f, reps = 5, rpe = 7.5f)
-        assertThat(context2).isEqualTo("100kg × 5 @ RPE 8")
+        val context2 = service.buildContext(weight = 100f, reps = 5, rpe = 8.5f)
+        assertThat(context2).isEqualTo("100kg × 5 @ RPE 8.5")
 
-        val context3 = service.buildContext(weight = 100f, reps = 5, rpe = 7.6f)
-        assertThat(context3).isEqualTo("100kg × 5 @ RPE 8")
+        val context3 = service.buildContext(weight = 100f, reps = 5, rpe = 9.0f)
+        assertThat(context3).isEqualTo("100kg × 5 @ RPE 9")
     }
 
     // ===== Edge Cases and Integration Tests =====
@@ -763,17 +763,53 @@ class OneRMServiceTest {
 
     @Test
     fun `buildContext handles extreme values`() {
-        // Very small weight
         val context1 = service.buildContext(0.5f, 20, null)
         assertThat(context1).isEqualTo("0.5kg × 20")
 
-        // Very large weight
         val context2 = service.buildContext(999.5f, 1, 10f)
         assertThat(context2).isEqualTo("999.5kg × 1 @ RPE 10")
 
-        // Zero RPE (should round to 0)
-        val context3 = service.buildContext(100f, 5, 0.4f)
-        assertThat(context3).isEqualTo("100kg × 5 @ RPE 0")
+        val context3 = service.buildContext(100f, 5, 0.5f)
+        assertThat(context3).isEqualTo("100kg × 5 @ RPE 0.5")
+    }
+
+    @Test
+    fun `calculateEstimated1RM with decimal RPE values gives correct progression`() {
+        val weight = 100f
+        val reps = 5
+        
+        val rpe80 = service.calculateEstimated1RM(weight, reps, 8.0f)
+        val rpe85 = service.calculateEstimated1RM(weight, reps, 8.5f)
+        val rpe90 = service.calculateEstimated1RM(weight, reps, 9.0f)
+        val rpe95 = service.calculateEstimated1RM(weight, reps, 9.5f)
+        
+        assertThat(rpe80).isNotNull()
+        assertThat(rpe85).isNotNull()
+        assertThat(rpe90).isNotNull()
+        assertThat(rpe95).isNotNull()
+        
+        assertThat(rpe85).isLessThan(rpe80)
+        assertThat(rpe90).isLessThan(rpe85)
+        assertThat(rpe95).isLessThan(rpe90)
+    }
+
+    @Test
+    fun `calculateEstimated1RM with RPE 8 point 5 produces correct RIR`() {
+        val weight = 120f
+        val reps = 5
+        
+        val with85 = service.calculateEstimated1RM(weight, reps, 8.5f)
+        val with8 = service.calculateEstimated1RM(weight, reps, 8.0f)
+        val with9 = service.calculateEstimated1RM(weight, reps, 9.0f)
+        
+        assertThat(with85).isNotNull()
+        assertThat(with85).isLessThan(with8)
+        assertThat(with85).isGreaterThan(with9)
+        
+        val ratio85to8 = with85!! / with8!!
+        val ratio9to85 = with9!! / with85
+        assertThat(ratio85to8).isLessThan(1f)
+        assertThat(ratio9to85).isLessThan(1f)
     }
 
     // ===== Helper Functions =====

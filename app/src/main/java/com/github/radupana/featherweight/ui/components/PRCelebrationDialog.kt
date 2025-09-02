@@ -280,7 +280,7 @@ private fun PRDetailCard(
 private fun formatPRText(pr: PersonalRecord): String {
     val baseText = "${WeightFormatter.formatWeightWithUnit(pr.weight)} × ${pr.reps}"
     return if (pr.rpe != null) {
-        "$baseText @ RPE ${pr.rpe.toInt()}"
+        "$baseText @ RPE ${WeightFormatter.formatRPE(pr.rpe)}"
     } else {
         baseText
     }

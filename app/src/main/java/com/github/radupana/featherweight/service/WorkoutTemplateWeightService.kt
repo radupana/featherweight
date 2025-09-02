@@ -29,7 +29,6 @@ class WorkoutTemplateWeightService(
             val sets = setLogDao.getSetLogsForExercise(exerciseLog.id)
             repository.getExerciseById(exerciseLog.exerciseVariationId)
 
-            // Try to get weight suggestion
             val suggestedWeight =
                 getSuggestedWeight(
                     exerciseVariationId = exerciseLog.exerciseVariationId,
@@ -37,14 +36,12 @@ class WorkoutTemplateWeightService(
                     intensity = config.intensity,
                 )
 
-            // Update all sets with the suggested weight
             for (set in sets) {
                 setLogDao.update(
                     set.copy(
                         suggestedWeight = suggestedWeight.weight,
                         suggestionSource = suggestedWeight.explanation,
                         targetWeight = suggestedWeight.weight,
-                        // Also populate actual values so the checkbox is enabled
                         actualWeight = suggestedWeight.weight,
                         actualReps = set.targetReps ?: 0,
                         suggestionConfidence = suggestedWeight.confidence,
@@ -59,7 +56,6 @@ class WorkoutTemplateWeightService(
         targetReps: Int,
         intensity: IntensityLevel,
     ): WeightSuggestion {
-        // First, check for profile 1RM
         val exerciseMax = oneRMDao.getCurrentMax(exerciseVariationId)
         if (exerciseMax != null) {
             val percentage = getIntensityPercentage(intensity)
@@ -80,11 +76,10 @@ class WorkoutTemplateWeightService(
             )
         }
 
-        // Second, check recent workout history
         val recentSets =
             repository.getRecentSetLogsForExercise(
                 exerciseVariationId = exerciseVariationId,
-                daysBack = 42, // 6 weeks
+                daysBack = 42,
             )
 
         if (recentSets.isNotEmpty()) {
@@ -109,7 +104,6 @@ class WorkoutTemplateWeightService(
             }
         }
 
-        // No data available - let FreestyleIntelligenceService handle it
         val smartSuggestions =
             freestyleIntelligenceService.getIntelligentSuggestions(
                 exerciseVariationId = exerciseVariationId,
@@ -146,30 +140,26 @@ class WorkoutTemplateWeightService(
             validSets.map { set ->
                 val weight = set.actualWeight.toDouble()
                 val reps = set.actualReps
-                val rpe = set.actualRpe?.toInt()
+                val rpe = set.actualRpe
 
-                // Epley formula with RPE adjustment
                 val baseEstimate = weight * (1 + reps / 30.0)
 
                 if (rpe != null) {
-                    // RPE adjustment multiplier
                     val rpeMultiplier =
-                        when (rpe) {
-                            10 -> 1.0
-                            9 -> 0.95
-                            8 -> 0.9
-                            7 -> 0.85
-                            6 -> 0.8
+                        when {
+                            rpe >= 10f -> 1.0
+                            rpe >= 9f -> 0.95
+                            rpe >= 8f -> 0.9
+                            rpe >= 7f -> 0.85
+                            rpe >= 6f -> 0.8
                             else -> 0.75
                         }
                     baseEstimate * rpeMultiplier
                 } else {
-                    // Conservative estimate without RPE (assume RPE 7-8)
                     baseEstimate * 0.875
                 }
             }
 
-        // Return median for stability
         return if (estimated1RMs.isNotEmpty()) {
             estimated1RMs.sorted()[estimated1RMs.size / 2]
         } else {
@@ -179,9 +169,9 @@ class WorkoutTemplateWeightService(
 
     private fun getIntensityPercentage(intensity: IntensityLevel): Double =
         when (intensity) {
-            IntensityLevel.CONSERVATIVE -> 0.675 // 65-70% midpoint
-            IntensityLevel.MODERATE -> 0.725 // 70-75% midpoint
-            IntensityLevel.AGGRESSIVE -> 0.775 // 75-80% midpoint
+            IntensityLevel.CONSERVATIVE -> 0.675
+            IntensityLevel.MODERATE -> 0.725
+            IntensityLevel.AGGRESSIVE -> 0.775
         }
 
     private fun calculateWeightFromPercentage(

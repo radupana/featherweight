@@ -8,7 +8,6 @@ import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.LocalDateTime
 import kotlin.math.pow
-import kotlin.math.roundToInt
 
 class OneRMService {
     companion object {
@@ -37,58 +36,48 @@ class OneRMService {
             return null
         }
 
-        // Skip calculation if RPE is 6 or below - too unreliable
         if (rpe != null && rpe <= 6.0f) {
             Log.d("OneRMService", "Skipping 1RM calc: RPE too low ($rpe <= 6.0) - unreliable estimate")
             return null
         }
 
-        // Calculate total rep capacity based on RPE
         val totalRepCapacity =
             when {
                 rpe != null && rpe > 6.0f -> {
-                    // Convert RPE to reps in reserve for ANY rep count
-                    val repsInReserve = (10f - rpe).coerceAtLeast(0f).toInt()
+                    val repsInReserve = (10f - rpe).coerceAtLeast(0f)
                     val total = reps + repsInReserve
                     Log.d("OneRMService", "RPE conversion: $reps reps @ RPE $rpe = $total total rep capacity ($repsInReserve RIR)")
                     total
                 }
                 rpe == null -> {
                     Log.d("OneRMService", "No RPE provided, assuming maximal effort: $reps reps")
-                    reps // No RPE means assume maximal effort
+                    reps.toFloat()
                 }
                 else -> {
                     // This shouldn't happen due to the check above, but just in case
                     Log.d("OneRMService", "Unexpected RPE state: $rpe")
-                    reps
+                    reps.toFloat()
                 }
             }
 
-        // If it's a true max (1 rep capacity)
-        if (totalRepCapacity == 1) {
+        if (totalRepCapacity == 1f) {
             Log.d("OneRMService", "True 1RM detected: $weight kg")
             return weight
         }
 
-        // Apply formula based on scaling type
         val result =
             when (scalingType) {
                 RMScalingType.WEIGHTED_BODYWEIGHT -> {
-                    // More aggressive scaling for weighted bodyweight movements
-                    // Use modified Epley formula with adjusted coefficient
                     val calc = weight * (1 + totalRepCapacity * 0.035f)
                     Log.d("OneRMService", "Weighted BW formula: $weight × (1 + $totalRepCapacity × 0.035) = $calc")
                     calc
                 }
                 RMScalingType.ISOLATION -> {
-                    // More conservative scaling for isolation exercises
-                    // Use Lombardi formula which is more conservative at higher reps
                     val calc = weight * totalRepCapacity.toFloat().pow(0.10f)
                     Log.d("OneRMService", "Isolation formula: $weight × $totalRepCapacity^0.10 = $calc")
                     calc
                 }
                 RMScalingType.STANDARD -> {
-                    // Standard Brzycki formula for compound movements
                     val calc = weight / (1.0278f - 0.0278f * totalRepCapacity)
                     Log.d("OneRMService", "Standard Brzycki: $weight / (1.0278 - 0.0278 × $totalRepCapacity) = $calc")
                     calc
@@ -108,19 +97,18 @@ class OneRMService {
         rpe: Float?,
         percentOf1RM: Float,
     ): Float {
-        // Special case: 0 reps means no lift performed
         if (reps <= 0) return 0f
 
         // Rep score: lower reps = higher confidence, capped at 15 reps
         val cappedReps = reps.coerceAtMost(15)
-        val repScore = (16f - cappedReps) / 15f // 1 rep = 1.0, 15 reps = 0.067
+        val repScore = (16f - cappedReps) / 15f
 
         // RPE score: higher RPE = higher confidence
         val rpeScore =
             if (rpe != null && rpe >= MIN_RPE_FOR_ESTIMATE) {
-                (rpe - 5f) / 5f // RPE 10 = 1.0, RPE 5 = 0.0
+                (rpe - 5f) / 5f
             } else {
-                0.3f // Default if no RPE provided
+                0.3f
             }
 
         // Load score: higher percentage = higher confidence
@@ -175,7 +163,7 @@ class OneRMService {
             if (currentEstimate != null && currentEstimate > 0) {
                 set.actualWeight / currentEstimate
             } else {
-                1f // Assume 100% if no current estimate
+                1f
             }
 
         val confidence = calculateConfidence(set.actualReps, set.actualRpe, percentOf1RM)
@@ -226,7 +214,7 @@ class OneRMService {
         rpe: Float?,
     ): String {
         val weightStr = WeightFormatter.formatWeight(weight)
-        val rpeStr = rpe?.let { " @ RPE ${it.roundToInt()}" } ?: ""
+        val rpeStr = rpe?.let { " @ RPE ${WeightFormatter.formatRPE(it)}" } ?: ""
         return "${weightStr}kg × $reps$rpeStr"
     }
 

@@ -6,6 +6,7 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -665,11 +666,10 @@ class WorkoutSeedingService(
 
                 // Only update 1RM if we found a valid update that passes all checks
                 if (shouldUpdate && bestSet != null) {
-                    // Build context with ACTUAL weight from the set, not calculated values
                     val context =
                         "${bestSet!!.actualWeight}kg × ${bestSet!!.actualReps}" +
                             if (bestSet!!.actualRpe != null && bestSet!!.actualRpe > 0) {
-                                " @ RPE ${bestSet!!.actualRpe.toInt()}"
+                                " @ RPE ${WeightFormatter.formatRPE(bestSet!!.actualRpe)}"
                             } else {
                                 ""
                             }

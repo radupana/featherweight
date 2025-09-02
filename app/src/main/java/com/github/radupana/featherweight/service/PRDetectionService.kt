@@ -259,18 +259,16 @@ class PRDetectionService(
             return null
         }
 
-        // Calculate total rep capacity based on RPE
         val totalRepCapacity =
             when {
                 rpe != null && rpe > 6.0f -> {
-                    // Convert RPE to reps in reserve for ANY rep count
-                    val repsInReserve = (10f - rpe).coerceAtLeast(0f).toInt()
-                    reps + repsInReserve // Total reps possible at this weight
+                    val repsInReserve = (10f - rpe).coerceAtLeast(0f)
+                    reps + repsInReserve
                 }
-                else -> reps // No RPE means assume maximal effort
+                else -> reps.toFloat()
             }
 
-        if (totalRepCapacity == 1) return weight
+        if (totalRepCapacity == 1f) return weight
         if (totalRepCapacity > 15) {
             Log.d("PRDetection", "Skipping 1RM calculation: total rep capacity $totalRepCapacity > 15")
             return null
@@ -279,17 +277,12 @@ class PRDetectionService(
         // Apply formula based on scaling type
         return when (scalingType) {
             RMScalingType.WEIGHTED_BODYWEIGHT -> {
-                // More aggressive scaling for weighted bodyweight movements
-                // Use modified Epley formula with adjusted coefficient
                 weight * (1 + totalRepCapacity * 0.035f)
             }
             RMScalingType.ISOLATION -> {
-                // More conservative scaling for isolation exercises
-                // Use Lombardi formula which is more conservative at higher reps
-                weight * totalRepCapacity.toFloat().pow(0.10f)
+                weight * totalRepCapacity.pow(0.10f)
             }
             RMScalingType.STANDARD -> {
-                // Standard Brzycki formula for compound movements
                 weight / (1.0278f - 0.0278f * totalRepCapacity)
             }
         }

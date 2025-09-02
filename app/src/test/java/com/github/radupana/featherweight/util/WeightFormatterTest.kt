@@ -175,4 +175,26 @@ class WeightFormatterTest {
         assertThat(WeightFormatter.formatPercentage(0.1236f)).isEqualTo("12.4%")
         assertThat(WeightFormatter.formatPercentage(0.1999f)).isEqualTo("20%")
     }
+
+    @Test
+    fun `formatRPE formats whole numbers without decimal`() {
+        assertThat(WeightFormatter.formatRPE(6f)).isEqualTo("6")
+        assertThat(WeightFormatter.formatRPE(7f)).isEqualTo("7")
+        assertThat(WeightFormatter.formatRPE(8f)).isEqualTo("8")
+        assertThat(WeightFormatter.formatRPE(9f)).isEqualTo("9")
+        assertThat(WeightFormatter.formatRPE(10f)).isEqualTo("10")
+    }
+
+    @Test
+    fun `formatRPE formats half values with decimal`() {
+        assertThat(WeightFormatter.formatRPE(6.5f)).isEqualTo("6.5")
+        assertThat(WeightFormatter.formatRPE(7.5f)).isEqualTo("7.5")
+        assertThat(WeightFormatter.formatRPE(8.5f)).isEqualTo("8.5")
+        assertThat(WeightFormatter.formatRPE(9.5f)).isEqualTo("9.5")
+    }
+
+    @Test
+    fun `formatRPE returns empty string for null`() {
+        assertThat(WeightFormatter.formatRPE(null)).isEqualTo("")
+    }
 }

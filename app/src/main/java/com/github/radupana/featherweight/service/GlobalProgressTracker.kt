@@ -8,6 +8,7 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.VolumeTrend
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
@@ -424,22 +425,20 @@ class GlobalProgressTracker(
         val effectiveReps =
             when {
                 reps == 1 && rpe != null -> {
-                    // For singles with RPE, calculate total possible reps
-                    val repsInReserve = (10f - rpe).coerceAtLeast(0f).toInt()
-                    reps + repsInReserve // Total reps possible at this weight
+                    val repsInReserve = (10f - rpe).coerceAtLeast(0f)
+                    reps + repsInReserve
                 }
-                else -> reps // For multi-rep sets or singles without RPE, use actual reps
+                else -> reps.toFloat()
             }
 
         // Calculate estimated 1RM using Brzycki formula
         val estimated1RM =
-            if (effectiveReps == 1) {
-                weight // True max (RPE 10 or proven single)
-            } else if (effectiveReps <= 15) {
+            if (effectiveReps == 1f) {
+                weight
+            } else if (effectiveReps <= 15f) {
                 weight / (1.0278f - 0.0278f * effectiveReps)
             } else {
-                // Formula unreliable beyond 15 reps
-                weight * 1.5f // Rough estimate
+                weight * 1.5f
             }
 
         // Base confidence primarily on rep count and context
@@ -482,10 +481,10 @@ class GlobalProgressTracker(
         val source =
             when {
                 reps == 1 && rpe != null && rpe < 10 ->
-                    "1×${weight.roundToInt()}kg @ RPE ${rpe.toInt()} (est. ${effectiveReps}RM)"
-                reps == 1 && rpe != null -> "1RM @ RPE ${rpe.toInt()}"
+                    "1×${weight.roundToInt()}kg @ RPE ${WeightFormatter.formatRPE(rpe)} (est. ${effectiveReps.toInt()}RM)"
+                reps == 1 && rpe != null -> "1RM @ RPE ${WeightFormatter.formatRPE(rpe)}"
                 reps == 1 -> "1RM"
-                rpe != null -> "$reps×${weight.roundToInt()}kg @ RPE ${rpe.toInt()}"
+                rpe != null -> "$reps×${weight.roundToInt()}kg @ RPE ${WeightFormatter.formatRPE(rpe)}"
                 else -> "$reps×${weight.roundToInt()}kg"
             }
 
