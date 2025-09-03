@@ -11,7 +11,6 @@ import android.util.Log
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.time.LocalDate
 
 /**
  * Repository for managing Workout-related data
@@ -42,10 +41,6 @@ class WorkoutRepository(
             workoutDao.getWorkoutById(workoutId)
         }
 
-    suspend fun updateWorkout(workout: Workout) =
-        withContext(ioDispatcher) {
-            workoutDao.updateWorkout(workout)
-        }
 
     suspend fun deleteWorkout(workout: Workout) =
         withContext(ioDispatcher) {
@@ -67,6 +62,7 @@ class WorkoutRepository(
                 deleteWorkout(workout)
             }
         }
+
 
     suspend fun updateWorkoutStatus(
         workoutId: Long,
@@ -104,49 +100,10 @@ class WorkoutRepository(
         )
     }
 
-    suspend fun abandonWorkout(workoutId: Long) =
-        withContext(ioDispatcher) {
-            val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
-            workoutDao.updateWorkout(
-                workout.copy(
-                    status = WorkoutStatus.NOT_STARTED,
-                ),
-            )
-        }
 
-    suspend fun getAllWorkouts(): List<Workout> =
-        withContext(ioDispatcher) {
-            workoutDao.getAllWorkouts()
-        }
 
-    suspend fun getActiveWorkout(): Workout? =
-        withContext(ioDispatcher) {
-            workoutDao.getAllWorkouts().firstOrNull { it.status == WorkoutStatus.IN_PROGRESS }
-        }
 
-    suspend fun getInProgressWorkouts(): List<Workout> =
-        withContext(ioDispatcher) {
-            workoutDao.getAllWorkouts().filter { it.status == WorkoutStatus.IN_PROGRESS }
-        }
 
-    suspend fun getWorkoutsForDateRange(
-        startDate: LocalDate,
-        endDate: LocalDate,
-    ): List<Workout> =
-        withContext(ioDispatcher) {
-            val startTime = System.currentTimeMillis()
-            val startDateTime = startDate.atStartOfDay()
-            val endDateTime = endDate.plusDays(1).atStartOfDay()
-            val workouts = workoutDao.getWorkoutsInDateRange(startDateTime, endDateTime)
-
-            Log.d(
-                TAG,
-                "getWorkoutsForDateRange took ${System.currentTimeMillis() - startTime}ms - " +
-                    "startDate: $startDate, endDate: $endDate, found: ${workouts.size} workouts, " +
-                    "completed: ${workouts.count { it.status == WorkoutStatus.COMPLETED }}"
-            )
-            workouts
-        }
 
     suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> =
         withContext(ioDispatcher) {

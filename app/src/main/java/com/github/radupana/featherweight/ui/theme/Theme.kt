@@ -15,7 +15,6 @@ import androidx.compose.ui.unit.sp
 private val Primary = Color(0xFF4ECDC4) // Teal accent
 private val PrimaryLight = Color(0xFF80E5DB) // Lighter teal
 private val PrimaryDark = Color(0xFF1A9A8F) // Darker teal
-private val Accent = Color(0xFF7C4DFF) // Purple accent for CTAs
 
 // Success/Progress: Energetic gradient
 private val Success = Color(0xFF00E676) // Vibrant green
@@ -232,22 +231,11 @@ private val AppTypography =
 
 // Extended color palette for custom use cases
 object FeatherweightColors {
-    val successGradientStart = Success
-    val successGradientEnd = SuccessDark
-    val primaryGradientStart = Primary
-    val primaryGradientEnd = Accent
-
     @Composable
     fun cardGlassBackground() = MaterialTheme.colorScheme.surface.copy(alpha = 0.1f)
 
     @Composable
     fun cardGlassBorder() = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-
-    @Composable
-    fun shimmerBase() = MaterialTheme.colorScheme.surfaceVariant
-
-    @Composable
-    fun shimmerHighlight() = MaterialTheme.colorScheme.surface
 
     @Composable
     fun primaryGradientColors() =

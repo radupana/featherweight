@@ -68,13 +68,6 @@ class OneRMRepository(
             }
     }
 
-    suspend fun upsertExerciseMax(
-        exerciseVariationId: Long,
-        maxWeight: Float,
-        notes: String? = null,
-    ) {
-        oneRMDao.upsertExerciseMax(exerciseVariationId, maxWeight, notes)
-    }
 
     suspend fun getCurrentMaxesForExercises(
         exerciseIds: List<Long>,
@@ -92,6 +85,7 @@ class OneRMRepository(
     fun getBig4ExercisesWithMaxes(): Flow<List<Big4ExerciseWithOptionalMax>> = oneRMDao.getBig4ExercisesWithMaxes()
 
     fun getOtherExercisesWithMaxes(): Flow<List<OneRMWithExerciseName>> = oneRMDao.getOtherExercisesWithMaxes()
+
 
     suspend fun getOneRMForExercise(exerciseVariationId: Long): Float? {
         val exerciseMax = oneRMDao.getCurrentMax(exerciseVariationId)
@@ -165,10 +159,6 @@ class OneRMRepository(
         )
     }
 
-    suspend fun getOneRMHistoryForExercise(
-        exerciseVariationId: Long,
-        limit: Int = 10,
-    ): List<OneRMHistory> = oneRMDao.getRecentOneRMHistory(exerciseVariationId, limit)
 
     suspend fun getExercise1RM(
         exerciseVariationId: Long,

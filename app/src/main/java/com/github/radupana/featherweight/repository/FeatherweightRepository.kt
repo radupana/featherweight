@@ -48,7 +48,6 @@ import com.github.radupana.featherweight.domain.ExerciseStats
 import com.github.radupana.featherweight.domain.ProgrammeHistoryDetails
 import com.github.radupana.featherweight.domain.ProgrammeSummary
 import com.github.radupana.featherweight.domain.ProgrammeWeekHistory
-import com.github.radupana.featherweight.domain.SmartSuggestions
 import com.github.radupana.featherweight.domain.WorkoutDayInfo
 import com.github.radupana.featherweight.domain.WorkoutHistoryDetail
 import com.github.radupana.featherweight.domain.WorkoutHistoryEntry
@@ -100,7 +99,6 @@ class FeatherweightRepository(
 
     // Initialize GlobalProgressTracker
     private val globalProgressTracker = GlobalProgressTracker(this, db)
-    private val freestyleIntelligenceService = FreestyleIntelligenceService(db.globalExerciseProgressDao())
 
     // Delegate OneRM functionality to OneRMRepository
     val pendingOneRMUpdates: StateFlow<List<PendingOneRMUpdate>> = oneRMRepository.pendingOneRMUpdates
@@ -147,7 +145,6 @@ class FeatherweightRepository(
 
     suspend fun getExerciseById(id: Long) = exerciseRepository.getExerciseById(id)
 
-    suspend fun searchExercises(query: String) = exerciseRepository.searchExercises(query)
 
     suspend fun getExercisesByCategory(category: ExerciseCategory) = exerciseRepository.getExercisesByCategory(category)
 
@@ -412,72 +409,7 @@ class FeatherweightRepository(
 
     private suspend fun getExerciseStats(exerciseVariationId: Long): ExerciseStats? = exerciseRepository.getExerciseStats(exerciseVariationId)
 
-    suspend fun getSmartSuggestions(
-        exerciseVariationId: Long,
-        currentWorkoutId: Long,
-    ): SmartSuggestions? {
-        // Try history first
-        val history = getExerciseHistory(exerciseVariationId, currentWorkoutId)
-        if (history != null && history.sets.isNotEmpty()) {
-            val lastCompletedSets = history.sets.filter { it.isCompleted }
-            if (lastCompletedSets.isNotEmpty()) {
-                val mostCommonWeight =
-                    lastCompletedSets
-                        .groupBy { it.actualWeight }
-                        .maxByOrNull { it.value.size }
-                        ?.key ?: 0f
-                val mostCommonReps =
-                    lastCompletedSets
-                        .groupBy { it.actualReps }
-                        .maxByOrNull { it.value.size }
-                        ?.key ?: 0
-                val avgRpe =
-                    lastCompletedSets
-                        .mapNotNull { it.actualRpe }
-                        .average()
-                        .takeIf { !it.isNaN() }
-                        ?.toFloat()
 
-                return SmartSuggestions(
-                    suggestedWeight = mostCommonWeight,
-                    suggestedReps = mostCommonReps,
-                    suggestedRpe = avgRpe,
-                    lastWorkoutDate = history.lastWorkoutDate,
-                    confidence = "Last workout",
-                    reasoning = "Based on your last workout performance",
-                )
-            }
-        }
-
-        // Fallback to overall stats
-        val stats = getExerciseStats(exerciseVariationId)
-        if (stats != null) {
-            return SmartSuggestions(
-                suggestedWeight = stats.avgWeight,
-                suggestedReps = stats.avgReps,
-                suggestedRpe = stats.avgRpe,
-                lastWorkoutDate = null,
-                confidence = "Average from ${stats.totalSets} sets",
-                reasoning = "Historical average from your past ${stats.totalSets} sets",
-            )
-        }
-
-        return null
-    }
-
-    /**
-     * Enhanced smart suggestions using global progress tracking and RPE analysis
-     */
-    suspend fun getSmartSuggestionsEnhanced(
-        exerciseVariationId: Long,
-        targetReps: Int? = null,
-    ): SmartSuggestions {
-        // Use the freestyle intelligence service for advanced suggestions
-        return freestyleIntelligenceService.getIntelligentSuggestions(
-            exerciseVariationId = exerciseVariationId,
-            targetReps = targetReps,
-        )
-    }
 
     suspend fun getWorkoutById(workoutId: Long): Workout? = workoutRepository.getWorkoutById(workoutId)
 
@@ -558,11 +490,7 @@ class FeatherweightRepository(
             ::getNextProgrammeWorkout,
         )
 
-    // Get workouts for a specific programme
-    suspend fun getWorkoutsByProgramme(programmeId: Long): List<Workout> = programmeRepository.getWorkoutsByProgramme(programmeId)
 
-    // Get programme workout progress
-    suspend fun getProgrammeWorkoutProgress(programmeId: Long): Pair<Int, Int> = programmeRepository.getProgrammeWorkoutProgress(programmeId)
 
     // Get next programme workout to do
     suspend fun getNextProgrammeWorkout(programmeId: Long): NextProgrammeWorkoutInfo? =
@@ -1125,7 +1053,6 @@ class FeatherweightRepository(
 
     suspend fun getCurrentMaxesForExercises(exerciseIds: List<Long>) = oneRMRepository.getCurrentMaxesForExercises(exerciseIds)
 
-    suspend fun getBig4Exercises() = oneRMRepository.getBig4Exercises()
 
     fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>> = oneRMRepository.getAllCurrentMaxesWithNames()
 
@@ -1174,37 +1101,6 @@ class FeatherweightRepository(
 
     // getOneRMForExercise is defined above at line 2015
 
-    suspend fun getRecentPerformance(
-        exerciseVariationId: Long,
-        limit: Int = 10,
-    ): List<com.github.radupana.featherweight.service.PerformanceData> =
-        withContext(Dispatchers.IO) {
-            // Get all workouts and find exercise logs for this variation
-            val allWorkouts = db.workoutDao().getAllWorkouts()
-            val exerciseLogIds = mutableListOf<Long>()
-
-            for (workout in allWorkouts) {
-                val logs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                exerciseLogIds.addAll(logs.filter { it.exerciseVariationId == exerciseVariationId }.map { it.id })
-            }
-
-            if (exerciseLogIds.isEmpty()) return@withContext emptyList()
-
-            // Get recent sets
-            val sets = db.workoutDao().getRecentSetsForExercises(exerciseLogIds, limit)
-
-            sets
-                .map { setLog ->
-                    com.github.radupana.featherweight.service.PerformanceData(
-                        targetReps = setLog.targetReps,
-                        targetWeight = setLog.targetWeight,
-                        actualReps = setLog.actualReps,
-                        actualWeight = setLog.actualWeight,
-                        actualRpe = setLog.actualRpe,
-                        timestamp = setLog.completedAt ?: "",
-                    )
-                }.sortedByDescending { it.timestamp }
-        }
 
     suspend fun getGlobalExerciseProgress(
         exerciseVariationId: Long,
@@ -1234,17 +1130,6 @@ class FeatherweightRepository(
 
     suspend fun getCurrentOneRMEstimate(exerciseId: Long): Float? = oneRMRepository.getCurrentOneRMEstimate(exerciseId)
 
-    suspend fun saveOneRMToHistory(
-        exerciseVariationId: Long,
-        oneRM: Float,
-        context: String,
-        recordedAt: LocalDateTime? = null,
-    ) = oneRMRepository.saveOneRMToHistory(
-        exerciseVariationId = exerciseVariationId,
-        estimatedMax = oneRM,
-        source = context,
-        date = recordedAt ?: LocalDateTime.now(),
-    )
 
     suspend fun getOneRMHistoryForExercise(
         exerciseName: String,
@@ -1954,10 +1839,6 @@ class FeatherweightRepository(
             db.trainingAnalysisDao().getLatestAnalysis()
         }
 
-    suspend fun deleteOldAnalyses(olderThan: LocalDateTime) =
-        withContext(Dispatchers.IO) {
-            db.trainingAnalysisDao().deleteOldAnalyses(olderThan)
-        }
 
     // ParseRequest methods
     suspend fun createParseRequest(rawText: String): Long =

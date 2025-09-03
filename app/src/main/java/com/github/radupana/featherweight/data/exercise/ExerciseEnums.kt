@@ -67,7 +67,6 @@ enum class Equipment(
     BARBELL("Barbell"),
     DUMBBELL("Dumbbell"),
     KETTLEBELL("Kettlebell"),
-    PLATES("Weight Plates"),
     TRAP_BAR("Trap Bar"),
     SAFETY_BAR("Safety Bar"),
     BUFFALO_BAR("Buffalo Bar"),
@@ -79,62 +78,44 @@ enum class Equipment(
     CABLE("Cable Machine"),
     MACHINE("Machine"),
     SMITH_MACHINE("Smith Machine"),
-    LEG_PRESS("Leg Press"),
-    LAT_PULLDOWN("Lat Pulldown"),
-    SEATED_ROW("Seated Row"),
-    CHEST_PRESS("Chest Press Machine"),
-    SHOULDER_PRESS("Shoulder Press Machine"),
-    LEG_CURL("Leg Curl Machine"),
-    LEG_EXTENSION("Leg Extension Machine"),
-    CALF_RAISE("Calf Raise Machine"),
-    BELT_SQUAT("Belt Squat Machine"),
     GHD_MACHINE("GHD Machine"),
 
     // Bodyweight/Basic
     BODYWEIGHT("Bodyweight"),
     PULL_UP_BAR("Pull-up Bar"),
     DIP_STATION("Dip Station"),
-    PARALLEL_BARS("Parallel Bars"),
-    PARALLETTES("Parallettes"),
     RINGS("Gymnastic Rings"),
-    BOX("Plyo Box"),
-    BENCH("Bench"),
-
-    LEG_PRESS_MACHINE("Leg Press Machine"),
-    PREACHER_BENCH("Preacher Bench"),
     AB_WHEEL("Ab Wheel"),
 
     // Accessories
     RESISTANCE_BAND("Resistance Band"),
     BAND("Resistance Band"), // Alias for RESISTANCE_BAND
-    SUSPENSION_TRAINER("Suspension Trainer"),
     TRX("TRX"),
     MEDICINE_BALL("Medicine Ball"),
-    BOSU_BALL("Bosu Ball"),
-    FOAM_ROLLER("Foam Roller"),
     STABILITY_BALL("Stability Ball"),
-    POLE("Pole"),
 
     // Cardio
-    TREADMILL("Treadmill"),
-    BIKE("Exercise Bike"),
     ASSAULT_BIKE("Assault Bike"),
-    ROWING_MACHINE("Rowing Machine"),
     ROWER("Rower"),
-    ELLIPTICAL("Elliptical"),
     SKI_ERG("Ski Erg"),
 
     // Strongman Equipment
-    LOG("Log"),
-    YOKE("Yoke"),
-    SLED("Sled"),
-    TIRE("Tire"),
-    SLEDGEHAMMER("Sledgehammer"),
     ATLAS_STONE("Atlas Stone"),
-    KEG("Keg"),
     SANDBAG("Sandbag"),
     CAR_DEADLIFT("Car Deadlift Frame"),
     BATTLE_ROPES("Battle Ropes"),
+    LOG("Log"), // Used in exercises.json
+    YOKE("Yoke"), // Used in exercises.json
+    SLED("Sled"), // Used in exercises.json
+    TIRE("Tire"), // Used in exercises.json
+    SLEDGEHAMMER("Sledgehammer"), // Used in exercises.json
+    KEG("Keg"), // Used in exercises.json
+
+    // Additional Equipment
+    BENCH("Bench"), // Used in exercises.json
+    BOX("Box"), // Used in exercises.json
+    PARALLETTES("Parallettes"), // Used in exercises.json
+    POLE("Pole"), // Used in exercises.json
 
     NONE("No Equipment"),
     ;
@@ -149,59 +130,58 @@ enum class MovementPattern {
     PULL,
     LUNGE,
     CARRY,
-    ROTATE,
-    ROTATION, // Added for JSON compatibility
+    ROTATION,
 
     // Exercise-specific patterns
     VERTICAL_PUSH,
     HORIZONTAL_PUSH,
     VERTICAL_PULL,
     HORIZONTAL_PULL,
-    PRESS, // Added for JSON compatibility
-    ROW, // Added for JSON compatibility
-    CURL, // Added for JSON compatibility
-    EXTENSION, // Added for JSON compatibility
-    FLY, // Added for JSON compatibility
-    RAISE, // Added for JSON compatibility
-    SHRUG, // Added for JSON compatibility
+    EXTENSION,
+    PRESS, // Used in exercises.json
+    ROW, // Used in exercises.json
+    CURL, // Used in exercises.json
+    FLY, // Used in exercises.json
+    RAISE, // Used in exercises.json
+    SHRUG, // Used in exercises.json
 
     // Core/Stability
     PLANK,
     ANTI_EXTENSION,
     ANTI_ROTATION,
-    CORE, // Added for JSON compatibility
-    CRUNCH, // Added for JSON compatibility
-    ROLLOUT, // Added for JSON compatibility
-    HOLD, // Added for JSON compatibility
-    ISOMETRIC, // Added for JSON compatibility
-    PIKE, // Added for JSON compatibility
-    TUCK, // Added for JSON compatibility
-    ROLL, // Added for JSON compatibility
+    ISOMETRIC,
+    CORE, // Used in exercises.json
+    CRUNCH, // Used in exercises.json
+    ROLLOUT, // Used in exercises.json
+    HOLD, // Used in exercises.json
+    PIKE, // Used in exercises.json
+    TUCK, // Used in exercises.json
+    ROLL, // Used in exercises.json
 
     // Cardio/Conditioning
     GAIT,
     CONDITIONING,
     JUMP,
-    SPRINT, // Added for JSON compatibility
-    WALK, // Added for JSON compatibility
-    STEP, // Added for JSON compatibility
-    CYCLE, // Added for JSON compatibility
-    CRAWL, // Added for JSON compatibility
-    LOCOMOTION, // Added for JSON compatibility
+    SPRINT, // Used in exercises.json
+    WALK, // Used in exercises.json
+    STEP, // Used in exercises.json
+    CYCLE, // Used in exercises.json
+    CRAWL, // Used in exercises.json
+    LOCOMOTION, // Used in exercises.json
 
-    // Movement specific patterns from JSON
-    ABDUCTION, // Added for JSON compatibility
-    ADDUCTION, // Added for JSON compatibility
-    CIRCLE, // Added for JSON compatibility
-    COMPLEX, // Added for JSON compatibility
-    EXPLOSIVE, // Added for JSON compatibility
-    FLIP, // Added for JSON compatibility
-    KICK, // Added for JSON compatibility
-    LIFT, // Added for JSON compatibility
-    OLYMPIC, // Added for JSON compatibility
-    SLAM, // Added for JSON compatibility
-    SWING, // Added for JSON compatibility
-    WAVE, // Added for JSON compatibility
+    // Specialized movements
+    ABDUCTION, // Used in exercises.json
+    ADDUCTION, // Used in exercises.json
+    CIRCLE, // Used in exercises.json
+    COMPLEX, // Used in exercises.json
+    EXPLOSIVE, // Used in exercises.json
+    FLIP, // Used in exercises.json
+    KICK, // Used in exercises.json
+    LIFT, // Used in exercises.json
+    OLYMPIC, // Used in exercises.json
+    SLAM, // Used in exercises.json
+    SWING, // Used in exercises.json
+    WAVE, // Used in exercises.json
     ;
 
 }
@@ -222,31 +202,12 @@ enum class ExerciseDifficulty(
     }
 }
 
-enum class ExerciseType(
-    val displayName: String,
-) {
-    STRENGTH("Strength Training"),
-    CARDIO("Cardiovascular"),
-    FLEXIBILITY("Flexibility/Mobility"),
-    POWER("Power/Explosive"),
-    ENDURANCE("Muscular Endurance"),
-    BALANCE("Balance/Stability"),
-    REHABILITATION("Rehabilitation"),
-    WARMUP("Warm-up"),
-    COOLDOWN("Cool-down"),
-    CONDITIONING("Conditioning"),
-    SKILL("Skill Work"),
-}
-
 enum class InstructionType {
     SETUP,
     EXECUTION,
     COMMON_MISTAKES,
     SAFETY,
     BREATHING,
-    CUES,
-    VARIATIONS,
-    TIPS,
 }
 
 enum class ExerciseRelationType {
@@ -255,9 +216,6 @@ enum class ExerciseRelationType {
     ALTERNATIVE,
     SUPERSET_PARTNER,
     COMPOUND_PART,
-    WARMUP_FOR,
-    COOLDOWN_FOR,
-    SIMILAR_PATTERN,
 }
 
 enum class RMScalingType(

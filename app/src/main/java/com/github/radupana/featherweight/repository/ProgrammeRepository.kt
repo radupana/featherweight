@@ -5,17 +5,10 @@ import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.programme.Programme
-import com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats
-import com.github.radupana.featherweight.data.programme.ProgrammeInsights
 import com.github.radupana.featherweight.data.programme.ProgrammeStatus
-import com.github.radupana.featherweight.data.programme.ProgrammeWeek
-import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
-import com.github.radupana.featherweight.data.programme.StrengthImprovement
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.time.Duration
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
@@ -49,42 +42,10 @@ class ProgrammeRepository(
             programmeDao.getProgrammeWithDetails(programmeId)
         }
 
-    suspend fun insertProgramme(programme: Programme): Long =
-        withContext(ioDispatcher) {
-            programmeDao.insertProgramme(programme)
-        }
 
-    suspend fun updateProgramme(programme: Programme) =
-        withContext(ioDispatcher) {
-            programmeDao.updateProgramme(programme)
-        }
 
-    suspend fun deleteProgramme(programme: Programme) =
-        withContext(ioDispatcher) {
-            programmeDao.deleteProgramme(programme)
-        }
 
-    suspend fun activateProgramme(programmeId: Long) =
-        withContext(ioDispatcher) {
-            programmeDao.deactivateAllProgrammes()
 
-            programmeDao.updateProgrammeStatus(programmeId, ProgrammeStatus.IN_PROGRESS)
-
-            val programme = programmeDao.getProgrammeById(programmeId)
-            if (programme != null && programme.startedAt == null) {
-                programmeDao.updateProgramme(
-                    programme.copy(
-                        startedAt = LocalDateTime.now(),
-                        status = ProgrammeStatus.IN_PROGRESS,
-                    ),
-                )
-            }
-        }
-
-    suspend fun deactivateProgramme(programmeId: Long) =
-        withContext(ioDispatcher) {
-            programmeDao.updateProgrammeStatus(programmeId, ProgrammeStatus.NOT_STARTED)
-        }
 
     suspend fun getProgrammeWorkoutProgress(programmeId: Long): Pair<Int, Int> =
         withContext(ioDispatcher) {
@@ -109,106 +70,12 @@ class ProgrammeRepository(
             workoutDao.getInProgressWorkoutCountByProgramme(programmeId)
         }
 
-    suspend fun updateProgrammeProgressAfterWorkout(programmeId: Long) =
-        withContext(ioDispatcher) {
-            if (programmeDao.getProgrammeById(programmeId) == null) return@withContext
 
-            val (completedCount, totalCount) = getProgrammeWorkoutProgress(programmeId)
 
-            if (completedCount >= totalCount && totalCount > 0) {
-                completeProgramme(programmeId)
-            }
-        }
 
-    private suspend fun completeProgramme(programmeId: Long) =
-        withContext(ioDispatcher) {
-            val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext
 
-            programmeDao.updateProgramme(
-                programme.copy(
-                    status = ProgrammeStatus.COMPLETED,
-                    completedAt = LocalDateTime.now(),
-                ),
-            )
-        }
 
-    suspend fun insertProgrammeWeek(week: ProgrammeWeek): Long =
-        withContext(ioDispatcher) {
-            programmeDao.insertProgrammeWeek(week)
-        }
 
-    suspend fun getProgrammeWeeks(
-        @Suppress("UNUSED_PARAMETER") programmeId: Long,
-    ): List<ProgrammeWeek> =
-        withContext(ioDispatcher) {
-            emptyList()
-        }
-
-    suspend fun insertProgrammeWorkout(workout: ProgrammeWorkout): Long =
-        withContext(ioDispatcher) {
-            programmeDao.insertProgrammeWorkout(workout)
-        }
-
-    suspend fun getProgrammeWorkoutsForWeek(
-        @Suppress("UNUSED_PARAMETER") weekId: Long,
-    ): List<ProgrammeWorkout> =
-        withContext(ioDispatcher) {
-            emptyList()
-        }
-
-    suspend fun calculateProgrammeCompletionStats(programmeId: Long): ProgrammeCompletionStats? =
-        withContext(ioDispatcher) {
-            val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext null
-
-            val workouts = workoutDao.getWorkoutsByProgramme(programmeId)
-            val completedWorkouts = workouts.filter { it.status == WorkoutStatus.COMPLETED }
-
-            val totalWorkouts = workoutDao.getTotalProgrammeWorkoutCount(programmeId)
-            val completedCount = completedWorkouts.size
-            if (totalWorkouts > 0) {
-                (completedCount.toFloat() / totalWorkouts * 100).toInt()
-            } else {
-                0
-            }
-
-            val startDate = programme.startedAt?.toLocalDate()
-            val endDate = programme.completedAt?.toLocalDate() ?: LocalDate.now()
-            if (startDate != null) {
-                java.time.temporal.ChronoUnit.WEEKS
-                    .between(startDate, endDate)
-                    .toInt()
-            } else {
-                0
-            }
-
-            val totalVolume =
-                workouts
-                    .sumOf { workout ->
-                        0.0
-                    }.toFloat()
-
-            val strengthImprovements = emptyList<StrengthImprovement>()
-
-            ProgrammeCompletionStats(
-                programmeId = programmeId,
-                programmeName = programme.name,
-                startDate = programme.startedAt ?: programme.createdAt,
-                endDate = programme.completedAt ?: LocalDateTime.now(),
-                totalWorkouts = totalWorkouts,
-                completedWorkouts = completedCount,
-                totalVolume = totalVolume,
-                averageWorkoutDuration = Duration.ZERO, // Would need to calculate from workout durations
-                totalPRs = 0, // Would need to calculate from PR records
-                strengthImprovements = strengthImprovements,
-                averageStrengthImprovement = 0f, // Would need to calculate
-                insights =
-                    ProgrammeInsights(
-                        totalTrainingDays = completedCount,
-                        mostConsistentDay = null,
-                        averageRestDaysBetweenWorkouts = 0f,
-                    ), // Would need to calculate insights
-            )
-        }
 
     suspend fun updateProgrammeCompletionNotes(
         programmeId: Long,
