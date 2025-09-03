@@ -1,7 +1,7 @@
 package com.github.radupana.featherweight.service
 
-import android.util.Log
 import com.github.radupana.featherweight.data.ParsedExercise
+import com.github.radupana.featherweight.logging.BugfenderLogger
 import com.github.radupana.featherweight.data.ParsedProgramme
 import com.github.radupana.featherweight.data.ParsedSet
 import com.github.radupana.featherweight.data.ParsedWeek
@@ -38,36 +38,34 @@ open class ProgrammeTextParser {
     suspend fun parseText(request: TextParsingRequest): TextParsingResult =
         withContext(Dispatchers.IO) {
             try {
-                Log.d(TAG, "=== Starting Programme Text Parsing ===")
-                Log.d(TAG, "Request text length: ${request.rawText.length} characters")
-                Log.d(TAG, "Full request text:\n${request.rawText}")
-                Log.d(TAG, "User maxes provided: ${request.userMaxes.size}")
+                val correlationId = BugfenderLogger.createCorrelationId("programme-parse")
+                BugfenderLogger.i(TAG, "Starting programme parsing - text length: ${request.rawText.length}, maxes: ${request.userMaxes.size}, correlationId: $correlationId")
 
                 val validationResult = validateInput(request.rawText)
                 if (!validationResult.isValid) {
-                    Log.w(TAG, "Validation failed: ${validationResult.error}")
+                    BugfenderLogger.w(TAG, "Validation failed: ${validationResult.error}")
                     return@withContext TextParsingResult(
                         success = false,
                         error = validationResult.error,
                     )
                 }
 
-                Log.d(TAG, "Validation passed, calling OpenAI API...")
+                BugfenderLogger.d(TAG, "Validation passed, calling OpenAI API...")
                 val parsedJson = callOpenAIAPI(request)
-                Log.d(TAG, "Received parsed JSON response, length: ${parsedJson.length}")
-                Log.d(TAG, "Full parsed JSON:\n$parsedJson")
+                BugfenderLogger.d(TAG, "Received parsed JSON response, length: ${parsedJson.length}")
+                BugfenderLogger.d(TAG, "Full parsed JSON:\n$parsedJson")
 
-                Log.d(TAG, "Parsing JSON to programme object...")
+                BugfenderLogger.d(TAG, "Parsing JSON to programme object...")
                 val programme = parseJsonToProgramme(parsedJson, request.rawText)
 
-                Log.d(TAG, "Programme parsed successfully!")
-                Log.d(TAG, "Programme name: ${programme.name}")
-                Log.d(TAG, "Duration: ${programme.durationWeeks} weeks")
-                Log.d(TAG, "Number of weeks: ${programme.weeks.size}")
+                BugfenderLogger.d(TAG, "Programme parsed successfully!")
+                BugfenderLogger.d(TAG, "Programme name: ${programme.name}")
+                BugfenderLogger.d(TAG, "Duration: ${programme.durationWeeks} weeks")
+                BugfenderLogger.d(TAG, "Number of weeks: ${programme.weeks.size}")
                 programme.weeks.forEachIndexed { weekIdx, week ->
-                    Log.d(TAG, "  Week ${weekIdx + 1}: ${week.workouts.size} workouts")
+                    BugfenderLogger.d(TAG, "  Week ${weekIdx + 1}: ${week.workouts.size} workouts")
                     week.workouts.forEachIndexed { workoutIdx, workout ->
-                        Log.d(TAG, "    Workout ${workoutIdx + 1}: ${workout.exercises.size} exercises")
+                        BugfenderLogger.d(TAG, "    Workout ${workoutIdx + 1}: ${workout.exercises.size} exercises")
                     }
                 }
 
@@ -76,10 +74,10 @@ open class ProgrammeTextParser {
                     programme = programme,
                 )
             } catch (e: IOException) {
-                Log.e(TAG, "=== Programme Parsing FAILED (IOException) ===")
-                Log.e(TAG, "Network or API error: ${e.message}")
-                Log.e(TAG, "Exception type: ${e.javaClass.name}")
-                Log.e(TAG, "Full stack trace:", e)
+                BugfenderLogger.e(TAG, "=== Programme Parsing FAILED (IOException) ===")
+                BugfenderLogger.e(TAG, "Network or API error: ${e.message}")
+                BugfenderLogger.e(TAG, "Exception type: ${e.javaClass.name}")
+                BugfenderLogger.e(TAG, "Full stack trace:", e)
 
                 val userFriendlyError =
                     when {
@@ -94,10 +92,10 @@ open class ProgrammeTextParser {
                     error = userFriendlyError,
                 )
             } catch (e: IllegalArgumentException) {
-                Log.e(TAG, "=== Programme Parsing FAILED (IllegalArgumentException) ===")
-                Log.e(TAG, "Error message: ${e.message}")
-                Log.e(TAG, "Exception type: ${e.javaClass.name}")
-                Log.e(TAG, "Full stack trace:", e)
+                BugfenderLogger.e(TAG, "=== Programme Parsing FAILED (IllegalArgumentException) ===")
+                BugfenderLogger.e(TAG, "Error message: ${e.message}")
+                BugfenderLogger.e(TAG, "Exception type: ${e.javaClass.name}")
+                BugfenderLogger.e(TAG, "Full stack trace:", e)
 
                 val userFriendlyError =
                     when {
@@ -116,10 +114,10 @@ open class ProgrammeTextParser {
                     error = userFriendlyError,
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "=== Programme Parsing FAILED (Unexpected Exception) ===")
-                Log.e(TAG, "Unexpected error type: ${e.javaClass.name}")
-                Log.e(TAG, "Error message: ${e.message}")
-                Log.e(TAG, "Full stack trace:", e)
+                BugfenderLogger.e(TAG, "=== Programme Parsing FAILED (Unexpected Exception) ===")
+                BugfenderLogger.e(TAG, "Unexpected error type: ${e.javaClass.name}")
+                BugfenderLogger.e(TAG, "Error message: ${e.message}")
+                BugfenderLogger.e(TAG, "Full stack trace:", e)
 
                 TextParsingResult(
                     success = false,
@@ -140,19 +138,19 @@ open class ProgrammeTextParser {
         return ValidationResult(true)
     }
 
-    internal open suspend fun callOpenAIAPI(request: TextParsingRequest): String {
+    internal open suspend fun callOpenAIAPI(request: TextParsingRequest, correlationId: String? = null): String {
         val remoteConfigService = RemoteConfigService.getInstance()
         val effectiveApiKey = remoteConfigService.getOpenAIApiKey()
 
         if (effectiveApiKey.isNullOrEmpty()) {
-            Log.e(TAG, "API key not available from Remote Config")
+            BugfenderLogger.e(TAG, "API key not available from Remote Config")
             throw IllegalArgumentException("OpenAI API key not configured. Please check your internet connection and try again.")
         }
 
         val prompt = buildPrompt(request)
-        Log.d(TAG, "=== OpenAI API Request ===")
-        Log.d(TAG, "Prompt length: ${prompt.length} characters")
-        Log.d(TAG, "Full prompt:\n$prompt")
+        BugfenderLogger.d(TAG, "=== OpenAI API Request ===")
+        BugfenderLogger.d(TAG, "Prompt length: ${prompt.length} characters")
+        BugfenderLogger.d(TAG, "Full prompt:\n$prompt")
 
         val requestBody =
             JsonObject().apply {
@@ -183,8 +181,8 @@ open class ProgrammeTextParser {
                 addProperty("max_completion_tokens", 15000)
             }
 
-        Log.d(TAG, "Request body JSON:\n$requestBody")
-        Log.d(TAG, "Calling OpenAI API with model: gpt-5-mini")
+        BugfenderLogger.d(TAG, "Request body JSON:\n$requestBody")
+        BugfenderLogger.d(TAG, "Calling OpenAI API with model: gpt-5-mini")
 
         val httpRequest =
             Request
@@ -198,25 +196,25 @@ open class ProgrammeTextParser {
         val response = client.newCall(httpRequest).execute()
         val responseBody = response.body.string()
 
-        Log.d(TAG, "=== OpenAI API Response ===")
-        Log.d(TAG, "Response code: ${response.code}")
-        Log.d(TAG, "Response body size: ${responseBody.length} chars")
-        Log.d(TAG, "Full response body:\n$responseBody")
+        BugfenderLogger.d(TAG, "=== OpenAI API Response ===")
+        BugfenderLogger.d(TAG, "Response code: ${response.code}")
+        BugfenderLogger.d(TAG, "Response body size: ${responseBody.length} chars")
+        BugfenderLogger.d(TAG, "Full response body:\n$responseBody")
 
         if (!response.isSuccessful) {
-            Log.e(TAG, "API call failed with status ${response.code}")
+            BugfenderLogger.e(TAG, "API call failed with status ${response.code}")
             val errorJson =
                 try {
                     JsonParser.parseString(responseBody).asJsonObject
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to parse error response as JSON", e)
+                    BugfenderLogger.e(TAG, "Failed to parse error response as JSON", e)
                     null
                 }
             val errorMessage =
                 errorJson?.getAsJsonObject("error")?.get("message")?.asString
                     ?: "API call failed with status ${response.code}"
 
-            Log.e(TAG, "Error message: $errorMessage")
+            BugfenderLogger.e(TAG, "Error message: $errorMessage")
             throw IOException(errorMessage)
         }
 
@@ -338,8 +336,8 @@ open class ProgrammeTextParser {
         jsonString: String,
         rawText: String,
     ): ParsedProgramme {
-        Log.d(TAG, "=== parseJsonToProgramme START ===")
-        Log.d(TAG, "JSON string length: ${jsonString.length}")
+        BugfenderLogger.d(TAG, "=== parseJsonToProgramme START ===")
+        BugfenderLogger.d(TAG, "JSON string length: ${jsonString.length}")
 
         require(jsonString.isNotBlank()) { "JSON string is blank" }
 
@@ -347,51 +345,51 @@ open class ProgrammeTextParser {
             try {
                 JsonParser.parseString(jsonString).asJsonObject
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to parse JSON string", e)
-                Log.e(TAG, "Invalid JSON content:\n$jsonString")
+                BugfenderLogger.e(TAG, "Failed to parse JSON string", e)
+                BugfenderLogger.e(TAG, "Invalid JSON content:\n$jsonString")
                 throw IllegalArgumentException("Failed to parse JSON: ${e.message}", e)
             }
 
-        Log.d(TAG, "JSON parsed successfully")
-        Log.d(TAG, "Top-level keys: ${json.keySet()}")
+        BugfenderLogger.d(TAG, "JSON parsed successfully")
+        BugfenderLogger.d(TAG, "Top-level keys: ${json.keySet()}")
 
         json.get("parsing_logic")?.let { logicElement ->
             if (!logicElement.isJsonNull && logicElement.isJsonObject) {
                 val logic = logicElement.asJsonObject
-                Log.d(TAG, "=== PARSING LOGIC DEBUG ===")
+                BugfenderLogger.d(TAG, "=== PARSING LOGIC DEBUG ===")
                 logic.get("workout_type")?.let { workoutType ->
                     if (!workoutType.isJsonNull) {
-                        Log.d(TAG, "Workout type detected: ${workoutType.asString}")
+                        BugfenderLogger.d(TAG, "Workout type detected: ${workoutType.asString}")
                     }
                 }
                 logic.get("disambiguation_applied")?.let { disambig ->
                     if (disambig.isJsonArray) {
                         disambig.asJsonArray.forEach { decision ->
-                            Log.d(TAG, "Disambiguation: ${decision.asString}")
+                            BugfenderLogger.d(TAG, "Disambiguation: ${decision.asString}")
                         }
                     }
                 }
                 logic.get("set_interpretation")?.let { setInterp ->
                     if (setInterp.isJsonArray) {
                         setInterp.asJsonArray.forEach { interpretation ->
-                            Log.d(TAG, "Set interpretation: ${interpretation.asString}")
+                            BugfenderLogger.d(TAG, "Set interpretation: ${interpretation.asString}")
                         }
                     }
                 }
-                Log.d(TAG, "=== END PARSING LOGIC ===")
+                BugfenderLogger.d(TAG, "=== END PARSING LOGIC ===")
             }
         }
 
         val name = json.get("name")?.asString ?: "Imported Programme"
         val durationWeeks = json.get("duration_weeks")?.asInt ?: 1
-        Log.d(TAG, "Programme name: $name, duration: $durationWeeks weeks")
+        BugfenderLogger.d(TAG, "Programme name: $name, duration: $durationWeeks weeks")
         val description = ""
         val programmeType = "GENERAL_FITNESS"
         val difficulty = "INTERMEDIATE"
 
         val weeks = mutableListOf<ParsedWeek>()
         val weeksArray = json.getAsJsonArray("weeks")
-        Log.d(TAG, "Found ${weeksArray?.size() ?: 0} weeks in JSON")
+        BugfenderLogger.d(TAG, "Found ${weeksArray?.size() ?: 0} weeks in JSON")
 
         weeksArray?.forEach { weekElement ->
             val weekObj = weekElement.asJsonObject
@@ -412,16 +410,16 @@ open class ProgrammeTextParser {
 
                 val exerciseMap = mutableMapOf<String, MutableList<ParsedSet>>()
                 val exercisesArray = workoutObj.getAsJsonArray("exercises")
-                Log.d(TAG, "    Workout has ${exercisesArray?.size() ?: 0} exercises")
+                BugfenderLogger.d(TAG, "    Workout has ${exercisesArray?.size() ?: 0} exercises")
 
                 exercisesArray?.forEach { exerciseElement ->
                     val exerciseObj = exerciseElement.asJsonObject
                     val exerciseName = exerciseObj.get("name")?.asString ?: "Unknown Exercise"
-                    Log.d(TAG, "      Processing exercise: $exerciseName")
+                    BugfenderLogger.d(TAG, "      Processing exercise: $exerciseName")
 
                     val sets = mutableListOf<ParsedSet>()
                     val setsArray = exerciseObj.getAsJsonArray("sets")
-                    Log.d(TAG, "        Exercise has ${setsArray?.size() ?: 0} sets")
+                    BugfenderLogger.d(TAG, "        Exercise has ${setsArray?.size() ?: 0} sets")
 
                     setsArray?.forEach { setElement ->
                         val setObj = setElement.asJsonObject
@@ -437,12 +435,12 @@ open class ProgrammeTextParser {
                     val existingSets = exerciseMap[exerciseName]
                     if (existingSets != null) {
                         existingSets.addAll(sets)
-                        Log.w(TAG, "DUPLICATE EXERCISE FOUND: $exerciseName")
-                        Log.w(TAG, "  Existing sets: ${existingSets.size - sets.size}, new sets: ${sets.size}")
-                        Log.w(TAG, "  Total sets after merge: ${existingSets.size}")
+                        BugfenderLogger.w(TAG, "DUPLICATE EXERCISE FOUND: $exerciseName")
+                        BugfenderLogger.w(TAG, "  Existing sets: ${existingSets.size - sets.size}, new sets: ${sets.size}")
+                        BugfenderLogger.w(TAG, "  Total sets after merge: ${existingSets.size}")
                     } else {
                         exerciseMap[exerciseName] = sets
-                        Log.d(TAG, "        Added $exerciseName with ${sets.size} sets")
+                        BugfenderLogger.d(TAG, "        Added $exerciseName with ${sets.size} sets")
                     }
                 }
 
@@ -478,14 +476,14 @@ open class ProgrammeTextParser {
                     phase = null,
                 ),
             )
-            Log.d(TAG, "  Week $weekNumber added with ${workouts.size} workouts")
+            BugfenderLogger.d(TAG, "  Week $weekNumber added with ${workouts.size} workouts")
         }
 
-        Log.d(TAG, "=== parseJsonToProgramme COMPLETE ===")
-        Log.d(TAG, "Final programme: $name")
-        Log.d(TAG, "Total weeks: ${weeks.size}")
-        Log.d(TAG, "Total workouts: ${weeks.sumOf { it.workouts.size }}")
-        Log.d(TAG, "Total exercises: ${weeks.sumOf { week -> week.workouts.sumOf { it.exercises.size } }}")
+        BugfenderLogger.d(TAG, "=== parseJsonToProgramme COMPLETE ===")
+        BugfenderLogger.d(TAG, "Final programme: $name")
+        BugfenderLogger.d(TAG, "Total weeks: ${weeks.size}")
+        BugfenderLogger.d(TAG, "Total workouts: ${weeks.sumOf { it.workouts.size }}")
+        BugfenderLogger.d(TAG, "Total exercises: ${weeks.sumOf { week -> week.workouts.sumOf { it.exercises.size } }}")
 
         return ParsedProgramme(
             name = name,

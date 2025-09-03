@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.ExerciseLog
@@ -14,6 +13,7 @@ import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.domain.ExerciseHistory
+import com.github.radupana.featherweight.logging.BugfenderLogger
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
 import com.github.radupana.featherweight.service.OneRMService
@@ -96,10 +96,10 @@ class WorkoutViewModel(
                 // Reload 1RM estimates after update
                 loadOneRMEstimatesForCurrentExercises()
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to apply 1RM update", e)
+                BugfenderLogger.e(TAG, "Failed to apply 1RM update", e)
                 // Failed to apply 1RM update - operation will be retried
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when applying 1RM update", e)
+                BugfenderLogger.e(TAG, "Invalid state when applying 1RM update", e)
                 // Failed to apply 1RM update - operation will be retried
             }
         }
@@ -208,10 +208,10 @@ class WorkoutViewModel(
                 val detailsMap = exercises.associateBy { it.id }
                 exerciseDetailsMap.value = detailsMap
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to load exercises", e)
+                BugfenderLogger.e(TAG, "Failed to load exercises", e)
                 // Failed to load exercises - will retry on next navigation
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when loading exercises", e)
+                BugfenderLogger.e(TAG, "Invalid state when loading exercises", e)
                 // Failed to load exercises - will retry on next navigation
             }
         }
@@ -248,10 +248,10 @@ class WorkoutViewModel(
                                     sets.count { it.isCompleted }
                                 }
                             } catch (e: android.database.sqlite.SQLiteException) {
-                                Log.e(TAG, "Failed to calculate completed sets for workout ${summary.id}", e)
+                                BugfenderLogger.e(TAG, "Failed to calculate completed sets for workout ${summary.id}", e)
                                 0
                             } catch (e: IllegalStateException) {
-                                Log.e(TAG, "Invalid state when calculating completed sets for workout ${summary.id}", e)
+                                BugfenderLogger.e(TAG, "Invalid state when calculating completed sets for workout ${summary.id}", e)
                                 0
                             }
 
@@ -382,10 +382,10 @@ class WorkoutViewModel(
                     try {
                         repository.getProgrammeById(workout.programmeId)?.name
                     } catch (e: android.database.sqlite.SQLiteException) {
-                        Log.e(TAG, "Failed to get programme name for ID ${workout.programmeId}", e)
+                        BugfenderLogger.e(TAG, "Failed to get programme name for ID ${workout.programmeId}", e)
                         null
                     } catch (e: IllegalStateException) {
-                        Log.e(TAG, "Invalid state when getting programme name for ID ${workout.programmeId}", e)
+                        BugfenderLogger.e(TAG, "Invalid state when getting programme name for ID ${workout.programmeId}", e)
                         null
                     }
                 } else {
@@ -568,8 +568,8 @@ class WorkoutViewModel(
         workoutIndex: Int,
         parsedWorkout: com.github.radupana.featherweight.data.ParsedWorkout,
     ) {
-        Log.d("WorkoutViewModel", "startTemplateEdit called: week=$weekIndex, workout=$workoutIndex")
-        Log.d("WorkoutViewModel", "ParsedWorkout: $parsedWorkout")
+        BugfenderLogger.d("WorkoutViewModel", "startTemplateEdit called: week=$weekIndex, workout=$workoutIndex")
+        BugfenderLogger.d("WorkoutViewModel", "ParsedWorkout: $parsedWorkout")
 
         viewModelScope.launch {
             // Clear any existing workout
@@ -635,11 +635,11 @@ class WorkoutViewModel(
                                 isCompleted = false,
                             )
 
-                        Log.d("WorkoutViewModel", "  SetLog created: targetReps=${setLog.targetReps}, targetWeight=${setLog.targetWeight}, targetRpe=${setLog.targetRpe}")
+                        BugfenderLogger.d("WorkoutViewModel", "  SetLog created: targetReps=${setLog.targetReps}, targetWeight=${setLog.targetWeight}, targetRpe=${setLog.targetRpe}")
                         tempSets.add(setLog)
                     }
                 } else {
-                    Log.w("WorkoutViewModel", "Exercise not found: ${parsedExercise.exerciseName} (ID: ${parsedExercise.matchedExerciseId})")
+                    BugfenderLogger.w("WorkoutViewModel", "Exercise not found: ${parsedExercise.exerciseName} (ID: ${parsedExercise.matchedExerciseId})")
                 }
             }
 
@@ -795,10 +795,10 @@ class WorkoutViewModel(
                 val maxes = repository.getCurrentMaxesForExercises(exerciseIds)
                 _oneRMEstimates.value = maxes.filterValues { it > 0 }
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to load 1RM estimates", e)
+                BugfenderLogger.e(TAG, "Failed to load 1RM estimates", e)
                 // Failed to load 1RM estimates - will show without estimates
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when loading 1RM estimates", e)
+                BugfenderLogger.e(TAG, "Invalid state when loading 1RM estimates", e)
                 // Failed to load 1RM estimates - will show without estimates
             }
         }
@@ -962,9 +962,9 @@ class WorkoutViewModel(
                     repository.updateExerciseOrder(exercise.id, index)
                 }
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Error reordering exercises", e)
+                BugfenderLogger.e(TAG, "Error reordering exercises", e)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when reordering exercises", e)
+                BugfenderLogger.e(TAG, "Invalid state when reordering exercises", e)
             }
         }
     }
@@ -1295,9 +1295,9 @@ class WorkoutViewModel(
                     )
             }
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e(TAG, "PR detection failed for set $setId", e)
+            BugfenderLogger.e(TAG, "PR detection failed for set $setId", e)
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Invalid state during PR detection for set $setId", e)
+            BugfenderLogger.e(TAG, "Invalid state during PR detection for set $setId", e)
         }
     }
 
@@ -1325,9 +1325,9 @@ class WorkoutViewModel(
                 persistOneRMUpdate(exerciseLog.exerciseVariationId, completedSet, newEstimate, currentEstimate)
             }
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e(TAG, "Failed to update 1RM estimate", e)
+            BugfenderLogger.e(TAG, "Failed to update 1RM estimate", e)
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Invalid state when updating 1RM estimate", e)
+            BugfenderLogger.e(TAG, "Invalid state when updating 1RM estimate", e)
         }
     }
 
@@ -1547,40 +1547,9 @@ class WorkoutViewModel(
                     _swappingExercise.value = null
                 }
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to swap exercise", e)
+                BugfenderLogger.e(TAG, "Failed to swap exercise", e)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when swapping exercise", e)
-            }
-        }
-    }
-
-    fun reorderExercisesInstantly(
-        fromIndex: Int,
-        toIndex: Int,
-    ) {
-        if (!canEditWorkout()) return
-
-        val exercises = _selectedWorkoutExercises.value.toMutableList()
-        if (fromIndex in exercises.indices && toIndex in exercises.indices && fromIndex != toIndex) {
-            // Move the item in the list
-            val item = exercises.removeAt(fromIndex)
-            exercises.add(toIndex, item)
-
-            // Update the exerciseOrder property in each object to match its new position
-            val updatedExercises =
-                exercises.mapIndexed { index, exercise ->
-                    exercise.copy(exerciseOrder = index)
-                }
-
-            // Update the UI state immediately for smooth animation
-            _selectedWorkoutExercises.value = updatedExercises
-
-            // Update the database in the background
-            viewModelScope.launch {
-                // Update all exercise orders in a single transaction
-                updatedExercises.forEach { exercise ->
-                    repository.updateExerciseOrder(exercise.id, exercise.exerciseOrder)
-                }
+                BugfenderLogger.e(TAG, "Invalid state when swapping exercise", e)
             }
         }
     }
@@ -1650,9 +1619,9 @@ class WorkoutViewModel(
                             workoutName = "Repeat Workout",
                         )
                 } catch (e: android.database.sqlite.SQLiteException) {
-                    Log.e(TAG, "Error repeating workout", e)
+                    BugfenderLogger.e(TAG, "Error repeating workout", e)
                 } catch (e: IllegalStateException) {
-                    Log.e(TAG, "Invalid state when repeating workout", e)
+                    BugfenderLogger.e(TAG, "Invalid state when repeating workout", e)
                 }
             }
         }
@@ -1741,10 +1710,10 @@ class WorkoutViewModel(
             // Notify that workout is ready for navigation
             onReady?.invoke()
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e(TAG, "Error starting programme workout", e)
+            BugfenderLogger.e(TAG, "Error starting programme workout", e)
             _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Invalid state when starting programme workout", e)
+            BugfenderLogger.e(TAG, "Invalid state when starting programme workout", e)
             _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
         }
     }
@@ -1754,76 +1723,6 @@ class WorkoutViewModel(
         val activeProgramme = repository.getActiveProgramme() ?: return null
         return repository.getNextProgrammeWorkout(activeProgramme.id)
     }
-
-    // Get programme display name for current workout
-    fun getProgrammeDisplayName(): String? {
-        val state = _workoutState.value
-        return if (state.isProgrammeWorkout) {
-            buildString {
-                state.programmeName?.let { append(it) }
-                if (state.weekNumber != null && state.dayNumber != null) {
-                    if (isNotEmpty()) append(" - ")
-                    append("Week ${state.weekNumber}, Day ${state.dayNumber}")
-                }
-                state.programmeWorkoutName?.let { name ->
-                    if (isNotEmpty()) append("\n")
-                    append(name)
-                }
-            }.takeIf { it.isNotEmpty() }
-        } else {
-            null
-        }
-    }
-
-    // Get programme progress information
-    suspend fun getProgrammeProgress(): Pair<Int, Int>? {
-        val state = _workoutState.value
-        return if (state.isProgrammeWorkout && state.programmeId != null) {
-            repository.getProgrammeWorkoutProgress(state.programmeId)
-        } else {
-            null
-        }
-    }
-
-    // ===== ENHANCED SET MANAGEMENT FOR TARGET/ACTUAL =====
-
-    fun updateSetTarget(
-        setId: Long,
-        targetReps: Int,
-        targetWeight: Float?,
-    ) {
-        if (!canEditWorkout()) return
-
-        viewModelScope.launch {
-            val currentSets = _selectedExerciseSets.value
-            val currentSet = currentSets.firstOrNull { it.id == setId }
-            if (currentSet != null) {
-                val updatedSet =
-                    currentSet.copy(
-                        targetReps = targetReps,
-                        targetWeight = targetWeight,
-                    )
-
-                // Update the set in the local state immediately
-                val updatedSets =
-                    currentSets.map { set ->
-                        if (set.id == setId) updatedSet else set
-                    }
-                _selectedExerciseSets.value = updatedSets
-
-                // Persist to database
-                repository.updateSetLog(updatedSet)
-            }
-        }
-    }
-
-    // ===== PR CELEBRATION METHODS =====
-
-    // ===== INTELLIGENT SUGGESTIONS =====
-
-    // Removed weight suggestion feature - will be reimplemented later with better intelligence
-
-    // ===== REST TIMER FUNCTIONS =====
 
     private fun startRestTimer(seconds: Int) {
         restTimerJob?.cancel()
@@ -1916,7 +1815,7 @@ class WorkoutViewModel(
         val now = LocalDateTime.now()
         if (now.isAfter(endTime) || now.isEqual(endTime)) {
             // Timer already expired while in background
-            Log.d("WorkoutViewModel", "Rest timer expired while app was backgrounded")
+            BugfenderLogger.d("WorkoutViewModel", "Rest timer expired while app was backgrounded")
             _restTimerSeconds.value = 0
             _restTimerInitialSeconds.value = 0
             restTimerEndTime = null
@@ -1930,7 +1829,7 @@ class WorkoutViewModel(
                 .between(now, endTime)
                 .seconds
         _restTimerSeconds.value = remaining.toInt().coerceAtLeast(0)
-        Log.d("WorkoutViewModel", "Resuming rest timer with $remaining seconds remaining")
+        BugfenderLogger.d("WorkoutViewModel", "Resuming rest timer with $remaining seconds remaining")
 
         // Restart the timer coroutine
         restTimerJob?.cancel()
@@ -2058,7 +1957,7 @@ class WorkoutViewModel(
                 )
 
             // Updated workout will be sent back via the onTemplateSaved callback
-            Log.d("WorkoutViewModel", "Template changes saved: $updatedWorkout")
+            BugfenderLogger.d("WorkoutViewModel", "Template changes saved: $updatedWorkout")
         }
     }
 
@@ -2131,10 +2030,10 @@ class WorkoutViewModel(
                 val notes = repository.getWorkoutNotes(workoutId)
                 callback(notes)
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to load workout notes", e)
+                BugfenderLogger.e(TAG, "Failed to load workout notes", e)
                 callback(null)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when loading workout notes", e)
+                BugfenderLogger.e(TAG, "Invalid state when loading workout notes", e)
                 callback(null)
             }
         }
@@ -2148,9 +2047,9 @@ class WorkoutViewModel(
             try {
                 repository.updateWorkoutNotes(workoutId, notes)
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to save workout notes", e)
+                BugfenderLogger.e(TAG, "Failed to save workout notes", e)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when saving workout notes", e)
+                BugfenderLogger.e(TAG, "Invalid state when saving workout notes", e)
             }
         }
     }

@@ -1,5 +1,6 @@
 [versions]
 agp = "8.11.1"
+android = "3.4.2"
 compose = "2.8.0"
 coreKtxVersion = "1.7.0"
 coreTesting = "2.2.0"
@@ -41,6 +42,7 @@ workRuntimeKtx = "2.10.3"
 
 
 [libraries]
+android = { module = "com.bugfender.sdk:android", version.ref = "android" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-core-testing = { module = "androidx.arch.core:core-testing", version.ref = "coreTesting" }
