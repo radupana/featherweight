@@ -6,10 +6,6 @@ import com.bugfender.sdk.Bugfender
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Centralized logging wrapper for Bugfender with fallback to Android Log.
- * Provides correlation IDs, user action tracking, and performance metrics.
- */
 object BugfenderLogger {
     private const val MAX_LOG_LENGTH = 10000
     private const val TRUNCATION_MARKER = "...[TRUNCATED]..."
@@ -20,30 +16,29 @@ object BugfenderLogger {
     fun initialize(
         context: Context,
         appKey: String,
-        enableLogcat: Boolean = true,
+        isDebug: Boolean = true,
     ) {
         if (isInitialized) return
 
         try {
-            Bugfender.init(context, appKey, enableLogcat)
+            Bugfender.init(context, appKey, isDebug)
+            Bugfender.enableLogcatLogging()
             Bugfender.enableCrashReporting()
+            if (context is android.app.Application) {
+                Bugfender.enableUIEventLogging(context)
+            }
+
+            Bugfender.setDeviceString("app_version", "${context.packageManager.getPackageInfo(context.packageName, 0).versionName}")
+            Bugfender.setDeviceString("device_manufacturer", android.os.Build.MANUFACTURER)
+            Bugfender.setDeviceString("device_model", android.os.Build.MODEL)
+            Bugfender.setDeviceString("android_version", android.os.Build.VERSION.RELEASE)
+            Bugfender.setDeviceInteger("android_sdk", android.os.Build.VERSION.SDK_INT)
+
             isInitialized = true
-            i("BugfenderLogger", "Bugfender initialized successfully")
+            i("BugfenderLogger", "Bugfender initialized - App: ${context.packageName}, Debug: $isDebug")
         } catch (e: Exception) {
             Log.e("BugfenderLogger", "Failed to initialize Bugfender", e)
         }
-    }
-
-    fun setUser(
-        userId: String,
-        email: String? = null,
-        name: String? = null,
-    ) {
-        if (!isInitialized) return
-
-        Bugfender.setDeviceString("user_id", userId)
-        email?.let { Bugfender.setDeviceString("email", it) }
-        name?.let { Bugfender.setDeviceString("name", it) }
     }
 
     fun createCorrelationId(operation: String): String {
@@ -54,6 +49,41 @@ object BugfenderLogger {
 
     fun clearCorrelationId(operation: String) {
         correlationIds.remove(operation)
+    }
+
+    fun logUserAction(
+        action: String,
+        details: Map<String, Any>? = null,
+    ) {
+        val detailsStr = details?.entries?.joinToString(", ") { "${it.key}=${it.value}" } ?: ""
+        val message =
+            if (detailsStr.isNotEmpty()) {
+                "USER_ACTION: $action [$detailsStr]"
+            } else {
+                "USER_ACTION: $action"
+            }
+        i("UserAction", message)
+    }
+
+    fun logPerformance(
+        tag: String,
+        operation: String,
+        durationMs: Long,
+        details: Map<String, Any>? = null,
+    ) {
+        val detailsStr = details?.entries?.joinToString(", ") { "${it.key}=${it.value}" } ?: ""
+        val message =
+            if (detailsStr.isNotEmpty()) {
+                "PERFORMANCE: $operation completed in ${durationMs}ms [$detailsStr]"
+            } else {
+                "PERFORMANCE: $operation completed in ${durationMs}ms"
+            }
+
+        if (durationMs > 3000) {
+            w(tag, message)
+        } else {
+            d(tag, message)
+        }
     }
 
     fun logApiRequest(

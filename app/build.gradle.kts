@@ -194,7 +194,7 @@ dependencies {
     implementation(libs.google.firebase.analytics)
     implementation(libs.firebase.config)
     // Bugfender for remote logging
-    implementation(libs.android)
+    implementation(libs.bugfender.android)
 }
 
 // Make Detekt part of the build process

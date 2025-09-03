@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
+import com.github.radupana.featherweight.logging.BugfenderLogger
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
@@ -47,6 +48,25 @@ class PersonalRecordRepository(
     ): List<PersonalRecord> =
         withContext(ioDispatcher) {
             val prs = prDetectionService.checkForPR(setLog, exerciseVariationId)
+            
+            if (prs.isNotEmpty()) {
+                val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
+                val exerciseName = exercise?.name ?: "Unknown"
+                
+                prs.forEach { pr ->
+                    BugfenderLogger.logUserAction(
+                        "personal_record_achieved",
+                        mapOf(
+                            "exercise" to exerciseName,
+                            "type" to pr.recordType.name,
+                            "weight" to pr.weight,
+                            "reps" to pr.reps,
+                            "estimated1RM" to (pr.estimated1RM ?: 0f),
+                            "previousWeight" to (pr.previousWeight ?: 0f)
+                        )
+                    )
+                }
+            }
 
             val oneRMPR = prs.find { it.recordType == PRType.ESTIMATED_1RM }
             if (oneRMPR != null && oneRMPR.estimated1RM != null) {

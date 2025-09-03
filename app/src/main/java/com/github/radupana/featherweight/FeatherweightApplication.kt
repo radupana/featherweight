@@ -14,8 +14,16 @@ class FeatherweightApplication : Application() {
         RemoteConfigService.getInstance().fetchAndActivate {
             val bugfenderKey = RemoteConfigService.getInstance().getBugfenderApiKey()
             if (!bugfenderKey.isNullOrEmpty()) {
-                BugfenderLogger.initialize(this@FeatherweightApplication, bugfenderKey, enableLogcat = true)
-                BugfenderLogger.i("FeatherweightApp", "Application started")
+                BugfenderLogger.initialize(
+                    context = this@FeatherweightApplication, 
+                    appKey = bugfenderKey, 
+                    isDebug = BuildConfig.DEBUG
+                )
+                
+                BugfenderLogger.i("FeatherweightApp", "Application started - Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+                BugfenderLogger.i("FeatherweightApp", "Debug mode: ${BuildConfig.DEBUG}")
+                BugfenderLogger.i("FeatherweightApp", "Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+                BugfenderLogger.i("FeatherweightApp", "Android version: ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})")
             }
         }
     }

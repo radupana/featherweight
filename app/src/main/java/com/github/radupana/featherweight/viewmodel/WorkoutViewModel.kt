@@ -451,6 +451,15 @@ class WorkoutViewModel(
 
                 val workout = Workout(date = LocalDateTime.now(), notes = null)
                 val workoutId = repository.insertWorkout(workout)
+                
+                BugfenderLogger.logUserAction(
+                    "start_new_workout",
+                    mapOf(
+                        "workoutId" to workoutId,
+                        "forceNew" to forceNew,
+                        "timestamp" to LocalDateTime.now().toString()
+                    )
+                )
 
                 _currentWorkoutId.value = workoutId
                 _workoutState.value =
@@ -480,6 +489,7 @@ class WorkoutViewModel(
             } else {
                 val ongoingWorkout = repository.getOngoingWorkout()
                 if (ongoingWorkout != null) {
+                    BugfenderLogger.i(TAG, "Resuming existing workout instead of starting new - workoutId: ${ongoingWorkout.id}")
                     resumeWorkout(ongoingWorkout.id)
                 }
             }
@@ -495,6 +505,24 @@ class WorkoutViewModel(
 
         viewModelScope.launch {
             val state = _workoutState.value
+            
+            val exerciseCount = selectedWorkoutExercises.value.size
+            val completedSets = selectedExerciseSets.value.count { it.isCompleted }
+            val totalSets = selectedExerciseSets.value.size
+            val duration = _workoutTimerSeconds.value
+            
+            BugfenderLogger.logUserAction(
+                "complete_workout",
+                mapOf(
+                    "workoutId" to currentId,
+                    "duration_seconds" to duration,
+                    "exercises" to exerciseCount,
+                    "sets_completed" to completedSets,
+                    "sets_total" to totalSets,
+                    "isProgrammeWorkout" to state.isProgrammeWorkout,
+                    "programmeName" to (state.programmeName ?: "none")
+                )
+            )
 
             // Store programme ID before completion if this is a programme workout
             val programmeId =
@@ -872,6 +900,8 @@ class WorkoutViewModel(
                     exercise = exercise,
                     exerciseOrder = selectedWorkoutExercises.value.size,
                 )
+            
+            BugfenderLogger.i(TAG, "Exercise added to workout - exercise: ${exercise.name}, workoutId: $currentId, order: ${selectedWorkoutExercises.value.size}, exerciseLogId: $exerciseLogId")
 
             // Auto-add first empty set for better UX
             val firstSet =
@@ -884,7 +914,8 @@ class WorkoutViewModel(
                     actualWeight = 0f,
                     isCompleted = false,
                 )
-            repository.insertSetLog(firstSet)
+            val setId = repository.insertSetLog(firstSet)
+            BugfenderLogger.d(TAG, "Auto-added first set - exerciseLogId: $exerciseLogId, setId: $setId")
 
             loadExercisesForWorkout(currentId)
             loadExerciseHistory(exercise.id)
@@ -1105,6 +1136,8 @@ class WorkoutViewModel(
         rpe: Float?,
     ) {
         if (!canEditWorkout()) return
+        
+        BugfenderLogger.i(TAG, "Updating set - setId: $setId, weight: ${weight}kg, reps: $reps, rpe: $rpe")
 
         viewModelScope.launch {
             val currentSets = _selectedExerciseSets.value
@@ -1322,6 +1355,13 @@ class WorkoutViewModel(
                 )
 
             if (newEstimate != null && oneRMService.shouldUpdateOneRM(completedSet, currentEstimate, newEstimate)) {
+                val exercise = repository.getExerciseVariationById(exerciseLog.exerciseVariationId)
+                BugfenderLogger.i(
+                    TAG,
+                    "1RM update - exercise: ${exercise?.name}, " +
+                        "old: ${currentEstimate?.toInt()}kg, new: ${newEstimate.toInt()}kg, " +
+                        "from: ${completedSet.actualWeight}kg x ${completedSet.actualReps} @ RPE ${completedSet.actualRpe}"
+                )
                 persistOneRMUpdate(exerciseLog.exerciseVariationId, completedSet, newEstimate, currentEstimate)
             }
         } catch (e: android.database.sqlite.SQLiteException) {

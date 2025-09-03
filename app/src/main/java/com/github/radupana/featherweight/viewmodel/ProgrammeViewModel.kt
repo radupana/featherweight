@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.viewmodel
 import android.app.Application
 import android.database.sqlite.SQLiteException
 import android.util.Log
+import com.github.radupana.featherweight.logging.BugfenderLogger
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.ParseRequest
@@ -19,6 +20,10 @@ import java.io.IOException
 class ProgrammeViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
+    companion object {
+        private const val TAG = "ProgrammeViewModel"
+    }
+    
     private val repository = FeatherweightRepository(application)
 
     // UI State
@@ -109,6 +114,8 @@ class ProgrammeViewModel(
             }
 
             try {
+                val startTime = System.currentTimeMillis()
+                
                 // Seed database if needed
                 repository.seedDatabaseIfEmpty()
 
@@ -118,6 +125,7 @@ class ProgrammeViewModel(
 
                 // Load progress if there's an active programme
                 if (active != null) {
+                    BugfenderLogger.d(TAG, "Active programme loaded: ${active.name} (id: ${active.id})")
                     val progress = repository.getProgrammeWithDetails(active.id)?.progress
                     _programmeProgress.value = progress
                     // Load next workout info
@@ -128,6 +136,17 @@ class ProgrammeViewModel(
                 val allProgs = repository.getAllProgrammes()
                 _allProgrammes.value = allProgs
 
+                BugfenderLogger.logPerformance(
+                    TAG,
+                    "loadProgrammeData",
+                    System.currentTimeMillis() - startTime,
+                    mapOf(
+                        "activeProgramme" to (active?.name ?: "none"),
+                        "totalProgrammes" to allProgs.size,
+                        "hasProgress" to (_programmeProgress.value != null)
+                    )
+                )
+
                 // Force update the UI state to ensure loading is false
                 _uiState.value =
                     _uiState.value.copy(
@@ -135,14 +154,14 @@ class ProgrammeViewModel(
                     )
                 hasLoadedInitialData = true
             } catch (e: SQLiteException) {
-                Log.e("ProgrammeViewModel", "Database error loading programmes", e)
+                BugfenderLogger.e(TAG, "Database error loading programmes", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to load programmes: ${e.message}",
                         isLoading = false,
                     )
             } catch (e: IOException) {
-                Log.e("ProgrammeViewModel", "IO error loading programmes", e)
+                BugfenderLogger.e(TAG, "IO error loading programmes", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to load programmes: ${e.message}",
@@ -172,12 +191,21 @@ class ProgrammeViewModel(
     fun deleteProgramme(programme: Programme) {
         viewModelScope.launch {
             try {
+                BugfenderLogger.logUserAction(
+                    "programme_delete_started",
+                    mapOf(
+                        "programmeId" to programme.id,
+                        "name" to programme.name,
+                        "isActive" to programme.isActive
+                    )
+                )
                 repository.deleteProgramme(programme)
                 // Programme deleted successfully - no notification needed
                 // Refresh data to update the UI
                 loadProgrammeData()
+                BugfenderLogger.i(TAG, "Programme deleted successfully: ${programme.name}")
             } catch (e: SQLiteException) {
-                Log.e("ProgrammeViewModel", "Database error deleting programme", e)
+                BugfenderLogger.e(TAG, "Database error deleting programme: ${programme.name}", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to delete programme: ${e.message}",

@@ -3,8 +3,8 @@ package com.github.radupana.featherweight
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
+import com.github.radupana.featherweight.logging.BugfenderLogger
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -86,11 +86,16 @@ data class NavigationItem(
 )
 
 class MainActivity : ComponentActivity() {
+    
+    companion object {
+        private const val TAG = "MainActivity"
+    }
+    
     private val requestPermissionLauncher =
         registerForActivityResult(
             ActivityResultContracts.RequestPermission(),
-        ) { _ ->
-            // Permission result handled in UI - no action needed as notification permission is optional
+        ) { isGranted ->
+            BugfenderLogger.i(TAG, "Notification permission result: granted=$isGranted")
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -98,6 +103,15 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
 
         super.onCreate(savedInstanceState)
+        
+        BugfenderLogger.logUserAction(
+            "app_started",
+            mapOf(
+                "version" to BuildConfig.VERSION_NAME,
+                "versionCode" to BuildConfig.VERSION_CODE,
+                "debug" to BuildConfig.DEBUG
+            )
+        )
 
         // Request notification permission for Android 13+
         if (ContextCompat.checkSelfPermission(
@@ -105,7 +119,10 @@ class MainActivity : ComponentActivity() {
                 Manifest.permission.POST_NOTIFICATIONS,
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+            BugfenderLogger.i(TAG, "Requesting notification permission")
             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            BugfenderLogger.i(TAG, "Notification permission already granted")
         }
 
         // Enable edge-to-edge display for modern look
@@ -129,9 +146,12 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(Unit) {
                         try {
                             val repository = FeatherweightRepository(application)
+                            val startTime = System.currentTimeMillis()
                             repository.seedDatabaseIfEmpty()
+                            val duration = System.currentTimeMillis() - startTime
+                            BugfenderLogger.logPerformance(TAG, "database_seeding", duration)
                         } catch (e: IllegalStateException) {
-                            Log.e("MainActivity", "Database seeding error", e)
+                            BugfenderLogger.e(TAG, "Database seeding failed", e)
                             // Database seeding errors are non-critical - app continues to function
                         }
                     }
@@ -149,6 +169,13 @@ class MainActivity : ComponentActivity() {
                             MainAppWithNavigation(
                                 currentScreen = currentScreen,
                                 onScreenChange = { screen ->
+                                    BugfenderLogger.logUserAction(
+                                        "navigation",
+                                        mapOf(
+                                            "from" to currentScreen.name,
+                                            "to" to screen.name
+                                        )
+                                    )
                                     previousScreen = currentScreen
                                     currentScreen = screen
                                 },
@@ -165,9 +192,29 @@ class MainActivity : ComponentActivity() {
                 }
             }
         } catch (e: IllegalStateException) {
-            Log.e("MainActivity", "UI initialization error", e)
+            BugfenderLogger.e(TAG, "UI initialization error", e)
             // UI initialization errors are handled gracefully by the framework
         }
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        BugfenderLogger.d(TAG, "Activity resumed")
+    }
+    
+    override fun onPause() {
+        super.onPause()
+        BugfenderLogger.d(TAG, "Activity paused")
+    }
+    
+    override fun onStop() {
+        super.onStop()
+        BugfenderLogger.d(TAG, "Activity stopped")
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        BugfenderLogger.i(TAG, "Activity destroyed")
     }
 }
 
@@ -311,13 +358,13 @@ fun MainAppWithNavigation(
                         onScreenChange(Screen.PROGRAMME_COMPLETION)
                     },
                     onTemplateSaved = {
-                        Log.d("MainActivity", "onTemplateSaved called")
+                        BugfenderLogger.d("MainActivity", "onTemplateSaved called")
                         // Get the saved workout from WorkoutViewModel
                         val workoutState = workoutViewModel.workoutState.value
                         val weekIndex = workoutState.templateWeekIndex
                         val workoutIndex = workoutState.templateWorkoutIndex
 
-                        Log.d("MainActivity", "Week index: $weekIndex, Workout index: $workoutIndex")
+                        BugfenderLogger.d("MainActivity", "Week index: $weekIndex, Workout index: $workoutIndex")
 
                         if (weekIndex != null && workoutIndex != null) {
                             // Get current workout data
@@ -356,14 +403,14 @@ fun MainAppWithNavigation(
                             // Update the parsed programme in ImportProgrammeViewModel
                             importViewModel.updateParsedWorkout(weekIndex, workoutIndex, updatedWorkout)
                         } else {
-                            Log.e("MainActivity", "Week or workout index is null!")
+                            BugfenderLogger.e("MainActivity", "Week or workout index is null!")
                         }
 
                         // Delay navigation to show the "Saved" feedback
-                        Log.d("MainActivity", "Starting navigation delay...")
+                        BugfenderLogger.d("MainActivity", "Starting navigation delay...")
                         coroutineScope.launch {
                             kotlinx.coroutines.delay(800)
-                            Log.d("MainActivity", "Navigation delay complete, navigating to IMPORT_PROGRAMME")
+                            BugfenderLogger.d("MainActivity", "Navigation delay complete, navigating to IMPORT_PROGRAMME")
                             // Navigate back to import screen
                             onScreenChange(Screen.IMPORT_PROGRAMME)
                         }
@@ -630,17 +677,17 @@ fun MainAppWithNavigation(
                         onScreenChange(Screen.PROGRAMMES)
                     },
                     onNavigateToWorkoutEdit = { weekIndex, workoutIndex ->
-                        Log.d("MainActivity", "onNavigateToWorkoutEdit: week=$weekIndex, workout=$workoutIndex")
+                        BugfenderLogger.d("MainActivity", "onNavigateToWorkoutEdit: week=$weekIndex, workout=$workoutIndex")
                         // Get the workout to edit
                         val parsedWorkout = importViewModel.getParsedWorkout(weekIndex, workoutIndex)
                         if (parsedWorkout != null) {
-                            Log.d("MainActivity", "Retrieved parsedWorkout: $parsedWorkout")
+                            BugfenderLogger.d("MainActivity", "Retrieved parsedWorkout: $parsedWorkout")
                             // Start template edit mode in workout view model
                             workoutViewModel.startTemplateEdit(weekIndex, workoutIndex, parsedWorkout)
                             // Navigate to workout screen
                             onScreenChange(Screen.ACTIVE_WORKOUT)
                         } else {
-                            Log.e("MainActivity", "Failed to get parsed workout!")
+                            BugfenderLogger.e("MainActivity", "Failed to get parsed workout!")
                         }
                     },
                     onNavigateToExerciseMapping = {

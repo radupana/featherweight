@@ -1,13 +1,13 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
-import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.domain.WorkoutSummary
+import com.github.radupana.featherweight.logging.BugfenderLogger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -32,7 +32,12 @@ class WorkoutRepository(
 
     suspend fun createWorkout(workout: Workout): Long =
         withContext(ioDispatcher) {
-            workoutDao.insertWorkout(workout)
+            val id = workoutDao.insertWorkout(workout)
+            BugfenderLogger.i(
+                TAG,
+                "Created workout - id: $id, name: ${workout.name}, status: ${workout.status}, programmeId: ${workout.programmeId}",
+            )
+            id
         }
 
     suspend fun getWorkoutById(workoutId: Long): Workout? =
@@ -47,6 +52,7 @@ class WorkoutRepository(
 
     suspend fun deleteWorkout(workout: Workout) =
         withContext(ioDispatcher) {
+            BugfenderLogger.i(TAG, "Deleting workout - id: ${workout.id}, name: ${workout.name}")
             val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
             exerciseLogs.forEach { exerciseLog ->
                 val setLogs = setLogDao.getSetLogsForExercise(exerciseLog.id)
@@ -54,6 +60,7 @@ class WorkoutRepository(
                 exerciseLogDao.deleteExerciseLog(exerciseLog.id)
             }
             workoutDao.deleteWorkout(workout.id)
+            BugfenderLogger.i(TAG, "Workout deleted - id: ${workout.id}, had ${exerciseLogs.size} exercises")
         }
 
     suspend fun deleteWorkoutById(workoutId: Long) =
@@ -69,7 +76,9 @@ class WorkoutRepository(
         status: WorkoutStatus,
     ) = withContext(ioDispatcher) {
         val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
+        val oldStatus = workout.status
         workoutDao.updateWorkout(workout.copy(status = status))
+        BugfenderLogger.i(TAG, "Updated workout status - id: $workoutId, from: $oldStatus to: $status")
     }
 
     suspend fun completeWorkout(
@@ -81,6 +90,24 @@ class WorkoutRepository(
             workout.copy(
                 status = WorkoutStatus.COMPLETED,
                 durationSeconds = duration,
+            ),
+        )
+
+        val exerciseCount = exerciseLogDao.getExerciseLogsForWorkout(workoutId).size
+        val setCount =
+            exerciseLogDao.getExerciseLogsForWorkout(workoutId).sumOf {
+                setLogDao.getSetLogsForExercise(it.id).size
+            }
+
+        BugfenderLogger.logUserAction(
+            "workout_completed",
+            mapOf(
+                "workoutId" to workoutId,
+                "name" to (workout.name ?: "Unnamed"),
+                "duration_seconds" to (duration ?: 0),
+                "exercises" to exerciseCount,
+                "sets" to setCount,
+                "programmeId" to (workout.programmeId ?: "none"),
             ),
         )
     }
@@ -115,41 +142,23 @@ class WorkoutRepository(
         endDate: LocalDate,
     ): List<Workout> =
         withContext(ioDispatcher) {
+            val startTime = System.currentTimeMillis()
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.plusDays(1).atStartOfDay()
-            workoutDao.getWorkoutsInDateRange(startDateTime, endDateTime)
-        }
+            val workouts = workoutDao.getWorkoutsInDateRange(startDateTime, endDateTime)
 
-    suspend fun getCompletedWorkoutsCount(): Int =
-        withContext(ioDispatcher) {
-            workoutDao.getAllWorkouts().count { it.status == WorkoutStatus.COMPLETED }
-        }
-
-    suspend fun getLastWorkout(): Workout? =
-        withContext(ioDispatcher) {
-            workoutDao.getAllWorkouts().maxByOrNull { it.date }
-        }
-
-    suspend fun getRecentWorkouts(limit: Int = 10): List<Workout> =
-        withContext(ioDispatcher) {
-            workoutDao.getAllWorkouts().sortedByDescending { it.date }.take(limit)
-        }
-
-    suspend fun createExerciseLog(exerciseLog: ExerciseLog): Long =
-        withContext(ioDispatcher) {
-            exerciseLogDao.insertExerciseLog(exerciseLog)
-        }
-
-    suspend fun updateExerciseLog(exerciseLog: ExerciseLog) =
-        withContext(ioDispatcher) {
-            exerciseLogDao.update(exerciseLog)
-        }
-
-    suspend fun deleteExerciseLog(exerciseLog: ExerciseLog) =
-        withContext(ioDispatcher) {
-            val setLogs = setLogDao.getSetLogsForExercise(exerciseLog.id)
-            setLogs.forEach { setLogDao.deleteSetLog(it.id) }
-            exerciseLogDao.deleteExerciseLog(exerciseLog.id)
+            BugfenderLogger.logPerformance(
+                TAG,
+                "getWorkoutsForDateRange",
+                System.currentTimeMillis() - startTime,
+                mapOf(
+                    "startDate" to startDate.toString(),
+                    "endDate" to endDate.toString(),
+                    "workoutsFound" to workouts.size,
+                    "completedCount" to workouts.count { it.status == WorkoutStatus.COMPLETED },
+                ),
+            )
+            workouts
         }
 
     suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> =
@@ -157,107 +166,71 @@ class WorkoutRepository(
             exerciseLogDao.getExerciseLogsForWorkout(workoutId)
         }
 
-    suspend fun createSetLog(setLog: SetLog): Long =
-        withContext(ioDispatcher) {
-            setLogDao.insertSetLog(setLog)
-        }
-
-    suspend fun updateSetLog(setLog: SetLog) =
-        withContext(ioDispatcher) {
-            setLogDao.updateSetLog(setLog)
-        }
-
-    suspend fun deleteSetLog(setLog: SetLog) =
-        withContext(ioDispatcher) {
-            setLogDao.deleteSetLog(setLog.id)
-        }
-
     suspend fun getSetLogsForExercise(exerciseLogId: Long): List<SetLog> =
         withContext(ioDispatcher) {
             setLogDao.getSetLogsForExercise(exerciseLogId)
         }
 
-    suspend fun getCompletedSetsCount(exerciseLogId: Long): Int =
-        withContext(ioDispatcher) {
-            setLogDao.getSetLogsForExercise(exerciseLogId).count { it.isCompleted }
-        }
-
-    suspend fun calculateWorkoutVolume(workoutId: Long): Float =
-        withContext(ioDispatcher) {
-            val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
-            var totalVolume = 0f
-
-            for (exerciseLog in exerciseLogs) {
-                val sets = setLogDao.getSetLogsForExercise(exerciseLog.id)
-                for (set in sets.filter { it.isCompleted }) {
-                    totalVolume += (set.actualWeight * set.actualReps)
-                }
-            }
-
-            totalVolume
-        }
-
-    suspend fun getWorkoutExerciseCount(workoutId: Long): Int =
-        withContext(ioDispatcher) {
-            exerciseLogDao.getExerciseLogsForWorkout(workoutId).size
-        }
-
-    suspend fun getWorkoutSetCount(workoutId: Long): Int =
-        withContext(ioDispatcher) {
-            val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
-            var totalSets = 0
-            for (exerciseLog in exerciseLogs) {
-                totalSets += setLogDao.getSetLogsForExercise(exerciseLog.id).size
-            }
-            totalSets
-        }
-
     suspend fun getWorkoutHistory(): List<WorkoutSummary> =
         withContext(ioDispatcher) {
+            val startTime = System.currentTimeMillis()
             val allWorkouts = workoutDao.getAllWorkouts()
-            allWorkouts
-                .mapNotNull { workout ->
-                    val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+            val result =
+                allWorkouts
+                    .mapNotNull { workout ->
+                        val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
 
-                    if (workout.status != WorkoutStatus.COMPLETED && exercises.isEmpty()) return@mapNotNull null
+                        if (workout.status != WorkoutStatus.COMPLETED && exercises.isEmpty()) return@mapNotNull null
 
-                    val allSets = mutableListOf<SetLog>()
-                    exercises.forEach { exercise ->
-                        allSets.addAll(setLogDao.getSetLogsForExercise(exercise.id))
-                    }
-
-                    val completedSets = allSets.filter { it.isCompleted }
-                    val totalWeight = completedSets.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
-
-                    val programmeName =
-                        if (workout.isProgrammeWorkout && workout.programmeId != null) {
-                            try {
-                                programmeDao.getProgrammeById(workout.programmeId)?.name
-                            } catch (e: android.database.sqlite.SQLiteException) {
-                                Log.e(TAG, "Failed to get programme name for programmeId: ${workout.programmeId}", e)
-                                null
-                            }
-                        } else {
-                            null
+                        val allSets = mutableListOf<SetLog>()
+                        exercises.forEach { exercise ->
+                            allSets.addAll(setLogDao.getSetLogsForExercise(exercise.id))
                         }
 
-                    WorkoutSummary(
-                        id = workout.id,
-                        date = workout.date,
-                        name = workout.name ?: workout.programmeWorkoutName,
-                        exerciseCount = exercises.size,
-                        setCount = allSets.size,
-                        totalWeight = totalWeight,
-                        duration = workout.durationSeconds,
-                        status = workout.status,
-                        hasNotes = !workout.notes.isNullOrBlank(),
-                        isProgrammeWorkout = workout.isProgrammeWorkout,
-                        programmeId = workout.programmeId,
-                        programmeName = programmeName,
-                        programmeWorkoutName = workout.programmeWorkoutName,
-                        weekNumber = workout.weekNumber,
-                        dayNumber = workout.dayNumber,
-                    )
-                }.sortedByDescending { it.date }
+                        val completedSets = allSets.filter { it.isCompleted }
+                        val totalWeight = completedSets.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
+
+                        val programmeName =
+                            if (workout.isProgrammeWorkout && workout.programmeId != null) {
+                                try {
+                                    programmeDao.getProgrammeById(workout.programmeId)?.name
+                                } catch (e: android.database.sqlite.SQLiteException) {
+                                    BugfenderLogger.e(TAG, "Failed to get programme name for programmeId: ${workout.programmeId}", e)
+                                    null
+                                }
+                            } else {
+                                null
+                            }
+
+                        WorkoutSummary(
+                            id = workout.id,
+                            date = workout.date,
+                            name = workout.name ?: workout.programmeWorkoutName,
+                            exerciseCount = exercises.size,
+                            setCount = allSets.size,
+                            totalWeight = totalWeight,
+                            duration = workout.durationSeconds,
+                            status = workout.status,
+                            hasNotes = !workout.notes.isNullOrBlank(),
+                            isProgrammeWorkout = workout.isProgrammeWorkout,
+                            programmeId = workout.programmeId,
+                            programmeName = programmeName,
+                            programmeWorkoutName = workout.programmeWorkoutName,
+                            weekNumber = workout.weekNumber,
+                            dayNumber = workout.dayNumber,
+                        )
+                    }.sortedByDescending { it.date }
+
+            BugfenderLogger.logPerformance(
+                TAG,
+                "getWorkoutHistory",
+                System.currentTimeMillis() - startTime,
+                mapOf(
+                    "totalWorkouts" to allWorkouts.size,
+                    "summariesReturned" to result.size,
+                    "completedCount" to result.count { it.status == WorkoutStatus.COMPLETED },
+                ),
+            )
+            result
         }
 }

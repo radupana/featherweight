@@ -7,6 +7,7 @@ import com.github.radupana.featherweight.data.profile.Big4ExerciseWithOptionalMa
 import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
+import com.github.radupana.featherweight.logging.BugfenderLogger
 import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,10 @@ class OneRMRepository(
     application: Application,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
+    companion object {
+        private const val TAG = "OneRMRepository"
+    }
+
     private val db = FeatherweightDatabase.getDatabase(application)
     private val oneRMDao = db.oneRMDao()
     private val _pendingOneRMUpdates = MutableStateFlow<List<PendingOneRMUpdate>>(emptyList())
@@ -34,6 +39,10 @@ class OneRMRepository(
 
     suspend fun applyOneRMUpdate(update: PendingOneRMUpdate) {
         val roundedWeight = WeightFormatter.roundToNearestQuarter(update.suggestedMax)
+        val previousMax = oneRMDao.getCurrentMax(update.exerciseVariationId)?.oneRMEstimate
+        val exercise = db.exerciseDao().getExerciseVariationById(update.exerciseVariationId)
+        val exerciseName = exercise?.name ?: "Unknown"
+
         oneRMDao.upsertExerciseMax(
             exerciseVariationId = update.exerciseVariationId,
             maxWeight = roundedWeight,
@@ -45,6 +54,18 @@ class OneRMRepository(
             source = update.source,
             date = update.workoutDate ?: LocalDateTime.now(),
         )
+
+        BugfenderLogger.logUserAction(
+            "1rm_updated",
+            mapOf(
+                "exerciseName" to exerciseName,
+                "previousMax" to (previousMax ?: 0f),
+                "newMax" to roundedWeight,
+                "source" to update.source,
+                "increase" to (roundedWeight - (previousMax ?: 0f)),
+            ),
+        )
+
         _pendingOneRMUpdates.value =
             _pendingOneRMUpdates.value.filter {
                 it.exerciseVariationId != update.exerciseVariationId
@@ -86,16 +107,30 @@ class OneRMRepository(
     suspend fun updateOrInsertOneRM(oneRMRecord: UserExerciseMax) =
         withContext(ioDispatcher) {
             val existing = oneRMDao.getCurrentMax(oneRMRecord.exerciseVariationId)
+            val exercise = db.exerciseDao().getExerciseVariationById(oneRMRecord.exerciseVariationId)
+            val exerciseName = exercise?.name ?: "Unknown"
 
             val shouldSaveHistory =
                 if (existing != null) {
                     if (oneRMRecord.oneRMEstimate > existing.oneRMEstimate) {
+                        BugfenderLogger.i(
+                            TAG,
+                            "New 1RM PR! Exercise: $exerciseName, old: ${existing.oneRMEstimate}kg, new: ${oneRMRecord.oneRMEstimate}kg",
+                        )
                         oneRMDao.updateExerciseMax(oneRMRecord.copy(id = existing.id))
                         true
                     } else {
+                        BugfenderLogger.d(
+                            TAG,
+                            "1RM not updated (not a PR): $exerciseName, current: ${existing.oneRMEstimate}kg, attempted: ${oneRMRecord.oneRMEstimate}kg",
+                        )
                         false
                     }
                 } else {
+                    BugfenderLogger.i(
+                        TAG,
+                        "First 1RM recorded for $exerciseName: ${oneRMRecord.oneRMEstimate}kg",
+                    )
                     oneRMDao.insertExerciseMax(oneRMRecord)
                     true
                 }
@@ -127,6 +162,11 @@ class OneRMRepository(
                 recordedAt = date,
             )
         oneRMDao.insertOneRMHistory(history)
+
+        BugfenderLogger.i(
+            TAG,
+            "Saved 1RM to history - exerciseId: $exerciseVariationId, max: ${estimatedMax}kg, source: $source",
+        )
     }
 
     suspend fun getOneRMHistoryForExercise(
@@ -145,5 +185,10 @@ class OneRMRepository(
         _pendingOneRMUpdates.value = _pendingOneRMUpdates.value.filter {
             it.exerciseVariationId != update.exerciseVariationId
         } + update
+
+        BugfenderLogger.i(
+            TAG,
+            "Added pending 1RM update - exerciseId: ${update.exerciseVariationId}, suggested: ${update.suggestedMax}kg, current: ${update.currentMax}kg",
+        )
     }
 }

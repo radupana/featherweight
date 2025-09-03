@@ -18,6 +18,7 @@ import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.domain.ExerciseStats
+import com.github.radupana.featherweight.logging.BugfenderLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -25,6 +26,10 @@ import java.time.LocalDateTime
 class ExerciseRepository(
     private val db: FeatherweightDatabase,
 ) {
+    companion object {
+        private const val TAG = "ExerciseRepository"
+    }
+
     private val exerciseDao = db.exerciseDao()
     private val exerciseLogDao = db.exerciseLogDao()
     private val setLogDao = db.setLogDao()
@@ -75,16 +80,30 @@ class ExerciseRepository(
 
     suspend fun getAllExercisesWithUsageStats(): List<Pair<ExerciseVariation, Int>> =
         withContext(Dispatchers.IO) {
+            val startTime = System.currentTimeMillis()
             val variations = exerciseDao.getAllExercises()
 
-            variations
-                .map { variation ->
-                    val usageCount = exerciseLogDao.getExerciseUsageCount(variation.id)
-                    Pair(variation, usageCount)
-                }.sortedWith(
-                    compareByDescending<Pair<ExerciseVariation, Int>> { it.second }
-                        .thenBy { it.first.name },
-                )
+            val result =
+                variations
+                    .map { variation ->
+                        val usageCount = exerciseLogDao.getExerciseUsageCount(variation.id)
+                        Pair(variation, usageCount)
+                    }.sortedWith(
+                        compareByDescending<Pair<ExerciseVariation, Int>> { it.second }
+                            .thenBy { it.first.name },
+                    )
+
+            BugfenderLogger.logPerformance(
+                TAG,
+                "getAllExercisesWithUsageStats",
+                System.currentTimeMillis() - startTime,
+                mapOf(
+                    "totalExercises" to variations.size,
+                    "topExercise" to (result.firstOrNull()?.first?.name ?: "none"),
+                    "topUsageCount" to (result.firstOrNull()?.second ?: 0),
+                ),
+            )
+            result
         }
 
     suspend fun getExerciseById(id: Long): ExerciseVariation? =
@@ -95,12 +114,22 @@ class ExerciseRepository(
     suspend fun getExerciseEntityById(exerciseVariationId: Long): ExerciseVariation? = exerciseDao.getExerciseVariationById(exerciseVariationId)
 
     suspend fun getExerciseByName(name: String): ExerciseVariation? {
+        BugfenderLogger.i(TAG, "Searching for exercise: '$name'")
         // First try exact name match
         val exactMatch = exerciseDao.findVariationByExactName(name)
-        if (exactMatch != null) return exactMatch
+        if (exactMatch != null) {
+            BugfenderLogger.i(TAG, "Found exact match: ${exactMatch.name} (id: ${exactMatch.id})")
+            return exactMatch
+        }
 
         // Then try alias match
-        return exerciseDao.findVariationByAlias(name)
+        val aliasMatch = exerciseDao.findVariationByAlias(name)
+        if (aliasMatch != null) {
+            BugfenderLogger.d(TAG, "Found via alias: ${aliasMatch.name} (id: ${aliasMatch.id}) for query: '$name'")
+        } else {
+            BugfenderLogger.w(TAG, "Exercise not found: '$name'")
+        }
+        return aliasMatch
     }
 
     suspend fun searchExercises(query: String): List<ExerciseVariation> =
@@ -169,6 +198,11 @@ class ExerciseRepository(
         val id = exerciseLogDao.insertExerciseLog(exerciseLog)
         // Always increment usage count when adding exercise through this method
         exerciseDao.incrementUsageCount(exerciseVariation.id)
+
+        BugfenderLogger.i(
+            TAG,
+            "Added exercise to workout - exercise: ${exerciseVariation.name}, workoutId: $workoutId, order: $exerciseOrder, exerciseLogId: $id",
+        )
         return id
     }
 
@@ -202,12 +236,14 @@ class ExerciseRepository(
 
     suspend fun getExerciseStats(exerciseVariationId: Long): ExerciseStats? {
         return withContext(Dispatchers.IO) {
+            val startTime = System.currentTimeMillis()
             val variation = exerciseDao.getExerciseVariationById(exerciseVariationId) ?: return@withContext null
             val allWorkouts = db.workoutDao().getAllWorkouts()
             val allSetsForExercise = mutableListOf<SetLog>()
 
             // Only consider COMPLETED workouts for exercise stats
-            for (workout in allWorkouts.filter { it.status == WorkoutStatus.COMPLETED }) {
+            val completedWorkouts = allWorkouts.filter { it.status == WorkoutStatus.COMPLETED }
+            for (workout in completedWorkouts) {
                 val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
                 val matchingExercise = exercises.find { it.exerciseVariationId == exerciseVariationId }
                 if (matchingExercise != null) {
@@ -216,28 +252,50 @@ class ExerciseRepository(
                 }
             }
 
-            if (allSetsForExercise.isEmpty()) return@withContext null
+            if (allSetsForExercise.isEmpty()) {
+                BugfenderLogger.d(TAG, "No sets found for exercise: ${variation.name}")
+                return@withContext null
+            }
 
             val completedSets =
                 allSetsForExercise.filter {
                     it.isCompleted && it.actualWeight > 0 && it.actualReps > 0
                 }
 
-            if (completedSets.isEmpty()) return@withContext null
+            if (completedSets.isEmpty()) {
+                BugfenderLogger.d(TAG, "No completed sets found for exercise: ${variation.name}")
+                return@withContext null
+            }
 
-            ExerciseStats(
-                exerciseName = variation.name,
-                avgWeight = completedSets.map { it.actualWeight }.average().toFloat(),
-                avgReps = completedSets.map { it.actualReps }.average().toInt(),
-                avgRpe =
-                    completedSets
-                        .mapNotNull { it.actualRpe }
-                        .takeIf { it.isNotEmpty() }
-                        ?.average()
-                        ?.toFloat(),
-                maxWeight = completedSets.maxOf { it.actualWeight },
-                totalSets = completedSets.size,
+            val stats =
+                ExerciseStats(
+                    exerciseName = variation.name,
+                    avgWeight = completedSets.map { it.actualWeight }.average().toFloat(),
+                    avgReps = completedSets.map { it.actualReps }.average().toInt(),
+                    avgRpe =
+                        completedSets
+                            .mapNotNull { it.actualRpe }
+                            .takeIf { it.isNotEmpty() }
+                            ?.average()
+                            ?.toFloat(),
+                    maxWeight = completedSets.maxOf { it.actualWeight },
+                    totalSets = completedSets.size,
+                )
+
+            BugfenderLogger.logPerformance(
+                TAG,
+                "getExerciseStats",
+                System.currentTimeMillis() - startTime,
+                mapOf(
+                    "exercise" to variation.name,
+                    "workoutsAnalyzed" to completedWorkouts.size,
+                    "setsFound" to allSetsForExercise.size,
+                    "completedSets" to completedSets.size,
+                    "maxWeight" to stats.maxWeight,
+                    "avgWeight" to stats.avgWeight,
+                ),
             )
+            stats
         }
     }
 
@@ -294,6 +352,17 @@ class ExerciseRepository(
                     isSwapped = true,
                 )
             exerciseLogDao.update(updatedLog)
+
+            val originalExercise = exerciseDao.getExerciseVariationById(originalExerciseVariationId)
+            val newExercise = exerciseDao.getExerciseVariationById(newExerciseVariationId)
+            BugfenderLogger.logUserAction(
+                "exercise_swap",
+                mapOf(
+                    "original" to (originalExercise?.name ?: "unknown"),
+                    "swappedTo" to (newExercise?.name ?: "unknown"),
+                    "exerciseLogId" to exerciseLogId,
+                ),
+            )
         }
     }
 
@@ -335,9 +404,12 @@ class ExerciseRepository(
     ): Result<ExerciseVariation> =
         withContext(Dispatchers.IO) {
             try {
+                BugfenderLogger.i(TAG, "Creating custom exercise: $name, category: $category, equipment: $equipment")
+
                 // Check for duplicate names (case-insensitive)
                 val existingExercise = exerciseVariationDao.findVariationByName(name)
                 if (existingExercise != null) {
+                    BugfenderLogger.w(TAG, "Custom exercise creation failed - duplicate name: $name")
                     return@withContext Result.failure(
                         IllegalArgumentException("An exercise with this name already exists: ${existingExercise.name}"),
                     )
@@ -420,13 +492,27 @@ class ExerciseRepository(
                 // Return the created exercise
                 val createdExercise = exerciseVariationDao.getExerciseVariationById(variationId)
                 if (createdExercise != null) {
+                    BugfenderLogger.logUserAction(
+                        "custom_exercise_created",
+                        mapOf(
+                            "name" to name,
+                            "category" to category.name,
+                            "equipment" to equipment.name,
+                            "primaryMuscles" to primaryMuscles.map { it.name }.joinToString(", "),
+                            "secondaryMuscles" to secondaryMuscles.map { it.name }.joinToString(", "),
+                            "exerciseId" to variationId,
+                        ),
+                    )
                     Result.success(createdExercise)
                 } else {
+                    BugfenderLogger.e(TAG, "Failed to retrieve created custom exercise: $name")
                     Result.failure(IllegalStateException("Failed to retrieve created exercise"))
                 }
             } catch (e: SQLiteException) {
+                BugfenderLogger.e(TAG, "SQLite error creating custom exercise: $name", e)
                 Result.failure(e)
             } catch (e: IllegalArgumentException) {
+                BugfenderLogger.e(TAG, "Invalid argument creating custom exercise: $name", e)
                 Result.failure(e)
             }
         }
@@ -472,9 +558,15 @@ class ExerciseRepository(
     suspend fun deleteCustomExercise(exerciseVariationId: Long): Result<Unit> =
         withContext(Dispatchers.IO) {
             try {
+                val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
+                val exerciseName = exercise?.name ?: "Unknown"
+
+                BugfenderLogger.i(TAG, "Attempting to delete custom exercise: $exerciseName (id: $exerciseVariationId)")
+
                 // First check if we can delete it
                 val canDelete = canDeleteExercise(exerciseVariationId)
                 if (canDelete.isFailure) {
+                    BugfenderLogger.w(TAG, "Cannot delete exercise: $exerciseName - ${canDelete.exceptionOrNull()?.message}")
                     return@withContext Result.failure(canDelete.exceptionOrNull() ?: Exception("Cannot delete exercise"))
                 }
 
@@ -507,10 +599,19 @@ class ExerciseRepository(
                     check(stillExists == null) { "Exercise was not deleted from database!" }
                 }
 
+                BugfenderLogger.logUserAction(
+                    "custom_exercise_deleted",
+                    mapOf(
+                        "name" to exerciseName,
+                        "exerciseId" to exerciseVariationId,
+                    ),
+                )
                 Result.success(Unit)
             } catch (e: SQLiteException) {
+                BugfenderLogger.e(TAG, "SQLite error deleting custom exercise id: $exerciseVariationId", e)
                 Result.failure(e)
             } catch (e: IllegalStateException) {
+                BugfenderLogger.e(TAG, "State error deleting custom exercise id: $exerciseVariationId", e)
                 Result.failure(e)
             }
         }
