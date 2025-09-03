@@ -229,7 +229,7 @@ private fun DrawScope.drawLineChart(
                 (
                     isFirst ||
                         isLast ||
-                        points[index].weight > points.getOrNull(index - 1)?.weight ?: 0f
+                        points[index].weight > (points.getOrNull(index - 1)?.weight ?: 0f)
                 )
 
         val pointColor = if (isPR) ChartTheme.prMarkerColor else data.primaryColor

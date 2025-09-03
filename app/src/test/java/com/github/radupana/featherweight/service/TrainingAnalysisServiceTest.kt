@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.service
 
 import com.google.common.truth.Truth.assertThat
-import kotlinx.coroutines.test.runTest
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -13,8 +12,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class TrainingAnalysisServiceTest {
-    private val service = TrainingAnalysisService()
-
     @Test
     fun parseApiResponse_withValidResponse_extractsContent() {
         // Test the JSON parsing logic
@@ -319,22 +316,10 @@ class TrainingAnalysisServiceTest {
         assertThat(extractedMessage).isNull()
     }
 
-    @Test
-    fun analyzeTraining_withNoApiKey_throwsError() =
-        runTest {
-            // Since we can't easily mock BuildConfig, we'll test what happens
-            // when the service is called (it should fail due to missing API key in tests)
-            try {
-                service.analyzeTraining("Test prompt")
-                // If we get here, the API key was somehow configured
-                // which shouldn't happen in tests
-            } catch (e: Exception) {
-                // Expected to throw due to missing or empty API key
-                assertThat(e).isNotNull()
-                // The exception could be IllegalStateException or IOException
-                // depending on whether BuildConfig.OPENAI_API_KEY is empty or the call fails
-            }
-        }
+    // Note: Removed analyzeTraining_withNoApiKey_throwsError test
+    // This test was attempting to verify that the service fails without an API key,
+    // but it requires making real network calls which is not suitable for unit tests.
+    // The behavior (failing without credentials) is obvious and doesn't need testing.
 
     @Test
     fun verifyConstantValues() {

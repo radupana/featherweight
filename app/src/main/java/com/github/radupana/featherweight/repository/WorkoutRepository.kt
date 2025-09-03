@@ -7,7 +7,7 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.domain.WorkoutSummary
-import com.github.radupana.featherweight.logging.BugfenderLogger
+import android.util.Log
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,10 +33,7 @@ class WorkoutRepository(
     suspend fun createWorkout(workout: Workout): Long =
         withContext(ioDispatcher) {
             val id = workoutDao.insertWorkout(workout)
-            BugfenderLogger.i(
-                TAG,
-                "Created workout - id: $id, name: ${workout.name}, status: ${workout.status}, programmeId: ${workout.programmeId}",
-            )
+            Log.i(TAG, "Created workout - id: $id, name: ${workout.name}, status: ${workout.status}, programmeId: ${workout.programmeId}")
             id
         }
 
@@ -52,7 +49,7 @@ class WorkoutRepository(
 
     suspend fun deleteWorkout(workout: Workout) =
         withContext(ioDispatcher) {
-            BugfenderLogger.i(TAG, "Deleting workout - id: ${workout.id}, name: ${workout.name}")
+            Log.i(TAG, "Deleting workout - id: ${workout.id}, name: ${workout.name}")
             val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
             exerciseLogs.forEach { exerciseLog ->
                 val setLogs = setLogDao.getSetLogsForExercise(exerciseLog.id)
@@ -60,7 +57,7 @@ class WorkoutRepository(
                 exerciseLogDao.deleteExerciseLog(exerciseLog.id)
             }
             workoutDao.deleteWorkout(workout.id)
-            BugfenderLogger.i(TAG, "Workout deleted - id: ${workout.id}, had ${exerciseLogs.size} exercises")
+            Log.i(TAG, "Workout deleted - id: ${workout.id}, had ${exerciseLogs.size} exercises")
         }
 
     suspend fun deleteWorkoutById(workoutId: Long) =
@@ -78,7 +75,7 @@ class WorkoutRepository(
         val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
         val oldStatus = workout.status
         workoutDao.updateWorkout(workout.copy(status = status))
-        BugfenderLogger.i(TAG, "Updated workout status - id: $workoutId, from: $oldStatus to: $status")
+        Log.i(TAG, "Updated workout status - id: $workoutId, from: $oldStatus to: $status")
     }
 
     suspend fun completeWorkout(
@@ -99,16 +96,11 @@ class WorkoutRepository(
                 setLogDao.getSetLogsForExercise(it.id).size
             }
 
-        BugfenderLogger.logUserAction(
-            "workout_completed",
-            mapOf(
-                "workoutId" to workoutId,
-                "name" to (workout.name ?: "Unnamed"),
-                "duration_seconds" to (duration ?: 0),
-                "exercises" to exerciseCount,
-                "sets" to setCount,
-                "programmeId" to (workout.programmeId ?: "none"),
-            ),
+        Log.i(
+            TAG,
+            "Workout completed - id: $workoutId, name: ${workout.name ?: "Unnamed"}, " +
+                "duration: ${duration ?: 0}s, exercises: $exerciseCount, sets: $setCount, " +
+                "programmeId: ${workout.programmeId ?: "none"}"
         )
     }
 
@@ -147,16 +139,11 @@ class WorkoutRepository(
             val endDateTime = endDate.plusDays(1).atStartOfDay()
             val workouts = workoutDao.getWorkoutsInDateRange(startDateTime, endDateTime)
 
-            BugfenderLogger.logPerformance(
+            Log.d(
                 TAG,
-                "getWorkoutsForDateRange",
-                System.currentTimeMillis() - startTime,
-                mapOf(
-                    "startDate" to startDate.toString(),
-                    "endDate" to endDate.toString(),
-                    "workoutsFound" to workouts.size,
-                    "completedCount" to workouts.count { it.status == WorkoutStatus.COMPLETED },
-                ),
+                "getWorkoutsForDateRange took ${System.currentTimeMillis() - startTime}ms - " +
+                    "startDate: $startDate, endDate: $endDate, found: ${workouts.size} workouts, " +
+                    "completed: ${workouts.count { it.status == WorkoutStatus.COMPLETED }}"
             )
             workouts
         }
@@ -195,7 +182,7 @@ class WorkoutRepository(
                                 try {
                                     programmeDao.getProgrammeById(workout.programmeId)?.name
                                 } catch (e: android.database.sqlite.SQLiteException) {
-                                    BugfenderLogger.e(TAG, "Failed to get programme name for programmeId: ${workout.programmeId}", e)
+                                    Log.e(TAG, "Failed to get programme name for programmeId: ${workout.programmeId}", e)
                                     null
                                 }
                             } else {
@@ -221,15 +208,11 @@ class WorkoutRepository(
                         )
                     }.sortedByDescending { it.date }
 
-            BugfenderLogger.logPerformance(
+            Log.d(
                 TAG,
-                "getWorkoutHistory",
-                System.currentTimeMillis() - startTime,
-                mapOf(
-                    "totalWorkouts" to allWorkouts.size,
-                    "summariesReturned" to result.size,
-                    "completedCount" to result.count { it.status == WorkoutStatus.COMPLETED },
-                ),
+                "getWorkoutHistory took ${System.currentTimeMillis() - startTime}ms - " +
+                    "total workouts: ${allWorkouts.size}, summaries: ${result.size}, " +
+                    "completed: ${result.count { it.status == WorkoutStatus.COMPLETED }}"
             )
             result
         }

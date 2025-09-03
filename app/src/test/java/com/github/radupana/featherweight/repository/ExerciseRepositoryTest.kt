@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.repository
 
+import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.ExerciseLogDao
 import com.github.radupana.featherweight.data.ExerciseSwapHistoryDao
@@ -24,12 +25,20 @@ class ExerciseRepositoryTest {
     private lateinit var exerciseVariationDao: ExerciseVariationDao
     private lateinit var variationMuscleDao: VariationMuscleDao
 
+    private lateinit var mockCore: ExerciseCore
     private lateinit var mockVariation: ExerciseVariation
     private lateinit var mockExerciseLog: ExerciseLog
     private lateinit var mockSetLog: SetLog
 
     @Before
     fun setup() {
+        // Mock Android Log
+        mockkStatic(Log::class)
+        every { Log.i(any<String>(), any<String>()) } returns 0
+        every { Log.d(any<String>(), any<String>()) } returns 0
+        every { Log.e(any<String>(), any<String>()) } returns 0
+        every { Log.w(any<String>(), any<String>()) } returns 0
+        
         db = mockk()
         exerciseDao = mockk<ExerciseDao>()
         exerciseLogDao = mockk<ExerciseLogDao>()
@@ -48,6 +57,15 @@ class ExerciseRepositoryTest {
         every { db.variationMuscleDao() } returns variationMuscleDao
 
         repository = ExerciseRepository(db)
+
+        mockCore =
+            ExerciseCore(
+                id = 1L,
+                name = "Bench Press",
+                category = ExerciseCategory.CHEST,
+                movementPattern = MovementPattern.PUSH,
+                isCompound = true
+            )
 
         mockVariation =
             ExerciseVariation(

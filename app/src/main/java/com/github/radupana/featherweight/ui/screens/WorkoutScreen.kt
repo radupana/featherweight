@@ -216,7 +216,7 @@ fun WorkoutScreen(
                     if (canEdit) {
                         WorkoutActionButtons(
                             canCompleteWorkout = false,
-                            isTemplateEdit = workoutState.mode == com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT,
+                            isTemplateEdit = workoutState.mode == WorkoutMode.TEMPLATE_EDIT,
                             onAddExercise = onSelectExercise,
                             onCompleteWorkout = {},
                             onSaveTemplate = {
@@ -232,7 +232,7 @@ fun WorkoutScreen(
                     exercises = exercises,
                     sets = sets,
                     canEdit = canEdit,
-                    canCompleteWorkout = workoutState.isActive && workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT,
+                    canCompleteWorkout = workoutState.isActive && workoutState.mode != WorkoutMode.TEMPLATE_EDIT,
                     completedSets = completedSets,
                     expandedExerciseIds = expandedExerciseIds,
                     onDeleteExercise = { exerciseId ->
@@ -304,8 +304,8 @@ private fun WorkoutStateEffects(
     // If no active workout, start one (except in template edit mode)
     LaunchedEffect(workoutState.isActive, workoutState.mode) {
         if (!workoutState.isActive &&
-            workoutState.status != com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED &&
-            workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT
+            workoutState.status != WorkoutStatus.COMPLETED &&
+            workoutState.mode != WorkoutMode.TEMPLATE_EDIT
         ) {
             viewModel.startNewWorkout()
         }
@@ -573,7 +573,7 @@ private fun WorkoutHeader(
                         )
 
                         // Subtitle - programme info, template edit, or "Freestyle Workout"
-                        if (workoutState.mode == com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT) {
+                        if (workoutState.mode == WorkoutMode.TEMPLATE_EDIT) {
                             Text(
                                 text = "Editing Template",
                                 style = MaterialTheme.typography.labelMedium,
@@ -643,7 +643,7 @@ private fun WorkoutHeader(
                 }
 
                 // Show repeat button for completed workouts, menu for active
-                if (!canEdit && workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED) {
+                if (!canEdit && workoutState.status == WorkoutStatus.COMPLETED) {
                     IconButton(onClick = { viewModel.repeatWorkout() }) {
                         Icon(
                             Icons.Filled.Refresh,
@@ -977,8 +977,8 @@ private fun ExercisesList(
             item {
                 val workoutState by viewModel.workoutState.collectAsState()
                 WorkoutActionButtons(
-                    canCompleteWorkout = canCompleteWorkout && exercises.isNotEmpty() && completedSets > 0 && workoutState.mode != com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT,
-                    isTemplateEdit = workoutState.mode == com.github.radupana.featherweight.data.WorkoutMode.TEMPLATE_EDIT,
+                    canCompleteWorkout = canCompleteWorkout && exercises.isNotEmpty() && completedSets > 0 && workoutState.mode != WorkoutMode.TEMPLATE_EDIT,
+                    isTemplateEdit = workoutState.mode == WorkoutMode.TEMPLATE_EDIT,
                     onAddExercise = onSelectExercise,
                     onCompleteWorkout = onCompleteWorkout,
                     onSaveTemplate = {

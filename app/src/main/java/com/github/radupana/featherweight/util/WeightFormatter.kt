@@ -31,12 +31,12 @@ object WeightFormatter {
     /**
      * Rounds a weight to the nearest quarter (0.25 increments)
      */
-    fun roundToNearestQuarter(weight: Float): Float = (round(weight * 4) / 4).toFloat()
+    fun roundToNearestQuarter(weight: Float): Float = round(weight * 4) / 4
 
     /**
      * Rounds UP to the nearest quarter (for progression suggestions)
      */
-    fun roundUpToNearestQuarter(weight: Float): Float = (ceil(weight * 4) / 4).toFloat()
+    fun roundUpToNearestQuarter(weight: Float): Float = ceil(weight * 4) / 4
 
     /**
      * Formats any decimal to at most 2 decimal places

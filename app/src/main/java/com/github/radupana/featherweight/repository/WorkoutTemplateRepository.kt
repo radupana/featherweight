@@ -24,7 +24,7 @@ import java.time.LocalDateTime
  */
 class WorkoutTemplateRepository(
     application: Application,
-    private val featherweightRepository: FeatherweightRepository,
+    featherweightRepository: FeatherweightRepository,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val db = FeatherweightDatabase.getDatabase(application)
@@ -230,7 +230,7 @@ class WorkoutTemplateRepository(
                         }
                         is RepsStructure.Single -> {
                             repeat(exerciseStructure.sets) { setIndex ->
-                                val targetWeight = weights?.getOrNull(setIndex)?.toFloat() ?: 0f
+                                val targetWeight = weights?.getOrNull(setIndex) ?: 0f
 
                                 val setLog =
                                     SetLog(

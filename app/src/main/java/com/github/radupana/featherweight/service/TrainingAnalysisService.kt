@@ -1,6 +1,6 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.logging.BugfenderLogger
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -37,31 +37,27 @@ class TrainingAnalysisService {
      */
     suspend fun analyzeTraining(prompt: String): String =
         withContext(Dispatchers.IO) {
-            val correlationId = BugfenderLogger.createCorrelationId("training-analysis")
-            BugfenderLogger.i(TAG, "Starting training analysis, correlationId: $correlationId")
+            Log.i(TAG, "Starting training analysis")
             val systemPrompt = "You are an expert strength training coach and sports scientist. Provide analysis in valid JSON format."
             try {
-                val result = callOpenAI(systemPrompt, prompt, correlationId)
-                BugfenderLogger.i(TAG, "Training analysis completed successfully, correlationId: $correlationId")
+                val result = callOpenAI(systemPrompt, prompt)
+                Log.i(TAG, "Training analysis completed successfully")
                 result
             } catch (e: Exception) {
-                BugfenderLogger.e(TAG, "Training analysis failed, correlationId: $correlationId", e)
+                Log.e(TAG, "Training analysis failed", e)
                 throw e
-            } finally {
-                BugfenderLogger.clearCorrelationId("training-analysis")
             }
         }
 
     private suspend fun callOpenAI(
         systemPrompt: String,
-        userPrompt: String,
-        correlationId: String? = null,
+        userPrompt: String
     ): String =
         withContext(Dispatchers.IO) {
             val remoteConfigService = RemoteConfigService.getInstance()
             val apiKey = remoteConfigService.getOpenAIApiKey()
             if (apiKey.isNullOrEmpty()) {
-                BugfenderLogger.e(TAG, "OpenAI API key not available from Remote Config")
+                Log.e(TAG, "OpenAI API key not available from Remote Config")
                 error("OpenAI API key not configured. Please check your internet connection and try again.")
             }
 
@@ -94,14 +90,8 @@ class TrainingAnalysisService {
                     )
                 }
 
-            BugfenderLogger.logApiRequest(
-                tag = TAG,
-                url = OPENAI_API_URL,
-                method = "POST",
-                requestBody = requestBody.toString(),
-                headers = mapOf("Content-Type" to "application/json"),
-                correlationId = correlationId,
-            )
+            Log.d(TAG, "OpenAI API Request - URL: $OPENAI_API_URL")
+            Log.d(TAG, "Request body: $requestBody")
 
             val request =
                 Request
@@ -117,21 +107,15 @@ class TrainingAnalysisService {
             val responseTime = System.currentTimeMillis() - startTime
             val responseBody = response.body.string()
 
-            BugfenderLogger.logApiResponse(
-                tag = TAG,
-                url = OPENAI_API_URL,
-                statusCode = response.code,
-                responseBody = responseBody,
-                responseTime = responseTime,
-                correlationId = correlationId,
-            )
+            Log.d(TAG, "OpenAI API Response - Status: ${response.code}, Time: ${responseTime}ms")
+            Log.d(TAG, "Response body: $responseBody")
 
             if (!response.isSuccessful) {
                 val errorJson = JSONObject(responseBody)
                 val errorMessage =
                     errorJson.optJSONObject("error")?.optString("message")
                         ?: "API call failed with status ${response.code}"
-                BugfenderLogger.e(TAG, "OpenAI API error: $errorMessage, correlationId: $correlationId")
+                Log.e(TAG, "OpenAI API error: $errorMessage")
                 throw IOException(errorMessage)
             }
 

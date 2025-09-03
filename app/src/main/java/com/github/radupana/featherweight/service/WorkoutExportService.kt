@@ -82,7 +82,7 @@ class WorkoutExportService(
             tempFile
         }
 
-    private suspend fun writeMetadata(
+    private fun writeMetadata(
         writer: JsonWriter,
         startDate: LocalDateTime,
         endDate: LocalDateTime,

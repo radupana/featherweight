@@ -10,6 +10,7 @@ import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
@@ -615,8 +616,7 @@ class WorkoutSeedingService(
                 // Get current 1RM for this exercise
                 val currentMax =
                     repository
-                        .getCurrentMaxesForExercises(listOf(exerciseLog.exerciseVariationId))
-                        .get(exerciseLog.exerciseVariationId)
+                        .getCurrentMaxesForExercises(listOf(exerciseLog.exerciseVariationId))[exerciseLog.exerciseVariationId]
 
                 // Find the best set that would actually update the 1RM
                 var shouldUpdate = false
@@ -654,7 +654,7 @@ class WorkoutSeedingService(
 
                                 // Only accept if the actual weight is within reasonable range
                                 val tolerance = RPE_TOLERANCE
-                                if (Math.abs(set.actualWeight - expectedWeight) / expectedWeight <= tolerance) {
+                                if (abs(set.actualWeight - expectedWeight) / expectedWeight <= tolerance) {
                                     bestEstimated1RM = estimated1RM
                                     bestSet = set
                                     shouldUpdate = true

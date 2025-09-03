@@ -111,7 +111,7 @@ class ProgrammeRepository(
 
     suspend fun updateProgrammeProgressAfterWorkout(programmeId: Long) =
         withContext(ioDispatcher) {
-            val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext
+            if (programmeDao.getProgrammeById(programmeId) == null) return@withContext
 
             val (completedCount, totalCount) = getProgrammeWorkoutProgress(programmeId)
 

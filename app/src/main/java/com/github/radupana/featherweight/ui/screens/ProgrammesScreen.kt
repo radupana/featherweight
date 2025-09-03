@@ -323,7 +323,7 @@ fun ProgrammesScreen(
     if (showDeleteConfirmDialog) {
         var inProgressWorkoutCount by remember { mutableStateOf(0) }
 
-        LaunchedEffect(showDeleteConfirmDialog) {
+        LaunchedEffect(activeProgramme) {
             activeProgramme?.let { programme ->
                 inProgressWorkoutCount = viewModel.getInProgressWorkoutCount(programme)
             }
@@ -615,7 +615,7 @@ private fun ActiveProgrammeCard(
                     }
                 }
             } ?: run {
-                if (progress?.completedWorkouts == progress?.totalWorkouts && progress?.totalWorkouts ?: 0 > 0) {
+                if (progress?.completedWorkouts == progress?.totalWorkouts && (progress?.totalWorkouts ?: 0) > 0) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,

@@ -47,16 +47,11 @@ class ExerciseMappingViewModel(
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     fun initializeMappings(unmatchedExercises: List<String>) {
         // Initialize empty mappings for all unmatched exercises
-        val mappings = _uiState.value.mappings.toMutableMap()
-        unmatchedExercises.forEach { exerciseName ->
-            if (!mappings.containsKey(exerciseName)) {
-                // Don't initialize with any mapping - let user decide
-                // mappings[exerciseName] = ExerciseMapping(exerciseName, null, exerciseName)
-            }
-        }
-        _uiState.value = _uiState.value.copy(mappings = mappings)
+        // Currently no initialization is performed - users must map each exercise manually
+        _uiState.value = _uiState.value.copy(mappings = _uiState.value.mappings)
     }
 
     fun mapExercise(

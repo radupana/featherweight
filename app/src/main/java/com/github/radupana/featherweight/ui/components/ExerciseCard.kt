@@ -218,9 +218,9 @@ fun ExerciseCard(
                     text = "$completedSets/${sets.size}",
                     style = MaterialTheme.typography.labelMedium,
                     color =
-                        when {
-                            completedSets == 0 -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            completedSets == sets.size -> MaterialTheme.colorScheme.primary
+                        when (completedSets) {
+                            0 -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            sets.size -> MaterialTheme.colorScheme.primary
                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                         },
                     fontWeight = if (completedSets > 0) FontWeight.Medium else FontWeight.Normal,

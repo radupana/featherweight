@@ -13,7 +13,6 @@ class RemoteConfigService(
     companion object {
         private const val TAG = "RemoteConfigService"
         private const val OPENAI_API_KEY = "openai_api_key"
-        private const val BUGFENDER_API_KEY = "bugfender_api_key"
 
         @Volatile
         private var instance: RemoteConfigService? = null
@@ -37,7 +36,6 @@ class RemoteConfigService(
         remoteConfig.setDefaultsAsync(
             mapOf(
                 OPENAI_API_KEY to "",
-                BUGFENDER_API_KEY to "",
             ),
         )
     }
@@ -71,22 +69,4 @@ class RemoteConfigService(
         }
     }
 
-    fun getBugfenderApiKey(): String? {
-        if (!isInitialized) {
-            return null
-        }
-        return remoteConfig.getString(BUGFENDER_API_KEY).takeIf { it.isNotEmpty() && it != "null" }
-    }
-    
-    fun fetchAndActivate(onComplete: () -> Unit) {
-        remoteConfig.fetchAndActivate().addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                isInitialized = true
-                Log.d(TAG, "Remote config fetched and activated")
-            } else {
-                Log.e(TAG, "Failed to fetch remote config")
-            }
-            onComplete()
-        }
-    }
 }

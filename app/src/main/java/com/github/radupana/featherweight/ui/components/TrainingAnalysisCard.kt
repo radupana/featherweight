@@ -90,9 +90,9 @@ fun TrainingAnalysisCard(
                             )
                         Text(
                             text =
-                                when {
-                                    daysAgo == 0L -> "Updated today"
-                                    daysAgo == 1L -> "Updated yesterday"
+                                when (daysAgo) {
+                                    0L -> "Updated today"
+                                    1L -> "Updated yesterday"
                                     else -> "Updated $daysAgo days ago"
                                 },
                             style = MaterialTheme.typography.bodySmall,

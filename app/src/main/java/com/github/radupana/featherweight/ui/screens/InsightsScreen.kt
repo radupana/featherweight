@@ -98,8 +98,8 @@ fun InsightsScreen(
         item {
             val prExerciseNamesMap =
                 remember(recentPRs, exerciseNames) {
-                    recentPRs.take(3).associate { pr ->
-                        pr to (exerciseNames[pr.exerciseVariationId] ?: "Unknown Exercise")
+                    recentPRs.take(3).associateWith { pr ->
+                        exerciseNames[pr.exerciseVariationId] ?: "Unknown Exercise"
                     }
                 }
 
@@ -583,12 +583,12 @@ private fun GroupedExerciseLazyColumn(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(16.dp),
     ) {
-        BigFourSection(
+        bigFourSection(
             exercises = state.groupedExercises?.bigFourExercises,
             onNavigateToExercise = onNavigateToExercise,
         )
 
-        OthersSection(
+        othersSection(
             exercises = state.displayedOtherExercises,
             hasBigFour = state.groupedExercises?.bigFourExercises?.isNotEmpty() == true,
             onNavigateToExercise = onNavigateToExercise,
@@ -622,7 +622,7 @@ private fun GroupedExerciseLazyColumn(
     }
 }
 
-fun LazyListScope.BigFourSection(
+fun LazyListScope.bigFourSection(
     exercises: List<com.github.radupana.featherweight.service.ExerciseSummary>?,
     onNavigateToExercise: (String) -> Unit,
 ) {
@@ -646,7 +646,7 @@ fun LazyListScope.BigFourSection(
     }
 }
 
-fun LazyListScope.OthersSection(
+fun LazyListScope.othersSection(
     exercises: List<com.github.radupana.featherweight.service.ExerciseSummary>,
     hasBigFour: Boolean,
     onNavigateToExercise: (String) -> Unit,

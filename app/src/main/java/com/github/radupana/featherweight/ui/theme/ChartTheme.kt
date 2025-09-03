@@ -56,8 +56,8 @@ object ChartTheme {
     fun selectedPointBorderColor() = MaterialTheme.colorScheme.onTertiary
 
     // Chart-specific elevation and shadows
-    const val tooltipElevation = 8f
-    const val tooltipShadowAlpha = 0.25f
+    const val TOOLTIP_ELEVATION = 8f
+    const val TOOLTIP_SHADOW_ALPHA = 0.25f
 
     // Rep range chart colors - vibrant colors for better visibility
     val repRangeColors =

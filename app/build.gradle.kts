@@ -193,8 +193,6 @@ dependencies {
     implementation(libs.firebase.crashlytics.ndk)
     implementation(libs.google.firebase.analytics)
     implementation(libs.firebase.config)
-    // Bugfender for remote logging
-    implementation(libs.bugfender.android)
 }
 
 // Make Detekt part of the build process

@@ -231,12 +231,12 @@ private fun WorkoutIndicators(
 ) {
     val totalWorkouts = dayInfo.completedCount + dayInfo.inProgressCount
 
-    when {
-        totalWorkouts == 0 -> {
+    when (totalWorkouts) {
+        0 -> {
             // No indicator for days without workouts
             Spacer(modifier = Modifier.height(4.dp))
         }
-        totalWorkouts == 1 -> {
+        1 -> {
             // Single dot indicator
             val isCompleted = dayInfo.completedCount > 0
             Box(

@@ -157,8 +157,6 @@ private fun triggerHapticFeedback(context: Context) {
             @Suppress("DEPRECATION")
             context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         }
-    vibrator?.let {
-        // Modern haptic feedback - short sharp impact
-        it.vibrate(VibrationEffect.createOneShot(SplashConstants.HAPTIC_DURATION_MS, VibrationEffect.DEFAULT_AMPLITUDE))
-    }
+    // Modern haptic feedback - short sharp impact
+    vibrator?.vibrate(VibrationEffect.createOneShot(SplashConstants.HAPTIC_DURATION_MS, VibrationEffect.DEFAULT_AMPLITUDE))
 }

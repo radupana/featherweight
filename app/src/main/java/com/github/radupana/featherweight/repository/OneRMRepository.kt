@@ -7,7 +7,7 @@ import com.github.radupana.featherweight.data.profile.Big4ExerciseWithOptionalMa
 import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
-import com.github.radupana.featherweight.logging.BugfenderLogger
+import android.util.Log
 import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -55,15 +55,11 @@ class OneRMRepository(
             date = update.workoutDate ?: LocalDateTime.now(),
         )
 
-        BugfenderLogger.logUserAction(
-            "1rm_updated",
-            mapOf(
-                "exerciseName" to exerciseName,
-                "previousMax" to (previousMax ?: 0f),
-                "newMax" to roundedWeight,
-                "source" to update.source,
-                "increase" to (roundedWeight - (previousMax ?: 0f)),
-            ),
+        Log.i(
+            TAG,
+            "1RM updated - exercise: $exerciseName, previous: ${previousMax ?: 0f}kg, " +
+                "new: ${roundedWeight}kg, source: ${update.source}, " +
+                "increase: ${roundedWeight - (previousMax ?: 0f)}kg"
         )
 
         _pendingOneRMUpdates.value =
@@ -113,23 +109,23 @@ class OneRMRepository(
             val shouldSaveHistory =
                 if (existing != null) {
                     if (oneRMRecord.oneRMEstimate > existing.oneRMEstimate) {
-                        BugfenderLogger.i(
+                        Log.i(
                             TAG,
-                            "New 1RM PR! Exercise: $exerciseName, old: ${existing.oneRMEstimate}kg, new: ${oneRMRecord.oneRMEstimate}kg",
+                            "New 1RM PR! Exercise: $exerciseName, old: ${existing.oneRMEstimate}kg, new: ${oneRMRecord.oneRMEstimate}kg"
                         )
                         oneRMDao.updateExerciseMax(oneRMRecord.copy(id = existing.id))
                         true
                     } else {
-                        BugfenderLogger.d(
+                        Log.d(
                             TAG,
-                            "1RM not updated (not a PR): $exerciseName, current: ${existing.oneRMEstimate}kg, attempted: ${oneRMRecord.oneRMEstimate}kg",
+                            "1RM not updated (not a PR): $exerciseName, current: ${existing.oneRMEstimate}kg, attempted: ${oneRMRecord.oneRMEstimate}kg"
                         )
                         false
                     }
                 } else {
-                    BugfenderLogger.i(
+                    Log.i(
                         TAG,
-                        "First 1RM recorded for $exerciseName: ${oneRMRecord.oneRMEstimate}kg",
+                        "First 1RM recorded for $exerciseName: ${oneRMRecord.oneRMEstimate}kg"
                     )
                     oneRMDao.insertExerciseMax(oneRMRecord)
                     true
@@ -163,9 +159,9 @@ class OneRMRepository(
             )
         oneRMDao.insertOneRMHistory(history)
 
-        BugfenderLogger.i(
+        Log.i(
             TAG,
-            "Saved 1RM to history - exerciseId: $exerciseVariationId, max: ${estimatedMax}kg, source: $source",
+            "Saved 1RM to history - exerciseId: $exerciseVariationId, max: ${estimatedMax}kg, source: $source"
         )
     }
 
@@ -186,9 +182,9 @@ class OneRMRepository(
             it.exerciseVariationId != update.exerciseVariationId
         } + update
 
-        BugfenderLogger.i(
+        Log.i(
             TAG,
-            "Added pending 1RM update - exerciseId: ${update.exerciseVariationId}, suggested: ${update.suggestedMax}kg, current: ${update.currentMax}kg",
+            "Added pending 1RM update - exerciseId: ${update.exerciseVariationId}, suggested: ${update.suggestedMax}kg, current: ${update.currentMax}kg"
         )
     }
 }

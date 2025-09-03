@@ -1,7 +1,7 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
-import com.github.radupana.featherweight.logging.BugfenderLogger
+import android.util.Log
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
@@ -20,6 +20,9 @@ class PersonalRecordRepository(
     application: Application,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
+    companion object {
+        private const val TAG = "PersonalRecordRepository"
+    }
     private val db = FeatherweightDatabase.getDatabase(application)
     private val personalRecordDao = db.personalRecordDao()
     private val setLogDao = db.setLogDao()
@@ -54,16 +57,11 @@ class PersonalRecordRepository(
                 val exerciseName = exercise?.name ?: "Unknown"
                 
                 prs.forEach { pr ->
-                    BugfenderLogger.logUserAction(
-                        "personal_record_achieved",
-                        mapOf(
-                            "exercise" to exerciseName,
-                            "type" to pr.recordType.name,
-                            "weight" to pr.weight,
-                            "reps" to pr.reps,
-                            "estimated1RM" to (pr.estimated1RM ?: 0f),
-                            "previousWeight" to (pr.previousWeight ?: 0f)
-                        )
+                    Log.i(
+                        TAG,
+                        "Personal record achieved - exercise: $exerciseName, type: ${pr.recordType.name}, " +
+                            "weight: ${pr.weight}kg, reps: ${pr.reps}, estimated 1RM: ${pr.estimated1RM ?: 0f}kg, " +
+                            "previous: ${pr.previousWeight ?: 0f}kg"
                     )
                 }
             }

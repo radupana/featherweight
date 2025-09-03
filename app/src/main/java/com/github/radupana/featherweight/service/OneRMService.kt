@@ -73,7 +73,7 @@ class OneRMService {
                     calc
                 }
                 RMScalingType.ISOLATION -> {
-                    val calc = weight * totalRepCapacity.toFloat().pow(0.10f)
+                    val calc = weight * totalRepCapacity.pow(0.10f)
                     Log.d("OneRMService", "Isolation formula: $weight × $totalRepCapacity^0.10 = $calc")
                     calc
                 }

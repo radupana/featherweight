@@ -1,6 +1,10 @@
 package com.github.radupana.featherweight.service
 
+import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.Firebase
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
+import com.google.firebase.remoteconfig.remoteConfig
 import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
@@ -36,12 +40,33 @@ class RemoteConfigServiceTest {
         every { android.util.Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
         every { android.util.Log.w(any<String>(), any<String>()) } returns 0
         
+        // Mock Firebase.remoteConfig for getInstance() tests
+        mockkStatic("com.google.firebase.remoteconfig.RemoteConfigKt")
+        every { any<Firebase>().remoteConfig } returns mockRemoteConfig
+        
+        // Mock fetchAndActivate to return a completed task
+        val completedTask: Task<Boolean> = Tasks.forResult(true)
+        every { mockRemoteConfig.fetchAndActivate() } returns completedTask
+        
         service = RemoteConfigService(mockRemoteConfig)
     }
     
     @After
     fun tearDown() {
         unmockkStatic(android.util.Log::class)
+        unmockkStatic("com.google.firebase.remoteconfig.RemoteConfigKt")
+        
+        // Clear the singleton instance for next test using reflection
+        try {
+            val companionClass = RemoteConfigService::class.java.getDeclaredField("Companion")
+            companionClass.isAccessible = true
+            val companion = companionClass.get(null)
+            val instanceField = companion.javaClass.getDeclaredField("instance")
+            instanceField.isAccessible = true
+            instanceField.set(companion, null)
+        } catch (e: Exception) {
+            // Ignore if reflection fails
+        }
     }
     
     @Test
@@ -228,8 +253,14 @@ class RemoteConfigServiceTest {
         
         for (validKey in validKeys) {
             // Arrange
-            val freshService = RemoteConfigService(mockRemoteConfig)
+            clearMocks(mockRemoteConfig, answers = false)
+            
+            // Set up mocks for each new service instance
+            val completedTask: Task<Boolean> = Tasks.forResult(true)
+            every { mockRemoteConfig.fetchAndActivate() } returns completedTask
             every { mockRemoteConfig.getString("openai_api_key") } returns validKey
+            
+            val freshService = RemoteConfigService(mockRemoteConfig)
             
             // Act
             val result = freshService.getOpenAIApiKey()

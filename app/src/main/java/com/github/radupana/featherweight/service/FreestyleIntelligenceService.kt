@@ -82,7 +82,7 @@ class FreestyleIntelligenceService(
             else -> RpeTrendAnalysis.OPTIMAL
         }
 
-    private suspend fun suggestProgressiveOverload(
+    private fun suggestProgressiveOverload(
         progress: GlobalExerciseProgress,
         targetReps: Int?,
     ): SmartSuggestions {
@@ -118,7 +118,7 @@ class FreestyleIntelligenceService(
         )
     }
 
-    private suspend fun suggestDeloadOrVariation(
+    private fun suggestDeloadOrVariation(
         progress: GlobalExerciseProgress,
         targetReps: Int?,
     ): SmartSuggestions {
@@ -169,7 +169,7 @@ class FreestyleIntelligenceService(
         )
     }
 
-    private suspend fun suggestMaintainOrDecrease(
+    private fun suggestMaintainOrDecrease(
         progress: GlobalExerciseProgress,
         targetReps: Int?,
     ): SmartSuggestions {
@@ -206,7 +206,7 @@ class FreestyleIntelligenceService(
         )
     }
 
-    private suspend fun suggestBasedOnTrend(
+    private fun suggestBasedOnTrend(
         progress: GlobalExerciseProgress,
         targetReps: Int?,
         rpeTrend: RpeTrendAnalysis,
@@ -243,7 +243,7 @@ class FreestyleIntelligenceService(
         )
     }
 
-    private suspend fun getBasicSuggestions(
+    private fun getBasicSuggestions(
         targetReps: Int?,
     ): SmartSuggestions {
         // Return basic suggestions when no historical data exists

@@ -13,7 +13,7 @@ import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.domain.ExerciseHistory
-import com.github.radupana.featherweight.logging.BugfenderLogger
+import android.util.Log
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
 import com.github.radupana.featherweight.service.OneRMService
@@ -96,10 +96,10 @@ class WorkoutViewModel(
                 // Reload 1RM estimates after update
                 loadOneRMEstimatesForCurrentExercises()
             } catch (e: android.database.sqlite.SQLiteException) {
-                BugfenderLogger.e(TAG, "Failed to apply 1RM update", e)
+                Log.e(TAG, "Failed to apply 1RM update", e)
                 // Failed to apply 1RM update - operation will be retried
             } catch (e: IllegalStateException) {
-                BugfenderLogger.e(TAG, "Invalid state when applying 1RM update", e)
+                Log.e(TAG, "Invalid state when applying 1RM update", e)
                 // Failed to apply 1RM update - operation will be retried
             }
         }
@@ -208,10 +208,10 @@ class WorkoutViewModel(
                 val detailsMap = exercises.associateBy { it.id }
                 exerciseDetailsMap.value = detailsMap
             } catch (e: android.database.sqlite.SQLiteException) {
-                BugfenderLogger.e(TAG, "Failed to load exercises", e)
+                Log.e(TAG, "Failed to load exercises", e)
                 // Failed to load exercises - will retry on next navigation
             } catch (e: IllegalStateException) {
-                BugfenderLogger.e(TAG, "Invalid state when loading exercises", e)
+                Log.e(TAG, "Invalid state when loading exercises", e)
                 // Failed to load exercises - will retry on next navigation
             }
         }
@@ -248,10 +248,10 @@ class WorkoutViewModel(
                                     sets.count { it.isCompleted }
                                 }
                             } catch (e: android.database.sqlite.SQLiteException) {
-                                BugfenderLogger.e(TAG, "Failed to calculate completed sets for workout ${summary.id}", e)
+                                Log.e(TAG, "Failed to calculate completed sets for workout ${summary.id}", e)
                                 0
                             } catch (e: IllegalStateException) {
-                                BugfenderLogger.e(TAG, "Invalid state when calculating completed sets for workout ${summary.id}", e)
+                                Log.e(TAG, "Invalid state when calculating completed sets for workout ${summary.id}", e)
                                 0
                             }
 
@@ -282,8 +282,7 @@ class WorkoutViewModel(
             val lastCompleted =
                 workoutHistory
                     .filter { it.status == WorkoutStatus.COMPLETED }
-                    .sortedByDescending { it.date }
-                    .firstOrNull()
+                    .maxByOrNull { it.date }
 
             if (lastCompleted != null) {
                 val workout = repository.getWorkoutById(lastCompleted.id)
@@ -313,10 +312,7 @@ class WorkoutViewModel(
 
         return InProgressWorkout(
             id = ongoingWorkout.id,
-            name =
-                ongoingWorkout.notes?.let { notes ->
-                    notes
-                },
+            name = ongoingWorkout.notes,
             startDate = ongoingWorkout.date,
             exerciseCount = exercises.size,
             setCount = allSets.size,
@@ -382,10 +378,10 @@ class WorkoutViewModel(
                     try {
                         repository.getProgrammeById(workout.programmeId)?.name
                     } catch (e: android.database.sqlite.SQLiteException) {
-                        BugfenderLogger.e(TAG, "Failed to get programme name for ID ${workout.programmeId}", e)
+                        Log.e(TAG, "Failed to get programme name for ID ${workout.programmeId}", e)
                         null
                     } catch (e: IllegalStateException) {
-                        BugfenderLogger.e(TAG, "Invalid state when getting programme name for ID ${workout.programmeId}", e)
+                        Log.e(TAG, "Invalid state when getting programme name for ID ${workout.programmeId}", e)
                         null
                     }
                 } else {
@@ -452,13 +448,10 @@ class WorkoutViewModel(
                 val workout = Workout(date = LocalDateTime.now(), notes = null)
                 val workoutId = repository.insertWorkout(workout)
                 
-                BugfenderLogger.logUserAction(
-                    "start_new_workout",
-                    mapOf(
-                        "workoutId" to workoutId,
-                        "forceNew" to forceNew,
-                        "timestamp" to LocalDateTime.now().toString()
-                    )
+                Log.i(
+                    TAG,
+                    "Starting new workout - id: $workoutId, forceNew: $forceNew, " +
+                        "timestamp: ${LocalDateTime.now()}"
                 )
 
                 _currentWorkoutId.value = workoutId
@@ -489,7 +482,7 @@ class WorkoutViewModel(
             } else {
                 val ongoingWorkout = repository.getOngoingWorkout()
                 if (ongoingWorkout != null) {
-                    BugfenderLogger.i(TAG, "Resuming existing workout instead of starting new - workoutId: ${ongoingWorkout.id}")
+                    Log.i(TAG, "Resuming existing workout instead of starting new - workoutId: ${ongoingWorkout.id}")
                     resumeWorkout(ongoingWorkout.id)
                 }
             }
@@ -511,17 +504,11 @@ class WorkoutViewModel(
             val totalSets = selectedExerciseSets.value.size
             val duration = _workoutTimerSeconds.value
             
-            BugfenderLogger.logUserAction(
-                "complete_workout",
-                mapOf(
-                    "workoutId" to currentId,
-                    "duration_seconds" to duration,
-                    "exercises" to exerciseCount,
-                    "sets_completed" to completedSets,
-                    "sets_total" to totalSets,
-                    "isProgrammeWorkout" to state.isProgrammeWorkout,
-                    "programmeName" to (state.programmeName ?: "none")
-                )
+            Log.i(
+                TAG,
+                "Completing workout - id: $currentId, duration: ${duration}s, " +
+                    "exercises: $exerciseCount, completed sets: $completedSets/$totalSets, " +
+                    "isProgramme: ${state.isProgrammeWorkout}, programme: ${state.programmeName ?: "none"}"
             )
 
             // Store programme ID before completion if this is a programme workout
@@ -596,8 +583,8 @@ class WorkoutViewModel(
         workoutIndex: Int,
         parsedWorkout: com.github.radupana.featherweight.data.ParsedWorkout,
     ) {
-        BugfenderLogger.d("WorkoutViewModel", "startTemplateEdit called: week=$weekIndex, workout=$workoutIndex")
-        BugfenderLogger.d("WorkoutViewModel", "ParsedWorkout: $parsedWorkout")
+        Log.d("WorkoutViewModel", "startTemplateEdit called: week=$weekIndex, workout=$workoutIndex")
+        Log.d("WorkoutViewModel", "ParsedWorkout: $parsedWorkout")
 
         viewModelScope.launch {
             // Clear any existing workout
@@ -663,11 +650,11 @@ class WorkoutViewModel(
                                 isCompleted = false,
                             )
 
-                        BugfenderLogger.d("WorkoutViewModel", "  SetLog created: targetReps=${setLog.targetReps}, targetWeight=${setLog.targetWeight}, targetRpe=${setLog.targetRpe}")
+                        Log.d("WorkoutViewModel", "  SetLog created: targetReps=${setLog.targetReps}, targetWeight=${setLog.targetWeight}, targetRpe=${setLog.targetRpe}")
                         tempSets.add(setLog)
                     }
                 } else {
-                    BugfenderLogger.w("WorkoutViewModel", "Exercise not found: ${parsedExercise.exerciseName} (ID: ${parsedExercise.matchedExerciseId})")
+                    Log.w("WorkoutViewModel", "Exercise not found: ${parsedExercise.exerciseName} (ID: ${parsedExercise.matchedExerciseId})")
                 }
             }
 
@@ -813,7 +800,7 @@ class WorkoutViewModel(
 
     private fun loadOneRMEstimatesForCurrentExercises() {
         viewModelScope.launch {
-            val exerciseIds = _selectedWorkoutExercises.value.mapNotNull { it.exerciseVariationId }
+            val exerciseIds = _selectedWorkoutExercises.value.map { it.exerciseVariationId }
             if (exerciseIds.isEmpty()) {
                 _oneRMEstimates.value = emptyMap()
                 return@launch
@@ -823,10 +810,10 @@ class WorkoutViewModel(
                 val maxes = repository.getCurrentMaxesForExercises(exerciseIds)
                 _oneRMEstimates.value = maxes.filterValues { it > 0 }
             } catch (e: android.database.sqlite.SQLiteException) {
-                BugfenderLogger.e(TAG, "Failed to load 1RM estimates", e)
+                Log.e(TAG, "Failed to load 1RM estimates", e)
                 // Failed to load 1RM estimates - will show without estimates
             } catch (e: IllegalStateException) {
-                BugfenderLogger.e(TAG, "Invalid state when loading 1RM estimates", e)
+                Log.e(TAG, "Invalid state when loading 1RM estimates", e)
                 // Failed to load 1RM estimates - will show without estimates
             }
         }
@@ -901,7 +888,7 @@ class WorkoutViewModel(
                     exerciseOrder = selectedWorkoutExercises.value.size,
                 )
             
-            BugfenderLogger.i(TAG, "Exercise added to workout - exercise: ${exercise.name}, workoutId: $currentId, order: ${selectedWorkoutExercises.value.size}, exerciseLogId: $exerciseLogId")
+            Log.i(TAG, "Exercise added to workout - exercise: ${exercise.name}, workoutId: $currentId, order: ${selectedWorkoutExercises.value.size}, exerciseLogId: $exerciseLogId")
 
             // Auto-add first empty set for better UX
             val firstSet =
@@ -915,7 +902,7 @@ class WorkoutViewModel(
                     isCompleted = false,
                 )
             val setId = repository.insertSetLog(firstSet)
-            BugfenderLogger.d(TAG, "Auto-added first set - exerciseLogId: $exerciseLogId, setId: $setId")
+            Log.d(TAG, "Auto-added first set - exerciseLogId: $exerciseLogId, setId: $setId")
 
             loadExercisesForWorkout(currentId)
             loadExerciseHistory(exercise.id)
@@ -993,9 +980,9 @@ class WorkoutViewModel(
                     repository.updateExerciseOrder(exercise.id, index)
                 }
             } catch (e: android.database.sqlite.SQLiteException) {
-                BugfenderLogger.e(TAG, "Error reordering exercises", e)
+                Log.e(TAG, "Error reordering exercises", e)
             } catch (e: IllegalStateException) {
-                BugfenderLogger.e(TAG, "Invalid state when reordering exercises", e)
+                Log.e(TAG, "Invalid state when reordering exercises", e)
             }
         }
     }
@@ -1137,7 +1124,7 @@ class WorkoutViewModel(
     ) {
         if (!canEditWorkout()) return
         
-        BugfenderLogger.i(TAG, "Updating set - setId: $setId, weight: ${weight}kg, reps: $reps, rpe: $rpe")
+        Log.i(TAG, "Updating set - setId: $setId, weight: ${weight}kg, reps: $reps, rpe: $rpe")
 
         viewModelScope.launch {
             val currentSets = _selectedExerciseSets.value
@@ -1328,9 +1315,9 @@ class WorkoutViewModel(
                     )
             }
         } catch (e: android.database.sqlite.SQLiteException) {
-            BugfenderLogger.e(TAG, "PR detection failed for set $setId", e)
+            Log.e(TAG, "PR detection failed for set $setId", e)
         } catch (e: IllegalStateException) {
-            BugfenderLogger.e(TAG, "Invalid state during PR detection for set $setId", e)
+            Log.e(TAG, "Invalid state during PR detection for set $setId", e)
         }
     }
 
@@ -1356,7 +1343,7 @@ class WorkoutViewModel(
 
             if (newEstimate != null && oneRMService.shouldUpdateOneRM(completedSet, currentEstimate, newEstimate)) {
                 val exercise = repository.getExerciseVariationById(exerciseLog.exerciseVariationId)
-                BugfenderLogger.i(
+                Log.i(
                     TAG,
                     "1RM update - exercise: ${exercise?.name}, " +
                         "old: ${currentEstimate?.toInt()}kg, new: ${newEstimate.toInt()}kg, " +
@@ -1365,9 +1352,9 @@ class WorkoutViewModel(
                 persistOneRMUpdate(exerciseLog.exerciseVariationId, completedSet, newEstimate, currentEstimate)
             }
         } catch (e: android.database.sqlite.SQLiteException) {
-            BugfenderLogger.e(TAG, "Failed to update 1RM estimate", e)
+            Log.e(TAG, "Failed to update 1RM estimate", e)
         } catch (e: IllegalStateException) {
-            BugfenderLogger.e(TAG, "Invalid state when updating 1RM estimate", e)
+            Log.e(TAG, "Invalid state when updating 1RM estimate", e)
         }
     }
 
@@ -1587,9 +1574,9 @@ class WorkoutViewModel(
                     _swappingExercise.value = null
                 }
             } catch (e: android.database.sqlite.SQLiteException) {
-                BugfenderLogger.e(TAG, "Failed to swap exercise", e)
+                Log.e(TAG, "Failed to swap exercise", e)
             } catch (e: IllegalStateException) {
-                BugfenderLogger.e(TAG, "Invalid state when swapping exercise", e)
+                Log.e(TAG, "Invalid state when swapping exercise", e)
             }
         }
     }
@@ -1659,9 +1646,9 @@ class WorkoutViewModel(
                             workoutName = "Repeat Workout",
                         )
                 } catch (e: android.database.sqlite.SQLiteException) {
-                    BugfenderLogger.e(TAG, "Error repeating workout", e)
+                    Log.e(TAG, "Error repeating workout", e)
                 } catch (e: IllegalStateException) {
-                    BugfenderLogger.e(TAG, "Invalid state when repeating workout", e)
+                    Log.e(TAG, "Invalid state when repeating workout", e)
                 }
             }
         }
@@ -1750,10 +1737,10 @@ class WorkoutViewModel(
             // Notify that workout is ready for navigation
             onReady?.invoke()
         } catch (e: android.database.sqlite.SQLiteException) {
-            BugfenderLogger.e(TAG, "Error starting programme workout", e)
+            Log.e(TAG, "Error starting programme workout", e)
             _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
         } catch (e: IllegalStateException) {
-            BugfenderLogger.e(TAG, "Invalid state when starting programme workout", e)
+            Log.e(TAG, "Invalid state when starting programme workout", e)
             _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
         }
     }
@@ -1855,7 +1842,7 @@ class WorkoutViewModel(
         val now = LocalDateTime.now()
         if (now.isAfter(endTime) || now.isEqual(endTime)) {
             // Timer already expired while in background
-            BugfenderLogger.d("WorkoutViewModel", "Rest timer expired while app was backgrounded")
+            Log.d("WorkoutViewModel", "Rest timer expired while app was backgrounded")
             _restTimerSeconds.value = 0
             _restTimerInitialSeconds.value = 0
             restTimerEndTime = null
@@ -1869,7 +1856,7 @@ class WorkoutViewModel(
                 .between(now, endTime)
                 .seconds
         _restTimerSeconds.value = remaining.toInt().coerceAtLeast(0)
-        BugfenderLogger.d("WorkoutViewModel", "Resuming rest timer with $remaining seconds remaining")
+        Log.d("WorkoutViewModel", "Resuming rest timer with $remaining seconds remaining")
 
         // Restart the timer coroutine
         restTimerJob?.cancel()
@@ -1997,7 +1984,7 @@ class WorkoutViewModel(
                 )
 
             // Updated workout will be sent back via the onTemplateSaved callback
-            BugfenderLogger.d("WorkoutViewModel", "Template changes saved: $updatedWorkout")
+            Log.d("WorkoutViewModel", "Template changes saved: $updatedWorkout")
         }
     }
 
@@ -2015,7 +2002,7 @@ class WorkoutViewModel(
 
             // Get the exercise variation to determine scaling type
             val exerciseVariation = repository.getExerciseById(exerciseVariationId)
-            val scalingType = exerciseVariation?.rmScalingType ?: com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
+            val scalingType = exerciseVariation?.rmScalingType ?: RMScalingType.STANDARD
 
             // Calculate estimated 1RM from this set (now with RPE consideration)
             val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps, set.actualRpe, scalingType) ?: return@launch
@@ -2023,8 +2010,7 @@ class WorkoutViewModel(
             // Get current 1RM
             val currentMax =
                 repository
-                    .getCurrentMaxesForExercises(listOf(exerciseVariationId))
-                    .get(exerciseVariationId)
+                    .getCurrentMaxesForExercises(listOf(exerciseVariationId))[exerciseVariationId]
 
             // Check if we should update
             if (oneRMService.shouldUpdateOneRM(set, currentMax, estimated1RM)) {
@@ -2070,10 +2056,10 @@ class WorkoutViewModel(
                 val notes = repository.getWorkoutNotes(workoutId)
                 callback(notes)
             } catch (e: android.database.sqlite.SQLiteException) {
-                BugfenderLogger.e(TAG, "Failed to load workout notes", e)
+                Log.e(TAG, "Failed to load workout notes", e)
                 callback(null)
             } catch (e: IllegalStateException) {
-                BugfenderLogger.e(TAG, "Invalid state when loading workout notes", e)
+                Log.e(TAG, "Invalid state when loading workout notes", e)
                 callback(null)
             }
         }
@@ -2087,9 +2073,9 @@ class WorkoutViewModel(
             try {
                 repository.updateWorkoutNotes(workoutId, notes)
             } catch (e: android.database.sqlite.SQLiteException) {
-                BugfenderLogger.e(TAG, "Failed to save workout notes", e)
+                Log.e(TAG, "Failed to save workout notes", e)
             } catch (e: IllegalStateException) {
-                BugfenderLogger.e(TAG, "Invalid state when saving workout notes", e)
+                Log.e(TAG, "Invalid state when saving workout notes", e)
             }
         }
     }
