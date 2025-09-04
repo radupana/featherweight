@@ -21,11 +21,3 @@ enum class SuggestionSource {
     RECENT_PERFORMANCE,
 }
 
-data class PerformanceData(
-    val targetReps: Int?,
-    val targetWeight: Float?,
-    val actualReps: Int,
-    val actualWeight: Float,
-    val actualRpe: Float?,
-    val timestamp: String,
-)

@@ -34,7 +34,6 @@ class WorkoutTemplateRepository(
     private val programmeDao = db.programmeDao()
     private val exerciseVariationDao = db.exerciseVariationDao()
     private val oneRMDao = db.oneRMDao()
-    private val exerciseDao = db.exerciseDao()
     private val globalExerciseProgressDao = db.globalExerciseProgressDao()
 
     private val workoutTemplateGeneratorService = WorkoutTemplateGeneratorService(exerciseVariationDao)

@@ -52,7 +52,6 @@ import com.github.radupana.featherweight.domain.WorkoutDayInfo
 import com.github.radupana.featherweight.domain.WorkoutHistoryDetail
 import com.github.radupana.featherweight.domain.WorkoutHistoryEntry
 import com.github.radupana.featherweight.domain.WorkoutSummary
-import com.github.radupana.featherweight.service.FreestyleIntelligenceService
 import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.service.ProgressionService
 import com.github.radupana.featherweight.util.WeightFormatter
@@ -144,7 +143,6 @@ class FeatherweightRepository(
     suspend fun getAllExercisesWithAliases() = exerciseRepository.getAllExercisesWithAliases()
 
     suspend fun getExerciseById(id: Long) = exerciseRepository.getExerciseById(id)
-
 
     suspend fun getExercisesByCategory(category: ExerciseCategory) = exerciseRepository.getExercisesByCategory(category)
 
@@ -409,8 +407,6 @@ class FeatherweightRepository(
 
     private suspend fun getExerciseStats(exerciseVariationId: Long): ExerciseStats? = exerciseRepository.getExerciseStats(exerciseVariationId)
 
-
-
     suspend fun getWorkoutById(workoutId: Long): Workout? = workoutRepository.getWorkoutById(workoutId)
 
     suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> = workoutRepository.getExerciseLogsForWorkout(workoutId)
@@ -489,8 +485,6 @@ class FeatherweightRepository(
             dayNumber,
             ::getNextProgrammeWorkout,
         )
-
-
 
     // Get next programme workout to do
     suspend fun getNextProgrammeWorkout(programmeId: Long): NextProgrammeWorkoutInfo? =
@@ -1053,7 +1047,6 @@ class FeatherweightRepository(
 
     suspend fun getCurrentMaxesForExercises(exerciseIds: List<Long>) = oneRMRepository.getCurrentMaxesForExercises(exerciseIds)
 
-
     fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>> = oneRMRepository.getAllCurrentMaxesWithNames()
 
     fun getBig4ExercisesWithMaxes() = oneRMRepository.getBig4ExercisesWithMaxes()
@@ -1101,7 +1094,6 @@ class FeatherweightRepository(
 
     // getOneRMForExercise is defined above at line 2015
 
-
     suspend fun getGlobalExerciseProgress(
         exerciseVariationId: Long,
     ): GlobalExerciseProgress? =
@@ -1129,7 +1121,6 @@ class FeatherweightRepository(
     suspend fun getPersonalRecordsForWorkout(workoutId: Long): List<PersonalRecord> = personalRecordRepository.getPersonalRecordsForWorkout(workoutId)
 
     suspend fun getCurrentOneRMEstimate(exerciseId: Long): Float? = oneRMRepository.getCurrentOneRMEstimate(exerciseId)
-
 
     suspend fun getOneRMHistoryForExercise(
         exerciseName: String,
@@ -1838,7 +1829,6 @@ class FeatherweightRepository(
         withContext(Dispatchers.IO) {
             db.trainingAnalysisDao().getLatestAnalysis()
         }
-
 
     // ParseRequest methods
     suspend fun createParseRequest(rawText: String): Long =

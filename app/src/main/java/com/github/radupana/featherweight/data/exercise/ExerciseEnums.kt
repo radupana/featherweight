@@ -12,7 +12,6 @@ enum class MuscleGroup(
     LATS("Lats"),
     LOWER_BACK("Lower Back"),
     TRAPS("Traps"),
-    RHOMBOIDS("Rhomboids"),
     SHOULDERS("Shoulders"),
     ROTATOR_CUFF("Rotator Cuff"), // Added for JSON compatibility
 
@@ -41,8 +40,6 @@ enum class MuscleGroup(
 
     // Full Body
     FULL_BODY("Full Body"),
-    ;
-
 }
 
 enum class ExerciseCategory(
@@ -56,8 +53,6 @@ enum class ExerciseCategory(
     CORE("Core"),
     CARDIO("Cardio"),
     FULL_BODY("Full Body"),
-    ;
-
 }
 
 enum class Equipment(
@@ -118,8 +113,6 @@ enum class Equipment(
     POLE("Pole"), // Used in exercises.json
 
     NONE("No Equipment"),
-    ;
-
 }
 
 enum class MovementPattern {
@@ -147,7 +140,6 @@ enum class MovementPattern {
 
     // Core/Stability
     PLANK,
-    ANTI_EXTENSION,
     ANTI_ROTATION,
     ISOMETRIC,
     CORE, // Used in exercises.json
@@ -159,7 +151,6 @@ enum class MovementPattern {
     ROLL, // Used in exercises.json
 
     // Cardio/Conditioning
-    GAIT,
     CONDITIONING,
     JUMP,
     SPRINT, // Used in exercises.json
@@ -182,8 +173,6 @@ enum class MovementPattern {
     SLAM, // Used in exercises.json
     SWING, // Used in exercises.json
     WAVE, // Used in exercises.json
-    ;
-
 }
 
 enum class ExerciseDifficulty(
@@ -191,23 +180,12 @@ enum class ExerciseDifficulty(
     val level: Int,
 ) {
     BEGINNER("Beginner", 1),
-    NOVICE("Novice", 2),
     INTERMEDIATE("Intermediate", 3),
     ADVANCED("Advanced", 4),
-    EXPERT("Expert", 5),
-    ;
-
-    companion object {
-        fun fromLevel(level: Int): ExerciseDifficulty = entries.find { it.level == level } ?: BEGINNER
-    }
 }
 
 enum class InstructionType {
-    SETUP,
     EXECUTION,
-    COMMON_MISTAKES,
-    SAFETY,
-    BREATHING,
 }
 
 enum class ExerciseRelationType {
@@ -219,19 +197,15 @@ enum class ExerciseRelationType {
 }
 
 enum class RMScalingType(
-    val displayName: String,
     val description: String,
 ) {
     STANDARD(
-        "Standard",
         "Most exercises - bench press, squat, rows, etc.",
     ),
     WEIGHTED_BODYWEIGHT(
-        "Weighted Bodyweight",
         "Pull-ups, dips, muscle-ups where you add weight to your body",
     ),
     ISOLATION(
-        "Isolation",
         "Single-joint movements like curls, extensions, lateral raises",
     ),
 }

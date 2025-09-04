@@ -42,7 +42,7 @@ class ExerciseSeeder(
     private val variationInstructionDao: VariationInstructionDao,
     private val context: Context? = null,
 ) {
-    companion object {
+    private companion object {
         private const val TAG = "ExerciseSeeder"
     }
 

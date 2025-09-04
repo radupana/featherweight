@@ -150,13 +150,6 @@ class ExerciseRepository(
             exerciseDao.getVariationsByEquipment(equipment)
         }
 
-    suspend fun getBig4Exercises() =
-        withContext(Dispatchers.IO) {
-            val exerciseNames = listOf("Barbell Back Squat", "Deadlift", "Barbell Bench Press", "Overhead Press")
-            exerciseNames.mapNotNull { name ->
-                getExerciseByName(name)
-            }
-        }
 
     // ===== EXERCISE LOG OPERATIONS =====
 
@@ -291,45 +284,6 @@ class ExerciseRepository(
             stats
         }
     }
-
-    suspend fun getPersonalRecords(exerciseVariationId: Long): List<Pair<Float, LocalDateTime>> =
-        withContext(Dispatchers.IO) {
-            val variation = exerciseDao.getExerciseVariationById(exerciseVariationId)
-            variation?.name ?: "Unknown"
-            val allWorkouts = db.workoutDao().getAllWorkouts()
-
-            val records = mutableListOf<Pair<Float, LocalDateTime>>()
-            var currentMaxWeight = 0f
-
-            // Sort workouts by date to track progression over time
-            // IMPORTANT: Only consider COMPLETED workouts for PR tracking
-            val completedWorkouts = allWorkouts.filter { it.status == WorkoutStatus.COMPLETED }
-
-            completedWorkouts
-                .sortedBy { it.date }
-                .forEach { workout ->
-                    val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                    val matchingExercise = exercises.find { it.exerciseVariationId == exerciseVariationId }
-
-                    if (matchingExercise != null) {
-                        val sets = setLogDao.getSetLogsForExercise(matchingExercise.id)
-
-                        val maxWeightInWorkout =
-                            sets
-                                .filter { it.isCompleted && it.actualReps > 0 }
-                                .maxOfOrNull { it.actualWeight } ?: 0f
-
-                        if (maxWeightInWorkout > currentMaxWeight) {
-                            currentMaxWeight = maxWeightInWorkout
-                            records.add(Pair(maxWeightInWorkout, workout.date))
-                        }
-                    }
-                }
-
-            records
-        }
-
-    // ===== EXERCISE SWAP OPERATIONS =====
 
     suspend fun swapExercise(
         exerciseLogId: Long,

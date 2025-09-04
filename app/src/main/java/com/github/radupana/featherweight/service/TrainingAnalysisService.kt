@@ -38,9 +38,8 @@ class TrainingAnalysisService {
     suspend fun analyzeTraining(prompt: String): String =
         withContext(Dispatchers.IO) {
             Log.i(TAG, "Starting training analysis")
-            val systemPrompt = "You are an expert strength training coach and sports scientist. Provide analysis in valid JSON format."
             try {
-                val result = callOpenAI(systemPrompt, prompt)
+                val result = callOpenAI(prompt)
                 Log.i(TAG, "Training analysis completed successfully")
                 result
             } catch (e: Exception) {
@@ -49,11 +48,9 @@ class TrainingAnalysisService {
             }
         }
 
-    private suspend fun callOpenAI(
-        systemPrompt: String,
-        userPrompt: String
-    ): String =
+    private suspend fun callOpenAI(userPrompt: String): String =
         withContext(Dispatchers.IO) {
+            val systemPrompt = "You are an expert strength training coach and sports scientist. Provide analysis in valid JSON format."
             val remoteConfigService = RemoteConfigService.getInstance()
             val apiKey = remoteConfigService.getOpenAIApiKey()
             if (apiKey.isNullOrEmpty()) {

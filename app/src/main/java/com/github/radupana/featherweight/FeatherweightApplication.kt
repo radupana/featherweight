@@ -5,7 +5,7 @@ import android.util.Log
 import com.google.firebase.FirebaseApp
 
 class FeatherweightApplication : Application() {
-    companion object {
+    private companion object {
         private const val TAG = "FeatherweightApp"
     }
     

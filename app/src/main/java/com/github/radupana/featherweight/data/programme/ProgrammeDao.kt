@@ -32,18 +32,10 @@ interface ProgrammeDao {
     @Query("SELECT * FROM programmes ORDER BY createdAt DESC")
     suspend fun getAllProgrammes(): List<Programme>
 
-    @Query("SELECT * FROM programmes WHERE isCustom = :isCustom ORDER BY createdAt DESC")
-    suspend fun getProgrammesByType(isCustom: Boolean): List<Programme>
-
-    @Query("DELETE FROM programmes WHERE id = :id")
-    suspend fun deleteProgrammeById(id: Long)
 
     // Programme Weeks
     @Insert
     suspend fun insertProgrammeWeek(week: ProgrammeWeek): Long
-
-    @Insert
-    suspend fun insertProgrammeWeeks(weeks: List<ProgrammeWeek>)
 
     @Query("SELECT * FROM programme_weeks WHERE programmeId = :programmeId ORDER BY weekNumber ASC")
     suspend fun getWeeksForProgramme(programmeId: Long): List<ProgrammeWeek>
@@ -55,15 +47,6 @@ interface ProgrammeDao {
     @Insert
     suspend fun insertProgrammeWorkout(workout: ProgrammeWorkout): Long
 
-    @Insert
-    suspend fun insertProgrammeWorkouts(workouts: List<ProgrammeWorkout>)
-
-    @Query("SELECT * FROM programme_workouts WHERE weekId = :weekId ORDER BY dayNumber ASC")
-    suspend fun getWorkoutsForWeek(weekId: Long): List<ProgrammeWorkout>
-
-    @Query("SELECT * FROM programme_workouts WHERE id = :workoutId")
-    suspend fun getWorkoutById(workoutId: Long): ProgrammeWorkout?
-
     @Query(
         """
         SELECT pw.* FROM programme_workouts pw
@@ -74,24 +57,6 @@ interface ProgrammeDao {
     )
     suspend fun getAllWorkoutsForProgramme(programmeId: Long): List<ProgrammeWorkout>
 
-    // Exercise Substitutions
-    @Insert
-    suspend fun insertSubstitution(substitution: ExerciseSubstitution): Long
-
-    @Insert
-    suspend fun insertSubstitutions(substitutions: List<ExerciseSubstitution>)
-
-    @Query("SELECT * FROM exercise_substitutions WHERE programmeId = :programmeId")
-    suspend fun getSubstitutionsForProgramme(programmeId: Long): List<ExerciseSubstitution>
-
-    @Query("SELECT * FROM exercise_substitutions WHERE programmeId = :programmeId AND originalExerciseName = :exerciseName")
-    suspend fun getSubstitutionsForExercise(
-        programmeId: Long,
-        exerciseName: String,
-    ): List<ExerciseSubstitution>
-
-    @Delete
-    suspend fun deleteSubstitution(substitution: ExerciseSubstitution)
 
     // Programme Progress
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -116,13 +81,6 @@ interface ProgrammeDao {
     @Query("SELECT * FROM programmes WHERE id = :programmeId")
     suspend fun getProgrammeWithDetails(programmeId: Long): ProgrammeWithDetailsRaw?
 
-    @Transaction
-    @Query("SELECT * FROM programmes WHERE isActive = 1 LIMIT 1")
-    suspend fun getActiveProgrammeWithDetails(): ProgrammeWithDetailsRaw?
-
-    @Transaction
-    @Query("SELECT * FROM programme_weeks WHERE programmeId = :programmeId ORDER BY weekNumber ASC")
-    suspend fun getWeeksWithWorkouts(programmeId: Long): List<ProgrammeWeekWithWorkoutsRaw>
 
     // Activation/Deactivation
     @Query("UPDATE programmes SET isActive = 0")
@@ -154,15 +112,6 @@ interface ProgrammeDao {
         completedAt: LocalDateTime,
     )
 
-    // Statistics and analytics
-    @Query("SELECT COUNT(*) FROM programmes WHERE completedAt IS NOT NULL")
-    suspend fun getCompletedProgrammeCount(): Int
-
-    @Query("SELECT COUNT(*) FROM programmes WHERE isActive = 1")
-    suspend fun getActiveProgrammeCount(): Int
-
-    @Query("SELECT AVG(adherencePercentage) FROM programme_progress WHERE adherencePercentage > 0")
-    suspend fun getAverageAdherence(): Float?
 
     // Paginated query for completed programmes - uses status for reliability
     @Query(
@@ -209,18 +158,4 @@ data class ProgrammeWithDetailsRaw(
         entityColumn = "programmeId",
     )
     val progress: ProgrammeProgress?,
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "programmeId",
-    )
-    val substitutions: List<ExerciseSubstitution>,
-)
-
-data class ProgrammeWeekWithWorkoutsRaw(
-    @Embedded val week: ProgrammeWeek,
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "weekId",
-    )
-    val workouts: List<ProgrammeWorkout>,
 )

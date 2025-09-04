@@ -43,7 +43,6 @@ class ExerciseTypeConvertersTest {
         assertThat(converters.fromExerciseDifficulty(ExerciseDifficulty.BEGINNER)).isEqualTo("BEGINNER")
         assertThat(converters.fromExerciseDifficulty(ExerciseDifficulty.INTERMEDIATE)).isEqualTo("INTERMEDIATE")
         assertThat(converters.fromExerciseDifficulty(ExerciseDifficulty.ADVANCED)).isEqualTo("ADVANCED")
-        assertThat(converters.fromExerciseDifficulty(ExerciseDifficulty.EXPERT)).isEqualTo("EXPERT")
     }
 
     @Test
@@ -51,7 +50,6 @@ class ExerciseTypeConvertersTest {
         assertThat(converters.toExerciseDifficulty("BEGINNER")).isEqualTo(ExerciseDifficulty.BEGINNER)
         assertThat(converters.toExerciseDifficulty("INTERMEDIATE")).isEqualTo(ExerciseDifficulty.INTERMEDIATE)
         assertThat(converters.toExerciseDifficulty("ADVANCED")).isEqualTo(ExerciseDifficulty.ADVANCED)
-        assertThat(converters.toExerciseDifficulty("EXPERT")).isEqualTo(ExerciseDifficulty.EXPERT)
     }
 
     @Test
@@ -124,20 +122,12 @@ class ExerciseTypeConvertersTest {
 
     @Test
     fun `fromInstructionType converts enum to string`() {
-        assertThat(converters.fromInstructionType(InstructionType.SETUP)).isEqualTo("SETUP")
         assertThat(converters.fromInstructionType(InstructionType.EXECUTION)).isEqualTo("EXECUTION")
-        assertThat(converters.fromInstructionType(InstructionType.COMMON_MISTAKES)).isEqualTo("COMMON_MISTAKES")
-        assertThat(converters.fromInstructionType(InstructionType.SAFETY)).isEqualTo("SAFETY")
-        assertThat(converters.fromInstructionType(InstructionType.BREATHING)).isEqualTo("BREATHING")
     }
 
     @Test
     fun `toInstructionType converts string to enum`() {
-        assertThat(converters.toInstructionType("SETUP")).isEqualTo(InstructionType.SETUP)
         assertThat(converters.toInstructionType("EXECUTION")).isEqualTo(InstructionType.EXECUTION)
-        assertThat(converters.toInstructionType("COMMON_MISTAKES")).isEqualTo(InstructionType.COMMON_MISTAKES)
-        assertThat(converters.toInstructionType("SAFETY")).isEqualTo(InstructionType.SAFETY)
-        assertThat(converters.toInstructionType("BREATHING")).isEqualTo(InstructionType.BREATHING)
     }
 
     @Test

@@ -5,7 +5,6 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.github.radupana.featherweight.data.TrainingAnalysis
-import java.time.LocalDateTime
 
 @Dao
 interface TrainingAnalysisDao {
@@ -15,8 +14,4 @@ interface TrainingAnalysisDao {
     @Query("SELECT * FROM training_analysis ORDER BY analysisDate DESC LIMIT 1")
     suspend fun getLatestAnalysis(): TrainingAnalysis?
 
-    @Query("DELETE FROM training_analysis WHERE analysisDate < :olderThan")
-    suspend fun deleteOldAnalyses(
-        olderThan: LocalDateTime,
-    )
 }

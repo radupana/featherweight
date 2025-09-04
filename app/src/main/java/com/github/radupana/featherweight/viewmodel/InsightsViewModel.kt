@@ -2,6 +2,7 @@ package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
 import android.util.Log
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.InsightCategory
@@ -150,7 +151,7 @@ class InsightsViewModel(
             }
 
             // Update last check date
-            prefs.edit().putString("last_check_date", today).apply()
+            prefs.edit { putString("last_check_date", today) }
 
             val lastAnalysis = repository.getLatestTrainingAnalysis()
             val shouldRunAnalysis =
@@ -165,7 +166,6 @@ class InsightsViewModel(
             }
         }
     }
-
 
     private suspend fun runAnalysis() {
         _isAnalyzing.value = true

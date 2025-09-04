@@ -137,7 +137,7 @@ open class ProgrammeTextParser {
         return ValidationResult(true)
     }
 
-    internal open suspend fun callOpenAIAPI(request: TextParsingRequest, correlationId: String? = null): String {
+    internal open suspend fun callOpenAIAPI(request: TextParsingRequest): String {
         val remoteConfigService = RemoteConfigService.getInstance()
         val effectiveApiKey = remoteConfigService.getOpenAIApiKey()
 

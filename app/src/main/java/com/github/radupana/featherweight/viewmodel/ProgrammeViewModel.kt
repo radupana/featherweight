@@ -22,7 +22,7 @@ class ProgrammeViewModel(
     companion object {
         private const val TAG = "ProgrammeViewModel"
     }
-    
+
     private val repository = FeatherweightRepository(application)
 
     // UI State
@@ -39,16 +39,8 @@ class ProgrammeViewModel(
     private val _programmeProgress = MutableStateFlow<ProgrammeProgress?>(null)
     val programmeProgress: StateFlow<ProgrammeProgress?> = _programmeProgress
 
-    // All user programmes (including inactive)
-    private val _allProgrammes = MutableStateFlow<List<Programme>>(emptyList())
-    val allProgrammes: StateFlow<List<Programme>> = _allProgrammes
-
     // Track if initial load is complete to avoid flashing on refresh
     private var hasLoadedInitialData = false
-
-    // User's 1RM values for setup
-    private val _userMaxes = MutableStateFlow(UserMaxes())
-    val userMaxes: StateFlow<UserMaxes> = _userMaxes
 
     // Parse requests
     private val _parseRequests = MutableStateFlow<List<ParseRequest>>(emptyList())
@@ -114,7 +106,7 @@ class ProgrammeViewModel(
 
             try {
                 val startTime = System.currentTimeMillis()
-                
+
                 // Seed database if needed
                 repository.seedDatabaseIfEmpty()
 
@@ -133,13 +125,12 @@ class ProgrammeViewModel(
 
                 // Load all programmes (including inactive)
                 val allProgs = repository.getAllProgrammes()
-                _allProgrammes.value = allProgs
 
                 Log.d(
                     TAG,
                     "loadProgrammeData took ${System.currentTimeMillis() - startTime}ms - " +
                         "active: ${active?.name ?: "none"}, total: ${allProgs.size}, " +
-                        "hasProgress: ${_programmeProgress.value != null}"
+                        "hasProgress: ${_programmeProgress.value != null}",
                 )
 
                 // Force update the UI state to ensure loading is false
@@ -166,21 +157,6 @@ class ProgrammeViewModel(
         }
     }
 
-    fun updateUserMaxes(maxes: UserMaxes) {
-        _userMaxes.value = maxes
-    }
-
-    fun dismissSetupDialog() {
-        _uiState.value =
-            _uiState.value.copy(
-                showSetupDialog = false,
-                error = null,
-            )
-        _userMaxes.value = UserMaxes()
-    }
-
-    // Removed deactivateActiveProgramme and reactivateProgramme - we only support delete now
-
     suspend fun getInProgressWorkoutCount(programme: Programme): Int = repository.getInProgressWorkoutCountByProgramme(programme.id)
 
     fun deleteProgramme(programme: Programme) {
@@ -189,7 +165,7 @@ class ProgrammeViewModel(
                 Log.i(
                     TAG,
                     "Deleting programme - id: ${programme.id}, name: ${programme.name}, " +
-                        "isActive: ${programme.isActive}"
+                        "isActive: ${programme.isActive}",
                 )
                 repository.deleteProgramme(programme)
                 // Programme deleted successfully - no notification needed

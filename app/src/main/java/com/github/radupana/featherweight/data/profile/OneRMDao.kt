@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.data.profile
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -19,8 +18,6 @@ interface OneRMDao {
     @Update
     suspend fun updateExerciseMax(max: UserExerciseMax)
 
-    @Delete
-    suspend fun deleteExerciseMax(max: UserExerciseMax)
 
     @Query("DELETE FROM user_exercise_maxes WHERE exerciseVariationId = :exerciseVariationId")
     suspend fun deleteAllMaxesForExercise(
@@ -39,17 +36,6 @@ interface OneRMDao {
         exerciseVariationId: Long,
     ): UserExerciseMax?
 
-    @Query(
-        """
-        SELECT * FROM user_exercise_maxes
-        WHERE exerciseVariationId = :exerciseVariationId
-        ORDER BY oneRMDate DESC
-        LIMIT 1
-    """,
-    )
-    fun getCurrentMaxFlow(
-        exerciseVariationId: Long,
-    ): Flow<UserExerciseMax?>
 
     @Query(
         """
@@ -79,16 +65,6 @@ interface OneRMDao {
         exerciseVariationIds: List<Long>,
     ): List<UserExerciseMax>
 
-    @Query(
-        """
-        SELECT * FROM user_exercise_maxes
-        WHERE exerciseVariationId = :exerciseVariationId
-        ORDER BY oneRMDate DESC
-    """,
-    )
-    fun getMaxHistory(
-        exerciseVariationId: Long,
-    ): Flow<List<UserExerciseMax>>
 
     @Transaction
     suspend fun upsertExerciseMax(
@@ -256,18 +232,6 @@ interface OneRMDao {
         endDate: LocalDateTime,
     ): List<OneRMHistory>
 
-    @Query(
-        """
-        SELECT * FROM one_rm_history
-        WHERE exerciseVariationId = :exerciseVariationId
-        ORDER BY recordedAt DESC
-        LIMIT :limit
-        """,
-    )
-    suspend fun getRecentOneRMHistory(
-        exerciseVariationId: Long,
-        limit: Int = 10,
-    ): List<OneRMHistory>
 
     @Query("DELETE FROM user_exercise_maxes")
     suspend fun deleteAllUserExerciseMaxes()
@@ -276,26 +240,6 @@ interface OneRMDao {
     suspend fun deleteAllOneRMHistory()
 
     // Export-related queries
-    @Query(
-        """
-        SELECT 
-            h.id,
-            h.exerciseVariationId,
-            ev.name as exerciseName,
-            h.oneRMEstimate,
-            h.context,
-            h.recordedAt
-        FROM one_rm_history h
-        INNER JOIN exercise_variations ev ON ev.id = h.exerciseVariationId
-        WHERE h.recordedAt >= :startDate
-        AND h.recordedAt <= :endDate
-        ORDER BY h.recordedAt DESC
-        """,
-    )
-    suspend fun getAllOneRMHistoryInRange(
-        startDate: LocalDateTime,
-        endDate: LocalDateTime,
-    ): List<OneRMHistoryWithName>
 
     @Query(
         """

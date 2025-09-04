@@ -40,15 +40,19 @@ class RemoteConfigService(
         )
     }
 
-    override suspend fun initialize() {
+    private suspend fun initialize() {
         if (isInitialized) return
 
         try {
             remoteConfig.fetchAndActivate().await()
             isInitialized = true
             Log.d(TAG, "Remote config initialized successfully")
-        } catch (e: Exception) {
+        } catch (e: com.google.firebase.remoteconfig.FirebaseRemoteConfigException) {
             Log.e(TAG, "Failed to fetch remote config", e)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.e(TAG, "Remote config fetch timed out", e)
+        } catch (e: java.io.IOException) {
+            Log.e(TAG, "Network error fetching remote config", e)
         }
     }
 

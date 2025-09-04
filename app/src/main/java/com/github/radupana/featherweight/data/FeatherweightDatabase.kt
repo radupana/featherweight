@@ -19,7 +19,6 @@ import com.github.radupana.featherweight.data.exercise.VariationInstructionDao
 import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.data.exercise.VariationMuscleDao
 import com.github.radupana.featherweight.data.exercise.VariationRelation
-import com.github.radupana.featherweight.data.exercise.VariationRelationDao
 import com.github.radupana.featherweight.data.profile.OneRMDao
 import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
@@ -77,8 +76,6 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun exerciseVariationDao(): ExerciseVariationDao
 
     abstract fun variationInstructionDao(): VariationInstructionDao
-
-    abstract fun variationRelationDao(): VariationRelationDao
 
     abstract fun variationAliasDao(): VariationAliasDao
 

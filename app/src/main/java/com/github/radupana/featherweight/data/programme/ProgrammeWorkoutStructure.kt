@@ -55,7 +55,7 @@ data class ExerciseStructure(
 
 @Serializable
 data class ProgressionStructure(
-    val type: String, // "linear", "531", "nsuns", etc.
+    val type: String,
     val increment: IncrementStructure,
     val cycle: Int? = null,
     val deloadThreshold: Int? = null,

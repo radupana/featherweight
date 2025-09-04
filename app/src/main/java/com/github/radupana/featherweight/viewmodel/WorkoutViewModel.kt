@@ -1600,21 +1600,6 @@ class WorkoutViewModel(
         }
     }
 
-    // Delete any workout by ID
-    fun deleteWorkout(workoutId: Long) {
-        viewModelScope.launch {
-            // Stop and reset timers if deleting current workout
-            if (workoutId == _currentWorkoutId.value) {
-                skipRestTimer()
-                stopWorkoutTimer()
-                _workoutTimerSeconds.value = 0
-                workoutTimerStartTime = null
-            }
-
-            repository.deleteWorkout(workoutId)
-            loadInProgressWorkouts()
-        }
-    }
 
     // Repeat a completed workout as a new freestyle workout
     fun repeatWorkout() {

@@ -78,9 +78,6 @@ class HistoryViewModel(
     // Store selected programme ID for navigation
     var selectedProgrammeId: Long? = null
 
-    private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing
-
     init {
         // Seed database if empty and load initial page
         viewModelScope.launch {
@@ -136,7 +133,6 @@ class HistoryViewModel(
 
     fun refreshHistory() {
         viewModelScope.launch {
-            _isRefreshing.value = true
             val currentState = _historyState.value
 
             try {
@@ -171,8 +167,6 @@ class HistoryViewModel(
                     currentState.copy(
                         error = "Failed to refresh history: ${e.message}",
                     )
-            } finally {
-                _isRefreshing.value = false
             }
         }
     }
@@ -224,41 +218,6 @@ class HistoryViewModel(
                         isLoadingMoreProgrammes = false,
                         error = "Failed to load more programmes: ${e.message}",
                     )
-            }
-        }
-    }
-
-    fun deleteWorkout(workoutId: Long) {
-        viewModelScope.launch {
-            try {
-                repository.deleteWorkout(workoutId)
-                // Refresh calendar and week groups after deletion
-                loadCalendarData()
-                loadWeekGroups()
-            } catch (e: IllegalArgumentException) {
-                val currentState = _historyState.value
-                _historyState.value =
-                    currentState.copy(
-                        error = "Failed to delete workout: ${e.message}",
-                    )
-                // Refresh on error to ensure UI is accurate
-                refreshHistory()
-            } catch (e: IllegalStateException) {
-                val currentState = _historyState.value
-                _historyState.value =
-                    currentState.copy(
-                        error = "Failed to delete workout: ${e.message}",
-                    )
-                // Refresh on error to ensure UI is accurate
-                refreshHistory()
-            } catch (e: NumberFormatException) {
-                val currentState = _historyState.value
-                _historyState.value =
-                    currentState.copy(
-                        error = "Failed to delete workout: ${e.message}",
-                    )
-                // Refresh on error to ensure UI is accurate
-                refreshHistory()
             }
         }
     }

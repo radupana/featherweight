@@ -7,31 +7,6 @@ data class ExportOptions(
     val includeProfile: Boolean = true,
 )
 
-data class ExportedWorkoutHistory(
-    val metadata: ExportMetadata,
-    val userProfile: ExportedUserProfile? = null,
-    val workouts: List<ExportedWorkout>,
-)
-
-data class ExportMetadata(
-    val exportDate: String,
-    val startDate: String,
-    val endDate: String,
-    val totalWorkouts: Int,
-    val appVersion: String,
-    val exportOptions: ExportOptionsMetadata,
-)
-
-data class ExportOptionsMetadata(
-    val includeBodyweight: Boolean,
-    val includeOneRepMaxes: Boolean,
-    val includeNotes: Boolean,
-)
-
-data class ExportedUserProfile(
-    val oneRepMaxHistory: List<OneRMRecord>? = null,
-    val bodyweightHistory: List<BodyweightRecord>? = null,
-)
 
 data class OneRMRecord(
     val exerciseId: Long,
@@ -45,15 +20,6 @@ data class BodyweightRecord(
     val recordedDate: String,
 )
 
-data class ExportedWorkout(
-    val id: Long,
-    val date: String,
-    val name: String?,
-    val programmeInfo: ProgrammeInfo? = null,
-    val duration: Long?,
-    val status: String,
-    val exercises: List<ExportedExercise>,
-)
 
 data class ProgrammeInfo(
     val programmeName: String,
@@ -80,10 +46,3 @@ data class ExportedSet(
     val completed: Boolean,
 )
 
-data class ExportResult(
-    val success: Boolean,
-    val filePath: String? = null,
-    val fileSize: Long = 0,
-    val workoutCount: Int = 0,
-    val error: String? = null,
-)

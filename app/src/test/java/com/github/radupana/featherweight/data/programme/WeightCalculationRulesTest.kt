@@ -268,50 +268,62 @@ class WeightCalculationRulesTest {
     }
 
     @Test
-    fun progressionTemplates_strongLifts5x5_shouldHaveCorrectSettings() {
-        val template = ProgressionTemplates.strongLifts5x5
+    fun `ProgressionRules should have correct default settings`() {
+        val rules = ProgressionRules()
 
-        assertThat(template.type).isEqualTo(ProgressionType.LINEAR)
-        assertThat(template.incrementRules["squat"]).isEqualTo(5.0f)
-        assertThat(template.incrementRules["bench press"]).isEqualTo(2.5f)
-        assertThat(template.successCriteria.requiredSets).isEqualTo(5)
-        assertThat(template.successCriteria.requiredReps).isEqualTo(5)
-        assertThat(template.deloadRules.triggerAfterFailures).isEqualTo(3)
-        assertThat(template.deloadRules.deloadPercentage).isEqualTo(0.85f)
+        assertThat(rules.type).isEqualTo(ProgressionType.LINEAR)
+        assertThat(rules.autoProgressionEnabled).isTrue()
+        assertThat(rules.successCriteria.techniqueRequirement).isTrue()
+        assertThat(rules.successCriteria.allowedMissedReps).isEqualTo(0)
+        assertThat(rules.deloadRules.triggerAfterFailures).isEqualTo(3)
+        assertThat(rules.deloadRules.deloadPercentage).isEqualTo(0.85f)
+        assertThat(rules.deloadRules.minimumWeight).isEqualTo(20f)
+        assertThat(rules.deloadRules.autoDeload).isTrue()
     }
 
     @Test
-    fun progressionTemplates_startingStrength_shouldHaveCorrectSettings() {
-        val template = ProgressionTemplates.startingStrength
+    fun `defaultIncrements should have correct values for different exercises`() {
+        val increments = defaultIncrements()
 
-        assertThat(template.type).isEqualTo(ProgressionType.LINEAR)
-        assertThat(template.incrementRules["squat"]).isEqualTo(5.0f)
-        assertThat(template.incrementRules["deadlift"]).isEqualTo(10.0f)
-        assertThat(template.incrementRules["power clean"]).isEqualTo(2.5f)
-        assertThat(template.successCriteria.requiredSets).isEqualTo(3)
-        assertThat(template.successCriteria.requiredReps).isEqualTo(5)
-        assertThat(template.successCriteria.allowedMissedReps).isEqualTo(0)
+        // Lower body exercises should have larger increments
+        assertThat(increments["squat"]).isEqualTo(5.0f)
+        assertThat(increments["deadlift"]).isEqualTo(5.0f)
+        assertThat(increments["front squat"]).isEqualTo(5.0f)
+        assertThat(increments["romanian deadlift"]).isEqualTo(5.0f)
+        assertThat(increments["leg press"]).isEqualTo(10.0f)
+        
+        // Upper body exercises should have smaller increments  
+        assertThat(increments["bench press"]).isEqualTo(2.5f)
+        assertThat(increments["overhead press"]).isEqualTo(2.5f)
+        assertThat(increments["incline bench press"]).isEqualTo(2.5f)
     }
 
     @Test
-    fun progressionTemplates_fiveThreeOne_shouldHaveWaveSettings() {
-        val template = ProgressionTemplates.fiveThreeOne
+    fun `ProgressionRules can be configured for wave periodization`() {
+        val wavePercentages = listOf(
+            listOf(0.65f, 0.75f, 0.85f), // Week 1
+            listOf(0.70f, 0.80f, 0.90f), // Week 2
+            listOf(0.75f, 0.85f, 0.95f)  // Week 3
+        )
+        
+        val rules = ProgressionRules(
+            type = ProgressionType.WAVE,
+            cycleLength = 3,
+            weeklyPercentages = wavePercentages,
+            successCriteria = SuccessCriteria(
+                requiredSets = null,
+                requiredReps = null
+            )
+        )
 
-        assertThat(template.type).isEqualTo(ProgressionType.WAVE)
-        assertThat(template.cycleLength).isEqualTo(3)
-        assertThat(template.weeklyPercentages).hasSize(3)
-
-        val week1 = template.weeklyPercentages!![0]
-        assertThat(week1).containsExactly(0.65f, 0.75f, 0.85f).inOrder()
-
-        val week2 = template.weeklyPercentages!![1]
-        assertThat(week2).containsExactly(0.70f, 0.80f, 0.90f).inOrder()
-
-        val week3 = template.weeklyPercentages!![2]
-        assertThat(week3).containsExactly(0.75f, 0.85f, 0.95f).inOrder()
-
-        assertThat(template.successCriteria.requiredSets).isNull()
-        assertThat(template.successCriteria.requiredReps).isNull()
+        assertThat(rules.type).isEqualTo(ProgressionType.WAVE)
+        assertThat(rules.cycleLength).isEqualTo(3)
+        assertThat(rules.weeklyPercentages).hasSize(3)
+        assertThat(rules.weeklyPercentages!![0]).containsExactly(0.65f, 0.75f, 0.85f).inOrder()
+        assertThat(rules.weeklyPercentages!![1]).containsExactly(0.70f, 0.80f, 0.90f).inOrder()
+        assertThat(rules.weeklyPercentages!![2]).containsExactly(0.75f, 0.85f, 0.95f).inOrder()
+        assertThat(rules.successCriteria.requiredSets).isNull()
+        assertThat(rules.successCriteria.requiredReps).isNull()
     }
 
     @Test

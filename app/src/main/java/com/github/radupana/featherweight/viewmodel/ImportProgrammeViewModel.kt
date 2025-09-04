@@ -382,13 +382,6 @@ class ImportProgrammeViewModel(
             .replace("  ", " ")
             .trim()
 
-    fun clearParsedProgramme() {
-        _uiState.value =
-            _uiState.value.copy(
-                parsedProgramme = null,
-                parseRequestId = null,
-            )
-    }
 
     fun clearAll() {
         _uiState.value = ImportProgrammeUiState() // Reset to initial state

@@ -205,7 +205,7 @@ class WorkoutTemplateGeneratorService(
         config: WorkoutTemplateGenerationConfig,
     ): List<Triple<ExerciseVariation, Int, Int>> {
         val result = mutableListOf<Triple<ExerciseVariation, Int, Int>>()
-        val maxExercises = getMaxExercises(config.time, "Push")
+        val maxExercises = getMaxExercises(config.time)
         for ((index, name) in exerciseNames.withIndex()) {
             if (index >= maxExercises) break
 
@@ -241,26 +241,11 @@ class WorkoutTemplateGeneratorService(
         return null
     }
 
-    private fun getMaxExercises(
-        timeAvailable: TimeAvailable,
-        templateName: String,
-    ): Int =
-        when (templateName) {
-            "Push", "Pull" ->
-                when (timeAvailable) {
-                    TimeAvailable.QUICK -> 4
-                    TimeAvailable.STANDARD -> 6
-                    TimeAvailable.EXTENDED -> 7
-                }
-
-            "Legs" ->
-                when (timeAvailable) {
-                    TimeAvailable.QUICK -> 3
-                    TimeAvailable.STANDARD -> 5
-                    TimeAvailable.EXTENDED -> 7
-                }
-
-            else -> 5
+    private fun getMaxExercises(timeAvailable: TimeAvailable): Int =
+        when (timeAvailable) {
+            TimeAvailable.QUICK -> 4
+            TimeAvailable.STANDARD -> 6
+            TimeAvailable.EXTENDED -> 7
         }
 
     private fun getSetsForExercise(

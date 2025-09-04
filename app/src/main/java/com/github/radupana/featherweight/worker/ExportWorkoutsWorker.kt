@@ -62,7 +62,7 @@ class ExportWorkoutsWorker(
             createNotificationChannel()
 
             // Update notification progress
-            setForeground(createForegroundInfo(0, 0))
+            setForeground(createForegroundInfo())
 
             val file =
                 exportService.exportWorkoutsToFile(
@@ -106,10 +106,9 @@ class ExportWorkoutsWorker(
         notificationManager.createNotificationChannel(channel)
     }
 
-    private fun createForegroundInfo(
-        current: Int,
-        total: Int,
-    ): ForegroundInfo {
+    private fun createForegroundInfo(): ForegroundInfo {
+        val current = 0
+        val total = 0
         val cancelIntent =
             Intent(ACTION_CANCEL).apply {
                 putExtra("work_id", id.toString())

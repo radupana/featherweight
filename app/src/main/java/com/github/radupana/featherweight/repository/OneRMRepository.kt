@@ -1,13 +1,13 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
+import android.util.Log
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.profile.Big4ExerciseWithOptionalMax
 import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
-import android.util.Log
 import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -59,7 +59,7 @@ class OneRMRepository(
             TAG,
             "1RM updated - exercise: $exerciseName, previous: ${previousMax ?: 0f}kg, " +
                 "new: ${roundedWeight}kg, source: ${update.source}, " +
-                "increase: ${roundedWeight - (previousMax ?: 0f)}kg"
+                "increase: ${roundedWeight - (previousMax ?: 0f)}kg",
         )
 
         _pendingOneRMUpdates.value =
@@ -67,7 +67,6 @@ class OneRMRepository(
                 it.exerciseVariationId != update.exerciseVariationId
             }
     }
-
 
     suspend fun getCurrentMaxesForExercises(
         exerciseIds: List<Long>,
@@ -78,14 +77,11 @@ class OneRMRepository(
         }
     }
 
-    suspend fun getBig4Exercises() = db.exerciseDao().getBig4Exercises()
-
     fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>> = oneRMDao.getAllCurrentMaxesWithNames()
 
     fun getBig4ExercisesWithMaxes(): Flow<List<Big4ExerciseWithOptionalMax>> = oneRMDao.getBig4ExercisesWithMaxes()
 
     fun getOtherExercisesWithMaxes(): Flow<List<OneRMWithExerciseName>> = oneRMDao.getOtherExercisesWithMaxes()
-
 
     suspend fun getOneRMForExercise(exerciseVariationId: Long): Float? {
         val exerciseMax = oneRMDao.getCurrentMax(exerciseVariationId)
@@ -105,21 +101,21 @@ class OneRMRepository(
                     if (oneRMRecord.oneRMEstimate > existing.oneRMEstimate) {
                         Log.i(
                             TAG,
-                            "New 1RM PR! Exercise: $exerciseName, old: ${existing.oneRMEstimate}kg, new: ${oneRMRecord.oneRMEstimate}kg"
+                            "New 1RM PR! Exercise: $exerciseName, old: ${existing.oneRMEstimate}kg, new: ${oneRMRecord.oneRMEstimate}kg",
                         )
                         oneRMDao.updateExerciseMax(oneRMRecord.copy(id = existing.id))
                         true
                     } else {
                         Log.d(
                             TAG,
-                            "1RM not updated (not a PR): $exerciseName, current: ${existing.oneRMEstimate}kg, attempted: ${oneRMRecord.oneRMEstimate}kg"
+                            "1RM not updated (not a PR): $exerciseName, current: ${existing.oneRMEstimate}kg, attempted: ${oneRMRecord.oneRMEstimate}kg",
                         )
                         false
                     }
                 } else {
                     Log.i(
                         TAG,
-                        "First 1RM recorded for $exerciseName: ${oneRMRecord.oneRMEstimate}kg"
+                        "First 1RM recorded for $exerciseName: ${oneRMRecord.oneRMEstimate}kg",
                     )
                     oneRMDao.insertExerciseMax(oneRMRecord)
                     true
@@ -155,10 +151,9 @@ class OneRMRepository(
 
         Log.i(
             TAG,
-            "Saved 1RM to history - exerciseId: $exerciseVariationId, max: ${estimatedMax}kg, source: $source"
+            "Saved 1RM to history - exerciseId: $exerciseVariationId, max: ${estimatedMax}kg, source: $source",
         )
     }
-
 
     suspend fun getExercise1RM(
         exerciseVariationId: Long,
@@ -174,7 +169,7 @@ class OneRMRepository(
 
         Log.i(
             TAG,
-            "Added pending 1RM update - exerciseId: ${update.exerciseVariationId}, suggested: ${update.suggestedMax}kg, current: ${update.currentMax}kg"
+            "Added pending 1RM update - exerciseId: ${update.exerciseVariationId}, suggested: ${update.suggestedMax}kg, current: ${update.currentMax}kg",
         )
     }
 }

@@ -100,7 +100,6 @@ fun ExerciseCard(
                         Modifier
                     },
                 ),
-        onClick = null,
         elevation = if (isDragging) 4.dp else 2.dp,
     ) {
         // Delete confirmation dialog

@@ -1,54 +1,57 @@
 package com.github.radupana.featherweight.ui.screens
 
 import com.github.radupana.featherweight.data.WorkoutMode
+import com.github.radupana.featherweight.data.WorkoutStatus
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class WorkoutScreenTest {
     @Test
-    fun `shouldShowWorkoutTimer returns false when in template edit mode`() {
-        val mode = WorkoutMode.TEMPLATE_EDIT
-        val completedSets = 10
-
-        val shouldShow = shouldShowWorkoutTimer(mode, completedSets)
-
-        assertThat(shouldShow).isFalse()
+    fun `WorkoutMode enum values are correctly defined`() {
+        // Test that WorkoutMode enum has expected values
+        val modes = WorkoutMode.values()
+        
+        assertThat(modes).asList().contains(WorkoutMode.ACTIVE)
+        assertThat(modes).asList().contains(WorkoutMode.TEMPLATE_EDIT)
+        
+        // Verify enum ordinals for serialization
+        assertThat(WorkoutMode.ACTIVE.ordinal).isEqualTo(0)
+        assertThat(WorkoutMode.TEMPLATE_EDIT.ordinal).isEqualTo(1)
     }
 
     @Test
-    fun `shouldShowWorkoutTimer returns false when no sets completed in active mode`() {
-        val mode = WorkoutMode.ACTIVE
-        val completedSets = 0
-
-        val shouldShow = shouldShowWorkoutTimer(mode, completedSets)
-
-        assertThat(shouldShow).isFalse()
+    fun `WorkoutStatus enum values are correctly defined`() {
+        // Test that WorkoutStatus enum has expected values
+        val statuses = WorkoutStatus.values()
+        
+        assertThat(statuses).asList().contains(WorkoutStatus.NOT_STARTED)
+        assertThat(statuses).asList().contains(WorkoutStatus.IN_PROGRESS)
+        assertThat(statuses).asList().contains(WorkoutStatus.COMPLETED)
+        assertThat(statuses.size).isEqualTo(3)
     }
 
     @Test
-    fun `shouldShowWorkoutTimer returns true when sets completed in active mode`() {
+    fun `WorkoutMode and WorkoutStatus are distinct enums`() {
+        // Verify that WorkoutMode and WorkoutStatus are different types
         val mode = WorkoutMode.ACTIVE
-        val completedSets = 1
-
-        val shouldShow = shouldShowWorkoutTimer(mode, completedSets)
-
-        assertThat(shouldShow).isTrue()
+        val status = WorkoutStatus.IN_PROGRESS
+        
+        // They are different types
+        assertThat(mode::class.java).isNotEqualTo(status::class.java)
+        
+        // Mode names
+        assertThat(WorkoutMode.values().map { it.name })
+            .containsExactly("ACTIVE", "TEMPLATE_EDIT")
     }
 
     @Test
-    fun `shouldShowWorkoutTimer returns true with multiple completed sets in active mode`() {
-        val mode = WorkoutMode.ACTIVE
-        val completedSets = 5
-
-        val shouldShow = shouldShowWorkoutTimer(mode, completedSets)
-
-        assertThat(shouldShow).isTrue()
-    }
-
-    companion object {
-        fun shouldShowWorkoutTimer(
-            mode: WorkoutMode,
-            completedSets: Int,
-        ): Boolean = mode != WorkoutMode.TEMPLATE_EDIT && completedSets > 0
+    fun `Template edit mode should not be confused with in progress status`() {
+        val editMode = WorkoutMode.TEMPLATE_EDIT
+        
+        assertThat(editMode).isNotEqualTo(WorkoutMode.ACTIVE)
+        assertThat(editMode.name).doesNotContain("ACTIVE")
+        
+        assertThat(WorkoutStatus.values().map { it.name })
+            .containsExactly("NOT_STARTED", "IN_PROGRESS", "COMPLETED")
     }
 }

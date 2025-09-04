@@ -15,20 +15,10 @@ interface ExerciseCoreDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExerciseCore(exerciseCore: ExerciseCore): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertExerciseCores(exerciseCores: List<ExerciseCore>): List<Long>
-
     // Basic queries
     @Query("SELECT * FROM exercise_cores WHERE id = :id")
     suspend fun getExerciseCoreById(id: Long): ExerciseCore?
 
     @Query("SELECT * FROM exercise_cores WHERE name = :name LIMIT 1")
     suspend fun getExerciseCoreByName(name: String): ExerciseCore?
-
-    @Query("SELECT * FROM exercise_cores ORDER BY name ASC")
-    suspend fun getAllExerciseCores(): List<ExerciseCore>
-
-    // Count queries
-    @Query("SELECT COUNT(*) FROM exercise_cores")
-    suspend fun getExerciseCoreCount(): Int
 }

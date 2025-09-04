@@ -45,9 +45,6 @@ class ExerciseSelectorViewModel(
     private val _nameValidationError = MutableStateFlow<String?>(null)
     val nameValidationError: StateFlow<String?> = _nameValidationError
 
-    private val _nameSuggestion = MutableStateFlow<String?>(null)
-    val nameSuggestion: StateFlow<String?> = _nameSuggestion
-
     // Delete state
     private val _exerciseToDelete = MutableStateFlow<ExerciseWithDetails?>(null)
     val exerciseToDelete: StateFlow<ExerciseWithDetails?> = _exerciseToDelete
@@ -62,19 +59,11 @@ class ExerciseSelectorViewModel(
     private val _selectedCategory = MutableStateFlow<ExerciseCategory?>(null)
     val selectedCategory: StateFlow<ExerciseCategory?> = _selectedCategory
 
-    private val _selectedMuscleGroup = MutableStateFlow<String?>(null)
-    val selectedMuscleGroup: StateFlow<String?> = _selectedMuscleGroup
-
-    private val _selectedEquipment = MutableStateFlow<Equipment?>(null)
-    val selectedEquipment: StateFlow<Equipment?> = _selectedEquipment
-
     // Computed state
     val isLoading: StateFlow<Boolean> = _isLoading
 
     // Available filter options
     val categories = MutableStateFlow(ExerciseCategory.entries.toList())
-    val muscleGroups = MutableStateFlow(MuscleGroup.entries.toList())
-    val equipment = MutableStateFlow(Equipment.entries.filter { it != Equipment.NONE })
 
     // Filtered exercises
     private val _filteredExercises = MutableStateFlow<List<ExerciseWithDetails>>(emptyList())
@@ -98,10 +87,8 @@ class ExerciseSelectorViewModel(
                 _allExercises,
                 _searchQuery,
                 _selectedCategory,
-                _selectedMuscleGroup,
-                _selectedEquipment,
-            ) { exercises, query, category, muscleGroup, equipmentFilter ->
-                filterExercises(exercises, query, muscleGroup, equipmentFilter)
+            ) { exercises, query, category ->
+                filterExercises(exercises, query)
             }.collect { filteredResults ->
                 _filteredExercises.value = filteredResults
             }
@@ -111,9 +98,9 @@ class ExerciseSelectorViewModel(
     private fun filterExercises(
         exercises: List<ExerciseWithDetails>,
         query: String,
-        muscleGroup: String?,
-        equipmentFilter: Equipment?,
     ): List<ExerciseWithDetails> {
+        val muscleGroup: String? = null
+        val equipmentFilter: Equipment? = null
         // First apply category, muscle group, and equipment filters
         val filteredByAttributes =
             exercises
@@ -230,21 +217,6 @@ class ExerciseSelectorViewModel(
         _selectedCategory.value = category
         // Reload exercises from database when category changes
         loadExercisesByCategory(category)
-    }
-
-    fun selectMuscleGroup(muscleGroup: String?) {
-        _selectedMuscleGroup.value = muscleGroup
-    }
-
-    fun selectEquipment(equipment: Equipment?) {
-        _selectedEquipment.value = equipment
-    }
-
-    fun clearFilters() {
-        _selectedCategory.value = null
-        _selectedMuscleGroup.value = null
-        _selectedEquipment.value = null
-        _searchQuery.value = ""
     }
 
     fun createCustomExercise(
@@ -370,7 +342,6 @@ class ExerciseSelectorViewModel(
     fun validateExerciseName(name: String) {
         if (name.isBlank()) {
             _nameValidationError.value = null
-            _nameSuggestion.value = null
             return
         }
 
@@ -380,18 +351,15 @@ class ExerciseSelectorViewModel(
         when (validationResult) {
             is ValidationResult.Valid -> {
                 _nameValidationError.value = null
-                _nameSuggestion.value = if (formattedName != name) formattedName else null
             }
             is ValidationResult.Invalid -> {
                 _nameValidationError.value = validationResult.reason
-                _nameSuggestion.value = validationResult.suggestion ?: namingService.suggestCorrection(name)
             }
         }
     }
 
     fun clearNameValidation() {
         _nameValidationError.value = null
-        _nameSuggestion.value = null
     }
 
     fun requestDeleteExercise(exercise: ExerciseWithDetails) {

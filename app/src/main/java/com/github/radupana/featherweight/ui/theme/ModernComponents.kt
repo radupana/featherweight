@@ -30,10 +30,10 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
     elevation: Dp = 4.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val onClick: (() -> Unit)? = null
     val haptic = LocalHapticFeedback.current
     var isPressed by remember { mutableStateOf(false) }
 

@@ -2,9 +2,10 @@ package com.github.radupana.featherweight
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import android.util.Log
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -86,11 +87,10 @@ data class NavigationItem(
 )
 
 class MainActivity : ComponentActivity() {
-    
-    companion object {
+    private companion object {
         private const val TAG = "MainActivity"
     }
-    
+
     private val requestPermissionLauncher =
         registerForActivityResult(
             ActivityResultContracts.RequestPermission(),
@@ -103,11 +103,11 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
 
         super.onCreate(savedInstanceState)
-        
+
         Log.i(
             TAG,
             "App started - version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}), " +
-                "debug: ${BuildConfig.DEBUG}"
+                "debug: ${BuildConfig.DEBUG}",
         )
 
         // Request notification permission for Android 13+
@@ -117,7 +117,9 @@ class MainActivity : ComponentActivity() {
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             Log.i(TAG, "Requesting notification permission")
-            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
         } else {
             Log.i(TAG, "Notification permission already granted")
         }
@@ -168,7 +170,7 @@ class MainActivity : ComponentActivity() {
                                 onScreenChange = { screen ->
                                     Log.i(
                                         TAG,
-                                        "Navigation: ${currentScreen.name} -> ${screen.name}"
+                                        "Navigation: ${currentScreen.name} -> ${screen.name}",
                                     )
                                     previousScreen = currentScreen
                                     currentScreen = screen
@@ -190,22 +192,22 @@ class MainActivity : ComponentActivity() {
             // UI initialization errors are handled gracefully by the framework
         }
     }
-    
+
     override fun onResume() {
         super.onResume()
         Log.d(TAG, "Activity resumed")
     }
-    
+
     override fun onPause() {
         super.onPause()
         Log.d(TAG, "Activity paused")
     }
-    
+
     override fun onStop() {
         super.onStop()
         Log.d(TAG, "Activity stopped")
     }
-    
+
     override fun onDestroy() {
         super.onDestroy()
         Log.i(TAG, "Activity destroyed")

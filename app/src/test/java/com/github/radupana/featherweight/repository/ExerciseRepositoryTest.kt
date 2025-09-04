@@ -7,9 +7,25 @@ import com.github.radupana.featherweight.data.ExerciseSwapHistoryDao
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SetLogDao
-import com.github.radupana.featherweight.data.exercise.*
+import com.github.radupana.featherweight.data.exercise.ExerciseCategory
+import com.github.radupana.featherweight.data.exercise.ExerciseCore
+import com.github.radupana.featherweight.data.exercise.ExerciseCoreDao
+import com.github.radupana.featherweight.data.exercise.ExerciseDao
+import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
+import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
+import com.github.radupana.featherweight.data.exercise.Equipment
+import com.github.radupana.featherweight.data.exercise.MovementPattern
+import com.github.radupana.featherweight.data.exercise.VariationAlias
+import com.github.radupana.featherweight.data.exercise.VariationMuscleDao
 import com.google.common.truth.Truth.assertThat
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.runs
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
@@ -316,27 +332,6 @@ class ExerciseRepositoryTest {
             assertThat(result).isEqualTo(exercises)
         }
 
-    @Test
-    fun `getBig4Exercises_returnsFoundExercises`() =
-        runTest {
-            // Arrange
-            val squat = mockVariation.copy(id = 1L, name = "Barbell Back Squat")
-            val deadlift = mockVariation.copy(id = 2L, name = "Deadlift")
-            val bench = mockVariation.copy(id = 3L, name = "Barbell Bench Press")
-
-            coEvery { exerciseDao.findVariationByExactName("Barbell Back Squat") } returns squat
-            coEvery { exerciseDao.findVariationByExactName("Deadlift") } returns deadlift
-            coEvery { exerciseDao.findVariationByExactName("Barbell Bench Press") } returns bench
-            coEvery { exerciseDao.findVariationByExactName("Overhead Press") } returns null
-            coEvery { exerciseDao.findVariationByAlias(any()) } returns null
-
-            // Act
-            val result = repository.getBig4Exercises()
-
-            // Assert
-            assertThat(result).hasSize(3) // OHP not found
-            assertThat(result).containsExactly(squat, deadlift, bench)
-        }
 
     @Test
     fun `getExercisesForWorkout_returnsExerciseLogs`() =

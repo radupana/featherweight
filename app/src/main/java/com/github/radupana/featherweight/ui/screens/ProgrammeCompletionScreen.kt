@@ -262,10 +262,8 @@ private fun PrimaryStatsCard(stats: com.github.radupana.featherweight.data.progr
                     value = "${stats.completedWorkouts}/${stats.totalWorkouts}",
                 )
 
-                ProgrammeStatItem(
-                    label = "Total Volume",
+                ProgrammeTotalVolumeStatItem(
                     value = WeightFormatter.formatWeight(stats.totalVolume),
-                    suffix = "kg",
                 )
 
                 ProgrammeStatItem(
@@ -275,6 +273,14 @@ private fun PrimaryStatsCard(stats: com.github.radupana.featherweight.data.progr
             }
         }
     }
+}
+
+@Composable
+private fun ProgrammeTotalVolumeStatItem(
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    ProgrammeStatItem("Total Volume", value, "kg", modifier)
 }
 
 @Composable

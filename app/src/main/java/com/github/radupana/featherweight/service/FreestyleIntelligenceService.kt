@@ -102,7 +102,7 @@ class FreestyleIntelligenceService(
         val reasoning =
             buildString {
                 append("Progressive overload recommended. ")
-                append("Your average RPE of ${progress.recentAvgRpe?.format(1)} indicates ")
+                append("Your average RPE of ${progress.recentAvgRpe?.format()} indicates ")
                 append("you have capacity for more weight. ")
                 append("Increasing from ${baseWeight}kg by ${(increasePercentage * 100).roundToInt()}%.")
             }
@@ -131,7 +131,7 @@ class FreestyleIntelligenceService(
                 append("You've been at ${progress.currentWorkingWeight}kg for ${progress.consecutiveStalls} sessions. ")
                 append("Reducing to 85% (${deloadWeight}kg) will help break through this plateau. ")
                 if (progress.recentAvgRpe != null && progress.recentAvgRpe > 8.5f) {
-                    append("Your high RPE (${progress.recentAvgRpe.format(1)}) also indicates accumulated fatigue.")
+                    append("Your high RPE (${progress.recentAvgRpe.format()}) also indicates accumulated fatigue.")
                 }
             }
 
@@ -187,7 +187,7 @@ class FreestyleIntelligenceService(
         val reasoning =
             buildString {
                 append("Maintain or reduce intensity. ")
-                append("Your recent RPE of ${progress.recentAvgRpe?.format(1)} indicates high effort. ")
+                append("Your recent RPE of ${progress.recentAvgRpe?.format()} indicates high effort. ")
                 if (suggestedWeight < baseWeight) {
                     append("Reducing weight by 5% to manage fatigue and maintain form.")
                 } else {
@@ -319,5 +319,5 @@ class FreestyleIntelligenceService(
         return (weight / 2.5f).roundToInt() * 2.5f
     }
 
-    private fun Float.format(decimals: Int): String = "%.${decimals}f".format(this)
+    private fun Float.format(): String = "%.1f".format(this)
 }

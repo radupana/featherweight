@@ -34,8 +34,6 @@ import com.github.radupana.featherweight.domain.WorkoutSummary
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.time.temporal.WeekFields
-import java.util.Locale
 
 data class WeekGroup(
     val weekNumber: Int,
@@ -246,32 +244,3 @@ internal fun formatRelativeTime(dateTime: LocalDateTime): String {
     }
 }
 
-/**
- * Groups workouts by ISO week
- */
-fun groupWorkoutsByWeek(workouts: List<WorkoutSummary>): List<WeekGroup> {
-    val weekFields = WeekFields.of(Locale.getDefault())
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM d")
-
-    return workouts
-        .groupBy { workout ->
-            val weekNumber = workout.date.get(weekFields.weekOfYear())
-            val year = workout.date.year
-            Pair(weekNumber, year)
-        }.map { (weekYear, workoutsInWeek) ->
-            val (weekNumber, year) = weekYear
-            val sortedWorkouts = workoutsInWeek.sortedByDescending { it.date }
-            val startOfWeek = sortedWorkouts.minOf { it.date }
-            val endOfWeek = sortedWorkouts.maxOf { it.date }
-
-            WeekGroup(
-                weekNumber = weekNumber,
-                year = year,
-                workouts = sortedWorkouts,
-                startDate = startOfWeek.format(dateFormatter),
-                endDate = endOfWeek.format(dateFormatter),
-                totalVolume = workoutsInWeek.sumOf { it.totalWeight.toDouble() },
-                totalWorkouts = workoutsInWeek.size,
-            )
-        }.sortedWith(compareByDescending<WeekGroup> { it.year }.thenByDescending { it.weekNumber })
-}
