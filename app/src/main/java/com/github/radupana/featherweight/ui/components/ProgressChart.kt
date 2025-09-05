@@ -15,4 +15,3 @@ data class ChartData(
     val primaryColor: Color,
     val showPRmarkers: Boolean = true,
 )
-

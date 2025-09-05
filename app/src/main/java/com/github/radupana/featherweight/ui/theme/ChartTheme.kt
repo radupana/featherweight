@@ -34,7 +34,6 @@ object ChartTheme {
     @Composable
     fun negativeChangeColor() = Color(0xFFEF5350) // Softer red
 
-
     // Rep range chart colors - vibrant colors for better visibility
     val repRangeColors =
         listOf(

@@ -39,7 +39,6 @@ interface WorkoutDao {
     @Query("SELECT * FROM Workout WHERE programmeId = :programmeId ORDER BY date DESC")
     suspend fun getWorkoutsByProgramme(programmeId: Long): List<Workout>
 
-
     @Query("DELETE FROM Workout")
     suspend fun deleteAllWorkouts()
 

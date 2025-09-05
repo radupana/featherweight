@@ -24,7 +24,7 @@ class ProgrammeTextParserTest {
     @Before
     fun setUp() {
         LogMock.setup()
-        
+
         parser = TestProgrammeTextParser()
     }
 

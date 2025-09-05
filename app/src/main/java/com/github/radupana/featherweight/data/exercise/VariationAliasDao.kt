@@ -28,5 +28,4 @@ interface VariationAliasDao {
     """,
     )
     suspend fun findVariationByAlias(alias: String): ExerciseVariation?
-
 }

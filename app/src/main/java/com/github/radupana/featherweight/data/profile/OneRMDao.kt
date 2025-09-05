@@ -18,7 +18,6 @@ interface OneRMDao {
     @Update
     suspend fun updateExerciseMax(max: UserExerciseMax)
 
-
     @Query("DELETE FROM user_exercise_maxes WHERE exerciseVariationId = :exerciseVariationId")
     suspend fun deleteAllMaxesForExercise(
         exerciseVariationId: Long,
@@ -35,7 +34,6 @@ interface OneRMDao {
     suspend fun getCurrentMax(
         exerciseVariationId: Long,
     ): UserExerciseMax?
-
 
     @Query(
         """
@@ -64,7 +62,6 @@ interface OneRMDao {
     suspend fun getCurrentMaxesForExercises(
         exerciseVariationIds: List<Long>,
     ): List<UserExerciseMax>
-
 
     @Transaction
     suspend fun upsertExerciseMax(
@@ -231,7 +228,6 @@ interface OneRMDao {
         startDate: LocalDateTime,
         endDate: LocalDateTime,
     ): List<OneRMHistory>
-
 
     @Query("DELETE FROM user_exercise_maxes")
     suspend fun deleteAllUserExerciseMaxes()

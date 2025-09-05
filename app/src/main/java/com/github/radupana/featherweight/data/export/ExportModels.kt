@@ -7,7 +7,6 @@ data class ExportOptions(
     val includeProfile: Boolean = true,
 )
 
-
 data class OneRMRecord(
     val exerciseId: Long,
     val exerciseName: String,
@@ -19,7 +18,6 @@ data class BodyweightRecord(
     val weight: Float,
     val recordedDate: String,
 )
-
 
 data class ProgrammeInfo(
     val programmeName: String,
@@ -45,4 +43,3 @@ data class ExportedSet(
     val rpe: Float?,
     val completed: Boolean,
 )
-

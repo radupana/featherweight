@@ -13,5 +13,4 @@ interface TrainingAnalysisDao {
 
     @Query("SELECT * FROM training_analysis ORDER BY analysisDate DESC LIMIT 1")
     suspend fun getLatestAnalysis(): TrainingAnalysis?
-
 }

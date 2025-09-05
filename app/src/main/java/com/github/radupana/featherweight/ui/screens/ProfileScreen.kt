@@ -489,7 +489,6 @@ private fun SettingsSection(
                     }
                 }
             }
-
         }
     }
 }

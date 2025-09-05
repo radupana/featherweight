@@ -1,13 +1,13 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
+import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.domain.WorkoutSummary
-import android.util.Log
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -41,7 +41,6 @@ class WorkoutRepository(
             workoutDao.getWorkoutById(workoutId)
         }
 
-
     suspend fun deleteWorkout(workout: Workout) =
         withContext(ioDispatcher) {
             Log.i(TAG, "Deleting workout - id: ${workout.id}, name: ${workout.name}")
@@ -62,7 +61,6 @@ class WorkoutRepository(
                 deleteWorkout(workout)
             }
         }
-
 
     suspend fun updateWorkoutStatus(
         workoutId: Long,
@@ -96,14 +94,9 @@ class WorkoutRepository(
             TAG,
             "Workout completed - id: $workoutId, name: ${workout.name ?: "Unnamed"}, " +
                 "duration: ${duration ?: 0}s, exercises: $exerciseCount, sets: $setCount, " +
-                "programmeId: ${workout.programmeId ?: "none"}"
+                "programmeId: ${workout.programmeId ?: "none"}",
         )
     }
-
-
-
-
-
 
     suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> =
         withContext(ioDispatcher) {
@@ -169,7 +162,7 @@ class WorkoutRepository(
                 TAG,
                 "getWorkoutHistory took ${System.currentTimeMillis() - startTime}ms - " +
                     "total workouts: ${allWorkouts.size}, summaries: ${result.size}, " +
-                    "completed: ${result.count { it.status == WorkoutStatus.COMPLETED }}"
+                    "completed: ${result.count { it.status == WorkoutStatus.COMPLETED }}",
             )
             result
         }

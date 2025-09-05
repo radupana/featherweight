@@ -8,12 +8,12 @@ class FeatherweightApplication : Application() {
     private companion object {
         private const val TAG = "FeatherweightApp"
     }
-    
+
     override fun onCreate() {
         super.onCreate()
-        
+
         FirebaseApp.initializeApp(this)
-        
+
         Log.i(TAG, "Application started - Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
         Log.i(TAG, "Debug mode: ${BuildConfig.DEBUG}")
         Log.i(TAG, "Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")

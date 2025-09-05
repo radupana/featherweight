@@ -32,7 +32,6 @@ interface ProgrammeDao {
     @Query("SELECT * FROM programmes ORDER BY createdAt DESC")
     suspend fun getAllProgrammes(): List<Programme>
 
-
     // Programme Weeks
     @Insert
     suspend fun insertProgrammeWeek(week: ProgrammeWeek): Long
@@ -57,7 +56,6 @@ interface ProgrammeDao {
     )
     suspend fun getAllWorkoutsForProgramme(programmeId: Long): List<ProgrammeWorkout>
 
-
     // Programme Progress
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdateProgress(progress: ProgrammeProgress): Long
@@ -80,7 +78,6 @@ interface ProgrammeDao {
     @Transaction
     @Query("SELECT * FROM programmes WHERE id = :programmeId")
     suspend fun getProgrammeWithDetails(programmeId: Long): ProgrammeWithDetailsRaw?
-
 
     // Activation/Deactivation
     @Query("UPDATE programmes SET isActive = 0")
@@ -111,7 +108,6 @@ interface ProgrammeDao {
         programmeId: Long,
         completedAt: LocalDateTime,
     )
-
 
     // Paginated query for completed programmes - uses status for reliability
     @Query(

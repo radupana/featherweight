@@ -23,6 +23,7 @@ class PersonalRecordRepository(
     companion object {
         private const val TAG = "PersonalRecordRepository"
     }
+
     private val db = FeatherweightDatabase.getDatabase(application)
     private val personalRecordDao = db.personalRecordDao()
     private val setLogDao = db.setLogDao()
@@ -51,17 +52,17 @@ class PersonalRecordRepository(
     ): List<PersonalRecord> =
         withContext(ioDispatcher) {
             val prs = prDetectionService.checkForPR(setLog, exerciseVariationId)
-            
+
             if (prs.isNotEmpty()) {
                 val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
                 val exerciseName = exercise?.name ?: "Unknown"
-                
+
                 prs.forEach { pr ->
                     Log.i(
                         TAG,
                         "Personal record achieved - exercise: $exerciseName, type: ${pr.recordType.name}, " +
                             "weight: ${pr.weight}kg, reps: ${pr.reps}, estimated 1RM: ${pr.estimated1RM ?: 0f}kg, " +
-                            "previous: ${pr.previousWeight ?: 0f}kg"
+                            "previous: ${pr.previousWeight ?: 0f}kg",
                     )
                 }
             }

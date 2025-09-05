@@ -10,7 +10,6 @@ interface GlobalExerciseProgressDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(progress: GlobalExerciseProgress): Long
 
-
     @Query(
         """
         SELECT * FROM global_exercise_progress 
@@ -21,9 +20,6 @@ interface GlobalExerciseProgressDao {
     suspend fun getProgressForExercise(
         exerciseVariationId: Long,
     ): GlobalExerciseProgress?
-
-
-
 
     @Query("DELETE FROM global_exercise_progress")
     suspend fun deleteAllGlobalProgress()

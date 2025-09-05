@@ -274,7 +274,6 @@ fun ProgrammesScreen(
                             isCompact = isKeyboardVisible,
                         )
                     }
-
                 }
 
                 if (parseRequests.isNotEmpty()) {
@@ -318,7 +317,6 @@ fun ProgrammesScreen(
             }
         }
     }
-
 
     if (showDeleteConfirmDialog) {
         var inProgressWorkoutCount by remember { mutableStateOf(0) }
@@ -384,7 +382,6 @@ fun ProgrammesScreen(
             },
         )
     }
-
 
     showRawTextDialog?.let { rawText ->
         AlertDialog(

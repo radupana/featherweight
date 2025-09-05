@@ -357,13 +357,14 @@ fun WorkoutsScreen(
         // Last workout info
         lastWorkoutInfo?.let { info ->
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { 
-                        lastCompletedWorkout?.let { workout ->
-                            onViewLastWorkout(workout.id)
-                        }
-                    },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            lastCompletedWorkout?.let { workout ->
+                                onViewLastWorkout(workout.id)
+                            }
+                        },
                 colors =
                     CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,

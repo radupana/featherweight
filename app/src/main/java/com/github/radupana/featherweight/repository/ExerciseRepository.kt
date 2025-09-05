@@ -150,7 +150,6 @@ class ExerciseRepository(
             exerciseDao.getVariationsByEquipment(equipment)
         }
 
-
     // ===== EXERCISE LOG OPERATIONS =====
 
     suspend fun getExercisesForWorkout(workoutId: Long): List<ExerciseLog> = exerciseLogDao.getExerciseLogsForWorkout(workoutId)

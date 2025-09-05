@@ -291,8 +291,8 @@ class WeightCalculationRulesTest {
         assertThat(increments["front squat"]).isEqualTo(5.0f)
         assertThat(increments["romanian deadlift"]).isEqualTo(5.0f)
         assertThat(increments["leg press"]).isEqualTo(10.0f)
-        
-        // Upper body exercises should have smaller increments  
+
+        // Upper body exercises should have smaller increments
         assertThat(increments["bench press"]).isEqualTo(2.5f)
         assertThat(increments["overhead press"]).isEqualTo(2.5f)
         assertThat(increments["incline bench press"]).isEqualTo(2.5f)
@@ -300,21 +300,24 @@ class WeightCalculationRulesTest {
 
     @Test
     fun `ProgressionRules can be configured for wave periodization`() {
-        val wavePercentages = listOf(
-            listOf(0.65f, 0.75f, 0.85f), // Week 1
-            listOf(0.70f, 0.80f, 0.90f), // Week 2
-            listOf(0.75f, 0.85f, 0.95f)  // Week 3
-        )
-        
-        val rules = ProgressionRules(
-            type = ProgressionType.WAVE,
-            cycleLength = 3,
-            weeklyPercentages = wavePercentages,
-            successCriteria = SuccessCriteria(
-                requiredSets = null,
-                requiredReps = null
+        val wavePercentages =
+            listOf(
+                listOf(0.65f, 0.75f, 0.85f), // Week 1
+                listOf(0.70f, 0.80f, 0.90f), // Week 2
+                listOf(0.75f, 0.85f, 0.95f), // Week 3
             )
-        )
+
+        val rules =
+            ProgressionRules(
+                type = ProgressionType.WAVE,
+                cycleLength = 3,
+                weeklyPercentages = wavePercentages,
+                successCriteria =
+                    SuccessCriteria(
+                        requiredSets = null,
+                        requiredReps = null,
+                    ),
+            )
 
         assertThat(rules.type).isEqualTo(ProgressionType.WAVE)
         assertThat(rules.cycleLength).isEqualTo(3)

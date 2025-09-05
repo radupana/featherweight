@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.ExerciseLog
@@ -13,7 +14,6 @@ import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.domain.ExerciseHistory
-import android.util.Log
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
 import com.github.radupana.featherweight.service.OneRMService
@@ -447,11 +447,11 @@ class WorkoutViewModel(
 
                 val workout = Workout(date = LocalDateTime.now(), notes = null)
                 val workoutId = repository.insertWorkout(workout)
-                
+
                 Log.i(
                     TAG,
                     "Starting new workout - id: $workoutId, forceNew: $forceNew, " +
-                        "timestamp: ${LocalDateTime.now()}"
+                        "timestamp: ${LocalDateTime.now()}",
                 )
 
                 _currentWorkoutId.value = workoutId
@@ -498,17 +498,17 @@ class WorkoutViewModel(
 
         viewModelScope.launch {
             val state = _workoutState.value
-            
+
             val exerciseCount = selectedWorkoutExercises.value.size
             val completedSets = selectedExerciseSets.value.count { it.isCompleted }
             val totalSets = selectedExerciseSets.value.size
             val duration = _workoutTimerSeconds.value
-            
+
             Log.i(
                 TAG,
                 "Completing workout - id: $currentId, duration: ${duration}s, " +
                     "exercises: $exerciseCount, completed sets: $completedSets/$totalSets, " +
-                    "isProgramme: ${state.isProgrammeWorkout}, programme: ${state.programmeName ?: "none"}"
+                    "isProgramme: ${state.isProgrammeWorkout}, programme: ${state.programmeName ?: "none"}",
             )
 
             // Store programme ID before completion if this is a programme workout
@@ -887,7 +887,7 @@ class WorkoutViewModel(
                     exercise = exercise,
                     exerciseOrder = selectedWorkoutExercises.value.size,
                 )
-            
+
             Log.i(TAG, "Exercise added to workout - exercise: ${exercise.name}, workoutId: $currentId, order: ${selectedWorkoutExercises.value.size}, exerciseLogId: $exerciseLogId")
 
             // Auto-add first empty set for better UX
@@ -1123,7 +1123,7 @@ class WorkoutViewModel(
         rpe: Float?,
     ) {
         if (!canEditWorkout()) return
-        
+
         Log.i(TAG, "Updating set - setId: $setId, weight: ${weight}kg, reps: $reps, rpe: $rpe")
 
         viewModelScope.launch {
@@ -1347,7 +1347,7 @@ class WorkoutViewModel(
                     TAG,
                     "1RM update - exercise: ${exercise?.name}, " +
                         "old: ${currentEstimate?.toInt()}kg, new: ${newEstimate.toInt()}kg, " +
-                        "from: ${completedSet.actualWeight}kg x ${completedSet.actualReps} @ RPE ${completedSet.actualRpe}"
+                        "from: ${completedSet.actualWeight}kg x ${completedSet.actualReps} @ RPE ${completedSet.actualRpe}",
                 )
                 persistOneRMUpdate(exerciseLog.exerciseVariationId, completedSet, newEstimate, currentEstimate)
             }
@@ -1599,7 +1599,6 @@ class WorkoutViewModel(
             loadInProgressWorkouts()
         }
     }
-
 
     // Repeat a completed workout as a new freestyle workout
     fun repeatWorkout() {

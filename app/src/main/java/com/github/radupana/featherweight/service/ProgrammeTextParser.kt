@@ -1,7 +1,7 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.data.ParsedExercise
 import android.util.Log
+import com.github.radupana.featherweight.data.ParsedExercise
 import com.github.radupana.featherweight.data.ParsedProgramme
 import com.github.radupana.featherweight.data.ParsedSet
 import com.github.radupana.featherweight.data.ParsedWeek

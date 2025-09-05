@@ -243,4 +243,3 @@ internal fun formatRelativeTime(dateTime: LocalDateTime): String {
         }
     }
 }
-

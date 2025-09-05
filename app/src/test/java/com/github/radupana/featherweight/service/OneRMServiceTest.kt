@@ -777,17 +777,17 @@ class OneRMServiceTest {
     fun `calculateEstimated1RM with decimal RPE values gives correct progression`() {
         val weight = 100f
         val reps = 5
-        
+
         val rpe80 = service.calculateEstimated1RM(weight, reps, 8.0f)
         val rpe85 = service.calculateEstimated1RM(weight, reps, 8.5f)
         val rpe90 = service.calculateEstimated1RM(weight, reps, 9.0f)
         val rpe95 = service.calculateEstimated1RM(weight, reps, 9.5f)
-        
+
         assertThat(rpe80).isNotNull()
         assertThat(rpe85).isNotNull()
         assertThat(rpe90).isNotNull()
         assertThat(rpe95).isNotNull()
-        
+
         assertThat(rpe85).isLessThan(rpe80)
         assertThat(rpe90).isLessThan(rpe85)
         assertThat(rpe95).isLessThan(rpe90)
@@ -797,15 +797,15 @@ class OneRMServiceTest {
     fun `calculateEstimated1RM with RPE 8 point 5 produces correct RIR`() {
         val weight = 120f
         val reps = 5
-        
+
         val with85 = service.calculateEstimated1RM(weight, reps, 8.5f)
         val with8 = service.calculateEstimated1RM(weight, reps, 8.0f)
         val with9 = service.calculateEstimated1RM(weight, reps, 9.0f)
-        
+
         assertThat(with85).isNotNull()
         assertThat(with85).isLessThan(with8)
         assertThat(with85).isGreaterThan(with9)
-        
+
         val ratio85to8 = with85!! / with8!!
         val ratio9to85 = with9!! / with85
         assertThat(ratio85to8).isLessThan(1f)

@@ -24,6 +24,4 @@ interface VariationInstructionDao {
     """,
     )
     suspend fun getInstructionsForVariation(variationId: Long): List<VariationInstruction>
-
 }
-

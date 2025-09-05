@@ -532,9 +532,10 @@ private fun CleanSetRow(
             ) {
                 // Set number column - match header layout
                 Box(
-                    modifier = Modifier
-                        .width(32.dp)
-                        .height(48.dp),
+                    modifier =
+                        Modifier
+                            .width(32.dp)
+                            .height(48.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -728,9 +729,10 @@ private fun CleanSetRow(
 
                 // Dedicated checkbox column - match header layout
                 Box(
-                    modifier = Modifier
-                        .width(48.dp)
-                        .height(48.dp),
+                    modifier =
+                        Modifier
+                            .width(48.dp)
+                            .height(48.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Box(

@@ -486,7 +486,6 @@ fun WorkoutStatItem(
     }
 }
 
-
 @Composable
 fun ProgrammesHistorySection(
     programmes: List<ProgrammeSummary>,

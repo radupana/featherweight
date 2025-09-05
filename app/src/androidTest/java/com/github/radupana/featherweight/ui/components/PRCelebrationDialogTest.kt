@@ -4,12 +4,12 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.runner.RunWith
 import java.time.LocalDateTime
 
@@ -17,6 +17,7 @@ import java.time.LocalDateTime
 class PRCelebrationDialogTest {
     @get:Rule
     val composeTestRule = createComposeRule()
+
     @Test
     fun `dialog displays New Personal Record title for weight PRs`() {
         val weightPR = createWeightPR()
@@ -28,19 +29,19 @@ class PRCelebrationDialogTest {
             PRCelebrationDialog(
                 personalRecords = records,
                 exerciseNames = exerciseNames,
-                onDismiss = { dismissCalled = true }
+                onDismiss = { dismissCalled = true },
             )
         }
 
         // Verify the title is displayed
         composeTestRule.onNodeWithText("New Personal Record!").assertIsDisplayed()
-        
+
         // Verify exercise name is displayed
         composeTestRule.onNodeWithText("Barbell Bench Press").assertIsDisplayed()
-        
+
         // Verify weight and reps are displayed (100kg × 5)
         composeTestRule.onNodeWithText("100kg × 5 @ RPE 8").assertIsDisplayed()
-        
+
         // Verify Continue Workout button exists
         composeTestRule.onNodeWithText("Continue Workout").assertIsDisplayed()
     }
@@ -55,20 +56,20 @@ class PRCelebrationDialogTest {
             PRCelebrationDialog(
                 personalRecords = records,
                 exerciseNames = exerciseNames,
-                onDismiss = { }
+                onDismiss = { },
             )
         }
 
         // Verify the title is displayed
         composeTestRule.onNodeWithText("New Personal Record!").assertIsDisplayed()
-        
+
         // Verify exercise name is displayed
         composeTestRule.onNodeWithText("Barbell Squat").assertIsDisplayed()
-        
+
         // For 1RM PR, should show the 1RM value
         composeTestRule.onNodeWithText("150kg").assertIsDisplayed()
         composeTestRule.onNodeWithText("Estimated One Rep Max").assertIsDisplayed()
-        
+
         // Should show what achieved it with
         composeTestRule.onNodeWithText("Achieved with: 100kg × 5 @ RPE 8").assertIsDisplayed()
     }
@@ -84,17 +85,17 @@ class PRCelebrationDialogTest {
             PRCelebrationDialog(
                 personalRecords = records,
                 exerciseNames = exerciseNames,
-                onDismiss = { }
+                onDismiss = { },
             )
         }
 
         // Should show the first PR (weight PR)
         composeTestRule.onNodeWithText("Barbell Deadlift").assertIsDisplayed()
         composeTestRule.onNodeWithText("100kg × 5 @ RPE 8").assertIsDisplayed()
-        
+
         // Should also show the new 1RM from the weight PR
         composeTestRule.onNodeWithText("New One Rep Max: 120kg").assertIsDisplayed()
-        
+
         // Should NOT show the second PR's specific 150kg value (it shows 120kg from weight PR's 1RM)
         composeTestRule.onNodeWithText("150kg").assertDoesNotExist()
     }
@@ -109,7 +110,7 @@ class PRCelebrationDialogTest {
             PRCelebrationDialog(
                 personalRecords = records,
                 exerciseNames = exerciseNames,
-                onDismiss = { }
+                onDismiss = { },
             )
         }
 
@@ -128,25 +129,26 @@ class PRCelebrationDialogTest {
             PRCelebrationDialog(
                 personalRecords = records,
                 exerciseNames = exerciseNames,
-                onDismiss = { dismissCalled = true }
+                onDismiss = { dismissCalled = true },
             )
         }
 
         // Click Continue Workout button
         composeTestRule.onNodeWithText("Continue Workout").performClick()
-        
+
         // Verify dismiss was called
         assertThat(dismissCalled).isTrue()
     }
 
     @Test
     fun `dialog displays previous record comparison when available`() {
-        val prWithPrevious = createWeightPR().copy(
-            previousWeight = 95f,
-            previousReps = 5,
-            previousDate = LocalDateTime.of(2024, 1, 1, 10, 0),
-            improvementPercentage = 5.26f
-        )
+        val prWithPrevious =
+            createWeightPR().copy(
+                previousWeight = 95f,
+                previousReps = 5,
+                previousDate = LocalDateTime.of(2024, 1, 1, 10, 0),
+                improvementPercentage = 5.26f,
+            )
         val records = listOf(prWithPrevious)
         val exerciseNames = mapOf(1L to "Barbell Curl")
 
@@ -154,7 +156,7 @@ class PRCelebrationDialogTest {
             PRCelebrationDialog(
                 personalRecords = records,
                 exerciseNames = exerciseNames,
-                onDismiss = { }
+                onDismiss = { },
             )
         }
 
@@ -174,7 +176,7 @@ class PRCelebrationDialogTest {
             PRCelebrationDialog(
                 personalRecords = records,
                 exerciseNames = exerciseNames,
-                onDismiss = { }
+                onDismiss = { },
             )
         }
 
@@ -194,7 +196,7 @@ class PRCelebrationDialogTest {
             PRCelebrationDialog(
                 personalRecords = records,
                 exerciseNames = exerciseNames,
-                onDismiss = { dialogRendered = true }
+                onDismiss = { dialogRendered = true },
             )
         }
 
@@ -213,7 +215,7 @@ class PRCelebrationDialogTest {
             PRCelebrationDialog(
                 personalRecords = records,
                 exerciseNames = exerciseNames,
-                onDismiss = { }
+                onDismiss = { },
             )
         }
 
@@ -225,9 +227,10 @@ class PRCelebrationDialogTest {
 
     @Test
     fun `dialog shows potential lift suggestion when notes contain could potentially lift`() {
-        val prWithNotes = createWeightPR().copy(
-            notes = "Great lift! (Based on your 130.5kg 1RM, you could potentially lift more)"
-        )
+        val prWithNotes =
+            createWeightPR().copy(
+                notes = "Great lift! (Based on your 130.5kg 1RM, you could potentially lift more)",
+            )
         val records = listOf(prWithNotes)
         val exerciseNames = mapOf(1L to "Barbell Squat")
 
@@ -235,7 +238,7 @@ class PRCelebrationDialogTest {
             PRCelebrationDialog(
                 personalRecords = records,
                 exerciseNames = exerciseNames,
-                onDismiss = { }
+                onDismiss = { },
             )
         }
 
@@ -281,5 +284,4 @@ class PRCelebrationDialogTest {
             notes = null,
             workoutId = 1,
         )
-
 }

@@ -21,4 +21,3 @@ data class WorkoutSummary(
     val weekNumber: Int? = null,
     val dayNumber: Int? = null,
 )
-

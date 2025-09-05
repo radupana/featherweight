@@ -2,8 +2,10 @@ package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
 import com.github.radupana.featherweight.data.exercise.Equipment
+import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.testutil.CoroutineTestRule
 import com.google.common.truth.Truth.assertThat
@@ -335,4 +337,5 @@ class ExerciseMappingViewModelTest {
             assertThat(finalMappings["Custom Squat"]).isEqualTo(1L)
             assertThat(finalMappings["Custom Press"]).isNull()
         }
+
 }

@@ -382,7 +382,6 @@ class ImportProgrammeViewModel(
             .replace("  ", " ")
             .trim()
 
-
     fun clearAll() {
         _uiState.value = ImportProgrammeUiState() // Reset to initial state
     }

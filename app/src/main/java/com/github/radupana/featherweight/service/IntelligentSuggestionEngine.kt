@@ -20,4 +20,3 @@ enum class SuggestionSource {
     HISTORICAL_AVERAGE,
     RECENT_PERFORMANCE,
 }
-

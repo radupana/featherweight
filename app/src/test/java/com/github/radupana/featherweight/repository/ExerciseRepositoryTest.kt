@@ -7,6 +7,7 @@ import com.github.radupana.featherweight.data.ExerciseSwapHistoryDao
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SetLogDao
+import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseCore
 import com.github.radupana.featherweight.data.exercise.ExerciseCoreDao
@@ -14,7 +15,6 @@ import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
-import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.VariationAlias
 import com.github.radupana.featherweight.data.exercise.VariationMuscleDao
@@ -54,7 +54,7 @@ class ExerciseRepositoryTest {
         every { Log.d(any<String>(), any<String>()) } returns 0
         every { Log.e(any<String>(), any<String>()) } returns 0
         every { Log.w(any<String>(), any<String>()) } returns 0
-        
+
         db = mockk()
         exerciseDao = mockk<ExerciseDao>()
         exerciseLogDao = mockk<ExerciseLogDao>()
@@ -80,7 +80,7 @@ class ExerciseRepositoryTest {
                 name = "Bench Press",
                 category = ExerciseCategory.CHEST,
                 movementPattern = MovementPattern.PUSH,
-                isCompound = true
+                isCompound = true,
             )
 
         mockVariation =
@@ -331,7 +331,6 @@ class ExerciseRepositoryTest {
             // Assert
             assertThat(result).isEqualTo(exercises)
         }
-
 
     @Test
     fun `getExercisesForWorkout_returnsExerciseLogs`() =

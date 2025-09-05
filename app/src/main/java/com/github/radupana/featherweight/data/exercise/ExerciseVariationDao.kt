@@ -36,6 +36,4 @@ interface ExerciseVariationDao {
     // Usage tracking
     @Query("UPDATE exercise_variations SET usageCount = usageCount + 1 WHERE id = :id")
     suspend fun incrementUsageCount(id: Long)
-
 }
-
