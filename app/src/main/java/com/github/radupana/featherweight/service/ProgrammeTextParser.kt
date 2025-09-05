@@ -83,6 +83,10 @@ open class ProgrammeTextParser {
                         e.message?.contains("API key") == true -> "OpenAI API key not configured"
                         e.message?.contains("timeout") == true -> "Request timed out. Please try again."
                         e.message?.contains("Network") == true -> "Network error. Check your connection."
+                        e.message?.contains("500") == true || e.message?.contains("503") == true -> 
+                            "AI service temporarily unavailable. Please try again in a few moments. (Error: ${e.message?.take(20)})"
+                        e.message?.contains("401") == true -> "Authentication failed. Please contact support."
+                        e.message?.contains("429") == true -> "Too many requests. Please wait a moment and try again."
                         else -> "Failed to connect to AI service: ${e.message}"
                     }
 
@@ -126,15 +130,78 @@ open class ProgrammeTextParser {
         }
 
     private fun validateInput(text: String): ValidationResult {
-        if (text.isBlank()) {
-            return ValidationResult(false, "Please provide programme text")
+        // Basic checks
+        val basicError = when {
+            text.isBlank() -> "Please provide programme text"
+            text.length > 10000 -> "Programme text is too long. Maximum 10,000 characters"
+            text.length < 50 -> "Your input seems too short. Please include at least one full workout with exercises, sets, and reps."
+            else -> null
         }
+        if (basicError != null) return ValidationResult(false, basicError)
 
-        if (text.length > 10000) {
-            return ValidationResult(false, "Programme text is too long. Maximum 10,000 characters")
-        }
+        val lowerText = text.lowercase()
+        
+        // Content quality checks
+        val qualityError = checkContentQuality(text, lowerText)
+        if (qualityError != null) return ValidationResult(false, qualityError)
+        
+        // Structure and format checks  
+        val structureError = checkStructureAndFormat(text)
+        if (structureError != null) return ValidationResult(false, structureError)
 
         return ValidationResult(true)
+    }
+    
+    private fun checkContentQuality(text: String, lowerText: String): String? {
+        // Check for profanity/spam
+        val profanityPatterns = listOf("fuck", "shit", "damn", "hell", "ass", "bitch", "crap")
+        val spamIndicators = profanityPatterns.count { lowerText.contains(it) }
+        if (spamIndicators > 2 || (spamIndicators > 0 && text.length < 100)) {
+            return "Please provide a serious workout programme to parse."
+        }
+        
+        // Check for workout-related keywords
+        val workoutKeywords = listOf(
+            // Exercise names
+            "squat", "press", "deadlift", "row", "curl", "extension", "raise",
+            "pull", "push", "fly", "dip", "chin", "bench", "overhead",
+            // Structure words
+            "day", "week", "workout", "session", "exercise",
+            // Sets/reps indicators
+            "sets", "reps", "x", "×", "set of",
+            // Weight/intensity
+            "kg", "lbs", "pounds", "%", "rpe", "rir", "@"
+        )
+        
+        val keywordCount = workoutKeywords.count { keyword -> lowerText.contains(keyword) }
+        if (keywordCount < 2) {
+            return "Couldn't find workout-related content. Please include exercises with sets and reps (e.g., 'Squat 3x5', 'Bench Press 4x8')."
+        }
+        
+        return null
+    }
+    
+    private fun checkStructureAndFormat(text: String): String? {
+        // Check for excessive repetition
+        val words = text.split(Regex("\\s+"))
+        if (words.size > 3) {
+            val wordGroups = words.groupBy { it.lowercase() }
+            val maxRepetitions = wordGroups.values.maxOfOrNull { it.size } ?: 0
+            val repetitionRatio = maxRepetitions.toFloat() / words.size
+            
+            if (repetitionRatio > 0.5) {
+                return "Input appears to be spam or repetitive text. Please provide a real workout programme."
+            }
+        }
+        
+        // Check if mostly numbers/special chars
+        val alphaCount = text.count { it.isLetter() }
+        val alphaRatio = alphaCount.toFloat() / text.length
+        if (alphaRatio < 0.3) {
+            return "Input needs more exercise descriptions. Include exercise names along with sets and reps."
+        }
+        
+        return null
     }
 
     internal open suspend fun callOpenAIAPI(request: TextParsingRequest): String {
@@ -236,7 +303,22 @@ open class ProgrammeTextParser {
             }
 
         return """
-            Parse this workout programme into structured JSON. Analyze the full workout context to disambiguate exercises.
+            First, validate if this text contains a workout programme.
+            
+            If the text:
+            - Contains NO identifiable exercises
+            - Is profanity, spam, or completely unrelated content
+            - Cannot be interpreted as fitness/workout content
+            
+            Return: {
+                "error_type": "INVALID_CONTENT",
+                "error_message": "Unable to parse as a workout programme. Please provide text containing exercises, sets, and reps.",
+                "name": null,
+                "duration_weeks": 0,
+                "weeks": []
+            }
+            
+            Otherwise, parse this workout programme into structured JSON.
             
             Programme text:
             ${request.rawText}
@@ -244,89 +326,57 @@ open class ProgrammeTextParser {
             ${if (maxesInfo.isNotBlank()) "User's 1RM values:\n$maxesInfo" else ""}
             
             CRITICAL PARSING RULES:
-            1. ONE ENTRY PER EXERCISE: Create only ONE exercise object per unique exercise name
-               - Combine ALL sets for the same exercise into that single object
-               - "Squat: 1×1 @9 • 3×3 @8" = ONE Squat with 4 total sets
-               - Never create multiple entries for the same exercise
-            2. SETS×REPS: "A×B" = Create EXACTLY A separate set objects, each with B reps
-               - "3×5 100kg" = 3 sets: [{"reps":5,"weight":100}, {"reps":5,"weight":100}, {"reps":5,"weight":100}]
-               - THE FIRST NUMBER IS ALWAYS THE EXACT SET COUNT - NEVER CREATE MORE OR FEWER
-            3. REP RANGES: "A×B-C" = Create EXACTLY A sets, each with B reps (use LOWER value)
-               - "4×8-10" = 4 sets: [{"reps":8}, {"reps":8}, {"reps":8}, {"reps":8}] ✓
-               - "4×8-10" = 2 sets: [{"reps":8}, {"reps":9}] ✗ WRONG - must be 4 sets!
-            4. WEIGHT RANGES: Use the LOWER value for all sets (92.5-95kg → all sets at 92.5kg)
-            5. RPE RANGES: Use the average (@7-8 = 7.5, @9-10 = 9.5)
-            6. PRESERVE SET ORDER: Add sets in EXACT order they appear in the input
-               - "1×4 @heavy • 4×8 @light" = first the 1×4 set, THEN the 4×8 sets
-               - NEVER reorder, sort, or rearrange sets - maintain input order!
+            1. SETS×REPS: "3×5 100kg" = Create EXACTLY 3 set objects
+               - [{"reps":5,"weight":100}, {"reps":5,"weight":100}, {"reps":5,"weight":100}]
+               - "3 sets of 5" also = 3 separate sets
+               - NEVER combine into one set with higher reps
+            
+            2. REP RANGES: "4×8-10" = 4 sets of 8 reps (use LOWER value)
+               - Correct: [{"reps":8}, {"reps":8}, {"reps":8}, {"reps":8}]
+               - Wrong: [{"reps":8}, {"reps":10}] - must be 4 sets!
+            
+            3. ONE ENTRY PER EXERCISE: Never duplicate exercises
+               - "Squat 3×5, Squat 3×3" = ONE Squat with 6 total sets
+            
+            4. PRESERVE ORDER: Keep sets in exact input order
             
             EXERCISE NAME RULES:
-            1. Format: [Equipment] [Variation] [Movement]
-            2. Keep ALL descriptors: "Paused", "Pin", "Close Grip", "Romanian", "Underhand"
-            3. "Paused or Pin" → use first variation
-            4. Never duplicate equipment: "Underhand Barbell Row" → "Barbell Underhand Row"
-            5. Keep equipment in exercise names: "Cable Fly", "Weighted Dips"
-            6. "DB Flat Press" or "Dumbbell Flat Press" → "Dumbbell Bench Press"
-            7. Default equipment when unspecified:
-               - Squat/Bench/Deadlift/Press/Row/Curls → "Barbell"
-               - Raises/Flyes (without Cable) → "Dumbbell"
-               - Leg Curl/Extension, Lat Pulldown → "Machine"
-            
-            CRITICAL: Extract only the actual exercise name:
-            - Use your knowledge to identify the standard exercise name without any training context
-            - Remove programming descriptors (competition style, volume phase, top singles, back-offs, etc.)
-            - Remove tempo/technique modifiers unless they're part of the standard exercise name (keep "Paused" in "Paused Bench Press" but remove "2-count")
-            - When multiple exercises are listed together (e.g., "Split Squat / Lunge"), select the single most appropriate exercise
-            - Return the clean, standard exercise name that would appear in an exercise database
+            Format: [Equipment] [Movement]
+            - Default equipment when unspecified:
+              - Squat/Bench/Deadlift/Press/Row → "Barbell"
+              - Raises/Flyes → "Dumbbell"
             - Examples:
-              - "Back Squat (comp) – Top single" → "Barbell Back Squat"
-              - "Bench Press (volume)" → "Barbell Bench Press"
-              - "Paused Squat (2-count)" → "Barbell Paused Squat"
-              - "DB Split Squat / Lunge" → "Dumbbell Split Squat"
-              - "Back Squat (secondary/high-bar)" → "Barbell High Bar Squat"
+              - "squat" → "Barbell Squat"
+              - "bench" or "bench press" → "Barbell Bench Press"
+              - "DB press" → "Dumbbell Press"
+              - "RDL" → "Romanian Deadlift"
+            - Keep variations: "Paused Bench Press", "Front Squat"
             
-            EXERCISE DISAMBIGUATION:
-            Use workout context to resolve ambiguous exercises:
-            1. Identify workout type from compound movements (bench day, squat day, etc.)
-            2. Exercise order: compounds → assistance → isolation
-            3. After chest work, "Fly" = chest fly; after back work, "Fly" = rear delt
-            4. Consider weight: Cable Fly 15-25kg = chest, 5-10kg = rear delts
-            5. When ambiguous, match the workout's primary muscle group
             
             STRUCTURE:
-            - Week markers (Week 1, Week 2) or Day markers only
-            - No markers = single week programme
-            - Use null for "day" field when no specific weekday is mentioned (just Day 1, Day 2, etc.)
+            - No week/day markers = single week programme
+            - "Day 1" or "Monday" = use as day field
+            - Multiple workouts = separate by day markers or clear breaks
             
-            Output JSON with minimal parsing_logic:
+            Output JSON:
             {
-                "parsing_logic": {
-                    "workout_type": "chest|back|legs|shoulders|upper|lower|full_body",
-                    "disambiguation_applied": ["Cable Fly after bench/dips → Cable Fly (chest)"],
-                    "set_interpretation": [
-                        "Squat 1×4 105kg @7-8 + 4×8 92.5-95kg @9 = 1 set of 4 reps @105kg, then 4 sets of 8 reps @92.5kg",
-                        "DB Press 4×8-10 38kg = 4 sets of 8 reps @38kg (using lower rep value)"
-                    ]
-                },
-                "name": "Programme name",
-                "duration_weeks": number,
-                "weeks": [
-                    {
-                        "week_number": number,
-                        "workouts": [
-                            {
-                                "day": "Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|null",
-                                "name": "Workout name",
-                                "exercises": [
-                                    {
-                                        "name": "Exercise with equipment and variation",
-                                        "sets": [{"reps": number, "weight": number, "rpe": number or null}]
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
+                "name": "Imported Programme",
+                "duration_weeks": 1,
+                "weeks": [{
+                    "week_number": 1,
+                    "workouts": [{
+                        "day": "Monday" or null,
+                        "name": "Workout",
+                        "exercises": [{
+                            "name": "Barbell Squat",
+                            "sets": [
+                                {"reps": 3, "weight": 90, "rpe": null},
+                                {"reps": 3, "weight": 90, "rpe": null},
+                                {"reps": 3, "weight": 90, "rpe": null}
+                            ]
+                        }]
+                    }]
+                }]
             }
             """.trimIndent()
     }
@@ -351,6 +401,15 @@ open class ProgrammeTextParser {
 
         Log.d(TAG, "JSON parsed successfully")
         Log.d(TAG, "Top-level keys: ${json.keySet()}")
+        
+        // Check if AI rejected the content as invalid
+        json.get("error_type")?.let { errorType ->
+            if (!errorType.isJsonNull && errorType.asString == "INVALID_CONTENT") {
+                val errorMessage = json.get("error_message")?.asString 
+                    ?: "Unable to parse as a workout programme."
+                throw IllegalArgumentException(errorMessage)
+            }
+        }
 
         json.get("parsing_logic")?.let { logicElement ->
             if (!logicElement.isJsonNull && logicElement.isJsonObject) {
@@ -483,6 +542,40 @@ open class ProgrammeTextParser {
         Log.d(TAG, "Total weeks: ${weeks.size}")
         Log.d(TAG, "Total workouts: ${weeks.sumOf { it.workouts.size }}")
         Log.d(TAG, "Total exercises: ${weeks.sumOf { week -> week.workouts.sumOf { it.exercises.size } }}")
+
+        // Post-parse validation
+        require(weeks.isNotEmpty()) {
+            "No valid workout weeks found. Please check your programme format."
+        }
+        
+        val totalWorkouts = weeks.sumOf { it.workouts.size }
+        require(totalWorkouts > 0) {
+            "No workouts found. A programme must contain at least one workout."
+        }
+        
+        val totalExercises = weeks.sumOf { week -> 
+            week.workouts.sumOf { it.exercises.size }
+        }
+        require(totalExercises > 0) {
+            "No exercises found. Each workout must contain at least one exercise."
+        }
+        
+        // Validate that exercises have sets
+        var totalSets = 0
+        weeks.forEach { week ->
+            week.workouts.forEach { workout ->
+                workout.exercises.forEach { exercise ->
+                    if (exercise.sets.isEmpty()) {
+                        Log.w(TAG, "Exercise '${exercise.exerciseName}' has no sets")
+                    }
+                    totalSets += exercise.sets.size
+                }
+            }
+        }
+        
+        require(totalSets > 0) {
+            "No sets found in any exercises. Please include sets and reps (e.g., '3x10', '4 sets of 8')."
+        }
 
         return ParsedProgramme(
             name = name,

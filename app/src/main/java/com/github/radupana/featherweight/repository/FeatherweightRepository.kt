@@ -1854,8 +1854,14 @@ class FeatherweightRepository(
 
     fun getAllParseRequests(): Flow<List<ParseRequest>> = db.parseRequestDao().getAllRequests()
 
+    suspend fun hasPendingParseRequest(): Boolean =
+        withContext(Dispatchers.IO) {
+            db.parseRequestDao().getPendingRequestCount() > 0
+        }
+
     suspend fun deleteParseRequest(request: ParseRequest) =
         withContext(Dispatchers.IO) {
+            Log.d("FeatherweightRepository", "Deleting parse request with ID: ${request.id}, status: ${request.status}")
             try {
                 // Use deleteById for more reliable deletion
                 db.parseRequestDao().deleteById(request.id)

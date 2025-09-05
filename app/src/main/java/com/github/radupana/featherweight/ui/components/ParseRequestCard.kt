@@ -65,6 +65,7 @@ fun ParseRequestCard(
     modifier: Modifier = Modifier,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
+    var isErrorExpanded by remember { mutableStateOf(false) }
 
     val timeElapsed = remember(request.createdAt) { formatTimeElapsed(request.createdAt) }
     val programmeName = remember(request.resultJson) { extractProgrammeName(request) }
@@ -75,7 +76,7 @@ fun ParseRequestCard(
             modifier
                 .fillMaxWidth()
                 .clickable(
-                    enabled = request.status == ParseStatus.PROCESSING || request.status == ParseStatus.COMPLETED,
+                    enabled = request.status == ParseStatus.PROCESSING || request.status == ParseStatus.COMPLETED || request.status == ParseStatus.FAILED,
                 ) {
                     when (request.status) {
                         ParseStatus.PROCESSING -> isExpanded = !isExpanded
@@ -89,7 +90,7 @@ fun ParseRequestCard(
                                 }
                             }
                         }
-                        ParseStatus.FAILED -> {}
+                        ParseStatus.FAILED -> isErrorExpanded = !isErrorExpanded
                         ParseStatus.IMPORTED -> {} // Already imported, no action
                     }
                 },
@@ -123,7 +124,7 @@ fun ParseRequestCard(
                         status = request.status,
                         timeElapsed = timeElapsed,
                         error = request.error,
-                        rawTextLength = request.rawText.length,
+                        isErrorExpanded = isErrorExpanded,
                     )
                 }
 
@@ -261,7 +262,7 @@ private fun ParseRequestDetails(
     status: ParseStatus,
     timeElapsed: String,
     error: String?,
-    rawTextLength: Int,
+    isErrorExpanded: Boolean = false,
 ) {
     Column {
         Text(
@@ -274,7 +275,7 @@ private fun ParseRequestDetails(
             Spacer(modifier = Modifier.height(4.dp))
             FailedRequestDetails(
                 error = error,
-                rawTextLength = rawTextLength,
+                isErrorExpanded = isErrorExpanded,
             )
         }
     }
@@ -294,43 +295,40 @@ private fun getStatusMessage(
 @Composable
 private fun FailedRequestDetails(
     error: String?,
-    rawTextLength: Int,
+    isErrorExpanded: Boolean = false,
 ) {
     val errorMessage = error ?: "Unknown error"
-    val suggestion = getErrorSuggestion(errorMessage, rawTextLength)
 
-    Text(
-        text = errorMessage,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.error,
-        maxLines = 2,
-        overflow = TextOverflow.Ellipsis,
-    )
-
-    Text(
-        text = suggestion,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.Medium,
-    )
-}
-
-private fun getErrorSuggestion(
-    errorMessage: String,
-    rawTextLength: Int,
-): String =
-    when {
-        errorMessage.contains("too complex") || errorMessage.contains("2 weeks") ->
-            "💡 Try: Split into 2-week chunks"
-        errorMessage.contains("format") || errorMessage.contains("simplifying") ->
-            "💡 Try: Simplify format (Week 1, Monday, Exercise 3x5 @ 80kg)"
-        errorMessage.contains("Server error") || errorMessage.contains("try again") ->
-            "💡 Server is busy. Wait a moment and try again"
-        rawTextLength > 5000 ->
-            "💡 Try: Import first 2 weeks, then remaining weeks"
-        else ->
-            "💡 Try: Check format and simplify if needed"
+    Column {
+        // Show collapsed or expanded error based on state
+        if (isErrorExpanded) {
+            // Full error message when expanded
+            Text(
+                text = errorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        } else {
+            // Truncated error when collapsed
+            Text(
+                text = errorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            // Show indicator if text is truncated
+            if (errorMessage.length > 50) {
+                Text(
+                    text = "Tap to see full error",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Light,
+                )
+            }
+        }
     }
+}
 
 @Composable
 private fun ParseRequestActionButtons(
@@ -356,15 +354,28 @@ private fun ParseRequestActionButtons(
                 }
             }
             ParseStatus.COMPLETED -> {
-                IconButton(
-                    onClick = onView,
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Visibility,
-                        contentDescription = "View Programme",
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
+                Row {
+                    IconButton(
+                        onClick = onView,
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Visibility,
+                            contentDescription = "View Programme",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    
+                    IconButton(
+                        onClick = onEditAndRetry,
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Edit,
+                            contentDescription = "Edit and retry",
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             }
             ParseStatus.FAILED -> {

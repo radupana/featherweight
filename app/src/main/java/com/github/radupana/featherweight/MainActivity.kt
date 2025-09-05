@@ -573,8 +573,12 @@ fun MainAppWithNavigation(
                     viewModel = programmeViewModel,
                     workoutViewModel = workoutViewModel,
                     onNavigateToImport = { onScreenChange(Screen.IMPORT_PROGRAMME) },
-                    onNavigateToImportWithText = { text ->
-                        importProgrammeInitialText = text
+                    onNavigateToImportWithText = { text, requestId ->
+                        // Don't set initialText when we're directly updating the ViewModel
+                        // This prevents the LaunchedEffect from overwriting our editing state
+                        importProgrammeInitialText = null
+                        // Pass the request ID so the ViewModel knows we're editing
+                        importViewModel.updateInputText(text, requestId)
                         onScreenChange(Screen.IMPORT_PROGRAMME)
                     },
                     onNavigateToImportWithParsedProgramme = { programme, requestId ->

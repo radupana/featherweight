@@ -68,7 +68,7 @@ fun ProgrammesScreen(
     viewModel: ProgrammeViewModel = viewModel(),
     workoutViewModel: WorkoutViewModel = viewModel(),
     onNavigateToImport: (() -> Unit)? = null,
-    onNavigateToImportWithText: ((String) -> Unit)? = null,
+    onNavigateToImportWithText: ((String, Long?) -> Unit)? = null,
     onNavigateToImportWithParsedProgramme: ((com.github.radupana.featherweight.data.ParsedProgramme, Long) -> Unit)? = null,
     onClearImportedProgramme: (() -> Unit)? = null,
     onStartProgrammeWorkout: (() -> Unit)? = null,
@@ -302,7 +302,7 @@ fun ProgrammesScreen(
                             },
                             onEditAndRetry = { rawText ->
                                 if (onNavigateToImportWithText != null) {
-                                    onNavigateToImportWithText(rawText)
+                                    onNavigateToImportWithText(rawText, request.id)
                                 } else {
                                     onNavigateToImport?.invoke()
                                 }

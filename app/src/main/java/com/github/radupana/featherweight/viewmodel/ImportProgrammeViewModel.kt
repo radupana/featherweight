@@ -28,11 +28,12 @@ class ImportProgrammeViewModel(
     private val _uiState = MutableStateFlow(ImportProgrammeUiState())
     val uiState: StateFlow<ImportProgrammeUiState> = _uiState
 
-    fun updateInputText(text: String) {
+    fun updateInputText(text: String, editingRequestId: Long? = null) {
         _uiState.value =
             _uiState.value.copy(
                 inputText = text,
                 error = null,
+                editingFailedRequestId = editingRequestId,
             )
     }
 
@@ -60,6 +61,25 @@ class ImportProgrammeViewModel(
                     )
                 return@launch
             }
+            
+            // Check for existing pending parse request (but allow if we're editing a failed one)
+            val editingRequestId = _uiState.value.editingFailedRequestId
+            
+            if (editingRequestId == null && repository.hasPendingParseRequest()) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Please complete your pending programme review before importing another.",
+                    )
+                return@launch
+            }
+            
+            // If we're editing a failed request, delete the old one first
+            if (editingRequestId != null) {
+                val oldRequest = repository.getParseRequest(editingRequestId)
+                if (oldRequest != null) {
+                    repository.deleteParseRequest(oldRequest)
+                }
+            }
 
             // Create parse request in database and return immediately
             val requestId = repository.createParseRequest(rawText)
@@ -71,6 +91,7 @@ class ImportProgrammeViewModel(
                     error = null,
                     isLoading = false,
                     successMessage = null, // Don't show message since we're navigating
+                    editingFailedRequestId = null, // Clear the editing ID
                 )
 
             // Start async processing in background
@@ -677,4 +698,5 @@ data class ImportProgrammeUiState(
     val successMessage: String? = null,
     val parseRequestId: Long? = null, // Track which parse request this came from
     val exerciseMappings: Map<String, Long?> = emptyMap(), // Store user's exercise mappings
+    val editingFailedRequestId: Long? = null, // Track which failed request we're editing
 )

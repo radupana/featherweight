@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.ui.screens
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -24,7 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -36,6 +34,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,9 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -79,10 +76,13 @@ fun ImportProgrammeScreen(
     var showEditNotImplementedDialog by remember { mutableStateOf(false) }
     var showFormatTipsDialog by remember { mutableStateOf(false) }
 
-    // Set initial text if provided
+    // Set initial text if provided (only used for non-editing flows)
     LaunchedEffect(initialText) {
         initialText?.let {
-            viewModel.updateInputText(it)
+            // Only update if text is not already set (prevents overwriting edit state)
+            if (uiState.inputText.isEmpty()) {
+                viewModel.updateInputText(it)
+            }
         }
     }
 
@@ -198,7 +198,8 @@ fun ImportProgrammeScreen(
                                 value = uiState.inputText.take(10000),
                                 onValueChange = { newText ->
                                     if (newText.length <= 10000) {
-                                        viewModel.updateInputText(newText)
+                                        // Preserve the editing request ID when updating text
+                                        viewModel.updateInputText(newText, uiState.editingFailedRequestId)
                                     }
                                 },
                                 label = { Text("Programme Text") },
@@ -280,7 +281,7 @@ fun ImportProgrammeScreen(
 
                         Button(
                             onClick = { viewModel.parseProgramme(onNavigateToProgrammes) },
-                            enabled = uiState.inputText.isNotBlank() && uiState.inputText.length <= 10000,
+                            enabled = uiState.inputText.length >= 50 && uiState.inputText.length <= 10000,
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
@@ -289,6 +290,15 @@ fun ImportProgrammeScreen(
                             Text(
                                 text = "Parse Programme",
                                 style = MaterialTheme.typography.titleMedium,
+                            )
+                        }
+
+                        if (uiState.inputText.isNotEmpty() && uiState.inputText.length < 50) {
+                            Text(
+                                text = "Minimum 50 characters needed (${uiState.inputText.length}/50)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp),
                             )
                         }
 
@@ -327,43 +337,14 @@ fun ImportProgrammeScreen(
 private fun FormatTipsDialog(
     onDismiss: () -> Unit,
 ) {
-    @Suppress("DEPRECATION")
-    val clipboardManager = LocalClipboardManager.current
-    val context = LocalContext.current
-
-    val promptTemplate =
-        """
-        Please create a 6-week weightlifting programme with these specifications:
-        
-        - Format each week with clear headers (Week 1, Week 2, etc.)
-        - Include workout names and days (e.g., Monday - Upper Power)
-        - Use standard exercise names (e.g., Barbell Squat, Dumbbell Press)
-        - Format sets×reps clearly (e.g., 3×5, 4×8-10)
-        - Include weights when specific (e.g., 3×5 @ 80%, 3×8 @ 75kg)
-        - Add RPE when relevant (e.g., 3×8 @ RPE 8)
-        
-        Example format:
-        Week 1 - Volume Phase
-        
-        Monday - Upper Power
-        Barbell Bench Press 3×5 @ 80%
-        Barbell Row 3×5 @ 75kg
-        Dumbbell Overhead Press 3×8
-        Pull Ups 3×8-10
-        
-        Wednesday - Lower Power
-        Barbell Squat 3×5 @ 85%
-        Romanian Deadlift 3×8 @ 70%
-        Leg Press 3×12
-        Leg Curl 3×12-15
-        """.trimIndent()
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                "Format Tips for AI Generation",
-                style = MaterialTheme.typography.headlineSmall,
+                "Programme Parser",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
             )
         },
         text = {
@@ -371,138 +352,161 @@ private fun FormatTipsDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                // Main description - no card needed
                 Text(
-                    text = "To get the best results from AI programme generation:",
+                    text = "Convert any workout text into a trackable programme.\nKeep your format consistent and we'll handle the rest.",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                Card(
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        ),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = "✓ Structure",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            text =
-                                "• Use clear week headers (Week 1, Week 2)\n" +
-                                    "• Include workout names and days\n" +
-                                    "• Group exercises by workout",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                }
+                HorizontalDivider()
 
-                Card(
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        ),
+                // How it works section
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    Text(
+                        text = "HOW IT WORKS",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    
                     Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = "✓ Exercise Naming",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            text =
-                                "• Use standard names: Barbell Squat, Dumbbell Press\n" +
-                                    "• Equipment first: Cable Row, Machine Press\n" +
-                                    "• Be specific: Romanian Deadlift not just RDL",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                }
-
-                Card(
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        ),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = "✓ Sets & Reps Format",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            text =
-                                "• Use × for sets×reps: 3×5, 4×8\n" +
-                                    "• Rep ranges: 3×8-10, 4×6-8\n" +
-                                    "• Include intensity: 3×5 @ 80%, 3×8 @ RPE 8",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                }
-
-                Card(
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                        ),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.Top,
                         ) {
-                            Text(
-                                text = "Example Prompt Template",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp),
                             )
-                            IconButton(
-                                onClick = {
-                                    clipboardManager.setText(AnnotatedString(promptTemplate))
-                                    Toast
-                                        .makeText(
-                                            context,
-                                            "Prompt copied to clipboard!",
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
-                                },
-                                modifier = Modifier.size(32.dp),
-                            ) {
-                                Icon(
-                                    Icons.Default.ContentCopy,
-                                    contentDescription = "Copy prompt",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
+                            Text(
+                                text = "Paste workout text from any source",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
                         }
-                        Text(
-                            text = promptTemplate.take(200) + "...",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "Use any exercise names consistently",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "Any sets/reps format (3x10, 3 sets of 10)",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "We'll match exercises to our database",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+
+                // Tips section
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = "TIPS FOR BEST RESULTS",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "Group exercises by day or workout",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "Include weights when known",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "Be consistent with exercise names",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text("Got It")
             }
         },
