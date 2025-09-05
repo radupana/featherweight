@@ -452,6 +452,11 @@ fun MainAppWithNavigation(
                         selectedTemplate = templateName
                         onScreenChange(Screen.WORKOUT_TEMPLATE_CONFIGURATION)
                     },
+                    onViewLastWorkout = { workoutId ->
+                        // Navigate to view the last completed workout in read-only mode
+                        workoutViewModel.viewCompletedWorkout(workoutId)
+                        onScreenChange(Screen.ACTIVE_WORKOUT)
+                    },
                     modifier = Modifier.padding(innerPadding),
                     workoutViewModel = workoutViewModel,
                     programmeViewModel = programmeViewModel,

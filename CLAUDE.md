@@ -35,6 +35,7 @@
     - Never be adjusted just to make them pass - if a test fails, investigate whether the code or the test expectation is wrong
     - Act as documentation of intended behavior
     - Be based on domain logic, not implementation details
+    - **CRITICAL - IMMEDIATE TERMINATION OFFENSE**: NEVER write tautological tests that test nothing (e.g., testing that `1 == 1`, testing that a hardcoded value equals itself, testing Java/Kotlin standard library behavior). Every test MUST validate ACTUAL APPLICATION CODE BEHAVIOR. Tests like `val x = 1; assertThat(x).isEqualTo(1)` or testing that `LocalDateTime.now().minusDays(1)` produces yesterday are USELESS and will result in IMMEDIATE TERMINATION. If you cannot identify the actual production code being tested, DO NOT WRITE THE TEST.
 - **Detekt Compliance**:
     - **MANDATORY**: Run `./gradlew detekt` before EVERY code change
     - **NEW CODE**: Must have ZERO Detekt violations

@@ -53,6 +53,7 @@ fun WorkoutsScreen(
     onStartFreestyle: () -> Unit,
     onStartProgrammeWorkout: () -> Unit,
     onStartTemplate: (String) -> Unit,
+    onViewLastWorkout: (Long) -> Unit,
     modifier: Modifier = Modifier,
     workoutViewModel: WorkoutViewModel = viewModel(),
     programmeViewModel: ProgrammeViewModel = viewModel(),
@@ -356,7 +357,13 @@ fun WorkoutsScreen(
         // Last workout info
         lastWorkoutInfo?.let { info ->
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { 
+                        lastCompletedWorkout?.let { workout ->
+                            onViewLastWorkout(workout.id)
+                        }
+                    },
                 colors =
                     CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
