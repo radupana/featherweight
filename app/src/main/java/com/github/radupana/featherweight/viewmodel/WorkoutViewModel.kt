@@ -17,6 +17,7 @@ import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
 import com.github.radupana.featherweight.service.OneRMService
+import com.github.radupana.featherweight.service.RestTimerCalculationService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,6 +76,7 @@ class WorkoutViewModel(
 ) : AndroidViewModel(application) {
     val repository = FeatherweightRepository(application)
     private val oneRMService = OneRMService()
+    private val restTimerCalculationService = RestTimerCalculationService()
 
     companion object {
         private const val TAG = "WorkoutViewModel"
@@ -1278,14 +1280,31 @@ class WorkoutViewModel(
         setId: Long,
         updatedSets: List<SetLog>,
     ) {
-        // Start timers
-        startRestTimer(DEFAULT_REST_TIMER_SECONDS)
+        val completedSet = _selectedExerciseSets.value.find { it.id == setId }
+        
+        val restDuration = if (completedSet != null) {
+            val exerciseLog = _selectedWorkoutExercises.value.find { it.id == completedSet.exerciseLogId }
+            val exerciseVariation = exerciseLog?.exerciseVariationId?.let { 
+                repository.getExerciseById(it) 
+            }
+            
+            val duration = restTimerCalculationService.calculateRestDuration(
+                rpe = completedSet.actualRpe,
+                exerciseRestDuration = exerciseVariation?.restDurationSeconds
+            )
+            
+            Log.d(TAG, "Rest timer calculated: ${duration}s (RPE: ${completedSet.actualRpe}, Exercise default: ${exerciseVariation?.restDurationSeconds}s)")
+            duration
+        } else {
+            DEFAULT_REST_TIMER_SECONDS
+        }
+        
+        startRestTimer(restDuration)
         if (workoutTimerStartTime == null) {
             startWorkoutTimer()
         }
 
         // Check for 1RM updates
-        val completedSet = _selectedExerciseSets.value.find { it.id == setId }
         completedSet?.let { checkAndUpdateOneRM(it) }
 
         // Check for PRs

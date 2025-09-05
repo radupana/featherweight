@@ -79,7 +79,13 @@ class ProgrammeTextParserTest {
     @Test
     fun parseText_withTextExactly10000Characters_passesValidation() =
         runTest {
-            val text = "a".repeat(10000)
+            // Create a meaningful text that's exactly 10000 characters
+            val baseText = "Week 1 Day 1: Squat 5x5@100kg, Bench 5x5@80kg, Row 5x5@60kg. "
+            val repetitions = 10000 / baseText.length
+            val remainder = 10000 % baseText.length
+            val text = baseText.repeat(repetitions) + baseText.take(remainder)
+            assertThat(text.length).isEqualTo(10000)
+            
             val request =
                 TextParsingRequest(
                     rawText = text,
@@ -182,7 +188,7 @@ class ProgrammeTextParserTest {
         runTest {
             val request =
                 TextParsingRequest(
-                    rawText = "Multi-week programme",
+                    rawText = "Week 1: Squat 5x5@100kg, Bench 3x8@80kg, Row 3x10@60kg Day 2: Deadlift 5x3@120kg",
                     userMaxes = emptyMap(),
                 )
 
@@ -258,7 +264,7 @@ class ProgrammeTextParserTest {
         runTest {
             val request =
                 TextParsingRequest(
-                    rawText = "Programme with RPE",
+                    rawText = "Week 1 Day 1: Squat 5x5@100kg RPE 8, Bench 3x8@80kg RPE 7, Row 3x10@60kg RPE 6",
                     userMaxes = emptyMap(),
                 )
 
@@ -315,7 +321,7 @@ class ProgrammeTextParserTest {
         runTest {
             val request =
                 TextParsingRequest(
-                    rawText = "Programme with duplicates",
+                    rawText = "Week 1 Day 1: Barbell Squat 3x5@100kg, Barbell Squat 3x8@80kg, Bench Press 3x10@70kg",
                     userMaxes = emptyMap(),
                 )
 
@@ -391,7 +397,7 @@ class ProgrammeTextParserTest {
         runTest {
             val request =
                 TextParsingRequest(
-                    rawText = "Programme without specific days",
+                    rawText = "Week 1: Monday - Squat 3x5@100kg, Bench 3x8@80kg Tuesday - Deadlift 5x3@120kg",
                     userMaxes = emptyMap(),
                 )
 
@@ -443,7 +449,7 @@ class ProgrammeTextParserTest {
         runTest {
             val request =
                 TextParsingRequest(
-                    rawText = "Test programme",
+                    rawText = "Week 1 Day 1: Squat 5x5@100kg, Bench Press 5x5@80kg, Barbell Row 5x5@60kg",
                     userMaxes = emptyMap(),
                 )
 
@@ -460,7 +466,7 @@ class ProgrammeTextParserTest {
         runTest {
             val request =
                 TextParsingRequest(
-                    rawText = "Test programme",
+                    rawText = "Week 1 Day 1: Squat 5x5@100kg, Bench Press 5x5@80kg, Barbell Row 5x5@60kg",
                     userMaxes = emptyMap(),
                 )
 
@@ -477,7 +483,7 @@ class ProgrammeTextParserTest {
         runTest {
             val request =
                 TextParsingRequest(
-                    rawText = "Minimal programme",
+                    rawText = "Week 1 Monday: Squat 3x5@100kg, Bench 3x8@80kg, Deadlift 1x5@140kg",
                     userMaxes = emptyMap(),
                 )
 
@@ -522,7 +528,7 @@ class ProgrammeTextParserTest {
         runTest {
             val request =
                 TextParsingRequest(
-                    rawText = "Programme with parsing logic",
+                    rawText = "Week 1 Day 1: Squat 5x5@100kg, Bench Press 5x5@80kg, Row 5x5@60kg with good form",
                     userMaxes = emptyMap(),
                 )
 
@@ -575,7 +581,7 @@ class ProgrammeTextParserTest {
         runTest {
             val request =
                 TextParsingRequest(
-                    rawText = "Complex sets",
+                    rawText = "Week 1: Squat 3x5@100kg then 2x8@80kg, Bench 5x3@90kg, Row 4x10@60kg",
                     userMaxes = emptyMap(),
                 )
 
@@ -637,7 +643,7 @@ class ProgrammeTextParserTest {
         runTest {
             val request =
                 TextParsingRequest(
-                    rawText = "Decimal weights",
+                    rawText = "Week 1 Day 1: Squat 3x5@102.5kg, Bench Press 3x8@77.5kg, Row 3x10@62.5kg",
                     userMaxes = emptyMap(),
                 )
 
@@ -689,16 +695,15 @@ class ProgrammeTextParserTest {
         }
 
     @Test
-    fun parseText_withEmptyExerciseList_handlesGracefully() =
+    fun parseText_withEmptyExerciseList_returnsError() =
         runTest {
             val request =
                 TextParsingRequest(
-                    rawText = "Empty workout",
+                    rawText = "Week 1: Day 1 - Barbell Squat 3x5@100kg, Bench Press 3x8@80kg, Barbell Row 3x10@60kg, Overhead Press 3x5@40kg",
                     userMaxes = emptyMap(),
                 )
 
-            parser.setMockResponse(
-                """
+            val mockResponse = """
                 {
                     "name": "Empty Test",
                     "duration_weeks": 1,
@@ -715,20 +720,14 @@ class ProgrammeTextParserTest {
                         }
                     ]
                 }
-                """.trimIndent(),
-            )
-
+                """.trimIndent()
+            
+            parser.setMockResponse(mockResponse)
             val result = parser.parseText(request)
 
-            assertThat(result.success).isTrue()
-            val exercises =
-                result.programme
-                    ?.weeks
-                    ?.first()
-                    ?.workouts
-                    ?.first()
-                    ?.exercises
-            assertThat(exercises).isEmpty()
+            assertThat(result.success).isFalse()
+            assertThat(result.error).isEqualTo("Unable to parse programme. Please check the format and try again.")
+            assertThat(result.programme).isNull()
         }
 
     @Test
@@ -736,7 +735,7 @@ class ProgrammeTextParserTest {
         runTest {
             val request =
                 TextParsingRequest(
-                    rawText = "Programme with duration",
+                    rawText = "Week 1 Day 1: Squat 3x5@100kg, Bench 3x8@80kg, Row 3x10@60kg - 45 minute workout",
                     userMaxes = emptyMap(),
                 )
 
@@ -789,7 +788,7 @@ class ProgrammeTextParserTest {
         runTest {
             val request =
                 TextParsingRequest(
-                    rawText = "Programme without duration",
+                    rawText = "Week 1 Day 1: Squat 3x5@100kg, Bench Press 3x8@80kg, Barbell Row 3x10@60kg",
                     userMaxes = emptyMap(),
                 )
 

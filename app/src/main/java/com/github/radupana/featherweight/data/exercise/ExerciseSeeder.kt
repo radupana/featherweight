@@ -21,6 +21,7 @@ data class ExerciseData(
     val type: String = "STRENGTH",
     val difficulty: String = "BEGINNER",
     val requiresWeight: Boolean = true,
+    val restDurationSeconds: Int? = null,
     val instructions: String? = null,
     val aliases: List<String> = emptyList(),
 )
@@ -116,6 +117,7 @@ class ExerciseSeeder(
                                     requiresWeight = data.requiresWeight,
                                     recommendedRepRange = getRecommendedRepRange(data.difficulty),
                                     rmScalingType = rmScalingType,
+                                    restDurationSeconds = data.restDurationSeconds ?: 90,
                                     usageCount = 0,
                                     isCustom = false,
                                     createdAt = LocalDateTime.now(),

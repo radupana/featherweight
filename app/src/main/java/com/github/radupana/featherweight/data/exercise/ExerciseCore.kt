@@ -45,12 +45,13 @@ data class ExerciseVariation(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val coreExerciseId: Long,
-    val name: String, // e.g., "Barbell Back Squat"
+    val name: String,
     val equipment: Equipment,
     val difficulty: ExerciseDifficulty,
     val requiresWeight: Boolean,
     val recommendedRepRange: String? = null,
     val rmScalingType: RMScalingType = RMScalingType.STANDARD,
+    val restDurationSeconds: Int = 90,
     val usageCount: Int = 0,
     val isCustom: Boolean = false,
     val createdAt: LocalDateTime = LocalDateTime.now(),

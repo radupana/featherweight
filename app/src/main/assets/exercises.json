@@ -19,7 +19,8 @@
         "BB Squat",
         "High Bar Squat",
         "Olympic Squat"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 2,
@@ -35,7 +36,8 @@
       "aliases": [
         "Front Squat",
         "BB Front Squat"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 3,
@@ -51,7 +53,8 @@
       "aliases": [
         "Overhead Squat",
         "OHS"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 4,
@@ -74,7 +77,8 @@
         "Flat Bench",
         "Chest Press",
         "BP"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 5,
@@ -90,7 +94,8 @@
       "aliases": [
         "Incline Bench Press",
         "BB Incline Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 6,
@@ -106,7 +111,8 @@
       "aliases": [
         "Decline Bench Press",
         "BB Decline Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 7,
@@ -123,7 +129,8 @@
         "Close Grip Bench Press",
         "CGBP",
         "BB Close Grip Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 8,
@@ -143,7 +150,8 @@
         "DL",
         "Deads",
         "Standard Deadlift"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 9,
@@ -164,7 +172,8 @@
         "RDLs",
         "Stiff Leg Deadlift",
         "SLDL"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 10,
@@ -180,7 +189,8 @@
       "aliases": [
         "Sumo Deadlift",
         "BB Sumo Deadlift"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 11,
@@ -196,7 +206,8 @@
       "aliases": [
         "Stiff Leg Deadlift",
         "SLDL"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 12,
@@ -217,7 +228,8 @@
         "BB OHP",
         "Shoulder Press",
         "Strict Press"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 13,
@@ -233,7 +245,8 @@
       "aliases": [
         "Push Press",
         "BB Push Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 14,
@@ -249,7 +262,8 @@
       "aliases": [
         "Seated Press",
         "Seated OHP"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 15,
@@ -269,7 +283,8 @@
         "Bent Over Barbell Row",
         "BOR",
         "Barbell Rows"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 16,
@@ -285,7 +300,8 @@
       "aliases": [
         "Pendlay Row",
         "Dead Stop Row"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 17,
@@ -301,7 +317,8 @@
       "aliases": [
         "Underhand Row",
         "Supinated Row"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 18,
@@ -316,7 +333,8 @@
       "instructions": "Use T-bar handle or landmine setup. Pull bar to chest with both hands.",
       "aliases": [
         "T-Bar Row"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 19,
@@ -337,7 +355,8 @@
         "Standing Curl",
         "Bar Curl",
         "Curls"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 20,
@@ -353,7 +372,8 @@
       "aliases": [
         "Preacher Curl",
         "BB Preacher Curl"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 21,
@@ -369,7 +389,8 @@
       "aliases": [
         "Reverse Curl",
         "Overhand Curl"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 22,
@@ -385,7 +406,8 @@
       "aliases": [
         "Hip Thrust",
         "BB Hip Thrust"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 23,
@@ -401,7 +423,8 @@
       "aliases": [
         "Glute Bridge",
         "BB Glute Bridge"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 24,
@@ -418,7 +441,8 @@
         "Skull Crusher",
         "BB Skull Crusher",
         "Lying Tricep Extension"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 25,
@@ -437,7 +461,8 @@
         "Triceps Extension",
         "Overhead Extension",
         "French Press"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 26,
@@ -453,7 +478,8 @@
       "aliases": [
         "Upright Row",
         "BB Upright Row"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 27,
@@ -470,7 +496,8 @@
         "Shrug",
         "BB Shrug",
         "Barbell Shoulder Shrug"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 28,
@@ -486,7 +513,8 @@
       "aliases": [
         "High Pull",
         "BB High Pull"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 29,
@@ -502,7 +530,8 @@
       "aliases": [
         "Power Clean",
         "Clean"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 30,
@@ -518,7 +547,8 @@
       "aliases": [
         "Clean and Press",
         "Clean & Press"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 31,
@@ -534,7 +564,8 @@
       "aliases": [
         "Thrusters",
         "Squat to Press"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 32,
@@ -550,7 +581,8 @@
       "aliases": [
         "Good Morning",
         "GM"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 33,
@@ -566,7 +598,8 @@
       "aliases": [
         "Barbell Lunges",
         "BB Lunge"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 34,
@@ -581,7 +614,8 @@
       "instructions": "Bar on shoulders, step backward into lunge position.",
       "aliases": [
         "BB Reverse Lunge"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 35,
@@ -597,7 +631,8 @@
       "aliases": [
         "Split Squat",
         "BB Split Squat"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 36,
@@ -613,7 +648,8 @@
       "aliases": [
         "Step Up",
         "BB Step Up"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 37,
@@ -632,7 +668,8 @@
         "Calf Raises",
         "Standing Calf Raise",
         "Heel Raise"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 38,
@@ -648,7 +685,8 @@
       "aliases": [
         "Wrist Curl",
         "Forearm Curl"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 39,
@@ -663,7 +701,8 @@
       "instructions": "Overhand grip, curl wrists up targeting top of forearms.",
       "aliases": [
         "Reverse Wrist Curl"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 40,
@@ -683,7 +722,8 @@
         "Dumbbell Flat Press",
         "DB Flat Press",
         "Dumbbell Flat Bench Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 41,
@@ -699,7 +739,8 @@
       "aliases": [
         "DB Incline Press",
         "Dumbbell Incline Bench Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 42,
@@ -715,7 +756,8 @@
       "aliases": [
         "DB Decline Press",
         "Dumbbell Decline Bench Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 43,
@@ -732,7 +774,8 @@
         "DB Fly",
         "Dumbbell Chest Fly",
         "Chest Fly"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 44,
@@ -748,7 +791,8 @@
       "aliases": [
         "DB Incline Fly",
         "Incline Chest Fly"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 45,
@@ -764,7 +808,8 @@
       "aliases": [
         "DB Decline Fly",
         "Decline Chest Fly"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 46,
@@ -780,7 +825,8 @@
       "aliases": [
         "DB Pullover",
         "Pullover"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 47,
@@ -797,7 +843,8 @@
         "Single Arm Row",
         "One Arm Row",
         "DB Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 48,
@@ -813,7 +860,8 @@
       "aliases": [
         "DB Bent Over Row",
         "Bent Over DB Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 49,
@@ -829,7 +877,8 @@
       "aliases": [
         "Chest Supported Row",
         "Incline DB Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 50,
@@ -846,7 +895,8 @@
         "Rear Delt Fly",
         "DB Rear Fly",
         "Reverse Fly"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 51,
@@ -863,7 +913,8 @@
         "DB Shoulder Press",
         "Seated DB Press",
         "DB OHP"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 52,
@@ -879,7 +930,8 @@
       "aliases": [
         "Arnold Press",
         "DB Arnold Press"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 53,
@@ -896,7 +948,8 @@
         "Lateral Raise",
         "DB Lateral Raise",
         "Side Raise"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 54,
@@ -912,7 +965,8 @@
       "aliases": [
         "Front Raise",
         "DB Front Raise"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 55,
@@ -929,7 +983,8 @@
         "Rear Delt Fly",
         "DB Rear Fly",
         "Reverse Fly"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 56,
@@ -944,7 +999,8 @@
       "instructions": "Hold dumbbells in front of body. Pull up along torso to chest level.",
       "aliases": [
         "DB Upright Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 57,
@@ -960,7 +1016,8 @@
       "aliases": [
         "DB Shrug",
         "Dumbbell Shoulder Shrug"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 58,
@@ -977,7 +1034,8 @@
         "Bicep Curl",
         "DB Bicep Curl",
         "Dumbbell Curl"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 59,
@@ -994,7 +1052,8 @@
         "Hammer Curl",
         "DB Hammer Curl",
         "Neutral Grip Curl"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 60,
@@ -1010,7 +1069,8 @@
       "aliases": [
         "Concentration Curl",
         "DB Concentration Curl"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 61,
@@ -1025,7 +1085,8 @@
       "instructions": "Use preacher bench for support. Curl dumbbell with controlled motion.",
       "aliases": [
         "DB Preacher Curl"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 62,
@@ -1041,7 +1102,8 @@
       "aliases": [
         "Incline Curl",
         "DB Incline Curl"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 63,
@@ -1057,7 +1119,8 @@
       "aliases": [
         "Overhead Tricep Extension",
         "DB Tricep Extension"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 64,
@@ -1073,7 +1136,8 @@
       "aliases": [
         "Tricep Kickback",
         "DB Kickback"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 65,
@@ -1088,7 +1152,8 @@
       "instructions": "Lie on bench with dumbbells above chest. Lower toward forehead.",
       "aliases": [
         "DB Skull Crusher"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 66,
@@ -1103,7 +1168,8 @@
       "instructions": "Hold dumbbells together above chest. Press up keeping weights touching.",
       "aliases": [
         "DB Close Grip Press"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 67,
@@ -1119,7 +1185,8 @@
       "aliases": [
         "Goblet Squat",
         "DB Goblet Squat"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 68,
@@ -1135,7 +1202,8 @@
       "aliases": [
         "Sumo Squat",
         "DB Sumo Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 69,
@@ -1151,7 +1219,8 @@
       "aliases": [
         "DB Lunge",
         "Dumbbell Forward Lunge"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 70,
@@ -1166,7 +1235,8 @@
       "instructions": "Hold dumbbells at sides. Step backward into lunge position, then return to start.",
       "aliases": [
         "DB Reverse Lunge"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 71,
@@ -1182,7 +1252,8 @@
       "aliases": [
         "Walking Lunge",
         "DB Walking Lunge"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 72,
@@ -1197,7 +1268,8 @@
       "instructions": "Step out to side into lateral lunge position.",
       "aliases": [
         "Side Lunge"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 73,
@@ -1213,7 +1285,8 @@
       "aliases": [
         "Bulgarian Split Squat",
         "DB Bulgarian Split Squat"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 74,
@@ -1229,7 +1302,8 @@
       "aliases": [
         "DB Romanian Deadlift",
         "DB RDL"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 75,
@@ -1245,7 +1319,8 @@
       "aliases": [
         "Single Leg Deadlift",
         "DB Single Leg RDL"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 76,
@@ -1261,7 +1336,8 @@
       "aliases": [
         "DB Stiff Leg Deadlift",
         "DB SLDL"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 77,
@@ -1277,7 +1353,8 @@
       "aliases": [
         "Step Up",
         "DB Step Up"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 78,
@@ -1292,7 +1369,8 @@
       "instructions": "Upper back on bench, dumbbell on hips. Drive hips up squeezing glutes.",
       "aliases": [
         "DB Hip Thrust"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 79,
@@ -1307,7 +1385,8 @@
       "instructions": "Lie on floor with dumbbell on hips. Bridge up squeezing glutes.",
       "aliases": [
         "DB Glute Bridge"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 80,
@@ -1323,7 +1402,8 @@
       "aliases": [
         "DB Calf Raise",
         "Single Arm Calf Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 81,
@@ -1339,7 +1419,8 @@
       "aliases": [
         "DB Thrusters",
         "Squat to Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 82,
@@ -1355,7 +1436,8 @@
       "aliases": [
         "Man Makers",
         "DB Man Makers"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 83,
@@ -1371,7 +1453,8 @@
       "aliases": [
         "TGU",
         "Get Up"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 84,
@@ -1388,7 +1471,8 @@
         "Farmers Walk",
         "DB Farmers Walk",
         "Farmers Carry"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 85,
@@ -1404,7 +1488,8 @@
       "aliases": [
         "Suitcase Carry",
         "Single Arm Carry"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 86,
@@ -1420,7 +1505,8 @@
       "aliases": [
         "DB Swing",
         "Two Hand Swing"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 87,
@@ -1436,7 +1522,8 @@
       "aliases": [
         "DB Snatch",
         "Single Arm Snatch"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 88,
@@ -1452,7 +1539,8 @@
       "aliases": [
         "DB Clean",
         "Single Arm Clean"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 89,
@@ -1468,7 +1556,8 @@
       "aliases": [
         "Renegade Row",
         "Plank Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 90,
@@ -1483,7 +1572,8 @@
       "instructions": "Set cables at chest height. Press handles forward bringing hands together.",
       "aliases": [
         "Cable Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 91,
@@ -1498,7 +1588,8 @@
       "instructions": "Set cables high. Pull handles down and across body in wide arc motion.",
       "aliases": [
         "High Cable Crossover"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 92,
@@ -1514,7 +1605,8 @@
       "aliases": [
         "Low Cable Fly",
         "Low Cable Crossover"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 93,
@@ -1529,7 +1621,8 @@
       "instructions": "Set cables low, press up and forward at incline angle.",
       "aliases": [
         "Cable Incline Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 94,
@@ -1544,7 +1637,8 @@
       "instructions": "Set cables high, press down and forward at decline angle.",
       "aliases": [
         "Cable Decline Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 95,
@@ -1560,7 +1654,8 @@
       "aliases": [
         "Seated Cable Row",
         "Cable Seated Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 96,
@@ -1575,7 +1670,8 @@
       "instructions": "Use wide grip bar attachment for broader lat activation.",
       "aliases": [
         "Wide Grip Cable Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 97,
@@ -1590,7 +1686,8 @@
       "instructions": "Use close grip handle for mid-trap focus.",
       "aliases": [
         "Close Grip Cable Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 98,
@@ -1605,7 +1702,8 @@
       "instructions": "Use single handle to work each side independently.",
       "aliases": [
         "Single Arm Cable Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 99,
@@ -1620,7 +1718,8 @@
       "instructions": "Set cable high and pull down to upper chest level.",
       "aliases": [
         "High Cable Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 100,
@@ -1638,7 +1737,8 @@
         "Wide Grip Pulldown",
         "Pulldown",
         "Lat Pull"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 101,
@@ -1653,7 +1753,8 @@
       "instructions": "Use close grip attachment for different lat activation.",
       "aliases": [
         "Close Grip Pulldown"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 102,
@@ -1669,7 +1770,8 @@
       "aliases": [
         "Reverse Grip Pulldown",
         "Underhand Pulldown"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 103,
@@ -1685,7 +1787,8 @@
       "aliases": [
         "Face Pull",
         "Cable Rear Delt Pull"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 104,
@@ -1701,7 +1804,8 @@
       "aliases": [
         "Cable Side Raise",
         "Single Arm Cable Lateral Raise"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 105,
@@ -1716,7 +1820,8 @@
       "instructions": "Face away from cable machine. Raise handle forward to shoulder height.",
       "aliases": [
         "Cable Front Raise"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 106,
@@ -1732,7 +1837,8 @@
       "aliases": [
         "Cable Rear Fly",
         "Reverse Cable Fly"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 107,
@@ -1748,7 +1854,8 @@
       "aliases": [
         "Cable Press",
         "Standing Cable Press"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 108,
@@ -1763,7 +1870,8 @@
       "instructions": "Start with handles at chest, palms in. Rotate and press up.",
       "aliases": [
         "Cable Arnold Press"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 109,
@@ -1778,7 +1886,8 @@
       "instructions": "Stand facing cable machine with bar attachment. Pull bar straight up to chest level.",
       "aliases": [
         "Cable Upright Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 110,
@@ -1793,7 +1902,8 @@
       "instructions": "Stand facing cable machine. Shrug shoulders up using cable resistance.",
       "aliases": [
         "Cable Shrug"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 111,
@@ -1809,7 +1919,8 @@
       "aliases": [
         "Cable Curl",
         "Standing Cable Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 112,
@@ -1825,7 +1936,8 @@
       "aliases": [
         "Cable Hammer Curl",
         "Rope Hammer Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 113,
@@ -1841,7 +1953,8 @@
       "aliases": [
         "Tricep Pushdown",
         "Cable Pushdown"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 114,
@@ -1857,7 +1970,8 @@
       "aliases": [
         "Rope Pushdown",
         "Cable Rope Extension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 115,
@@ -1872,7 +1986,8 @@
       "instructions": "Face away from cable machine, extend arms overhead.",
       "aliases": [
         "Cable Overhead Extension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 116,
@@ -1892,7 +2007,8 @@
         "Pushup",
         "Push Ups",
         "Pushups"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 117,
@@ -1908,7 +2024,8 @@
       "aliases": [
         "Incline Push Up",
         "Elevated Push Up"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 118,
@@ -1924,7 +2041,8 @@
       "aliases": [
         "Decline Push Up",
         "Feet Elevated Push Up"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 119,
@@ -1940,7 +2058,8 @@
       "aliases": [
         "Diamond Push Up",
         "Triangle Push Up"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 120,
@@ -1956,7 +2075,8 @@
       "aliases": [
         "Wide Push Up",
         "Wide Grip Push Up"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 121,
@@ -1972,7 +2092,8 @@
       "aliases": [
         "Pike Push Up",
         "Downward Dog Push Up"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 122,
@@ -1991,7 +2112,8 @@
         "Pullup",
         "Pullups",
         "Chins"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 123,
@@ -2008,7 +2130,8 @@
         "Chin Up",
         "Chin-Up",
         "Underhand Pull Up"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 124,
@@ -2024,7 +2147,8 @@
       "aliases": [
         "Neutral Pull Up",
         "Hammer Pull Up"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 125,
@@ -2040,7 +2164,8 @@
       "aliases": [
         "Wide Pull Up",
         "Wide Grip Pull Up"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 126,
@@ -2056,7 +2181,8 @@
       "aliases": [
         "Assisted Pull Up",
         "Band Assisted Pull Up"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 127,
@@ -2072,7 +2198,8 @@
       "aliases": [
         "Dip",
         "Parallel Bar Dip"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 128,
@@ -2088,7 +2215,8 @@
       "aliases": [
         "Tricep Dip",
         "Bench Dip"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 129,
@@ -2104,7 +2232,8 @@
       "aliases": [
         "Air Squat",
         "Bodyweight Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 130,
@@ -2119,7 +2248,8 @@
       "instructions": "Squat down then explode up into a jump. Land softly.",
       "aliases": [
         "Squat Jump"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 131,
@@ -2134,7 +2264,8 @@
       "instructions": "Stand on one leg. Squat down as far as possible.",
       "aliases": [
         "Single Leg Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 132,
@@ -2150,7 +2281,8 @@
       "aliases": [
         "Lunge",
         "Forward Lunge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 133,
@@ -2165,7 +2297,8 @@
       "instructions": "Step backward into lunge position. Return to start.",
       "aliases": [
         "Backward Lunge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 134,
@@ -2180,7 +2313,8 @@
       "instructions": "Step out to side into lateral lunge. Return to center.",
       "aliases": [
         "Side Lunge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 135,
@@ -2195,7 +2329,8 @@
       "instructions": "Lunge position, jump and switch legs in air.",
       "aliases": [
         "Switching Lunge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 136,
@@ -2210,7 +2345,8 @@
       "instructions": "Step back and across into curtsy position.",
       "aliases": [
         "Cross Back Lunge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 137,
@@ -2226,7 +2362,8 @@
       "aliases": [
         "Glute Bridge",
         "Hip Bridge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 138,
@@ -2242,7 +2379,8 @@
       "aliases": [
         "Single Leg Bridge",
         "One Leg Bridge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 139,
@@ -2258,7 +2396,8 @@
       "aliases": [
         "Calf Raise",
         "Toe Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 140,
@@ -2274,7 +2413,8 @@
       "aliases": [
         "Single Calf Raise",
         "One Leg Calf Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 141,
@@ -2291,7 +2431,8 @@
         "Leg Press",
         "Seated Leg Press",
         "45 Degree Leg Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 142,
@@ -2306,7 +2447,8 @@
       "instructions": "Position shoulders under pads with back against backrest. Place feet shoulder-width apart. Squat down by bending knees.",
       "aliases": [
         "Machine Squat"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 143,
@@ -2323,7 +2465,8 @@
         "Leg Extension",
         "Quad Extension",
         "Knee Extension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 144,
@@ -2342,7 +2485,8 @@
         "Prone Leg Curl",
         "Leg Curl",
         "Seated Leg Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 145,
@@ -2358,7 +2502,8 @@
       "aliases": [
         "Seated Leg Curl",
         "Seated Hamstring Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 146,
@@ -2374,7 +2519,8 @@
       "aliases": [
         "Standing Calf Raise",
         "Machine Calf Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 147,
@@ -2389,7 +2535,8 @@
       "instructions": "Sit on machine with knees under pads. Place balls of feet on platform. Raise heels as high as possible.",
       "aliases": [
         "Seated Calf Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 148,
@@ -2405,7 +2552,8 @@
       "aliases": [
         "Seated Chest Press",
         "Machine Bench Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 149,
@@ -2421,7 +2569,8 @@
       "aliases": [
         "Incline Machine Press",
         "Machine Incline Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 150,
@@ -2437,7 +2586,8 @@
       "aliases": [
         "Decline Machine Press",
         "Machine Decline Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 151,
@@ -2454,7 +2604,8 @@
         "Pec Deck",
         "Machine Fly",
         "Chest Fly Machine"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 152,
@@ -2470,7 +2621,8 @@
       "aliases": [
         "Seated Shoulder Press Machine",
         "Machine Military Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 153,
@@ -2486,7 +2638,8 @@
       "aliases": [
         "Machine Side Raise",
         "Lateral Raise Machine"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 154,
@@ -2503,7 +2656,8 @@
         "Reverse Pec Deck",
         "Machine Rear Fly",
         "Rear Delt Machine"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 155,
@@ -2519,7 +2673,8 @@
       "aliases": [
         "Seated Row Machine",
         "Machine Back Row"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 156,
@@ -2535,7 +2690,8 @@
       "aliases": [
         "Lat Machine",
         "Pulldown Machine"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 157,
@@ -2551,7 +2707,8 @@
       "aliases": [
         "Assisted Pull Up Machine",
         "Gravitron"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 158,
@@ -2566,7 +2723,8 @@
       "instructions": "Kneel or stand on platform. Use assistance to perform dips.",
       "aliases": [
         "Assisted Dip Machine"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 159,
@@ -2582,7 +2740,8 @@
       "aliases": [
         "Machine Bicep Curl",
         "Preacher Machine"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 160,
@@ -2598,7 +2757,8 @@
       "aliases": [
         "Machine Tricep Press",
         "Tricep Machine"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 161,
@@ -2614,7 +2774,8 @@
       "aliases": [
         "Smith Squat",
         "Smith Machine Back Squat"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 162,
@@ -2629,7 +2790,8 @@
       "instructions": "Hold bar in front rack position in Smith machine. Squat down keeping torso upright.",
       "aliases": [
         "Smith Front Squat"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 163,
@@ -2645,7 +2807,8 @@
       "aliases": [
         "Smith Split Squat",
         "Smith Bulgarian Split Squat"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 164,
@@ -2661,7 +2824,8 @@
       "aliases": [
         "Smith Bench Press",
         "Smith Machine Chest Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 165,
@@ -2677,7 +2841,8 @@
       "aliases": [
         "Smith Incline Press",
         "Smith Machine Incline Bench"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 166,
@@ -2693,7 +2858,8 @@
       "aliases": [
         "Smith Decline Press",
         "Smith Machine Decline Bench"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 167,
@@ -2709,7 +2875,8 @@
       "aliases": [
         "Smith Overhead Press",
         "Smith Machine Military Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 168,
@@ -2725,7 +2892,8 @@
       "aliases": [
         "Smith Behind Neck Press",
         "Smith Machine BTN Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 169,
@@ -2740,7 +2908,8 @@
       "instructions": "Stand holding Smith bar with narrow grip. Pull bar up along body to chest.",
       "aliases": [
         "Smith Upright Row"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 170,
@@ -2756,7 +2925,8 @@
       "aliases": [
         "Smith Shrug",
         "Smith Machine Shoulder Shrug"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 171,
@@ -2772,7 +2942,8 @@
       "aliases": [
         "Smith RDL",
         "Smith Machine RDL"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 172,
@@ -2787,7 +2958,8 @@
       "instructions": "Bar on shoulders. Hinge forward at hips keeping back straight.",
       "aliases": [
         "Smith Good Morning"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 173,
@@ -2802,7 +2974,8 @@
       "instructions": "Bar on shoulders, balls of feet on platform. Rise up on toes.",
       "aliases": [
         "Smith Calf Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 174,
@@ -2818,7 +2991,8 @@
       "aliases": [
         "Smith Reverse Lunge",
         "Smith Machine Backward Lunge"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 175,
@@ -2834,7 +3008,8 @@
       "aliases": [
         "Smith Hip Thrust",
         "Smith Machine Glute Bridge"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 176,
@@ -2850,7 +3025,8 @@
       "aliases": [
         "Smith Close Grip Bench",
         "Smith Machine CGBP"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 177,
@@ -2866,7 +3042,8 @@
       "aliases": [
         "Smith Bent Row",
         "Smith Machine Row"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 178,
@@ -2881,7 +3058,8 @@
       "instructions": "Stand close to bar. Drag bar up body keeping elbows back.",
       "aliases": [
         "Smith Drag Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 179,
@@ -2898,7 +3076,8 @@
         "Ab Machine",
         "Crunch Machine",
         "Seated Ab Crunch"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 180,
@@ -2914,7 +3093,8 @@
       "aliases": [
         "Rotary Torso",
         "Torso Twist Machine"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 181,
@@ -2930,7 +3110,8 @@
       "aliases": [
         "Hip Abductor",
         "Outer Thigh Machine"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 182,
@@ -2946,7 +3127,8 @@
       "aliases": [
         "Hip Adductor",
         "Inner Thigh Machine"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 183,
@@ -2962,7 +3144,8 @@
       "aliases": [
         "Glute Machine",
         "Butt Blaster"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 184,
@@ -2978,7 +3161,8 @@
       "aliases": [
         "Reverse Hyper",
         "Reverse Back Extension"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 185,
@@ -2994,7 +3178,8 @@
       "aliases": [
         "Hyperextension",
         "Roman Chair"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 186,
@@ -3010,7 +3195,8 @@
       "aliases": [
         "Machine Lat Pullover",
         "Nautilus Pullover"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 187,
@@ -3026,7 +3212,8 @@
       "aliases": [
         "Supported T-Bar Row",
         "Chest Supported Row Machine"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 188,
@@ -3042,7 +3229,8 @@
       "aliases": [
         "V-Squat",
         "Power Squat Machine"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 189,
@@ -3057,7 +3245,8 @@
       "instructions": "Stand in pendulum squat machine. Squat following the pendulum motion path.",
       "aliases": [
         "Pendulum Squat"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 190,
@@ -3072,7 +3261,8 @@
       "instructions": "Attach belt to machine. Stand on platform and squat without spinal loading.",
       "aliases": [
         "Hip Belt Squat"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 191,
@@ -3087,7 +3277,8 @@
       "instructions": "Lean back in sissy squat machine. Lower by bending knees while leaning back.",
       "aliases": [
         "Sissy Squat Machine"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 192,
@@ -3103,7 +3294,8 @@
       "aliases": [
         "Nordic Hamstring Curl",
         "Russian Curl"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 193,
@@ -3118,7 +3310,8 @@
       "instructions": "Bend forward with pad on lower back. Rise up on toes.",
       "aliases": [
         "Donkey Calf Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 194,
@@ -3134,7 +3327,8 @@
       "aliases": [
         "Standing Hamstring Curl",
         "Single Leg Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 195,
@@ -3150,7 +3344,8 @@
       "aliases": [
         "Leg Press Calf Press",
         "Calf Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 196,
@@ -3166,7 +3361,8 @@
       "aliases": [
         "Single Leg Press",
         "Unilateral Leg Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 197,
@@ -3182,7 +3378,8 @@
       "aliases": [
         "Sumo Leg Press",
         "Wide Leg Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 198,
@@ -3198,7 +3395,8 @@
       "aliases": [
         "Narrow Stance Leg Press",
         "Close Leg Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 199,
@@ -3213,7 +3411,8 @@
       "instructions": "Place feet high on leg press platform. Emphasizes hamstrings and glutes.",
       "aliases": [
         "High Foot Leg Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 200,
@@ -3228,7 +3427,8 @@
       "instructions": "Place feet low on leg press platform. Emphasizes quadriceps.",
       "aliases": [
         "Low Foot Leg Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 201,
@@ -3244,7 +3444,8 @@
       "aliases": [
         "KB Swing",
         "Russian Swing"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 202,
@@ -3260,7 +3461,8 @@
       "aliases": [
         "KB Goblet Squat",
         "Goblet Squat"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 203,
@@ -3277,7 +3479,8 @@
         "KB Turkish Get Up",
         "TGU",
         "Get Up"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 204,
@@ -3293,7 +3496,8 @@
       "aliases": [
         "KB Clean",
         "Single Arm Clean"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 205,
@@ -3309,7 +3513,8 @@
       "aliases": [
         "KB Clean and Press",
         "Clean & Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 206,
@@ -3325,7 +3530,8 @@
       "aliases": [
         "KB Snatch",
         "Single Arm Snatch"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 207,
@@ -3340,7 +3546,8 @@
       "instructions": "Hold kettlebell overhead. Hinge to opposite side keeping arm vertical.",
       "aliases": [
         "KB Windmill"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 208,
@@ -3356,7 +3563,8 @@
       "aliases": [
         "KB Figure 8",
         "Figure Eight"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 209,
@@ -3372,7 +3580,8 @@
       "aliases": [
         "KB Halo",
         "Around the World"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 210,
@@ -3388,7 +3597,8 @@
       "aliases": [
         "Bottoms Up KB Press",
         "Inverted Press"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 211,
@@ -3404,7 +3614,8 @@
       "aliases": [
         "KB Front Squat",
         "Double KB Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 212,
@@ -3420,7 +3631,8 @@
       "aliases": [
         "KB Single Leg RDL",
         "Single Leg Deadlift"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 213,
@@ -3438,7 +3650,8 @@
         "Sumo KB Pull",
         "Sumo DL",
         "Wide Stance Deadlift"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 214,
@@ -3454,7 +3667,8 @@
       "aliases": [
         "KB High Pull",
         "Power Pull"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 215,
@@ -3470,7 +3684,8 @@
       "aliases": [
         "KB Thruster",
         "Squat to Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 216,
@@ -3486,7 +3701,8 @@
       "aliases": [
         "KB Renegade Row",
         "Plank Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 217,
@@ -3502,7 +3718,8 @@
       "aliases": [
         "KB Farmers Walk",
         "Farmers Carry"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 218,
@@ -3518,7 +3735,8 @@
       "aliases": [
         "KB Suitcase Carry",
         "Single Arm Carry"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 219,
@@ -3534,7 +3752,8 @@
       "aliases": [
         "KB Overhead Walk",
         "Waiter Walk"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 220,
@@ -3550,7 +3769,8 @@
       "aliases": [
         "KB Rack Walk",
         "Front Carry"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 221,
@@ -3566,7 +3786,8 @@
       "aliases": [
         "KB Push Press",
         "Power Press"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 222,
@@ -3582,7 +3803,8 @@
       "aliases": [
         "KB Jerk",
         "Split Jerk"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 223,
@@ -3598,7 +3820,8 @@
       "aliases": [
         "KB Pistol Squat",
         "Single Leg Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 224,
@@ -3614,7 +3837,8 @@
       "aliases": [
         "KB Reverse Lunge",
         "Backward Lunge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 225,
@@ -3629,7 +3853,8 @@
       "instructions": "Hold kettlebell at chest. Step out to side into lateral lunge.",
       "aliases": [
         "KB Side Lunge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 226,
@@ -3645,7 +3870,8 @@
       "aliases": [
         "KB Split Squat",
         "Elevated Split Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 227,
@@ -3661,7 +3887,8 @@
       "aliases": [
         "KB Step Up",
         "Weighted Step Up"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 228,
@@ -3677,7 +3904,8 @@
       "aliases": [
         "KB Calf Raise",
         "Single Arm Calf Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 229,
@@ -3693,7 +3921,8 @@
       "aliases": [
         "KB Row",
         "Single Arm Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 230,
@@ -3709,7 +3938,8 @@
       "aliases": [
         "KB High Row",
         "Face Level Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 231,
@@ -3725,7 +3955,8 @@
       "aliases": [
         "KB Pullover",
         "Lying Pullover"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 232,
@@ -3741,7 +3972,8 @@
       "aliases": [
         "KB Floor Press",
         "Floor Chest Press"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 233,
@@ -3757,7 +3989,8 @@
       "aliases": [
         "KB Crush Press",
         "Squeeze Press"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 234,
@@ -3773,7 +4006,8 @@
       "aliases": [
         "KB Fly",
         "Chest Fly"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 235,
@@ -3788,7 +4022,8 @@
       "instructions": "Press kettlebell from shoulder to overhead.",
       "aliases": [
         "KB Press"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 236,
@@ -3804,7 +4039,8 @@
       "aliases": [
         "KB Arnold Press",
         "Rotating Press"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 237,
@@ -3820,7 +4056,8 @@
       "aliases": [
         "KB Lateral Raise",
         "Side Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 238,
@@ -3836,7 +4073,8 @@
       "aliases": [
         "KB Front Raise",
         "Anterior Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 239,
@@ -3852,7 +4090,8 @@
       "aliases": [
         "KB Rear Fly",
         "Reverse Fly"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 240,
@@ -3868,7 +4107,8 @@
       "aliases": [
         "KB Upright Row",
         "High Pull"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 241,
@@ -3884,7 +4124,8 @@
       "aliases": [
         "KB Shrug",
         "Trap Shrug"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 242,
@@ -3900,7 +4141,8 @@
       "aliases": [
         "KB Curl",
         "Arm Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 243,
@@ -3916,7 +4158,8 @@
       "aliases": [
         "KB Hammer Curl",
         "Neutral Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 244,
@@ -3932,7 +4175,8 @@
       "aliases": [
         "KB Concentration Curl",
         "Isolated Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 245,
@@ -3948,7 +4192,8 @@
       "aliases": [
         "KB Preacher Curl",
         "Scott Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 246,
@@ -3964,7 +4209,8 @@
       "aliases": [
         "KB Tricep Extension",
         "Overhead Extension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 247,
@@ -3980,7 +4226,8 @@
       "aliases": [
         "KB Kickback",
         "Tricep Kickback"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 248,
@@ -3996,7 +4243,8 @@
       "aliases": [
         "KB Skull Crusher",
         "Lying Extension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 249,
@@ -4012,7 +4260,8 @@
       "aliases": [
         "KB Russian Twist",
         "Seated Twist"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 250,
@@ -4028,7 +4277,8 @@
       "aliases": [
         "KB Sit Up",
         "Weighted Sit Up"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 251,
@@ -4044,7 +4294,8 @@
       "aliases": [
         "KB Leg Raise",
         "Weighted Leg Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 252,
@@ -4060,7 +4311,8 @@
       "aliases": [
         "KB Plank",
         "Elevated Plank"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 253,
@@ -4076,7 +4328,8 @@
       "aliases": [
         "KB Side Plank",
         "Elevated Side Plank"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 254,
@@ -4092,7 +4345,8 @@
       "aliases": [
         "KB Dead Bug",
         "Contralateral Extension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 255,
@@ -4108,7 +4362,8 @@
       "aliases": [
         "KB Bird Dog",
         "Quadruped Extension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 256,
@@ -4124,7 +4379,8 @@
       "aliases": [
         "KB Mountain Climber",
         "Plank Climber"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 257,
@@ -4140,7 +4396,8 @@
       "aliases": [
         "KB V-Up",
         "V-Sit"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 258,
@@ -4156,7 +4413,8 @@
       "aliases": [
         "KB Wood Chop",
         "Diagonal Chop"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 259,
@@ -4172,7 +4430,8 @@
       "aliases": [
         "KB Reverse Chop",
         "Low to High Chop"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 260,
@@ -4188,7 +4447,8 @@
       "aliases": [
         "KB Slingshot",
         "Around the Body Pass"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 261,
@@ -4205,7 +4465,8 @@
         "Plank",
         "Front Plank",
         "Forearm Plank"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 262,
@@ -4221,7 +4482,8 @@
       "aliases": [
         "Side Plank",
         "Lateral Plank"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 263,
@@ -4238,7 +4500,8 @@
         "Ab Wheel",
         "Ab Rollout",
         "Wheel Rollout"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 264,
@@ -4255,7 +4518,8 @@
         "Hanging Knee Raise",
         "Knee Raise",
         "Hanging Knee Tuck"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 265,
@@ -4271,7 +4535,8 @@
       "aliases": [
         "Hanging Leg Raise",
         "Straight Leg Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 266,
@@ -4288,7 +4553,8 @@
         "Toes to Bar",
         "T2B",
         "Toe Touch"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 267,
@@ -4305,7 +4571,8 @@
         "L-Sit",
         "L-Sit Hold",
         "L-Support"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 268,
@@ -4322,7 +4589,8 @@
         "Hollow Hold",
         "Hollow Body",
         "Hollow Position"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 269,
@@ -4338,7 +4606,8 @@
       "aliases": [
         "Dead Bug",
         "Contralateral Limb Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 270,
@@ -4354,7 +4623,8 @@
       "aliases": [
         "Bird Dog",
         "Quadruped Arm/Leg Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 271,
@@ -4371,7 +4641,8 @@
         "Bicycle Crunch",
         "Bicycle",
         "Cycling Abs"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 272,
@@ -4388,7 +4659,8 @@
         "Russian Twist",
         "Seated Twist",
         "Torso Twist"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 273,
@@ -4404,7 +4676,8 @@
       "aliases": [
         "Mountain Climber",
         "Running Plank"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 274,
@@ -4420,7 +4693,8 @@
       "aliases": [
         "Flutter Kick",
         "Scissor Kick"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 275,
@@ -4436,7 +4710,8 @@
       "aliases": [
         "Windshield Wiper",
         "Hanging Wiper"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 276,
@@ -4451,7 +4726,8 @@
       "instructions": "Lie on bench. Lower body from vertical to near horizontal keeping rigid.",
       "aliases": [
         "Body Lever"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 277,
@@ -4467,7 +4743,8 @@
       "aliases": [
         "Sit Up",
         "Full Sit Up"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 278,
@@ -4484,7 +4761,8 @@
         "Crunch",
         "Ab Crunch",
         "Abdominal Crunch"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 279,
@@ -4500,7 +4778,8 @@
       "aliases": [
         "Reverse Crunch",
         "Hip Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 280,
@@ -4516,7 +4795,8 @@
       "aliases": [
         "Side Crunch",
         "Oblique Crunch"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 281,
@@ -4533,7 +4813,8 @@
         "V-Up",
         "V-Sit",
         "Jack Knife"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 282,
@@ -4549,7 +4830,8 @@
       "aliases": [
         "Leg Raise",
         "Lying Leg Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 283,
@@ -4566,7 +4848,8 @@
         "Heel Touch",
         "Side Reach",
         "Penguin"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 284,
@@ -4582,7 +4865,8 @@
       "aliases": [
         "Superman",
         "Back Extension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 285,
@@ -4598,7 +4882,8 @@
       "aliases": [
         "Good Morning",
         "Hip Hinge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 286,
@@ -4614,7 +4899,8 @@
       "aliases": [
         "Back Extension",
         "Hyperextension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 287,
@@ -4630,7 +4916,8 @@
       "aliases": [
         "Pallof Press",
         "Anti-Rotation Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 288,
@@ -4646,7 +4933,8 @@
       "aliases": [
         "Bear Crawl",
         "Quadruped Crawl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 289,
@@ -4662,7 +4950,8 @@
       "aliases": [
         "Crab Walk",
         "Reverse Crawl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 290,
@@ -4679,7 +4968,8 @@
         "Inchworm",
         "Inch Worm",
         "Walk Out"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 291,
@@ -4695,7 +4985,8 @@
       "aliases": [
         "Cable Chop",
         "High to Low Chop"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 292,
@@ -4711,7 +5002,8 @@
       "aliases": [
         "Reverse Cable Chop",
         "Low to High Chop"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 293,
@@ -4727,7 +5019,8 @@
       "aliases": [
         "Cable Ab Crunch",
         "Rope Crunch"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 294,
@@ -4743,7 +5036,8 @@
       "aliases": [
         "Cable Side Bend",
         "Cable Oblique"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 295,
@@ -4759,7 +5053,8 @@
       "aliases": [
         "Cable Twist",
         "Seated Cable Twist"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 296,
@@ -4775,7 +5070,8 @@
       "aliases": [
         "Med Ball Slam",
         "Ball Slam"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 297,
@@ -4791,7 +5087,8 @@
       "aliases": [
         "Med Ball Twist",
         "MB Russian Twist"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 298,
@@ -4807,7 +5104,8 @@
       "aliases": [
         "Med Ball V-Up",
         "Ball Pass"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 299,
@@ -4823,7 +5121,8 @@
       "aliases": [
         "Med Ball Chop",
         "MB Wood Chop"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 300,
@@ -4839,7 +5138,8 @@
       "aliases": [
         "Med Ball Sit Up",
         "Weighted Sit Up"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 301,
@@ -4855,7 +5155,8 @@
       "aliases": [
         "BB Rollout",
         "Barbell Ab Rollout"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 302,
@@ -4871,7 +5172,8 @@
       "aliases": [
         "Landmine Twist",
         "Landmine 180"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 303,
@@ -4887,7 +5189,8 @@
       "aliases": [
         "BB Sit Up",
         "Weighted Barbell Sit Up"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 304,
@@ -4903,7 +5206,8 @@
       "aliases": [
         "Hanging Circles",
         "Leg Circles"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 305,
@@ -4919,7 +5223,8 @@
       "aliases": [
         "Swiss Ball Crunch",
         "Ball Crunch"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 306,
@@ -4935,7 +5240,8 @@
       "aliases": [
         "Ball Pike",
         "Swiss Ball Pike"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 307,
@@ -4951,7 +5257,8 @@
       "aliases": [
         "Ball Rollout",
         "Swiss Ball Rollout"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 308,
@@ -4967,7 +5274,8 @@
       "aliases": [
         "Ball Knee Tuck",
         "Swiss Ball Tuck"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 309,
@@ -4983,7 +5291,8 @@
       "aliases": [
         "Ball Pass",
         "V-Pass"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 310,
@@ -4999,7 +5308,8 @@
       "aliases": [
         "Suspension Knee Tuck",
         "TRX Tuck"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 311,
@@ -5015,7 +5325,8 @@
       "aliases": [
         "Suspension Pike",
         "TRX Pike Up"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 312,
@@ -5031,7 +5342,8 @@
       "aliases": [
         "Suspension Mountain Climber",
         "TRX Climber"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 313,
@@ -5047,7 +5359,8 @@
       "aliases": [
         "Suspension Side Plank",
         "TRX Lateral Plank"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 314,
@@ -5063,7 +5376,8 @@
       "aliases": [
         "TRX Side Crunch",
         "Suspension Oblique"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 315,
@@ -5079,7 +5393,8 @@
       "aliases": [
         "Resistance Band Pallof",
         "Band Anti-Rotation"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 316,
@@ -5095,7 +5410,8 @@
       "aliases": [
         "Resistance Band Chop",
         "Band Chop"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 317,
@@ -5111,7 +5427,8 @@
       "aliases": [
         "Band Twist",
         "Resistance Band Russian Twist"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 318,
@@ -5127,7 +5444,8 @@
       "aliases": [
         "Banded Bicycle",
         "Resistance Bicycle"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 319,
@@ -5143,7 +5461,8 @@
       "aliases": [
         "Banded Dead Bug",
         "Resistance Dead Bug"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 320,
@@ -5159,7 +5478,8 @@
       "aliases": [
         "Farmer's Carry",
         "Loaded Carry"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 321,
@@ -5175,7 +5495,8 @@
       "aliases": [
         "Cable Rear Fly",
         "Reverse Cable Fly"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 322,
@@ -5191,7 +5512,8 @@
       "aliases": [
         "Single Arm Cable Press",
         "Unilateral Cable Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 323,
@@ -5207,7 +5529,8 @@
       "aliases": [
         "Single Arm Cable Fly",
         "Unilateral Fly"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 324,
@@ -5223,7 +5546,8 @@
       "aliases": [
         "Straight Arm Pulldown",
         "Cable Pullover"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 325,
@@ -5239,7 +5563,8 @@
       "aliases": [
         "Cable Pull Through",
         "Cable Hip Hinge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 326,
@@ -5255,7 +5580,8 @@
       "aliases": [
         "Cable Kickback",
         "Glute Cable Kickback"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 327,
@@ -5270,7 +5596,8 @@
       "instructions": "Ankle strap attached. Lift leg out to side against resistance.",
       "aliases": [
         "Cable Abduction"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 328,
@@ -5286,7 +5613,8 @@
       "aliases": [
         "Cable Adduction",
         "Inner Thigh Cable"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 329,
@@ -5302,7 +5630,8 @@
       "aliases": [
         "Cable RDL",
         "Cable Stiff Leg Deadlift"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 330,
@@ -5318,7 +5647,8 @@
       "aliases": [
         "Cable Goblet Squat",
         "Cable Front Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 331,
@@ -5334,7 +5664,8 @@
       "aliases": [
         "Cable Forward Lunge",
         "Cable Split Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 332,
@@ -5350,7 +5681,8 @@
       "aliases": [
         "Cable Quad Extension",
         "Cable Knee Extension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 333,
@@ -5366,7 +5698,8 @@
       "aliases": [
         "Cable Hamstring Curl",
         "Standing Cable Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 334,
@@ -5382,7 +5715,8 @@
       "aliases": [
         "Cable Calf Raise",
         "Cable Heel Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 335,
@@ -5398,7 +5732,8 @@
       "aliases": [
         "Cable Scott Curl",
         "Preacher Cable Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 336,
@@ -5414,7 +5749,8 @@
       "aliases": [
         "Cable Concentrated Curl",
         "Single Arm Cable Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 337,
@@ -5430,7 +5766,8 @@
       "aliases": [
         "Cable Body Drag Curl",
         "Cable Barbell Drag Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 338,
@@ -5446,7 +5783,8 @@
       "aliases": [
         "Cable Prone Curl",
         "Cable Incline Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 339,
@@ -5462,7 +5800,8 @@
       "aliases": [
         "Cable Twenty Ones",
         "Cable 7-7-7"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 340,
@@ -5478,7 +5817,8 @@
       "aliases": [
         "Single Arm Cable Extension",
         "Unilateral Tricep Extension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 341,
@@ -5494,7 +5834,8 @@
       "aliases": [
         "Cable Kickback",
         "Tricep Cable Kickback"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 342,
@@ -5510,7 +5851,8 @@
       "aliases": [
         "Diamond Cable Pushdown",
         "Cable Diamond Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 343,
@@ -5526,7 +5868,8 @@
       "aliases": [
         "Cable Skull Crusher",
         "Lying Cable Extension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 344,
@@ -5542,7 +5885,8 @@
       "aliases": [
         "Cable JM Press",
         "Cable Hybrid Extension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 345,
@@ -5558,7 +5902,8 @@
       "aliases": [
         "Single Arm Cable Lateral",
         "Unilateral Cable Raise"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 346,
@@ -5574,7 +5919,8 @@
       "aliases": [
         "Single Arm Cable Front Raise",
         "Unilateral Front Raise"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 347,
@@ -5590,7 +5936,8 @@
       "aliases": [
         "Single Arm Rear Fly",
         "Cable Single Rear Delt"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 348,
@@ -5606,7 +5953,8 @@
       "aliases": [
         "Cable Y Raise",
         "Y-Raise Cable"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 349,
@@ -5622,7 +5970,8 @@
       "aliases": [
         "Cable W Raise",
         "W-Raise Cable"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 350,
@@ -5638,7 +5987,8 @@
       "aliases": [
         "Cable Bradford",
         "Behind to Front Press"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 351,
@@ -5654,7 +6004,8 @@
       "aliases": [
         "Cable Cuban Rotation",
         "Cuban Cable Press"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 352,
@@ -5670,7 +6021,8 @@
       "aliases": [
         "Cable External Rotation",
         "Rotator Cuff Cable"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 353,
@@ -5686,7 +6038,8 @@
       "aliases": [
         "Cable Internal Rotation",
         "Internal Rotator Cable"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 355,
@@ -5702,7 +6055,8 @@
       "aliases": [
         "Single Arm Lat Pulldown",
         "Unilateral Pulldown"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 356,
@@ -5718,7 +6072,8 @@
       "aliases": [
         "Underhand Cable Row",
         "Supinated Cable Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 357,
@@ -5734,7 +6089,8 @@
       "aliases": [
         "Cable T-Row",
         "V-Handle Cable Row"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 358,
@@ -5750,7 +6106,8 @@
       "aliases": [
         "Cable Partial Deadlift",
         "Cable Block Pull"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 359,
@@ -5766,7 +6123,8 @@
       "aliases": [
         "Cable GM",
         "Cable Hip Hinge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 360,
@@ -5782,7 +6140,8 @@
       "aliases": [
         "Cable Reverse Hyperextension",
         "Cable Reverse Extension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 361,
@@ -5798,7 +6157,8 @@
       "aliases": [
         "Resistance Band Press",
         "Band Push"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 362,
@@ -5814,7 +6174,8 @@
       "aliases": [
         "Band Fly",
         "Resistance Band Fly"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 363,
@@ -5830,7 +6191,8 @@
       "aliases": [
         "Banded Push Up",
         "Resistance Push Up"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 364,
@@ -5846,7 +6208,8 @@
       "aliases": [
         "Resistance Band Row",
         "Band Pull"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 365,
@@ -5862,7 +6225,8 @@
       "aliases": [
         "Band Pulldown",
         "Resistance Band Pulldown"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 366,
@@ -5878,7 +6242,8 @@
       "aliases": [
         "Resistance Band Face Pull",
         "Band Rear Delt Pull"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 367,
@@ -5894,7 +6259,8 @@
       "aliases": [
         "Band Pull Apart",
         "Band Rear Fly"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 368,
@@ -5910,7 +6276,8 @@
       "aliases": [
         "Resistance Band Good Morning",
         "Band GM"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 369,
@@ -5926,7 +6293,8 @@
       "aliases": [
         "Resistance Band Squat",
         "Banded Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 370,
@@ -5942,7 +6310,8 @@
       "aliases": [
         "Resistance Band Deadlift",
         "Band RDL"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 371,
@@ -5958,7 +6327,8 @@
       "aliases": [
         "Resistance Band Leg Press",
         "Band Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 372,
@@ -5974,7 +6344,8 @@
       "aliases": [
         "Band Hamstring Curl",
         "Resistance Band Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 373,
@@ -5990,7 +6361,8 @@
       "aliases": [
         "Banded Glute Bridge",
         "Resistance Band Bridge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 374,
@@ -6006,7 +6378,8 @@
       "aliases": [
         "Banded Hip Thrust",
         "Resistance Band Thrust"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 375,
@@ -6022,7 +6395,8 @@
       "aliases": [
         "Band Clam",
         "Resistance Band Clamshell"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 376,
@@ -6038,7 +6412,8 @@
       "aliases": [
         "Band Lateral Walk",
         "Monster Walk"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 377,
@@ -6054,7 +6429,8 @@
       "aliases": [
         "Banded Fire Hydrant",
         "Band Abduction"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 378,
@@ -6070,7 +6446,8 @@
       "aliases": [
         "Band Kickback",
         "Resistance Band Donkey Kick"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 379,
@@ -6086,7 +6463,8 @@
       "aliases": [
         "Band TKE",
         "Terminal Knee Extension"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 380,
@@ -6102,7 +6480,8 @@
       "aliases": [
         "Standing Band Abduction",
         "Band Side Leg Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 384,
@@ -6117,7 +6496,8 @@
       "instructions": "Band anchored high. Pull diagonally across body in chopping motion.",
       "aliases": [
         "Diagonal Chop"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 385,
@@ -6133,7 +6513,8 @@
       "aliases": [
         "Suspension Push Up",
         "TRX Chest Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 386,
@@ -6149,7 +6530,8 @@
       "aliases": [
         "TRX Inverted Row",
         "Suspension Row"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 387,
@@ -6165,7 +6547,8 @@
       "aliases": [
         "TRX Y Raise",
         "Suspension Y Fly"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 388,
@@ -6181,7 +6564,8 @@
       "aliases": [
         "TRX Pec Fly",
         "Suspension Chest Fly"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 389,
@@ -6197,7 +6581,8 @@
       "aliases": [
         "Suspension Bicep Curl",
         "TRX Arm Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 390,
@@ -6213,7 +6598,8 @@
       "aliases": [
         "TRX Tricep Extension",
         "Suspension Tricep Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 391,
@@ -6229,7 +6615,8 @@
       "aliases": [
         "Assisted Squat",
         "TRX Supported Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 392,
@@ -6245,7 +6632,8 @@
       "aliases": [
         "TRX Split Squat",
         "Suspension Lunge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 395,
@@ -6261,7 +6649,8 @@
       "aliases": [
         "TRX Leg Curl",
         "Suspension Hamstring Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 396,
@@ -6277,7 +6666,8 @@
       "aliases": [
         "Suspension Plank",
         "TRX Core Hold"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 397,
@@ -6293,7 +6683,8 @@
       "aliases": [
         "TRX High Row",
         "Suspension Face Pull"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 399,
@@ -6309,7 +6700,8 @@
       "aliases": [
         "Wall Ball Shot",
         "Wall Ball"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 401,
@@ -6325,7 +6717,8 @@
       "aliases": [
         "Med Ball Push Up",
         "Ball Push Up"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 402,
@@ -6341,7 +6734,8 @@
       "aliases": [
         "Med Ball Pass",
         "Chest Pass"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 403,
@@ -6357,7 +6751,8 @@
       "aliases": [
         "Med Ball Throw",
         "Overhead Throw"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 404,
@@ -6373,7 +6768,8 @@
       "aliases": [
         "Goblet Squat with Med Ball",
         "Med Ball Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 405,
@@ -6389,7 +6785,8 @@
       "aliases": [
         "Med Ball Lunge",
         "Weighted Lunge"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 407,
@@ -6405,7 +6802,8 @@
       "aliases": [
         "Med Ball Plank",
         "Ball Plank"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 408,
@@ -6421,7 +6819,8 @@
       "aliases": [
         "Med Ball Wood Chop",
         "Diagonal Chop"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 409,
@@ -6437,7 +6836,8 @@
       "aliases": [
         "Med Ball Burpee",
         "Ball Burpee"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 411,
@@ -6453,7 +6853,8 @@
       "aliases": [
         "Landmine Shoulder Press",
         "Angled Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 412,
@@ -6469,7 +6870,8 @@
       "aliases": [
         "Landmine Bent Over Row",
         "T-Bar Row"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 413,
@@ -6485,7 +6887,8 @@
       "aliases": [
         "Landmine Goblet Squat",
         "Landmine Front Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 414,
@@ -6501,7 +6904,8 @@
       "aliases": [
         "Landmine Twist",
         "Russian Twist Landmine"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 415,
@@ -6517,7 +6921,8 @@
       "aliases": [
         "Alternating Waves",
         "Rope Waves"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 416,
@@ -6533,7 +6938,8 @@
       "aliases": [
         "Double Wave Slam",
         "Rope Slams"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 417,
@@ -6549,7 +6955,8 @@
       "aliases": [
         "Rope Circles",
         "In and Out Waves"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 418,
@@ -6565,7 +6972,8 @@
       "aliases": [
         "Prowler Push",
         "Sled Drive"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 419,
@@ -6581,7 +6989,8 @@
       "aliases": [
         "Sled Drag",
         "Prowler Pull"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 420,
@@ -6597,7 +7006,8 @@
       "aliases": [
         "Farmer Carry",
         "Loaded Carry"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 421,
@@ -6613,7 +7023,8 @@
       "aliases": [
         "Sandbag Front Squat",
         "Bear Hug Squat"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 422,
@@ -6629,7 +7040,8 @@
       "aliases": [
         "Sandbag Walk",
         "Loaded Sandbag Carry"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 423,
@@ -6645,7 +7057,8 @@
       "aliases": [
         "Sandbag Power Clean",
         "Bag Clean"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 424,
@@ -6661,7 +7074,8 @@
       "aliases": [
         "Tire Flipping",
         "Tyre Flip"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 425,
@@ -6677,7 +7091,8 @@
       "aliases": [
         "Hammer Swing",
         "Tire Strike"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 426,
@@ -6693,7 +7108,8 @@
       "aliases": [
         "Step Up",
         "Box Step"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 427,
@@ -6709,7 +7125,8 @@
       "aliases": [
         "Plyometric Box Jump",
         "Jump Box"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 428,
@@ -6725,7 +7142,8 @@
       "aliases": [
         "Drop Jump",
         "Reactive Jump"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 429,
@@ -6741,7 +7159,8 @@
       "aliases": [
         "Pistol to Box",
         "Single Leg Squat to Box"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 430,
@@ -6757,7 +7176,8 @@
       "aliases": [
         "Parallette Press",
         "Deep Push Up"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 431,
@@ -6773,7 +7193,8 @@
       "aliases": [
         "L-Sit Hold",
         "Parallette L-Hold"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 432,
@@ -6789,7 +7210,8 @@
       "aliases": [
         "HSPU",
         "Parallette HSPU"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 433,
@@ -6805,7 +7227,8 @@
       "aliases": [
         "Ab Rollout",
         "Wheel Rollout"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 434,
@@ -6821,7 +7244,8 @@
       "aliases": [
         "Standing Rollout",
         "Full Ab Wheel"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 435,
@@ -6837,7 +7261,8 @@
       "aliases": [
         "GHR",
         "GHD Raise"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 436,
@@ -6853,7 +7278,8 @@
       "aliases": [
         "GHD Crunch",
         "Roman Chair Sit Up"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 437,
@@ -6869,7 +7295,8 @@
       "aliases": [
         "Nordic Hamstring Curl",
         "Russian Curl"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 438,
@@ -6885,7 +7312,8 @@
       "aliases": [
         "Zercher",
         "Elbow Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 439,
@@ -6901,7 +7329,8 @@
       "aliases": [
         "Jefferson Lift",
         "Straddle Deadlift"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 442,
@@ -6917,7 +7346,8 @@
       "aliases": [
         "Clean & Jerk",
         "C&J"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 443,
@@ -6933,7 +7363,8 @@
       "aliases": [
         "Olympic Snatch",
         "Full Snatch"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 444,
@@ -6949,7 +7380,8 @@
       "aliases": [
         "Power Snatch",
         "Muscle Snatch"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 445,
@@ -6965,7 +7397,8 @@
       "aliases": [
         "Hang Power Clean",
         "Hang Clean"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 446,
@@ -6981,7 +7414,8 @@
       "aliases": [
         "Hang Power Snatch",
         "Hang Snatch"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 448,
@@ -6997,7 +7431,8 @@
       "aliases": [
         "Push Jerk",
         "Power Jerk"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 449,
@@ -7013,7 +7448,8 @@
       "aliases": [
         "Split Jerk",
         "Olympic Jerk"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 450,
@@ -7029,7 +7465,8 @@
       "aliases": [
         "Muscle Snatch",
         "No Contact Snatch"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 452,
@@ -7045,7 +7482,8 @@
       "aliases": [
         "DB Clean & Press",
         "Double Clean and Press"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 456,
@@ -7061,7 +7499,8 @@
       "aliases": [
         "TGU",
         "Get Up"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 457,
@@ -7077,7 +7516,8 @@
       "aliases": [
         "KB Windmill",
         "Turkish Windmill"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 458,
@@ -7093,7 +7533,8 @@
       "aliases": [
         "Bar Muscle Up",
         "Strict Muscle Up"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 459,
@@ -7109,7 +7550,8 @@
       "aliases": [
         "Rings MU",
         "Gymnastics Muscle Up"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 460,
@@ -7125,7 +7567,8 @@
       "aliases": [
         "HS Walk",
         "Walking Handstand"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 461,
@@ -7141,7 +7584,8 @@
       "aliases": [
         "Single Leg Squat",
         "One Leg Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 462,
@@ -7157,7 +7601,8 @@
       "aliases": [
         "Bruce Lee Flag",
         "Body Lever"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 463,
@@ -7173,7 +7618,8 @@
       "aliases": [
         "Side Lever",
         "Flag Hold"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 464,
@@ -7189,7 +7635,8 @@
       "aliases": [
         "Lever Hold",
         "Horizontal Hang"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 465,
@@ -7205,7 +7652,8 @@
       "aliases": [
         "German Hang Hold",
         "Reverse Lever"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 466,
@@ -7221,7 +7669,8 @@
       "aliases": [
         "Full Planche",
         "Planche Hold"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 467,
@@ -7237,7 +7686,8 @@
       "aliases": [
         "Cross Hold",
         "Crucifix"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 468,
@@ -7253,7 +7703,8 @@
       "aliases": [
         "Maltese Cross",
         "Wide Arm Planche"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 472,
@@ -7269,7 +7720,8 @@
       "aliases": [
         "Sissy",
         "Matrix Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 473,
@@ -7285,7 +7737,8 @@
       "aliases": [
         "Banded Spanish Squat",
         "Knee Friendly Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 477,
@@ -7301,7 +7754,8 @@
       "aliases": [
         "Jumping Lunge",
         "Split Jump"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 479,
@@ -7317,7 +7771,8 @@
       "aliases": [
         "Standing Long Jump",
         "Horizontal Jump"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 480,
@@ -7333,7 +7788,8 @@
       "aliases": [
         "Standing Vertical Jump",
         "Max Vertical"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 481,
@@ -7349,7 +7805,8 @@
       "aliases": [
         "Sled Sprint",
         "Prowler Run"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 482,
@@ -7365,7 +7822,8 @@
       "aliases": [
         "Air Bike",
         "Fan Bike"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 483,
@@ -7381,7 +7839,8 @@
       "aliases": [
         "Ski Ergometer",
         "Standing Row Machine"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 484,
@@ -7397,7 +7856,8 @@
       "aliases": [
         "Erg",
         "Concept 2 Rower"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 485,
@@ -7413,7 +7873,8 @@
       "aliases": [
         "Yoke Carry",
         "Frame Walk"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 486,
@@ -7429,7 +7890,8 @@
       "aliases": [
         "Stone Load",
         "Stone Lift"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 487,
@@ -7445,7 +7907,8 @@
       "aliases": [
         "Log Clean and Press",
         "Strongman Press"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 488,
@@ -7461,7 +7924,8 @@
       "aliases": [
         "Fat Bar Press",
         "Axle Bar Press"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 489,
@@ -7477,7 +7941,8 @@
       "aliases": [
         "Frame Deadlift",
         "Car DL"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 490,
@@ -7493,7 +7958,8 @@
       "aliases": [
         "Keg Walk",
         "Beer Keg Carry"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 491,
@@ -7509,7 +7975,8 @@
       "aliases": [
         "SSB Squat",
         "Safety Squat Bar"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 492,
@@ -7525,7 +7992,8 @@
       "aliases": [
         "Camber Bar Squat",
         "Bow Bar Squat"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 493,
@@ -7541,7 +8009,8 @@
       "aliases": [
         "Duffalo Bar Squat",
         "Curved Bar Squat"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 494,
@@ -7557,7 +8026,8 @@
       "aliases": [
         "Football Bar Press",
         "Multi-Grip Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 495,
@@ -7573,7 +8043,8 @@
       "aliases": [
         "Hex Bar Jump",
         "Trap Bar Jump Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 496,
@@ -7589,7 +8060,8 @@
       "aliases": [
         "Single Side Deadlift",
         "Offset Deadlift"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 497,
@@ -7605,7 +8077,8 @@
       "aliases": [
         "Plate Pinch Deadlift",
         "Steve Reeves Deadlift"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 498,
@@ -7621,7 +8094,8 @@
       "aliases": [
         "Pin Squat",
         "Bottom Up Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 499,
@@ -7639,7 +8113,8 @@
         "Competition Squat",
         "Pause Back Squat",
         "2-Count Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 500,
@@ -7655,7 +8130,8 @@
       "aliases": [
         "Slow Squat",
         "Time Under Tension Squat"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 501,
@@ -7672,7 +8148,8 @@
         "Weighted Dips",
         "Belt Dip",
         "Heavy Dip"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 502,
@@ -7689,7 +8166,8 @@
         "Paused Bench",
         "Competition Bench Press",
         "Pause Bench Press"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 503,
@@ -7710,7 +8188,8 @@
         "Weighted Pullups",
         "Weighted Chin Up",
         "Weighted Chins"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 504,
@@ -7727,7 +8206,8 @@
         "Box Squat",
         "BB Box Squat",
         "Barbell Box Squats"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 505,
@@ -7744,7 +8224,8 @@
         "Weighted Chin-Up",
         "Weighted Chinup",
         "Chin Up with Weight"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 506,
@@ -7761,7 +8242,8 @@
         "Cable Chest Fly",
         "Cable Pec Fly",
         "Cable Flye"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 509,
@@ -7778,7 +8260,8 @@
         "Elevated Deadlift",
         "Platform Deadlift",
         "Deficit Conventional Deadlift"
-      ]
+      ],
+      "restDurationSeconds": 180
     },
     {
       "id": 510,
@@ -7795,7 +8278,8 @@
         "Partial Deadlift",
         "Top Half Deadlift",
         "Rack Deadlift"
-      ]
+      ],
+      "restDurationSeconds": 120
     },
     {
       "id": 511,
@@ -7812,7 +8296,8 @@
         "Elevated Deadlift",
         "Partial Deadlift",
         "Block Deadlift"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 512,
@@ -7829,7 +8314,8 @@
         "21s",
         "Twenty-Ones",
         "Barbell Twenty-Ones"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 513,
@@ -7846,7 +8332,8 @@
         "JM Bench Press",
         "JM Tricep Press",
         "Modified Close Grip Bench"
-      ]
+      ],
+      "restDurationSeconds": 60
     },
     {
       "id": 514,
@@ -7863,7 +8350,8 @@
         "Prone Incline Curl",
         "Chest Supported Curl",
         "Spider Bicep Curl"
-      ]
+      ],
+      "restDurationSeconds": 90
     },
     {
       "id": 515,
@@ -7880,7 +8368,8 @@
         "Barbell Drag Curl",
         "Drag Bicep Curl",
         "Posterior Curl"
-      ]
+      ],
+      "restDurationSeconds": 90
     }
   ]
 }
