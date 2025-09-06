@@ -16,6 +16,7 @@ data class ProgrammeCompletionStats(
     val strengthImprovements: List<StrengthImprovement>,
     val averageStrengthImprovement: Float,
     val insights: ProgrammeInsights,
+    val topExercises: List<ExerciseFrequency> = emptyList(),
 )
 
 data class StrengthImprovement(
@@ -30,4 +31,9 @@ data class ProgrammeInsights(
     val totalTrainingDays: Int,
     val mostConsistentDay: String?, // "Monday", "Tuesday", etc.
     val averageRestDaysBetweenWorkouts: Float,
+)
+
+data class ExerciseFrequency(
+    val exerciseName: String,
+    val frequency: Int,
 )

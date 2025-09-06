@@ -23,7 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
@@ -65,6 +65,7 @@ fun ProgrammeHistoryDetailScreen(
     viewModel: ProgrammeHistoryDetailViewModel = viewModel(),
 ) {
     val programmeDetails by viewModel.programmeDetails.collectAsState()
+    val completionStats by viewModel.completionStats.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
 
@@ -131,6 +132,7 @@ fun ProgrammeHistoryDetailScreen(
             programmeDetails != null -> {
                 ProgrammeDetailsContent(
                     details = programmeDetails!!,
+                    completionStats = completionStats,
                     onViewWorkout = onViewWorkout,
                     modifier = Modifier.padding(paddingValues),
                 )
@@ -142,119 +144,129 @@ fun ProgrammeHistoryDetailScreen(
 @Composable
 fun ProgrammeDetailsContent(
     details: ProgrammeHistoryDetails,
+    completionStats: com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats?,
     onViewWorkout: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showDetailedAnalysis by remember { mutableStateOf(false) }
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Programme Header Card
+        // Programme Header - Simplified
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(4.dp),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
+            Column {
+                Text(
+                    text = details.name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Programme metadata tags
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(
-                        text = details.name,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Programme metadata
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(8.dp),
                     ) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            shape = RoundedCornerShape(8.dp),
-                        ) {
-                            Text(
-                                text =
-                                    details.programmeType.name
-                                        .replace("_", " ")
-                                        .lowercase()
-                                        .replaceFirstChar { it.uppercase() },
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            )
-                        }
-                        Surface(
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
-                            shape = RoundedCornerShape(8.dp),
-                        ) {
-                            Text(
-                                text =
-                                    details.difficulty.name
-                                        .lowercase()
-                                        .replaceFirstChar { it.uppercase() },
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Duration and completion stats
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                    ) {
-                        StatItem(
-                            label = "Duration",
-                            value = "${details.durationWeeks} weeks",
-                            modifier = Modifier.weight(1f),
-                        )
-                        StatItem(
-                            label = "Completed",
-                            value = "${details.completedWorkouts}/${details.totalWorkouts}",
-                            modifier = Modifier.weight(1f),
-                        )
-                        StatItem(
-                            label = "Total Days",
-                            value = details.programDurationDays.toString(),
-                            modifier = Modifier.weight(1f),
+                        Text(
+                            text =
+                                details.programmeType.name
+                                    .replace("_", " ")
+                                    .lowercase()
+                                    .replaceFirstChar { it.uppercase() },
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Dates
-                    Column {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = RoundedCornerShape(8.dp),
+                    ) {
                         Text(
-                            text = "Started: ${details.startedAt!!.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = "Completed: ${details.completedAt!!.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text =
+                                details.difficulty.name
+                                    .lowercase()
+                                    .replaceFirstChar { it.uppercase() },
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Dates
+                Text(
+                    text = "Started: ${details.startedAt!!.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Completed: ${details.completedAt!!.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
 
-        // Completion Notes (if any)
+
+        // Programme Insights Section (if stats available)
+        if (completionStats != null) {
+            item {
+                ProgrammeInsightsSection(
+                    stats = completionStats,
+                    durationWeeks = details.durationWeeks,
+                    showDetailedAnalysis = showDetailedAnalysis,
+                    onToggleDetailedAnalysis = { showDetailedAnalysis = !showDetailedAnalysis },
+                )
+            }
+        }
+
+        // Workout History Section
+        item {
+            Text(
+                text = "Workout History",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+
+        // Group workouts by week
+        val workoutsByWeek = details.workoutHistory.groupBy { it.weekNumber }
+        val sortedWeeks = workoutsByWeek.keys.sorted()
+
+        sortedWeeks.forEach { weekNumber ->
+            val weekWorkouts = workoutsByWeek[weekNumber]!!.sortedBy { it.dayNumber }
+            val completedCount = weekWorkouts.count { it.completed }
+            val totalCount = weekWorkouts.size
+
+            item {
+                CollapsibleWeekSection(
+                    weekNumber = weekNumber,
+                    totalCount = totalCount,
+                    workouts = weekWorkouts,
+                    onViewWorkout = onViewWorkout,
+                )
+            }
+        }
+
+        // Completion Notes (if any) - moved to bottom
         if (!details.completionNotes.isNullOrBlank()) {
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(4.dp),
+                    elevation = CardDefaults.cardElevation(2.dp),
                     colors =
                         CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+                            containerColor = MaterialTheme.colorScheme.surface,
                         ),
                 ) {
                     Column(
@@ -288,42 +300,12 @@ fun ProgrammeDetailsContent(
                 }
             }
         }
-
-        // Workout History Section
-        item {
-            Text(
-                text = "Workout History",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-
-        // Group workouts by week
-        val workoutsByWeek = details.workoutHistory.groupBy { it.weekNumber }
-        val sortedWeeks = workoutsByWeek.keys.sorted()
-
-        sortedWeeks.forEach { weekNumber ->
-            val weekWorkouts = workoutsByWeek[weekNumber]!!.sortedBy { it.dayNumber }
-            val completedCount = weekWorkouts.count { it.completed }
-            val totalCount = weekWorkouts.size
-
-            item {
-                CollapsibleWeekSection(
-                    weekNumber = weekNumber,
-                    completedCount = completedCount,
-                    totalCount = totalCount,
-                    workouts = weekWorkouts,
-                    onViewWorkout = onViewWorkout,
-                )
-            }
-        }
     }
 }
 
 @Composable
 fun CollapsibleWeekSection(
     weekNumber: Int,
-    completedCount: Int,
     totalCount: Int,
     workouts: List<WorkoutHistoryEntry>,
     onViewWorkout: (Long) -> Unit,
@@ -339,17 +321,9 @@ fun CollapsibleWeekSection(
                     .clickable { isExpanded = !isExpanded },
             colors =
                 CardDefaults.cardColors(
-                    containerColor =
-                        if (isExpanded) {
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        },
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
-            elevation =
-                CardDefaults.cardElevation(
-                    defaultElevation = if (isExpanded) 4.dp else 2.dp,
-                ),
+            elevation = CardDefaults.cardElevation(2.dp),
         ) {
             Row(
                 modifier =
@@ -367,31 +341,10 @@ fun CollapsibleWeekSection(
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        text = "$completedCount of $totalCount workouts completed",
+                        text = if (totalCount == 1) "1 workout" else "$totalCount workouts",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
-
-                // Progress indicator
-                if (totalCount > 0) {
-                    val progress = completedCount.toFloat() / totalCount
-                    Box(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    ) {
-                        CircularProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier.size(32.dp),
-                            strokeWidth = 3.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        )
-                        Text(
-                            text = "${(progress * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.align(Alignment.Center),
-                        )
-                    }
                 }
 
                 // Expand/collapse icon
@@ -433,7 +386,10 @@ fun WorkoutHistoryEntryCard(
             Modifier
                 .fillMaxWidth()
                 .clickable { onViewWorkout() },
-        elevation = CardDefaults.cardElevation(2.dp),
+        elevation = CardDefaults.cardElevation(1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        ),
     ) {
         Row(
             modifier =
@@ -510,15 +466,6 @@ fun WorkoutHistoryEntryCard(
                 }
             }
 
-            // Completion indicator
-            if (workout.completed) {
-                Icon(
-                    Icons.Filled.CheckCircle,
-                    contentDescription = "Completed",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
         }
     }
 }
@@ -544,5 +491,311 @@ fun StatItem(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+@Composable
+fun ProgrammeInsightsSection(
+    stats: com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats,
+    durationWeeks: Int,
+    showDetailedAnalysis: Boolean,
+    onToggleDetailedAnalysis: () -> Unit,
+) {
+    var showAllImprovements by remember { mutableStateOf(false) }
+    
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            text = "Programme Insights",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+        )
+
+        // Hero Panel - Primary Stats
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(2.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // First row: Basic stats
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(
+                            text = stats.totalWorkouts.toString(),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = "Workouts",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(
+                            text = if (durationWeeks == 1) "1 week" else "$durationWeeks weeks",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = "Duration",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(
+                            text = formatDuration(stats.averageWorkoutDuration),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = "Avg Duration",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(
+                            text = "N/A",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = "Avg RPE",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                // Divider
+                androidx.compose.material3.HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                )
+
+                // Second row: Top Exercises
+                Column {
+                    Text(
+                        text = "Top Exercises",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (stats.topExercises.isNotEmpty()) {
+                        stats.topExercises.take(3).forEach { exercise ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    text = exercise.exerciseName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
+                                Text(
+                                    text = "${exercise.frequency}x",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = "No exercises recorded",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+
+        // Performance Analysis - Expandable
+        if (stats.strengthImprovements.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggleDetailedAnalysis() },
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.TrendingUp,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp),
+                            )
+                            Column {
+                                Text(
+                                    text = "Performance Analysis",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                if (stats.averageStrengthImprovement > 0) {
+                                    Text(
+                                        text = "Avg improvement: +${String.format(java.util.Locale.US, "%.1f", stats.averageStrengthImprovement)}%",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            }
+                        }
+                        Icon(
+                            imageVector = if (showDetailedAnalysis) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                            contentDescription = if (showDetailedAnalysis) "Hide" else "Show",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    AnimatedVisibility(
+                        visible = showDetailedAnalysis,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut(),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            androidx.compose.material3.HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            )
+
+                            // Top Improvements
+                            Text(
+                                text = "Top Improvements",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+
+                            val topImprovements = stats.strengthImprovements
+                                .sortedByDescending { it.improvementPercentage }
+                                .take(5)
+
+                            topImprovements.forEach { improvement ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text(
+                                        text = improvement.exerciseName,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Text(
+                                        text = "+${String.format(java.util.Locale.US, "%.1f", improvement.improvementPercentage)}% (${
+                                            com.github.radupana.featherweight.util.WeightFormatter.formatWeightWithUnit(improvement.startingMax)
+                                        } → ${
+                                            com.github.radupana.featherweight.util.WeightFormatter.formatWeightWithUnit(improvement.endingMax)
+                                        })",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+
+                            // Show All button if there are more improvements
+                            if (stats.strengthImprovements.size > 5) {
+                                androidx.compose.material3.TextButton(
+                                    onClick = { showAllImprovements = !showAllImprovements },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(
+                                        text = if (showAllImprovements) "Show Less" else "Show All ${stats.strengthImprovements.size} Exercises",
+                                        style = MaterialTheme.typography.labelLarge,
+                                    )
+                                }
+
+                                AnimatedVisibility(visible = showAllImprovements) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        stats.strengthImprovements
+                                            .sortedByDescending { it.improvementPercentage }
+                                            .drop(5)
+                                            .forEach { improvement ->
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                ) {
+                                                    Text(
+                                                        text = improvement.exerciseName,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        modifier = Modifier.weight(1f),
+                                                    )
+                                                    Text(
+                                                        text = "+${String.format(java.util.Locale.US, "%.1f", improvement.improvementPercentage)}% (${
+                                                            com.github.radupana.featherweight.util.WeightFormatter.formatWeightWithUnit(improvement.startingMax)
+                                                        } → ${
+                                                            com.github.radupana.featherweight.util.WeightFormatter.formatWeightWithUnit(improvement.endingMax)
+                                                        })",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    )
+                                                }
+                                            }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatDuration(duration: java.time.Duration): String {
+    val totalMinutes = duration.toMinutes()
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+
+    return when {
+        hours > 0 -> "${hours}h ${minutes}m"
+        else -> "${minutes}m"
     }
 }

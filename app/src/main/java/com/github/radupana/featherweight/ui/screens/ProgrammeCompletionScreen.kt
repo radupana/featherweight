@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,8 +21,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
@@ -32,7 +33,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,7 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.radupana.featherweight.data.programme.StrengthImprovement
 import com.github.radupana.featherweight.ui.components.GlassmorphicCard
 import com.github.radupana.featherweight.ui.dialogs.NotesInputModal
 import com.github.radupana.featherweight.util.WeightFormatter
@@ -82,6 +81,7 @@ fun ProgrammeCompletionScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showNotesModal by remember { mutableStateOf(false) }
     var completionNotes by remember { mutableStateOf("") }
+    var showDetailedAnalysis by remember { mutableStateOf(false) }
 
     LaunchedEffect(programmeId) {
         viewModel.loadProgrammeCompletionStats(programmeId)
@@ -117,14 +117,13 @@ fun ProgrammeCompletionScreen(
                     // Primary Stats
                     PrimaryStatsCard(stats)
 
-                    // Strength Progress (if any improvements)
+                    // Performance Analysis (consolidated 1RM improvements)
                     if (stats.strengthImprovements.isNotEmpty()) {
-                        StrengthProgressCard(stats.strengthImprovements, stats.averageStrengthImprovement)
-                    }
-
-                    // Personal Records (if any)
-                    if (stats.totalPRs > 0) {
-                        PersonalRecordsCard(stats.totalPRs)
+                        PerformanceAnalysisCard(
+                            stats = stats,
+                            isExpanded = showDetailedAnalysis,
+                            onToggle = { showDetailedAnalysis = !showDetailedAnalysis },
+                        )
                     }
 
                     // Programme Insights
@@ -258,12 +257,12 @@ private fun PrimaryStatsCard(stats: com.github.radupana.featherweight.data.progr
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 ProgrammeStatItem(
-                    label = "Workouts",
-                    value = "${stats.completedWorkouts}/${stats.totalWorkouts}",
+                    label = "Total Workouts",
+                    value = stats.totalWorkouts.toString(),
                 )
 
-                ProgrammeTotalVolumeStatItem(
-                    value = WeightFormatter.formatWeight(stats.totalVolume),
+                TopExercisesStatItem(
+                    exercises = stats.topExercises,
                 )
 
                 ProgrammeStatItem(
@@ -276,11 +275,28 @@ private fun PrimaryStatsCard(stats: com.github.radupana.featherweight.data.progr
 }
 
 @Composable
-private fun ProgrammeTotalVolumeStatItem(
-    value: String,
+private fun TopExercisesStatItem(
+    exercises: List<com.github.radupana.featherweight.data.programme.ExerciseFrequency>,
     modifier: Modifier = Modifier,
 ) {
-    ProgrammeStatItem("Total Volume", value, "kg", modifier)
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "Top Exercises",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        exercises.take(3).forEach { exercise ->
+            Text(
+                text = "${exercise.exerciseName} (${exercise.frequency}x)",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+    }
 }
 
 @Composable
@@ -308,137 +324,159 @@ private fun ProgrammeStatItem(
 }
 
 @Composable
-private fun StrengthProgressCard(
-    improvements: List<StrengthImprovement>,
-    averageImprovement: Float,
+private fun PerformanceAnalysisCard(
+    stats: com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
 ) {
+    var showAllImprovements by remember { mutableStateOf(false) }
+    
     GlassmorphicCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle() },
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.TrendingUp,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Column {
+                        Text(
+                            text = "Performance Analysis",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        if (stats.averageStrengthImprovement > 0) {
+                            Text(
+                                text = "Average improvement: +${String.format(Locale.US, "%.1f", stats.averageStrengthImprovement)}%",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
                 Icon(
-                    Icons.AutoMirrored.Filled.TrendingUp,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp),
-                )
-                Text(
-                    text = "1RM Improvements",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = if (isExpanded) "Hide" else "Show",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Average improvement
-            if (averageImprovement > 0) {
-                Text(
-                    text = "Average improvement: +${String.format(Locale.US, "%.1f", averageImprovement)}%",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            // Individual improvements
-            improvements.take(5).forEach { improvement ->
-                ImprovementItem(improvement)
-                if (improvement != improvements.take(5).last()) {
-                    Spacer(modifier = Modifier.height(8.dp))
+            AnimatedVisibility(visible = isExpanded) {
+                Column(
+                    modifier = Modifier.padding(top = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
 
-            if (improvements.size > 5) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "...and ${improvements.size - 5} more exercises",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ImprovementItem(improvement: StrengthImprovement) {
-    Column {
-        Text(
-            text = improvement.exerciseName,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
-        )
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = "${WeightFormatter.formatWeightWithUnit(improvement.startingMax)} → ${
-                    WeightFormatter.formatWeightWithUnit(
-                        improvement.endingMax,
+                    Text(
+                        text = "Top Improvements",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
                     )
-                }",
-                style = MaterialTheme.typography.bodyLarge,
-            )
 
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = MaterialTheme.shapes.small,
-            ) {
-                Text(
-                    text = "+${String.format(Locale.US, "%.1f", improvement.improvementPercentage)}%",
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-        }
-    }
-}
+                    val topImprovements = stats.strengthImprovements
+                        .sortedByDescending { it.improvementPercentage }
+                        .take(5)
 
-@Composable
-private fun PersonalRecordsCard(totalPRs: Int) {
-    GlassmorphicCard(
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Icon(
-                Icons.Default.EmojiEvents,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(48.dp),
-            )
+                    topImprovements.forEach { improvement ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = improvement.exerciseName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                            ) {
+                                Text(
+                                    text = "+${String.format(Locale.US, "%.1f", improvement.improvementPercentage)}%",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    text = "${WeightFormatter.formatWeightWithUnit(improvement.startingMax)} → ${
+                                        WeightFormatter.formatWeightWithUnit(improvement.endingMax)
+                                    }",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
 
-            Column {
-                Text(
-                    text = "$totalPRs New Personal Records",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Crushing it! Keep up the great work!",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                    // Show All button if there are more improvements
+                    if (stats.strengthImprovements.size > 5) {
+                        TextButton(
+                            onClick = { showAllImprovements = !showAllImprovements },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                text = if (showAllImprovements) "Show Less" else "Show All ${stats.strengthImprovements.size} Exercises",
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        }
+
+                        AnimatedVisibility(visible = showAllImprovements) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                stats.strengthImprovements
+                                    .sortedByDescending { it.improvementPercentage }
+                                    .drop(5)
+                                    .forEach { improvement ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                        ) {
+                                            Text(
+                                                text = improvement.exerciseName,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                modifier = Modifier.weight(1f),
+                                            )
+                                            Column(
+                                                horizontalAlignment = Alignment.End,
+                                            ) {
+                                                Text(
+                                                    text = "+${String.format(Locale.US, "%.1f", improvement.improvementPercentage)}%",
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                )
+                                                Text(
+                                                    text = "${WeightFormatter.formatWeightWithUnit(improvement.startingMax)} → ${
+                                                        WeightFormatter.formatWeightWithUnit(improvement.endingMax)
+                                                    }",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
+                                        }
+                                    }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -459,22 +497,6 @@ private fun ProgrammeInsightsCard(stats: com.github.radupana.featherweight.data.
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    Icons.Default.CalendarMonth,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp),
-                )
-                Text(
-                    text = "${stats.insights.totalTrainingDays} total training days",
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
 
             if (stats.insights.mostConsistentDay != null) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -562,6 +584,7 @@ private fun NotesCard(
         }
     }
 }
+
 
 private fun formatAverageDuration(duration: java.time.Duration): String {
     val totalMinutes = duration.toMinutes()

@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats
 import com.github.radupana.featherweight.domain.ProgrammeHistoryDetails
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,9 @@ class ProgrammeHistoryDetailViewModel(
 
     private val _programmeDetails = MutableStateFlow<ProgrammeHistoryDetails?>(null)
     val programmeDetails: StateFlow<ProgrammeHistoryDetails?> = _programmeDetails.asStateFlow()
+
+    private val _completionStats = MutableStateFlow<ProgrammeCompletionStats?>(null)
+    val completionStats: StateFlow<ProgrammeCompletionStats?> = _completionStats.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -35,6 +39,10 @@ class ProgrammeHistoryDetailViewModel(
 
                 if (details == null) {
                     _error.value = "Programme not found"
+                } else {
+                    // Also load completion stats for completed programmes
+                    val stats = repository.calculateProgrammeCompletionStats(programmeId)
+                    _completionStats.value = stats
                 }
             } catch (e: IllegalStateException) {
                 _error.value = e.message ?: "Failed to load programme details"

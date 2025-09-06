@@ -30,6 +30,7 @@ import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.OneRMType
 import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
+import com.github.radupana.featherweight.data.programme.ExerciseFrequency
 import com.github.radupana.featherweight.data.programme.ExerciseStructure
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats
@@ -780,15 +781,31 @@ class FeatherweightRepository(
 
             // Calculate total volume
             var totalVolume = 0.0
+            val exerciseFrequencyMap = mutableMapOf<Pair<Long, String>, Int>()
+            val programmeExerciseVariationIds = mutableSetOf<Long>()
+            
             for (workout in workouts.filter { it.status == WorkoutStatus.COMPLETED }) {
                 val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
                 for (exercise in exercises) {
+                    programmeExerciseVariationIds.add(exercise.exerciseVariationId)
+                    val exerciseVariation = exerciseVariationDao.getExerciseVariationById(exercise.exerciseVariationId)
+                    if (exerciseVariation != null) {
+                        val key = exercise.exerciseVariationId to exerciseVariation.name
+                        exerciseFrequencyMap[key] = exerciseFrequencyMap.getOrDefault(key, 0) + 1
+                    }
+                    
                     val sets = setLogDao.getSetLogsForExercise(exercise.id)
                     for (set in sets.filter { it.isCompleted }) {
                         totalVolume += (set.actualWeight * set.actualReps).toDouble()
                     }
                 }
             }
+
+            // Calculate top 3 exercises by frequency
+            val topExercises = exerciseFrequencyMap
+                .map { ExerciseFrequency(it.key.second, it.value) }
+                .sortedByDescending { it.frequency }
+                .take(3)
 
             // Calculate average workout duration
             val completedWorkouts = workouts.filter { it.status == WorkoutStatus.COMPLETED && it.durationSeconds != null }
@@ -800,12 +817,15 @@ class FeatherweightRepository(
                     Duration.ZERO
                 }
 
-            // Count PRs during programme
-            val prs =
+            // Count PRs during programme - FILTERED to programme exercises only
+            val allPrs =
                 personalRecordDao.getPersonalRecordsInDateRange(
                     programme.startedAt ?: programme.createdAt,
                     programme.completedAt ?: LocalDateTime.now(),
                 )
+            val programmePrs = allPrs.filter { pr ->
+                programmeExerciseVariationIds.contains(pr.exerciseVariationId)
+            }
 
             // Calculate strength improvements
             val strengthImprovements = calculateStrengthImprovements(programmeId)
@@ -828,10 +848,11 @@ class FeatherweightRepository(
                 completedWorkouts = progress.completedWorkouts,
                 totalVolume = totalVolume.toFloat(),
                 averageWorkoutDuration = averageDuration,
-                totalPRs = prs.size,
+                totalPRs = programmePrs.size,
                 strengthImprovements = strengthImprovements,
                 averageStrengthImprovement = avgImprovement,
                 insights = insights,
+                topExercises = topExercises,
             )
         }
 
@@ -859,7 +880,8 @@ class FeatherweightRepository(
 
                 // Get 1RM history in programme date range
                 val history = db.oneRMDao().getOneRMHistoryInRange(exerciseVariationId, startDate, endDate)
-                if (history.isNotEmpty()) {
+                // Only include exercises with 3+ data points to reduce noise
+                if (history.size >= 3) {
                     val startingMax = history.first().oneRMEstimate
                     val endingMax = history.last().oneRMEstimate
 

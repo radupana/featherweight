@@ -124,6 +124,13 @@ class ProgrammeCompletionModelsTest {
             )
 
         val insights = ProgrammeInsights(48, "Monday", 1.5f)
+        
+        val topExercises = 
+            listOf(
+                ExerciseFrequency("Barbell Squat", 36),
+                ExerciseFrequency("Barbell Bench Press", 36),
+                ExerciseFrequency("Barbell Deadlift", 18),
+            )
 
         val stats =
             ProgrammeCompletionStats(
@@ -139,6 +146,7 @@ class ProgrammeCompletionModelsTest {
                 strengthImprovements = improvements,
                 averageStrengthImprovement = 17.98f,
                 insights = insights,
+                topExercises = topExercises,
             )
 
         assertThat(stats.programmeId).isEqualTo(1L)
@@ -150,6 +158,9 @@ class ProgrammeCompletionModelsTest {
         assertThat(stats.totalPRs).isEqualTo(15)
         assertThat(stats.strengthImprovements).hasSize(3)
         assertThat(stats.averageStrengthImprovement).isWithin(0.01f).of(17.98f)
+        assertThat(stats.topExercises).hasSize(3)
+        assertThat(stats.topExercises[0].exerciseName).isEqualTo("Barbell Squat")
+        assertThat(stats.topExercises[0].frequency).isEqualTo(36)
     }
 
     @Test
@@ -349,5 +360,38 @@ class ProgrammeCompletionModelsTest {
         assertThat(improvement.startingMax).isEqualTo(47.5f)
         assertThat(improvement.endingMax).isEqualTo(52.5f)
         assertThat(improvement.improvementPercentage).isWithin(0.001f).of(10.526f)
+    }
+
+    @Test
+    fun exerciseFrequency_shouldStoreDataCorrectly() {
+        val frequency = ExerciseFrequency(
+            exerciseName = "Barbell Squat",
+            frequency = 24,
+        )
+
+        assertThat(frequency.exerciseName).isEqualTo("Barbell Squat")
+        assertThat(frequency.frequency).isEqualTo(24)
+    }
+
+    @Test
+    fun exerciseFrequency_withZeroFrequency_shouldHandleUnusedExercise() {
+        val frequency = ExerciseFrequency(
+            exerciseName = "Cable Fly",
+            frequency = 0,
+        )
+
+        assertThat(frequency.frequency).isEqualTo(0)
+        assertThat(frequency.exerciseName).isEqualTo("Cable Fly")
+    }
+
+    @Test
+    fun exerciseFrequency_dataClassEquality_shouldWorkCorrectly() {
+        val freq1 = ExerciseFrequency("Deadlift", 18)
+        val freq2 = ExerciseFrequency("Deadlift", 18)
+        val freq3 = ExerciseFrequency("Deadlift", 20)
+
+        assertThat(freq1).isEqualTo(freq2)
+        assertThat(freq1).isNotEqualTo(freq3)
+        assertThat(freq1.hashCode()).isEqualTo(freq2.hashCode())
     }
 }
