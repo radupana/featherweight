@@ -5,6 +5,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
@@ -148,5 +150,105 @@ class ExerciseMappingScreenTest {
         }
 
         composeTestRule.onNodeWithText("Clear").assertDoesNotExist()
+    }
+
+    @Test
+    fun `action buttons remain accessible when search results expand`() {
+        val unmatchedExercises = listOf("Barbell Squat", "Dumbbell Press", "Cable Row")
+
+        composeTestRule.setContent {
+            ExerciseMappingScreen(
+                unmatchedExercises = unmatchedExercises,
+                onMappingComplete = { },
+                onBack = { },
+            )
+        }
+
+        composeTestRule.onNodeWithText("Barbell Squat").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Create as Custom Exercise").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Next").assertIsDisplayed()
+
+        composeTestRule.onNodeWithText("Search existing exercises").performTextInput("Cable")
+        composeTestRule.onNodeWithText("Create as Custom Exercise").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Next").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Previous").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `screen scrolls properly with expanded search results`() {
+        val unmatchedExercises = listOf("Test Exercise 1")
+
+        composeTestRule.setContent {
+            ExerciseMappingScreen(
+                unmatchedExercises = unmatchedExercises,
+                onMappingComplete = { },
+                onBack = { },
+            )
+        }
+
+        composeTestRule.onNodeWithText("Unmatched Exercise").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Test Exercise 1").assertIsDisplayed()
+
+        composeTestRule.onNodeWithText("Search existing exercises").performTextInput("Row")
+
+        composeTestRule.onNodeWithText("Create as Custom Exercise").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Unmatched Exercise").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `progress indicator remains visible after scrolling`() {
+        val unmatchedExercises = listOf("Exercise 1", "Exercise 2", "Exercise 3")
+
+        composeTestRule.setContent {
+            ExerciseMappingScreen(
+                unmatchedExercises = unmatchedExercises,
+                onMappingComplete = { },
+                onBack = { },
+            )
+        }
+
+        composeTestRule.onNodeWithText("0 of 3 exercises mapped").assertIsDisplayed()
+
+        composeTestRule.onNodeWithText("Search existing exercises").performTextInput("Bench")
+        composeTestRule.onNodeWithText("0 of 3 exercises mapped").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `navigation buttons accessible with long search results`() {
+        val unmatchedExercises = listOf("First", "Second", "Third")
+
+        composeTestRule.setContent {
+            ExerciseMappingScreen(
+                unmatchedExercises = unmatchedExercises,
+                onMappingComplete = { },
+                onBack = { },
+            )
+        }
+
+        composeTestRule.onNodeWithText("Search existing exercises").performTextInput("Press")
+
+        composeTestRule.onNodeWithText("Previous").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Next").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Previous").performClick()
+        composeTestRule.onNodeWithText("Next").performClick()
+    }
+
+    @Test
+    fun `create custom exercise button accessible with search results`() {
+        val unmatchedExercises = listOf("Custom Exercise Name")
+
+        composeTestRule.setContent {
+            ExerciseMappingScreen(
+                unmatchedExercises = unmatchedExercises,
+                onMappingComplete = { },
+                onBack = { },
+            )
+        }
+
+        composeTestRule.onNodeWithText("Search existing exercises").performTextInput("Squat")
+
+        composeTestRule.onNodeWithText("Create as Custom Exercise").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Create as Custom Exercise").performClick()
+        composeTestRule.onNodeWithText("Create Custom Exercise").assertIsDisplayed()
     }
 }

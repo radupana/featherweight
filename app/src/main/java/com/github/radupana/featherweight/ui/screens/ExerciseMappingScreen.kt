@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -109,9 +111,11 @@ fun ExerciseMappingScreen(
             Column(
                 modifier =
                     Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
+                        .fillMaxHeight()
                         .padding(paddingValues)
-                        .padding(16.dp),
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 // Header card showing the unmatched exercise
@@ -207,8 +211,6 @@ fun ExerciseMappingScreen(
                     },
                     viewModel = viewModel,
                 )
-
-                Spacer(modifier = Modifier.weight(1f))
 
                 // Action buttons
                 Column(
@@ -744,7 +746,7 @@ private fun ExerciseSearchSection(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .height(200.dp),
+                        .heightIn(max = 200.dp),
             ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
