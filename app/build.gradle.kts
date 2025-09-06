@@ -69,6 +69,12 @@ android {
         debug {
             enableUnitTestCoverage = true
         }
+        create("alpha") {
+            initWith(getByName("debug"))
+            isDebuggable = true
+            versionNameSuffix = "-alpha"
+            signingConfig = signingConfigs.getByName("release")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -194,6 +200,12 @@ dependencies {
     implementation(libs.firebase.crashlytics.ndk)
     implementation(libs.google.firebase.analytics)
     implementation(libs.firebase.config)
+    
+    // Firebase App Distribution - API only for all builds
+    implementation(libs.firebase.appdistribution.api)
+    // Full SDK for debug and alpha builds
+    debugImplementation(libs.firebase.appdistribution)
+    "alphaImplementation"(libs.firebase.appdistribution)
 }
 
 // Make Detekt part of the build process

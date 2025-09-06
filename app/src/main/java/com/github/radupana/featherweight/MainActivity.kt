@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Insights
@@ -43,6 +44,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.service.FirebaseFeedbackService
 import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
 import com.github.radupana.featherweight.ui.screens.HistoryScreen
 import com.github.radupana.featherweight.ui.screens.InsightsScreen
@@ -234,6 +236,9 @@ fun MainAppWithNavigation(
     // Track parsed programme for import screen
     var importParsedProgramme by remember { mutableStateOf<com.github.radupana.featherweight.data.ParsedProgramme?>(null) }
 
+    // Initialize feedback service for debug builds
+    val feedbackService = remember { FirebaseFeedbackService() }
+
     val navigationItems =
         listOf(
             NavigationItem(Screen.WORKOUTS, "Workouts", Icons.Filled.FitnessCenter),
@@ -305,6 +310,16 @@ fun MainAppWithNavigation(
                             label = { Text(item.label) },
                             selected = currentScreen == item.screen,
                             onClick = { onScreenChange(item.screen) },
+                        )
+                    }
+
+                    // Add feedback button for debug builds
+                    if (BuildConfig.DEBUG) {
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Filled.Feedback, contentDescription = "Feedback") },
+                            label = { Text("Feedback") },
+                            selected = false,
+                            onClick = { feedbackService.startFeedback() },
                         )
                     }
                 }

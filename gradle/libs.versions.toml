@@ -5,6 +5,8 @@ compose = "2.8.0"
 coreKtxVersion = "1.7.0"
 coreTesting = "2.2.0"
 firebaseBom = "34.2.0"
+firebaseAppdistributionApi = "16.0.0-beta15"
+firebaseAppdistribution = "16.0.0-beta16"
 gson = "2.13.1"
 kotlin = "2.2.10"
 coreKtx = "1.17.0"
@@ -56,6 +58,8 @@ firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "fir
 firebase-config = { module = "com.google.firebase:firebase-config" }
 firebase-crashlytics-ndk = { module = "com.google.firebase:firebase-crashlytics-ndk" }
 google-firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-appdistribution-api = { module = "com.google.firebase:firebase-appdistribution-api-ktx", version.ref = "firebaseAppdistributionApi" }
+firebase-appdistribution = { module = "com.google.firebase:firebase-appdistribution", version.ref = "firebaseAppdistribution" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

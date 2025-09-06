@@ -40,13 +40,13 @@ jobs:
       run: |
         echo "$KEYSTORE_BASE64" | base64 -d > app/featherweight-release.keystore
     
-    - name: Build Release APK
+    - name: Build Alpha APK
       env:
         KEYSTORE_PATH: ${{ github.workspace }}/app/featherweight-release.keystore
         KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: ./gradlew assembleRelease
+      run: ./gradlew assembleAlpha
     
     - name: Extract version from gradle.properties
       id: get_version
@@ -68,9 +68,12 @@ jobs:
         serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         groups: alpha-testers
         releaseNotes: |
-          Version: ${{ steps.get_version.outputs.version }}
+          Version: ${{ steps.get_version.outputs.version }}-alpha
           Build: ${{ github.run_number }}
           Commit: ${{ github.sha }}
           
+          📱 This is an ALPHA build with Firebase feedback enabled
+          Use the "Feedback" button in the bottom navigation bar
+          
           Changes: ${{ github.event.head_commit.message }}
-        file: app/build/outputs/apk/release/app-release.apk
+        file: app/build/outputs/apk/alpha/app-alpha.apk
