@@ -69,7 +69,202 @@ class WorkoutExportServiceTest {
     }
 
     @Test
-    fun exportWorkoutsToFile_withNoWorkouts_createsEmptyExport() =
+    fun exportSingleWorkout_withValidWorkout_exportsCorrectly() {
+        runBlocking {
+            // Arrange
+            val workoutId = 1L
+            val workout = Workout(
+                id = workoutId,
+                date = LocalDateTime.of(2024, 3, 15, 10, 0),
+                name = "Morning Workout",
+                status = WorkoutStatus.COMPLETED,
+                durationSeconds = 3600
+            )
+            val exportOptions = ExportOptions(
+                includeBodyweight = false,
+                includeOneRepMaxes = false,
+                includeNotes = true,
+                includeProfile = false
+            )
+            
+            val exerciseLog = ExerciseLog(
+                id = 1L,
+                workoutId = workoutId,
+                exerciseVariationId = 100L,
+                exerciseOrder = 1,
+                notes = "Good form today"
+            )
+            
+            val setLog = SetLog(
+                id = 1L,
+                exerciseLogId = 1L,
+                setOrder = 1,
+                actualReps = 10,
+                actualWeight = 135f,
+                isCompleted = true,
+                actualRpe = 8f
+            )
+            
+            val exerciseVariation = ExerciseVariation(
+                id = 100L,
+                coreExerciseId = 1L,
+                name = "Barbell Bench Press",
+                difficulty = ExerciseDifficulty.INTERMEDIATE,
+                equipment = Equipment.BARBELL,
+                requiresWeight = true
+            )
+
+            coEvery { workoutDao.getWorkoutById(workoutId) } returns workout
+            coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
+            coEvery { setLogDao.getSetLogsForExercise(1L) } returns listOf(setLog)
+            coEvery { repository.getExerciseById(100L) } returns exerciseVariation
+
+            // Act
+            val result = service.exportSingleWorkout(context, workoutId, exportOptions)
+
+            // Assert
+            assertThat(result).isNotNull()
+            assertThat(result.exists()).isTrue()
+            assertThat(result.name).contains("workout_2024-03-15")
+            assertThat(result.name).contains("Morning_Workout")
+            
+            val jsonContent = result.readText()
+            val json = JsonParser.parseString(jsonContent).asJsonObject
+            
+            // Verify metadata
+            val metadata = json.getAsJsonObject("metadata")
+            assertThat(metadata.get("exportType").asString).isEqualTo("single_workout")
+            assertThat(metadata.get("appVersion").asString).isEqualTo(BuildConfig.VERSION_NAME)
+            
+            // Verify workout data
+            val workouts = json.getAsJsonArray("workouts")
+            assertThat(workouts.size()).isEqualTo(1)
+            
+            val exportedWorkout = workouts[0].asJsonObject
+            assertThat(exportedWorkout.get("id").asLong).isEqualTo(workoutId)
+            assertThat(exportedWorkout.get("name").asString).isEqualTo("Morning Workout")
+            
+            // Verify exercise data
+            val exercises = exportedWorkout.getAsJsonArray("exercises")
+            assertThat(exercises.size()).isEqualTo(1)
+            
+            val exportedExercise = exercises[0].asJsonObject
+            assertThat(exportedExercise.get("exerciseName").asString).isEqualTo("Barbell Bench Press")
+            assertThat(exportedExercise.get("notes").asString).isEqualTo("Good form today")
+            
+            // Cleanup
+            result.delete()
+        }
+    }
+
+    @Test
+    fun exportSingleWorkout_withNonExistentWorkout_throwsException() {
+        runBlocking {
+            // Arrange
+            val workoutId = 999L
+            val exportOptions = ExportOptions()
+            
+            coEvery { workoutDao.getWorkoutById(workoutId) } returns null
+
+            // Act & Assert
+            try {
+                service.exportSingleWorkout(context, workoutId, exportOptions)
+                assertThat(false).isTrue() // Should not reach here
+            } catch (e: IllegalArgumentException) {
+                assertThat(e.message).isEqualTo("Workout not found")
+            }
+        }
+    }
+
+    @Test
+    fun exportProgrammeWorkouts_withCompletedWorkouts_exportsAllWorkouts() {
+        runBlocking {
+            // Arrange
+            val programmeId = 1L
+            val workout1 = Workout(
+                id = 1L,
+                date = LocalDateTime.of(2024, 3, 1, 10, 0),
+                programmeId = programmeId,
+                programmeWorkoutName = "Test Programme",
+                weekNumber = 1,
+                dayNumber = 1,
+                status = WorkoutStatus.COMPLETED
+            )
+            val workout2 = Workout(
+                id = 2L,
+                date = LocalDateTime.of(2024, 3, 3, 10, 0),
+                programmeId = programmeId,
+                programmeWorkoutName = "Test Programme",
+                weekNumber = 1,
+                dayNumber = 2,
+                status = WorkoutStatus.COMPLETED
+            )
+            
+            val exportOptions = ExportOptions(
+                includeProfile = false
+            )
+            
+            coEvery { workoutDao.getCompletedWorkoutsByProgramme(programmeId) } returns listOf(workout1, workout2)
+            coEvery { exerciseLogDao.getExerciseLogsForWorkout(any()) } returns emptyList()
+            
+            val progressUpdates = mutableListOf<Pair<Int, Int>>()
+
+            // Act
+            val result = service.exportProgrammeWorkouts(
+                context, 
+                programmeId, 
+                exportOptions
+            ) { current, total ->
+                progressUpdates.add(current to total)
+            }
+
+            // Assert
+            assertThat(result).isNotNull()
+            assertThat(result.exists()).isTrue()
+            assertThat(result.name).contains("programme_Test_Programme")
+            
+            val jsonContent = result.readText()
+            val json = JsonParser.parseString(jsonContent).asJsonObject
+            
+            // Verify metadata
+            val metadata = json.getAsJsonObject("metadata")
+            assertThat(metadata.get("exportType").asString).isEqualTo("programme")
+            assertThat(metadata.get("programmeName").asString).isEqualTo("Test Programme")
+            assertThat(metadata.get("totalWorkouts").asInt).isEqualTo(2)
+            
+            // Verify workouts
+            val workouts = json.getAsJsonArray("workouts")
+            assertThat(workouts.size()).isEqualTo(2)
+            
+            // Verify progress was reported
+            assertThat(progressUpdates).containsExactly(1 to 2, 2 to 2)
+            
+            // Cleanup
+            result.delete()
+        }
+    }
+
+    @Test
+    fun exportProgrammeWorkouts_withNoCompletedWorkouts_throwsException() {
+        runBlocking {
+            // Arrange
+            val programmeId = 1L
+            val exportOptions = ExportOptions()
+            
+            coEvery { workoutDao.getCompletedWorkoutsByProgramme(programmeId) } returns emptyList()
+
+            // Act & Assert
+            try {
+                service.exportProgrammeWorkouts(context, programmeId, exportOptions) { _, _ -> }
+                assertThat(false).isTrue() // Should not reach here
+            } catch (e: IllegalArgumentException) {
+                assertThat(e.message).isEqualTo("No completed workouts found for programme")
+            }
+        }
+    }
+
+    @Test
+    fun exportWorkoutsToFile_withNoWorkouts_createsEmptyExport() {
         runBlocking {
             // Arrange
             val startDate = LocalDateTime.of(2024, 1, 1, 0, 0)
@@ -120,9 +315,10 @@ class WorkoutExportServiceTest {
             assertThat(metadata.get("totalWorkouts").asInt).isEqualTo(0)
             assertThat(metadata.get("appVersion").asString).isEqualTo(BuildConfig.VERSION_NAME)
         }
+    }
 
     @Test
-    fun exportWorkoutsToFile_withSingleWorkout_exportsCorrectly() =
+    fun exportWorkoutsToFile_withSingleWorkout_exportsCorrectly() {
         runBlocking {
             // Arrange
             val startDate = LocalDateTime.of(2024, 1, 1, 0, 0)
@@ -216,7 +412,7 @@ class WorkoutExportServiceTest {
             coEvery { setLogDao.getSetLogsForExercise(1) } returns listOf(setLog1, setLog2)
             coEvery { repository.getExerciseById(10) } returns exerciseVariation
 
-            var progressUpdates = mutableListOf<Pair<Int, Int>>()
+            val progressUpdates = mutableListOf<Pair<Int, Int>>()
 
             // Act
             val result =
@@ -266,9 +462,10 @@ class WorkoutExportServiceTest {
             assertThat(set2.get("actualWeight").asFloat).isEqualTo(50f)
             assertThat(set2.get("rpe").asFloat).isEqualTo(8.5f)
         }
+    }
 
     @Test
-    fun exportWorkoutsToFile_withProgrammeWorkout_includesProgrammeInfo() =
+    fun exportWorkoutsToFile_withProgrammeWorkout_includesProgrammeInfo() {
         runBlocking {
             // Arrange
             val startDate = LocalDateTime.of(2024, 1, 1, 0, 0)
@@ -340,9 +537,10 @@ class WorkoutExportServiceTest {
             assertThat(programmeInfo.get("weekNumber").asInt).isEqualTo(1)
             assertThat(programmeInfo.get("dayNumber").asInt).isEqualTo(1)
         }
+    }
 
     @Test
-    fun exportWorkoutsToFile_withOneRepMaxes_includesUserProfile() =
+    fun exportWorkoutsToFile_withOneRepMaxes_includesUserProfile() {
         runBlocking {
             // Arrange
             val startDate = LocalDateTime.of(2024, 1, 1, 0, 0)
@@ -431,9 +629,10 @@ class WorkoutExportServiceTest {
             assertThat(max2.get("exerciseName").asString).isEqualTo("Bench Press")
             assertThat(max2.get("weight").asFloat).isEqualTo(100f)
         }
+    }
 
     @Test
-    fun exportWorkoutsToFile_withBodyweightOption_includesEmptyBodyweightHistory() =
+    fun exportWorkoutsToFile_withBodyweightOption_includesEmptyBodyweightHistory() {
         runBlocking {
             // Arrange
             val startDate = LocalDateTime.of(2024, 1, 1, 0, 0)
@@ -476,9 +675,10 @@ class WorkoutExportServiceTest {
             val bodyweightHistory = userProfile.getAsJsonArray("bodyweightHistory")
             assertThat(bodyweightHistory.size()).isEqualTo(0) // Currently not tracked
         }
+    }
 
     @Test
-    fun exportWorkoutsToFile_withLargeDataset_paginatesCorrectly() =
+    fun exportWorkoutsToFile_withLargeDataset_paginatesCorrectly() {
         runBlocking {
             // Arrange
             val startDate = LocalDateTime.of(2024, 1, 1, 0, 0)
@@ -610,9 +810,10 @@ class WorkoutExportServiceTest {
             val workouts = json.getAsJsonArray("workouts")
             assertThat(workouts.size()).isEqualTo(120)
         }
+    }
 
     @Test
-    fun exportWorkoutsToFile_withSuperset_exportsSupersetGroup() =
+    fun exportWorkoutsToFile_withSuperset_exportsSupersetGroup() {
         runBlocking {
             // Arrange
             val startDate = LocalDateTime.of(2024, 1, 1, 0, 0)
@@ -729,9 +930,10 @@ class WorkoutExportServiceTest {
             val exportedExercise2 = exercises[1].asJsonObject
             assertThat(exportedExercise2.get("supersetGroup").asInt).isEqualTo(1)
         }
+    }
 
     @Test
-    fun exportWorkoutsToFile_withNotesDisabled_excludesNotes() =
+    fun exportWorkoutsToFile_withNotesDisabled_excludesNotes() {
         runBlocking {
             // Arrange
             val startDate = LocalDateTime.of(2024, 1, 1, 0, 0)
@@ -820,9 +1022,10 @@ class WorkoutExportServiceTest {
 
             assertThat(exportedExercise.has("notes")).isFalse()
         }
+    }
 
     @Test
-    fun exportWorkoutsToFile_withUnknownExercise_handlesGracefully() =
+    fun exportWorkoutsToFile_withUnknownExercise_handlesGracefully() {
         runBlocking {
             // Arrange
             val startDate = LocalDateTime.of(2024, 1, 1, 0, 0)
@@ -900,9 +1103,10 @@ class WorkoutExportServiceTest {
 
             assertThat(exportedExercise.get("exerciseName").asString).isEqualTo("Unknown Exercise")
         }
+    }
 
     @Test
-    fun exportWorkoutsToFile_withIncompleteWorkout_exportsCorrectly() =
+    fun exportWorkoutsToFile_withIncompleteWorkout_exportsCorrectly() {
         runBlocking {
             // Arrange
             val startDate = LocalDateTime.of(2024, 1, 1, 0, 0)
@@ -1030,4 +1234,5 @@ class WorkoutExportServiceTest {
             assertThat(set2.get("completed").asBoolean).isFalse()
             assertThat(set2.get("actualReps").asInt).isEqualTo(0)
         }
+    }
 }

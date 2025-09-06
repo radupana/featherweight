@@ -1,5 +1,7 @@
 package com.github.radupana.featherweight.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -79,6 +81,22 @@ fun HistoryScreen(
     val weekGroupState by historyViewModel.weekGroupState.collectAsState()
 
     var selectedTab by remember { mutableIntStateOf(0) } // 0 = Workouts, 1 = Programmes
+
+    // File save launcher
+    val saveFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            historyViewModel.saveExportedFile(it)
+        }
+    }
+
+    // Launch save dialog when export is ready
+    LaunchedEffect(historyState.pendingExportFile) {
+        historyState.pendingExportFile?.let { file ->
+            saveFileLauncher.launch(file.name)
+        }
+    }
 
     // Error handling
     historyState.error?.let { error ->
@@ -204,6 +222,7 @@ fun HistoryScreen(
                                     isExpanded = weekId in weekGroupState.expandedWeeks,
                                     onToggleExpanded = { historyViewModel.toggleWeekExpanded(weekId) },
                                     onWorkoutClick = onViewWorkout,
+                                    onExportWorkout = { workoutId -> historyViewModel.exportWorkout(workoutId) },
                                     modifier =
                                         Modifier
                                             .fillMaxWidth()

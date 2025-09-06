@@ -4,10 +4,14 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.radupana.featherweight.data.FeatherweightDatabase
+import com.github.radupana.featherweight.data.export.ExportOptions
 import com.github.radupana.featherweight.domain.ProgrammeSummary
 import com.github.radupana.featherweight.domain.WorkoutDayInfo
 import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.service.WorkoutExportService
+import com.github.radupana.featherweight.utils.ExportHandler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +29,8 @@ data class PaginatedHistoryState(
     val currentProgrammePage: Int = 0,
     val pageSize: Int = 20,
     val error: String? = null,
+    val exportingWorkoutId: Long? = null,
+    val pendingExportFile: java.io.File? = null,
 )
 
 data class CalendarState(
@@ -53,6 +59,15 @@ class HistoryViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
+    private val database = FeatherweightDatabase.getDatabase(application)
+    private val exportService = WorkoutExportService(
+        database.workoutDao(),
+        database.exerciseLogDao(),
+        database.setLogDao(),
+        database.oneRMDao(),
+        repository
+    )
+    private val exportHandler = ExportHandler(application)
 
     companion object {
         private const val TAG = "HistoryViewModel"
@@ -356,5 +371,63 @@ class HistoryViewModel(
         // Find workouts in the current month's week groups
         val allWorkoutsInMonth = _weekGroupState.value.weeks.flatMap { it.workouts }
         return allWorkoutsInMonth.filter { it.date.toLocalDate() == date }
+    }
+
+    fun exportWorkout(workoutId: Long) {
+        viewModelScope.launch {
+            _historyState.value = _historyState.value.copy(
+                exportingWorkoutId = workoutId
+            )
+
+            try {
+                val exportOptions = ExportOptions(
+                    includeBodyweight = false,
+                    includeOneRepMaxes = true,
+                    includeNotes = true,
+                    includeProfile = false
+                )
+
+                val file = exportService.exportSingleWorkout(
+                    getApplication(),
+                    workoutId,
+                    exportOptions
+                )
+
+                // Store the file for later saving
+                _historyState.value = _historyState.value.copy(
+                    exportingWorkoutId = null,
+                    pendingExportFile = file
+                )
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Failed to export workout", e)
+                _historyState.value = _historyState.value.copy(
+                    exportingWorkoutId = null
+                )
+            }
+        }
+    }
+    
+    fun saveExportedFile(uri: android.net.Uri) {
+        viewModelScope.launch {
+            _historyState.value.pendingExportFile?.let { file ->
+                try {
+                    exportHandler.copyFileContent(file, uri)
+                    // Clean up temp file
+                    file.delete()
+                    _historyState.value = _historyState.value.copy(
+                        pendingExportFile = null
+                    )
+                } catch (e: java.io.IOException) {
+                    Log.e(TAG, "Failed to save exported file", e)
+                }
+            }
+        }
+    }
+    
+    fun clearPendingExport() {
+        _historyState.value.pendingExportFile?.delete()
+        _historyState.value = _historyState.value.copy(
+            pendingExportFile = null
+        )
     }
 }

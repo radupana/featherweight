@@ -220,4 +220,108 @@ class WorkoutExportService(
         writer.name("completed").value(set.isCompleted)
         writer.endObject()
     }
+
+    suspend fun exportSingleWorkout(
+        context: Context,
+        workoutId: Long,
+        exportOptions: ExportOptions,
+    ): File =
+        withContext(Dispatchers.IO) {
+            val workout = workoutDao.getWorkoutById(workoutId)
+                ?: throw IllegalArgumentException("Workout not found")
+
+            val fileName = buildString {
+                append("workout_")
+                append(workout.date.toLocalDate())
+                workout.name?.let { append("_${it.replace(" ", "_")}") }
+                append("_${System.currentTimeMillis()}.json")
+            }
+
+            val tempFile = File(context.cacheDir, fileName)
+
+            JsonWriter(tempFile.outputStream().bufferedWriter()).use { writer ->
+                writer.setIndent("  ")
+                writer.beginObject()
+
+                writer.name("metadata").beginObject()
+                writer.name("exportDate").value(LocalDateTime.now().toString())
+                writer.name("exportType").value("single_workout")
+                writer.name("appVersion").value(BuildConfig.VERSION_NAME)
+
+                writer.name("exportOptions").beginObject()
+                writer.name("includeBodyweight").value(exportOptions.includeBodyweight)
+                writer.name("includeOneRepMaxes").value(exportOptions.includeOneRepMaxes)
+                writer.name("includeNotes").value(exportOptions.includeNotes)
+                writer.endObject()
+
+                writer.endObject()
+
+                if (exportOptions.includeProfile) {
+                    writeUserProfile(writer, exportOptions)
+                }
+
+                writer.name("workouts").beginArray()
+                writeWorkout(writer, workout, exportOptions)
+                writer.endArray()
+
+                writer.endObject()
+            }
+
+            tempFile
+        }
+
+    suspend fun exportProgrammeWorkouts(
+        context: Context,
+        programmeId: Long,
+        exportOptions: ExportOptions,
+        onProgress: (current: Int, total: Int) -> Unit,
+    ): File =
+        withContext(Dispatchers.IO) {
+            val workouts = workoutDao.getCompletedWorkoutsByProgramme(programmeId)
+            require(workouts.isNotEmpty()) { "No completed workouts found for programme" }
+
+            val programmeName = workouts.firstOrNull()?.programmeWorkoutName ?: "programme"
+            val fileName = buildString {
+                append("programme_")
+                append(programmeName.replace(" ", "_"))
+                append("_${System.currentTimeMillis()}.json")
+            }
+
+            val tempFile = File(context.cacheDir, fileName)
+
+            JsonWriter(tempFile.outputStream().bufferedWriter()).use { writer ->
+                writer.setIndent("  ")
+                writer.beginObject()
+
+                writer.name("metadata").beginObject()
+                writer.name("exportDate").value(LocalDateTime.now().toString())
+                writer.name("exportType").value("programme")
+                writer.name("programmeName").value(programmeName)
+                writer.name("totalWorkouts").value(workouts.size)
+                writer.name("appVersion").value(BuildConfig.VERSION_NAME)
+
+                writer.name("exportOptions").beginObject()
+                writer.name("includeBodyweight").value(exportOptions.includeBodyweight)
+                writer.name("includeOneRepMaxes").value(exportOptions.includeOneRepMaxes)
+                writer.name("includeNotes").value(exportOptions.includeNotes)
+                writer.endObject()
+
+                writer.endObject()
+
+                if (exportOptions.includeProfile) {
+                    writeUserProfile(writer, exportOptions)
+                }
+
+                writer.name("workouts").beginArray()
+                workouts.forEachIndexed { index, workout ->
+                    writeWorkout(writer, workout, exportOptions)
+                    onProgress(index + 1, workouts.size)
+                }
+                writer.endArray()
+
+                writer.endObject()
+            }
+
+            tempFile
+        }
 }

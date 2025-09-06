@@ -119,6 +119,9 @@ interface WorkoutDao {
         endDate: LocalDateTime,
         excludeStatus: WorkoutStatus = WorkoutStatus.NOT_STARTED,
     ): Int
+
+    @Query("SELECT * FROM Workout WHERE programmeId = :programmeId AND status = 'COMPLETED' ORDER BY weekNumber, dayNumber")
+    suspend fun getCompletedWorkoutsByProgramme(programmeId: Long): List<Workout>
 }
 
 data class WorkoutDateCount(

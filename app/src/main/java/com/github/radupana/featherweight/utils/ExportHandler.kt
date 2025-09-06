@@ -10,6 +10,24 @@ import java.io.File
 class ExportHandler(
     private val context: Context,
 ) {
+    fun copyFileContent(
+        sourceFile: File,
+        destinationUri: android.net.Uri,
+    ) {
+        context.contentResolver.openOutputStream(destinationUri)?.use { outputStream ->
+            sourceFile.inputStream().use { inputStream ->
+                inputStream.copyTo(outputStream)
+            }
+        }
+    }
+
+    fun copyJsonToClipboard(file: File) {
+        val json = file.readText()
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("Workout Data", json)
+        clipboard.setPrimaryClip(clip)
+    }
+
     fun shareJsonFile(file: File) {
         val uri =
             FileProvider.getUriForFile(
@@ -26,13 +44,11 @@ class ExportHandler(
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
 
-        context.startActivity(Intent.createChooser(intent, "Share workout data"))
-    }
+        val chooserIntent =
+            Intent.createChooser(intent, "Share workout data").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
 
-    fun copyJsonToClipboard(file: File) {
-        val json = file.readText()
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText("Workout Data", json)
-        clipboard.setPrimaryClip(clip)
+        context.startActivity(chooserIntent)
     }
 }

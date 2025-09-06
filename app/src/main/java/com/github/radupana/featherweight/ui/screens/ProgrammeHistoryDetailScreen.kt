@@ -1,5 +1,7 @@
 package com.github.radupana.featherweight.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -26,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -33,10 +36,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,6 +74,27 @@ fun ProgrammeHistoryDetailScreen(
     val completionStats by viewModel.completionStats.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val isExporting by viewModel.isExporting.collectAsState()
+    val exportProgress by viewModel.exportProgress.collectAsState()
+    val pendingExportFile by viewModel.pendingExportFile.collectAsState()
+    
+    var showExportDialog by remember { mutableStateOf(false) }
+
+    // File save launcher
+    val saveFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            viewModel.saveExportedFile(it)
+        }
+    }
+
+    // Launch save dialog when export is ready
+    LaunchedEffect(pendingExportFile) {
+        pendingExportFile?.let { file ->
+            saveFileLauncher.launch(file.name)
+        }
+    }
 
     LaunchedEffect(programmeId) {
         viewModel.loadProgrammeDetails(programmeId)
@@ -82,6 +109,26 @@ fun ProgrammeHistoryDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    if (!isLoading && programmeDetails != null) {
+                        IconButton(
+                            onClick = { showExportDialog = true },
+                            enabled = !isExporting
+                        ) {
+                            if (isExporting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.FileDownload,
+                                    contentDescription = "Export Programme"
+                                )
+                            }
+                        }
+                    }
+                }
             )
         },
         modifier = modifier,
@@ -130,13 +177,53 @@ fun ProgrammeHistoryDetailScreen(
             }
 
             programmeDetails != null -> {
-                ProgrammeDetailsContent(
-                    details = programmeDetails!!,
-                    completionStats = completionStats,
-                    onViewWorkout = onViewWorkout,
-                    modifier = Modifier.padding(paddingValues),
-                )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    ProgrammeDetailsContent(
+                        details = programmeDetails!!,
+                        completionStats = completionStats,
+                        onViewWorkout = onViewWorkout,
+                        modifier = Modifier.padding(paddingValues),
+                    )
+                    
+                    if (isExporting && exportProgress > 0f) {
+                        LinearProgressIndicator(
+                            progress = { exportProgress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.TopCenter)
+                                .padding(paddingValues),
+                        )
+                    }
+                }
             }
+        }
+    }
+    
+    // Export confirmation dialog
+    if (showExportDialog) {
+        programmeDetails?.let { details ->
+            AlertDialog(
+                onDismissRequest = { showExportDialog = false },
+                title = { Text("Export Programme") },
+                text = { 
+                    Text("Export \"${details.name}\"?")
+                },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.exportProgramme(programmeId)
+                        showExportDialog = false
+                    }
+                ) {
+                    Text("Export")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExportDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
         }
     }
 }
@@ -245,7 +332,6 @@ fun ProgrammeDetailsContent(
 
         sortedWeeks.forEach { weekNumber ->
             val weekWorkouts = workoutsByWeek[weekNumber]!!.sortedBy { it.dayNumber }
-            val completedCount = weekWorkouts.count { it.completed }
             val totalCount = weekWorkouts.size
 
             item {
