@@ -7,7 +7,6 @@ plugins {
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.ktlint) apply true
     alias(libs.plugins.detekt) apply true
-    id("org.sonarqube") version "6.3.1.5724"
     id("com.google.gms.google-services") version "4.4.3" apply false
     id("com.google.firebase.crashlytics") version "3.0.6" apply false
 }
@@ -35,14 +34,3 @@ configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
     autoCorrect = true
 }
 
-sonarqube {
-    properties {
-        property("sonar.projectKey", "featherweight")
-        property("sonar.projectName", "Featherweight")
-        property("sonar.host.url", "http://localhost:9000")
-        property("sonar.token", System.getenv("SONAR_TOKEN") ?: "")
-        property("sonar.sourceEncoding", "UTF-8")
-        property("sonar.coverage.jacoco.xmlReportPaths", "${project.projectDir}/app/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml")
-        property("sonar.junit.reportPaths", "${project.projectDir}/app/build/test-results/testDebugUnitTest")
-    }
-}

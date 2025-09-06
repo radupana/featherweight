@@ -10,6 +10,10 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write  # Required for creating releases
+  actions: read    # Required for downloading artifacts
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -256,14 +260,11 @@ jobs:
         echo "tag=${TAG}" >> $GITHUB_OUTPUT
         echo "title=v${VERSION} - Build ${BUILD_NUMBER}" >> $GITHUB_OUTPUT
     
-    - name: Create GitHub Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create GitHub Release with Assets
+      uses: softprops/action-gh-release@v2.3.2
       with:
         tag_name: ${{ steps.release_version.outputs.tag }}
-        release_name: ${{ steps.release_version.outputs.title }}
+        name: ${{ steps.release_version.outputs.title }}
         body: |
           🚀 **Build ${{ github.run_number }}** - Version ${{ needs.deploy.outputs.version }}
           
@@ -281,23 +282,7 @@ jobs:
           - **Android Lint**: Platform-specific issue detection
         draft: false
         prerelease: false
-    
-    - name: Upload APK to Release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/apk-alpha/app-alpha.apk
-        asset_name: featherweight-v${{ needs.deploy.outputs.version }}-build${{ github.run_number }}.apk
-        asset_content_type: application/vnd.android.package-archive
-    
-    - name: Upload Reports Bundle to Release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: reports-bundle.zip
-        asset_name: reports-bundle-build${{ github.run_number }}.zip
-        asset_content_type: application/zip
+        files: |
+          artifacts/apk-alpha/app-alpha.apk
+          reports-bundle.zip
+        fail_on_unmatched_files: true

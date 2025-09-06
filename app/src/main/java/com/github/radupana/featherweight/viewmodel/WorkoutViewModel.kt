@@ -18,6 +18,7 @@ import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
 import com.github.radupana.featherweight.service.OneRMService
 import com.github.radupana.featherweight.service.RestTimerCalculationService
+import com.github.radupana.featherweight.service.RestTimerNotificationService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -77,6 +78,7 @@ class WorkoutViewModel(
     val repository = FeatherweightRepository(application)
     private val oneRMService = OneRMService()
     private val restTimerCalculationService = RestTimerCalculationService()
+    private val restTimerNotificationService = RestTimerNotificationService(application)
 
     companion object {
         private const val TAG = "WorkoutViewModel"
@@ -1281,24 +1283,27 @@ class WorkoutViewModel(
         updatedSets: List<SetLog>,
     ) {
         val completedSet = _selectedExerciseSets.value.find { it.id == setId }
-        
-        val restDuration = if (completedSet != null) {
-            val exerciseLog = _selectedWorkoutExercises.value.find { it.id == completedSet.exerciseLogId }
-            val exerciseVariation = exerciseLog?.exerciseVariationId?.let { 
-                repository.getExerciseById(it) 
+
+        val restDuration =
+            if (completedSet != null) {
+                val exerciseLog = _selectedWorkoutExercises.value.find { it.id == completedSet.exerciseLogId }
+                val exerciseVariation =
+                    exerciseLog?.exerciseVariationId?.let {
+                        repository.getExerciseById(it)
+                    }
+
+                val duration =
+                    restTimerCalculationService.calculateRestDuration(
+                        rpe = completedSet.actualRpe,
+                        exerciseRestDuration = exerciseVariation?.restDurationSeconds,
+                    )
+
+                Log.d(TAG, "Rest timer calculated: ${duration}s (RPE: ${completedSet.actualRpe}, Exercise default: ${exerciseVariation?.restDurationSeconds}s)")
+                duration
+            } else {
+                DEFAULT_REST_TIMER_SECONDS
             }
-            
-            val duration = restTimerCalculationService.calculateRestDuration(
-                rpe = completedSet.actualRpe,
-                exerciseRestDuration = exerciseVariation?.restDurationSeconds
-            )
-            
-            Log.d(TAG, "Rest timer calculated: ${duration}s (RPE: ${completedSet.actualRpe}, Exercise default: ${exerciseVariation?.restDurationSeconds}s)")
-            duration
-        } else {
-            DEFAULT_REST_TIMER_SECONDS
-        }
-        
+
         startRestTimer(restDuration)
         if (workoutTimerStartTime == null) {
             startWorkoutTimer()
@@ -1771,6 +1776,8 @@ class WorkoutViewModel(
                         // Timer completed
                         _restTimerSeconds.value = 0
                         restTimerEndTime = null
+                        Log.d(TAG, "Rest timer reached zero - calling notification service")
+                        restTimerNotificationService.notifyTimerCompleted()
                         break
                     }
 
@@ -1816,6 +1823,7 @@ class WorkoutViewModel(
                             // Timer completed
                             _restTimerSeconds.value = 0
                             restTimerEndTime = null
+                            restTimerNotificationService.notifyTimerCompleted()
                             break
                         }
 
@@ -1871,6 +1879,7 @@ class WorkoutViewModel(
                         // Timer completed
                         _restTimerSeconds.value = 0
                         restTimerEndTime = null
+                        restTimerNotificationService.notifyTimerCompleted()
                         break
                     }
 

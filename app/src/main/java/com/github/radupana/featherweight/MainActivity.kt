@@ -278,6 +278,16 @@ fun MainAppWithNavigation(
                         )
                     },
                     actions = {
+                        // Add feedback button for debug builds
+                        if (BuildConfig.DEBUG) {
+                            IconButton(onClick = { feedbackService.startFeedback() }) {
+                                Icon(
+                                    Icons.Filled.Feedback,
+                                    contentDescription = "Feedback",
+                                    modifier = Modifier.size(24.dp),
+                                )
+                            }
+                        }
                         IconButton(onClick = { onScreenChange(Screen.PROFILE) }) {
                             Icon(
                                 Icons.Filled.AccountCircle,
@@ -310,16 +320,6 @@ fun MainAppWithNavigation(
                             label = { Text(item.label) },
                             selected = currentScreen == item.screen,
                             onClick = { onScreenChange(item.screen) },
-                        )
-                    }
-
-                    // Add feedback button for debug builds
-                    if (BuildConfig.DEBUG) {
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Filled.Feedback, contentDescription = "Feedback") },
-                            label = { Text("Feedback") },
-                            selected = false,
-                            onClick = { feedbackService.startFeedback() },
                         )
                     }
                 }

@@ -26,6 +26,16 @@ detekt {
     autoCorrect = true
 }
 
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+        md.required.set(true)
+        sarif.required.set(true)
+        txt.required.set(true)
+    }
+}
+
 android {
     namespace = "com.github.radupana.featherweight"
     compileSdk = 36
@@ -200,7 +210,7 @@ dependencies {
     implementation(libs.firebase.crashlytics.ndk)
     implementation(libs.google.firebase.analytics)
     implementation(libs.firebase.config)
-    
+
     // Firebase App Distribution - API only for all builds
     implementation(libs.firebase.appdistribution.api)
     // Full SDK for debug and alpha builds

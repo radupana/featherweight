@@ -1,10 +1,5 @@
 package com.github.radupana.featherweight.ui.components
 
-import android.content.Context
-import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,10 +20,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -41,14 +34,6 @@ fun CompactRestTimer(
     onAdjustTime: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
-
-    // Handle vibration when timer completes
-    LaunchedEffect(seconds) {
-        if (seconds == 0 && initialSeconds > 0) {
-            vibrateCompletion(context)
-        }
-    }
 
     Box(
         modifier =
@@ -56,7 +41,7 @@ fun CompactRestTimer(
                 .fillMaxWidth()
                 .height(56.dp),
     ) {
-        // Dark semi-transparent background for readability
+        // Background
         Box(
             modifier =
                 Modifier
@@ -169,17 +154,3 @@ private fun formatTime(seconds: Int): String {
     return "%d:%02d".format(minutes, secs)
 }
 
-private fun vibrateCompletion(context: Context) {
-    val vibrator =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vibratorManager.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-        }
-
-    val pattern = longArrayOf(0, 200, 100, 200)
-    val effect = VibrationEffect.createWaveform(pattern, -1)
-    vibrator.vibrate(effect)
-}

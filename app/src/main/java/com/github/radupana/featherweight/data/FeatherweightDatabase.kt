@@ -57,7 +57,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         TrainingAnalysis::class,
         ParseRequest::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
