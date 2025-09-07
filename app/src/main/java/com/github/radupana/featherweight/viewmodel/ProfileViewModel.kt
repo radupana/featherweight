@@ -17,6 +17,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
+enum class ProfileTab {
+    ONE_RM,
+    SETTINGS,
+    DATA,
+    DEVELOPER,
+}
+
 data class ProfileUiState(
     val isLoading: Boolean = false,
     val currentMaxes: List<ExerciseMaxWithName> = emptyList(),
@@ -32,6 +39,7 @@ data class ProfileUiState(
     val seedingWeeks: Int = 12,
     val isExporting: Boolean = false,
     val exportedFilePath: String? = null,
+    val currentTab: ProfileTab = ProfileTab.ONE_RM,
 )
 
 sealed class SeedingState {
@@ -443,5 +451,9 @@ class ProfileViewModel(
 
     fun clearExportedFile() {
         _uiState.value = _uiState.value.copy(exportedFilePath = null)
+    }
+
+    fun selectTab(tab: ProfileTab) {
+        _uiState.value = _uiState.value.copy(currentTab = tab)
     }
 }
