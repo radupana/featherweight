@@ -52,7 +52,7 @@ private data class WorkoutInfo(
 fun WorkoutsScreen(
     onStartFreestyle: () -> Unit,
     onStartProgrammeWorkout: () -> Unit,
-    onStartTemplate: (String) -> Unit,
+    onNavigateToTemplateSelection: () -> Unit,
     onViewLastWorkout: (Long) -> Unit,
     modifier: Modifier = Modifier,
     workoutViewModel: WorkoutViewModel = viewModel(),
@@ -294,62 +294,29 @@ fun WorkoutsScreen(
             }
 
             // Template workouts section
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = "Start From Template",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 12.dp),
-            )
-
-            // Template cards in a 2x3 grid
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+            Spacer(modifier = Modifier.height(12.dp))
+            GlassmorphicCard(
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Row(
+                Text(
+                    text = "Start From Predefined Template",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Choose from pre-built workout templates",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedButton(
+                    onClick = onNavigateToTemplateSelection,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    TemplateButton(
-                        name = "Push",
-                        modifier = Modifier.weight(1f),
-                        onClick = { onStartTemplate("PUSH") },
-                    )
-                    TemplateButton(
-                        name = "Pull",
-                        modifier = Modifier.weight(1f),
-                        onClick = { onStartTemplate("PULL") },
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    TemplateButton(
-                        name = "Legs",
-                        modifier = Modifier.weight(1f),
-                        onClick = { onStartTemplate("LEGS") },
-                    )
-                    TemplateButton(
-                        name = "Upper",
-                        modifier = Modifier.weight(1f),
-                        onClick = { onStartTemplate("UPPER") },
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    TemplateButton(
-                        name = "Lower",
-                        modifier = Modifier.weight(1f),
-                        onClick = { onStartTemplate("LOWER") },
-                    )
-                    TemplateButton(
-                        name = "Full Body",
-                        modifier = Modifier.weight(1f),
-                        onClick = { onStartTemplate("FULL BODY") },
-                    )
+                    Icon(Icons.Filled.FitnessCenter, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Browse Templates")
                 }
             }
         }
@@ -385,48 +352,6 @@ fun WorkoutsScreen(
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun TemplateButton(
-    name: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val muscleGroups =
-        when (name) {
-            "Push" -> "Chest, Shoulders, Triceps"
-            "Pull" -> "Back, Biceps"
-            "Legs" -> "Quads, Hamstrings, Glutes, Calves"
-            "Upper" -> "All upper body"
-            "Lower" -> "All lower body"
-            "Full Body" -> "Balanced mix"
-            else -> ""
-        }
-
-    GlassmorphicCard(
-        modifier =
-            modifier
-                .height(100.dp)
-                .clickable { onClick() },
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = muscleGroups,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }

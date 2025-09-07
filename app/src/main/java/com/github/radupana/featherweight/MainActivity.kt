@@ -53,6 +53,7 @@ import com.github.radupana.featherweight.ui.screens.WorkoutCompletionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutTemplateConfigurationScreen
+import com.github.radupana.featherweight.ui.screens.WorkoutTemplateSelectionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutsScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
@@ -75,6 +76,7 @@ enum class Screen {
     PROFILE,
     EXERCISE_PROGRESS,
     PROGRAMME_HISTORY_DETAIL,
+    WORKOUT_TEMPLATE_SELECTION,
     WORKOUT_TEMPLATE_CONFIGURATION,
     WORKOUT_COMPLETION,
     PROGRAMME_COMPLETION,
@@ -307,6 +309,7 @@ fun MainAppWithNavigation(
                         Screen.ACTIVE_WORKOUT,
                         Screen.EXERCISE_SELECTOR,
                         Screen.PROGRAMME_HISTORY_DETAIL,
+                        Screen.WORKOUT_TEMPLATE_SELECTION,
                         Screen.WORKOUT_TEMPLATE_CONFIGURATION,
                         Screen.WORKOUT_COMPLETION,
                         Screen.PROGRAMME_COMPLETION,
@@ -330,7 +333,7 @@ fun MainAppWithNavigation(
             Screen.WORKOUT_HUB ->
                 WorkoutHubScreen(
                     onStartActiveWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
-                    onStartTemplate = { onScreenChange(Screen.PROGRAMMES) },
+                    onStartTemplate = { onScreenChange(Screen.WORKOUT_TEMPLATE_SELECTION) },
                 )
 
             Screen.ACTIVE_WORKOUT -> {
@@ -463,10 +466,7 @@ fun MainAppWithNavigation(
                 WorkoutsScreen(
                     onStartFreestyle = { onScreenChange(Screen.ACTIVE_WORKOUT) },
                     onStartProgrammeWorkout = { onScreenChange(Screen.ACTIVE_WORKOUT) },
-                    onStartTemplate = { templateName ->
-                        selectedTemplate = templateName
-                        onScreenChange(Screen.WORKOUT_TEMPLATE_CONFIGURATION)
-                    },
+                    onNavigateToTemplateSelection = { onScreenChange(Screen.WORKOUT_TEMPLATE_SELECTION) },
                     onViewLastWorkout = { workoutId ->
                         // Navigate to view the last completed workout in read-only mode
                         workoutViewModel.viewCompletedWorkout(workoutId)
@@ -629,6 +629,17 @@ fun MainAppWithNavigation(
             Screen.EXERCISE_PROGRESS -> {
                 com.github.radupana.featherweight.ui.screens.ExerciseProgressScreen(
                     exerciseName = selectedExerciseName,
+                    onBack = { onScreenChange(previousScreen ?: Screen.WORKOUTS) },
+                    modifier = Modifier.padding(innerPadding),
+                )
+            }
+
+            Screen.WORKOUT_TEMPLATE_SELECTION -> {
+                WorkoutTemplateSelectionScreen(
+                    onTemplateSelected = { templateName ->
+                        selectedTemplate = templateName
+                        onScreenChange(Screen.WORKOUT_TEMPLATE_CONFIGURATION)
+                    },
                     onBack = { onScreenChange(previousScreen ?: Screen.WORKOUTS) },
                     modifier = Modifier.padding(innerPadding),
                 )
