@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,31 +38,20 @@ import com.github.radupana.featherweight.ui.components.GlassmorphicCard
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
 
-private data class WorkoutInfo(
-    val name: String,
-    val daysAgo: String,
-    val exercises: String,
-)
 
 @Composable
 fun WorkoutsScreen(
     onStartFreestyle: () -> Unit,
     onStartProgrammeWorkout: () -> Unit,
     onNavigateToTemplateSelection: () -> Unit,
-    onViewLastWorkout: (Long) -> Unit,
     modifier: Modifier = Modifier,
     workoutViewModel: WorkoutViewModel = viewModel(),
     programmeViewModel: ProgrammeViewModel = viewModel(),
 ) {
     val inProgressWorkouts by workoutViewModel.inProgressWorkouts.collectAsState()
-    val lastCompletedWorkout by workoutViewModel.lastCompletedWorkout.collectAsState()
-    val lastCompletedWorkoutExercises by workoutViewModel.lastCompletedWorkoutExercises.collectAsState()
     val activeProgramme by programmeViewModel.activeProgramme.collectAsState()
     val programmeProgress by programmeViewModel.programmeProgress.collectAsState()
-    val exerciseNames by workoutViewModel.exerciseNames.collectAsState()
     val scope = rememberCoroutineScope()
 
     // Determine if there's ANY in-progress workout (most recent will be used)
@@ -100,37 +88,10 @@ fun WorkoutsScreen(
         }
     }
 
-    // Format last workout info
-    var lastWorkoutInfo by remember { mutableStateOf<WorkoutInfo?>(null) }
-
-    LaunchedEffect(lastCompletedWorkout, lastCompletedWorkoutExercises, exerciseNames) {
-        lastCompletedWorkout?.let { workout ->
-            val daysAgoText =
-                when (val daysAgo = ChronoUnit.DAYS.between(workout.date.toLocalDate(), LocalDateTime.now().toLocalDate()).toInt()) {
-                    0 -> "today"
-                    1 -> "yesterday"
-                    else -> "$daysAgo days ago"
-                }
-
-            val exerciseNamesStr =
-                lastCompletedWorkoutExercises.take(3).joinToString(", ") { exercise ->
-                    exerciseNames[exercise.exerciseVariationId] ?: "Unknown"
-                } +
-                    if (lastCompletedWorkoutExercises.size > 3) " +${lastCompletedWorkoutExercises.size - 3} more" else ""
-
-            lastWorkoutInfo =
-                WorkoutInfo(
-                    name = workout.programmeWorkoutName ?: "Freestyle Workout",
-                    daysAgo = daysAgoText,
-                    exercises = exerciseNamesStr,
-                )
-        }
-    }
 
     // Load data when screen appears
     LaunchedEffect(Unit) {
         workoutViewModel.loadInProgressWorkouts()
-        workoutViewModel.loadLastCompletedWorkout()
         programmeViewModel.refreshData()
     }
 
@@ -321,37 +282,5 @@ fun WorkoutsScreen(
             }
         }
 
-        // Last workout info
-        lastWorkoutInfo?.let { info ->
-            Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            lastCompletedWorkout?.let { workout ->
-                                onViewLastWorkout(workout.id)
-                            }
-                        },
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    ),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                ) {
-                    Text(
-                        text = "Last: ${info.name} (${info.daysAgo})",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    Text(
-                        text = info.exercises,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
     }
 }

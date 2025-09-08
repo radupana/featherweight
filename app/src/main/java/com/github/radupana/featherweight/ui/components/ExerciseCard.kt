@@ -354,10 +354,11 @@ fun ExerciseCard(
                     // Get 1RM for percentage calculations
                     val oneRMEstimates by viewModel.oneRMEstimates.collectAsState()
                     val oneRMEstimate = oneRMEstimates[exercise.exerciseVariationId]
-                    val isProgrammeWorkout =
-                        viewModel.workoutState
-                            .collectAsState()
-                            .value.isProgrammeWorkout
+                    val workoutState = viewModel.workoutState.collectAsState().value
+                    val isProgrammeWorkout = workoutState.isProgrammeWorkout
+                    val isTemplate = workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.TEMPLATE
+                    val isFromTemplate = workoutState.fromTemplateId != null
+                    val showTargetValues = isProgrammeWorkout || isTemplate || isFromTemplate
 
                     sets.forEachIndexed { index, set ->
                         key(set.id) {
@@ -365,7 +366,7 @@ fun ExerciseCard(
                                 set = set,
                                 setNumber = index + 1,
                                 oneRMEstimate = oneRMEstimate,
-                                isProgrammeWorkout = isProgrammeWorkout,
+                                isProgrammeWorkout = showTargetValues,
                                 onUpdateSet = { reps, weight, rpe ->
                                     viewModel.updateSet(set.id, reps, weight, rpe)
                                 },
@@ -438,6 +439,7 @@ private fun CleanSetRow(
     canMarkComplete: Boolean,
     readOnly: Boolean,
 ) {
+    val showTargetValues = isProgrammeWorkout
     val dismissState =
         rememberSwipeToDismissBoxState(
             confirmValueChange = { value ->
@@ -570,7 +572,7 @@ private fun CleanSetRow(
 
                             // Use target weight as placeholder if available
                             val weightPlaceholder =
-                                if (isProgrammeWorkout && set.targetWeight != null && set.targetWeight > 0) {
+                                if (showTargetValues && set.targetWeight != null && set.targetWeight > 0) {
                                     WeightFormatter.formatWeight(set.targetWeight)
                                 } else {
                                     ""
@@ -637,7 +639,7 @@ private fun CleanSetRow(
 
                             // Use target reps as placeholder if available
                             val repsPlaceholder =
-                                if (isProgrammeWorkout && set.targetReps != null && set.targetReps > 0) {
+                                if (showTargetValues && set.targetReps != null && set.targetReps > 0) {
                                     set.targetReps.toString()
                                 } else {
                                     ""
@@ -692,7 +694,7 @@ private fun CleanSetRow(
 
                             // Use target RPE as placeholder if available
                             val rpePlaceholder =
-                                if (isProgrammeWorkout && set.targetRpe != null && set.targetRpe > 0) {
+                                if (showTargetValues && set.targetRpe != null && set.targetRpe > 0) {
                                     set.targetRpe.toString()
                                 } else {
                                     ""

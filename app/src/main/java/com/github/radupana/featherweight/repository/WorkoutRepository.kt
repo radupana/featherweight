@@ -11,6 +11,7 @@ import com.github.radupana.featherweight.domain.WorkoutSummary
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.time.LocalDateTime
 
 /**
  * Repository for managing Workout-related data
@@ -114,6 +115,7 @@ class WorkoutRepository(
             val allWorkouts = workoutDao.getAllWorkouts()
             val result =
                 allWorkouts
+                    .filter { it.status != WorkoutStatus.TEMPLATE } // Exclude templates from history
                     .mapNotNull { workout ->
                         val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
 
@@ -165,5 +167,193 @@ class WorkoutRepository(
                     "completed: ${result.count { it.status == WorkoutStatus.COMPLETED }}",
             )
             result
+        }
+
+    suspend fun createTemplateFromWorkout(
+        workoutId: Long,
+        templateName: String,
+        templateDescription: String?,
+    ): Long =
+        withContext(ioDispatcher) {
+            Log.i(TAG, "createTemplateFromWorkout START - workoutId: $workoutId, name: $templateName, desc: $templateDescription")
+            
+            val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
+            Log.i(TAG, "Found ${exerciseLogs.size} exercises in workout $workoutId")
+
+            // Create template workout
+            val templateWorkout =
+                Workout(
+                    name = templateName,
+                    notes = templateDescription,
+                    date = LocalDateTime.now(),
+                    status = WorkoutStatus.TEMPLATE,
+                    isTemplate = true,
+                )
+            Log.i(TAG, "Creating template workout with status: ${templateWorkout.status}, isTemplate: ${templateWorkout.isTemplate}")
+            val templateId = workoutDao.insertWorkout(templateWorkout)
+            Log.i(TAG, "Template workout created with ID: $templateId")
+
+            // Copy all exercises and their sets exactly as they were
+            var copiedExercises = 0
+            var copiedSets = 0
+            exerciseLogs.forEach { exerciseLog ->
+                Log.d(TAG, "Processing exercise ${exerciseLog.id} with variation ${exerciseLog.exerciseVariationId}")
+                val originalSets =
+                    setLogDao
+                        .getSetLogsForExercise(exerciseLog.id)
+                        .filter { it.actualReps > 0 } // Only include completed sets
+                
+                Log.d(TAG, "Found ${originalSets.size} completed sets for exercise ${exerciseLog.id}")
+
+                if (originalSets.isEmpty()) {
+                    Log.d(TAG, "Skipping exercise ${exerciseLog.id} - no completed sets")
+                    return@forEach // Skip exercises with no completed sets
+                }
+
+                // Create exercise log for template
+                val templateExerciseLog =
+                    ExerciseLog(
+                        workoutId = templateId,
+                        exerciseVariationId = exerciseLog.exerciseVariationId,
+                        exerciseOrder = exerciseLog.exerciseOrder,
+                    )
+                val templateExerciseId = exerciseLogDao.insertExerciseLog(templateExerciseLog)
+                Log.d(TAG, "Created template exercise with ID: $templateExerciseId")
+                copiedExercises++
+
+                // Copy all completed sets with actual values mapped to target values
+                originalSets.forEach { originalSet ->
+                    val templateSet =
+                        SetLog(
+                            exerciseLogId = templateExerciseId,
+                            setOrder = originalSet.setOrder,
+                            targetReps = originalSet.actualReps,
+                            targetWeight = originalSet.actualWeight.takeIf { it > 0 },
+                            targetRpe = originalSet.actualRpe,
+                            actualReps = 0,
+                            actualWeight = 0f,
+                        )
+                    Log.d(TAG, "Creating template set - targetReps: ${templateSet.targetReps}, targetWeight: ${templateSet.targetWeight}, targetRpe: ${templateSet.targetRpe}")
+                    setLogDao.insertSetLog(templateSet)
+                    copiedSets++
+                }
+            }
+
+            Log.i(TAG, "TEMPLATE CREATION COMPLETE - templateId: $templateId, name: $templateName, copiedExercises: $copiedExercises, copiedSets: $copiedSets")
+            templateId
+        }
+    
+    suspend fun getTemplates(): List<WorkoutSummary> =
+        withContext(ioDispatcher) {
+            Log.i(TAG, "getTemplates() called")
+            val startTime = System.currentTimeMillis()
+            val allWorkouts = workoutDao.getAllWorkouts()
+            Log.d(TAG, "Total workouts in database: ${allWorkouts.size}")
+            
+            val templates = allWorkouts.filter { it.status == WorkoutStatus.TEMPLATE }
+            Log.i(TAG, "Found ${templates.size} templates out of ${allWorkouts.size} total workouts")
+            
+            val result = templates.mapNotNull { workout ->
+                Log.d(TAG, "Processing template: id=${workout.id}, name=${workout.name}, status=${workout.status}, isTemplate=${workout.isTemplate}")
+                
+                val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                Log.d(TAG, "Template ${workout.id} has ${exercises.size} exercises")
+                
+                val allSets = mutableListOf<SetLog>()
+                exercises.forEach { exercise ->
+                    val sets = setLogDao.getSetLogsForExercise(exercise.id)
+                    allSets.addAll(sets)
+                }
+                Log.d(TAG, "Template ${workout.id} has ${allSets.size} total sets")
+                
+                WorkoutSummary(
+                    id = workout.id,
+                    date = workout.date,
+                    name = workout.name,
+                    exerciseCount = exercises.size,
+                    setCount = allSets.size,
+                    totalWeight = 0f, // Templates don't have actual weight
+                    duration = null,
+                    status = workout.status,
+                    hasNotes = !workout.notes.isNullOrBlank(),
+                    isProgrammeWorkout = false,
+                    programmeId = null,
+                    programmeName = null,
+                    programmeWorkoutName = null,
+                    weekNumber = null,
+                    dayNumber = null,
+                )
+            }.sortedByDescending { it.date }
+            
+            Log.i(TAG, "getTemplates() returning ${result.size} templates in ${System.currentTimeMillis() - startTime}ms")
+            result
+        }
+    
+    suspend fun startWorkoutFromTemplate(templateId: Long): Long =
+        withContext(ioDispatcher) {
+            Log.i(TAG, "startWorkoutFromTemplate called with templateId: $templateId")
+            
+            val template = workoutDao.getWorkoutById(templateId)
+            if (template == null || template.status != WorkoutStatus.TEMPLATE) {
+                Log.e(TAG, "Template not found or not a template: id=$templateId, status=${template?.status}")
+                throw IllegalArgumentException("Invalid template ID: $templateId")
+            }
+            
+            Log.i(TAG, "Found template: ${template.name}")
+            
+            // Create new workout from template
+            val newWorkout = Workout(
+                name = template.name,
+                notes = template.notes,
+                date = LocalDateTime.now(),
+                status = WorkoutStatus.NOT_STARTED,
+                isProgrammeWorkout = false,
+                isTemplate = false,
+                fromTemplateId = templateId,
+            )
+            val newWorkoutId = workoutDao.insertWorkout(newWorkout)
+            Log.i(TAG, "Created new workout with ID: $newWorkoutId from template: ${template.name} (templateId: $templateId)")
+            
+            // Copy exercises and sets from template
+            val templateExercises = exerciseLogDao.getExerciseLogsForWorkout(templateId)
+            Log.d(TAG, "Copying ${templateExercises.size} exercises from template")
+            
+            var copiedExercises = 0
+            var copiedSets = 0
+            
+            templateExercises.forEach { templateExercise ->
+                val newExercise = ExerciseLog(
+                    workoutId = newWorkoutId,
+                    exerciseVariationId = templateExercise.exerciseVariationId,
+                    exerciseOrder = templateExercise.exerciseOrder,
+                    notes = templateExercise.notes,
+                )
+                val newExerciseId = exerciseLogDao.insertExerciseLog(newExercise)
+                copiedExercises++
+                
+                // Copy sets with target values
+                val templateSets = setLogDao.getSetLogsForExercise(templateExercise.id)
+                Log.d(TAG, "Copying ${templateSets.size} sets for exercise ${templateExercise.id}")
+                
+                templateSets.forEach { templateSet ->
+                    val newSet = SetLog(
+                        exerciseLogId = newExerciseId,
+                        setOrder = templateSet.setOrder,
+                        targetReps = templateSet.targetReps,
+                        targetWeight = templateSet.targetWeight,
+                        targetRpe = templateSet.targetRpe,
+                        actualReps = 0,
+                        actualWeight = 0f,
+                        actualRpe = null,
+                        isCompleted = false,
+                    )
+                    setLogDao.insertSetLog(newSet)
+                    copiedSets++
+                    Log.d(TAG, "Created set with targetReps: ${newSet.targetReps}, targetWeight: ${newSet.targetWeight}")
+                }
+            }
+            
+            Log.i(TAG, "WORKOUT FROM TEMPLATE CREATED - workoutId: $newWorkoutId, name: ${template.name}, fromTemplateId: $templateId, exercises: $copiedExercises, sets: $copiedSets")
+            newWorkoutId
         }
 }

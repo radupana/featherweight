@@ -1394,6 +1394,7 @@ class FeatherweightRepository(
                         WorkoutStatus.COMPLETED -> currentInfo.copy(completedCount = item.count)
                         WorkoutStatus.IN_PROGRESS -> currentInfo.copy(inProgressCount = item.count)
                         WorkoutStatus.NOT_STARTED -> currentInfo.copy(notStartedCount = item.count)
+                        WorkoutStatus.TEMPLATE -> currentInfo // Templates don't count towards calendar
                     }
             }
 
@@ -1912,61 +1913,12 @@ class FeatherweightRepository(
                 completionNotes = programme.completionNotes,
             )
         }
-
-    // Copy workout for "Repeat Workout" feature
-    suspend fun copyWorkoutAsFreestyle(workoutId: Long): Long =
-        withContext(Dispatchers.IO) {
-            val originalWorkout =
-                workoutDao.getWorkoutById(workoutId)
-                    ?: throw IllegalArgumentException("Workout not found")
-
-            val exercises = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
-
-            // Create new freestyle workout
-            val newWorkout =
-                Workout(
-                    date = LocalDateTime.now(),
-                    notes = "Repeated from ${originalWorkout.programmeWorkoutName ?: "previous workout"}",
-                    status = WorkoutStatus.NOT_STARTED,
-                    isProgrammeWorkout = false,
-                )
-            val newWorkoutId = workoutDao.insertWorkout(newWorkout)
-
-            // Copy exercises and sets
-            exercises.forEach { exercise ->
-                val sets = setLogDao.getSetLogsForExercise(exercise.id)
-
-                val newExercise =
-                    ExerciseLog(
-                        workoutId = newWorkoutId,
-                        exerciseVariationId = exercise.exerciseVariationId,
-                        exerciseOrder = exercise.exerciseOrder,
-                        notes = exercise.notes,
-                    )
-                val newExerciseId = exerciseLogDao.insertExerciseLog(newExercise)
-
-                // Copy sets with actual values pre-populated in both target and actual fields
-                sets.forEach { set ->
-                    val newSet =
-                        SetLog(
-                            exerciseLogId = newExerciseId,
-                            setOrder = set.setOrder,
-                            // Freestyle workouts should NOT have target values - this is false data
-                            targetReps = null,
-                            targetWeight = null,
-                            // Pre-populate actual values so sets can be immediately marked complete
-                            actualReps = set.actualReps,
-                            actualWeight = set.actualWeight,
-                            // Don't copy RPE - let user set it fresh
-                            actualRpe = null,
-                            isCompleted = false,
-                        )
-                    insertSetLog(newSet)
-                }
-            }
-
-            newWorkoutId
-        }
+    
+    // Start a workout from a template
+    suspend fun startWorkoutFromTemplate(templateId: Long): Long {
+        Log.i(TAG, "startWorkoutFromTemplate delegating to WorkoutRepository")
+        return workoutRepository.startWorkoutFromTemplate(templateId)
+    }
 
     // Training Analysis methods
     suspend fun saveTrainingAnalysis(analysis: TrainingAnalysis) =

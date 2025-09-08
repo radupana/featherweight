@@ -56,6 +56,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.domain.ProgrammeSummary
 import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
@@ -83,13 +84,14 @@ fun HistoryScreen(
     var selectedTab by remember { mutableIntStateOf(0) } // 0 = Workouts, 1 = Programmes
 
     // File save launcher
-    val saveFileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        uri?.let {
-            historyViewModel.saveExportedFile(it)
+    val saveFileLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/json"),
+        ) { uri ->
+            uri?.let {
+                historyViewModel.saveExportedFile(it)
+            }
         }
-    }
 
     // Launch save dialog when export is ready
     LaunchedEffect(historyState.pendingExportFile) {
@@ -222,7 +224,6 @@ fun HistoryScreen(
                                     isExpanded = weekId in weekGroupState.expandedWeeks,
                                     onToggleExpanded = { historyViewModel.toggleWeekExpanded(weekId) },
                                     onWorkoutClick = onViewWorkout,
-                                    onExportWorkout = { workoutId -> historyViewModel.exportWorkout(workoutId) },
                                     modifier =
                                         Modifier
                                             .fillMaxWidth()
@@ -296,16 +297,20 @@ fun WorkoutHistoryCard(
     // Color scheme based on workout status
     val containerColor =
         when (workout.status) {
-            com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED -> {
+            WorkoutStatus.COMPLETED -> {
                 MaterialTheme.colorScheme.surface
             }
 
-            com.github.radupana.featherweight.data.WorkoutStatus.IN_PROGRESS -> {
+            WorkoutStatus.IN_PROGRESS -> {
                 Color(0xFFFFFBE6) // Very light yellow background for in-progress
             }
 
-            com.github.radupana.featherweight.data.WorkoutStatus.NOT_STARTED -> {
+            WorkoutStatus.NOT_STARTED -> {
                 Color(0xFFF5F5F5) // Light gray background for not started
+            }
+
+            WorkoutStatus.TEMPLATE -> {
+                MaterialTheme.colorScheme.secondaryContainer // Different color for templates
             }
         }
 
@@ -343,15 +348,16 @@ fun WorkoutHistoryCard(
                         fontWeight = FontWeight.SemiBold,
                         color =
                             when (workout.status) {
-                                com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED -> MaterialTheme.colorScheme.onSurface
-                                com.github.radupana.featherweight.data.WorkoutStatus.IN_PROGRESS ->
+                                WorkoutStatus.COMPLETED -> MaterialTheme.colorScheme.onSurface
+                                WorkoutStatus.IN_PROGRESS ->
                                     Color(
                                         0xFF5D4037,
                                     ) // Darker brown for in-progress
-                                com.github.radupana.featherweight.data.WorkoutStatus.NOT_STARTED ->
+                                WorkoutStatus.NOT_STARTED ->
                                     Color(
                                         0xFF757575,
                                     ) // Gray for not started
+                                WorkoutStatus.TEMPLATE -> MaterialTheme.colorScheme.onSecondaryContainer
                             },
                     )
                     Text(
@@ -359,15 +365,16 @@ fun WorkoutHistoryCard(
                         style = MaterialTheme.typography.bodySmall,
                         color =
                             when (workout.status) {
-                                com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED -> MaterialTheme.colorScheme.onSurfaceVariant
-                                com.github.radupana.featherweight.data.WorkoutStatus.IN_PROGRESS ->
+                                WorkoutStatus.COMPLETED -> MaterialTheme.colorScheme.onSurfaceVariant
+                                WorkoutStatus.IN_PROGRESS ->
                                     Color(
                                         0xFF8D6E63,
                                     ) // Medium brown for in-progress
-                                com.github.radupana.featherweight.data.WorkoutStatus.NOT_STARTED ->
+                                WorkoutStatus.NOT_STARTED ->
                                     Color(
                                         0xFF9E9E9E,
                                     ) // Light gray for not started
+                                WorkoutStatus.TEMPLATE -> MaterialTheme.colorScheme.onSecondaryContainer
                             },
                     )
                 }
@@ -388,7 +395,7 @@ fun WorkoutHistoryCard(
                     }
 
                     // Timer for completed workouts
-                    if (workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED && workout.duration != null) {
+                    if (workout.status == WorkoutStatus.COMPLETED && workout.duration != null) {
                         WorkoutTimer(
                             seconds = workout.duration.toInt(),
                             modifier = Modifier,
@@ -407,19 +414,19 @@ fun WorkoutHistoryCard(
                 WorkoutStatItem(
                     label = "Exercises",
                     value = workout.exerciseCount.toString(),
-                    isCompleted = workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED,
+                    isCompleted = workout.status == WorkoutStatus.COMPLETED,
                     modifier = Modifier.weight(1f),
                 )
                 WorkoutStatItem(
                     label = "Sets",
                     value = workout.setCount.toString(),
-                    isCompleted = workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED,
+                    isCompleted = workout.status == WorkoutStatus.COMPLETED,
                     modifier = Modifier.weight(1f),
                 )
                 WorkoutStatItem(
                     label = "Total Volume",
                     value = "${String.format(Locale.US, "%.1f", workout.totalWeight / 1000)}k kg",
-                    isCompleted = workout.status == com.github.radupana.featherweight.data.WorkoutStatus.COMPLETED,
+                    isCompleted = workout.status == WorkoutStatus.COMPLETED,
                     modifier = Modifier.weight(1f),
                 )
             }

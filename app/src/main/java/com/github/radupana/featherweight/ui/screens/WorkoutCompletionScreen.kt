@@ -51,6 +51,7 @@ import kotlin.random.Random
 fun WorkoutCompletionScreen(
     workoutId: Long,
     onDismiss: () -> Unit,
+    onSaveAsTemplate: (Long) -> Unit = {},
 ) {
     // Get repository from application context
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -117,6 +118,27 @@ fun WorkoutCompletionScreen(
 
                     // Motivational Message
                     MotivationalMessageCard(summary)
+
+                    // Save as Template Button
+                    Button(
+                        onClick = { onSaveAsTemplate(workoutId) },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary,
+                            ),
+                    ) {
+                        Text(
+                            text = "Save as Template",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     // Continue Button with padding for system bar
                     Button(

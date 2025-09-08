@@ -46,6 +46,8 @@ data class WorkoutState(
     val weekNumber: Int? = null,
     val dayNumber: Int? = null,
     val programmeWorkoutName: String? = null,
+    // Template tracking
+    val fromTemplateId: Long? = null,
     // Loading state to prevent UI from showing "No exercises" while loading
     val isLoadingExercises: Boolean = false,
     // PR Celebration
@@ -152,16 +154,7 @@ class WorkoutViewModel(
     private val _inProgressWorkouts = MutableStateFlow<List<InProgressWorkout>>(emptyList())
     val inProgressWorkouts: StateFlow<List<InProgressWorkout>> = _inProgressWorkouts
 
-    // Last completed workout
-    private val _lastCompletedWorkout = MutableStateFlow<Workout?>(null)
-    val lastCompletedWorkout: StateFlow<Workout?> = _lastCompletedWorkout
-
-    // Last completed workout exercises
-    private val _lastCompletedWorkoutExercises = MutableStateFlow<List<ExerciseLog>>(emptyList())
-    val lastCompletedWorkoutExercises: StateFlow<List<ExerciseLog>> = _lastCompletedWorkoutExercises
-
     // Exercise-related state
-
     private val exerciseDetailsMap = MutableStateFlow<Map<Long, ExerciseVariation>>(emptyMap())
 
     // Reactive exercise name mapping
@@ -241,7 +234,7 @@ class WorkoutViewModel(
             val workoutHistory = repository.getWorkoutHistory()
             val inProgress =
                 workoutHistory
-                    .filter { it.status != WorkoutStatus.COMPLETED }
+                    .filter { it.status != WorkoutStatus.COMPLETED && it.status != WorkoutStatus.TEMPLATE }
                     .map { summary ->
                         // Calculate completed sets
                         val completedSets =
@@ -280,25 +273,6 @@ class WorkoutViewModel(
         }
     }
 
-    fun loadLastCompletedWorkout() {
-        viewModelScope.launch {
-            val workoutHistory = repository.getWorkoutHistory()
-            val lastCompleted =
-                workoutHistory
-                    .filter { it.status == WorkoutStatus.COMPLETED }
-                    .maxByOrNull { it.date }
-
-            if (lastCompleted != null) {
-                val workout = repository.getWorkoutById(lastCompleted.id)
-                _lastCompletedWorkout.value = workout
-
-                // Also load the exercises
-                val exercises = repository.getExercisesForWorkout(lastCompleted.id)
-                _lastCompletedWorkoutExercises.value = exercises
-            }
-        }
-    }
-
     // Check if there are any in-progress workouts
     suspend fun hasInProgressWorkouts(): Boolean {
         val ongoingWorkout = repository.getOngoingWorkout()
@@ -326,9 +300,12 @@ class WorkoutViewModel(
 
     // View a completed workout (read-only, no timers, no state changes)
     fun viewCompletedWorkout(workoutId: Long) {
+        Log.i(TAG, "viewCompletedWorkout called with workoutId: $workoutId")
         viewModelScope.launch {
             repository.getWorkoutById(workoutId)?.let { workout ->
+                Log.i(TAG, "Found workout: id=${workout.id}, status=${workout.status}, fromTemplateId=${workout.fromTemplateId}")
                 if (workout.status != WorkoutStatus.COMPLETED) {
+                    Log.w(TAG, "viewCompletedWorkout called on non-completed workout, status: ${workout.status}")
                     // viewCompletedWorkout called on non-completed workout
                     return@let
                 }
@@ -337,6 +314,7 @@ class WorkoutViewModel(
                 stopWorkoutTimer()
                 skipRestTimer()
 
+                Log.i(TAG, "Setting _currentWorkoutId to: $workoutId")
                 _currentWorkoutId.value = workoutId
                 _workoutState.value =
                     WorkoutState(
@@ -410,6 +388,8 @@ class WorkoutViewModel(
                     weekNumber = workout.weekNumber,
                     dayNumber = workout.dayNumber,
                     programmeWorkoutName = workout.programmeWorkoutName,
+                    // Template tracking
+                    fromTemplateId = workout.fromTemplateId,
                     // Clear any pending celebrations from previous sessions
                     pendingPRs = emptyList(),
                     shouldShowPRCelebration = false,
@@ -1624,41 +1604,15 @@ class WorkoutViewModel(
         }
     }
 
-    // Repeat a completed workout as a new freestyle workout
-    fun repeatWorkout() {
-        viewModelScope.launch {
-            val currentWorkoutId = _currentWorkoutId.value
-            if (currentWorkoutId != null) {
-                try {
-                    val newWorkoutId = repository.copyWorkoutAsFreestyle(currentWorkoutId)
-
-                    // Clear current state
-                    _currentWorkoutId.value = null
-                    _workoutState.value = WorkoutState()
-                    _selectedWorkoutExercises.value = emptyList()
-                    _selectedExerciseSets.value = emptyList()
-                    _setCompletionValidation.value = emptyMap() // Clear validation cache
-
-                    // Clear timer state for new workout
-                    stopWorkoutTimer()
-                    _workoutTimerSeconds.value = 0
-                    workoutTimerStartTime = null
-
-                    // Load the new workout - this will populate the validation cache
-                    resumeWorkout(newWorkoutId)
-
-                    // Update only the workout name after loading is complete
-                    // Don't overwrite the entire state which would interfere with validation
-                    _workoutState.value =
-                        _workoutState.value.copy(
-                            workoutName = "Repeat Workout",
-                        )
-                } catch (e: android.database.sqlite.SQLiteException) {
-                    Log.e(TAG, "Error repeating workout", e)
-                } catch (e: IllegalStateException) {
-                    Log.e(TAG, "Invalid state when repeating workout", e)
-                }
-            }
+    // Start a workout from a template
+    suspend fun startWorkoutFromTemplate(templateId: Long) {
+        Log.i(TAG, "startWorkoutFromTemplate called with templateId: $templateId")
+        try {
+            val workoutId = repository.startWorkoutFromTemplate(templateId)
+            Log.i(TAG, "Created workout $workoutId from template $templateId, now resuming...")
+            resumeWorkout(workoutId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start workout from template", e)
         }
     }
 

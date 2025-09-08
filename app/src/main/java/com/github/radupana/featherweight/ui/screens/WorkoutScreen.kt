@@ -25,11 +25,12 @@ import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -88,10 +89,12 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 fun WorkoutScreen(
     onBack: () -> Unit,
     onSelectExercise: () -> Unit,
+    modifier: Modifier = Modifier,
     onWorkoutComplete: (Long) -> Unit = {},
     onProgrammeComplete: (Long) -> Unit = {},
     onTemplateSaved: () -> Unit = {},
-    modifier: Modifier = Modifier,
+    onSaveAsTemplate: (Long) -> Unit = {},
+    onExportWorkout: (Long) -> Unit = {},
     viewModel: WorkoutViewModel = viewModel(),
 ) {
     val exercises by viewModel.selectedWorkoutExercises.collectAsState()
@@ -127,6 +130,7 @@ fun WorkoutScreen(
     // Dialog state
     var showCompleteWorkoutDialog by remember { mutableStateOf(false) }
     var showWorkoutMenuDialog by remember { mutableStateOf(false) }
+    var showCompletedWorkoutMenu by remember { mutableStateOf(false) }
     var showEditWorkoutNameDialog by remember { mutableStateOf(false) }
     var showDeleteWorkoutDialog by remember { mutableStateOf(false) }
     var showOneRMUpdateDialog by remember { mutableStateOf(false) }
@@ -174,6 +178,7 @@ fun WorkoutScreen(
                 viewModel = viewModel,
                 onBack = onBack,
                 onShowWorkoutMenuDialog = { showWorkoutMenuDialog = true },
+                onShowCompletedWorkoutMenu = { showCompletedWorkoutMenu = true },
                 onShowNotesModal = { workoutId ->
                     viewModel.loadWorkoutNotes(workoutId) { notes ->
                         currentNotes = notes ?: ""
@@ -262,6 +267,7 @@ fun WorkoutScreen(
         showDeleteWorkoutDialog = showDeleteWorkoutDialog,
         showEditWorkoutNameDialog = showEditWorkoutNameDialog,
         showCompleteWorkoutDialog = showCompleteWorkoutDialog,
+        showCompletedWorkoutMenu = showCompletedWorkoutMenu,
         showOneRMUpdateDialog = showOneRMUpdateDialog,
         showPRCelebration = showPRCelebration,
         showNotesModal = showNotesModal,
@@ -277,10 +283,13 @@ fun WorkoutScreen(
         viewModel = viewModel,
         onBack = onBack,
         onProgrammeComplete = onProgrammeComplete,
+        onSaveAsTemplate = onSaveAsTemplate,
+        onExportWorkout = onExportWorkout,
         onWorkoutMenuDialogChange = { showWorkoutMenuDialog = it },
         onDeleteWorkoutDialogChange = { showDeleteWorkoutDialog = it },
         onEditWorkoutNameDialogChange = { showEditWorkoutNameDialog = it },
         onCompleteWorkoutDialogChange = { showCompleteWorkoutDialog = it },
+        onCompletedWorkoutMenuChange = { showCompletedWorkoutMenu = it },
         onOneRMUpdateDialogChange = { showOneRMUpdateDialog = it },
         onPRCelebrationChange = { showPRCelebration = it },
         onNotesModalChange = { showNotesModal = it },
@@ -341,6 +350,7 @@ private fun WorkoutDialogs(
     showDeleteWorkoutDialog: Boolean,
     showEditWorkoutNameDialog: Boolean,
     showCompleteWorkoutDialog: Boolean,
+    showCompletedWorkoutMenu: Boolean,
     showOneRMUpdateDialog: Boolean,
     showPRCelebration: Boolean,
     showNotesModal: Boolean,
@@ -356,10 +366,13 @@ private fun WorkoutDialogs(
     viewModel: WorkoutViewModel,
     onBack: () -> Unit,
     onProgrammeComplete: (Long) -> Unit,
+    onSaveAsTemplate: (Long) -> Unit,
+    onExportWorkout: (Long) -> Unit,
     onWorkoutMenuDialogChange: (Boolean) -> Unit,
     onDeleteWorkoutDialogChange: (Boolean) -> Unit,
     onEditWorkoutNameDialogChange: (Boolean) -> Unit,
     onCompleteWorkoutDialogChange: (Boolean) -> Unit,
+    onCompletedWorkoutMenuChange: (Boolean) -> Unit,
     onOneRMUpdateDialogChange: (Boolean) -> Unit,
     onPRCelebrationChange: (Boolean) -> Unit,
     onNotesModalChange: (Boolean) -> Unit,
@@ -384,6 +397,25 @@ private fun WorkoutDialogs(
                 viewModel.completeAllSetsInWorkout()
             },
             onClose = { onWorkoutMenuDialogChange(false) },
+        )
+    }
+
+    // Completed Workout Menu Dialog
+    if (showCompletedWorkoutMenu) {
+        CompletedWorkoutMenuDialog(
+            onSaveAsTemplate = {
+                android.util.Log.i("WorkoutScreen", "Save as template clicked in dialog, workoutId: $currentWorkoutId")
+                onCompletedWorkoutMenuChange(false)
+                currentWorkoutId?.let {
+                    android.util.Log.i("WorkoutScreen", "Calling onSaveAsTemplate with workoutId: $it")
+                    onSaveAsTemplate(it)
+                } ?: android.util.Log.w("WorkoutScreen", "currentWorkoutId is null, cannot save as template")
+            },
+            onExportWorkout = {
+                onCompletedWorkoutMenuChange(false)
+                currentWorkoutId?.let { onExportWorkout(it) }
+            },
+            onClose = { onCompletedWorkoutMenuChange(false) },
         )
     }
 
@@ -548,6 +580,7 @@ private fun WorkoutHeader(
     viewModel: WorkoutViewModel,
     onBack: () -> Unit,
     onShowWorkoutMenuDialog: () -> Unit,
+    onShowCompletedWorkoutMenu: () -> Unit,
     onShowNotesModal: (Long) -> Unit,
 ) {
     Column {
@@ -572,7 +605,7 @@ private fun WorkoutHeader(
                             overflow = TextOverflow.Ellipsis,
                         )
 
-                        // Subtitle - programme info, template edit, or "Freestyle Workout"
+                        // Subtitle - programme info, template edit, from template, or "Freestyle Workout"
                         if (workoutState.mode == WorkoutMode.TEMPLATE_EDIT) {
                             Text(
                                 text = "Editing Template",
@@ -605,6 +638,12 @@ private fun WorkoutHeader(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
+                        } else if (workoutState.fromTemplateId != null) {
+                            Text(
+                                text = "From Template: ${workoutState.workoutName ?: "Unnamed"}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
                         } else {
                             Text(
                                 text = "Freestyle Workout",
@@ -642,14 +681,16 @@ private fun WorkoutHeader(
                     }
                 }
 
-                // Show repeat button for completed workouts, menu for active
+                // Show action buttons for completed workouts, menu for active
                 if (!canEdit && workoutState.status == WorkoutStatus.COMPLETED) {
-                    IconButton(onClick = { viewModel.repeatWorkout() }) {
-                        Icon(
-                            Icons.Filled.Refresh,
-                            contentDescription = "Repeat Workout",
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
+                    Row {
+                        IconButton(onClick = onShowCompletedWorkoutMenu) {
+                            Icon(
+                                Icons.Filled.MoreVert,
+                                contentDescription = "More Options",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                     }
                 } else if (canEdit) {
                     IconButton(onClick = onShowWorkoutMenuDialog) {
@@ -704,6 +745,55 @@ private fun WorkoutHeader(
             }
         }
     }
+}
+
+@Composable
+private fun CompletedWorkoutMenuDialog(
+    onSaveAsTemplate: () -> Unit,
+    onExportWorkout: () -> Unit,
+    onClose: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("Workout Options") },
+        text = {
+            Column {
+                TextButton(
+                    onClick = onSaveAsTemplate,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Filled.ContentCopy, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Save as Template")
+                    }
+                }
+                TextButton(
+                    onClick = onExportWorkout,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Filled.FileDownload, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Export Workout")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onClose) {
+                Text("Close")
+            }
+        },
+    )
 }
 
 @Composable

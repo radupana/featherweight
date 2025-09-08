@@ -6,9 +6,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -61,7 +58,6 @@ fun WeekGroupView(
     onToggleExpanded: () -> Unit,
     onWorkoutClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
-    onExportWorkout: (Long) -> Unit = {},
 ) {
     val rotation by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
@@ -147,7 +143,6 @@ fun WeekGroupView(
                                 CompactWorkoutCard(
                                     workout = workout,
                                     onClick = { onWorkoutClick(workout.id) },
-                                    onExport = { onExportWorkout(workout.id) },
                                 )
                             }
                         }
@@ -158,24 +153,18 @@ fun WeekGroupView(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CompactWorkoutCard(
     workout: WorkoutSummary,
     onClick: () -> Unit,
-    onExport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showExportDialog by remember { mutableStateOf(false) }
 
     Card(
         modifier =
             modifier
                 .fillMaxWidth()
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = { showExportDialog = true },
-                ),
+                .clickable { onClick() },
         elevation = CardDefaults.cardElevation(1.dp),
         shape = RoundedCornerShape(8.dp),
         colors =
@@ -220,44 +209,9 @@ private fun CompactWorkoutCard(
                 )
             }
 
-            IconButton(
-                onClick = { showExportDialog = true },
-                modifier = Modifier.size(40.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.FileDownload,
-                    contentDescription = "Export workout",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
         }
     }
 
-    if (showExportDialog) {
-        AlertDialog(
-            onDismissRequest = { showExportDialog = false },
-            title = { Text("Export Workout") },
-            text = {
-                Text("Export \"${workout.name ?: "Workout"}\" from ${workout.date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}?")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onExport()
-                        showExportDialog = false
-                    },
-                ) {
-                    Text("Export")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showExportDialog = false }) {
-                    Text("Cancel")
-                }
-            },
-        )
-    }
 }
 
 /**

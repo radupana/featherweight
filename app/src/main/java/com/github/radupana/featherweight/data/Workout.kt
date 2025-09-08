@@ -37,4 +37,6 @@ data class Workout(
     val durationSeconds: Long? = null,
     val timerStartTime: LocalDateTime? = null,
     val timerElapsedSeconds: Int = 0,
+    val isTemplate: Boolean = false,
+    val fromTemplateId: Long? = null,
 )
