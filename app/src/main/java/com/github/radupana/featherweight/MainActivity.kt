@@ -52,7 +52,6 @@ import com.github.radupana.featherweight.ui.screens.SplashScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutCompletionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
-import com.github.radupana.featherweight.ui.screens.WorkoutTemplateConfigurationScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutTemplateSelectionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutsScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
@@ -77,7 +76,6 @@ enum class Screen {
     EXERCISE_PROGRESS,
     PROGRAMME_HISTORY_DETAIL,
     WORKOUT_TEMPLATE_SELECTION,
-    WORKOUT_TEMPLATE_CONFIGURATION,
     WORKOUT_COMPLETION,
     PROGRAMME_COMPLETION,
     IMPORT_PROGRAMME,
@@ -231,8 +229,6 @@ fun MainAppWithNavigation(
     completedProgrammeId: Long?,
     onCompletedProgrammeIdChange: (Long?) -> Unit,
 ) {
-    // Track selected template
-    var selectedTemplate by remember { mutableStateOf<String?>(null) }
     // Track initial text for import programme screen
     var importProgrammeInitialText by remember { mutableStateOf<String?>(null) }
     // Track parsed programme for import screen
@@ -310,7 +306,6 @@ fun MainAppWithNavigation(
                         Screen.EXERCISE_SELECTOR,
                         Screen.PROGRAMME_HISTORY_DETAIL,
                         Screen.WORKOUT_TEMPLATE_SELECTION,
-                        Screen.WORKOUT_TEMPLATE_CONFIGURATION,
                         Screen.WORKOUT_COMPLETION,
                         Screen.PROGRAMME_COMPLETION,
                         Screen.EXERCISE_MAPPING,
@@ -637,43 +632,11 @@ fun MainAppWithNavigation(
             Screen.WORKOUT_TEMPLATE_SELECTION -> {
                 WorkoutTemplateSelectionScreen(
                     onTemplateSelected = { templateName ->
-                        selectedTemplate = templateName
-                        onScreenChange(Screen.WORKOUT_TEMPLATE_CONFIGURATION)
+                        onScreenChange(Screen.WORKOUTS)
                     },
                     onBack = { onScreenChange(previousScreen ?: Screen.WORKOUTS) },
                     modifier = Modifier.padding(innerPadding),
                 )
-            }
-
-            Screen.WORKOUT_TEMPLATE_CONFIGURATION -> {
-                selectedTemplate?.let { templateName ->
-                    val template =
-                        com.github.radupana.featherweight.data.model.WorkoutTemplates
-                            .getTemplate(templateName)
-                    if (template != null) {
-                        val workoutViewModel: WorkoutViewModel = viewModel()
-                        val scope = rememberCoroutineScope()
-
-                        WorkoutTemplateConfigurationScreen(
-                            template = template,
-                            onConfigurationComplete = { config ->
-                                scope.launch {
-                                    val repository = workoutViewModel.repository
-                                    val workoutId = repository.generateWorkoutFromTemplate(template, config)
-                                    repository.applyTemplateWeightSuggestions(
-                                        workoutId = workoutId,
-                                        config = config,
-                                    )
-                                    workoutViewModel.resumeWorkout(workoutId)
-                                    onScreenChange(Screen.ACTIVE_WORKOUT)
-                                }
-                            },
-                            onBack = { onScreenChange(Screen.WORKOUTS) },
-                        )
-                    } else {
-                        onScreenChange(Screen.WORKOUTS)
-                    }
-                } ?: onScreenChange(Screen.WORKOUTS)
             }
 
             Screen.IMPORT_PROGRAMME -> {

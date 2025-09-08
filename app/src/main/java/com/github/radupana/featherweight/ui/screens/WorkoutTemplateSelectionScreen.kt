@@ -1,14 +1,11 @@
 package com.github.radupana.featherweight.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -22,9 +19,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.github.radupana.featherweight.ui.components.GlassmorphicCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,10 +29,12 @@ fun WorkoutTemplateSelectionScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    @Suppress("UNUSED_PARAMETER")
+    val unused = onTemplateSelected
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Choose Template") },
+                title = { Text("Workout Templates") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -48,109 +46,32 @@ fun WorkoutTemplateSelectionScreen(
             )
         },
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(paddingValues),
+            contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = "Select a workout template",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 8.dp),
-            )
-
-            TemplateCard(
-                name = "Push",
-                description = "Chest, Shoulders, Triceps",
-                details = "Focus on pressing movements and pushing exercises",
-                onClick = { onTemplateSelected("PUSH") },
-            )
-
-            TemplateCard(
-                name = "Pull",
-                description = "Back, Biceps",
-                details = "Emphasize pulling movements and back development",
-                onClick = { onTemplateSelected("PULL") },
-            )
-
-            TemplateCard(
-                name = "Legs",
-                description = "Quads, Hamstrings, Glutes, Calves",
-                details = "Complete lower body workout for strength and size",
-                onClick = { onTemplateSelected("LEGS") },
-            )
-
-            TemplateCard(
-                name = "Upper",
-                description = "All upper body muscles",
-                details = "Comprehensive upper body training session",
-                onClick = { onTemplateSelected("UPPER") },
-            )
-
-            TemplateCard(
-                name = "Lower",
-                description = "All lower body muscles",
-                details = "Full lower body development workout",
-                onClick = { onTemplateSelected("LOWER") },
-            )
-
-            TemplateCard(
-                name = "Full Body",
-                description = "Balanced mix of all muscle groups",
-                details = "Total body workout for overall development",
-                onClick = { onTemplateSelected("FULL BODY") },
-            )
-        }
-    }
-}
-
-@Composable
-private fun TemplateCard(
-    name: String,
-    description: String,
-    details: String,
-    onClick: () -> Unit,
-) {
-    GlassmorphicCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Default.FitnessCenter,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            
             Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                Icon(
+                    imageVector = Icons.Default.FitnessCenter,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 )
                 Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = "No Templates Yet",
+                    style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = details,
-                    style = MaterialTheme.typography.bodySmall,
+                    text = "Custom workout templates\ncoming soon!",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center,
                 )
             }
         }
