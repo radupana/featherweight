@@ -10,6 +10,7 @@ import com.github.radupana.featherweight.repository.WorkoutRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 data class TemplateWithExercises(
@@ -25,8 +26,22 @@ class WorkoutTemplateSelectionViewModel(application: Application) : AndroidViewM
     private val _templates = MutableStateFlow<List<TemplateWithExercises>>(emptyList())
     val templates: StateFlow<List<TemplateWithExercises>> = _templates.asStateFlow()
     
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+    
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    
+    val filteredTemplates = combine(_templates, _searchQuery) { templates, query ->
+        if (query.isEmpty()) {
+            templates
+        } else {
+            templates.filter { template ->
+                // Search only in template name
+                template.summary.name?.contains(query, ignoreCase = true) == true
+            }
+        }
+    }
     
     companion object {
         private const val TAG = "TemplateSelectionVM"
@@ -73,6 +88,10 @@ class WorkoutTemplateSelectionViewModel(application: Application) : AndroidViewM
                 Log.i(TAG, "Template loading complete - count: ${_templates.value.size}")
             }
         }
+    }
+    
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
     }
     
     fun deleteTemplate(templateId: Long) {

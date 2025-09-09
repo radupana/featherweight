@@ -429,7 +429,13 @@ class WorkoutViewModel(
                 // Clear validation cache
                 _setCompletionValidation.value = emptyMap()
 
-                val workout = Workout(date = LocalDateTime.now(), notes = null)
+                val now = LocalDateTime.now()
+                val defaultName = now.format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy 'at' HH:mm"))
+                val workout = Workout(
+                    date = now,
+                    name = defaultName,
+                    notes = null
+                )
                 val workoutId = repository.insertWorkout(workout)
 
                 Log.i(

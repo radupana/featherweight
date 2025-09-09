@@ -498,9 +498,12 @@ class WorkoutSeedingService(
         config: SeedConfig,
     ): Long {
         // Create workout as IN_PROGRESS for proper analytics processing
+        val dateTime = date.atTime(18, 0) // 6 PM
+        val defaultName = dateTime.format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy 'at' HH:mm"))
         val workout =
             Workout(
-                date = date.atTime(18, 0), // 6 PM
+                date = dateTime,
+                name = defaultName,
                 notes = "Seeded workout - Week $weekNumber Day $dayInWeek",
                 status = WorkoutStatus.IN_PROGRESS,
                 weekNumber = weekNumber,

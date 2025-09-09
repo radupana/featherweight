@@ -53,6 +53,7 @@ import com.github.radupana.featherweight.ui.screens.SplashScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutCompletionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutHubScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutScreen
+import com.github.radupana.featherweight.ui.screens.WorkoutSelectionForTemplateScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutTemplateSelectionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutsScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
@@ -77,11 +78,13 @@ enum class Screen {
     EXERCISE_PROGRESS,
     PROGRAMME_HISTORY_DETAIL,
     WORKOUT_TEMPLATE_SELECTION,
+    WORKOUT_SELECTION_FOR_TEMPLATE,
     WORKOUT_COMPLETION,
     PROGRAMME_COMPLETION,
     IMPORT_PROGRAMME,
     EXERCISE_MAPPING,
     CREATE_TEMPLATE_FROM_WORKOUT,
+    CREATE_TEMPLATE_FROM_SELECTED_WORKOUT,
 }
 
 data class NavigationItem(
@@ -235,6 +238,8 @@ fun MainAppWithNavigation(
     var importProgrammeInitialText by remember { mutableStateOf<String?>(null) }
     // Track parsed programme for import screen
     var importParsedProgramme by remember { mutableStateOf<com.github.radupana.featherweight.data.ParsedProgramme?>(null) }
+    // Track selected workout ID for template creation
+    var selectedTemplateWorkoutId by remember { mutableStateOf<Long?>(null) }
 
     // Initialize feedback service for debug builds
     val feedbackService = remember { FirebaseFeedbackService() }
@@ -543,6 +548,11 @@ fun MainAppWithNavigation(
                         },
                         onSaveAsTemplate = { passedWorkoutId ->
                             Log.i("MainActivity", "onSaveAsTemplate from WORKOUT_COMPLETION - passedWorkoutId: $passedWorkoutId, completedWorkoutId: $completedWorkoutId")
+                            // Make sure we have the workout ID set before navigating
+                            if (passedWorkoutId != completedWorkoutId) {
+                                Log.w("MainActivity", "Passed workout ID ($passedWorkoutId) differs from completedWorkoutId ($completedWorkoutId), using passed ID")
+                                onCompletedWorkoutIdChange(passedWorkoutId)
+                            }
                             onScreenChange(Screen.CREATE_TEMPLATE_FROM_WORKOUT)
                         },
                     )
@@ -658,7 +668,25 @@ fun MainAppWithNavigation(
                             onScreenChange(Screen.ACTIVE_WORKOUT)
                         }
                     },
-                    onBack = { onScreenChange(previousScreen ?: Screen.WORKOUTS) },
+                    onCreateFromHistory = {
+                        Log.i("MainActivity", "Navigate to workout selection for template")
+                        onScreenChange(Screen.WORKOUT_SELECTION_FOR_TEMPLATE)
+                    },
+                    onBack = { onScreenChange(Screen.WORKOUTS) },
+                    modifier = Modifier.padding(innerPadding),
+                )
+            }
+            
+            Screen.WORKOUT_SELECTION_FOR_TEMPLATE -> {
+                WorkoutSelectionForTemplateScreen(
+                    onWorkoutSelected = { workoutId ->
+                        Log.i("MainActivity", "Workout selected for template: $workoutId")
+                        selectedTemplateWorkoutId = workoutId
+                        onScreenChange(Screen.CREATE_TEMPLATE_FROM_SELECTED_WORKOUT)
+                    },
+                    onBack = { 
+                        onScreenChange(Screen.WORKOUT_TEMPLATE_SELECTION) 
+                    },
                     modifier = Modifier.padding(innerPadding),
                 )
             }
@@ -747,6 +775,7 @@ fun MainAppWithNavigation(
                 Log.i("MainActivity", "=== CREATE_TEMPLATE_FROM_WORKOUT screen entered ===")
                 Log.i("MainActivity", "completedWorkoutId value: $completedWorkoutId")
                 Log.i("MainActivity", "previousScreen: $previousScreen")
+                Log.i("MainActivity", "currentScreen: $currentScreen")
                 
                 completedWorkoutId?.let { workoutId ->
                     Log.i("MainActivity", "Using completedWorkoutId: $workoutId")
@@ -757,10 +786,14 @@ fun MainAppWithNavigation(
                             onScreenChange(Screen.WORKOUT_COMPLETION)
                         },
                         onTemplateCreated = {
-                            Log.i("MainActivity", "Template created, navigating to templates screen")
+                            Log.i("MainActivity", "onTemplateCreated callback invoked from CREATE_TEMPLATE_FROM_WORKOUT")
+                            Log.i("MainActivity", "Current screen: $currentScreen, Previous screen: $previousScreen")
+                            Log.i("MainActivity", "completedWorkoutId before clearing: $completedWorkoutId")
                             // Clear the completed workout ID
                             onCompletedWorkoutIdChange(null)
+                            Log.i("MainActivity", "Cleared completedWorkoutId")
                             // Navigate to templates screen to see the new template
+                            Log.i("MainActivity", "Navigating to WORKOUT_TEMPLATE_SELECTION")
                             onScreenChange(Screen.WORKOUT_TEMPLATE_SELECTION)
                         },
                         modifier = Modifier.padding(innerPadding),
@@ -781,8 +814,13 @@ fun MainAppWithNavigation(
                                 onScreenChange(Screen.ACTIVE_WORKOUT)
                             },
                             onTemplateCreated = {
-                                Log.i("MainActivity", "Template created (fallback), navigating to templates screen")
+                                Log.i("MainActivity", "onTemplateCreated callback invoked (fallback)")
+                                Log.i("MainActivity", "Current screen before navigation: $currentScreen")
+                                // Clear any workout ID
+                                onCompletedWorkoutIdChange(null)
+                                Log.i("MainActivity", "Cleared completedWorkoutId (fallback)")
                                 // Navigate to templates screen to see the new template
+                                Log.i("MainActivity", "Navigating to WORKOUT_TEMPLATE_SELECTION (fallback)")
                                 onScreenChange(Screen.WORKOUT_TEMPLATE_SELECTION)
                             },
                             modifier = Modifier.padding(innerPadding),
@@ -793,6 +831,27 @@ fun MainAppWithNavigation(
                         // Go back to templates since that's where user expects to be
                         onScreenChange(Screen.WORKOUT_TEMPLATE_SELECTION)
                     }
+                }
+            }
+            
+            Screen.CREATE_TEMPLATE_FROM_SELECTED_WORKOUT -> {
+                selectedTemplateWorkoutId?.let { workoutId ->
+                    CreateTemplateFromWorkoutScreen(
+                        workoutId = workoutId,
+                        onBack = {
+                            onScreenChange(Screen.WORKOUT_SELECTION_FOR_TEMPLATE)
+                        },
+                        onTemplateCreated = {
+                            // Clear the selected workout ID
+                            selectedTemplateWorkoutId = null
+                            // Navigate to templates screen to see the new template
+                            onScreenChange(Screen.WORKOUT_TEMPLATE_SELECTION)
+                        },
+                        modifier = Modifier.padding(innerPadding),
+                    )
+                } ?: run {
+                    // If no workout selected, go back to selection
+                    onScreenChange(Screen.WORKOUT_SELECTION_FOR_TEMPLATE)
                 }
             }
         }

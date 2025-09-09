@@ -490,8 +490,10 @@ class FeatherweightRepository(
         Log.d("FeatherweightRepository", "Exercises in structure: ${workoutStructure.exercises.size}")
 
         val now = LocalDateTime.now()
+        val defaultName = workoutStructure.name ?: now.format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy 'at' HH:mm"))
         val workout = Workout(
             date = now,
+            name = defaultName,
             status = WorkoutStatus.IN_PROGRESS,
             programmeId = programmeId,
             weekNumber = nextWorkoutInfo.actualWeekNumber,
