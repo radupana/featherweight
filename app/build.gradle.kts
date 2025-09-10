@@ -9,6 +9,7 @@ plugins {
     id("jacoco")
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
+    id("com.google.firebase.firebase-perf")
 }
 
 configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
@@ -210,6 +211,7 @@ dependencies {
     implementation(libs.firebase.crashlytics.ndk)
     implementation(libs.google.firebase.analytics)
     implementation(libs.firebase.config)
+    implementation(libs.firebase.performance)
 
     // Firebase App Distribution - API only for all builds
     implementation(libs.firebase.appdistribution.api)

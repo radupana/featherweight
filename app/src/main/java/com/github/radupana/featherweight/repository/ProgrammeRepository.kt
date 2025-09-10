@@ -2,6 +2,9 @@ package com.github.radupana.featherweight.repository
 
 import android.app.Application
 import com.github.radupana.featherweight.data.FeatherweightDatabase
+import android.util.Log
+import com.google.firebase.perf.FirebasePerformance
+import com.google.firebase.perf.metrics.Trace
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -13,6 +16,9 @@ class ProgrammeRepository(
     application: Application,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
+    companion object {
+        private const val TAG = "ProgrammeRepository"
+    }
     private val db = FeatherweightDatabase.getDatabase(application)
     private val programmeDao = db.programmeDao()
     private val workoutDao = db.workoutDao()
@@ -34,8 +40,25 @@ class ProgrammeRepository(
 
     suspend fun getProgrammeWithDetails(programmeId: Long) =
         withContext(ioDispatcher) {
-            programmeDao.getProgrammeWithDetails(programmeId)
+            val trace = safeNewTrace("programme_load_full")
+            trace?.start()
+            val result = programmeDao.getProgrammeWithDetails(programmeId)
+            trace?.putAttribute("programme_id", programmeId.toString())
+            trace?.stop()
+            result
         }
+
+    private fun safeNewTrace(name: String): Trace? {
+        return try {
+            FirebasePerformance.getInstance().newTrace(name)
+        } catch (e: IllegalStateException) {
+            Log.d(TAG, "Firebase Performance not available - likely in test environment")
+            null
+        } catch (e: Exception) {
+            Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
+            null
+        }
+    }
 
     suspend fun getInProgressWorkoutCountByProgramme(programmeId: Long): Int =
         withContext(ioDispatcher) {

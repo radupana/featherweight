@@ -12,6 +12,8 @@ import com.github.radupana.featherweight.data.TrainingInsight
 import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.TrainingAnalysisService
+import com.google.firebase.perf.FirebasePerformance
+import com.google.firebase.perf.metrics.Trace
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
@@ -84,14 +86,15 @@ class InsightsViewModel(
         ) -> Unit,
     ) {
         viewModelScope.launch {
+            val trace = safeNewTrace("insights_calculation")
+            trace?.start()
+            
             try {
-                // Get recent PRs (last 30 days)
                 val recentPRs =
                     withContext(Dispatchers.IO) {
                         repository.getRecentPRs(limit = 5)
                     }
 
-                // Get workouts from this week
                 val now = LocalDateTime.now()
                 // Start from Sunday 23:59:59 to include all of Monday onwards
                 val weekStart =
@@ -105,18 +108,24 @@ class InsightsViewModel(
                         repository.getCompletedWorkoutCountSince(weekStart)
                     }
 
-                // Get current streak (weeks with 3+ workouts)
                 val currentStreak =
                     withContext(Dispatchers.IO) {
                         repository.getWeeklyStreak()
                     }
 
+                trace?.putAttribute("pr_count", recentPRs.size.toString())
+                trace?.putAttribute("weekly_workouts", weeklyWorkoutCount.toString())
+                trace?.putAttribute("current_streak", currentStreak.toString())
+                trace?.stop()
+                
                 onComplete(recentPRs, weeklyWorkoutCount, currentStreak)
             } catch (e: android.database.sqlite.SQLiteException) {
                 Log.e("InsightsViewModel", "Error", e)
+                trace?.stop()
                 onComplete(emptyList(), 0, 0)
             } catch (e: IllegalStateException) {
                 Log.e("InsightsViewModel", "Error", e)
+                trace?.stop()
                 onComplete(emptyList(), 0, 0)
             }
         }
@@ -227,20 +236,34 @@ class InsightsViewModel(
 
     private suspend fun performAnalysis(): TrainingAnalysis =
         withContext(Dispatchers.IO) {
-            // 1. Fetch raw workout data
+            val trace = safeNewTrace("training_analysis")
+            trace?.start()
+            
             val endDate = LocalDate.now()
             val startDate = endDate.minusWeeks(ANALYSIS_PERIOD_WEEKS.toLong())
             val workouts = repository.getWorkoutsByDateRange(startDate, endDate)
+            trace?.putAttribute("workout_count", workouts.size.toString())
 
-            // 2. Build JSON payload
             val jsonPayload = buildAnalysisPayload(workouts)
 
-            // 3. Call OpenAI API
             val response = callOpenAIAPI(jsonPayload)
 
-            // 4. Parse response into TrainingAnalysis
-            parseAIResponse(response, startDate, endDate)
+            val analysis = parseAIResponse(response, startDate, endDate)
+            trace?.stop()
+            analysis
         }
+
+    private fun safeNewTrace(name: String): Trace? {
+        return try {
+            FirebasePerformance.getInstance().newTrace(name)
+        } catch (e: IllegalStateException) {
+            Log.d(TAG, "Firebase Performance not available - likely in test environment")
+            null
+        } catch (e: Exception) {
+            Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
+            null
+        }
+    }
 
     private suspend fun buildAnalysisPayload(workouts: List<WorkoutSummary>): String {
         val payload = JsonObject()

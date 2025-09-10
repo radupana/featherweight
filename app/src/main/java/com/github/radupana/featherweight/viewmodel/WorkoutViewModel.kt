@@ -20,6 +20,8 @@ import com.github.radupana.featherweight.service.OneRMService
 import com.github.radupana.featherweight.service.RestTimerCalculationService
 import com.github.radupana.featherweight.service.RestTimerNotificationService
 import com.github.radupana.featherweight.util.WeightFormatter
+import com.google.firebase.perf.FirebasePerformance
+import com.google.firebase.perf.metrics.Trace
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -351,6 +353,9 @@ class WorkoutViewModel(
 
     // Resume an existing workout
     suspend fun resumeWorkout(workoutId: Long) {
+        val trace = safeNewTrace("workout_resume")
+        trace?.start()
+        
         val workout = repository.getWorkoutById(workoutId)
         if (workout != null) {
             val isCompleted = workout.status == WorkoutStatus.COMPLETED
@@ -415,6 +420,20 @@ class WorkoutViewModel(
                 _workoutTimerSeconds.value = 0
                 workoutTimerStartTime = null
             }
+            
+            trace?.stop()
+        }
+    }
+
+    private fun safeNewTrace(name: String): Trace? {
+        return try {
+            FirebasePerformance.getInstance().newTrace(name)
+        } catch (e: IllegalStateException) {
+            Log.d(TAG, "Firebase Performance not available - likely in test environment")
+            null
+        } catch (e: Exception) {
+            Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
+            null
         }
     }
 

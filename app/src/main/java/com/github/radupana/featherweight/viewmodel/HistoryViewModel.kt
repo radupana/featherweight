@@ -12,6 +12,8 @@ import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.WorkoutExportService
 import com.github.radupana.featherweight.utils.ExportHandler
+import com.google.firebase.perf.FirebasePerformance
+import com.google.firebase.perf.metrics.Trace
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -104,8 +106,12 @@ class HistoryViewModel(
     }
 
     private suspend fun loadInitialData() {
+        val trace = safeNewTrace("workout_history_load")
+        trace?.start()
+        
         val currentState = _historyState.value
         if (currentState.programmes.isNotEmpty()) {
+            trace?.stop()
             return // Already loaded
         }
 
@@ -114,6 +120,7 @@ class HistoryViewModel(
         try {
             // Load programmes
             val firstPageProgrammes = repository.getCompletedProgrammesPaged(page = 0, pageSize = currentState.pageSize)
+            trace?.putAttribute("programme_count", firstPageProgrammes.size.toString())
 
             val hasMoreProgrammes = firstPageProgrammes.size == currentState.pageSize
 
@@ -125,24 +132,40 @@ class HistoryViewModel(
                     currentProgrammePage = 0,
                     hasMoreProgrammes = hasMoreProgrammes,
                 )
+            trace?.stop()
         } catch (e: IllegalArgumentException) {
+            trace?.stop()
             _historyState.value =
                 currentState.copy(
                     isLoading = false,
                     error = "Failed to load programmes: ${e.message}",
                 )
         } catch (e: IllegalStateException) {
+            trace?.stop()
             _historyState.value =
                 currentState.copy(
                     isLoading = false,
                     error = "Failed to load programmes: ${e.message}",
                 )
         } catch (e: NumberFormatException) {
+            trace?.stop()
             _historyState.value =
                 currentState.copy(
                     isLoading = false,
                     error = "Failed to load programmes: ${e.message}",
                 )
+        }
+    }
+
+    private fun safeNewTrace(name: String): Trace? {
+        return try {
+            FirebasePerformance.getInstance().newTrace(name)
+        } catch (e: IllegalStateException) {
+            Log.d(TAG, "Firebase Performance not available - likely in test environment")
+            null
+        } catch (e: Exception) {
+            Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
+            null
         }
     }
 

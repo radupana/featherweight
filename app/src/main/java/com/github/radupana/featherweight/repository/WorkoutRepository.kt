@@ -11,6 +11,9 @@ import com.github.radupana.featherweight.domain.WorkoutSummary
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.google.firebase.FirebaseApp
+import com.google.firebase.perf.FirebasePerformance
+import com.google.firebase.perf.metrics.Trace
 import java.time.LocalDateTime
 
 /**
@@ -32,8 +35,11 @@ class WorkoutRepository(
 
     suspend fun createWorkout(workout: Workout): Long =
         withContext(ioDispatcher) {
+            val trace = safeNewTrace("workout_creation")
+            trace?.start()
             val id = workoutDao.insertWorkout(workout)
             Log.i(TAG, "Created workout - id: $id, name: ${workout.name}, status: ${workout.status}, programmeId: ${workout.programmeId}")
+            trace?.stop()
             id
         }
 
@@ -77,6 +83,9 @@ class WorkoutRepository(
         workoutId: Long,
         duration: Long? = null,
     ) = withContext(ioDispatcher) {
+        val trace = safeNewTrace("workout_completion")
+        trace?.start()
+        
         val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
         workoutDao.updateWorkout(
             workout.copy(
@@ -91,12 +100,30 @@ class WorkoutRepository(
                 setLogDao.getSetLogsForExercise(it.id).size
             }
 
+        trace?.putAttribute("exercise_count", exerciseCount.toString())
+        trace?.putAttribute("set_count", setCount.toString())
+        trace?.putMetric("duration_seconds", duration ?: 0)
+        
         Log.i(
             TAG,
             "Workout completed - id: $workoutId, name: ${workout.name ?: "Unnamed"}, " +
                 "duration: ${duration ?: 0}s, exercises: $exerciseCount, sets: $setCount, " +
                 "programmeId: ${workout.programmeId ?: "none"}",
         )
+        
+        trace?.stop()
+    }
+
+    private fun safeNewTrace(name: String): Trace? {
+        return try {
+            FirebasePerformance.getInstance().newTrace(name)
+        } catch (e: IllegalStateException) {
+            Log.d(TAG, "Firebase Performance not available - likely in test environment")
+            null
+        } catch (e: Exception) {
+            Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
+            null
+        }
     }
 
     suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> =

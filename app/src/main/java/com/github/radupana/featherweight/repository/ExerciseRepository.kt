@@ -19,6 +19,8 @@ import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.domain.ExerciseStats
+import com.google.firebase.perf.FirebasePerformance
+import com.google.firebase.perf.metrics.Trace
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -132,8 +134,26 @@ class ExerciseRepository(
 
     suspend fun searchExercises(query: String): List<ExerciseVariation> =
         withContext(Dispatchers.IO) {
-            exerciseDao.searchVariations(query)
+            val trace = safeNewTrace("exercise_search")
+            trace?.start()
+            trace?.putAttribute("query_length", query.length.toString())
+            val results = exerciseDao.searchVariations(query)
+            trace?.putAttribute("result_count", results.size.toString())
+            trace?.stop()
+            results
         }
+
+    private fun safeNewTrace(name: String): Trace? {
+        return try {
+            FirebasePerformance.getInstance().newTrace(name)
+        } catch (e: IllegalStateException) {
+            Log.d(TAG, "Firebase Performance not available - likely in test environment")
+            null
+        } catch (e: Exception) {
+            Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
+            null
+        }
+    }
 
     suspend fun getExercisesByCategory(category: ExerciseCategory): List<ExerciseVariation> =
         withContext(Dispatchers.IO) {
