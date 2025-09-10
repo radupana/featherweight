@@ -836,14 +836,17 @@ class FeatherweightRepository(
 
                             // Extract individual values from each set
                             val repsList = sets.map { (it["reps"] as? Double)?.toInt()?.toString() ?: "0" }
-                            val weightsList = sets.map { (it["weight"] as? Double)?.toFloat() ?: 0f }
+                            val weightsList = sets.map { 
+                                val weight = (it["weight"] as? Double)?.toFloat() ?: 0f
+                                WeightFormatter.roundToNearestQuarter(weight)
+                            }
                             // Keep nulls in the list to preserve set indices, but map to null instead of missing
                             val rpeList =
                                 sets
                                     .map { setData ->
                                         val rpeValue = setData["rpe"] as? Double
                                         Log.d("FeatherweightRepository", "        Set data keys: ${setData.keys}, rpe raw value: $rpeValue")
-                                        rpeValue?.toFloat()
+                                        rpeValue?.toFloat()?.let { WeightFormatter.roundRPE(it) }
                                     }.takeIf { list -> list.any { it != null } }
                             Log.d("FeatherweightRepository", "      RPE list after parsing: $rpeList")
 

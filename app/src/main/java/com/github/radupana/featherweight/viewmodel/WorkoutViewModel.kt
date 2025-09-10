@@ -19,6 +19,7 @@ import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
 import com.github.radupana.featherweight.service.OneRMService
 import com.github.radupana.featherweight.service.RestTimerCalculationService
 import com.github.radupana.featherweight.service.RestTimerNotificationService
+import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -630,13 +631,12 @@ class WorkoutViewModel(
                                 id = setIdCounter--, // Unique negative ID for each set
                                 exerciseLogId = exerciseLog.id,
                                 setOrder = setIndex + 1,
-                                targetReps = parsedSet.reps, // TEMPLATE EDIT: Goes to targetReps
-                                targetWeight = parsedSet.weight, // TEMPLATE EDIT: Goes to targetWeight
-                                targetRpe = parsedSet.rpe, // TEMPLATE EDIT: Goes to targetRpe
-                                // Prepopulate actual values with target values for easier completion
+                                targetReps = parsedSet.reps,
+                                targetWeight = parsedSet.weight?.let { WeightFormatter.roundToNearestQuarter(it) },
+                                targetRpe = WeightFormatter.roundRPE(parsedSet.rpe),
                                 actualReps = parsedSet.reps ?: 0,
-                                actualWeight = parsedSet.weight ?: 0f,
-                                actualRpe = parsedSet.rpe, // Prepopulate RPE for template editing
+                                actualWeight = parsedSet.weight?.let { WeightFormatter.roundToNearestQuarter(it) } ?: 0f,
+                                actualRpe = WeightFormatter.roundRPE(parsedSet.rpe),
                                 isCompleted = false,
                             )
 
@@ -998,12 +998,11 @@ class WorkoutViewModel(
                 SetLog(
                     exerciseLogId = exerciseLogId,
                     setOrder = setOrder,
-                    // Only set target values for programme workouts, null for freestyle
                     targetReps = if (isProgrammeWorkout) targetReps else null,
-                    targetWeight = if (isProgrammeWorkout) targetWeight else null,
+                    targetWeight = if (isProgrammeWorkout) targetWeight?.let { WeightFormatter.roundToNearestQuarter(it) } else null,
                     actualReps = reps,
-                    actualWeight = weight,
-                    actualRpe = rpe,
+                    actualWeight = WeightFormatter.roundToNearestQuarter(weight),
+                    actualRpe = WeightFormatter.roundRPE(rpe),
                     tag = null,
                     notes = null,
                     isCompleted = false,
@@ -1083,12 +1082,11 @@ class WorkoutViewModel(
                     SetLog(
                         exerciseLogId = exerciseLogId,
                         setOrder = newSetOrder,
-                        // Only copy target values for programme workouts, set to null for freestyle
                         targetReps = if (isProgrammeWorkout) lastSet.targetReps else null,
-                        targetWeight = if (isProgrammeWorkout) lastSet.targetWeight else null,
+                        targetWeight = if (isProgrammeWorkout) lastSet.targetWeight?.let { WeightFormatter.roundToNearestQuarter(it) } else null,
                         actualReps = lastSet.actualReps,
-                        actualWeight = lastSet.actualWeight,
-                        actualRpe = lastSet.actualRpe,
+                        actualWeight = WeightFormatter.roundToNearestQuarter(lastSet.actualWeight),
+                        actualRpe = WeightFormatter.roundRPE(lastSet.actualRpe),
                         isCompleted = false,
                     )
 
@@ -1114,7 +1112,10 @@ class WorkoutViewModel(
     ) {
         if (!canEditWorkout()) return
 
-        Log.i(TAG, "Updating set - setId: $setId, weight: ${weight}kg, reps: $reps, rpe: $rpe")
+        val roundedWeight = WeightFormatter.roundToNearestQuarter(weight)
+        val roundedRpe = WeightFormatter.roundRPE(rpe)
+
+        Log.i(TAG, "Updating set - setId: $setId, weight: ${roundedWeight}kg, reps: $reps, rpe: $roundedRpe")
 
         viewModelScope.launch {
             val currentSets = _selectedExerciseSets.value
@@ -1127,17 +1128,17 @@ class WorkoutViewModel(
                     if (_workoutState.value.mode == WorkoutMode.TEMPLATE_EDIT) {
                         currentSet.copy(
                             targetReps = reps,
-                            targetWeight = weight,
-                            targetRpe = rpe,
+                            targetWeight = roundedWeight,
+                            targetRpe = roundedRpe,
                             actualReps = reps,
-                            actualWeight = weight,
-                            actualRpe = rpe,
+                            actualWeight = roundedWeight,
+                            actualRpe = roundedRpe,
                         )
                     } else {
                         currentSet.copy(
                             actualReps = reps,
-                            actualWeight = weight,
-                            actualRpe = rpe,
+                            actualWeight = roundedWeight,
+                            actualRpe = roundedRpe,
                         )
                     }
 

@@ -76,4 +76,30 @@ object WeightFormatter {
             String.format(Locale.US, "%.1f", rpe)
         }
     }
+
+    /**
+     * Rounds RPE to nearest 0.5 (0.0, 0.5, 1.0, 1.5, etc.)
+     * and clamps between 0 and 10
+     */
+    fun roundRPE(rpe: Float?): Float? {
+        if (rpe == null) return null
+        return (round(rpe * 2) / 2).coerceIn(0f, 10f)
+    }
+
+    /**
+     * Validates that a weight value is properly rounded to 0.25 increments
+     */
+    fun isValidWeight(weight: Float): Boolean {
+        val rounded = roundToNearestQuarter(weight)
+        return kotlin.math.abs(weight - rounded) < 0.001f
+    }
+
+    /**
+     * Validates that an RPE value is properly rounded to 0.5 increments
+     */
+    fun isValidRPE(rpe: Float?): Boolean {
+        if (rpe == null) return true
+        val rounded = roundRPE(rpe)
+        return kotlin.math.abs(rpe - (rounded ?: 0f)) < 0.001f
+    }
 }

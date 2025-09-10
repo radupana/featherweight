@@ -75,7 +75,7 @@ fun Add1RMDialog(
                 onClick = {
                     val weight = weightText.toFloatOrNull()
                     if (weight != null && weight > 0) {
-                        onSave(weight)
+                        onSave(WeightFormatter.roundToNearestQuarter(weight))
                     }
                 },
                 enabled = weightText.isNotEmpty() && !isError,

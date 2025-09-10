@@ -583,7 +583,9 @@ private fun CleanSetRow(
                                 onValueChange = { newValue ->
                                     if (!set.isCompleted && !readOnly) {
                                         weightValue = newValue
-                                        val weight = newValue.text.toFloatOrNull() ?: 0f
+                                        val weight = newValue.text.toFloatOrNull()?.let { 
+                                            WeightFormatter.roundToNearestQuarter(it)
+                                        } ?: 0f
                                         onUpdateSet(set.actualReps, weight, set.actualRpe)
                                     }
                                 },
@@ -705,11 +707,9 @@ private fun CleanSetRow(
                                 onValueChange = { newValue ->
                                     if (!set.isCompleted && !readOnly) {
                                         rpeValue = newValue
-                                        val rpe =
-                                            newValue.text.toFloatOrNull()?.let { value ->
-                                                // Round to nearest 0.5 and clamp between 0 and 10
-                                                (kotlin.math.round(value * 2) / 2).coerceIn(0f, 10f)
-                                            }
+                                        val rpe = newValue.text.toFloatOrNull()?.let { value ->
+                                            WeightFormatter.roundRPE(value)
+                                        }
                                         onUpdateSet(set.actualReps, set.actualWeight, rpe)
                                     }
                                 },
