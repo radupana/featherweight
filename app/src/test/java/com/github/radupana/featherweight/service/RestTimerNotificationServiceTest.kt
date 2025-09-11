@@ -4,6 +4,8 @@ import android.content.Context
 import android.os.Vibrator
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import org.junit.Assume
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -14,16 +16,13 @@ class RestTimerNotificationServiceTest {
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val service = RestTimerNotificationService(context)
+    
+    private val isCI = System.getenv("CI") == "true"
 
     @Test
     fun `notifyTimerCompleted triggers vibration`() {
         // Skip vibrator shadow tests in CI to avoid native runtime issues
-        if (System.getenv("CI") == "true") {
-            // Just ensure the method doesn't crash
-            service.notifyTimerCompleted()
-            assertThat(true).isTrue() // Test passes if no exception
-            return
-        }
+        Assume.assumeFalse("Skipping vibrator shadow test in CI", isCI)
         
         val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         val shadowVibrator = shadowOf(vibrator)
@@ -47,12 +46,7 @@ class RestTimerNotificationServiceTest {
     @Test
     fun `vibration checks device capability before attempting to vibrate`() {
         // Skip vibrator shadow manipulation in CI to avoid native runtime issues
-        if (System.getenv("CI") == "true") {
-            // Just ensure the method doesn't crash
-            service.notifyTimerCompleted()
-            assertThat(true).isTrue() // Test passes if no exception
-            return
-        }
+        Assume.assumeFalse("Skipping vibrator shadow test in CI", isCI)
         
         val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         val shadowVibrator = shadowOf(vibrator)
