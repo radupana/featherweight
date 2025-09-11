@@ -119,6 +119,15 @@ android {
                     showCauses = true
                     showStackTraces = true
                 }
+                // Add JVM arguments to prevent crashes
+                it.jvmArgs(
+                    "-XX:+EnableDynamicAgentLoading",  // Suppress Java agent warning
+                    "-Xmx1024m",  // Increase max heap size
+                    "-XX:MaxMetaspaceSize=512m",  // Increase metaspace
+                    "-XX:+HeapDumpOnOutOfMemoryError",  // Dump heap on OOM
+                    "-XX:HeapDumpPath=build/reports/heap-dump.hprof",
+                    "-Djdk.instrument.traceUsage=false"  // Disable agent usage tracing
+                )
             }
         }
     }
