@@ -62,6 +62,8 @@ jobs:
         }' > app/google-services.json
     
     - name: Run Unit Tests
+      env:
+        CI: true  # Explicitly set CI environment variable for Robolectric configuration
       run: ./gradlew testDebugUnitTest --info --stacktrace || (cat app/build/reports/tests/testDebugUnitTest/*.html 2>/dev/null; exit 1)
     
     - name: Upload test results

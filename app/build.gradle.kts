@@ -128,6 +128,19 @@ android {
                     "-XX:HeapDumpPath=build/reports/heap-dump.hprof",
                     "-Djdk.instrument.traceUsage=false"  // Disable agent usage tracing
                 )
+                
+                // CI-specific configuration
+                if (System.getenv("CI") == "true") {
+                    it.systemProperty("robolectric.logging.enabled", "true")
+                    // Don't use local dependency dir - let Robolectric download what it needs
+                    it.systemProperty("robolectric.offline", "false")
+                    // Disable graphics/audio in CI
+                    it.systemProperty("java.awt.headless", "true")
+                    // Skip problematic native calls
+                    it.systemProperty("robolectric.nativeruntime.enableGraphics", "false")
+                }
+                
+                it.maxParallelForks = 1  // Run tests sequentially to avoid concurrency issues
             }
         }
     }
