@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
-    id("jacoco")
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
     id("com.google.firebase.firebase-perf")
@@ -87,6 +86,10 @@ android {
     buildTypes {
         debug {
             enableUnitTestCoverage = true
+            enableAndroidTestCoverage = true
+            // Ensure consistent class generation for coverage
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
         create("alpha") {
             initWith(getByName("debug"))
@@ -234,54 +237,4 @@ tasks.named("preBuild") {
 
 tasks.named("check") {
     dependsOn("detekt", "ktlintCheck")
-}
-
-// Detekt runs on check task
-// Enable for preBuild once all issues are resolved
-
-// JaCoCo configuration for code coverage
-tasks.withType<Test> {
-    configure<JacocoTaskExtension> {
-        isIncludeNoLocationClasses = true
-        excludes = listOf("jdk.internal.*")
-    }
-}
-
-tasks.register<JacocoReport>("jacocoTestReport") {
-    dependsOn("testDebugUnitTest")
-
-    reports {
-        xml.required.set(true)
-        html.required.set(true)
-    }
-
-    val fileFilter =
-        listOf(
-            "**/R.class",
-            "**/R$*.class",
-            "**/BuildConfig.*",
-            "**/Manifest*.*",
-            "**/*Test*.*",
-            "android/**/*.*",
-            "**/databinding/**/*.*",
-            "**/generated/**/*.*",
-        )
-
-    val debugTree =
-        fileTree(layout.buildDirectory.dir("intermediates/javac/debug")) {
-            exclude(fileFilter)
-        }
-
-    val kotlinDebugTree =
-        fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
-            exclude(fileFilter)
-        }
-
-    sourceDirectories.setFrom(files("src/main/java", "src/main/kotlin"))
-    classDirectories.setFrom(files(debugTree, kotlinDebugTree))
-    executionData.setFrom(
-        fileTree(layout.buildDirectory) {
-            include("**/*.exec", "**/*.ec")
-        },
-    )
 }

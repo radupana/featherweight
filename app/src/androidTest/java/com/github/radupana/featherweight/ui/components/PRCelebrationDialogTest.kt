@@ -19,7 +19,7 @@ class PRCelebrationDialogTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `dialog displays New Personal Record title for weight PRs`() {
+    fun dialogDisplaysNewPersonalRecordTitleForWeightPRs() {
         val weightPR = createWeightPR()
         val records = listOf(weightPR)
         val exerciseNames = mapOf(1L to "Barbell Bench Press")
@@ -47,7 +47,7 @@ class PRCelebrationDialogTest {
     }
 
     @Test
-    fun `dialog displays New Personal Record title for 1RM PRs`() {
+    fun dialogDisplaysNewPersonalRecordTitleFor1RMPRs() {
         val oneRmPR = createOneRMPR()
         val records = listOf(oneRmPR)
         val exerciseNames = mapOf(1L to "Barbell Squat")
@@ -75,7 +75,7 @@ class PRCelebrationDialogTest {
     }
 
     @Test
-    fun `dialog shows only first PR when multiple PRs exist`() {
+    fun dialogShowsOnlyFirstPRWhenMultiplePRsExist() {
         val weightPR = createWeightPR()
         val oneRmPR = createOneRMPR()
         val records = listOf(weightPR, oneRmPR)
@@ -101,7 +101,7 @@ class PRCelebrationDialogTest {
     }
 
     @Test
-    fun `dialog shows New One Rep Max text when weight PR has estimated 1RM`() {
+    fun dialogShowsNewOneRepMaxTextWhenWeightPRHasEstimated1RM() {
         val weightPR = createWeightPR().copy(estimated1RM = 125f)
         val records = listOf(weightPR)
         val exerciseNames = mapOf(1L to "Barbell Row")
@@ -119,7 +119,7 @@ class PRCelebrationDialogTest {
     }
 
     @Test
-    fun `dialog handles dismiss callback when Continue Workout is clicked`() {
+    fun dialogHandlesDismissCallbackWhenContinueWorkoutIsClicked() {
         val weightPR = createWeightPR()
         val records = listOf(weightPR)
         val exerciseNames = mapOf(1L to "Barbell Press")
@@ -141,7 +141,7 @@ class PRCelebrationDialogTest {
     }
 
     @Test
-    fun `dialog displays previous record comparison when available`() {
+    fun dialogDisplaysPreviousRecordComparisonWhenAvailable() {
         val prWithPrevious =
             createWeightPR().copy(
                 previousWeight = 95f,
@@ -167,7 +167,7 @@ class PRCelebrationDialogTest {
     }
 
     @Test
-    fun `dialog displays PR without RPE when RPE is null`() {
+    fun dialogDisplaysPRWithoutRPEWhenRPEIsNull() {
         val prWithoutRpe = createWeightPR().copy(rpe = null)
         val records = listOf(prWithoutRpe)
         val exerciseNames = mapOf(1L to "Cable Row")
@@ -187,7 +187,7 @@ class PRCelebrationDialogTest {
     }
 
     @Test
-    fun `dialog does not render when PR list is empty`() {
+    fun dialogDoesNotRenderWhenPRListIsEmpty() {
         val records = emptyList<PersonalRecord>()
         val exerciseNames = emptyMap<Long, String>()
         var dialogRendered = false
@@ -206,7 +206,7 @@ class PRCelebrationDialogTest {
     }
 
     @Test
-    fun `dialog handles unknown exercise name gracefully`() {
+    fun dialogHandlesUnknownExerciseNameGracefully() {
         val weightPR = createWeightPR()
         val records = listOf(weightPR)
         val exerciseNames = emptyMap<Long, String>() // No exercise name mapping
@@ -226,7 +226,7 @@ class PRCelebrationDialogTest {
     }
 
     @Test
-    fun `dialog shows potential lift suggestion when notes contain could potentially lift`() {
+    fun dialogShowsPotentialLiftSuggestionWhenNotesContainCouldPotentiallyLift() {
         val prWithNotes =
             createWeightPR().copy(
                 notes = "Great lift! (Based on your 130.5kg 1RM, you could potentially lift more)",

@@ -19,7 +19,7 @@ class ExerciseMappingScreenTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `clicking Create as Custom Exercise shows dialog`() {
+    fun clickingCreateAsCustomExerciseShowsDialog() {
         val unmatchedExercises = listOf("Custom Squat", "Custom Press")
 
         composeTestRule.setContent {
@@ -44,7 +44,7 @@ class ExerciseMappingScreenTest {
     }
 
     @Test
-    fun `dialog shows exercise name prepopulated`() {
+    fun dialogShowsExerciseNamePrepopulated() {
         val unmatchedExercises = listOf("Barbell Hack Squat")
 
         composeTestRule.setContent {
@@ -61,7 +61,7 @@ class ExerciseMappingScreenTest {
     }
 
     @Test
-    fun `cancel button in dialog closes it`() {
+    fun cancelButtonInDialogClosesIt() {
         val unmatchedExercises = listOf("Test Exercise")
 
         composeTestRule.setContent {
@@ -81,7 +81,7 @@ class ExerciseMappingScreenTest {
     }
 
     @Test
-    fun `navigation between exercises works correctly`() {
+    fun navigationBetweenExercisesWorksCorrectly() {
         val unmatchedExercises = listOf("Exercise 1", "Exercise 2", "Exercise 3")
 
         composeTestRule.setContent {
@@ -104,7 +104,7 @@ class ExerciseMappingScreenTest {
     }
 
     @Test
-    fun `progress indicator shows correct count`() {
+    fun progressIndicatorShowsCorrectCount() {
         val unmatchedExercises = listOf("Exercise A", "Exercise B", "Exercise C", "Exercise D")
 
         composeTestRule.setContent {
@@ -120,7 +120,7 @@ class ExerciseMappingScreenTest {
     }
 
     @Test
-    fun `back button is displayed and clickable`() {
+    fun backButtonIsDisplayedAndClickable() {
         var backClicked = false
         val unmatchedExercises = listOf("Test Exercise")
 
@@ -138,7 +138,7 @@ class ExerciseMappingScreenTest {
     }
 
     @Test
-    fun `clear button removes mapping`() {
+    fun clearButtonRemovesMapping() {
         val unmatchedExercises = listOf("Test Exercise")
 
         composeTestRule.setContent {
@@ -153,7 +153,7 @@ class ExerciseMappingScreenTest {
     }
 
     @Test
-    fun `action buttons remain accessible when search results expand`() {
+    fun actionButtonsRemainAccessibleWhenSearchResultsExpand() {
         val unmatchedExercises = listOf("Barbell Squat", "Dumbbell Press", "Cable Row")
 
         composeTestRule.setContent {
@@ -175,7 +175,7 @@ class ExerciseMappingScreenTest {
     }
 
     @Test
-    fun `screen scrolls properly with expanded search results`() {
+    fun screenScrollsProperlyWithExpandedSearchResults() {
         val unmatchedExercises = listOf("Test Exercise 1")
 
         composeTestRule.setContent {
@@ -196,7 +196,7 @@ class ExerciseMappingScreenTest {
     }
 
     @Test
-    fun `progress indicator remains visible after scrolling`() {
+    fun progressIndicatorRemainsVisibleAfterScrolling() {
         val unmatchedExercises = listOf("Exercise 1", "Exercise 2", "Exercise 3")
 
         composeTestRule.setContent {
@@ -214,7 +214,7 @@ class ExerciseMappingScreenTest {
     }
 
     @Test
-    fun `navigation buttons accessible with long search results`() {
+    fun navigationButtonsAccessibleWithLongSearchResults() {
         val unmatchedExercises = listOf("First", "Second", "Third")
 
         composeTestRule.setContent {
@@ -234,7 +234,7 @@ class ExerciseMappingScreenTest {
     }
 
     @Test
-    fun `create custom exercise button accessible with search results`() {
+    fun createCustomExerciseButtonAccessibleWithSearchResults() {
         val unmatchedExercises = listOf("Custom Exercise Name")
 
         composeTestRule.setContent {

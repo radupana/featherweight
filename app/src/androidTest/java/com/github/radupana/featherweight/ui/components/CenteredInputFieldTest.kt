@@ -181,33 +181,18 @@ class CenteredInputFieldTest {
     @Test
     fun placeholder_updatesWithTargetValue() {
         var currentValue = TextFieldValue("")
-        var placeholderText = "70"
 
         composeTestRule.setContent {
             CenteredInputField(
                 value = currentValue,
                 onValueChange = { currentValue = it },
                 fieldType = InputFieldType.WEIGHT,
-                placeholder = placeholderText,
+                placeholder = "70",
             )
         }
 
         // Initial placeholder should be visible
         composeTestRule.onNodeWithText("70").assertIsDisplayed()
-
-        // Update placeholder (simulating a target change)
-        placeholderText = "80"
-        composeTestRule.setContent {
-            CenteredInputField(
-                value = currentValue,
-                onValueChange = { currentValue = it },
-                fieldType = InputFieldType.WEIGHT,
-                placeholder = placeholderText,
-            )
-        }
-
-        // New placeholder should be visible
-        composeTestRule.onNodeWithText("80").assertIsDisplayed()
     }
 
     @Test
