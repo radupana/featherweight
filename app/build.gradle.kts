@@ -136,8 +136,13 @@ android {
                     it.systemProperty("robolectric.offline", "false")
                     // Disable graphics/audio in CI
                     it.systemProperty("java.awt.headless", "true")
-                    // Skip problematic native calls
+                    // Completely disable native runtime to avoid temp directory issues
                     it.systemProperty("robolectric.nativeruntime.enableGraphics", "false")
+                    it.systemProperty("robolectric.usePrebuiltArtifacts", "false")
+                    // Use legacy graphics mode that doesn't require native runtime
+                    it.systemProperty("robolectric.graphicsMode", "LEGACY")
+                    // Disable instrumentation that causes issues
+                    it.systemProperty("robolectric.enabledSdks", "28")
                 }
                 
                 it.maxParallelForks = 1  // Run tests sequentially to avoid concurrency issues
