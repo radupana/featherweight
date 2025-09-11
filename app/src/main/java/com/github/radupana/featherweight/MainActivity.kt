@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -344,6 +345,24 @@ fun MainAppWithNavigation(
                 val importViewModel: ImportProgrammeViewModel = viewModel()
                 val historyViewModel: HistoryViewModel = viewModel()
                 val coroutineScope = rememberCoroutineScope()
+                
+                // Handle workout export file saving
+                val historyState by historyViewModel.historyState.collectAsState()
+                val saveFileLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.CreateDocument("application/json")
+                ) { uri ->
+                    uri?.let {
+                        historyViewModel.saveExportedFile(it)
+                    }
+                }
+                
+                // Launch save dialog when export is ready
+                LaunchedEffect(historyState.pendingExportFile) {
+                    historyState.pendingExportFile?.let { file ->
+                        saveFileLauncher.launch(file.name)
+                    }
+                }
+                
                 WorkoutScreen(
                     onBack = {
                         // Refresh programme data if this was a programme workout
