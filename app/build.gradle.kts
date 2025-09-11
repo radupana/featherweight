@@ -114,7 +114,7 @@ android {
         unitTests {
             isIncludeAndroidResources = true
             all {
-                it.ignoreFailures = true
+                it.ignoreFailures = false
             }
         }
     }
