@@ -227,15 +227,17 @@ class WorkoutExportService(
         exportOptions: ExportOptions,
     ): File =
         withContext(Dispatchers.IO) {
-            val workout = workoutDao.getWorkoutById(workoutId)
-                ?: throw IllegalArgumentException("Workout not found")
+            val workout =
+                workoutDao.getWorkoutById(workoutId)
+                    ?: throw IllegalArgumentException("Workout not found")
 
-            val fileName = buildString {
-                append("workout_")
-                append(workout.date.toLocalDate())
-                workout.name?.let { append("_${it.replace(" ", "_")}") }
-                append("_${System.currentTimeMillis()}.json")
-            }
+            val fileName =
+                buildString {
+                    append("workout_")
+                    append(workout.date.toLocalDate())
+                    workout.name?.let { append("_${it.replace(" ", "_")}") }
+                    append("_${System.currentTimeMillis()}.json")
+                }
 
             val tempFile = File(context.cacheDir, fileName)
 
@@ -281,11 +283,12 @@ class WorkoutExportService(
             require(workouts.isNotEmpty()) { "No completed workouts found for programme" }
 
             val programmeName = workouts.firstOrNull()?.programmeWorkoutName ?: "programme"
-            val fileName = buildString {
-                append("programme_")
-                append(programmeName.replace(" ", "_"))
-                append("_${System.currentTimeMillis()}.json")
-            }
+            val fileName =
+                buildString {
+                    append("programme_")
+                    append(programmeName.replace(" ", "_"))
+                    append("_${System.currentTimeMillis()}.json")
+                }
 
             val tempFile = File(context.cacheDir, fileName)
 

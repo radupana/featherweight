@@ -21,13 +21,14 @@ class ProgrammeHistoryDetailViewModel(
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
     private val database = FeatherweightDatabase.getDatabase(application)
-    private val exportService = WorkoutExportService(
-        database.workoutDao(),
-        database.exerciseLogDao(),
-        database.setLogDao(),
-        database.oneRMDao(),
-        repository
-    )
+    private val exportService =
+        WorkoutExportService(
+            database.workoutDao(),
+            database.exerciseLogDao(),
+            database.setLogDao(),
+            database.oneRMDao(),
+            repository,
+        )
     private val exportHandler = ExportHandler(application)
 
     companion object {
@@ -51,7 +52,7 @@ class ProgrammeHistoryDetailViewModel(
 
     private val _exportProgress = MutableStateFlow(0f)
     val exportProgress: StateFlow<Float> = _exportProgress.asStateFlow()
-    
+
     private val _pendingExportFile = MutableStateFlow<java.io.File?>(null)
     val pendingExportFile: StateFlow<java.io.File?> = _pendingExportFile.asStateFlow()
 
@@ -85,20 +86,22 @@ class ProgrammeHistoryDetailViewModel(
             _exportProgress.value = 0f
 
             try {
-                val exportOptions = ExportOptions(
-                    includeBodyweight = false,
-                    includeOneRepMaxes = true,
-                    includeNotes = true,
-                    includeProfile = false
-                )
+                val exportOptions =
+                    ExportOptions(
+                        includeBodyweight = false,
+                        includeOneRepMaxes = true,
+                        includeNotes = true,
+                        includeProfile = false,
+                    )
 
-                val file = exportService.exportProgrammeWorkouts(
-                    getApplication(),
-                    programmeId,
-                    exportOptions
-                ) { current, total ->
-                    _exportProgress.value = current.toFloat() / total.toFloat()
-                }
+                val file =
+                    exportService.exportProgrammeWorkouts(
+                        getApplication(),
+                        programmeId,
+                        exportOptions,
+                    ) { current, total ->
+                        _exportProgress.value = current.toFloat() / total.toFloat()
+                    }
 
                 _pendingExportFile.value = file
                 _isExporting.value = false
@@ -110,7 +113,7 @@ class ProgrammeHistoryDetailViewModel(
             }
         }
     }
-    
+
     fun saveExportedFile(uri: android.net.Uri) {
         viewModelScope.launch {
             _pendingExportFile.value?.let { file ->
@@ -124,7 +127,7 @@ class ProgrammeHistoryDetailViewModel(
             }
         }
     }
-    
+
     fun clearPendingExport() {
         _pendingExportFile.value?.delete()
         _pendingExportFile.value = null

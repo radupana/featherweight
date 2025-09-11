@@ -4,7 +4,6 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class WeightFormatterRoundingTest {
-
     @Test
     fun `roundToNearestQuarter rounds all possible values correctly`() {
         // Test exact quarters
@@ -13,34 +12,34 @@ class WeightFormatterRoundingTest {
         assertThat(WeightFormatter.roundToNearestQuarter(0.5f)).isEqualTo(0.5f)
         assertThat(WeightFormatter.roundToNearestQuarter(0.75f)).isEqualTo(0.75f)
         assertThat(WeightFormatter.roundToNearestQuarter(1.0f)).isEqualTo(1.0f)
-        
+
         // Test values that should round down
         assertThat(WeightFormatter.roundToNearestQuarter(0.1f)).isEqualTo(0.0f)
         assertThat(WeightFormatter.roundToNearestQuarter(0.12f)).isEqualTo(0.0f)
         assertThat(WeightFormatter.roundToNearestQuarter(0.124f)).isEqualTo(0.0f)
-        
+
         // Test values that should round up to 0.25
         assertThat(WeightFormatter.roundToNearestQuarter(0.13f)).isEqualTo(0.25f)
         assertThat(WeightFormatter.roundToNearestQuarter(0.2f)).isEqualTo(0.25f)
         assertThat(WeightFormatter.roundToNearestQuarter(0.37f)).isEqualTo(0.25f)
-        
+
         // Test values that should round to 0.5
         assertThat(WeightFormatter.roundToNearestQuarter(0.38f)).isEqualTo(0.5f)
         assertThat(WeightFormatter.roundToNearestQuarter(0.4f)).isEqualTo(0.5f)
         assertThat(WeightFormatter.roundToNearestQuarter(0.6f)).isEqualTo(0.5f)
         assertThat(WeightFormatter.roundToNearestQuarter(0.62f)).isEqualTo(0.5f)
-        
+
         // Test values that should round to 0.75
         assertThat(WeightFormatter.roundToNearestQuarter(0.63f)).isEqualTo(0.75f)
         assertThat(WeightFormatter.roundToNearestQuarter(0.7f)).isEqualTo(0.75f)
         assertThat(WeightFormatter.roundToNearestQuarter(0.87f)).isEqualTo(0.75f)
-        
+
         // Test values that should round to 1.0
         assertThat(WeightFormatter.roundToNearestQuarter(0.88f)).isEqualTo(1.0f)
         assertThat(WeightFormatter.roundToNearestQuarter(0.9f)).isEqualTo(1.0f)
         assertThat(WeightFormatter.roundToNearestQuarter(1.1f)).isEqualTo(1.0f)
         assertThat(WeightFormatter.roundToNearestQuarter(1.12f)).isEqualTo(1.0f)
-        
+
         // Test larger values
         assertThat(WeightFormatter.roundToNearestQuarter(17.612f)).isEqualTo(17.5f)
         assertThat(WeightFormatter.roundToNearestQuarter(17.735f)).isEqualTo(17.75f)
@@ -56,14 +55,14 @@ class WeightFormatterRoundingTest {
         assertThat(WeightFormatter.roundRPE(1.0f)).isEqualTo(1.0f)
         assertThat(WeightFormatter.roundRPE(7.5f)).isEqualTo(7.5f)
         assertThat(WeightFormatter.roundRPE(10.0f)).isEqualTo(10.0f)
-        
+
         // Test values that should round down
         assertThat(WeightFormatter.roundRPE(0.1f)).isEqualTo(0.0f)
         assertThat(WeightFormatter.roundRPE(0.2f)).isEqualTo(0.0f)
         assertThat(WeightFormatter.roundRPE(0.24f)).isEqualTo(0.0f)
         assertThat(WeightFormatter.roundRPE(7.1f)).isEqualTo(7.0f)
         assertThat(WeightFormatter.roundRPE(7.24f)).isEqualTo(7.0f)
-        
+
         // Test values that should round up to 0.5
         assertThat(WeightFormatter.roundRPE(0.26f)).isEqualTo(0.5f)
         assertThat(WeightFormatter.roundRPE(0.3f)).isEqualTo(0.5f)
@@ -71,17 +70,17 @@ class WeightFormatterRoundingTest {
         assertThat(WeightFormatter.roundRPE(7.26f)).isEqualTo(7.5f)
         assertThat(WeightFormatter.roundRPE(7.3f)).isEqualTo(7.5f)
         assertThat(WeightFormatter.roundRPE(7.74f)).isEqualTo(7.5f)
-        
+
         // Test values that should round to next integer
         assertThat(WeightFormatter.roundRPE(0.75f)).isEqualTo(1.0f)
         assertThat(WeightFormatter.roundRPE(0.8f)).isEqualTo(1.0f)
         assertThat(WeightFormatter.roundRPE(7.75f)).isEqualTo(8.0f)
         assertThat(WeightFormatter.roundRPE(7.8f)).isEqualTo(8.0f)
         assertThat(WeightFormatter.roundRPE(9.75f)).isEqualTo(10.0f)
-        
+
         // Test null handling
         assertThat(WeightFormatter.roundRPE(null)).isNull()
-        
+
         // Test clamping to 0-10 range
         assertThat(WeightFormatter.roundRPE(-1.0f)).isEqualTo(0.0f)
         assertThat(WeightFormatter.roundRPE(-5.0f)).isEqualTo(0.0f)
@@ -102,7 +101,7 @@ class WeightFormatterRoundingTest {
         assertThat(WeightFormatter.isValidWeight(100.25f)).isTrue()
         assertThat(WeightFormatter.isValidWeight(100.5f)).isTrue()
         assertThat(WeightFormatter.isValidWeight(100.75f)).isTrue()
-        
+
         // Invalid weights (not multiples of 0.25)
         assertThat(WeightFormatter.isValidWeight(0.1f)).isFalse()
         assertThat(WeightFormatter.isValidWeight(0.2f)).isFalse()
@@ -129,7 +128,7 @@ class WeightFormatterRoundingTest {
         assertThat(WeightFormatter.isValidRPE(8.0f)).isTrue()
         assertThat(WeightFormatter.isValidRPE(9.5f)).isTrue()
         assertThat(WeightFormatter.isValidRPE(10.0f)).isTrue()
-        
+
         // Invalid RPE values (not multiples of 0.5)
         assertThat(WeightFormatter.isValidRPE(0.1f)).isFalse()
         assertThat(WeightFormatter.isValidRPE(0.25f)).isFalse()

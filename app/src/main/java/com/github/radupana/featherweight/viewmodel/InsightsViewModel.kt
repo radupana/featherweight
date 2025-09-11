@@ -88,7 +88,7 @@ class InsightsViewModel(
         viewModelScope.launch {
             val trace = safeNewTrace("insights_calculation")
             trace?.start()
-            
+
             try {
                 val recentPRs =
                     withContext(Dispatchers.IO) {
@@ -117,7 +117,7 @@ class InsightsViewModel(
                 trace?.putAttribute("weekly_workouts", weeklyWorkoutCount.toString())
                 trace?.putAttribute("current_streak", currentStreak.toString())
                 trace?.stop()
-                
+
                 onComplete(recentPRs, weeklyWorkoutCount, currentStreak)
             } catch (e: android.database.sqlite.SQLiteException) {
                 Log.e("InsightsViewModel", "Error", e)
@@ -238,7 +238,7 @@ class InsightsViewModel(
         withContext(Dispatchers.IO) {
             val trace = safeNewTrace("training_analysis")
             trace?.start()
-            
+
             val endDate = LocalDate.now()
             val startDate = endDate.minusWeeks(ANALYSIS_PERIOD_WEEKS.toLong())
             val workouts = repository.getWorkoutsByDateRange(startDate, endDate)
@@ -253,8 +253,8 @@ class InsightsViewModel(
             analysis
         }
 
-    private fun safeNewTrace(name: String): Trace? {
-        return try {
+    private fun safeNewTrace(name: String): Trace? =
+        try {
             FirebasePerformance.getInstance().newTrace(name)
         } catch (e: IllegalStateException) {
             Log.d(TAG, "Firebase Performance not available - likely in test environment")
@@ -263,7 +263,6 @@ class InsightsViewModel(
             Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
             null
         }
-    }
 
     private suspend fun buildAnalysisPayload(workouts: List<WorkoutSummary>): String {
         val payload = JsonObject()

@@ -330,11 +330,12 @@ private fun PerformanceAnalysisCard(
     onToggle: () -> Unit,
 ) {
     var showAllImprovements by remember { mutableStateOf(false) }
-    
+
     GlassmorphicCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onToggle() },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onToggle() },
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -391,9 +392,10 @@ private fun PerformanceAnalysisCard(
                         fontWeight = FontWeight.SemiBold,
                     )
 
-                    val topImprovements = stats.strengthImprovements
-                        .sortedByDescending { it.improvementPercentage }
-                        .take(5)
+                    val topImprovements =
+                        stats.strengthImprovements
+                            .sortedByDescending { it.improvementPercentage }
+                            .take(5)
 
                     topImprovements.forEach { improvement ->
                         Row(
@@ -584,7 +586,6 @@ private fun NotesCard(
         }
     }
 }
-
 
 private fun formatAverageDuration(duration: java.time.Duration): String {
     val totalMinutes = duration.toMinutes()

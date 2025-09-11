@@ -22,10 +22,10 @@ interface ParseRequestDao {
 
     @Query("SELECT * FROM parse_requests WHERE id = :id")
     suspend fun getRequest(id: Long): ParseRequest?
-    
+
     @Query("SELECT * FROM parse_requests WHERE status IN ('PROCESSING', 'COMPLETED') ORDER BY createdAt DESC LIMIT 1")
     suspend fun getPendingRequest(): ParseRequest?
-    
+
     @Query("SELECT COUNT(*) FROM parse_requests WHERE status IN ('PROCESSING', 'COMPLETED')")
     suspend fun getPendingRequestCount(): Int
 }

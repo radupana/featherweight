@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,7 +37,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -77,17 +77,18 @@ fun ProgrammeHistoryDetailScreen(
     val isExporting by viewModel.isExporting.collectAsState()
     val exportProgress by viewModel.exportProgress.collectAsState()
     val pendingExportFile by viewModel.pendingExportFile.collectAsState()
-    
+
     var showExportDialog by remember { mutableStateOf(false) }
 
     // File save launcher
-    val saveFileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        uri?.let {
-            viewModel.saveExportedFile(it)
+    val saveFileLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/json"),
+        ) { uri ->
+            uri?.let {
+                viewModel.saveExportedFile(it)
+            }
         }
-    }
 
     // Launch save dialog when export is ready
     LaunchedEffect(pendingExportFile) {
@@ -113,22 +114,22 @@ fun ProgrammeHistoryDetailScreen(
                     if (!isLoading && programmeDetails != null) {
                         IconButton(
                             onClick = { showExportDialog = true },
-                            enabled = !isExporting
+                            enabled = !isExporting,
                         ) {
                             if (isExporting) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp
+                                    strokeWidth = 2.dp,
                                 )
                             } else {
                                 Icon(
                                     Icons.Default.FileDownload,
-                                    contentDescription = "Export Programme"
+                                    contentDescription = "Export Programme",
                                 )
                             }
                         }
                     }
-                }
+                },
             )
         },
         modifier = modifier,
@@ -184,46 +185,47 @@ fun ProgrammeHistoryDetailScreen(
                         onViewWorkout = onViewWorkout,
                         modifier = Modifier.padding(paddingValues),
                     )
-                    
+
                     if (isExporting && exportProgress > 0f) {
                         LinearProgressIndicator(
                             progress = { exportProgress },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .align(Alignment.TopCenter)
-                                .padding(paddingValues),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .align(Alignment.TopCenter)
+                                    .padding(paddingValues),
                         )
                     }
                 }
             }
         }
     }
-    
+
     // Export confirmation dialog
     if (showExportDialog) {
         programmeDetails?.let { details ->
             AlertDialog(
                 onDismissRequest = { showExportDialog = false },
                 title = { Text("Export Programme") },
-                text = { 
+                text = {
                     Text("Export \"${details.name}\"?")
                 },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.exportProgramme(programmeId)
-                        showExportDialog = false
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.exportProgramme(programmeId)
+                            showExportDialog = false
+                        },
+                    ) {
+                        Text("Export")
                     }
-                ) {
-                    Text("Export")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showExportDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
+                },
+                dismissButton = {
+                    TextButton(onClick = { showExportDialog = false }) {
+                        Text("Cancel")
+                    }
+                },
+            )
         }
     }
 }
@@ -303,7 +305,6 @@ fun ProgrammeDetailsContent(
                 )
             }
         }
-
 
         // Programme Insights Section (if stats available)
         if (completionStats != null) {
@@ -473,9 +474,10 @@ fun WorkoutHistoryEntryCard(
                 .fillMaxWidth()
                 .clickable { onViewWorkout() },
         elevation = CardDefaults.cardElevation(1.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            ),
     ) {
         Row(
             modifier =
@@ -551,7 +553,6 @@ fun WorkoutHistoryEntryCard(
                     )
                 }
             }
-
         }
     }
 }
@@ -588,7 +589,7 @@ fun ProgrammeInsightsSection(
     onToggleDetailedAnalysis: () -> Unit,
 ) {
     var showAllImprovements by remember { mutableStateOf(false) }
-    
+
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -602,9 +603,10 @@ fun ProgrammeInsightsSection(
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(2.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
+            colors =
+                CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -728,21 +730,24 @@ fun ProgrammeInsightsSection(
         // Performance Analysis - Expandable
         if (stats.strengthImprovements.isNotEmpty()) {
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onToggleDetailedAnalysis() },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onToggleDetailedAnalysis() },
                 elevation = CardDefaults.cardElevation(2.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -798,9 +803,10 @@ fun ProgrammeInsightsSection(
                                 fontWeight = FontWeight.SemiBold,
                             )
 
-                            val topImprovements = stats.strengthImprovements
-                                .sortedByDescending { it.improvementPercentage }
-                                .take(5)
+                            val topImprovements =
+                                stats.strengthImprovements
+                                    .sortedByDescending { it.improvementPercentage }
+                                    .take(5)
 
                             topImprovements.forEach { improvement ->
                                 Row(

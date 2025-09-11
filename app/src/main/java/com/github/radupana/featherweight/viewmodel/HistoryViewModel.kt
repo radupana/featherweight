@@ -62,13 +62,14 @@ class HistoryViewModel(
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
     private val database = FeatherweightDatabase.getDatabase(application)
-    private val exportService = WorkoutExportService(
-        database.workoutDao(),
-        database.exerciseLogDao(),
-        database.setLogDao(),
-        database.oneRMDao(),
-        repository
-    )
+    private val exportService =
+        WorkoutExportService(
+            database.workoutDao(),
+            database.exerciseLogDao(),
+            database.setLogDao(),
+            database.oneRMDao(),
+            repository,
+        )
     private val exportHandler = ExportHandler(application)
 
     companion object {
@@ -108,7 +109,7 @@ class HistoryViewModel(
     private suspend fun loadInitialData() {
         val trace = safeNewTrace("workout_history_load")
         trace?.start()
-        
+
         val currentState = _historyState.value
         if (currentState.programmes.isNotEmpty()) {
             trace?.stop()
@@ -157,8 +158,8 @@ class HistoryViewModel(
         }
     }
 
-    private fun safeNewTrace(name: String): Trace? {
-        return try {
+    private fun safeNewTrace(name: String): Trace? =
+        try {
             FirebasePerformance.getInstance().newTrace(name)
         } catch (e: IllegalStateException) {
             Log.d(TAG, "Firebase Performance not available - likely in test environment")
@@ -167,7 +168,6 @@ class HistoryViewModel(
             Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
             null
         }
-    }
 
     fun refreshHistory() {
         viewModelScope.launch {
@@ -398,38 +398,43 @@ class HistoryViewModel(
 
     fun exportWorkout(workoutId: Long) {
         viewModelScope.launch {
-            _historyState.value = _historyState.value.copy(
-                exportingWorkoutId = workoutId
-            )
+            _historyState.value =
+                _historyState.value.copy(
+                    exportingWorkoutId = workoutId,
+                )
 
             try {
-                val exportOptions = ExportOptions(
-                    includeBodyweight = false,
-                    includeOneRepMaxes = true,
-                    includeNotes = true,
-                    includeProfile = false
-                )
+                val exportOptions =
+                    ExportOptions(
+                        includeBodyweight = false,
+                        includeOneRepMaxes = true,
+                        includeNotes = true,
+                        includeProfile = false,
+                    )
 
-                val file = exportService.exportSingleWorkout(
-                    getApplication(),
-                    workoutId,
-                    exportOptions
-                )
+                val file =
+                    exportService.exportSingleWorkout(
+                        getApplication(),
+                        workoutId,
+                        exportOptions,
+                    )
 
                 // Store the file for later saving
-                _historyState.value = _historyState.value.copy(
-                    exportingWorkoutId = null,
-                    pendingExportFile = file
-                )
+                _historyState.value =
+                    _historyState.value.copy(
+                        exportingWorkoutId = null,
+                        pendingExportFile = file,
+                    )
             } catch (e: IllegalArgumentException) {
                 Log.e(TAG, "Failed to export workout", e)
-                _historyState.value = _historyState.value.copy(
-                    exportingWorkoutId = null
-                )
+                _historyState.value =
+                    _historyState.value.copy(
+                        exportingWorkoutId = null,
+                    )
             }
         }
     }
-    
+
     fun saveExportedFile(uri: android.net.Uri) {
         viewModelScope.launch {
             _historyState.value.pendingExportFile?.let { file ->
@@ -437,20 +442,22 @@ class HistoryViewModel(
                     exportHandler.copyFileContent(file, uri)
                     // Clean up temp file
                     file.delete()
-                    _historyState.value = _historyState.value.copy(
-                        pendingExportFile = null
-                    )
+                    _historyState.value =
+                        _historyState.value.copy(
+                            pendingExportFile = null,
+                        )
                 } catch (e: java.io.IOException) {
                     Log.e(TAG, "Failed to save exported file", e)
                 }
             }
         }
     }
-    
+
     fun clearPendingExport() {
         _historyState.value.pendingExportFile?.delete()
-        _historyState.value = _historyState.value.copy(
-            pendingExportFile = null
-        )
+        _historyState.value =
+            _historyState.value.copy(
+                pendingExportFile = null,
+            )
     }
 }

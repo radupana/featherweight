@@ -1,62 +1,58 @@
 package com.github.radupana.featherweight.service
 
-import android.content.Context
-import android.os.Vibrator
-import androidx.test.core.app.ApplicationProvider
-import com.google.common.truth.Truth.assertThat
-import org.junit.Assume
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.Shadows.shadowOf
 
-@RunWith(RobolectricTestRunner::class)
 class RestTimerNotificationServiceTest {
+    private lateinit var soundProvider: SoundProvider
+    private lateinit var vibrationProvider: VibrationProvider
+    private lateinit var service: RestTimerNotificationService
 
-    private val context = ApplicationProvider.getApplicationContext<Context>()
-    private val service = RestTimerNotificationService(context)
-    
-    private val isCI = System.getenv("CI") == "true"
-
-    @Test
-    fun `notifyTimerCompleted triggers vibration`() {
-        // Skip vibrator shadow tests in CI to avoid native runtime issues
-        Assume.assumeFalse("Skipping vibrator shadow test in CI", isCI)
-        
-        val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-        val shadowVibrator = shadowOf(vibrator)
-
-        service.notifyTimerCompleted()
-
-        // Verify vibration was triggered
-        assertThat(shadowVibrator.isVibrating).isTrue()
+    @Before
+    fun setUp() {
+        soundProvider = mockk(relaxed = true)
+        vibrationProvider = mockk(relaxed = true)
+        service = RestTimerNotificationService(soundProvider, vibrationProvider)
     }
 
     @Test
-    fun `service handles system service failures gracefully`() {
-        // This test ensures the service doesn't crash with system service failures
-        // The actual methods have try-catch blocks, so this should not throw
+    fun `notifyTimerCompleted triggers both sound and vibration`() {
         service.notifyTimerCompleted()
 
-        // If we reach here, no exception was thrown
-        assertThat(true).isTrue()
+        verify { soundProvider.playNotificationSound() }
+        verify { vibrationProvider.vibratePattern(any()) }
     }
 
     @Test
-    fun `vibration checks device capability before attempting to vibrate`() {
-        // Skip vibrator shadow manipulation in CI to avoid native runtime issues
-        Assume.assumeFalse("Skipping vibrator shadow test in CI", isCI)
-        
-        val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-        val shadowVibrator = shadowOf(vibrator)
-        
-        // Test device without vibration capability
-        shadowVibrator.setHasVibrator(false)
-        
+    fun `notifyTimerCompleted uses correct vibration pattern`() {
         service.notifyTimerCompleted()
-        
-        // Should not attempt to vibrate when device lacks capability
-        assertThat(shadowVibrator.isVibrating).isFalse()
+
+        val expectedPattern = longArrayOf(0, 100, 80, 60, 50, 60, 50, 60)
+        verify { vibrationProvider.vibratePattern(expectedPattern) }
+    }
+
+    @Test
+    fun `notifyTimerCompleted handles sound provider failure gracefully`() {
+        every { soundProvider.playNotificationSound() } throws RuntimeException("Sound failure")
+
+        // Should not throw
+        service.notifyTimerCompleted()
+
+        // Vibration should still be attempted
+        verify { vibrationProvider.vibratePattern(any()) }
+    }
+
+    @Test
+    fun `notifyTimerCompleted handles vibration provider failure gracefully`() {
+        every { vibrationProvider.vibratePattern(any()) } throws RuntimeException("Vibration failure")
+
+        // Should not throw
+        service.notifyTimerCompleted()
+
+        // Sound should still be attempted
+        verify { soundProvider.playNotificationSound() }
     }
 }

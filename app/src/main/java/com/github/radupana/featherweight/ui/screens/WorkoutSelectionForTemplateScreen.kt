@@ -54,7 +54,7 @@ fun WorkoutSelectionForTemplateScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val filteredWorkouts by viewModel.filteredWorkouts.collectAsState(initial = emptyList())
     val isLoading by viewModel.isLoading.collectAsState()
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -71,9 +71,10 @@ fun WorkoutSelectionForTemplateScreen(
         },
     ) { paddingValues ->
         Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+            modifier =
+                modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
         ) {
             // Search Bar
             OutlinedTextField(
@@ -86,13 +87,14 @@ fun WorkoutSelectionForTemplateScreen(
                         contentDescription = "Search",
                     )
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
             )
-            
+
             // Content
             when {
                 isLoading -> {
@@ -103,24 +105,25 @@ fun WorkoutSelectionForTemplateScreen(
                         CircularProgressIndicator()
                     }
                 }
-                
+
                 filteredWorkouts.isEmpty() -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = if (searchQuery.isEmpty()) {
-                                "No completed workouts yet"
-                            } else {
-                                "No workouts match your search"
-                            },
+                            text =
+                                if (searchQuery.isEmpty()) {
+                                    "No completed workouts yet"
+                                } else {
+                                    "No workouts match your search"
+                                },
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
-                
+
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -167,20 +170,21 @@ private fun WorkoutSelectionCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            
+
             // Date (always show since we always have a name)
             Text(
-                text = workout.date.format(
-                    DateTimeFormatter.ofPattern("MMM d 'at' h:mm a"),
-                ),
+                text =
+                    workout.date.format(
+                        DateTimeFormatter.ofPattern("MMM d 'at' h:mm a"),
+                    ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            
+
             // Exercise preview
             if (workout.exercises.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 workout.exercises.take(3).forEach { exercise ->
                     Row(
                         modifier = Modifier.padding(vertical = 2.dp),
@@ -201,7 +205,7 @@ private fun WorkoutSelectionCard(
                         )
                     }
                 }
-                
+
                 if (workout.exercises.size > 3) {
                     Text(
                         text = "...and ${workout.exercises.size - 3} more",
@@ -211,7 +215,7 @@ private fun WorkoutSelectionCard(
                     )
                 }
             }
-            
+
             // Stats
             Spacer(modifier = Modifier.height(8.dp))
             Row(

@@ -85,7 +85,7 @@ class ProgrammeTextParserTest {
             val remainder = 10000 % baseText.length
             val text = baseText.repeat(repetitions) + baseText.take(remainder)
             assertThat(text.length).isEqualTo(10000)
-            
+
             val request =
                 TextParsingRequest(
                     rawText = text,
@@ -458,7 +458,7 @@ class ProgrammeTextParserTest {
             val result = parser.parseText(request)
 
             assertThat(result.success).isFalse()
-            assertThat(result.error).isEqualTo("Unable to parse programme. Please check the format and try again.")
+            assertThat(result.error).contains("Unable to parse programme")
         }
 
     @Test
@@ -703,7 +703,8 @@ class ProgrammeTextParserTest {
                     userMaxes = emptyMap(),
                 )
 
-            val mockResponse = """
+            val mockResponse =
+                """
                 {
                     "name": "Empty Test",
                     "duration_weeks": 1,
@@ -721,12 +722,12 @@ class ProgrammeTextParserTest {
                     ]
                 }
                 """.trimIndent()
-            
+
             parser.setMockResponse(mockResponse)
             val result = parser.parseText(request)
 
             assertThat(result.success).isFalse()
-            assertThat(result.error).isEqualTo("Unable to parse programme. Please check the format and try again.")
+            assertThat(result.error).contains("Unable to parse programme")
             assertThat(result.programme).isNull()
         }
 

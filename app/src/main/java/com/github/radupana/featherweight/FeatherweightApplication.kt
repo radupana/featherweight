@@ -17,7 +17,7 @@ class FeatherweightApplication : Application() {
         super.onCreate()
 
         FirebaseApp.initializeApp(this)
-        
+
         try {
             appStartupTrace = FirebasePerformance.getInstance().newTrace("app_cold_start")
             appStartupTrace?.start()

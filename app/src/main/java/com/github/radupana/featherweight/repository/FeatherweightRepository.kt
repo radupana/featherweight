@@ -466,155 +466,163 @@ class FeatherweightRepository(
         programmeId: Long,
         weekNumber: Int,
         dayNumber: Int,
-    ): Long = withContext(Dispatchers.IO) {
-        Log.d("FeatherweightRepository", "=== CREATING WORKOUT FROM PROGRAMME ===")
-        Log.d("FeatherweightRepository", "Programme ID: $programmeId, Week: $weekNumber, Day: $dayNumber")
+    ): Long =
+        withContext(Dispatchers.IO) {
+            Log.d("FeatherweightRepository", "=== CREATING WORKOUT FROM PROGRAMME ===")
+            Log.d("FeatherweightRepository", "Programme ID: $programmeId, Week: $weekNumber, Day: $dayNumber")
 
-        programmeDao.getProgrammeById(programmeId)
-            ?: throw IllegalArgumentException("Programme not found")
+            programmeDao.getProgrammeById(programmeId)
+                ?: throw IllegalArgumentException("Programme not found")
 
-        val progress = programmeDao.getProgressForProgramme(programmeId)
-        if (progress == null) {
-            Log.e("FeatherweightRepository", "No progress found for programme $programmeId")
-            error("Programme progress not found")
-        }
-
-        val nextWorkoutInfo = getNextProgrammeWorkout(programmeId)
-        if (nextWorkoutInfo == null) {
-            Log.e("FeatherweightRepository", "No next workout found for programme $programmeId")
-            error("No workout available for this programme")
-        }
-
-        val workoutStructure = nextWorkoutInfo.workoutStructure
-        Log.d("FeatherweightRepository", "Found workout structure: ${workoutStructure.name}")
-        Log.d("FeatherweightRepository", "Exercises in structure: ${workoutStructure.exercises.size}")
-
-        val now = LocalDateTime.now()
-        val defaultName = workoutStructure.name ?: now.format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy 'at' HH:mm"))
-        val workout = Workout(
-            date = now,
-            name = defaultName,
-            status = WorkoutStatus.IN_PROGRESS,
-            programmeId = programmeId,
-            weekNumber = nextWorkoutInfo.actualWeekNumber,
-            dayNumber = workoutStructure.day,
-            programmeWorkoutName = workoutStructure.name,
-            isProgrammeWorkout = true,
-        )
-        val workoutId = workoutDao.insertWorkout(workout)
-        Log.d("FeatherweightRepository", "Created workout with ID: $workoutId")
-
-        workoutStructure.exercises.forEachIndexed { index, exerciseStructure ->
-            Log.d("FeatherweightRepository", "Adding exercise ${index + 1}: ${exerciseStructure.name}")
-            Log.d("FeatherweightRepository", "  exerciseId: ${exerciseStructure.exerciseId}")
-
-            val exerciseVariationId = exerciseStructure.exerciseId
-            if (exerciseVariationId != null) {
-                val exerciseLog = ExerciseLog(
-                    workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
-                    exerciseOrder = index,
-                    notes = exerciseStructure.note,
-                )
-                val exerciseLogId = exerciseLogDao.insertExerciseLog(exerciseLog)
-                Log.d("FeatherweightRepository", "  Created exercise log with ID: $exerciseLogId")
-
-                val weights = exerciseStructure.weights
-                val rpeList = exerciseStructure.rpeValues
-
-                Log.d("FeatherweightRepository", "  Weights: $weights, RPE values: $rpeList")
-
-                when (val reps = exerciseStructure.reps) {
-                    is RepsStructure.PerSet -> {
-                        reps.values.forEachIndexed { setIndex, repValue ->
-                            val targetReps = repValue.toIntOrNull() ?: 10
-                            val targetWeight = weights?.getOrNull(setIndex) ?: 0f
-                            val targetRpe = rpeList?.getOrNull(setIndex)
-
-                            val setLog = SetLog(
-                                exerciseLogId = exerciseLogId,
-                                setOrder = setIndex + 1,
-                                targetReps = targetReps,
-                                targetWeight = targetWeight,
-                                targetRpe = targetRpe,
-                                actualReps = 0,
-                                actualWeight = 0f,
-                                actualRpe = null,
-                            )
-                            Log.d("FeatherweightRepository", "    Creating SetLog: targetReps=$targetReps, targetWeight=$targetWeight, targetRpe=$targetRpe")
-                            setLogDao.insertSetLog(setLog)
-                        }
-                    }
-                    is RepsStructure.Range -> {
-                        repeat(exerciseStructure.sets) { setIndex ->
-                            val targetWeight = weights?.getOrNull(setIndex) ?: 0f
-                            val targetRpe = rpeList?.getOrNull(setIndex)
-
-                            val setLog = SetLog(
-                                exerciseLogId = exerciseLogId,
-                                setOrder = setIndex + 1,
-                                targetReps = reps.min,
-                                targetWeight = targetWeight,
-                                targetRpe = targetRpe,
-                                actualReps = 0,
-                                actualWeight = 0f,
-                                actualRpe = null,
-                            )
-                            setLogDao.insertSetLog(setLog)
-                        }
-                    }
-                    is RepsStructure.Single -> {
-                        repeat(exerciseStructure.sets) { setIndex ->
-                            val targetWeight = weights?.getOrNull(setIndex) ?: 0f
-
-                            val setLog = SetLog(
-                                exerciseLogId = exerciseLogId,
-                                setOrder = setIndex + 1,
-                                targetReps = reps.value,
-                                targetWeight = targetWeight,
-                                actualReps = 0,
-                                actualWeight = 0f,
-                                actualRpe = null,
-                            )
-                            setLogDao.insertSetLog(setLog)
-                        }
-                    }
-                    is RepsStructure.RangeString -> {
-                        val parts = reps.value.split("-")
-                        val minReps = parts.getOrNull(0)?.toIntOrNull() ?: 8
-                        val maxReps = parts.getOrNull(1)?.toIntOrNull() ?: 12
-                        val targetReps = (minReps + maxReps) / 2
-
-                        repeat(exerciseStructure.sets) { setIndex ->
-                            val targetWeight = weights?.getOrNull(setIndex) ?: 0f
-                            val targetRpe = rpeList?.getOrNull(setIndex)
-
-                            val setLog = SetLog(
-                                exerciseLogId = exerciseLogId,
-                                setOrder = setIndex + 1,
-                                targetReps = targetReps,
-                                targetWeight = targetWeight,
-                                targetRpe = targetRpe,
-                                actualReps = 0,
-                                actualWeight = 0f,
-                                actualRpe = null,
-                            )
-                            Log.d("FeatherweightRepository", "    Creating SetLog: targetReps=$targetReps, targetWeight=$targetWeight, targetRpe=$targetRpe")
-                            setLogDao.insertSetLog(setLog)
-                        }
-                    }
-                }
-                Log.d("FeatherweightRepository", "  Created ${exerciseStructure.sets} sets")
-            } else {
-                Log.w("FeatherweightRepository", "  Skipping exercise '${exerciseStructure.name}' - no matched exercise ID")
+            val progress = programmeDao.getProgressForProgramme(programmeId)
+            if (progress == null) {
+                Log.e("FeatherweightRepository", "No progress found for programme $programmeId")
+                error("Programme progress not found")
             }
+
+            val nextWorkoutInfo = getNextProgrammeWorkout(programmeId)
+            if (nextWorkoutInfo == null) {
+                Log.e("FeatherweightRepository", "No next workout found for programme $programmeId")
+                error("No workout available for this programme")
+            }
+
+            val workoutStructure = nextWorkoutInfo.workoutStructure
+            Log.d("FeatherweightRepository", "Found workout structure: ${workoutStructure.name}")
+            Log.d("FeatherweightRepository", "Exercises in structure: ${workoutStructure.exercises.size}")
+
+            val now = LocalDateTime.now()
+            val defaultName =
+                workoutStructure.name
+            val workout =
+                Workout(
+                    date = now,
+                    name = defaultName,
+                    status = WorkoutStatus.IN_PROGRESS,
+                    programmeId = programmeId,
+                    weekNumber = nextWorkoutInfo.actualWeekNumber,
+                    dayNumber = workoutStructure.day,
+                    programmeWorkoutName = workoutStructure.name,
+                    isProgrammeWorkout = true,
+                )
+            val workoutId = workoutDao.insertWorkout(workout)
+            Log.d("FeatherweightRepository", "Created workout with ID: $workoutId")
+
+            workoutStructure.exercises.forEachIndexed { index, exerciseStructure ->
+                Log.d("FeatherweightRepository", "Adding exercise ${index + 1}: ${exerciseStructure.name}")
+                Log.d("FeatherweightRepository", "  exerciseId: ${exerciseStructure.exerciseId}")
+
+                val exerciseVariationId = exerciseStructure.exerciseId
+                if (exerciseVariationId != null) {
+                    val exerciseLog =
+                        ExerciseLog(
+                            workoutId = workoutId,
+                            exerciseVariationId = exerciseVariationId,
+                            exerciseOrder = index,
+                            notes = exerciseStructure.note,
+                        )
+                    val exerciseLogId = exerciseLogDao.insertExerciseLog(exerciseLog)
+                    Log.d("FeatherweightRepository", "  Created exercise log with ID: $exerciseLogId")
+
+                    val weights = exerciseStructure.weights
+                    val rpeList = exerciseStructure.rpeValues
+
+                    Log.d("FeatherweightRepository", "  Weights: $weights, RPE values: $rpeList")
+
+                    when (val reps = exerciseStructure.reps) {
+                        is RepsStructure.PerSet -> {
+                            reps.values.forEachIndexed { setIndex, repValue ->
+                                val targetReps = repValue.toIntOrNull() ?: 10
+                                val targetWeight = weights?.getOrNull(setIndex) ?: 0f
+                                val targetRpe = rpeList?.getOrNull(setIndex)
+
+                                val setLog =
+                                    SetLog(
+                                        exerciseLogId = exerciseLogId,
+                                        setOrder = setIndex + 1,
+                                        targetReps = targetReps,
+                                        targetWeight = targetWeight,
+                                        targetRpe = targetRpe,
+                                        actualReps = 0,
+                                        actualWeight = 0f,
+                                        actualRpe = null,
+                                    )
+                                Log.d("FeatherweightRepository", "    Creating SetLog: targetReps=$targetReps, targetWeight=$targetWeight, targetRpe=$targetRpe")
+                                setLogDao.insertSetLog(setLog)
+                            }
+                        }
+                        is RepsStructure.Range -> {
+                            repeat(exerciseStructure.sets) { setIndex ->
+                                val targetWeight = weights?.getOrNull(setIndex) ?: 0f
+                                val targetRpe = rpeList?.getOrNull(setIndex)
+
+                                val setLog =
+                                    SetLog(
+                                        exerciseLogId = exerciseLogId,
+                                        setOrder = setIndex + 1,
+                                        targetReps = reps.min,
+                                        targetWeight = targetWeight,
+                                        targetRpe = targetRpe,
+                                        actualReps = 0,
+                                        actualWeight = 0f,
+                                        actualRpe = null,
+                                    )
+                                setLogDao.insertSetLog(setLog)
+                            }
+                        }
+                        is RepsStructure.Single -> {
+                            repeat(exerciseStructure.sets) { setIndex ->
+                                val targetWeight = weights?.getOrNull(setIndex) ?: 0f
+
+                                val setLog =
+                                    SetLog(
+                                        exerciseLogId = exerciseLogId,
+                                        setOrder = setIndex + 1,
+                                        targetReps = reps.value,
+                                        targetWeight = targetWeight,
+                                        actualReps = 0,
+                                        actualWeight = 0f,
+                                        actualRpe = null,
+                                    )
+                                setLogDao.insertSetLog(setLog)
+                            }
+                        }
+                        is RepsStructure.RangeString -> {
+                            val parts = reps.value.split("-")
+                            val minReps = parts.getOrNull(0)?.toIntOrNull() ?: 8
+                            val maxReps = parts.getOrNull(1)?.toIntOrNull() ?: 12
+                            val targetReps = (minReps + maxReps) / 2
+
+                            repeat(exerciseStructure.sets) { setIndex ->
+                                val targetWeight = weights?.getOrNull(setIndex) ?: 0f
+                                val targetRpe = rpeList?.getOrNull(setIndex)
+
+                                val setLog =
+                                    SetLog(
+                                        exerciseLogId = exerciseLogId,
+                                        setOrder = setIndex + 1,
+                                        targetReps = targetReps,
+                                        targetWeight = targetWeight,
+                                        targetRpe = targetRpe,
+                                        actualReps = 0,
+                                        actualWeight = 0f,
+                                        actualRpe = null,
+                                    )
+                                Log.d("FeatherweightRepository", "    Creating SetLog: targetReps=$targetReps, targetWeight=$targetWeight, targetRpe=$targetRpe")
+                                setLogDao.insertSetLog(setLog)
+                            }
+                        }
+                    }
+                    Log.d("FeatherweightRepository", "  Created ${exerciseStructure.sets} sets")
+                } else {
+                    Log.w("FeatherweightRepository", "  Skipping exercise '${exerciseStructure.name}' - no matched exercise ID")
+                }
+            }
+
+            Log.d("FeatherweightRepository", "=== WORKOUT CREATION COMPLETE ===")
+            Log.d("FeatherweightRepository", "Workout ID: $workoutId with ${workoutStructure.exercises.size} exercises")
+
+            workoutId
         }
-
-        Log.d("FeatherweightRepository", "=== WORKOUT CREATION COMPLETE ===")
-        Log.d("FeatherweightRepository", "Workout ID: $workoutId with ${workoutStructure.exercises.size} exercises")
-
-        workoutId
-    }
 
     // Get next programme workout to do
     suspend fun getNextProgrammeWorkout(programmeId: Long): NextProgrammeWorkoutInfo? =
@@ -836,10 +844,11 @@ class FeatherweightRepository(
 
                             // Extract individual values from each set
                             val repsList = sets.map { (it["reps"] as? Double)?.toInt()?.toString() ?: "0" }
-                            val weightsList = sets.map { 
-                                val weight = (it["weight"] as? Double)?.toFloat() ?: 0f
-                                WeightFormatter.roundToNearestQuarter(weight)
-                            }
+                            val weightsList =
+                                sets.map {
+                                    val weight = (it["weight"] as? Double)?.toFloat() ?: 0f
+                                    WeightFormatter.roundToNearestQuarter(weight)
+                                }
                             // Keep nulls in the list to preserve set indices, but map to null instead of missing
                             val rpeList =
                                 sets
@@ -915,7 +924,7 @@ class FeatherweightRepository(
             var totalVolume = 0.0
             val exerciseFrequencyMap = mutableMapOf<Pair<Long, String>, Int>()
             val programmeExerciseVariationIds = mutableSetOf<Long>()
-            
+
             for (workout in workouts.filter { it.status == WorkoutStatus.COMPLETED }) {
                 val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
                 for (exercise in exercises) {
@@ -925,7 +934,7 @@ class FeatherweightRepository(
                         val key = exercise.exerciseVariationId to exerciseVariation.name
                         exerciseFrequencyMap[key] = exerciseFrequencyMap.getOrDefault(key, 0) + 1
                     }
-                    
+
                     val sets = setLogDao.getSetLogsForExercise(exercise.id)
                     for (set in sets.filter { it.isCompleted }) {
                         totalVolume += (set.actualWeight * set.actualReps).toDouble()
@@ -934,10 +943,11 @@ class FeatherweightRepository(
             }
 
             // Calculate top 3 exercises by frequency
-            val topExercises = exerciseFrequencyMap
-                .map { ExerciseFrequency(it.key.second, it.value) }
-                .sortedByDescending { it.frequency }
-                .take(3)
+            val topExercises =
+                exerciseFrequencyMap
+                    .map { ExerciseFrequency(it.key.second, it.value) }
+                    .sortedByDescending { it.frequency }
+                    .take(3)
 
             // Calculate average workout duration
             val completedWorkouts = workouts.filter { it.status == WorkoutStatus.COMPLETED && it.durationSeconds != null }
@@ -955,9 +965,10 @@ class FeatherweightRepository(
                     programme.startedAt ?: programme.createdAt,
                     programme.completedAt ?: LocalDateTime.now(),
                 )
-            val programmePrs = allPrs.filter { pr ->
-                programmeExerciseVariationIds.contains(pr.exerciseVariationId)
-            }
+            val programmePrs =
+                allPrs.filter { pr ->
+                    programmeExerciseVariationIds.contains(pr.exerciseVariationId)
+                }
 
             // Calculate strength improvements
             val strengthImprovements = calculateStrengthImprovements(programmeId)
@@ -1918,7 +1929,7 @@ class FeatherweightRepository(
                 completionNotes = programme.completionNotes,
             )
         }
-    
+
     // Start a workout from a template
     suspend fun startWorkoutFromTemplate(templateId: Long): Long {
         Log.i(TAG, "startWorkoutFromTemplate delegating to WorkoutRepository")

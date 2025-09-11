@@ -583,9 +583,10 @@ private fun CleanSetRow(
                                 onValueChange = { newValue ->
                                     if (!set.isCompleted && !readOnly) {
                                         weightValue = newValue
-                                        val weight = newValue.text.toFloatOrNull()?.let { 
-                                            WeightFormatter.roundToNearestQuarter(it)
-                                        } ?: 0f
+                                        val weight =
+                                            newValue.text.toFloatOrNull()?.let {
+                                                WeightFormatter.roundToNearestQuarter(it)
+                                            } ?: 0f
                                         onUpdateSet(set.actualReps, weight, set.actualRpe)
                                     }
                                 },
@@ -707,9 +708,10 @@ private fun CleanSetRow(
                                 onValueChange = { newValue ->
                                     if (!set.isCompleted && !readOnly) {
                                         rpeValue = newValue
-                                        val rpe = newValue.text.toFloatOrNull()?.let { value ->
-                                            WeightFormatter.roundRPE(value)
-                                        }
+                                        val rpe =
+                                            newValue.text.toFloatOrNull()?.let { value ->
+                                                WeightFormatter.roundRPE(value)
+                                            }
                                         onUpdateSet(set.actualReps, set.actualWeight, rpe)
                                     }
                                 },

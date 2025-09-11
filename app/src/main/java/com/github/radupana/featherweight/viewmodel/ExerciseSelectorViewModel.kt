@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.Equipment
@@ -25,12 +24,8 @@ class ExerciseSelectorViewModel(
     private val repository = FeatherweightRepository(application)
     private val namingService = ExerciseNamingService()
 
-    companion object {
-        private const val TAG = "ExerciseSelectorViewModel"
-    }
-
     // Raw data
-    private val _allExercises = MutableStateFlow<List<ExerciseWithDetails>>(emptyList())
+    private val allExercisesCache = MutableStateFlow<List<ExerciseWithDetails>>(emptyList())
     private val _isLoading = MutableStateFlow(false)
 
     // Error state
@@ -84,7 +79,7 @@ class ExerciseSelectorViewModel(
         // Combine all filter states and update filtered exercises
         viewModelScope.launch {
             combine(
-                _allExercises,
+                allExercisesCache,
                 _searchQuery,
                 _selectedCategory,
             ) { exercises, query, category ->
@@ -98,36 +93,10 @@ class ExerciseSelectorViewModel(
     private fun filterExercises(
         exercises: List<ExerciseWithDetails>,
         query: String,
-    ): List<ExerciseWithDetails> {
-        val muscleGroup: String? = null
-        val equipmentFilter: Equipment? = null
-        // First apply category, muscle group, and equipment filters
-        val filteredByAttributes =
-            exercises
-                .filter { exercise ->
-                    // Muscle group filter
-                    muscleGroup?.let { targetMuscle ->
-                        val muscleGroupEnum =
-                            try {
-                                MuscleGroup.valueOf(targetMuscle)
-                            } catch (e: IllegalArgumentException) {
-                                Log.w(TAG, "Invalid muscle group: $targetMuscle", e)
-                                return@let false
-                            }
-                        exercise.getPrimaryMuscles().contains(muscleGroupEnum) ||
-                            exercise.getSecondaryMuscles().contains(muscleGroupEnum)
-                    } ?: true
-                }.filter { exercise ->
-                    // Equipment filter
-                    equipmentFilter?.let {
-                        exercise.variation.equipment == it
-                    } ?: true
-                }
-
-        // Then apply text search using the shared utility
-        return if (query.isNotEmpty()) {
+    ): List<ExerciseWithDetails> =
+        if (query.isNotEmpty()) {
             // Use the shared search utility with usage count bonus
-            filteredByAttributes
+            exercises
                 .mapNotNull { exerciseWithDetails ->
                     val aliases = exerciseWithDetails.aliases.map { it.alias }
                     val baseScore =
@@ -150,9 +119,8 @@ class ExerciseSelectorViewModel(
                 ).map { it.first }
         } else {
             // When not searching, maintain the usage-based order
-            filteredByAttributes
+            exercises
         }
-    }
 
     fun loadExercises() {
         loadExercisesInternal(null, seedIfEmpty = true)
@@ -186,7 +154,7 @@ class ExerciseSelectorViewModel(
                     variations.map { variation ->
                         loadExerciseWithDetails(variation)
                     }
-                _allExercises.value = exercises
+                allExercisesCache.value = exercises
             } catch (e: android.database.sqlite.SQLiteException) {
                 _errorMessage.value = "Database error loading exercises: ${e.message}"
             } catch (e: IllegalStateException) {
@@ -421,7 +389,7 @@ class ExerciseSelectorViewModel(
         viewModelScope.launch {
             try {
                 // Wait for exercises to be loaded if they're not already
-                if (_allExercises.value.isEmpty()) {
+                if (allExercisesCache.value.isEmpty()) {
                     // Ensure exercises are loaded first
                     repository.seedDatabaseIfEmpty()
                     val variations = repository.getAllExercises()
@@ -430,7 +398,7 @@ class ExerciseSelectorViewModel(
                         variations.map { variation ->
                             loadExerciseWithDetails(variation)
                         }
-                    _allExercises.value = exercises
+                    allExercisesCache.value = exercises
                 }
 
                 // Get historical swaps
@@ -485,12 +453,12 @@ class ExerciseSelectorViewModel(
     ): List<ExerciseSuggestion> {
         // Ensure we have exercises loaded
         val allExercises =
-            _allExercises.value.ifEmpty {
+            allExercisesCache.value.ifEmpty {
                 repository
                     .getAllExercises()
                     .map { variation ->
                         loadExerciseWithDetails(variation)
-                    }.also { _allExercises.value = it }
+                    }.also { allExercisesCache.value = it }
             }
 
         val suggestions = mutableListOf<ExerciseSuggestion>()

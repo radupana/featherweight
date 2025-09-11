@@ -68,242 +68,269 @@ class ProgrammeTextParserValidationTest {
     }
 
     @Test
-    fun `text under 50 characters returns validation error`() = runTest {
-        // Given
-        val shortText = "Day 1: Squat 3x5"
-        val request = TextParsingRequest(
-            rawText = shortText,
-            userMaxes = emptyMap(),
-        )
+    fun `text under 50 characters returns validation error`() =
+        runTest {
+            // Given
+            val shortText = "Day 1: Squat 3x5"
+            val request =
+                TextParsingRequest(
+                    rawText = shortText,
+                    userMaxes = emptyMap(),
+                )
 
-        // When
-        val result = parser.parseText(request)
+            // When
+            val result = parser.parseText(request)
 
-        // Then
-        assertThat(result.success).isFalse()
-        assertThat(result.error).contains("too short")
-        assertThat(result.programme).isNull()
-    }
-
-    @Test
-    fun `text with exactly 50 characters passes length validation`() = runTest {
-        // Given
-        val text = "Day 1: Squat 3x5x100kg, Bench 3x5x80kg, Row 3x5x60"
-        assertThat(text.length).isEqualTo(50)
-        
-        val request = TextParsingRequest(
-            rawText = text,
-            userMaxes = emptyMap(),
-        )
-
-        // When
-        val result = parser.parseText(request)
-
-        // Then - Should pass and call API
-        assertThat(result.success).isTrue()
-        assertThat(result.programme).isNotNull()
-        assertThat(result.programme?.name).isEqualTo("Test Programme")
-    }
+            // Then
+            assertThat(result.success).isFalse()
+            assertThat(result.error).contains("too short")
+            assertThat(result.programme).isNull()
+        }
 
     @Test
-    fun `text with profanity returns validation error`() = runTest {
-        // Given
-        val profaneText = "Day 1: Do some fucking squats with 100kg for 3 sets of 5 reps"
-        val request = TextParsingRequest(
-            rawText = profaneText,
-            userMaxes = emptyMap(),
-        )
+    fun `text with exactly 50 characters passes length validation`() =
+        runTest {
+            // Given
+            val text = "Day 1: Squat 3x5x100kg, Bench 3x5x80kg, Row 3x5x60"
+            assertThat(text.length).isEqualTo(50)
 
-        // When
-        val result = parser.parseText(request)
+            val request =
+                TextParsingRequest(
+                    rawText = text,
+                    userMaxes = emptyMap(),
+                )
 
-        // Then
-        assertThat(result.success).isFalse()
-        assertThat(result.error).contains("serious workout programme")
-        assertThat(result.programme).isNull()
-    }
+            // When
+            val result = parser.parseText(request)
 
-    @Test
-    fun `text without workout keywords returns validation error`() = runTest {
-        // Given
-        val nonWorkoutText = "This is just a random story about my day. I went to the store and bought groceries today."
-        val request = TextParsingRequest(
-            rawText = nonWorkoutText,
-            userMaxes = emptyMap(),
-        )
-
-        // When
-        val result = parser.parseText(request)
-
-        // Then
-        assertThat(result.success).isFalse()
-        assertThat(result.error).contains("workout")
-        assertThat(result.programme).isNull()
-    }
+            // Then - Should pass and call API
+            assertThat(result.success).isTrue()
+            assertThat(result.programme).isNotNull()
+            assertThat(result.programme?.name).isEqualTo("Test Programme")
+        }
 
     @Test
-    fun `single line text now passes validation after removing multi-line requirement`() = runTest {
-        // Given - single line workout should now be valid!
-        val singleLine = "Do squats bench press deadlifts rows and pullups all in one day today"
-        val request = TextParsingRequest(
-            rawText = singleLine,
-            userMaxes = emptyMap(),
-        )
+    fun `text with profanity returns validation error`() =
+        runTest {
+            // Given
+            val profaneText = "Day 1: Do some fucking squats with 100kg for 3 sets of 5 reps"
+            val request =
+                TextParsingRequest(
+                    rawText = profaneText,
+                    userMaxes = emptyMap(),
+                )
 
-        // When
-        val result = parser.parseText(request)
+            // When
+            val result = parser.parseText(request)
 
-        // Then - Should pass now that we removed the stupid multi-line requirement
-        assertThat(result.success).isTrue()
-        assertThat(result.programme).isNotNull()
-    }
-
-    @Test
-    fun `valid workout text passes all validation and calls API`() = runTest {
-        // Given
-        val validText = """
-            Week 1 - Strength Programme
-            
-            Monday:
-            Squat: 3 sets of 5 reps at 100kg
-            Bench Press: 3 sets of 5 reps at 80kg
-            Barbell Row: 3 sets of 8 reps at 60kg
-            
-            Wednesday:
-            Deadlift: 1 set of 5 reps at 120kg
-            Overhead Press: 3 sets of 5 reps at 50kg
-            Pull-ups: 3 sets of 8 reps
-        """.trimIndent()
-        
-        val request = TextParsingRequest(
-            rawText = validText,
-            userMaxes = emptyMap(),
-        )
-
-        // When
-        val result = parser.parseText(request)
-
-        // Then - Should pass validation and return parsed programme
-        assertThat(result.success).isTrue()
-        assertThat(result.error).isNull()
-        assertThat(result.programme).isNotNull()
-        assertThat(result.programme?.name).isEqualTo("Test Programme")
-    }
+            // Then
+            assertThat(result.success).isFalse()
+            assertThat(result.error).contains("serious workout programme")
+            assertThat(result.programme).isNull()
+        }
 
     @Test
-    fun `minimal 2-exercise workout passes validation`() = runTest {
-        // Given - Test that 1-2 exercise workouts are valid
-        val minimalWorkout = """
-            Workout:
-            Squat: 3 sets of 3 reps at 90kg
-            Bench: 5 sets of 8 reps at RPE 9
-        """.trimIndent()
-        
-        val request = TextParsingRequest(
-            rawText = minimalWorkout,
-            userMaxes = emptyMap(),
-        )
+    fun `text without workout keywords returns validation error`() =
+        runTest {
+            // Given
+            val nonWorkoutText = "This is just a random story about my day. I went to the store and bought groceries today."
+            val request =
+                TextParsingRequest(
+                    rawText = nonWorkoutText,
+                    userMaxes = emptyMap(),
+                )
 
-        // When
-        val result = parser.parseText(request)
+            // When
+            val result = parser.parseText(request)
 
-        // Then - Should pass (not "NO identifiable exercises")
-        assertThat(result.success).isTrue()
-        assertThat(result.programme).isNotNull()
-    }
+            // Then
+            assertThat(result.success).isFalse()
+            assertThat(result.error).contains("workout")
+            assertThat(result.programme).isNull()
+        }
 
     @Test
-    fun `text with mixed case workout keywords passes validation`() = runTest {
-        // Given
-        val mixedCaseText = """
-            WEEK 1 - Upper/Lower Split
-            
-            Day 1 - UPPER:
-            BENCH press: 4x8 @ 75kg
-            barbell ROW: 4x10
-            overhead PRESS: 3x8
-        """.trimIndent()
-        
-        val request = TextParsingRequest(
-            rawText = mixedCaseText,
-            userMaxes = emptyMap(),
-        )
+    fun `single line text now passes validation after removing multi-line requirement`() =
+        runTest {
+            // Given - single line workout should now be valid!
+            val singleLine = "Do squats bench press deadlifts rows and pullups all in one day today"
+            val request =
+                TextParsingRequest(
+                    rawText = singleLine,
+                    userMaxes = emptyMap(),
+                )
 
-        // When
-        val result = parser.parseText(request)
+            // When
+            val result = parser.parseText(request)
 
-        // Then - Should find workout keywords regardless of case
-        assertThat(result.success).isTrue()
-        assertThat(result.programme).isNotNull()
-    }
+            // Then - Should pass now that we removed the stupid multi-line requirement
+            assertThat(result.success).isTrue()
+            assertThat(result.programme).isNotNull()
+        }
 
     @Test
-    fun `numbers only text returns validation error`() = runTest {
-        // Given
-        val numbersOnly = "3x5 100 4x8 80 5x10 60 3x12 40 2x15 30 1x20 20"
-        val request = TextParsingRequest(
-            rawText = numbersOnly,
-            userMaxes = emptyMap(),
-        )
+    fun `valid workout text passes all validation and calls API`() =
+        runTest {
+            // Given
+            val validText =
+                """
+                Week 1 - Strength Programme
+                
+                Monday:
+                Squat: 3 sets of 5 reps at 100kg
+                Bench Press: 3 sets of 5 reps at 80kg
+                Barbell Row: 3 sets of 8 reps at 60kg
+                
+                Wednesday:
+                Deadlift: 1 set of 5 reps at 120kg
+                Overhead Press: 3 sets of 5 reps at 50kg
+                Pull-ups: 3 sets of 8 reps
+                """.trimIndent()
 
-        // When
-        val result = parser.parseText(request)
+            val request =
+                TextParsingRequest(
+                    rawText = validText,
+                    userMaxes = emptyMap(),
+                )
 
-        // Then
-        assertThat(result.success).isFalse()
-        assertThat(result.error).contains("workout")
-        assertThat(result.programme).isNull()
-    }
+            // When
+            val result = parser.parseText(request)
 
-    @Test
-    fun `text over 10000 characters returns validation error`() = runTest {
-        // Given
-        val longText = "a".repeat(10001)
-        val request = TextParsingRequest(
-            rawText = longText,
-            userMaxes = emptyMap(),
-        )
-
-        // When
-        val result = parser.parseText(request)
-
-        // Then
-        assertThat(result.success).isFalse()
-        assertThat(result.error).contains("too long")
-        assertThat(result.programme).isNull()
-    }
-
-    @Test
-    fun `empty text returns validation error`() = runTest {
-        // Given
-        val request = TextParsingRequest(
-            rawText = "",
-            userMaxes = emptyMap(),
-        )
-
-        // When
-        val result = parser.parseText(request)
-
-        // Then
-        assertThat(result.success).isFalse()
-        assertThat(result.error).contains("provide programme text")
-        assertThat(result.programme).isNull()
-    }
+            // Then - Should pass validation and return parsed programme
+            assertThat(result.success).isTrue()
+            assertThat(result.error).isNull()
+            assertThat(result.programme).isNotNull()
+            assertThat(result.programme?.name).isEqualTo("Test Programme")
+        }
 
     @Test
-    fun `whitespace only text returns validation error`() = runTest {
-        // Given
-        val request = TextParsingRequest(
-            rawText = "   \n  \t  ",
-            userMaxes = emptyMap(),
-        )
+    fun `minimal 2-exercise workout passes validation`() =
+        runTest {
+            // Given - Test that 1-2 exercise workouts are valid
+            val minimalWorkout =
+                """
+                Workout:
+                Squat: 3 sets of 3 reps at 90kg
+                Bench: 5 sets of 8 reps at RPE 9
+                """.trimIndent()
 
-        // When
-        val result = parser.parseText(request)
+            val request =
+                TextParsingRequest(
+                    rawText = minimalWorkout,
+                    userMaxes = emptyMap(),
+                )
 
-        // Then
-        assertThat(result.success).isFalse()
-        assertThat(result.error).contains("provide programme text")
-        assertThat(result.programme).isNull()
-    }
+            // When
+            val result = parser.parseText(request)
+
+            // Then - Should pass (not "NO identifiable exercises")
+            assertThat(result.success).isTrue()
+            assertThat(result.programme).isNotNull()
+        }
+
+    @Test
+    fun `text with mixed case workout keywords passes validation`() =
+        runTest {
+            // Given
+            val mixedCaseText =
+                """
+                WEEK 1 - Upper/Lower Split
+                
+                Day 1 - UPPER:
+                BENCH press: 4x8 @ 75kg
+                barbell ROW: 4x10
+                overhead PRESS: 3x8
+                """.trimIndent()
+
+            val request =
+                TextParsingRequest(
+                    rawText = mixedCaseText,
+                    userMaxes = emptyMap(),
+                )
+
+            // When
+            val result = parser.parseText(request)
+
+            // Then - Should find workout keywords regardless of case
+            assertThat(result.success).isTrue()
+            assertThat(result.programme).isNotNull()
+        }
+
+    @Test
+    fun `numbers only text returns validation error`() =
+        runTest {
+            // Given
+            val numbersOnly = "3x5 100 4x8 80 5x10 60 3x12 40 2x15 30 1x20 20"
+            val request =
+                TextParsingRequest(
+                    rawText = numbersOnly,
+                    userMaxes = emptyMap(),
+                )
+
+            // When
+            val result = parser.parseText(request)
+
+            // Then
+            assertThat(result.success).isFalse()
+            assertThat(result.error).contains("workout")
+            assertThat(result.programme).isNull()
+        }
+
+    @Test
+    fun `text over 10000 characters returns validation error`() =
+        runTest {
+            // Given
+            val longText = "a".repeat(10001)
+            val request =
+                TextParsingRequest(
+                    rawText = longText,
+                    userMaxes = emptyMap(),
+                )
+
+            // When
+            val result = parser.parseText(request)
+
+            // Then
+            assertThat(result.success).isFalse()
+            assertThat(result.error).contains("too long")
+            assertThat(result.programme).isNull()
+        }
+
+    @Test
+    fun `empty text returns validation error`() =
+        runTest {
+            // Given
+            val request =
+                TextParsingRequest(
+                    rawText = "",
+                    userMaxes = emptyMap(),
+                )
+
+            // When
+            val result = parser.parseText(request)
+
+            // Then
+            assertThat(result.success).isFalse()
+            assertThat(result.error).contains("provide programme text")
+            assertThat(result.programme).isNull()
+        }
+
+    @Test
+    fun `whitespace only text returns validation error`() =
+        runTest {
+            // Given
+            val request =
+                TextParsingRequest(
+                    rawText = "   \n  \t  ",
+                    userMaxes = emptyMap(),
+                )
+
+            // When
+            val result = parser.parseText(request)
+
+            // Then
+            assertThat(result.success).isFalse()
+            assertThat(result.error).contains("provide programme text")
+            assertThat(result.programme).isNull()
+        }
 }

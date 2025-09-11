@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class CreateTemplateFromWorkoutViewModel(application: Application) : AndroidViewModel(application) {
+class CreateTemplateFromWorkoutViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val workoutRepository = WorkoutRepository(application)
 
     private val _templateName = MutableStateFlow("")
@@ -31,7 +33,7 @@ class CreateTemplateFromWorkoutViewModel(application: Application) : AndroidView
         android.util.Log.i("CreateTemplateVM", "Initializing with workoutId: $workoutId")
         android.util.Log.i("CreateTemplateVM", "Previous saveSuccess state: ${_saveSuccess.value}")
         android.util.Log.i("CreateTemplateVM", "Previous isInitialized state: $isInitialized")
-        
+
         this.workoutId = workoutId
         // Reset states for new template creation
         _saveSuccess.value = false
@@ -39,18 +41,18 @@ class CreateTemplateFromWorkoutViewModel(application: Application) : AndroidView
         _templateDescription.value = ""
         _isSaving.value = false
         isInitialized = true
-        
+
         android.util.Log.i("CreateTemplateVM", "Reset all states for new template creation")
         android.util.Log.i("CreateTemplateVM", "New saveSuccess state: ${_saveSuccess.value}")
         android.util.Log.i("CreateTemplateVM", "isInitialized set to: $isInitialized")
     }
-    
+
     fun isReadyForNavigation(): Boolean {
         val ready = isInitialized && _saveSuccess.value
         android.util.Log.i("CreateTemplateVM", "isReadyForNavigation check - isInitialized: $isInitialized, saveSuccess: ${_saveSuccess.value}, ready: $ready")
         return ready
     }
-    
+
     fun consumeNavigationEvent() {
         android.util.Log.i("CreateTemplateVM", "consumeNavigationEvent called - resetting saveSuccess and isInitialized")
         _saveSuccess.value = false
@@ -71,7 +73,7 @@ class CreateTemplateFromWorkoutViewModel(application: Application) : AndroidView
             android.util.Log.w("CreateTemplateVM", "Template name is blank, returning")
             return
         }
-        
+
         if (!isInitialized) {
             android.util.Log.e("CreateTemplateVM", "saveTemplate called but ViewModel not initialized! This shouldn't happen")
             return
@@ -81,11 +83,12 @@ class CreateTemplateFromWorkoutViewModel(application: Application) : AndroidView
             _isSaving.value = true
             android.util.Log.i("CreateTemplateVM", "Starting template creation for workoutId: $workoutId with name: '${_templateName.value.trim()}'")
             try {
-                val templateId = workoutRepository.createTemplateFromWorkout(
-                    workoutId = workoutId,
-                    templateName = _templateName.value.trim(),
-                    templateDescription = _templateDescription.value.trim().takeIf { it.isNotEmpty() },
-                )
+                val templateId =
+                    workoutRepository.createTemplateFromWorkout(
+                        workoutId = workoutId,
+                        templateName = _templateName.value.trim(),
+                        templateDescription = _templateDescription.value.trim().takeIf { it.isNotEmpty() },
+                    )
                 android.util.Log.i("CreateTemplateVM", "Template created successfully with ID: $templateId")
                 android.util.Log.i("CreateTemplateVM", "Setting saveSuccess to true (was: ${_saveSuccess.value})")
                 _saveSuccess.value = true

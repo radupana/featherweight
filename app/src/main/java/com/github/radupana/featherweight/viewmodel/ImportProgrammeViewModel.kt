@@ -28,7 +28,10 @@ class ImportProgrammeViewModel(
     private val _uiState = MutableStateFlow(ImportProgrammeUiState())
     val uiState: StateFlow<ImportProgrammeUiState> = _uiState
 
-    fun updateInputText(text: String, editingRequestId: Long? = null) {
+    fun updateInputText(
+        text: String,
+        editingRequestId: Long? = null,
+    ) {
         _uiState.value =
             _uiState.value.copy(
                 inputText = text,
@@ -61,10 +64,10 @@ class ImportProgrammeViewModel(
                     )
                 return@launch
             }
-            
+
             // Check for existing pending parse request (but allow if we're editing a failed one)
             val editingRequestId = _uiState.value.editingFailedRequestId
-            
+
             if (editingRequestId == null && repository.hasPendingParseRequest()) {
                 _uiState.value =
                     _uiState.value.copy(
@@ -72,7 +75,7 @@ class ImportProgrammeViewModel(
                     )
                 return@launch
             }
-            
+
             // If we're editing a failed request, delete the old one first
             if (editingRequestId != null) {
                 val oldRequest = repository.getParseRequest(editingRequestId)

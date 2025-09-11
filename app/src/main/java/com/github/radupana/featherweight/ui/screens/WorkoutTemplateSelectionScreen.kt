@@ -18,18 +18,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -69,12 +69,12 @@ fun WorkoutTemplateSelectionScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val filteredTemplates by viewModel.filteredTemplates.collectAsState(initial = emptyList())
     val isLoading by viewModel.isLoading.collectAsState()
-    
+
     LaunchedEffect(Unit) {
         android.util.Log.i("TemplateSelectionScreen", "Screen launched, refreshing templates...")
         viewModel.loadTemplates()
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -102,9 +102,10 @@ fun WorkoutTemplateSelectionScreen(
         },
     ) { paddingValues ->
         Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+            modifier =
+                modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
         ) {
             // Search Bar
             OutlinedTextField(
@@ -117,13 +118,14 @@ fun WorkoutTemplateSelectionScreen(
                         contentDescription = "Search",
                     )
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
             )
-            
+
             Box(
                 modifier = Modifier.fillMaxSize(),
             ) {
@@ -136,12 +138,13 @@ fun WorkoutTemplateSelectionScreen(
                             CircularProgressIndicator()
                         }
                     }
-                    
+
                     filteredTemplates.isEmpty() -> {
                         Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(32.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(32.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
                         ) {
@@ -153,11 +156,12 @@ fun WorkoutTemplateSelectionScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = if (searchQuery.isEmpty()) {
-                                    "No Templates Yet"
-                                } else {
-                                    "No templates match your search"
-                                },
+                                text =
+                                    if (searchQuery.isEmpty()) {
+                                        "No Templates Yet"
+                                    } else {
+                                        "No templates match your search"
+                                    },
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -172,7 +176,7 @@ fun WorkoutTemplateSelectionScreen(
                             }
                         }
                     }
-                    
+
                     else -> {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
@@ -185,13 +189,13 @@ fun WorkoutTemplateSelectionScreen(
                             ) { template ->
                                 TemplateCard(
                                     template = template,
-                                    onStartWorkout = { 
+                                    onStartWorkout = {
                                         android.util.Log.i("TemplateSelectionScreen", "Starting workout from template: ${template.summary.id} - ${template.summary.name}")
-                                        onTemplateSelected(template.summary.id) 
+                                        onTemplateSelected(template.summary.id)
                                     },
-                                    onDelete = { 
+                                    onDelete = {
                                         android.util.Log.i("TemplateSelectionScreen", "Deleting template: ${template.summary.id} - ${template.summary.name}")
-                                        viewModel.deleteTemplate(template.summary.id) 
+                                        viewModel.deleteTemplate(template.summary.id)
                                     },
                                 )
                             }
@@ -212,19 +216,21 @@ private fun TemplateCard(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showDropdownMenu by remember { mutableStateOf(false) }
-    
+
     ElevatedCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 3.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
+        colors =
+            CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
         ) {
             // Header Row with title and menu
             Row(
@@ -241,7 +247,7 @@ private fun TemplateCard(
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    
+
                     // Description if available
                     template.description?.let { description ->
                         Spacer(modifier = Modifier.height(4.dp))
@@ -254,7 +260,7 @@ private fun TemplateCard(
                         )
                     }
                 }
-                
+
                 // Options Menu
                 Box {
                     IconButton(onClick = { showDropdownMenu = true }) {
@@ -264,7 +270,7 @@ private fun TemplateCard(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    
+
                     DropdownMenu(
                         expanded = showDropdownMenu,
                         onDismissRequest = { showDropdownMenu = false },
@@ -279,9 +285,9 @@ private fun TemplateCard(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Exercises Section
             if (template.exerciseNames.isNotEmpty()) {
                 Text(
@@ -291,7 +297,7 @@ private fun TemplateCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 // Show first 3 exercises
                 template.exerciseNames.take(3).forEach { exercise ->
                     Row(
@@ -313,7 +319,7 @@ private fun TemplateCard(
                         )
                     }
                 }
-                
+
                 // Show "and X more" if there are more exercises
                 if (template.exerciseNames.size > 3) {
                     Text(
@@ -324,9 +330,9 @@ private fun TemplateCard(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Stats Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -359,18 +365,19 @@ private fun TemplateCard(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(20.dp))
-            
+
             // Start Workout Button
             Button(
                 onClick = onStartWorkout,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
             ) {
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
@@ -384,7 +391,7 @@ private fun TemplateCard(
                     fontWeight = FontWeight.Medium,
                 )
             }
-            
+
             // Created Date
             Spacer(modifier = Modifier.height(12.dp))
             Text(
@@ -395,7 +402,7 @@ private fun TemplateCard(
             )
         }
     }
-    
+
     // Delete Confirmation Dialog
     if (showDeleteDialog) {
         AlertDialog(

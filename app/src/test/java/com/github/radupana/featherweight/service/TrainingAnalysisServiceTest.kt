@@ -1,32 +1,27 @@
 package com.github.radupana.featherweight.service
 
 import com.google.common.truth.Truth.assertThat
-import org.json.JSONArray
-import org.json.JSONException
-import org.json.JSONObject
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28])
 class TrainingAnalysisServiceTest {
     @Test
     fun parseApiResponse_withValidResponse_extractsContent() {
-        // Test the JSON parsing logic
         val expectedContent = """{"analysis": "Your form looks good!"}"""
+
         val responseJson =
-            JSONObject().apply {
-                put(
+            JsonObject().apply {
+                add(
                     "choices",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
-                                put(
+                    JsonArray().apply {
+                        add(
+                            JsonObject().apply {
+                                add(
                                     "message",
-                                    JSONObject().apply {
-                                        put("content", expectedContent)
+                                    JsonObject().apply {
+                                        addProperty("content", expectedContent)
                                     },
                                 )
                             },
@@ -35,13 +30,14 @@ class TrainingAnalysisServiceTest {
                 )
             }
 
-        // Extract content from response (simulating what the service does)
         val content =
             responseJson
-                .getJSONArray("choices")
-                .getJSONObject(0)
-                .getJSONObject("message")
-                .getString("content")
+                .getAsJsonArray("choices")
+                .get(0)
+                .asJsonObject
+                .getAsJsonObject("message")
+                .get("content")
+                .asString
 
         assertThat(content).isEqualTo(expectedContent)
     }
@@ -65,71 +61,74 @@ class TrainingAnalysisServiceTest {
             """.trimIndent()
 
         val responseJson =
-            JSONObject().apply {
-                put("id", "chatcmpl-123")
-                put("object", "chat.completion")
-                put("created", 1677652288)
-                put("model", "gpt-5-mini")
-                put(
+            JsonObject().apply {
+                addProperty("id", "chatcmpl-123")
+                addProperty("object", "chat.completion")
+                addProperty("created", 1677652288)
+                addProperty("model", "gpt-5-mini")
+                add(
                     "choices",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
-                                put("index", 0)
-                                put(
+                    JsonArray().apply {
+                        add(
+                            JsonObject().apply {
+                                addProperty("index", 0)
+                                add(
                                     "message",
-                                    JSONObject().apply {
-                                        put("role", "assistant")
-                                        put("content", expectedContent)
+                                    JsonObject().apply {
+                                        addProperty("role", "assistant")
+                                        addProperty("content", expectedContent)
                                     },
                                 )
-                                put("finish_reason", "stop")
+                                addProperty("finish_reason", "stop")
                             },
                         )
                     },
                 )
-                put(
+                add(
                     "usage",
-                    JSONObject().apply {
-                        put("prompt_tokens", 100)
-                        put("completion_tokens", 200)
-                        put("total_tokens", 300)
+                    JsonObject().apply {
+                        addProperty("prompt_tokens", 100)
+                        addProperty("completion_tokens", 200)
+                        addProperty("total_tokens", 300)
                     },
                 )
             }
 
         val content =
             responseJson
-                .getJSONArray("choices")
-                .getJSONObject(0)
-                .getJSONObject("message")
-                .getString("content")
+                .getAsJsonArray("choices")
+                .get(0)
+                .asJsonObject
+                .getAsJsonObject("message")
+                .get("content")
+                .asString
 
         assertThat(content).isEqualTo(expectedContent)
 
-        // Verify the extracted content is valid JSON
-        val parsedResult = JSONObject(content)
-        assertThat(parsedResult.getString("overall_assessment")).isEqualTo("Excellent progress")
-        assertThat(parsedResult.getJSONObject("strength_gains").getString("squat")).isEqualTo("+10kg")
-        assertThat(parsedResult.getJSONArray("recommendations").length()).isEqualTo(2)
+        val parsedResult = JsonParser.parseString(content).asJsonObject
+        assertThat(parsedResult.get("overall_assessment").asString).isEqualTo("Excellent progress")
+        assertThat(parsedResult.getAsJsonObject("strength_gains").get("squat").asString).isEqualTo("+10kg")
+        assertThat(parsedResult.getAsJsonArray("recommendations").size()).isEqualTo(2)
     }
 
     @Test
     fun parseApiResponse_withMissingChoices_throwsException() {
         val responseJson =
-            JSONObject().apply {
-                put("id", "chatcmpl-123")
+            JsonObject().apply {
+                addProperty("id", "chatcmpl-123")
                 // Missing choices array
             }
 
         try {
             responseJson
-                .getJSONArray("choices")
-                .getJSONObject(0)
-                .getJSONObject("message")
-                .getString("content")
-            error("Should have thrown JSONException")
-        } catch (e: JSONException) {
+                .getAsJsonArray("choices")
+                .get(0)
+                .asJsonObject
+                .getAsJsonObject("message")
+                .get("content")
+                .asString
+            error("Should have thrown exception")
+        } catch (e: Exception) {
             assertThat(e).isNotNull()
         }
     }
@@ -137,18 +136,20 @@ class TrainingAnalysisServiceTest {
     @Test
     fun parseApiResponse_withEmptyChoices_throwsException() {
         val responseJson =
-            JSONObject().apply {
-                put("choices", JSONArray()) // Empty array
+            JsonObject().apply {
+                add("choices", JsonArray()) // Empty array
             }
 
         try {
             responseJson
-                .getJSONArray("choices")
-                .getJSONObject(0)
-                .getJSONObject("message")
-                .getString("content")
-            error("Should have thrown JSONException")
-        } catch (e: JSONException) {
+                .getAsJsonArray("choices")
+                .get(0)
+                .asJsonObject
+                .getAsJsonObject("message")
+                .get("content")
+                .asString
+            error("Should have thrown exception")
+        } catch (e: Exception) {
             assertThat(e).isNotNull()
         }
     }
@@ -156,14 +157,14 @@ class TrainingAnalysisServiceTest {
     @Test
     fun parseApiResponse_withMissingMessage_throwsException() {
         val responseJson =
-            JSONObject().apply {
-                put(
+            JsonObject().apply {
+                add(
                     "choices",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
+                    JsonArray().apply {
+                        add(
+                            JsonObject().apply {
                                 // Missing message object
-                                put("index", 0)
+                                addProperty("index", 0)
                             },
                         )
                     },
@@ -172,12 +173,14 @@ class TrainingAnalysisServiceTest {
 
         try {
             responseJson
-                .getJSONArray("choices")
-                .getJSONObject(0)
-                .getJSONObject("message")
-                .getString("content")
-            error("Should have thrown JSONException")
-        } catch (e: JSONException) {
+                .getAsJsonArray("choices")
+                .get(0)
+                .asJsonObject
+                .getAsJsonObject("message")
+                .get("content")
+                .asString
+            error("Should have thrown exception")
+        } catch (e: Exception) {
             assertThat(e).isNotNull()
         }
     }
@@ -185,17 +188,17 @@ class TrainingAnalysisServiceTest {
     @Test
     fun parseApiResponse_withMissingContent_throwsException() {
         val responseJson =
-            JSONObject().apply {
-                put(
+            JsonObject().apply {
+                add(
                     "choices",
-                    JSONArray().apply {
-                        put(
-                            JSONObject().apply {
-                                put(
+                    JsonArray().apply {
+                        add(
+                            JsonObject().apply {
+                                add(
                                     "message",
-                                    JSONObject().apply {
+                                    JsonObject().apply {
                                         // Missing content field
-                                        put("role", "assistant")
+                                        addProperty("role", "assistant")
                                     },
                                 )
                             },
@@ -206,113 +209,118 @@ class TrainingAnalysisServiceTest {
 
         try {
             responseJson
-                .getJSONArray("choices")
-                .getJSONObject(0)
-                .getJSONObject("message")
-                .getString("content")
-            error("Should have thrown JSONException")
-        } catch (e: JSONException) {
+                .getAsJsonArray("choices")
+                .get(0)
+                .asJsonObject
+                .getAsJsonObject("message")
+                .get("content")
+                .asString
+            error("Should have thrown exception")
+        } catch (e: Exception) {
             assertThat(e).isNotNull()
         }
     }
 
     @Test
     fun buildRequestBody_containsCorrectModel() {
-        // Test that the request body is built correctly
         val systemPrompt = "You are an expert strength training coach and sports scientist. Provide analysis in valid JSON format."
         val userPrompt = "Analyze my deadlift form"
 
         val messages =
-            JSONArray().apply {
-                put(
-                    JSONObject().apply {
-                        put("role", "system")
-                        put("content", systemPrompt)
+            JsonArray().apply {
+                add(
+                    JsonObject().apply {
+                        addProperty("role", "system")
+                        addProperty("content", systemPrompt)
                     },
                 )
-                put(
-                    JSONObject().apply {
-                        put("role", "user")
-                        put("content", userPrompt)
+                add(
+                    JsonObject().apply {
+                        addProperty("role", "user")
+                        addProperty("content", userPrompt)
                     },
                 )
             }
 
         val requestBody =
-            JSONObject().apply {
-                put("model", "gpt-5-mini") // CRITICAL: Must be exactly this per CLAUDE.md
-                put("messages", messages)
-                put("max_completion_tokens", 8000)
-                put(
+            JsonObject().apply {
+                addProperty("model", "gpt-5-mini") // CRITICAL: Must be exactly this per CLAUDE.md
+                add("messages", messages)
+                addProperty("max_completion_tokens", 8000)
+                add(
                     "response_format",
-                    JSONObject().apply {
-                        put("type", "json_object")
+                    JsonObject().apply {
+                        addProperty("type", "json_object")
                     },
                 )
             }
 
         // Verify the model name is correct as per CLAUDE.md
-        assertThat(requestBody.getString("model")).isEqualTo("gpt-5-mini")
-        assertThat(requestBody.getInt("max_completion_tokens")).isEqualTo(8000)
-        assertThat(requestBody.getJSONObject("response_format").getString("type")).isEqualTo("json_object")
+        assertThat(requestBody.get("model").asString).isEqualTo("gpt-5-mini")
+        assertThat(requestBody.get("max_completion_tokens").asInt).isEqualTo(8000)
+        assertThat(requestBody.getAsJsonObject("response_format").get("type").asString).isEqualTo("json_object")
 
-        // Verify message structure
-        val messagesArray = requestBody.getJSONArray("messages")
-        assertThat(messagesArray.length()).isEqualTo(2)
+        val messagesArray = requestBody.getAsJsonArray("messages")
+        assertThat(messagesArray.size()).isEqualTo(2)
 
-        val systemMessage = messagesArray.getJSONObject(0)
-        assertThat(systemMessage.getString("role")).isEqualTo("system")
-        assertThat(systemMessage.getString("content")).isEqualTo(systemPrompt)
+        val systemMessage = messagesArray.get(0).asJsonObject
+        assertThat(systemMessage.get("role").asString).isEqualTo("system")
+        assertThat(systemMessage.get("content").asString).isEqualTo(systemPrompt)
 
-        val userMessage = messagesArray.getJSONObject(1)
-        assertThat(userMessage.getString("role")).isEqualTo("user")
-        assertThat(userMessage.getString("content")).isEqualTo(userPrompt)
+        val userMessage = messagesArray.get(1).asJsonObject
+        assertThat(userMessage.get("role").asString).isEqualTo("user")
+        assertThat(userMessage.get("content").asString).isEqualTo(userPrompt)
     }
 
     @Test
     fun parseErrorResponse_withErrorMessage_extractsMessage() {
         val errorMessage = "Rate limit exceeded"
         val errorJson =
-            JSONObject().apply {
-                put(
+            JsonObject().apply {
+                add(
                     "error",
-                    JSONObject().apply {
-                        put("message", errorMessage)
-                        put("type", "rate_limit_error")
+                    JsonObject().apply {
+                        addProperty("message", errorMessage)
+                        addProperty("type", "rate_limit_error")
                     },
                 )
             }
 
-        val extractedMessage = errorJson.optJSONObject("error")?.optString("message")
+        val extractedMessage = errorJson.getAsJsonObject("error")?.get("message")?.asString
         assertThat(extractedMessage).isEqualTo(errorMessage)
     }
 
     @Test
     fun parseErrorResponse_withoutErrorMessage_returnsNull() {
         val errorJson =
-            JSONObject().apply {
-                put(
+            JsonObject().apply {
+                add(
                     "error",
-                    JSONObject().apply {
-                        put("type", "invalid_request")
+                    JsonObject().apply {
+                        addProperty("type", "invalid_request")
                         // No message field
                     },
                 )
             }
 
-        val extractedMessage = errorJson.optJSONObject("error")?.optString("message")
-        assertThat(extractedMessage).isEmpty()
+        val extractedMessage = errorJson.getAsJsonObject("error")?.get("message")?.asString
+        assertThat(extractedMessage).isNull()
     }
 
     @Test
     fun parseErrorResponse_withoutErrorObject_returnsNull() {
         val errorJson =
-            JSONObject().apply {
-                put("some_field", "some_value")
+            JsonObject().apply {
+                addProperty("some_field", "some_value")
                 // No error object
             }
 
-        val extractedMessage = errorJson.optJSONObject("error")?.optString("message")
+        val extractedMessage =
+            errorJson
+                .get("error")
+                ?.asJsonObject
+                ?.get("message")
+                ?.asString
         assertThat(extractedMessage).isNull()
     }
 
@@ -326,19 +334,18 @@ class TrainingAnalysisServiceTest {
         // Verify that the constants match expected values
         // This ensures no one accidentally changes critical values
 
-        // We can't directly access private constants, but we can verify through the behavior
-        // The model name MUST be "gpt-5-mini" as per CLAUDE.md
+        // Model name MUST be "gpt-5-mini" per CLAUDE.md - never change this
         val expectedModel = "gpt-5-mini"
         val expectedMaxTokens = 8000
 
         // Create a request body as the service would
         val requestBody =
-            JSONObject().apply {
-                put("model", expectedModel)
-                put("max_completion_tokens", expectedMaxTokens)
+            JsonObject().apply {
+                addProperty("model", expectedModel)
+                addProperty("max_completion_tokens", expectedMaxTokens)
             }
 
-        assertThat(requestBody.getString("model")).isEqualTo("gpt-5-mini")
-        assertThat(requestBody.getInt("max_completion_tokens")).isEqualTo(8000)
+        assertThat(requestBody.get("model").asString).isEqualTo("gpt-5-mini")
+        assertThat(requestBody.get("max_completion_tokens").asInt).isEqualTo(8000)
     }
 }

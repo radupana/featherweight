@@ -34,7 +34,6 @@ fun CompactRestTimer(
     onAdjustTime: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-
     Box(
         modifier =
             modifier
@@ -153,4 +152,3 @@ private fun formatTime(seconds: Int): String {
     val secs = seconds % 60
     return "%d:%02d".format(minutes, secs)
 }
-

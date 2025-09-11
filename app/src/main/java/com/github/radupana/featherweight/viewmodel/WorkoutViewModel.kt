@@ -355,7 +355,7 @@ class WorkoutViewModel(
     suspend fun resumeWorkout(workoutId: Long) {
         val trace = safeNewTrace("workout_resume")
         trace?.start()
-        
+
         val workout = repository.getWorkoutById(workoutId)
         if (workout != null) {
             val isCompleted = workout.status == WorkoutStatus.COMPLETED
@@ -420,13 +420,13 @@ class WorkoutViewModel(
                 _workoutTimerSeconds.value = 0
                 workoutTimerStartTime = null
             }
-            
+
             trace?.stop()
         }
     }
 
-    private fun safeNewTrace(name: String): Trace? {
-        return try {
+    private fun safeNewTrace(name: String): Trace? =
+        try {
             FirebasePerformance.getInstance().newTrace(name)
         } catch (e: IllegalStateException) {
             Log.d(TAG, "Firebase Performance not available - likely in test environment")
@@ -435,7 +435,6 @@ class WorkoutViewModel(
             Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
             null
         }
-    }
 
     // Start a completely new workout (force new)
     fun startNewWorkout(forceNew: Boolean = false) {
@@ -450,12 +449,17 @@ class WorkoutViewModel(
                 _setCompletionValidation.value = emptyMap()
 
                 val now = LocalDateTime.now()
-                val defaultName = now.format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy 'at' HH:mm"))
-                val workout = Workout(
-                    date = now,
-                    name = defaultName,
-                    notes = null
-                )
+                val defaultName =
+                    now.format(
+                        java.time.format.DateTimeFormatter
+                            .ofPattern("MMM d, yyyy 'at' HH:mm"),
+                    )
+                val workout =
+                    Workout(
+                        date = now,
+                        name = defaultName,
+                        notes = null,
+                    )
                 val workoutId = repository.insertWorkout(workout)
 
                 Log.i(

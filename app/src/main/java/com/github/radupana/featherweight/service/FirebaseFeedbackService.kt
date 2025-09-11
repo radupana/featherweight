@@ -6,10 +6,8 @@ import com.github.radupana.featherweight.BuildConfig
 class FirebaseFeedbackService {
     companion object {
         private const val TAG = "FirebaseFeedbackService"
-        
-        private fun isTestBuild(): Boolean {
-            return BuildConfig.DEBUG
-        }
+
+        private fun isTestBuild(): Boolean = BuildConfig.DEBUG
     }
 
     fun startFeedback() {
@@ -21,7 +19,7 @@ class FirebaseFeedbackService {
         try {
             val clazz = Class.forName("com.google.firebase.appdistribution.FirebaseAppDistribution")
             val instance = clazz.getMethod("getInstance").invoke(null)
-            
+
             val method = clazz.getMethod("startFeedback", Int::class.java)
             val textResId = com.github.radupana.featherweight.R.string.feedback_prompt_text
             method.invoke(instance, textResId)

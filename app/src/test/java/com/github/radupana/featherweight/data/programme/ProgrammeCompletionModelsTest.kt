@@ -124,8 +124,8 @@ class ProgrammeCompletionModelsTest {
             )
 
         val insights = ProgrammeInsights(48, "Monday", 1.5f)
-        
-        val topExercises = 
+
+        val topExercises =
             listOf(
                 ExerciseFrequency("Barbell Squat", 36),
                 ExerciseFrequency("Barbell Bench Press", 36),
@@ -364,10 +364,11 @@ class ProgrammeCompletionModelsTest {
 
     @Test
     fun exerciseFrequency_shouldStoreDataCorrectly() {
-        val frequency = ExerciseFrequency(
-            exerciseName = "Barbell Squat",
-            frequency = 24,
-        )
+        val frequency =
+            ExerciseFrequency(
+                exerciseName = "Barbell Squat",
+                frequency = 24,
+            )
 
         assertThat(frequency.exerciseName).isEqualTo("Barbell Squat")
         assertThat(frequency.frequency).isEqualTo(24)
@@ -375,10 +376,11 @@ class ProgrammeCompletionModelsTest {
 
     @Test
     fun exerciseFrequency_withZeroFrequency_shouldHandleUnusedExercise() {
-        val frequency = ExerciseFrequency(
-            exerciseName = "Cable Fly",
-            frequency = 0,
-        )
+        val frequency =
+            ExerciseFrequency(
+                exerciseName = "Cable Fly",
+                frequency = 0,
+            )
 
         assertThat(frequency.frequency).isEqualTo(0)
         assertThat(frequency.exerciseName).isEqualTo("Cable Fly")

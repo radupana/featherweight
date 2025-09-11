@@ -83,12 +83,23 @@ open class ProgrammeTextParser {
                         e.message?.contains("API key") == true -> "OpenAI API key not configured"
                         e.message?.contains("timeout") == true -> "Request timed out. Please try again."
                         e.message?.contains("Network") == true -> "Network error. Check your connection."
-                        e.message?.contains("500") == true || e.message?.contains("503") == true -> 
+                        e.message?.contains("500") == true || e.message?.contains("503") == true ->
                             "AI service temporarily unavailable. Please try again in a few moments. (Error: ${e.message?.take(20)})"
                         e.message?.contains("401") == true -> "Authentication failed. Please contact support."
                         e.message?.contains("429") == true -> "Too many requests. Please wait a moment and try again."
                         else -> "Failed to connect to AI service: ${e.message}"
                     }
+
+                TextParsingResult(
+                    success = false,
+                    error = userFriendlyError,
+                )
+            } catch (e: NumberFormatException) {
+                Log.e(TAG, "=== Programme Parsing FAILED (NumberFormatException) ===")
+                Log.e(TAG, "Error message: ${e.message}")
+                Log.e(TAG, "Full stack trace:", e)
+
+                val userFriendlyError = "Unable to parse programme: Invalid number format '${e.message}'. The AI returned a range value where a single number was expected."
 
                 TextParsingResult(
                     success = false,
@@ -109,7 +120,8 @@ open class ProgrammeTextParser {
                         e.message?.contains("Network") == true -> e.message
                         e.message?.contains("timeout") == true ->
                             "Processing took too long. Please try a shorter programme or break it into parts."
-                        else -> "Unable to parse programme. Please check the format and try again."
+                        else ->
+                            "Unable to parse programme${if (e.message != null) ": ${e.message}" else ""}. Please check the format and try again."
                     }
 
                 TextParsingResult(
@@ -131,56 +143,87 @@ open class ProgrammeTextParser {
 
     private fun validateInput(text: String): ValidationResult {
         // Basic checks
-        val basicError = when {
-            text.isBlank() -> "Please provide programme text"
-            text.length > 10000 -> "Programme text is too long. Maximum 10,000 characters"
-            text.length < 50 -> "Your input seems too short. Please include at least one full workout with exercises, sets, and reps."
-            else -> null
-        }
+        val basicError =
+            when {
+                text.isBlank() -> "Please provide programme text"
+                text.length > 10000 -> "Programme text is too long. Maximum 10,000 characters"
+                text.length < 50 -> "Your input seems too short. Please include at least one full workout with exercises, sets, and reps."
+                else -> null
+            }
         if (basicError != null) return ValidationResult(false, basicError)
 
         val lowerText = text.lowercase()
-        
+
         // Content quality checks
         val qualityError = checkContentQuality(text, lowerText)
         if (qualityError != null) return ValidationResult(false, qualityError)
-        
-        // Structure and format checks  
+
+        // Structure and format checks
         val structureError = checkStructureAndFormat(text)
         if (structureError != null) return ValidationResult(false, structureError)
 
         return ValidationResult(true)
     }
-    
-    private fun checkContentQuality(text: String, lowerText: String): String? {
+
+    private fun checkContentQuality(
+        text: String,
+        lowerText: String,
+    ): String? {
         // Check for profanity/spam
         val profanityPatterns = listOf("fuck", "shit", "damn", "hell", "ass", "bitch", "crap")
         val spamIndicators = profanityPatterns.count { lowerText.contains(it) }
         if (spamIndicators > 2 || (spamIndicators > 0 && text.length < 100)) {
             return "Please provide a serious workout programme to parse."
         }
-        
+
         // Check for workout-related keywords
-        val workoutKeywords = listOf(
-            // Exercise names
-            "squat", "press", "deadlift", "row", "curl", "extension", "raise",
-            "pull", "push", "fly", "dip", "chin", "bench", "overhead",
-            // Structure words
-            "day", "week", "workout", "session", "exercise",
-            // Sets/reps indicators
-            "sets", "reps", "x", "×", "set of",
-            // Weight/intensity
-            "kg", "lbs", "pounds", "%", "rpe", "rir", "@"
-        )
-        
+        val workoutKeywords =
+            listOf(
+                // Exercise names
+                "squat",
+                "press",
+                "deadlift",
+                "row",
+                "curl",
+                "extension",
+                "raise",
+                "pull",
+                "push",
+                "fly",
+                "dip",
+                "chin",
+                "bench",
+                "overhead",
+                // Structure words
+                "day",
+                "week",
+                "workout",
+                "session",
+                "exercise",
+                // Sets/reps indicators
+                "sets",
+                "reps",
+                "x",
+                "×",
+                "set of",
+                // Weight/intensity
+                "kg",
+                "lbs",
+                "pounds",
+                "%",
+                "rpe",
+                "rir",
+                "@",
+            )
+
         val keywordCount = workoutKeywords.count { keyword -> lowerText.contains(keyword) }
         if (keywordCount < 2) {
             return "Couldn't find workout-related content. Please include exercises with sets and reps (e.g., 'Squat 3x5', 'Bench Press 4x8')."
         }
-        
+
         return null
     }
-    
+
     private fun checkStructureAndFormat(text: String): String? {
         // Check for excessive repetition
         val words = text.split(Regex("\\s+"))
@@ -188,19 +231,19 @@ open class ProgrammeTextParser {
             val wordGroups = words.groupBy { it.lowercase() }
             val maxRepetitions = wordGroups.values.maxOfOrNull { it.size } ?: 0
             val repetitionRatio = maxRepetitions.toFloat() / words.size
-            
+
             if (repetitionRatio > 0.5) {
                 return "Input appears to be spam or repetitive text. Please provide a real workout programme."
             }
         }
-        
+
         // Check if mostly numbers/special chars
         val alphaCount = text.count { it.isLetter() }
         val alphaRatio = alphaCount.toFloat() / text.length
         if (alphaRatio < 0.3) {
             return "Input needs more exercise descriptions. Include exercise names along with sets and reps."
         }
-        
+
         return null
     }
 
@@ -340,6 +383,17 @@ open class ProgrammeTextParser {
             
             4. PRESERVE ORDER: Keep sets in exact input order
             
+            5. DATA TYPE REQUIREMENTS - CRITICAL:
+               - "reps": MUST be integer or null (e.g., 5, 10, null)
+               - "weight": MUST be float/number or null (e.g., 100, 87.5, null)
+               - "rpe": MUST be single float/number or null (e.g., 7, 8.5, null)
+               
+            6. HANDLING RANGES - ALWAYS USE LOWER VALUE:
+               - RPE: "7-8" or "7.5-8" → use 7 or 7.5 (NEVER return "7-8" as string!)
+               - Reps: "8-10" → use 8 (NEVER return "8-10" as string!)
+               - Weight: "80-85kg" → use 80 (NEVER return "80-85" as string!)
+               - NEVER RETURN ANY RANGES AS STRINGS - ALWAYS SINGLE NUMBERS!
+            
             EXERCISE NAME RULES:
             Format: [Equipment] [Movement]
             - Default equipment when unspecified:
@@ -381,6 +435,32 @@ open class ProgrammeTextParser {
             """.trimIndent()
     }
 
+    /**
+     * Parses RPE values that can be either a single number (7.5) or a range (7.5-8).
+     * For ranges, returns the first value in the range.
+     */
+    private fun parseRpeValue(rpeElement: com.google.gson.JsonElement?): Float? {
+        if (rpeElement == null || rpeElement.isJsonNull) return null
+
+        return try {
+            // Try to parse as a number first
+            rpeElement.asFloat
+        } catch (e: NumberFormatException) {
+            // If it's not a number, try to parse as a string range
+            val rpeString = rpeElement.asString
+            // Handle ranges like "7.5–8" or "7.5-8" or "6–7"
+            val rangePattern = """(\d+(?:\.\d+)?)[–\-](\d+(?:\.\d+)?)""".toRegex()
+            val matchResult = rangePattern.find(rpeString)
+            if (matchResult != null) {
+                // Use the first value of the range
+                matchResult.groupValues[1].toFloatOrNull()
+            } else {
+                // Try to parse as a plain number string
+                rpeString.toFloatOrNull()
+            }
+        }
+    }
+
     private fun parseJsonToProgramme(
         jsonString: String,
         rawText: String,
@@ -401,12 +481,13 @@ open class ProgrammeTextParser {
 
         Log.d(TAG, "JSON parsed successfully")
         Log.d(TAG, "Top-level keys: ${json.keySet()}")
-        
+
         // Check if AI rejected the content as invalid
         json.get("error_type")?.let { errorType ->
             if (!errorType.isJsonNull && errorType.asString == "INVALID_CONTENT") {
-                val errorMessage = json.get("error_message")?.asString 
-                    ?: "Unable to parse as a workout programme."
+                val errorMessage =
+                    json.get("error_message")?.asString
+                        ?: "Unable to parse as a workout programme."
                 throw IllegalArgumentException(errorMessage)
             }
         }
@@ -485,7 +566,7 @@ open class ProgrammeTextParser {
                             ParsedSet(
                                 reps = setObj.get("reps")?.takeIf { !it.isJsonNull }?.asInt,
                                 weight = setObj.get("weight")?.takeIf { !it.isJsonNull }?.asFloat,
-                                rpe = setObj.get("rpe")?.takeIf { !it.isJsonNull }?.asFloat,
+                                rpe = parseRpeValue(setObj.get("rpe")),
                             ),
                         )
                     }
@@ -547,19 +628,20 @@ open class ProgrammeTextParser {
         require(weeks.isNotEmpty()) {
             "No valid workout weeks found. Please check your programme format."
         }
-        
+
         val totalWorkouts = weeks.sumOf { it.workouts.size }
         require(totalWorkouts > 0) {
             "No workouts found. A programme must contain at least one workout."
         }
-        
-        val totalExercises = weeks.sumOf { week -> 
-            week.workouts.sumOf { it.exercises.size }
-        }
+
+        val totalExercises =
+            weeks.sumOf { week ->
+                week.workouts.sumOf { it.exercises.size }
+            }
         require(totalExercises > 0) {
             "No exercises found. Each workout must contain at least one exercise."
         }
-        
+
         // Validate that exercises have sets
         var totalSets = 0
         weeks.forEach { week ->
@@ -572,7 +654,7 @@ open class ProgrammeTextParser {
                 }
             }
         }
-        
+
         require(totalSets > 0) {
             "No sets found in any exercises. Please include sets and reps (e.g., '3x10', '4 sets of 8')."
         }

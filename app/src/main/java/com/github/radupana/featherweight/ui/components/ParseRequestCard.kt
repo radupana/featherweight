@@ -365,7 +365,7 @@ private fun ParseRequestActionButtons(
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
-                    
+
                     IconButton(
                         onClick = onEditAndRetry,
                         modifier = Modifier.size(40.dp),

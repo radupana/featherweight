@@ -143,8 +143,8 @@ class ExerciseRepository(
             results
         }
 
-    private fun safeNewTrace(name: String): Trace? {
-        return try {
+    private fun safeNewTrace(name: String): Trace? =
+        try {
             FirebasePerformance.getInstance().newTrace(name)
         } catch (e: IllegalStateException) {
             Log.d(TAG, "Firebase Performance not available - likely in test environment")
@@ -153,7 +153,6 @@ class ExerciseRepository(
             Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
             null
         }
-    }
 
     suspend fun getExercisesByCategory(category: ExerciseCategory): List<ExerciseVariation> =
         withContext(Dispatchers.IO) {

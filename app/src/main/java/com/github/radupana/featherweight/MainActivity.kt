@@ -345,24 +345,25 @@ fun MainAppWithNavigation(
                 val importViewModel: ImportProgrammeViewModel = viewModel()
                 val historyViewModel: HistoryViewModel = viewModel()
                 val coroutineScope = rememberCoroutineScope()
-                
+
                 // Handle workout export file saving
                 val historyState by historyViewModel.historyState.collectAsState()
-                val saveFileLauncher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.CreateDocument("application/json")
-                ) { uri ->
-                    uri?.let {
-                        historyViewModel.saveExportedFile(it)
+                val saveFileLauncher =
+                    rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.CreateDocument("application/json"),
+                    ) { uri ->
+                        uri?.let {
+                            historyViewModel.saveExportedFile(it)
+                        }
                     }
-                }
-                
+
                 // Launch save dialog when export is ready
                 LaunchedEffect(historyState.pendingExportFile) {
                     historyState.pendingExportFile?.let { file ->
                         saveFileLauncher.launch(file.name)
                     }
                 }
-                
+
                 WorkoutScreen(
                     onBack = {
                         // Refresh programme data if this was a programme workout
@@ -695,7 +696,7 @@ fun MainAppWithNavigation(
                     modifier = Modifier.padding(innerPadding),
                 )
             }
-            
+
             Screen.WORKOUT_SELECTION_FOR_TEMPLATE -> {
                 WorkoutSelectionForTemplateScreen(
                     onWorkoutSelected = { workoutId ->
@@ -703,8 +704,8 @@ fun MainAppWithNavigation(
                         selectedTemplateWorkoutId = workoutId
                         onScreenChange(Screen.CREATE_TEMPLATE_FROM_SELECTED_WORKOUT)
                     },
-                    onBack = { 
-                        onScreenChange(Screen.WORKOUT_TEMPLATE_SELECTION) 
+                    onBack = {
+                        onScreenChange(Screen.WORKOUT_TEMPLATE_SELECTION)
                     },
                     modifier = Modifier.padding(innerPadding),
                 )
@@ -795,7 +796,7 @@ fun MainAppWithNavigation(
                 Log.i("MainActivity", "completedWorkoutId value: $completedWorkoutId")
                 Log.i("MainActivity", "previousScreen: $previousScreen")
                 Log.i("MainActivity", "currentScreen: $currentScreen")
-                
+
                 completedWorkoutId?.let { workoutId ->
                     Log.i("MainActivity", "Using completedWorkoutId: $workoutId")
                     CreateTemplateFromWorkoutScreen(
@@ -823,7 +824,7 @@ fun MainAppWithNavigation(
                     val workoutViewModel: WorkoutViewModel = viewModel()
                     val currentWorkoutId = workoutViewModel.currentWorkoutId.collectAsState().value
                     Log.i("MainActivity", "Current workout ID from viewModel: $currentWorkoutId")
-                    
+
                     if (currentWorkoutId != null) {
                         Log.w("MainActivity", "Using fallback currentWorkoutId: $currentWorkoutId")
                         CreateTemplateFromWorkoutScreen(
@@ -852,7 +853,7 @@ fun MainAppWithNavigation(
                     }
                 }
             }
-            
+
             Screen.CREATE_TEMPLATE_FROM_SELECTED_WORKOUT -> {
                 selectedTemplateWorkoutId?.let { workoutId ->
                     CreateTemplateFromWorkoutScreen(

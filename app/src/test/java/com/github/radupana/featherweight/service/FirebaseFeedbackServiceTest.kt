@@ -34,8 +34,8 @@ class FirebaseFeedbackServiceTest {
         if (!BuildConfig.DEBUG) {
             verify { android.util.Log.w("FirebaseFeedbackService", "Feedback only available in test builds") }
         } else {
-            verify(atLeast = 1) { 
-                android.util.Log.e(any(), any(), any()) 
+            verify(atLeast = 1) {
+                android.util.Log.e(any(), any(), any())
             }
         }
     }
@@ -48,7 +48,7 @@ class FirebaseFeedbackServiceTest {
 
         service.startFeedback()
 
-        verify(atLeast = 1) { 
+        verify(atLeast = 1) {
             android.util.Log.e(any(), any(), any())
         }
     }
@@ -73,12 +73,12 @@ class FirebaseFeedbackServiceTest {
         }
 
         if (!BuildConfig.DEBUG) {
-            verify(exactly = 3) { 
-                android.util.Log.w("FirebaseFeedbackService", "Feedback only available in test builds") 
+            verify(exactly = 3) {
+                android.util.Log.w("FirebaseFeedbackService", "Feedback only available in test builds")
             }
         } else {
-            verify(atLeast = 3) { 
-                android.util.Log.e(any(), any(), any()) 
+            verify(atLeast = 3) {
+                android.util.Log.e(any(), any(), any())
             }
         }
     }

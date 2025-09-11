@@ -39,7 +39,6 @@ import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
 
-
 @Composable
 fun WorkoutsScreen(
     onStartFreestyle: () -> Unit,
@@ -87,7 +86,6 @@ fun WorkoutsScreen(
             }
         }
     }
-
 
     // Load data when screen appears
     LaunchedEffect(Unit) {
@@ -281,6 +279,5 @@ fun WorkoutsScreen(
                 }
             }
         }
-
     }
 }

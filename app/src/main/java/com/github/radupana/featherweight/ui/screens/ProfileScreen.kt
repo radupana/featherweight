@@ -85,11 +85,12 @@ fun ProfileScreen(
                 selectedTab = uiState.currentTab,
                 onTabSelected = { viewModel.selectTab(it) },
             )
-            
+
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .weight(1f),
             ) {
                 when (uiState.currentTab) {
                     ProfileTab.ONE_RM -> {
@@ -328,4 +329,3 @@ private fun ProfileDialogs(
         }
     }
 }
-

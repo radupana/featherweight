@@ -18,6 +18,14 @@ configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
         exclude("**/*.gradle.kts")
         exclude("**/buildSrc/**")
     }
+    // Enable automatic formatting
+    verbose.set(true)
+    outputToConsole.set(true)
+    coloredOutput.set(true)
+    reporters {
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.CHECKSTYLE)
+    }
 }
 
 detekt {
@@ -112,60 +120,6 @@ android {
             isIncludeAndroidResources = true
             all {
                 it.ignoreFailures = false
-                // Minimal test logging for CI
-                if (System.getenv("CI") == "true") {
-                    it.testLogging {
-                        events("failed")  // Only show failures
-                        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.SHORT
-                        showExceptions = true
-                        showCauses = false
-                        showStackTraces = false
-                    }
-                } else {
-                    // More verbose for local development
-                    it.testLogging {
-                        events("passed", "skipped", "failed")
-                        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.SHORT
-                        showExceptions = true
-                        showCauses = true
-                        showStackTraces = true
-                    }
-                }
-                // Add JVM arguments to prevent crashes
-                it.jvmArgs(
-                    "-XX:+EnableDynamicAgentLoading",  // Suppress Java agent warning
-                    "-Xmx1024m",  // Increase max heap size
-                    "-XX:MaxMetaspaceSize=512m",  // Increase metaspace
-                    "-XX:+HeapDumpOnOutOfMemoryError",  // Dump heap on OOM
-                    "-XX:HeapDumpPath=build/reports/heap-dump.hprof",
-                    "-Djdk.instrument.traceUsage=false"  // Disable agent usage tracing
-                )
-                
-                // CI-specific configuration
-                if (System.getenv("CI") == "true") {
-                    // Disable Robolectric debug logging
-                    it.systemProperty("robolectric.logging.enabled", "false")
-                    // Don't use local dependency dir - let Robolectric download what it needs
-                    it.systemProperty("robolectric.offline", "false")
-                    // Disable graphics/audio in CI
-                    it.systemProperty("java.awt.headless", "true")
-                    // Completely disable native runtime to avoid temp directory issues
-                    it.systemProperty("robolectric.nativeruntime.enableGraphics", "false")
-                    it.systemProperty("robolectric.usePrebuiltArtifacts", "false")
-                    // Use legacy graphics mode that doesn't require native runtime
-                    it.systemProperty("robolectric.graphicsMode", "LEGACY")
-                    // Disable instrumentation that causes issues
-                    it.systemProperty("robolectric.enabledSdks", "28")
-                    
-                    // Exclude all tests that use Robolectric shadows or system services
-                    it.exclude("**/RestTimerNotificationServiceTest.class")
-                    it.exclude("**/RemoteConfigServiceTest.class")
-                    it.exclude("**/FirebaseFeedbackServiceTest.class")
-                    it.exclude("**/WorkoutExportServiceTest.class")
-                    it.exclude("**/TrainingAnalysisServiceTest.class")
-                }
-                
-                it.maxParallelForks = 1  // Run tests sequentially to avoid concurrency issues
             }
         }
     }
@@ -216,9 +170,6 @@ dependencies {
     // AndroidX Test
     testImplementation(libs.androidx.core.testing)
     testImplementation(libs.core.ktx)
-
-    // Robolectric for Context-dependent tests
-    testImplementation(libs.robolectric)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -277,9 +228,12 @@ dependencies {
     "alphaImplementation"(libs.firebase.appdistribution)
 }
 
-// Make Detekt part of the build process
+tasks.named("preBuild") {
+    dependsOn("ktlintFormat")
+}
+
 tasks.named("check") {
-    dependsOn("detekt")
+    dependsOn("detekt", "ktlintCheck")
 }
 
 // Detekt runs on check task

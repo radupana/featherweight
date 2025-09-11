@@ -70,20 +70,21 @@ fun CreateTemplateFromWorkoutScreen(
         },
     ) { paddingValues ->
         Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
+            modifier =
+                modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Text(
                 text = "Give your template a name and it will be ready to use for future workouts.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            
+
             OutlinedTextField(
                 value = templateName,
                 onValueChange = viewModel::updateTemplateName,
@@ -102,9 +103,9 @@ fun CreateTemplateFromWorkoutScreen(
                 minLines = 2,
                 maxLines = 3,
             )
-            
+
             Spacer(modifier = Modifier.weight(1f))
-            
+
             Button(
                 onClick = viewModel::saveTemplate,
                 modifier = Modifier.fillMaxWidth(),
@@ -112,7 +113,7 @@ fun CreateTemplateFromWorkoutScreen(
             ) {
                 Text(if (isSaving) "Creating Template..." else "Create Template")
             }
-            
+
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
