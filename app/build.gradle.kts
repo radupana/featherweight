@@ -115,6 +115,14 @@ android {
             isIncludeAndroidResources = true
             all {
                 it.ignoreFailures = false
+                it.testLogging {
+                    events("passed", "skipped", "failed", "standardOut", "standardError")
+                    exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+                    showExceptions = true
+                    showCauses = true
+                    showStackTraces = true
+                }
+                it.jvmArgs("-XX:+PrintFlagsFinal", "-XX:+PrintGCDetails", "-XX:+PrintGCTimeStamps")
             }
         }
     }

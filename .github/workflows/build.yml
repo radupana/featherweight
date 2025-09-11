@@ -62,7 +62,7 @@ jobs:
         }' > app/google-services.json
     
     - name: Run Unit Tests
-      run: ./gradlew testDebugUnitTest
+      run: ./gradlew testDebugUnitTest --info --stacktrace || (cat app/build/reports/tests/testDebugUnitTest/*.html 2>/dev/null; exit 1)
     
     - name: Upload test results
       if: always()
