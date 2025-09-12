@@ -248,8 +248,8 @@ open class ProgrammeTextParser {
     }
 
     internal open suspend fun callOpenAIAPI(request: TextParsingRequest): String {
-        val remoteConfigService = RemoteConfigService.getInstance()
-        val effectiveApiKey = remoteConfigService.getOpenAIApiKey()
+        val configService = ConfigServiceFactory.getConfigService()
+        val effectiveApiKey = configService.getOpenAIApiKey()
 
         if (effectiveApiKey.isNullOrEmpty()) {
             Log.e(TAG, "API key not available from Remote Config")

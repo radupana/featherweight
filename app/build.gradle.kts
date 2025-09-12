@@ -80,7 +80,7 @@ android {
                 1
             }
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.github.radupana.featherweight.CustomTestRunner"
     }
 
     buildTypes {

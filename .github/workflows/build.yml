@@ -370,17 +370,17 @@ jobs:
         </html>
         EOF
         
-        # Copy all report files
-        cp -r artifacts/test-results/* reports-bundle/ 2>/dev/null || echo "No test results found"
-        cp -r artifacts/unit-test-coverage/* reports-bundle/ 2>/dev/null || echo "No unit test coverage found"
-        cp -r artifacts/ui-test-results/* reports-bundle/ 2>/dev/null || echo "No UI test results found"
-        cp -r artifacts/ui-test-coverage/* reports-bundle/ 2>/dev/null || echo "No UI test coverage found"
-        cp -r artifacts/detekt-results/* reports-bundle/ 2>/dev/null || echo "No detekt results found"  
-        cp artifacts/lint-results/* reports-bundle/ 2>/dev/null || echo "No lint results found"
+        # Copy all report files into subdirectories
+        cp -r artifacts/test-results reports-bundle/ 2>/dev/null || echo "No test results found"
+        cp -r artifacts/unit-test-coverage reports-bundle/ 2>/dev/null || echo "No unit test coverage found"
+        cp -r artifacts/ui-test-results reports-bundle/ 2>/dev/null || echo "No UI test results found"
+        cp -r artifacts/ui-test-coverage reports-bundle/ 2>/dev/null || echo "No UI test coverage found"
+        cp -r artifacts/detekt-results reports-bundle/ 2>/dev/null || echo "No detekt results found"  
+        cp artifacts/lint-results/lint-results-debug.html reports-bundle/lint-results.html 2>/dev/null || echo "No lint results found"
         
         # Create zip bundle
         cd reports-bundle && zip -r ../reports-bundle.zip . && cd ..
-    
+
     - name: Extract version for release
       id: release_version
       run: |

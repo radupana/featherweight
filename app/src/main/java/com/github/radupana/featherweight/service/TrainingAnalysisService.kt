@@ -51,8 +51,8 @@ class TrainingAnalysisService {
     private suspend fun callOpenAI(userPrompt: String): String =
         withContext(Dispatchers.IO) {
             val systemPrompt = "You are an expert strength training coach and sports scientist. Provide analysis in valid JSON format."
-            val remoteConfigService = RemoteConfigService.getInstance()
-            val apiKey = remoteConfigService.getOpenAIApiKey()
+            val configService = ConfigServiceFactory.getConfigService()
+            val apiKey = configService.getOpenAIApiKey()
             if (apiKey.isNullOrEmpty()) {
                 Log.e(TAG, "OpenAI API key not available from Remote Config")
                 error("OpenAI API key not configured. Please check your internet connection and try again.")
