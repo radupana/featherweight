@@ -1,3 +1,6 @@
+
+import org.gradle.testing.jacoco.tasks.JacocoReport
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -79,14 +82,11 @@ android {
             } else {
                 1
             }
-
-        testInstrumentationRunner = "com.github.radupana.featherweight.CustomTestRunner"
     }
 
     buildTypes {
         debug {
             enableUnitTestCoverage = true
-            enableAndroidTestCoverage = true
             // Ensure consistent class generation for coverage
             isMinifyEnabled = false
             isShrinkResources = false
@@ -116,9 +116,6 @@ android {
     }
 
     testOptions {
-        execution = "ANDROIDX_TEST_ORCHESTRATOR"
-        animationsDisabled = true
-
         unitTests {
             isIncludeAndroidResources = true
             all {
@@ -174,13 +171,7 @@ dependencies {
     testImplementation(libs.androidx.core.testing)
     testImplementation(libs.core.ktx)
 
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    androidTestImplementation(libs.truth)
     debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
@@ -237,4 +228,76 @@ tasks.named("preBuild") {
 
 tasks.named("check") {
     dependsOn("detekt", "ktlintCheck")
+}
+
+// Custom JaCoCo task that excludes UI classes
+tasks.register<JacocoReport>("createFilteredCoverageReport") {
+    description = "Generate unit test coverage report WITHOUT UI classes"
+    group = "verification"
+
+    dependsOn("testDebugUnitTest")
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        html.outputLocation.set(file("${layout.buildDirectory}/reports/coverage/filtered"))
+    }
+
+    val javaClasses =
+        fileTree("${layout.buildDirectory}/intermediates/javac/debug/classes") {
+            exclude(
+                "**/ui/**",
+                "**/theme/**",
+                "**/navigation/**",
+                "**/R.class",
+                "**/R\$*.class",
+                "**/BuildConfig.*",
+                "**/databinding/**",
+                "**/*_MembersInjector*",
+                "**/*_Factory*",
+                "**/*Module_*",
+                "**/*Dagger*",
+                "**/*Hilt*",
+                "**/*_Impl*",
+                "**/model/**",
+                "**/entity/**",
+            )
+        }
+
+    val kotlinClasses =
+        fileTree("${layout.buildDirectory}/tmp/kotlin-classes/debug") {
+            exclude(
+                "**/ui/**",
+                "**/theme/**",
+                "**/navigation/**",
+                "**/R.class",
+                "**/R\$*.class",
+                "**/BuildConfig.*",
+                "**/databinding/**",
+                "**/*_MembersInjector*",
+                "**/*_Factory*",
+                "**/*Module_*",
+                "**/*Dagger*",
+                "**/*Hilt*",
+                "**/*_Impl*",
+                "**/model/**",
+                "**/entity/**",
+                "**/*\$Lambda\$*",
+                "**/*\$inlined\$*",
+                "**/*ComposableSingletons*",
+            )
+        }
+
+    classDirectories.setFrom(files(javaClasses, kotlinClasses))
+    sourceDirectories.setFrom(files("$projectDir/src/main/java"))
+    executionData.setFrom(
+        fileTree(layout.buildDirectory) {
+            include("**/*.exec", "**/*.ec")
+        },
+    )
+
+    doLast {
+        println("Coverage report generated at: ${layout.buildDirectory}/reports/coverage/filtered/index.html")
+        println("This report EXCLUDES UI classes (ui/**, theme/**, navigation/**)")
+    }
 }

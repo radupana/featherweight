@@ -1,8 +1,5 @@
 package com.github.radupana.featherweight
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -40,11 +37,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.FirebaseFeedbackService
 import com.github.radupana.featherweight.ui.screens.CreateTemplateFromWorkoutScreen
 import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
@@ -99,13 +94,6 @@ class MainActivity : ComponentActivity() {
         private const val TAG = "MainActivity"
     }
 
-    private val requestPermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission(),
-        ) { isGranted ->
-            Log.i(TAG, "Notification permission result: granted=$isGranted")
-        }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install splash screen (Android 12+ native splash)
         installSplashScreen()
@@ -118,20 +106,6 @@ class MainActivity : ComponentActivity() {
                 "debug: ${BuildConfig.DEBUG}",
         )
 
-        // Request notification permission for Android 13+
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS,
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            Log.i(TAG, "Requesting notification permission")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-        } else {
-            Log.i(TAG, "Notification permission already granted")
-        }
-
         // Enable edge-to-edge display for modern look
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -143,25 +117,12 @@ class MainActivity : ComponentActivity() {
         try {
             setContent {
                 FeatherweightTheme {
-                    var currentScreen by rememberSaveable { mutableStateOf(Screen.SPLASH) }
+                    val initialScreen = Screen.SPLASH
+                    var currentScreen by rememberSaveable { mutableStateOf(initialScreen) }
                     var previousScreen by rememberSaveable { mutableStateOf<Screen?>(null) }
                     var selectedExerciseName by rememberSaveable { mutableStateOf("") }
                     var completedWorkoutId by rememberSaveable { mutableStateOf<Long?>(null) }
                     var completedProgrammeId by rememberSaveable { mutableStateOf<Long?>(null) }
-
-                    // Seed database early
-                    LaunchedEffect(Unit) {
-                        try {
-                            val repository = FeatherweightRepository(application)
-                            val startTime = System.currentTimeMillis()
-                            repository.seedDatabaseIfEmpty()
-                            val duration = System.currentTimeMillis() - startTime
-                            Log.d(TAG, "Database seeding took ${duration}ms")
-                        } catch (e: IllegalStateException) {
-                            Log.e(TAG, "Database seeding failed", e)
-                            // Database seeding errors are non-critical - app continues to function
-                        }
-                    }
 
                     when (currentScreen) {
                         Screen.SPLASH ->

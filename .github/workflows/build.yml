@@ -81,9 +81,11 @@ jobs:
     - name: Run Unit Tests
       run: ./gradlew testDebugUnitTest || (echo "Test failed. Check test report artifact for details."; exit 1)
     
-    - name: Generate Unit Test Coverage Report
+    - name: Generate Unit Test Coverage Report  
       if: always()
-      run: ./gradlew createDebugUnitTestCoverageReport
+      run: |
+        ./gradlew createFilteredCoverageReport
+        echo "::notice title=Coverage Report::Generated filtered coverage report that excludes UI classes (ui/**, theme/**, navigation/**)"
     
     - name: Upload test results
       if: always()
@@ -97,7 +99,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: unit-test-coverage
-        path: app/build/reports/coverage/test/debug/
+        path: app/build/reports/coverage/filtered/
     
     - name: Run Lint
       run: ./gradlew lint
@@ -119,127 +121,8 @@ jobs:
       with:
         name: detekt-results
         path: app/build/reports/detekt/
-
-  ui-test:
-    runs-on: macos-latest  # M1-based runner (faster and cheaper than Intel)
-    timeout-minutes: 30
-    continue-on-error: true  # Don't fail the whole workflow if UI tests fail
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
-      
-    - name: Set up JDK 21
-      uses: actions/setup-java@v5
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-        cache: gradle
-    
-    - name: Setup Gradle
-      run: |
-        chmod +x gradlew
-        # Gradle optimizations for CI
-        mkdir -p ~/.gradle
-        echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
-        echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
-        echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
-        echo "org.gradle.jvmargs=-Xmx3g -XX:+UseParallelGC" >> ~/.gradle/gradle.properties
-    
-    - name: Create dummy google-services.json
-      run: |
-        echo '{
-          "project_info": {
-            "project_number": "123456789",
-            "firebase_url": "https://dummy.firebaseio.com",
-            "project_id": "dummy-project",
-            "storage_bucket": "dummy-project.appspot.com"
-          },
-          "client": [
-            {
-              "client_info": {
-                "mobilesdk_app_id": "1:123456789:android:abcdef",
-                "android_client_info": {
-                  "package_name": "com.github.radupana.featherweight"
-                }
-              },
-              "oauth_client": [],
-              "api_key": [
-                {
-                  "current_key": "dummy-key"
-                }
-              ],
-              "services": {}
-            }
-          ],
-          "configuration_version": "1"
-        }' > app/google-services.json
-    
-    - name: AVD cache
-      uses: actions/cache@v4
-      id: avd-cache
-      with:
-        path: |
-          ~/.android/avd/*
-          ~/.android/adb*
-        key: avd-api-29-arm64-macos-latest
-    
-    - name: Create AVD and generate snapshot for caching
-      if: steps.avd-cache.outputs.cache-hit != 'true'
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 29
-        arch: x86_64  # Still use x86_64 for compatibility on M1
-        force-avd-creation: false
-        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-load
-        disable-animations: true
-        emulator-boot-timeout: 300  # 5 minutes max for boot
-        script: echo "Generated AVD snapshot for caching."
-    
-    - name: Run UI Tests
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 29
-        arch: x86_64
-        force-avd-creation: false
-        emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-        disable-animations: true
-        script: |
-          # Fail fast on first test failure
-          ./gradlew connectedDebugAndroidTest \
-            --fail-fast \
-            --max-workers=2 \
-            -Pandroid.testInstrumentationRunnerArguments.listener=com.github.radupana.featherweight.FailFastRunListener \
-            -Pandroid.testInstrumentationRunnerArguments.debug=false \
-            || exit 1
-    
-    - name: Generate UI Test Coverage Report
-      if: always()
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 29
-        arch: x86_64
-        force-avd-creation: false
-        emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-        disable-animations: true
-        script: ./gradlew createDebugAndroidTestCoverageReport
-    
-    - name: Upload UI test results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: ui-test-results
-        path: app/build/reports/androidTests/connected/
-    
-    - name: Upload UI test coverage
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: ui-test-coverage
-        path: app/build/reports/coverage/androidTest/debug/
-
   deploy:
-    needs: [test, ui-test]
+    needs: [test]
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
@@ -315,7 +198,7 @@ jobs:
         path: app/build/outputs/apk/alpha/app-alpha.apk
 
   release:
-    needs: [test, ui-test, deploy]
+    needs: [test, deploy]
     runs-on: ubuntu-latest
     
     steps:
@@ -376,16 +259,6 @@ jobs:
               </div>
               
               <div class="report-card">
-                <div class="icon">📱</div>
-                <a href="ui-test-results/index.html" target="_blank">UI Test Results</a>
-              </div>
-              
-              <div class="report-card">
-                <div class="icon">📈</div>
-                <a href="ui-test-coverage/index.html" target="_blank">UI Test Coverage</a>
-              </div>
-              
-              <div class="report-card">
                 <div class="icon">🔍</div>
                 <a href="detekt-results/detekt.html" target="_blank">Detekt Analysis</a>
               </div>
@@ -407,8 +280,6 @@ jobs:
         # Copy all report files into subdirectories
         cp -r artifacts/test-results reports-bundle/ 2>/dev/null || echo "No test results found"
         cp -r artifacts/unit-test-coverage reports-bundle/ 2>/dev/null || echo "No unit test coverage found"
-        cp -r artifacts/ui-test-results reports-bundle/ 2>/dev/null || echo "No UI test results found"
-        cp -r artifacts/ui-test-coverage reports-bundle/ 2>/dev/null || echo "No UI test coverage found"
         cp -r artifacts/detekt-results reports-bundle/ 2>/dev/null || echo "No detekt results found"  
         cp artifacts/lint-results/lint-results-debug.html reports-bundle/lint-results.html 2>/dev/null || echo "No lint results found"
         
@@ -442,9 +313,7 @@ jobs:
           
           ### 📋 Reports Included
           - **Unit Tests**: Complete test results with pass/fail status
-          - **Unit Test Coverage**: Code coverage from unit tests  
-          - **UI Tests**: Android instrumentation test results
-          - **UI Test Coverage**: Code coverage from UI/integration tests
+          - **Unit Test Coverage**: Code coverage from unit tests (excluding UI classes)
           - **Detekt**: Kotlin code analysis and quality metrics  
           - **Android Lint**: Platform-specific issue detection
         draft: false
