@@ -111,8 +111,7 @@ abstract class FeatherweightDatabase : RoomDatabase() {
                             context.applicationContext,
                             FeatherweightDatabase::class.java,
                             "featherweight-db",
-                        ).fallbackToDestructiveMigration(dropAllTables = true)
-                        .build()
+                        ).build()
                 INSTANCE = instance
                 instance
             }
