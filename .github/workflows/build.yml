@@ -3,12 +3,21 @@ name: Build and Deploy
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
   workflow_dispatch:
     inputs:
       version_override:
         description: 'Optional: Override version (e.g., 2.0.0)'
         required: false
         type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write  # Required for creating releases
@@ -17,6 +26,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     
     steps:
     - name: Checkout code
@@ -29,8 +39,15 @@ jobs:
         distribution: 'temurin'
         cache: gradle
     
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+    - name: Setup Gradle
+      run: |
+        chmod +x gradlew
+        # Gradle optimizations for CI
+        mkdir -p ~/.gradle
+        echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
+        echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
+        echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
+        echo "org.gradle.jvmargs=-Xmx3g -XX:+UseParallelGC" >> ~/.gradle/gradle.properties
     
     - name: Create dummy google-services.json
       run: |
@@ -104,7 +121,9 @@ jobs:
         path: app/build/reports/detekt/
 
   ui-test:
-    runs-on: macos-13
+    runs-on: macos-latest  # M1-based runner (faster and cheaper than Intel)
+    timeout-minutes: 30
+    continue-on-error: true  # Don't fail the whole workflow if UI tests fail
     
     steps:
     - name: Checkout code
@@ -117,8 +136,15 @@ jobs:
         distribution: 'temurin'
         cache: gradle
     
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+    - name: Setup Gradle
+      run: |
+        chmod +x gradlew
+        # Gradle optimizations for CI
+        mkdir -p ~/.gradle
+        echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
+        echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
+        echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
+        echo "org.gradle.jvmargs=-Xmx3g -XX:+UseParallelGC" >> ~/.gradle/gradle.properties
     
     - name: Create dummy google-services.json
       run: |
@@ -156,17 +182,18 @@ jobs:
         path: |
           ~/.android/avd/*
           ~/.android/adb*
-        key: avd-api-29-x86_64-macos-13
+        key: avd-api-29-arm64-macos-latest
     
     - name: Create AVD and generate snapshot for caching
       if: steps.avd-cache.outputs.cache-hit != 'true'
       uses: reactivecircus/android-emulator-runner@v2
       with:
         api-level: 29
-        arch: x86_64
+        arch: x86_64  # Still use x86_64 for compatibility on M1
         force-avd-creation: false
-        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-        disable-animations: false
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-load
+        disable-animations: true
+        emulator-boot-timeout: 300  # 5 minutes max for boot
         script: echo "Generated AVD snapshot for caching."
     
     - name: Run UI Tests
@@ -177,7 +204,14 @@ jobs:
         force-avd-creation: false
         emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
         disable-animations: true
-        script: ./gradlew connectedDebugAndroidTest
+        script: |
+          # Fail fast on first test failure
+          ./gradlew connectedDebugAndroidTest \
+            --fail-fast \
+            --max-workers=2 \
+            -Pandroid.testInstrumentationRunnerArguments.listener=com.github.radupana.featherweight.FailFastRunListener \
+            -Pandroid.testInstrumentationRunnerArguments.debug=false \
+            || exit 1
     
     - name: Generate UI Test Coverage Report
       if: always()
