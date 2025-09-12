@@ -21,8 +21,8 @@ import java.time.LocalDateTime
 class WorkoutRepository(
     application: Application,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val db: FeatherweightDatabase = FeatherweightDatabase.getDatabase(application),
 ) {
-    private val db = FeatherweightDatabase.getDatabase(application)
     private val workoutDao = db.workoutDao()
     private val exerciseLogDao = db.exerciseLogDao()
     private val setLogDao = db.setLogDao()

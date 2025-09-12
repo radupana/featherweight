@@ -23,12 +23,12 @@ import java.time.LocalDateTime
 class OneRMRepository(
     application: Application,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val db: FeatherweightDatabase = FeatherweightDatabase.getDatabase(application),
 ) {
     companion object {
         private const val TAG = "OneRMRepository"
     }
 
-    private val db = FeatherweightDatabase.getDatabase(application)
     private val oneRMDao = db.oneRMDao()
     private val _pendingOneRMUpdates = MutableStateFlow<List<PendingOneRMUpdate>>(emptyList())
     val pendingOneRMUpdates = _pendingOneRMUpdates.asStateFlow()

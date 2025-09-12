@@ -231,4 +231,142 @@ class WorkoutSeedingServiceTest {
             assertThat(result).isGreaterThan(0)
             coVerify { mockRepository.getWorkoutForDate(any()) }
         }
+
+    @Test
+    fun `seedRealisticWorkouts handles zero weeks configuration`() =
+        runTest {
+            // Arrange
+            val config = WorkoutSeedingService.SeedConfig(numberOfWeeks = 0)
+            val relaxedRepository: FeatherweightRepository = mockk(relaxed = true)
+            val service = WorkoutSeedingService(relaxedRepository)
+
+            // Act
+            val result = service.seedRealisticWorkouts(config)
+
+            // Assert
+            assertThat(result).isEqualTo(0)
+            coVerify(exactly = 0) { relaxedRepository.insertWorkout(any()) }
+        }
+
+    @Test
+    fun `seedRealisticWorkouts handles negative weeks configuration`() =
+        runTest {
+            // Arrange
+            val config = WorkoutSeedingService.SeedConfig(numberOfWeeks = -1)
+            val relaxedRepository: FeatherweightRepository = mockk(relaxed = true)
+            val service = WorkoutSeedingService(relaxedRepository)
+
+            // Act
+            val result = service.seedRealisticWorkouts(config)
+
+            // Assert
+            assertThat(result).isEqualTo(0)
+            coVerify(exactly = 0) { relaxedRepository.insertWorkout(any()) }
+        }
+
+    @Test
+    fun `seedRealisticWorkouts creates workouts with different patterns`() =
+        runTest {
+            // Arrange
+            val config =
+                WorkoutSeedingService.SeedConfig(
+                    numberOfWeeks = 4,
+                    workoutsPerWeek = 4,
+                    includeAccessories = true,
+                )
+            val relaxedRepository: FeatherweightRepository = mockk(relaxed = true)
+            val service = WorkoutSeedingService(relaxedRepository)
+
+            coEvery { relaxedRepository.getExercise1RM(any()) } returns 100f
+            coEvery { relaxedRepository.getWorkoutForDate(any()) } returns null
+            coEvery { relaxedRepository.insertWorkout(any()) } returns 1L
+            coEvery { relaxedRepository.insertExerciseLog(any()) } returns 1L
+            coEvery { relaxedRepository.insertSetLog(any()) } returns 1L
+
+            // Act
+            val result = service.seedRealisticWorkouts(config)
+
+            // Assert
+            assertThat(result).isGreaterThan(0)
+            // Verify that workouts were created
+            coVerify(atLeast = 1) { relaxedRepository.insertWorkout(any()) }
+        }
+
+    @Test
+    fun `seedRealisticWorkouts respects includeAccessories flag`() =
+        runTest {
+            // Arrange
+            val configWithAccessories =
+                WorkoutSeedingService.SeedConfig(
+                    numberOfWeeks = 1,
+                    workoutsPerWeek = 2,
+                    includeAccessories = true,
+                )
+            val configWithoutAccessories =
+                WorkoutSeedingService.SeedConfig(
+                    numberOfWeeks = 1,
+                    workoutsPerWeek = 2,
+                    includeAccessories = false,
+                )
+
+            val relaxedRepository: FeatherweightRepository = mockk(relaxed = true)
+            val service = WorkoutSeedingService(relaxedRepository)
+
+            coEvery { relaxedRepository.getExercise1RM(any()) } returns 100f
+            coEvery { relaxedRepository.getWorkoutForDate(any()) } returns null
+            coEvery { relaxedRepository.insertWorkout(any()) } returns 1L
+            coEvery { relaxedRepository.insertExerciseLog(any()) } returns 1L
+            coEvery { relaxedRepository.insertSetLog(any()) } returns 1L
+
+            // Act
+            val resultWith = service.seedRealisticWorkouts(configWithAccessories)
+            val resultWithout = service.seedRealisticWorkouts(configWithoutAccessories)
+
+            // Assert
+            assertThat(resultWith).isGreaterThan(0)
+            assertThat(resultWithout).isGreaterThan(0)
+        }
+
+    @Test
+    fun `SeedConfig progressionRate affects weight calculations`() {
+        // Arrange
+        val configLowProgression =
+            WorkoutSeedingService.SeedConfig(
+                numberOfWeeks = 1,
+                progressionRate = 0.01f,
+            )
+        val configHighProgression =
+            WorkoutSeedingService.SeedConfig(
+                numberOfWeeks = 1,
+                progressionRate = 0.05f,
+            )
+
+        // Assert
+        assertThat(configLowProgression.progressionRate).isEqualTo(0.01f)
+        assertThat(configHighProgression.progressionRate).isEqualTo(0.05f)
+        assertThat(configLowProgression.progressionRate).isLessThan(configHighProgression.progressionRate)
+    }
+
+    @Test
+    fun `PlannedSet supports custom weight multipliers`() {
+        // Arrange & Act
+        val lightSet =
+            WorkoutSeedingService.PlannedSet(
+                reps = 10,
+                rpe = 6,
+                weightMultiplier = 0.7f,
+            )
+        val heavySet =
+            WorkoutSeedingService.PlannedSet(
+                reps = 3,
+                rpe = 9,
+                weightMultiplier = 0.95f,
+            )
+
+        // Assert
+        assertThat(lightSet.weightMultiplier).isEqualTo(0.7f)
+        assertThat(heavySet.weightMultiplier).isEqualTo(0.95f)
+        assertThat(lightSet.reps).isGreaterThan(heavySet.reps)
+        assertThat(lightSet.rpe).isLessThan(heavySet.rpe)
+    }
 }

@@ -15,12 +15,12 @@ import kotlinx.coroutines.withContext
 class ProgrammeRepository(
     application: Application,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val db: FeatherweightDatabase = FeatherweightDatabase.getDatabase(application),
 ) {
     companion object {
         private const val TAG = "ProgrammeRepository"
     }
 
-    private val db = FeatherweightDatabase.getDatabase(application)
     private val programmeDao = db.programmeDao()
     private val workoutDao = db.workoutDao()
 

@@ -84,8 +84,14 @@ jobs:
     - name: Generate Unit Test Coverage Report  
       if: always()
       run: |
-        ./gradlew createFilteredCoverageReport
-        echo "::notice title=Coverage Report::Generated filtered coverage report that excludes UI classes (ui/**, theme/**, navigation/**)"
+        echo "Generating unit test coverage report..."
+        ./gradlew createDebugUnitTestCoverageReport || echo "::warning::Failed to generate coverage report"
+        if [ -f app/build/reports/coverage/test/debug/index.html ]; then
+          echo "::notice title=Coverage Report::Successfully generated unit test coverage report"
+          ls -la app/build/reports/coverage/test/debug/ | head -5
+        else
+          echo "::error::Coverage report index.html not found at expected location"
+        fi
     
     - name: Upload test results
       if: always()
@@ -99,7 +105,8 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: unit-test-coverage
-        path: app/build/reports/coverage/filtered/
+        path: app/build/reports/coverage/test/debug/
+        if-no-files-found: warn
     
     - name: Run Lint
       run: ./gradlew lint
@@ -277,11 +284,23 @@ jobs:
         </html>
         EOF
         
+        # Debug: Show artifact structure
+        echo "Checking downloaded artifacts structure:"
+        ls -la artifacts/ || echo "No artifacts directory"
+        ls -la artifacts/unit-test-coverage/ 2>/dev/null | head -5 || echo "No unit-test-coverage artifact"
+        
         # Copy all report files into subdirectories
         cp -r artifacts/test-results reports-bundle/ 2>/dev/null || echo "No test results found"
         cp -r artifacts/unit-test-coverage reports-bundle/ 2>/dev/null || echo "No unit test coverage found"
         cp -r artifacts/detekt-results reports-bundle/ 2>/dev/null || echo "No detekt results found"  
         cp artifacts/lint-results/lint-results-debug.html reports-bundle/lint-results.html 2>/dev/null || echo "No lint results found"
+        
+        # Verify coverage report was copied
+        if [ -f reports-bundle/unit-test-coverage/index.html ]; then
+          echo "Coverage report successfully included in bundle"
+        else
+          echo "::warning::Coverage report not found in bundle at reports-bundle/unit-test-coverage/index.html"
+        fi
         
         # Create zip bundle
         cd reports-bundle && zip -r ../reports-bundle.zip . && cd ..
@@ -313,7 +332,7 @@ jobs:
           
           ### 📋 Reports Included
           - **Unit Tests**: Complete test results with pass/fail status
-          - **Unit Test Coverage**: Code coverage from unit tests (excluding UI classes)
+          - **Unit Test Coverage**: Code coverage from unit tests
           - **Detekt**: Kotlin code analysis and quality metrics  
           - **Android Lint**: Platform-specific issue detection
         draft: false

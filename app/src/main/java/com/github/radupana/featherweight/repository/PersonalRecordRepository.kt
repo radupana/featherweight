@@ -19,16 +19,17 @@ import kotlinx.coroutines.withContext
 class PersonalRecordRepository(
     application: Application,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    db: FeatherweightDatabase = FeatherweightDatabase.getDatabase(application),
+    prDetectionService: PRDetectionService? = null,
 ) {
     companion object {
         private const val TAG = "PersonalRecordRepository"
     }
 
-    private val db = FeatherweightDatabase.getDatabase(application)
     private val personalRecordDao = db.personalRecordDao()
     private val setLogDao = db.setLogDao()
     private val exerciseVariationDao = db.exerciseVariationDao()
-    private val prDetectionService = PRDetectionService(personalRecordDao, setLogDao, exerciseVariationDao)
+    private val prService = prDetectionService ?: PRDetectionService(personalRecordDao, setLogDao, exerciseVariationDao)
 
     suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord> =
         withContext(ioDispatcher) {
@@ -51,7 +52,7 @@ class PersonalRecordRepository(
         updateOrInsertOneRM: suspend (UserExerciseMax) -> Unit,
     ): List<PersonalRecord> =
         withContext(ioDispatcher) {
-            val prs = prDetectionService.checkForPR(setLog, exerciseVariationId)
+            val prs = prService.checkForPR(setLog, exerciseVariationId)
 
             if (prs.isNotEmpty()) {
                 val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
