@@ -132,8 +132,8 @@ open class ProgrammeTextParser(
                     success = false,
                     error = userFriendlyError,
                 )
-            } catch (e: Exception) {
-                Log.e(TAG, "=== Programme Parsing FAILED (Unexpected Exception) ===")
+            } catch (e: RuntimeException) {
+                Log.e(TAG, "=== Programme Parsing FAILED (Unexpected RuntimeException) ===")
                 Log.e(TAG, "Unexpected error type: ${e.javaClass.name}")
                 Log.e(TAG, "Error message: ${e.message}")
                 Log.e(TAG, "Full stack trace:", e)
@@ -319,7 +319,7 @@ open class ProgrammeTextParser(
             val errorJson =
                 try {
                     JsonParser.parseString(responseBody).asJsonObject
-                } catch (e: Exception) {
+                } catch (e: RuntimeException) {
                     Log.e(TAG, "Failed to parse error response as JSON", e)
                     null
                 }
@@ -480,7 +480,7 @@ open class ProgrammeTextParser(
         val json =
             try {
                 JsonParser.parseString(jsonString).asJsonObject
-            } catch (e: Exception) {
+            } catch (e: RuntimeException) {
                 Log.e(TAG, "Failed to parse JSON string", e)
                 Log.e(TAG, "Invalid JSON content:\n$jsonString")
                 throw IllegalArgumentException("Failed to parse JSON: ${e.message}", e)

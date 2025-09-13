@@ -149,7 +149,7 @@ class ExerciseRepository(
         } catch (e: IllegalStateException) {
             Log.d(TAG, "Firebase Performance not available - likely in test environment")
             null
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
             null
         }

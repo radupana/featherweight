@@ -92,7 +92,7 @@ class ConfigServiceFactoryTest {
         // Given
         ConfigServiceFactory.isTestMode = false
         mockkObject(RemoteConfigService)
-        every { RemoteConfigService.getInstance() } throws RuntimeException("Firebase not available")
+        every { RemoteConfigService.getInstance() } throws IllegalStateException("Firebase not available")
 
         // When
         val service = ConfigServiceFactory.getConfigService()

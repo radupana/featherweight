@@ -111,8 +111,8 @@ class RestTimerNotificationServiceTest {
     }
 
     @Test
-    fun `vibration continues even when sound throws checked exception`() {
-        every { soundProvider.playNotificationSound() } throws Exception("Checked exception")
+    fun `vibration continues even when sound throws runtime exception`() {
+        every { soundProvider.playNotificationSound() } throws RuntimeException("Runtime exception")
 
         service.notifyTimerCompleted()
 

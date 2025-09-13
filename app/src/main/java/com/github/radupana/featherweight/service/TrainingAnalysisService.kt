@@ -42,8 +42,11 @@ class TrainingAnalysisService {
                 val result = callOpenAI(prompt)
                 Log.i(TAG, "Training analysis completed successfully")
                 result
-            } catch (e: Exception) {
-                Log.e(TAG, "Training analysis failed", e)
+            } catch (e: IOException) {
+                Log.e(TAG, "Training analysis failed - Network error", e)
+                throw e
+            } catch (e: RuntimeException) {
+                Log.e(TAG, "Training analysis failed - Runtime error", e)
                 throw e
             }
         }

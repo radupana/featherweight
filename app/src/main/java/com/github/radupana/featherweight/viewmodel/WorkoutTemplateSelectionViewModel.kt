@@ -85,7 +85,7 @@ class WorkoutTemplateSelectionViewModel(
                     }
 
                 _templates.value = templatesWithExercises
-            } catch (e: Exception) {
+            } catch (e: RuntimeException) {
                 Log.e(TAG, "Failed to load templates", e)
                 _templates.value = emptyList()
             } finally {
@@ -106,7 +106,7 @@ class WorkoutTemplateSelectionViewModel(
                 workoutRepository.deleteWorkoutById(templateId)
                 Log.i(TAG, "Template deleted successfully")
                 loadTemplates() // Reload the list
-            } catch (e: Exception) {
+            } catch (e: RuntimeException) {
                 Log.e(TAG, "Failed to delete template", e)
             }
         }

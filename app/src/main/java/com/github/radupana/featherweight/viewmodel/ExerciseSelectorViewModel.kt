@@ -434,7 +434,7 @@ class ExerciseSelectorViewModel(
                 } else {
                     _currentSwapExerciseName.value = null
                 }
-            } catch (e: Exception) {
+            } catch (e: RuntimeException) {
                 val message =
                     when (e) {
                         is android.database.sqlite.SQLiteException -> "Database error loading swap suggestions"

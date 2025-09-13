@@ -31,7 +31,7 @@ class WorkoutRepositoryTest {
     private lateinit var workoutDao: WorkoutDao
     private lateinit var exerciseLogDao: ExerciseLogDao
     private lateinit var setLogDao: SetLogDao
-    private lateinit var programmeDao: com.github.radupana.featherweight.data.programme.ProgrammeDao
+    private lateinit var programmeDao: ProgrammeDao
     private lateinit var application: Application
     private val testDispatcher = StandardTestDispatcher()
 
@@ -60,7 +60,7 @@ class WorkoutRepositoryTest {
         workoutDao = mockk()
         exerciseLogDao = mockk()
         setLogDao = mockk()
-        programmeDao = mockk<com.github.radupana.featherweight.data.programme.ProgrammeDao>()
+        programmeDao = mockk<ProgrammeDao>()
 
         // Setup database to return DAOs
         every { database.workoutDao() } returns workoutDao

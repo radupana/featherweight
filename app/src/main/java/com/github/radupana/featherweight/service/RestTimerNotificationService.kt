@@ -19,14 +19,14 @@ class RestTimerNotificationService(
     fun notifyTimerCompleted() {
         try {
             soundProvider.playNotificationSound()
-        } catch (e: Exception) {
-            // Continue even if sound fails
+        } catch (e: RuntimeException) {
+            // Silently ignore - notification is not critical
         }
 
         try {
             vibrationProvider.vibratePattern(CELEBRATION_PATTERN)
-        } catch (e: Exception) {
-            // Continue even if vibration fails
+        } catch (e: RuntimeException) {
+            // Silently ignore - notification is not critical
         }
     }
 }

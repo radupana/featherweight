@@ -431,7 +431,7 @@ class WorkoutViewModel(
         } catch (e: IllegalStateException) {
             Log.d(TAG, "Firebase Performance not available - likely in test environment")
             null
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
             null
         }
@@ -451,7 +451,7 @@ class WorkoutViewModel(
                 val now = LocalDateTime.now()
                 val defaultName =
                     now.format(
-                        java.time.format.DateTimeFormatter
+                        DateTimeFormatter
                             .ofPattern("MMM d, yyyy 'at' HH:mm"),
                     )
                 val workout =
@@ -1641,7 +1641,7 @@ class WorkoutViewModel(
             val workoutId = repository.startWorkoutFromTemplate(templateId)
             Log.i(TAG, "Created workout $workoutId from template $templateId, now resuming...")
             resumeWorkout(workoutId)
-        } catch (e: Exception) {
+        } catch (e: RuntimeException) {
             Log.e(TAG, "Failed to start workout from template", e)
         }
     }

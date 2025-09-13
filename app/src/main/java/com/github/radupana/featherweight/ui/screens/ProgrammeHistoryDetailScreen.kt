@@ -832,7 +832,7 @@ fun ProgrammeInsightsSection(
 
                             // Show All button if there are more improvements
                             if (stats.strengthImprovements.size > 5) {
-                                androidx.compose.material3.TextButton(
+                                TextButton(
                                     onClick = { showAllImprovements = !showAllImprovements },
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {

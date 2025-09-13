@@ -27,9 +27,9 @@ class FeatherweightApplication : Application() {
             appStartupTrace?.start()
 
             val firebaseInitTrace = FirebasePerformance.getInstance().newTrace("firebase_init")
-            firebaseInitTrace?.start()
-            firebaseInitTrace?.stop()
-        } catch (e: Exception) {
+            firebaseInitTrace.start()
+            firebaseInitTrace.stop()
+        } catch (e: IllegalStateException) {
             Log.d(TAG, "Firebase Performance not available: ${e.message}")
         }
 

@@ -95,7 +95,7 @@ class WorkoutSelectionViewModel(
                     }
 
                 _workouts.value = workoutsWithExercises
-            } catch (e: Exception) {
+            } catch (e: RuntimeException) {
                 android.util.Log.e("WorkoutSelectionVM", "Failed to load workouts", e)
                 _workouts.value = emptyList()
             } finally {

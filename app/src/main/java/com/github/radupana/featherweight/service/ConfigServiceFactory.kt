@@ -20,7 +20,7 @@ object ConfigServiceFactory {
                 try {
                     Log.d(TAG, "Using remote config service")
                     RemoteConfigService.getInstance()
-                } catch (e: Exception) {
+                } catch (e: IllegalStateException) {
                     Log.w(TAG, "Failed to initialize RemoteConfigService, using test config", e)
                     TestConfigService()
                 }
