@@ -110,7 +110,7 @@ fun VolumeBarChart(
                             fontWeight = FontWeight.Medium,
                         )
                         Text(
-                            text = "Volume: ${WeightFormatter.formatWeight(point.weight)}kg",
+                            text = "Volume: ${WeightFormatter.formatWeightWithUnit(point.weight)}",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold,
                         )
@@ -190,7 +190,7 @@ private fun VolumeBarChartCanvas(
             )
 
             // Volume label
-            val volumeText = "${WeightFormatter.formatWeight(volume)}kg"
+            val volumeText = WeightFormatter.formatWeightWithUnit(volume)
             val textLayoutResult =
                 textMeasurer.measure(
                     text = volumeText,

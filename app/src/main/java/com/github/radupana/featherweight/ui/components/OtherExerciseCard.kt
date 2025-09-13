@@ -68,7 +68,7 @@ fun OtherExerciseCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "${WeightFormatter.formatWeight(oneRMValue)} kg",
+                        text = WeightFormatter.formatWeightWithUnit(oneRMValue),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )

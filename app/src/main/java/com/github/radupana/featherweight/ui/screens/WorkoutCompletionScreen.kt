@@ -211,7 +211,7 @@ private fun PrimaryStatsCard(summary: CompletionSummary) {
             )
 
             Text(
-                text = "🏋️ ${WeightFormatter.formatWeight(summary.totalVolume)} kg",
+                text = "🏋️ ${WeightFormatter.formatWeightWithUnit(summary.totalVolume)}",
                 style = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.Bold,
             )

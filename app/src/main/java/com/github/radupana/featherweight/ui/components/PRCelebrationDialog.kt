@@ -203,11 +203,14 @@ private fun PRDetailCard(
 
                 val notes = personalRecord.notes ?: ""
                 if (notes.contains("could potentially lift")) {
-                    val potentialMatch = "\\(Based on your ([0-9.]+)kg 1RM.*\\)".toRegex().find(notes)
+                    // Match both kg and lbs formats
+                    val potentialMatch = "\\(Based on your ([0-9.]+(?:\\.[0-9]+)?)(kg|lbs) 1RM.*\\)".toRegex().find(notes)
                     if (potentialMatch != null) {
+                        val weight = potentialMatch.groupValues[1]
+                        val unit = potentialMatch.groupValues[2]
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Your ${potentialMatch.groupValues[1]}kg 1RM suggests you could lift more!",
+                            text = "Your $weight$unit 1RM suggests you could lift more!",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.tertiary,

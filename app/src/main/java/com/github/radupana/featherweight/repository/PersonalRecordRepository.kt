@@ -52,6 +52,7 @@ class PersonalRecordRepository(
         updateOrInsertOneRM: suspend (UserExerciseMax) -> Unit,
     ): List<PersonalRecord> =
         withContext(ioDispatcher) {
+            Log.d(TAG, "Checking for PR: weight=${setLog.actualWeight}kg, reps=${setLog.actualReps}, completed=${setLog.isCompleted}")
             val prs = prService.checkForPR(setLog, exerciseVariationId)
 
             if (prs.isNotEmpty()) {

@@ -60,6 +60,7 @@ import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.ui.components.history.CalendarView
 import com.github.radupana.featherweight.ui.components.history.WeekGroupView
+import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import java.time.format.DateTimeFormatter
@@ -406,7 +407,7 @@ fun WorkoutHistoryCard(
                 )
                 WorkoutStatItem(
                     label = "Total Volume",
-                    value = "${String.format(Locale.US, "%.1f", workout.totalWeight / 1000)}k kg",
+                    value = WeightFormatter.formatVolume(workout.totalWeight),
                     isCompleted = workout.status == WorkoutStatus.COMPLETED,
                     modifier = Modifier.weight(1f),
                 )

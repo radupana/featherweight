@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
+import com.github.radupana.featherweight.model.WeightUnit
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -23,6 +24,7 @@ class ProfileViewModelTest {
         assertThat(state.isExporting).isFalse()
         assertThat(state.exportedFilePath).isNull()
         assertThat(state.currentTab).isEqualTo(ProfileTab.ONE_RM)
+        assertThat(state.currentWeightUnit).isEqualTo(WeightUnit.KG)
     }
 
     @Test
@@ -43,6 +45,16 @@ class ProfileViewModelTest {
         assertThat(modified.isLoading).isFalse()
         assertThat(modified.currentTab).isEqualTo(ProfileTab.DATA)
         assertThat(modified.seedingWeeks).isEqualTo(10)
+    }
+
+    @Test
+    fun `ProfileUiState correctly updates weight unit`() {
+        val original = ProfileUiState(currentWeightUnit = WeightUnit.KG)
+
+        val modified = original.copy(currentWeightUnit = WeightUnit.LBS)
+
+        assertThat(original.currentWeightUnit).isEqualTo(WeightUnit.KG)
+        assertThat(modified.currentWeightUnit).isEqualTo(WeightUnit.LBS)
     }
 
     @Test

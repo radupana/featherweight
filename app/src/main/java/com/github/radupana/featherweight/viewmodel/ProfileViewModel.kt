@@ -8,6 +8,9 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.github.radupana.featherweight.data.export.ExportOptions
+import com.github.radupana.featherweight.di.ServiceLocator
+import com.github.radupana.featherweight.manager.WeightUnitManager
+import com.github.radupana.featherweight.model.WeightUnit
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.WorkoutSeedingService
 import com.github.radupana.featherweight.worker.ExportWorkoutsWorker
@@ -40,6 +43,7 @@ data class ProfileUiState(
     val isExporting: Boolean = false,
     val exportedFilePath: String? = null,
     val currentTab: ProfileTab = ProfileTab.ONE_RM,
+    val currentWeightUnit: WeightUnit = WeightUnit.KG,
 )
 
 sealed class SeedingState {
@@ -83,6 +87,7 @@ class ProfileViewModel(
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
     private val workoutSeedingService = WorkoutSeedingService(repository)
+    private val weightUnitManager: WeightUnitManager = ServiceLocator.provideWeightUnitManager(application)
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -91,6 +96,7 @@ class ProfileViewModel(
         loadProfileData()
         observeCurrentMaxes()
         observeBig4AndOtherExercises()
+        loadCurrentWeightUnit()
     }
 
     private fun loadProfileData() {
@@ -455,5 +461,15 @@ class ProfileViewModel(
 
     fun selectTab(tab: ProfileTab) {
         _uiState.value = _uiState.value.copy(currentTab = tab)
+    }
+
+    private fun loadCurrentWeightUnit() {
+        val currentUnit = weightUnitManager.getCurrentUnit()
+        _uiState.value = _uiState.value.copy(currentWeightUnit = currentUnit)
+    }
+
+    fun setWeightUnit(unit: WeightUnit) {
+        weightUnitManager.setUnit(unit)
+        _uiState.value = _uiState.value.copy(currentWeightUnit = unit)
     }
 }

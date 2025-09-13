@@ -48,7 +48,7 @@ fun Add1RMDialog(
                         weightText = value
                         isError = value.isNotEmpty() && value.toFloatOrNull() == null
                     },
-                    label = { Text("1RM Weight (kg)") },
+                    label = { Text("1RM ${WeightFormatter.getWeightLabel()}") },
                     isError = isError,
                     supportingText =
                         if (isError) {
@@ -63,7 +63,7 @@ fun Add1RMDialog(
 
                 if (currentMax != null) {
                     Text(
-                        text = "Current: ${WeightFormatter.formatWeight(currentMax)}kg",
+                        text = "Current: ${WeightFormatter.formatWeightWithUnit(currentMax)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -73,9 +73,10 @@ fun Add1RMDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val weight = weightText.toFloatOrNull()
-                    if (weight != null && weight > 0) {
-                        onSave(WeightFormatter.roundToNearestQuarter(weight))
+                    // Parse and convert to kg based on current unit setting
+                    val weightInKg = WeightFormatter.parseUserInput(weightText)
+                    if (weightInKg > 0) {
+                        onSave(weightInKg)
                     }
                 },
                 enabled = weightText.isNotEmpty() && !isError,

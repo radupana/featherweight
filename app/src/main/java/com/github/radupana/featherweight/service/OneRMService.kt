@@ -213,9 +213,9 @@ class OneRMService {
         reps: Int,
         rpe: Float?,
     ): String {
-        val weightStr = WeightFormatter.formatWeight(weight)
+        val weightWithUnit = WeightFormatter.formatWeightWithUnit(weight)
         val rpeStr = rpe?.let { " @ RPE ${WeightFormatter.formatRPE(it)}" } ?: ""
-        return "${weightStr}kg × $reps$rpeStr"
+        return "$weightWithUnit × $reps$rpeStr"
     }
 
     data class MostWeightData(

@@ -1,9 +1,18 @@
 package com.github.radupana.featherweight.util
 
 import com.google.common.truth.Truth.assertThat
+import org.junit.Before
 import org.junit.Test
 
 class WeightFormatterRoundingTest {
+    @Before
+    fun setUp() {
+        // Reset WeightFormatter to ensure it works without a manager (backward compatibility)
+        val field = WeightFormatter::class.java.getDeclaredField("weightUnitManager")
+        field.isAccessible = true
+        field.set(WeightFormatter, null)
+    }
+
     @Test
     fun `roundToNearestQuarter rounds all possible values correctly`() {
         // Test exact quarters

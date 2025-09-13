@@ -83,7 +83,7 @@ interface OneRMDao {
                     mostWeightRpe = null,
                     mostWeightDate = LocalDateTime.now(),
                     oneRMEstimate = maxWeight,
-                    oneRMContext = "${maxWeight}kg × 1",
+                    oneRMContext = "${com.github.radupana.featherweight.util.WeightFormatter.formatWeightWithUnit(maxWeight)} × 1",
                     oneRMConfidence = 1.0f,
                     oneRMDate = LocalDateTime.now(),
                     notes = notes,

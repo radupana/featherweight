@@ -10,6 +10,7 @@ import com.github.radupana.featherweight.data.WorkoutDao
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.export.ExportOptions
 import com.github.radupana.featherweight.data.profile.OneRMDao
+import com.github.radupana.featherweight.manager.WeightUnitManager
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,6 +23,7 @@ class WorkoutExportService(
     private val setLogDao: SetLogDao,
     private val oneRMDao: OneRMDao,
     private val repository: FeatherweightRepository,
+    private val weightUnitManager: WeightUnitManager? = null,
 ) {
     suspend fun exportWorkoutsToFile(
         context: Context,
@@ -96,6 +98,10 @@ class WorkoutExportService(
         writer.name("totalWorkouts").value(totalWorkouts)
         writer.name("appVersion").value(BuildConfig.VERSION_NAME)
 
+        // Add weight unit to metadata
+        val currentUnit = weightUnitManager?.getCurrentUnit() ?: com.github.radupana.featherweight.model.WeightUnit.KG
+        writer.name("weightUnit").value(currentUnit.name)
+
         writer.name("exportOptions").beginObject()
         writer.name("includeBodyweight").value(exportOptions.includeBodyweight)
         writer.name("includeOneRepMaxes").value(exportOptions.includeOneRepMaxes)
@@ -121,7 +127,11 @@ class WorkoutExportService(
                 writer.beginObject()
                 writer.name("exerciseId").value(max.exerciseVariationId)
                 writer.name("exerciseName").value(max.exerciseName)
-                writer.name("weight").value(max.oneRMEstimate)
+
+                // Export weight in current unit
+                val exportWeight = weightUnitManager?.convertFromKg(max.oneRMEstimate) ?: max.oneRMEstimate
+                writer.name("weight").value(exportWeight)
+
                 writer.name("recordedDate").value(max.oneRMDate.toString())
                 writer.endObject()
             }
@@ -213,9 +223,17 @@ class WorkoutExportService(
         writer.beginObject()
         writer.name("setNumber").value(setNumber)
         set.targetReps?.let { writer.name("targetReps").value(it) }
-        set.targetWeight?.let { writer.name("targetWeight").value(it) }
+
+        // Export weights in current unit
+        set.targetWeight?.let {
+            val exportWeight = weightUnitManager?.convertFromKg(it) ?: it
+            writer.name("targetWeight").value(exportWeight)
+        }
         writer.name("actualReps").value(set.actualReps)
-        writer.name("actualWeight").value(set.actualWeight)
+
+        val actualExportWeight = weightUnitManager?.convertFromKg(set.actualWeight) ?: set.actualWeight
+        writer.name("actualWeight").value(actualExportWeight)
+
         set.actualRpe?.let { writer.name("rpe").value(it) }
         writer.name("completed").value(set.isCompleted)
         writer.endObject()
@@ -249,6 +267,10 @@ class WorkoutExportService(
                 writer.name("exportDate").value(LocalDateTime.now().toString())
                 writer.name("exportType").value("single_workout")
                 writer.name("appVersion").value(BuildConfig.VERSION_NAME)
+
+                // Add weight unit to metadata
+                val currentUnit = weightUnitManager?.getCurrentUnit() ?: com.github.radupana.featherweight.model.WeightUnit.KG
+                writer.name("weightUnit").value(currentUnit.name)
 
                 writer.name("exportOptions").beginObject()
                 writer.name("includeBodyweight").value(exportOptions.includeBodyweight)
@@ -302,6 +324,10 @@ class WorkoutExportService(
                 writer.name("programmeName").value(programmeName)
                 writer.name("totalWorkouts").value(workouts.size)
                 writer.name("appVersion").value(BuildConfig.VERSION_NAME)
+
+                // Add weight unit to metadata
+                val currentUnit = weightUnitManager?.getCurrentUnit() ?: com.github.radupana.featherweight.model.WeightUnit.KG
+                writer.name("weightUnit").value(currentUnit.name)
 
                 writer.name("exportOptions").beginObject()
                 writer.name("includeBodyweight").value(exportOptions.includeBodyweight)

@@ -136,7 +136,10 @@ fun ProfileScreen(
                         )
                     }
                     ProfileTab.SETTINGS -> {
-                        SettingsTab()
+                        SettingsTab(
+                            currentWeightUnit = uiState.currentWeightUnit,
+                            onWeightUnitSelected = { unit -> viewModel.setWeightUnit(unit) },
+                        )
                     }
                     ProfileTab.DATA -> {
                         DataTab(

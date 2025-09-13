@@ -1,24 +1,32 @@
 package com.github.radupana.featherweight.util
 
+import com.github.radupana.featherweight.manager.WeightUnitManager
 import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.round
 
 object WeightFormatter {
+    private var weightUnitManager: WeightUnitManager? = null
+
+    fun initialize(manager: WeightUnitManager) {
+        weightUnitManager = manager
+    }
+
     /**
      * Formats weight to nearest quarter (0.00, 0.25, 0.50, 0.75)
      * Shows integers without decimal (82.0 -> "82")
      * Shows meaningful decimals (82.5 -> "82.5")
      */
     fun formatWeight(weight: Float): String {
-        // Round to nearest quarter
+        weightUnitManager?.let { manager ->
+            return manager.formatWeight(weight)
+        }
+
         val roundedWeight = roundToNearestQuarter(weight)
 
-        // If it's a whole number, show without decimal
         return if (roundedWeight % 1.0f == 0.0f) {
             roundedWeight.toInt().toString()
         } else {
-            // Show with at most 2 decimal places
             String.format(Locale.US, "%.2f", roundedWeight).trimEnd('0').trimEnd('.')
         }
     }
@@ -26,7 +34,12 @@ object WeightFormatter {
     /**
      * Formats weight with kg unit
      */
-    fun formatWeightWithUnit(weight: Float): String = "${formatWeight(weight)}kg"
+    fun formatWeightWithUnit(weight: Float): String {
+        weightUnitManager?.let { manager ->
+            return manager.formatWeightWithUnit(weight)
+        }
+        return "${formatWeight(weight)}kg"
+    }
 
     /**
      * Rounds a weight to the nearest quarter (0.25 increments)
@@ -59,14 +72,54 @@ object WeightFormatter {
     }
 
     /**
+     * Gets the weight label for headers (e.g., "Weight (kg)" or "Weight (lbs)")
+     */
+    fun getWeightLabel(): String {
+        weightUnitManager?.let { manager ->
+            val unit = manager.getCurrentUnit().suffix
+            return "Weight ($unit)"
+        }
+        return "Weight (kg)"
+    }
+
+    /**
+     * Formats a last set display (e.g., "Last: 3x110kg")
+     */
+    fun formatLastSet(
+        reps: Int,
+        weightKg: Float,
+    ): String {
+        val weight = formatWeight(weightKg)
+        val unit = weightUnitManager?.getCurrentUnit()?.suffix ?: "kg"
+        return "Last: ${reps}x$weight$unit"
+    }
+
+    /**
+     * Formats set info display (e.g., "3 sets × 5 reps × 100kg")
+     */
+    fun formatSetInfo(
+        sets: Int,
+        reps: Int,
+        weightKg: Float,
+    ): String {
+        val weight = formatWeight(weightKg)
+        val unit = weightUnitManager?.getCurrentUnit()?.suffix ?: "kg"
+        return "$sets sets × $reps reps × $weight$unit"
+    }
+
+    /**
      * Formats large volumes (e.g., 1234kg -> 1.2k kg)
      */
-    fun formatVolume(volume: Float): String =
-        when {
+    fun formatVolume(volume: Float): String {
+        weightUnitManager?.let { manager ->
+            return manager.formatVolume(volume)
+        }
+        return when {
             volume >= 10000 -> "${formatDecimal(volume / 1000, 1)}k kg"
             volume >= 1000 -> "${formatDecimal(volume / 1000, 2)}k kg"
             else -> formatWeightWithUnit(volume)
         }
+    }
 
     fun formatRPE(rpe: Float?): String {
         if (rpe == null) return ""
@@ -101,5 +154,18 @@ object WeightFormatter {
         if (rpe == null) return true
         val rounded = roundRPE(rpe)
         return kotlin.math.abs(rpe - (rounded ?: 0f)) < 0.001f
+    }
+
+    /**
+     * Parses user input and converts to kg based on current unit setting
+     * In LBS mode: "225" -> 102.06kg (225 lbs converted)
+     * In KG mode: "100" -> 100kg (no conversion)
+     */
+    fun parseUserInput(input: String): Float {
+        weightUnitManager?.let { manager ->
+            return manager.parseUserInput(input)
+        }
+        // Fallback: treat as kg (original behavior)
+        return input.toFloatOrNull()?.let { roundToNearestQuarter(it) } ?: 0f
     }
 }

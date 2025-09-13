@@ -114,7 +114,7 @@ fun RepRangeChart(
                         fontWeight = FontWeight.Medium,
                     )
                     Text(
-                        text = "Volume: ${WeightFormatter.formatWeight(range.volume)}kg",
+                        text = "Volume: ${WeightFormatter.formatWeightWithUnit(range.volume)}",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                     )
@@ -128,7 +128,7 @@ fun RepRangeChart(
                             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
                         )
                         Text(
-                            text = "Avg: ${WeightFormatter.formatWeight(range.avgWeight)}kg",
+                            text = "Avg: ${WeightFormatter.formatWeightWithUnit(range.avgWeight)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
                         )

@@ -2,6 +2,8 @@ package com.github.radupana.featherweight
 
 import android.app.Application
 import android.util.Log
+import com.github.radupana.featherweight.di.ServiceLocator
+import com.github.radupana.featherweight.util.WeightFormatter
 import com.google.firebase.FirebaseApp
 import com.google.firebase.perf.FirebasePerformance
 import com.google.firebase.perf.metrics.Trace
@@ -17,6 +19,8 @@ class FeatherweightApplication : Application() {
         super.onCreate()
 
         FirebaseApp.initializeApp(this)
+
+        initializeWeightFormatter()
 
         try {
             appStartupTrace = FirebasePerformance.getInstance().newTrace("app_cold_start")
@@ -35,5 +39,11 @@ class FeatherweightApplication : Application() {
         Log.i(TAG, "Android version: ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})")
 
         appStartupTrace?.stop()
+    }
+
+    private fun initializeWeightFormatter() {
+        val weightUnitManager = ServiceLocator.provideWeightUnitManager(this)
+        WeightFormatter.initialize(weightUnitManager)
+        Log.d(TAG, "WeightFormatter initialized with WeightUnitManager")
     }
 }

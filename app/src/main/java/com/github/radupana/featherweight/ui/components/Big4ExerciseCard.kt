@@ -53,7 +53,7 @@ fun Big4ExerciseCard(
 
                 if (oneRMValue != null) {
                     Text(
-                        text = "${WeightFormatter.formatWeight(oneRMValue)} kg",
+                        text = WeightFormatter.formatWeightWithUnit(oneRMValue),
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 4.dp),

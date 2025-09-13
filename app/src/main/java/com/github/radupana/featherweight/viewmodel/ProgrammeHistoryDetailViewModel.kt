@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.export.ExportOptions
 import com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats
+import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.ProgrammeHistoryDetails
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.WorkoutExportService
@@ -28,6 +29,7 @@ class ProgrammeHistoryDetailViewModel(
             database.setLogDao(),
             database.oneRMDao(),
             repository,
+            ServiceLocator.provideWeightUnitManager(application),
         )
     private val exportHandler = ExportHandler(application)
 

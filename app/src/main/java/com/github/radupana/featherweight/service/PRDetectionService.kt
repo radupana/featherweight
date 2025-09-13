@@ -160,9 +160,9 @@ class PRDetectionService(
 
             val notes =
                 if (currentMax1RM == null) {
-                    "First 1RM estimate: ${WeightFormatter.formatDecimal(estimated1RM, 2)}kg from ${weight}kg × $reps"
+                    "First 1RM estimate: ${WeightFormatter.formatWeightWithUnit(estimated1RM)} from ${WeightFormatter.formatWeightWithUnit(weight)} × $reps"
                 } else {
-                    "New estimated 1RM: ${WeightFormatter.formatDecimal(estimated1RM, 2)}kg from ${weight}kg × $reps"
+                    "New estimated 1RM: ${WeightFormatter.formatWeightWithUnit(estimated1RM)} from ${WeightFormatter.formatWeightWithUnit(weight)} × $reps"
                 }
 
             return PersonalRecord(
@@ -198,6 +198,8 @@ class PRDetectionService(
     ): PersonalRecord? {
         val currentMaxWeight = personalRecordDao.getMaxWeightForExercise(exerciseVariationId)
 
+        Log.d("PRDetection", "Weight PR check: current weight=${weight}kg, max weight in DB=${currentMaxWeight ?: "None"}kg")
+
         // Create PR if this is the first record OR if it beats the existing record
         if (currentMaxWeight == null || weight > currentMaxWeight) {
             // Get previous weight PR for context
@@ -212,12 +214,12 @@ class PRDetectionService(
 
             val notes =
                 when {
-                    currentMaxWeight == null -> "First weight record: ${weight}kg × $reps"
+                    currentMaxWeight == null -> "First weight record: ${WeightFormatter.formatWeightWithUnit(weight)} × $reps"
                     currentMax1RM != null && estimated1RM != null && estimated1RM < currentMax1RM -> {
-                        val potentialMax = WeightFormatter.formatDecimal(currentMax1RM, 1)
-                        "New weight PR: ${weight}kg × $reps (Based on your ${potentialMax}kg 1RM, you could potentially lift more!)"
+                        val potentialMax = WeightFormatter.formatWeightWithUnit(currentMax1RM)
+                        "New weight PR: ${WeightFormatter.formatWeightWithUnit(weight)} × $reps (Based on your $potentialMax 1RM, you could potentially lift more!)"
                     }
-                    else -> "New weight PR: ${weight}kg × $reps"
+                    else -> "New weight PR: ${WeightFormatter.formatWeightWithUnit(weight)} × $reps"
                 }
 
             val roundedWeight = WeightFormatter.roundToNearestQuarter(weight)

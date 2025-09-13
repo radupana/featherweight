@@ -123,7 +123,7 @@ fun IntensityZoneChart(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "Total Volume: ${WeightFormatter.formatWeight(zone.volume)}kg",
+                        text = "Total Volume: ${WeightFormatter.formatWeightWithUnit(zone.volume)}",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Row(
@@ -136,7 +136,7 @@ fun IntensityZoneChart(
                             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
                         )
                         Text(
-                            text = "Avg: ${WeightFormatter.formatWeight(zone.avgWeight)}kg",
+                            text = "Avg: ${WeightFormatter.formatWeightWithUnit(zone.avgWeight)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
                         )

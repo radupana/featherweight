@@ -204,7 +204,7 @@ fun ExerciseCard(
                 // Show last performance if available
                 lastSet?.let { set ->
                     Text(
-                        text = "Last: ${WeightFormatter.formatWeight(set.actualWeight)} × ${set.actualReps}",
+                        text = WeightFormatter.formatLastSet(set.actualReps, set.actualWeight),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     )
@@ -293,7 +293,7 @@ fun ExerciseCard(
                         }
 
                         Text(
-                            "Weight",
+                            WeightFormatter.getWeightLabel(),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -583,10 +583,8 @@ private fun CleanSetRow(
                                 onValueChange = { newValue ->
                                     if (!set.isCompleted && !readOnly) {
                                         weightValue = newValue
-                                        val weight =
-                                            newValue.text.toFloatOrNull()?.let {
-                                                WeightFormatter.roundToNearestQuarter(it)
-                                            } ?: 0f
+                                        // Parse and convert to kg based on current unit setting
+                                        val weight = WeightFormatter.parseUserInput(newValue.text)
                                         onUpdateSet(set.actualReps, weight, set.actualRpe)
                                     }
                                 },

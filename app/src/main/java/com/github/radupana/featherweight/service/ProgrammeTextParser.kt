@@ -8,6 +8,8 @@ import com.github.radupana.featherweight.data.ParsedWeek
 import com.github.radupana.featherweight.data.ParsedWorkout
 import com.github.radupana.featherweight.data.TextParsingRequest
 import com.github.radupana.featherweight.data.TextParsingResult
+import com.github.radupana.featherweight.manager.WeightUnitManager
+import com.github.radupana.featherweight.util.WeightFormatter
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
@@ -20,7 +22,9 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-open class ProgrammeTextParser {
+open class ProgrammeTextParser(
+    private val weightUnitManager: WeightUnitManager? = null,
+) {
     companion object {
         private const val TAG = "ProgrammeTextParser"
         private const val TIMEOUT_SECONDS = 300L
@@ -341,7 +345,10 @@ open class ProgrammeTextParser {
         val maxesInfo =
             buildString {
                 request.userMaxes.forEach { (exercise, max) ->
-                    appendLine("$exercise: ${max}kg")
+                    // Convert max to current unit for display in prompt
+                    val displayWeight = weightUnitManager?.convertFromKg(max) ?: max
+                    val unit = weightUnitManager?.getCurrentUnit()?.suffix ?: "kg"
+                    appendLine("$exercise: ${WeightFormatter.formatWeight(displayWeight)}$unit")
                 }
             }
 
