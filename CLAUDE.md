@@ -9,7 +9,7 @@
 - **Plan First**: Always understand the exact ask and create a plan before writing any code.
 - **Simplicity First**: Only implement what is explicitly needed.
 - **Clarify Ambiguity**: Ask for clarification on requirements before implementing.
-- **No Unrequested Features**: Only build what has been explicitly requested.
+- **No Unrequested Features**: Code is a liability. Only build what has been explicitly requested.
 - **Fail-Fast**: If a feature fails, it should fail visibly.
 - **Incremental Changes**: Make one small change, compile, and verify before moving to the next.
 - **Testable Code**: Write testable code using dependency injection. If tests are hard to write, fix

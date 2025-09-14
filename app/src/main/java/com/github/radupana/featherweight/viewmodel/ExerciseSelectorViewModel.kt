@@ -12,6 +12,7 @@ import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.ExerciseNamingService
 import com.github.radupana.featherweight.service.ValidationResult
+import com.github.radupana.featherweight.util.ExceptionLogger
 import com.github.radupana.featherweight.util.ExerciseSearchUtil
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +22,10 @@ import kotlinx.coroutines.launch
 class ExerciseSelectorViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
+    companion object {
+        private const val TAG = "ExerciseSelectorVM"
+    }
+
     private val repository = FeatherweightRepository(application)
     private val namingService = ExerciseNamingService()
 
@@ -434,15 +439,15 @@ class ExerciseSelectorViewModel(
                 } else {
                     _currentSwapExerciseName.value = null
                 }
-            } catch (e: RuntimeException) {
-                val message =
-                    when (e) {
-                        is android.database.sqlite.SQLiteException -> "Database error loading swap suggestions"
-                        is IllegalArgumentException -> "Invalid exercise ID for swap suggestions"
-                        is SecurityException -> "Permission error loading swap suggestions"
-                        else -> "Error loading swap suggestions"
-                    }
-                throw IllegalStateException(message, e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                ExceptionLogger.logException(TAG, "Database error loading swap suggestions", e)
+                throw IllegalStateException("Database error loading swap suggestions", e)
+            } catch (e: IllegalArgumentException) {
+                ExceptionLogger.logException(TAG, "Invalid exercise ID for swap suggestions", e)
+                throw IllegalStateException("Invalid exercise ID for swap suggestions", e)
+            } catch (e: SecurityException) {
+                ExceptionLogger.logException(TAG, "Permission error loading swap suggestions", e)
+                throw IllegalStateException("Permission error loading swap suggestions", e)
             }
         }
     }

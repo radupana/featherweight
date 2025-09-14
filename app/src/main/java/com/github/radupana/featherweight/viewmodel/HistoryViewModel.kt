@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.FeatherweightDatabase
@@ -12,6 +11,7 @@ import com.github.radupana.featherweight.domain.WorkoutDayInfo
 import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.WorkoutExportService
+import com.github.radupana.featherweight.util.ExceptionLogger
 import com.github.radupana.featherweight.utils.ExportHandler
 import com.google.firebase.perf.FirebasePerformance
 import com.google.firebase.perf.metrics.Trace
@@ -164,10 +164,13 @@ class HistoryViewModel(
         try {
             FirebasePerformance.getInstance().newTrace(name)
         } catch (e: IllegalStateException) {
-            Log.d(TAG, "Firebase Performance not available - likely in test environment")
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance not available - likely in test environment", e)
             null
-        } catch (e: RuntimeException) {
-            Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
+        } catch (e: ExceptionInInitializerError) {
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance trace creation failed", e)
+            null
+        } catch (e: NoClassDefFoundError) {
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance trace creation failed", e)
             null
         }
 
@@ -293,13 +296,13 @@ class HistoryViewModel(
                         isLoading = false,
                     )
             } catch (e: IllegalArgumentException) {
-                Log.e(TAG, "Failed to load calendar data", e)
+                ExceptionLogger.logException(TAG, "Failed to load calendar data", e)
                 _calendarState.value = _calendarState.value.copy(isLoading = false)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Failed to load calendar data", e)
+                ExceptionLogger.logException(TAG, "Failed to load calendar data", e)
                 _calendarState.value = _calendarState.value.copy(isLoading = false)
             } catch (e: NumberFormatException) {
-                Log.e(TAG, "Failed to load calendar data", e)
+                ExceptionLogger.logException(TAG, "Failed to load calendar data", e)
                 _calendarState.value = _calendarState.value.copy(isLoading = false)
             }
         }
@@ -366,13 +369,13 @@ class HistoryViewModel(
                         isLoading = false,
                     )
             } catch (e: IllegalArgumentException) {
-                Log.e(TAG, "Failed to load week groups for calendar month", e)
+                ExceptionLogger.logException(TAG, "Failed to load week groups for calendar month", e)
                 _weekGroupState.value = _weekGroupState.value.copy(isLoading = false)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Failed to load week groups for calendar month", e)
+                ExceptionLogger.logException(TAG, "Failed to load week groups for calendar month", e)
                 _weekGroupState.value = _weekGroupState.value.copy(isLoading = false)
             } catch (e: NumberFormatException) {
-                Log.e(TAG, "Failed to load week groups for calendar month", e)
+                ExceptionLogger.logException(TAG, "Failed to load week groups for calendar month", e)
                 _weekGroupState.value = _weekGroupState.value.copy(isLoading = false)
             }
         }
@@ -428,7 +431,7 @@ class HistoryViewModel(
                         pendingExportFile = file,
                     )
             } catch (e: IllegalArgumentException) {
-                Log.e(TAG, "Failed to export workout", e)
+                ExceptionLogger.logException(TAG, "Failed to export workout", e)
                 _historyState.value =
                     _historyState.value.copy(
                         exportingWorkoutId = null,
@@ -449,7 +452,7 @@ class HistoryViewModel(
                             pendingExportFile = null,
                         )
                 } catch (e: java.io.IOException) {
-                    Log.e(TAG, "Failed to save exported file", e)
+                    ExceptionLogger.logException(TAG, "Failed to save exported file", e)
                 }
             }
         }

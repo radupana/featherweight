@@ -9,6 +9,7 @@ import com.github.radupana.featherweight.data.ParsedWorkout
 import com.github.radupana.featherweight.data.TextParsingRequest
 import com.github.radupana.featherweight.data.TextParsingResult
 import com.github.radupana.featherweight.manager.WeightUnitManager
+import com.github.radupana.featherweight.util.ExceptionLogger
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
@@ -132,12 +133,20 @@ open class ProgrammeTextParser(
                     success = false,
                     error = userFriendlyError,
                 )
-            } catch (e: RuntimeException) {
-                Log.e(TAG, "=== Programme Parsing FAILED (Unexpected RuntimeException) ===")
-                Log.e(TAG, "Unexpected error type: ${e.javaClass.name}")
-                Log.e(TAG, "Error message: ${e.message}")
-                Log.e(TAG, "Full stack trace:", e)
-
+            } catch (e: NumberFormatException) {
+                ExceptionLogger.logException(TAG, "Number format error in programme parsing", e)
+                TextParsingResult(
+                    success = false,
+                    error = "Invalid number format in programme: ${e.message}",
+                )
+            } catch (e: IndexOutOfBoundsException) {
+                ExceptionLogger.logException(TAG, "Index out of bounds in programme parsing", e)
+                TextParsingResult(
+                    success = false,
+                    error = "Programme structure error: ${e.message}",
+                )
+            } catch (e: NullPointerException) {
+                ExceptionLogger.logException(TAG, "Null pointer in programme parsing", e)
                 TextParsingResult(
                     success = false,
                     error = "Unexpected error: ${e.message ?: "Unknown error"}",
@@ -319,8 +328,11 @@ open class ProgrammeTextParser(
             val errorJson =
                 try {
                     JsonParser.parseString(responseBody).asJsonObject
-                } catch (e: RuntimeException) {
-                    Log.e(TAG, "Failed to parse error response as JSON", e)
+                } catch (e: com.google.gson.JsonSyntaxException) {
+                    ExceptionLogger.logException(TAG, "Failed to parse error response as JSON", e)
+                    null
+                } catch (e: IllegalStateException) {
+                    ExceptionLogger.logException(TAG, "Invalid JSON state in error response", e)
                     null
                 }
             val errorMessage =
@@ -480,8 +492,8 @@ open class ProgrammeTextParser(
         val json =
             try {
                 JsonParser.parseString(jsonString).asJsonObject
-            } catch (e: RuntimeException) {
-                Log.e(TAG, "Failed to parse JSON string", e)
+            } catch (e: com.google.gson.JsonSyntaxException) {
+                ExceptionLogger.logException(TAG, "Failed to parse JSON string", e)
                 Log.e(TAG, "Invalid JSON content:\n$jsonString")
                 throw IllegalArgumentException("Failed to parse JSON: ${e.message}", e)
             }

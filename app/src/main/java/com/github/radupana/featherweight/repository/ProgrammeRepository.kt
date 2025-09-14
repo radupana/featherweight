@@ -1,8 +1,8 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
-import android.util.Log
 import com.github.radupana.featherweight.data.FeatherweightDatabase
+import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.perf.FirebasePerformance
 import com.google.firebase.perf.metrics.Trace
 import kotlinx.coroutines.CoroutineDispatcher
@@ -53,10 +53,13 @@ class ProgrammeRepository(
         try {
             FirebasePerformance.getInstance().newTrace(name)
         } catch (e: IllegalStateException) {
-            Log.d(TAG, "Firebase Performance not available - likely in test environment")
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance not available - likely in test environment", e)
             null
-        } catch (e: RuntimeException) {
-            Log.d(TAG, "Firebase Performance not available - likely in test environment")
+        } catch (e: ExceptionInInitializerError) {
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance initialization failed", e)
+            null
+        } catch (e: NoClassDefFoundError) {
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance class not found", e)
             null
         }
 

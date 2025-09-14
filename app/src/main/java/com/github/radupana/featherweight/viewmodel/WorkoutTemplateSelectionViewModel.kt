@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.WorkoutRepository
+import com.github.radupana.featherweight.util.ExceptionLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -85,8 +86,14 @@ class WorkoutTemplateSelectionViewModel(
                     }
 
                 _templates.value = templatesWithExercises
-            } catch (e: RuntimeException) {
-                Log.e(TAG, "Failed to load templates", e)
+            } catch (e: IllegalArgumentException) {
+                ExceptionLogger.logException(TAG, "Failed to load templates", e)
+                _templates.value = emptyList()
+            } catch (e: IllegalStateException) {
+                ExceptionLogger.logException(TAG, "Failed to load templates", e)
+                _templates.value = emptyList()
+            } catch (e: android.database.sqlite.SQLiteException) {
+                ExceptionLogger.logException(TAG, "Failed to load templates", e)
                 _templates.value = emptyList()
             } finally {
                 _isLoading.value = false
@@ -106,8 +113,12 @@ class WorkoutTemplateSelectionViewModel(
                 workoutRepository.deleteWorkoutById(templateId)
                 Log.i(TAG, "Template deleted successfully")
                 loadTemplates() // Reload the list
-            } catch (e: RuntimeException) {
-                Log.e(TAG, "Failed to delete template", e)
+            } catch (e: IllegalArgumentException) {
+                ExceptionLogger.logException(TAG, "Failed to delete template", e)
+            } catch (e: IllegalStateException) {
+                ExceptionLogger.logException(TAG, "Failed to delete template", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                ExceptionLogger.logException(TAG, "Failed to delete template", e)
             }
         }
     }

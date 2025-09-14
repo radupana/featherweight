@@ -23,8 +23,10 @@ class WeightUnitManagerTest {
         editor = mockk(relaxed = true)
 
         every { context.getSharedPreferences("weight_prefs", Context.MODE_PRIVATE) } returns sharedPreferences
+        every { sharedPreferences.getString("weight_unit", "KG") } returns "KG"
         every { sharedPreferences.edit() } returns editor
         every { editor.putString(any(), any()) } returns editor
+        every { editor.apply() } returns Unit
 
         manager = WeightUnitManagerImpl(context)
     }

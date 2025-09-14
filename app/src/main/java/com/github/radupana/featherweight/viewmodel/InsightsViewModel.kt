@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +11,7 @@ import com.github.radupana.featherweight.data.TrainingInsight
 import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.TrainingAnalysisService
+import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.perf.FirebasePerformance
 import com.google.firebase.perf.metrics.Trace
 import com.google.gson.Gson
@@ -68,11 +68,11 @@ class InsightsViewModel(
             try {
                 repository.getExercisesSummary()
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e("InsightsViewModel", "Error", e)
+                ExceptionLogger.logException("InsightsViewModel", "Error getting exercises summary", e)
                 com.github.radupana.featherweight.service
                     .GroupedExerciseSummary(emptyList(), emptyList())
             } catch (e: IllegalStateException) {
-                Log.e("InsightsViewModel", "Error", e)
+                ExceptionLogger.logException("InsightsViewModel", "Error getting exercises summary", e)
                 com.github.radupana.featherweight.service
                     .GroupedExerciseSummary(emptyList(), emptyList())
             }
@@ -120,11 +120,11 @@ class InsightsViewModel(
 
                 onComplete(recentPRs, weeklyWorkoutCount, currentStreak)
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e("InsightsViewModel", "Error", e)
+                ExceptionLogger.logException("InsightsViewModel", "Error loading highlights data", e)
                 trace?.stop()
                 onComplete(emptyList(), 0, 0)
             } catch (e: IllegalStateException) {
-                Log.e("InsightsViewModel", "Error", e)
+                ExceptionLogger.logException("InsightsViewModel", "Error loading highlights data", e)
                 trace?.stop()
                 onComplete(emptyList(), 0, 0)
             }
@@ -218,15 +218,15 @@ class InsightsViewModel(
                 _trainingAnalysis.value = analysis
             }
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e("InsightsViewModel", "Training analysis failed", e)
+            ExceptionLogger.logException("InsightsViewModel", "Training analysis failed", e)
             // Keep existing cached analysis if API fails
             _trainingAnalysis.value = repository.getLatestTrainingAnalysis()
         } catch (e: java.io.IOException) {
-            Log.e("InsightsViewModel", "Training analysis failed", e)
+            ExceptionLogger.logException("InsightsViewModel", "Training analysis failed", e)
             // Keep existing cached analysis if API fails
             _trainingAnalysis.value = repository.getLatestTrainingAnalysis()
         } catch (e: IllegalStateException) {
-            Log.e("InsightsViewModel", "Training analysis failed", e)
+            ExceptionLogger.logException("InsightsViewModel", "Training analysis failed", e)
             // Keep existing cached analysis if API fails
             _trainingAnalysis.value = repository.getLatestTrainingAnalysis()
         } finally {
@@ -257,10 +257,13 @@ class InsightsViewModel(
         try {
             FirebasePerformance.getInstance().newTrace(name)
         } catch (e: IllegalStateException) {
-            Log.d(TAG, "Firebase Performance not available - likely in test environment")
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance not available - likely in test environment", e)
             null
-        } catch (e: RuntimeException) {
-            Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
+        } catch (e: ExceptionInInitializerError) {
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance trace creation failed", e)
+            null
+        } catch (e: NoClassDefFoundError) {
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance trace creation failed", e)
             null
         }
 
@@ -413,14 +416,14 @@ class InsightsViewModel(
                     try {
                         InsightCategory.valueOf(insight.get("category").asString)
                     } catch (e: IllegalArgumentException) {
-                        Log.w(TAG, "Unknown insight category, defaulting to PROGRESSION", e)
+                        ExceptionLogger.logNonCritical(TAG, "Unknown insight category, defaulting to PROGRESSION", e)
                         InsightCategory.PROGRESSION
                     }
                 val severity =
                     try {
                         InsightSeverity.valueOf(insight.get("severity").asString)
                     } catch (e: IllegalArgumentException) {
-                        Log.w(TAG, "Unknown insight severity, defaulting to INFO", e)
+                        ExceptionLogger.logNonCritical(TAG, "Unknown insight severity, defaulting to INFO", e)
                         InsightSeverity.INFO
                     }
 
@@ -453,7 +456,7 @@ class InsightsViewModel(
                 warningsJson = gson.toJson(warnings),
             )
         } catch (e: com.google.gson.JsonSyntaxException) {
-            Log.e(TAG, "Failed to parse AI analysis, using fallback", e)
+            ExceptionLogger.logException(TAG, "Failed to parse AI analysis, using fallback", e)
             val fallbackInsights =
                 listOf(
                     TrainingInsight(
@@ -472,7 +475,7 @@ class InsightsViewModel(
                 warningsJson = gson.toJson(emptyList<String>()),
             )
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Failed to parse AI analysis, using fallback", e)
+            ExceptionLogger.logException(TAG, "Failed to parse AI analysis, using fallback", e)
             val fallbackInsights =
                 listOf(
                     TrainingInsight(

@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.service
 
 import android.util.Log
+import com.github.radupana.featherweight.util.ExceptionLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -43,10 +44,13 @@ class TrainingAnalysisService {
                 Log.i(TAG, "Training analysis completed successfully")
                 result
             } catch (e: IOException) {
-                Log.e(TAG, "Training analysis failed - Network error", e)
+                ExceptionLogger.logException(TAG, "Training analysis failed - Network error", e)
                 throw e
-            } catch (e: RuntimeException) {
-                Log.e(TAG, "Training analysis failed - Runtime error", e)
+            } catch (e: IllegalArgumentException) {
+                ExceptionLogger.logException(TAG, "Training analysis failed - Invalid argument", e)
+                throw e
+            } catch (e: IllegalStateException) {
+                ExceptionLogger.logException(TAG, "Training analysis failed - Invalid state", e)
                 throw e
             }
         }

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.WorkoutRepository
+import com.github.radupana.featherweight.util.ExceptionLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -95,8 +96,14 @@ class WorkoutSelectionViewModel(
                     }
 
                 _workouts.value = workoutsWithExercises
-            } catch (e: RuntimeException) {
-                android.util.Log.e("WorkoutSelectionVM", "Failed to load workouts", e)
+            } catch (e: IllegalArgumentException) {
+                ExceptionLogger.logException("WorkoutSelectionVM", "Failed to load workouts", e)
+                _workouts.value = emptyList()
+            } catch (e: IllegalStateException) {
+                ExceptionLogger.logException("WorkoutSelectionVM", "Failed to load workouts", e)
+                _workouts.value = emptyList()
+            } catch (e: android.database.sqlite.SQLiteException) {
+                ExceptionLogger.logException("WorkoutSelectionVM", "Failed to load workouts", e)
                 _workouts.value = emptyList()
             } finally {
                 _isLoading.value = false

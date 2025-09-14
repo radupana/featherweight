@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.manager
 import android.content.Context
 import androidx.core.content.edit
 import com.github.radupana.featherweight.model.WeightUnit
+import com.github.radupana.featherweight.util.ExceptionLogger
 import java.util.Locale
 import kotlin.math.round
 
@@ -23,6 +24,7 @@ class WeightUnitManagerImpl(
             try {
                 WeightUnit.valueOf(savedUnit ?: WeightUnit.KG.name)
             } catch (e: IllegalArgumentException) {
+                ExceptionLogger.logNonCritical("WeightUnitManagerImpl", "Invalid weight unit saved in preferences, defaulting to KG", e)
                 WeightUnit.KG
             }
     }

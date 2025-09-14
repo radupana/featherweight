@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.repository.WorkoutRepository
+import com.github.radupana.featherweight.util.ExceptionLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -93,8 +94,14 @@ class CreateTemplateFromWorkoutViewModel(
                 android.util.Log.i("CreateTemplateVM", "Setting saveSuccess to true (was: ${_saveSuccess.value})")
                 _saveSuccess.value = true
                 android.util.Log.i("CreateTemplateVM", "saveSuccess is now: ${_saveSuccess.value}, isInitialized: $isInitialized")
-            } catch (e: RuntimeException) {
-                android.util.Log.e("CreateTemplateVM", "Failed to create template for workoutId: $workoutId", e)
+            } catch (e: IllegalArgumentException) {
+                ExceptionLogger.logException("CreateTemplateVM", "Failed to create template for workoutId: $workoutId", e)
+                _saveSuccess.value = false
+            } catch (e: IllegalStateException) {
+                ExceptionLogger.logException("CreateTemplateVM", "Failed to create template for workoutId: $workoutId", e)
+                _saveSuccess.value = false
+            } catch (e: android.database.sqlite.SQLiteException) {
+                ExceptionLogger.logException("CreateTemplateVM", "Failed to create template for workoutId: $workoutId", e)
                 _saveSuccess.value = false
             } finally {
                 _isSaving.value = false

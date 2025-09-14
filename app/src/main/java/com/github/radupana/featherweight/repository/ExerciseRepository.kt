@@ -19,6 +19,7 @@ import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.domain.ExerciseStats
+import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.perf.FirebasePerformance
 import com.google.firebase.perf.metrics.Trace
 import kotlinx.coroutines.Dispatchers
@@ -147,10 +148,13 @@ class ExerciseRepository(
         try {
             FirebasePerformance.getInstance().newTrace(name)
         } catch (e: IllegalStateException) {
-            Log.d(TAG, "Firebase Performance not available - likely in test environment")
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance not available - likely in test environment", e)
             null
-        } catch (e: RuntimeException) {
-            Log.d(TAG, "Firebase Performance trace creation failed: ${e.message}")
+        } catch (e: ExceptionInInitializerError) {
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance initialization failed", e)
+            null
+        } catch (e: NoClassDefFoundError) {
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance class not found", e)
             null
         }
 

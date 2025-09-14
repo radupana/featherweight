@@ -36,7 +36,7 @@ class RestTimerNotificationServiceTest {
 
     @Test
     fun `notifyTimerCompleted handles sound provider failure gracefully`() {
-        every { soundProvider.playNotificationSound() } throws RuntimeException("Sound failure")
+        every { soundProvider.playNotificationSound() } throws IllegalStateException("Sound failure")
 
         // Should not throw
         service.notifyTimerCompleted()
@@ -47,7 +47,7 @@ class RestTimerNotificationServiceTest {
 
     @Test
     fun `notifyTimerCompleted handles vibration provider failure gracefully`() {
-        every { vibrationProvider.vibratePattern(any()) } throws RuntimeException("Vibration failure")
+        every { vibrationProvider.vibratePattern(any()) } throws IllegalStateException("Vibration failure")
 
         // Should not throw
         service.notifyTimerCompleted()
@@ -58,8 +58,8 @@ class RestTimerNotificationServiceTest {
 
     @Test
     fun `notifyTimerCompleted handles both providers failing gracefully`() {
-        every { soundProvider.playNotificationSound() } throws RuntimeException("Sound failure")
-        every { vibrationProvider.vibratePattern(any()) } throws RuntimeException("Vibration failure")
+        every { soundProvider.playNotificationSound() } throws IllegalStateException("Sound failure")
+        every { vibrationProvider.vibratePattern(any()) } throws IllegalStateException("Vibration failure")
 
         // Should not throw exception
         service.notifyTimerCompleted()
@@ -99,9 +99,9 @@ class RestTimerNotificationServiceTest {
     }
 
     @Test
-    fun `service works with null exceptions from providers`() {
-        every { soundProvider.playNotificationSound() } throws NullPointerException()
-        every { vibrationProvider.vibratePattern(any()) } throws NullPointerException()
+    fun `service works with security exceptions from providers`() {
+        every { soundProvider.playNotificationSound() } throws SecurityException("Permission denied")
+        every { vibrationProvider.vibratePattern(any()) } throws SecurityException("Permission denied")
 
         // Should handle gracefully
         service.notifyTimerCompleted()
@@ -111,8 +111,8 @@ class RestTimerNotificationServiceTest {
     }
 
     @Test
-    fun `vibration continues even when sound throws runtime exception`() {
-        every { soundProvider.playNotificationSound() } throws RuntimeException("Runtime exception")
+    fun `vibration continues even when sound throws exception`() {
+        every { soundProvider.playNotificationSound() } throws IllegalStateException("State exception")
 
         service.notifyTimerCompleted()
 
