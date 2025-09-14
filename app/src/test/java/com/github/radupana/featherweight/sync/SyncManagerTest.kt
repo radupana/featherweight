@@ -39,6 +39,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import java.time.LocalDateTime
+import java.util.Date
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -174,6 +175,32 @@ class SyncManagerTest {
         coEvery { firestoreRepository.updateSyncMetadata(any(), any(), any()) } returns Result.success(Unit)
     }
 
+    private fun mockAllFirestoreDownloads() {
+        coEvery { firestoreRepository.downloadWorkouts(any(), any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadExerciseLogs(any(), any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadSetLogs(any(), any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadExerciseCores(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadExerciseVariations(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadVariationMuscles() } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadVariationInstructions() } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadVariationAliases() } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadVariationRelations() } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadProgrammes(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadProgrammeWeeks(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadProgrammeWorkouts(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadExerciseSubstitutions(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadProgrammeProgress(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadUserExerciseMaxes(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadOneRMHistory(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadPersonalRecords(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadExerciseSwapHistory(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadExercisePerformanceTracking(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadGlobalExerciseProgress(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadExerciseCorrelations() } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadTrainingAnalyses(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadParseRequests(any()) } returns Result.success(emptyList())
+    }
+
     @Test
     fun `syncAll returns error when user not authenticated`() =
         runTest {
@@ -214,6 +241,7 @@ class SyncManagerTest {
             coEvery { workoutDao.getAllWorkouts() } returns listOf(workout)
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(any()) } returns emptyList()
             mockAllDaoMethods()
+            mockAllFirestoreDownloads()
             mockAllFirestoreUploads()
 
             val result = syncManager.syncAll()
@@ -286,6 +314,7 @@ class SyncManagerTest {
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(1) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(1) } returns listOf(setLog)
             mockAllDaoMethods()
+            mockAllFirestoreDownloads()
             mockAllFirestoreUploads()
 
             val result = syncManager.syncAll()
@@ -308,6 +337,7 @@ class SyncManagerTest {
             coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(null)
             coEvery { workoutDao.getAllWorkouts() } returns emptyList()
             mockAllDaoMethods()
+            mockAllFirestoreDownloads()
             coEvery { firestoreRepository.uploadWorkouts(any(), any()) } returns Result.failure(Exception(errorMessage))
             coEvery { firestoreRepository.uploadExerciseLogs(any(), any()) } returns Result.success(Unit)
             coEvery { firestoreRepository.uploadSetLogs(any(), any()) } returns Result.success(Unit)
@@ -353,6 +383,7 @@ class SyncManagerTest {
             coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(metadata)
             coEvery { workoutDao.getAllWorkouts() } returns emptyList()
             mockAllDaoMethods()
+            mockAllFirestoreDownloads()
             mockAllFirestoreUploads()
 
             val result = syncManager.syncAll()
@@ -409,6 +440,7 @@ class SyncManagerTest {
             mockAllDaoMethods()
 
             val workoutsSlot = slot<List<com.github.radupana.featherweight.sync.models.FirestoreWorkout>>()
+            mockAllFirestoreDownloads()
             mockAllFirestoreUploads()
             coEvery { firestoreRepository.uploadWorkouts(any(), capture(workoutsSlot)) } returns Result.success(Unit)
 
@@ -417,5 +449,213 @@ class SyncManagerTest {
             assertTrue(result.isSuccess)
             assertEquals(1, workoutsSlot.captured.size)
             assertEquals(1, workoutsSlot.captured[0].localId)
+        }
+
+    @Test
+    fun `syncAll performs bidirectional sync - download then upload`() =
+        runTest {
+            val userId = "test-user"
+            val downloadedWorkout =
+                com.github.radupana.featherweight.sync.models.FirestoreWorkout(
+                    localId = 99,
+                    userId = userId,
+                    name = "Downloaded Workout",
+                    notes = "From cloud",
+                    date = Timestamp.now(),
+                    status = "COMPLETED",
+                    programmeId = null,
+                    weekNumber = null,
+                    dayNumber = null,
+                    programmeWorkoutName = null,
+                    isProgrammeWorkout = false,
+                    durationSeconds = null,
+                    timerStartTime = null,
+                    timerElapsedSeconds = 0,
+                    lastModified = Timestamp.now(),
+                )
+
+            every { authManager.getCurrentUserId() } returns userId
+            coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(null)
+            coEvery { workoutDao.getAllWorkouts() } returns emptyList()
+            coEvery { workoutDao.getWorkoutById(99) } returns null
+            coEvery { workoutDao.insertWorkout(any()) } returns 99L
+            mockAllDaoMethods()
+
+            coEvery { firestoreRepository.downloadWorkouts(userId, null) } returns Result.success(listOf(downloadedWorkout))
+            coEvery { firestoreRepository.downloadExerciseLogs(any(), any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadSetLogs(any(), any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadExerciseCores(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadExerciseVariations(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadVariationMuscles() } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadVariationInstructions() } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadVariationAliases() } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadVariationRelations() } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadProgrammes(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadProgrammeWeeks(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadProgrammeWorkouts(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadExerciseSubstitutions(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadProgrammeProgress(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadUserExerciseMaxes(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadOneRMHistory(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadPersonalRecords(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadExerciseSwapHistory(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadExercisePerformanceTracking(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadGlobalExerciseProgress(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadExerciseCorrelations() } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadTrainingAnalyses(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadParseRequests(any()) } returns Result.success(emptyList())
+
+            mockAllFirestoreUploads()
+
+            val result = syncManager.syncAll()
+
+            assertTrue(result.isSuccess)
+            val state = result.getOrNull()
+            assertTrue(state is SyncState.Success)
+
+            coVerify {
+                firestoreRepository.downloadWorkouts(userId, null)
+                workoutDao.insertWorkout(any())
+            }
+        }
+
+    @Test
+    fun `syncAll handles download failure gracefully`() =
+        runTest {
+            val userId = "test-user"
+            val errorMessage = "Download failed"
+
+            every { authManager.getCurrentUserId() } returns userId
+            coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(null)
+            coEvery { firestoreRepository.downloadWorkouts(any(), any()) } returns Result.failure(Exception(errorMessage))
+
+            val result = syncManager.syncAll()
+
+            assertTrue(result.isSuccess)
+            val state = result.getOrNull()
+            assertTrue(state is SyncState.Error)
+            assertTrue(state.message.contains("Download failed"))
+
+            coVerify(exactly = 0) { firestoreRepository.uploadWorkouts(any(), any()) }
+        }
+
+    @Test
+    fun `restoreFromCloud downloads and merges all data for fresh install`() =
+        runTest {
+            val userId = "test-user"
+
+            every { authManager.getCurrentUserId() } returns userId
+            mockAllDaoMethods()
+            mockAllFirestoreDownloads()
+
+            // Mock the missing DAO methods needed for merge operations
+            coEvery { workoutDao.getWorkoutById(any()) } returns null
+            coEvery { workoutDao.insertWorkout(any()) } returns 1L
+            coEvery { exerciseLogDao.getExerciseLogById(any()) } returns null
+            coEvery { exerciseLogDao.insertExerciseLog(any()) } returns 1L
+            coEvery { setLogDao.getSetLogById(any()) } returns null
+            coEvery { setLogDao.insertSetLog(any()) } returns 1L
+            coEvery { firestoreRepository.updateSyncMetadata(any(), any(), any()) } returns Result.success(Unit)
+
+            val result = syncManager.restoreFromCloud()
+
+            assertTrue(result.isSuccess)
+            val state = result.getOrNull()
+            assertTrue(state is SyncState.Success)
+
+            coVerify {
+                firestoreRepository.downloadWorkouts(userId, null)
+                firestoreRepository.downloadExerciseLogs(userId, null)
+                firestoreRepository.downloadSetLogs(userId, null)
+            }
+        }
+
+    @Test
+    fun `syncAll merges remote workouts with conflict resolution`() =
+        runTest {
+            val userId = "test-user"
+            val localWorkout =
+                Workout(
+                    id = 1,
+                    userId = userId,
+                    name = "Local Workout",
+                    notes = "Local notes",
+                    date = LocalDateTime.of(2024, 1, 1, 10, 0),
+                    status = WorkoutStatus.COMPLETED,
+                    programmeId = null,
+                    weekNumber = null,
+                    dayNumber = null,
+                    programmeWorkoutName = null,
+                    isProgrammeWorkout = false,
+                    durationSeconds = null,
+                    timerStartTime = null,
+                    timerElapsedSeconds = 0,
+                )
+            val remoteWorkout =
+                com.github.radupana.featherweight.sync.models.FirestoreWorkout(
+                    localId = 1,
+                    userId = userId,
+                    name = "Remote Workout",
+                    notes = "Updated from cloud",
+                    date = Timestamp(Date(2024 - 1900, 0, 2, 10, 0)),
+                    status = "COMPLETED",
+                    programmeId = null,
+                    weekNumber = null,
+                    dayNumber = null,
+                    programmeWorkoutName = null,
+                    isProgrammeWorkout = false,
+                    durationSeconds = null,
+                    timerStartTime = null,
+                    timerElapsedSeconds = 0,
+                    lastModified = Timestamp.now(),
+                )
+
+            every { authManager.getCurrentUserId() } returns userId
+            coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(null)
+            coEvery { workoutDao.getAllWorkouts() } returns listOf(localWorkout)
+            coEvery { workoutDao.getWorkoutById(1) } returns localWorkout
+            coEvery { workoutDao.updateWorkout(any()) } returns Unit
+            coEvery { exerciseLogDao.getExerciseLogsForWorkout(1) } returns emptyList()
+            coEvery { firestoreRepository.downloadWorkouts(userId, null) } returns Result.success(listOf(remoteWorkout))
+
+            mockAllDaoMethods()
+            coEvery { firestoreRepository.downloadExerciseLogs(any(), any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadSetLogs(any(), any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadExerciseCores(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadExerciseVariations(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadVariationMuscles() } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadVariationInstructions() } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadVariationAliases() } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadVariationRelations() } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadProgrammes(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadProgrammeWeeks(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadProgrammeWorkouts(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadExerciseSubstitutions(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadProgrammeProgress(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadUserExerciseMaxes(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadOneRMHistory(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadPersonalRecords(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadExerciseSwapHistory(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadExercisePerformanceTracking(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadGlobalExerciseProgress(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadExerciseCorrelations() } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadTrainingAnalyses(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadParseRequests(any()) } returns Result.success(emptyList())
+            mockAllFirestoreUploads()
+
+            val result = syncManager.syncAll()
+
+            assertTrue(result.isSuccess)
+            val state = result.getOrNull()
+            assertTrue(state is SyncState.Success)
+
+            coVerify {
+                workoutDao.updateWorkout(
+                    withArg {
+                        assertEquals("Remote Workout", it.name)
+                        assertEquals("Updated from cloud", it.notes)
+                    },
+                )
+            }
         }
 }

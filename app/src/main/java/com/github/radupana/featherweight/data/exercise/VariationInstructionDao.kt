@@ -27,4 +27,7 @@ interface VariationInstructionDao {
 
     @Query("SELECT * FROM variation_instructions")
     suspend fun getAllInstructions(): List<VariationInstruction>
+
+    @Query("SELECT * FROM variation_instructions WHERE id = :id")
+    suspend fun getInstructionById(id: Long): VariationInstruction?
 }

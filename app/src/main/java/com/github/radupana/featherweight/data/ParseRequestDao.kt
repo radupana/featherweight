@@ -31,4 +31,10 @@ interface ParseRequestDao {
 
     @Query("SELECT * FROM parse_requests")
     suspend fun getAllRequestsList(): List<ParseRequest>
+
+    @Query("SELECT * FROM parse_requests WHERE id = :id")
+    suspend fun getParseRequestById(id: Long): ParseRequest?
+
+    @Insert
+    suspend fun insertParseRequest(request: ParseRequest)
 }

@@ -16,6 +16,9 @@ interface SetLogDao {
     @Query("SELECT * FROM SetLog WHERE exerciseLogId = :exerciseLogId ORDER BY setOrder")
     suspend fun getSetLogsForExercise(exerciseLogId: Long): List<SetLog>
 
+    @Query("SELECT * FROM SetLog WHERE id = :setLogId")
+    suspend fun getSetLogById(setLogId: Long): SetLog?
+
     @Query("UPDATE SetLog SET isCompleted = :completed, completedAt = :completedAt WHERE id = :setId")
     suspend fun markSetCompleted(
         setId: Long,

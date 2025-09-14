@@ -269,6 +269,18 @@ interface OneRMDao {
 
     @Query("SELECT * FROM one_rm_history")
     suspend fun getAllOneRMHistory(): List<OneRMHistory>
+
+    @Query("SELECT * FROM user_exercise_maxes WHERE id = :id")
+    suspend fun getUserExerciseMaxById(id: Long): UserExerciseMax?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertUserExerciseMax(max: UserExerciseMax): Long
+
+    @Update
+    suspend fun updateUserExerciseMax(max: UserExerciseMax)
+
+    @Query("SELECT * FROM one_rm_history WHERE id = :id")
+    suspend fun getOneRMHistoryById(id: Long): OneRMHistory?
 }
 
 data class OneRMWithExerciseName(

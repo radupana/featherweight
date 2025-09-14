@@ -21,4 +21,7 @@ interface VariationRelationDao {
 
     @Query("SELECT * FROM variation_relations")
     suspend fun getAllRelations(): List<VariationRelation>
+
+    @Query("SELECT * FROM variation_relations WHERE id = :id")
+    suspend fun getRelationById(id: Long): VariationRelation?
 }

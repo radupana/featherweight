@@ -31,4 +31,7 @@ interface VariationAliasDao {
 
     @Query("SELECT * FROM variation_aliases")
     suspend fun getAllAliases(): List<VariationAlias>
+
+    @Query("SELECT * FROM variation_aliases WHERE id = :id")
+    suspend fun getAliasById(id: Long): VariationAlias?
 }

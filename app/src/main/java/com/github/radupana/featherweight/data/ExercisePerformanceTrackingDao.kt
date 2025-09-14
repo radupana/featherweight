@@ -46,4 +46,10 @@ interface ExercisePerformanceTrackingDao {
 
     @Query("SELECT * FROM exercise_performance_tracking")
     suspend fun getAllTracking(): List<ExercisePerformanceTracking>
+
+    @Query("SELECT * FROM exercise_performance_tracking WHERE id = :id")
+    suspend fun getTrackingById(id: Long): ExercisePerformanceTracking?
+
+    @Insert
+    suspend fun insertTracking(tracking: ExercisePerformanceTracking)
 }

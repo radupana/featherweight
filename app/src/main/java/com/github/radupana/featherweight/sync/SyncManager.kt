@@ -4,20 +4,18 @@ import android.content.Context
 import android.os.Build
 import androidx.core.content.edit
 import com.github.radupana.featherweight.data.FeatherweightDatabase
+import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.sync.converters.SyncConverters
 import com.github.radupana.featherweight.sync.repository.FirestoreRepository
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.Timestamp
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
 sealed class SyncState {
-    object Idle : SyncState()
-
-    object Syncing : SyncState()
-
     data class Success(
         val timestamp: Timestamp,
     ) : SyncState()
@@ -32,6 +30,7 @@ class SyncManager(
     private val database: FeatherweightDatabase,
     private val authManager: AuthenticationManager,
     private val firestoreRepository: FirestoreRepository = FirestoreRepository(),
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val deviceId: String by lazy {
         context
@@ -54,7 +53,7 @@ class SyncManager(
     }
 
     suspend fun syncAll(): Result<SyncState> =
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             val userId = authManager.getCurrentUserId()
             if (userId == null) {
                 val errorState = SyncState.Error("User not authenticated")
@@ -64,18 +63,52 @@ class SyncManager(
             try {
                 val lastSyncTime = getLastSyncTime(userId)
 
-                uploadLocalChanges(userId, lastSyncTime).fold(
+                // Step 1: Download remote changes
+                downloadRemoteChanges(userId, lastSyncTime).fold(
                     onSuccess = {
-                        updateSyncMetadata(userId)
-                        Result.success(SyncState.Success(Timestamp.now()))
+                        // Step 2: Upload local changes
+                        uploadLocalChanges(userId, lastSyncTime).fold(
+                            onSuccess = {
+                                updateSyncMetadata(userId)
+                                Result.success(SyncState.Success(Timestamp.now()))
+                            },
+                            onFailure = { error ->
+                                Result.success(SyncState.Error("Upload failed: ${error.message}"))
+                            },
+                        )
                     },
                     onFailure = { error ->
-                        Result.success(SyncState.Error("Upload failed: ${error.message}"))
+                        Result.success(SyncState.Error("Download failed: ${error.message}"))
                     },
                 )
             } catch (e: Exception) {
                 ExceptionLogger.logNonCritical("SyncManager", "Sync failed", e)
                 Result.success(SyncState.Error("Sync failed: ${e.message}"))
+            }
+        }
+
+    suspend fun restoreFromCloud(): Result<SyncState> =
+        withContext(ioDispatcher) {
+            val userId = authManager.getCurrentUserId()
+            if (userId == null) {
+                val errorState = SyncState.Error("User not authenticated")
+                return@withContext Result.success(errorState)
+            }
+
+            try {
+                // Download all data without lastSyncTime filter
+                downloadRemoteChanges(userId, null).fold(
+                    onSuccess = {
+                        updateSyncMetadata(userId)
+                        Result.success(SyncState.Success(Timestamp.now()))
+                    },
+                    onFailure = { error ->
+                        Result.success(SyncState.Error("Restore failed: ${error.message}"))
+                    },
+                )
+            } catch (e: Exception) {
+                ExceptionLogger.logNonCritical("SyncManager", "Restore failed", e)
+                Result.success(SyncState.Error("Restore failed: ${e.message}"))
             }
         }
 
@@ -301,5 +334,363 @@ class SyncManager(
         val userRequests = requests.filter { it.userId == userId }
         val firestoreRequests = userRequests.map { SyncConverters.toFirestoreParseRequest(it) }
         firestoreRepository.uploadParseRequests(userId, firestoreRequests).getOrThrow()
+    }
+
+    private suspend fun downloadRemoteChanges(
+        userId: String,
+        lastSyncTime: Timestamp?,
+    ): Result<Unit> =
+        try {
+            // Download workouts and merge
+            downloadAndMergeWorkouts(userId, lastSyncTime)
+            downloadAndMergeExerciseLogs(userId, lastSyncTime)
+            downloadAndMergeSetLogs(userId, lastSyncTime)
+
+            // Download exercise data (system-wide, not user-specific)
+            downloadAndMergeExerciseCores(userId)
+            downloadAndMergeExerciseVariations(userId)
+            downloadAndMergeVariationMuscles()
+            downloadAndMergeVariationInstructions()
+            downloadAndMergeVariationAliases()
+            downloadAndMergeVariationRelations()
+
+            // Download programme data
+            downloadAndMergeProgrammes(userId)
+            downloadAndMergeProgrammeWeeks(userId)
+            downloadAndMergeProgrammeWorkouts(userId)
+            downloadAndMergeExerciseSubstitutions(userId)
+            downloadAndMergeProgrammeProgress(userId)
+
+            // Download user stats
+            downloadAndMergeUserExerciseMaxes(userId)
+            downloadAndMergeOneRMHistory(userId)
+            downloadAndMergePersonalRecords(userId)
+
+            // Download tracking data
+            downloadAndMergeExerciseSwapHistory(userId)
+            downloadAndMergeExercisePerformanceTracking(userId)
+            downloadAndMergeGlobalExerciseProgress(userId)
+            downloadAndMergeExerciseCorrelations()
+            downloadAndMergeTrainingAnalyses(userId)
+            downloadAndMergeParseRequests(userId)
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            ExceptionLogger.logNonCritical("SyncManager", "Download failed", e)
+            Result.failure(e)
+        }
+
+    private suspend fun downloadAndMergeWorkouts(
+        userId: String,
+        lastSyncTime: Timestamp?,
+    ) {
+        val remoteWorkouts = firestoreRepository.downloadWorkouts(userId, lastSyncTime).getOrThrow()
+        val localWorkouts = remoteWorkouts.map { SyncConverters.fromFirestoreWorkout(it) }
+
+        localWorkouts.forEach { workout ->
+            val existing = database.workoutDao().getWorkoutById(workout.id)
+            if (existing == null) {
+                database.workoutDao().insertWorkout(workout)
+            } else {
+                // Conflict resolution: last-write-wins based on date
+                if (workout.date.isAfter(existing.date)) {
+                    database.workoutDao().updateWorkout(workout)
+                }
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeExerciseLogs(
+        userId: String,
+        lastSyncTime: Timestamp?,
+    ) {
+        val remoteLogs = firestoreRepository.downloadExerciseLogs(userId, lastSyncTime).getOrThrow()
+        val localLogs = remoteLogs.map { SyncConverters.fromFirestoreExerciseLog(it) }
+
+        localLogs.forEach { log ->
+            val existing = database.exerciseLogDao().getExerciseLogById(log.id)
+            if (existing == null) {
+                database.exerciseLogDao().insertExerciseLog(log)
+            }
+            // No update for exercise logs - they're immutable once created
+        }
+    }
+
+    private suspend fun downloadAndMergeSetLogs(
+        userId: String,
+        lastSyncTime: Timestamp?,
+    ) {
+        val remoteLogs = firestoreRepository.downloadSetLogs(userId, lastSyncTime).getOrThrow()
+        val localLogs = remoteLogs.map { SyncConverters.fromFirestoreSetLog(it) }
+
+        localLogs.forEach { log ->
+            val existing = database.setLogDao().getSetLogById(log.id)
+            if (existing == null) {
+                database.setLogDao().insertSetLog(log)
+            } else if (log.isCompleted && !existing.isCompleted) {
+                // Update if remote is completed but local is not
+                database.setLogDao().updateSetLog(log)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeExerciseCores(userId: String) {
+        val remoteCores = firestoreRepository.downloadExerciseCores(userId).getOrThrow()
+        val localCores = remoteCores.map { SyncConverters.fromFirestoreExerciseCore(it) }
+
+        localCores.forEach { core ->
+            val existing = database.exerciseCoreDao().getCoreById(core.id)
+            if (existing == null) {
+                database.exerciseCoreDao().insertCore(core)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeExerciseVariations(userId: String) {
+        val remoteVariations = firestoreRepository.downloadExerciseVariations(userId).getOrThrow()
+        val localVariations = remoteVariations.map { SyncConverters.fromFirestoreExerciseVariation(it) }
+
+        localVariations.forEach { variation ->
+            val existing = database.exerciseVariationDao().getExerciseVariationById(variation.id)
+            if (existing == null) {
+                database.exerciseVariationDao().insertExerciseVariation(variation)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeVariationMuscles() {
+        val remoteMuscles = firestoreRepository.downloadVariationMuscles().getOrThrow()
+        val localMuscles = remoteMuscles.map { SyncConverters.fromFirestoreVariationMuscle(it) }
+
+        localMuscles.forEach { muscle ->
+            // VariationMuscle uses composite key, just insert with REPLACE strategy
+            database.variationMuscleDao().insertVariationMuscle(muscle)
+        }
+    }
+
+    private suspend fun downloadAndMergeVariationInstructions() {
+        val remoteInstructions = firestoreRepository.downloadVariationInstructions().getOrThrow()
+        val localInstructions = remoteInstructions.map { SyncConverters.fromFirestoreVariationInstruction(it) }
+
+        localInstructions.forEach { instruction ->
+            val existing = database.variationInstructionDao().getInstructionById(instruction.id)
+            if (existing == null) {
+                database.variationInstructionDao().insertInstruction(instruction)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeVariationAliases() {
+        val remoteAliases = firestoreRepository.downloadVariationAliases().getOrThrow()
+        val localAliases = remoteAliases.map { SyncConverters.fromFirestoreVariationAlias(it) }
+
+        localAliases.forEach { alias ->
+            val existing = database.variationAliasDao().getAliasById(alias.id)
+            if (existing == null) {
+                database.variationAliasDao().insertAlias(alias)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeVariationRelations() {
+        val remoteRelations = firestoreRepository.downloadVariationRelations().getOrThrow()
+        val localRelations = remoteRelations.map { SyncConverters.fromFirestoreVariationRelation(it) }
+
+        localRelations.forEach { relation ->
+            val existing = database.variationRelationDao().getRelationById(relation.id)
+            if (existing == null) {
+                database.variationRelationDao().insertRelation(relation)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeProgrammes(userId: String) {
+        val remoteProgrammes = firestoreRepository.downloadProgrammes(userId).getOrThrow()
+        val localProgrammes = remoteProgrammes.map { SyncConverters.fromFirestoreProgramme(it) }
+
+        localProgrammes.forEach { programme ->
+            val existing = database.programmeDao().getProgrammeById(programme.id)
+            if (existing == null) {
+                database.programmeDao().insertProgramme(programme)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeProgrammeWeeks(userId: String) {
+        val remoteWeeks = firestoreRepository.downloadProgrammeWeeks(userId).getOrThrow()
+        val localWeeks = remoteWeeks.map { SyncConverters.fromFirestoreProgrammeWeek(it) }
+
+        localWeeks.forEach { week ->
+            val existing = database.programmeDao().getProgrammeWeekById(week.id)
+            if (existing == null) {
+                database.programmeDao().insertProgrammeWeek(week)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeProgrammeWorkouts(userId: String) {
+        val remoteWorkouts = firestoreRepository.downloadProgrammeWorkouts(userId).getOrThrow()
+        val localWorkouts = remoteWorkouts.map { SyncConverters.fromFirestoreProgrammeWorkout(it) }
+
+        localWorkouts.forEach { workout ->
+            val existing = database.programmeDao().getProgrammeWorkoutById(workout.id)
+            if (existing == null) {
+                database.programmeDao().insertProgrammeWorkout(workout)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeExerciseSubstitutions(userId: String) {
+        val remoteSubstitutions = firestoreRepository.downloadExerciseSubstitutions(userId).getOrThrow()
+        val localSubstitutions = remoteSubstitutions.map { SyncConverters.fromFirestoreExerciseSubstitution(it) }
+
+        localSubstitutions.forEach { substitution ->
+            val existing = database.programmeDao().getSubstitutionById(substitution.id)
+            if (existing == null) {
+                database.programmeDao().insertSubstitution(substitution)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeProgrammeProgress(userId: String) {
+        val remoteProgress = firestoreRepository.downloadProgrammeProgress(userId).getOrThrow()
+        val localProgress = remoteProgress.map { SyncConverters.fromFirestoreProgrammeProgress(it) }
+
+        localProgress.forEach { progress ->
+            val existing = database.programmeDao().getProgrammeProgressById(progress.id)
+            if (existing == null) {
+                database.programmeDao().insertProgrammeProgress(progress)
+            } else {
+                // Update progress if remote is further along
+                if (progress.currentWeek > existing.currentWeek ||
+                    (progress.currentWeek == existing.currentWeek && progress.currentDay > existing.currentDay)
+                ) {
+                    database.programmeDao().updateProgrammeProgress(progress)
+                }
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeUserExerciseMaxes(userId: String) {
+        val remoteMaxes = firestoreRepository.downloadUserExerciseMaxes(userId).getOrThrow()
+        val localMaxes = remoteMaxes.map { SyncConverters.fromFirestoreUserExerciseMax(it) }
+
+        localMaxes.forEach { max ->
+            val existing = database.oneRMDao().getUserExerciseMaxById(max.id)
+            if (existing == null) {
+                database.oneRMDao().insertUserExerciseMax(max)
+            } else {
+                // Keep the higher max value
+                if (max.mostWeightLifted > existing.mostWeightLifted) {
+                    database.oneRMDao().updateUserExerciseMax(max)
+                }
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeOneRMHistory(userId: String) {
+        val remoteHistory = firestoreRepository.downloadOneRMHistory(userId).getOrThrow()
+        val localHistory = remoteHistory.map { SyncConverters.fromFirestoreOneRMHistory(it) }
+
+        localHistory.forEach { history ->
+            val existing = database.oneRMDao().getOneRMHistoryById(history.id)
+            if (existing == null) {
+                database.oneRMDao().insertOneRMHistory(history)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergePersonalRecords(userId: String) {
+        val remoteRecords = firestoreRepository.downloadPersonalRecords(userId).getOrThrow()
+        val localRecords = remoteRecords.map { SyncConverters.fromFirestorePersonalRecord(it) }
+
+        localRecords.forEach { record ->
+            val existing = database.personalRecordDao().getPersonalRecordById(record.id)
+            if (existing == null) {
+                database.personalRecordDao().insertPersonalRecord(record)
+            } else {
+                // Keep the better record (higher weight)
+                val shouldUpdate =
+                    when (record.recordType) {
+                        PRType.WEIGHT -> record.weight > existing.weight
+                        PRType.ESTIMATED_1RM -> (record.estimated1RM ?: 0f) > (existing.estimated1RM ?: 0f)
+                    }
+                if (shouldUpdate) {
+                    database.personalRecordDao().updatePersonalRecord(record)
+                }
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeExerciseSwapHistory(userId: String) {
+        val remoteSwaps = firestoreRepository.downloadExerciseSwapHistory(userId).getOrThrow()
+        val localSwaps = remoteSwaps.map { SyncConverters.fromFirestoreExerciseSwapHistory(it) }
+
+        localSwaps.forEach { swap ->
+            val existing = database.exerciseSwapHistoryDao().getSwapHistoryById(swap.id)
+            if (existing == null) {
+                database.exerciseSwapHistoryDao().insertSwapHistory(swap)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeExercisePerformanceTracking(userId: String) {
+        val remoteTracking = firestoreRepository.downloadExercisePerformanceTracking(userId).getOrThrow()
+        val localTracking = remoteTracking.map { SyncConverters.fromFirestoreExercisePerformanceTracking(it) }
+
+        localTracking.forEach { tracking ->
+            val existing = database.exercisePerformanceTrackingDao().getTrackingById(tracking.id)
+            if (existing == null) {
+                database.exercisePerformanceTrackingDao().insertTracking(tracking)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeGlobalExerciseProgress(userId: String) {
+        val remoteProgress = firestoreRepository.downloadGlobalExerciseProgress(userId).getOrThrow()
+        val localProgress = remoteProgress.map { SyncConverters.fromFirestoreGlobalExerciseProgress(it) }
+
+        localProgress.forEach { progress ->
+            val existing = database.globalExerciseProgressDao().getProgressById(progress.id)
+            if (existing == null) {
+                database.globalExerciseProgressDao().insertProgress(progress)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeExerciseCorrelations() {
+        val remoteCorrelations = firestoreRepository.downloadExerciseCorrelations().getOrThrow()
+        val localCorrelations = remoteCorrelations.map { SyncConverters.fromFirestoreExerciseCorrelation(it) }
+
+        localCorrelations.forEach { correlation ->
+            val existing = database.exerciseCorrelationDao().getCorrelationById(correlation.id)
+            if (existing == null) {
+                database.exerciseCorrelationDao().insertCorrelation(correlation)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeTrainingAnalyses(userId: String) {
+        val remoteAnalyses = firestoreRepository.downloadTrainingAnalyses(userId).getOrThrow()
+        val localAnalyses = remoteAnalyses.map { SyncConverters.fromFirestoreTrainingAnalysis(it) }
+
+        localAnalyses.forEach { analysis ->
+            val existing = database.trainingAnalysisDao().getAnalysisById(analysis.id)
+            if (existing == null) {
+                database.trainingAnalysisDao().insertAnalysis(analysis)
+            }
+        }
+    }
+
+    private suspend fun downloadAndMergeParseRequests(userId: String) {
+        val remoteRequests = firestoreRepository.downloadParseRequests(userId).getOrThrow()
+        val localRequests = remoteRequests.map { SyncConverters.fromFirestoreParseRequest(it) }
+
+        localRequests.forEach { request ->
+            val existing = database.parseRequestDao().getParseRequestById(request.id)
+            if (existing == null) {
+                database.parseRequestDao().insertParseRequest(request)
+            }
+        }
     }
 }

@@ -46,6 +46,9 @@ interface ProgrammeDao {
     @Query("SELECT * FROM programme_weeks")
     suspend fun getAllProgrammeWeeks(): List<ProgrammeWeek>
 
+    @Query("SELECT * FROM programme_weeks WHERE id = :id")
+    suspend fun getProgrammeWeekById(id: Long): ProgrammeWeek?
+
     // Programme Workouts
     @Insert
     suspend fun insertProgrammeWorkout(workout: ProgrammeWorkout): Long
@@ -62,6 +65,9 @@ interface ProgrammeDao {
 
     @Query("SELECT * FROM programme_workouts")
     suspend fun getAllProgrammeWorkouts(): List<ProgrammeWorkout>
+
+    @Query("SELECT * FROM programme_workouts WHERE id = :id")
+    suspend fun getProgrammeWorkoutById(id: Long): ProgrammeWorkout?
 
     // Programme Progress
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -84,8 +90,23 @@ interface ProgrammeDao {
     @Query("SELECT * FROM programme_progress")
     suspend fun getAllProgrammeProgress(): List<ProgrammeProgress>
 
+    @Query("SELECT * FROM programme_progress WHERE id = :id")
+    suspend fun getProgrammeProgressById(id: Long): ProgrammeProgress?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProgrammeProgress(progress: ProgrammeProgress): Long
+
+    @Update
+    suspend fun updateProgrammeProgress(progress: ProgrammeProgress)
+
     @Query("SELECT * FROM exercise_substitutions")
     suspend fun getAllSubstitutions(): List<ExerciseSubstitution>
+
+    @Query("SELECT * FROM exercise_substitutions WHERE id = :id")
+    suspend fun getSubstitutionById(id: Long): ExerciseSubstitution?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSubstitution(substitution: ExerciseSubstitution): Long
 
     // Complex queries with relationships
     @Transaction

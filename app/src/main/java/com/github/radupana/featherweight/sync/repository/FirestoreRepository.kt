@@ -326,4 +326,109 @@ class FirestoreRepository {
             ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to upload ${T::class.simpleName}", e)
             Result.failure(e)
         }
+
+    suspend fun downloadExerciseLogs(
+        userId: String,
+        lastSyncTime: Timestamp? = null,
+    ): Result<List<FirestoreExerciseLog>> =
+        try {
+            var query: Query =
+                userDocument(userId)
+                    .collection(EXERCISE_LOGS_COLLECTION)
+                    .orderBy("lastModified", Query.Direction.DESCENDING)
+
+            lastSyncTime?.let {
+                query = query.whereGreaterThan("lastModified", it)
+            }
+
+            val snapshot = query.get().await()
+            val logs =
+                snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(FirestoreExerciseLog::class.java)
+                }
+            Result.success(logs)
+        } catch (e: FirebaseException) {
+            ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to download exercise logs", e)
+            Result.failure(e)
+        }
+
+    suspend fun downloadSetLogs(
+        userId: String,
+        lastSyncTime: Timestamp? = null,
+    ): Result<List<FirestoreSetLog>> =
+        try {
+            var query: Query =
+                userDocument(userId)
+                    .collection(SET_LOGS_COLLECTION)
+                    .orderBy("lastModified", Query.Direction.DESCENDING)
+
+            lastSyncTime?.let {
+                query = query.whereGreaterThan("lastModified", it)
+            }
+
+            val snapshot = query.get().await()
+            val logs =
+                snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(FirestoreSetLog::class.java)
+                }
+            Result.success(logs)
+        } catch (e: FirebaseException) {
+            ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to download set logs", e)
+            Result.failure(e)
+        }
+
+    suspend fun downloadExerciseCores(userId: String): Result<List<FirestoreExerciseCore>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_CORES_COLLECTION))
+
+    suspend fun downloadExerciseVariations(userId: String): Result<List<FirestoreExerciseVariation>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_VARIATIONS_COLLECTION))
+
+    suspend fun downloadVariationMuscles(): Result<List<FirestoreVariationMuscle>> = downloadBatchedData(firestore.collection(VARIATION_MUSCLES_COLLECTION))
+
+    suspend fun downloadVariationInstructions(): Result<List<FirestoreVariationInstruction>> = downloadBatchedData(firestore.collection(VARIATION_INSTRUCTIONS_COLLECTION))
+
+    suspend fun downloadVariationAliases(): Result<List<FirestoreVariationAlias>> = downloadBatchedData(firestore.collection(VARIATION_ALIASES_COLLECTION))
+
+    suspend fun downloadVariationRelations(): Result<List<FirestoreVariationRelation>> = downloadBatchedData(firestore.collection(VARIATION_RELATIONS_COLLECTION))
+
+    suspend fun downloadProgrammes(userId: String): Result<List<FirestoreProgramme>> = downloadBatchedData(userDocument(userId).collection(PROGRAMMES_COLLECTION))
+
+    suspend fun downloadProgrammeWeeks(userId: String): Result<List<FirestoreProgrammeWeek>> = downloadBatchedData(userDocument(userId).collection(PROGRAMME_WEEKS_COLLECTION))
+
+    suspend fun downloadProgrammeWorkouts(userId: String): Result<List<FirestoreProgrammeWorkout>> = downloadBatchedData(userDocument(userId).collection(PROGRAMME_WORKOUTS_COLLECTION))
+
+    suspend fun downloadExerciseSubstitutions(userId: String): Result<List<FirestoreExerciseSubstitution>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_SUBSTITUTIONS_COLLECTION))
+
+    suspend fun downloadProgrammeProgress(userId: String): Result<List<FirestoreProgrammeProgress>> = downloadBatchedData(userDocument(userId).collection(PROGRAMME_PROGRESS_COLLECTION))
+
+    suspend fun downloadUserExerciseMaxes(userId: String): Result<List<FirestoreUserExerciseMax>> = downloadBatchedData(userDocument(userId).collection(USER_EXERCISE_MAXES_COLLECTION))
+
+    suspend fun downloadOneRMHistory(userId: String): Result<List<FirestoreOneRMHistory>> = downloadBatchedData(userDocument(userId).collection(ONE_RM_HISTORY_COLLECTION))
+
+    suspend fun downloadPersonalRecords(userId: String): Result<List<FirestorePersonalRecord>> = downloadBatchedData(userDocument(userId).collection(PERSONAL_RECORDS_COLLECTION))
+
+    suspend fun downloadExerciseSwapHistory(userId: String): Result<List<FirestoreExerciseSwapHistory>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_SWAP_HISTORY_COLLECTION))
+
+    suspend fun downloadExercisePerformanceTracking(userId: String): Result<List<FirestoreExercisePerformanceTracking>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_PERFORMANCE_TRACKING_COLLECTION))
+
+    suspend fun downloadGlobalExerciseProgress(userId: String): Result<List<FirestoreGlobalExerciseProgress>> = downloadBatchedData(userDocument(userId).collection(GLOBAL_EXERCISE_PROGRESS_COLLECTION))
+
+    suspend fun downloadExerciseCorrelations(): Result<List<FirestoreExerciseCorrelation>> = downloadBatchedData(firestore.collection(EXERCISE_CORRELATIONS_COLLECTION))
+
+    suspend fun downloadTrainingAnalyses(userId: String): Result<List<FirestoreTrainingAnalysis>> = downloadBatchedData(userDocument(userId).collection(TRAINING_ANALYSES_COLLECTION))
+
+    suspend fun downloadParseRequests(userId: String): Result<List<FirestoreParseRequest>> = downloadBatchedData(userDocument(userId).collection(PARSE_REQUESTS_COLLECTION))
+
+    private suspend inline fun <reified T : Any> downloadBatchedData(
+        collection: com.google.firebase.firestore.CollectionReference,
+    ): Result<List<T>> =
+        try {
+            val snapshot = collection.get().await()
+            val data =
+                snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(T::class.java)
+                }
+            Result.success(data)
+        } catch (e: FirebaseException) {
+            ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to download ${T::class.simpleName}", e)
+            Result.failure(e)
+        }
 }

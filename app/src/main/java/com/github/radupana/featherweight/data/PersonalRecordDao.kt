@@ -123,4 +123,10 @@ interface PersonalRecordDao {
 
     @Query("SELECT * FROM PersonalRecord")
     suspend fun getAllPersonalRecords(): List<PersonalRecord>
+
+    @Query("SELECT * FROM PersonalRecord WHERE id = :id")
+    suspend fun getPersonalRecordById(id: Long): PersonalRecord?
+
+    @androidx.room.Update
+    suspend fun updatePersonalRecord(record: PersonalRecord)
 }

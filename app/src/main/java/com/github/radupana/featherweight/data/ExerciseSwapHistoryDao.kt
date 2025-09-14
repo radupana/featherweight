@@ -24,6 +24,12 @@ interface ExerciseSwapHistoryDao {
 
     @Query("SELECT * FROM exercise_swap_history")
     suspend fun getAllSwapHistory(): List<ExerciseSwapHistory>
+
+    @Query("SELECT * FROM exercise_swap_history WHERE id = :id")
+    suspend fun getSwapHistoryById(id: Long): ExerciseSwapHistory?
+
+    @Insert
+    suspend fun insertSwapHistory(swapHistory: ExerciseSwapHistory)
 }
 
 data class SwapHistoryCount(

@@ -26,4 +26,10 @@ interface GlobalExerciseProgressDao {
 
     @Query("SELECT * FROM global_exercise_progress")
     suspend fun getAllProgress(): List<GlobalExerciseProgress>
+
+    @Query("SELECT * FROM global_exercise_progress WHERE id = :id")
+    suspend fun getProgressById(id: Long): GlobalExerciseProgress?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProgress(progress: GlobalExerciseProgress)
 }

@@ -16,4 +16,7 @@ interface TrainingAnalysisDao {
 
     @Query("SELECT * FROM training_analysis")
     suspend fun getAllAnalyses(): List<TrainingAnalysis>
+
+    @Query("SELECT * FROM training_analysis WHERE id = :id")
+    suspend fun getAnalysisById(id: Long): TrainingAnalysis?
 }
