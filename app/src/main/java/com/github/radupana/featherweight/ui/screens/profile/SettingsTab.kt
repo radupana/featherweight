@@ -23,7 +23,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.model.WeightUnit
 import com.github.radupana.featherweight.ui.components.AccountSection
+import com.github.radupana.featherweight.ui.components.SyncSection
 import com.github.radupana.featherweight.viewmodel.AccountInfo
+import com.github.radupana.featherweight.viewmodel.SyncUiState
 
 @Composable
 fun SettingsTab(
@@ -35,6 +37,10 @@ fun SettingsTab(
     onChangePassword: (String, String) -> Unit,
     onResetPassword: () -> Unit,
     onDeleteAccount: () -> Unit,
+    syncState: SyncUiState,
+    onSyncNow: () -> Unit,
+    onRestoreFromCloud: () -> Unit,
+    onToggleAutoSync: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -52,6 +58,13 @@ fun SettingsTab(
             onChangePassword = onChangePassword,
             onResetPassword = onResetPassword,
             onDeleteAccount = onDeleteAccount,
+        )
+
+        SyncSection(
+            syncState = syncState,
+            onSyncNow = onSyncNow,
+            onRestoreFromCloud = onRestoreFromCloud,
+            onToggleAutoSync = onToggleAutoSync,
         )
 
         WeightUnitSelector(

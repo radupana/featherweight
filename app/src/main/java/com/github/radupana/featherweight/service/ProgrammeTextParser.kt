@@ -9,6 +9,7 @@ import com.github.radupana.featherweight.data.ParsedWorkout
 import com.github.radupana.featherweight.data.TextParsingRequest
 import com.github.radupana.featherweight.data.TextParsingResult
 import com.github.radupana.featherweight.manager.WeightUnitManager
+import com.github.radupana.featherweight.util.AnalyticsLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.google.gson.JsonArray
@@ -306,22 +307,38 @@ open class ProgrammeTextParser(
         Log.d(TAG, "Request body JSON:\n$requestBody")
         Log.d(TAG, "Calling OpenAI API with model: gpt-5-mini")
 
+        val apiUrl = "https://api.openai.com/v1/chat/completions"
+        AnalyticsLogger.logOpenAIRequest(
+            endpoint = apiUrl,
+            model = "gpt-5-mini",
+            requestBody = requestBody.toString(),
+        )
+
         val httpRequest =
             Request
                 .Builder()
-                .url("https://api.openai.com/v1/chat/completions")
+                .url(apiUrl)
                 .addHeader("Authorization", "Bearer $effectiveApiKey")
                 .addHeader("Content-Type", "application/json")
                 .post(requestBody.toString().toRequestBody("application/json".toMediaType()))
                 .build()
 
+        val startTime = System.currentTimeMillis()
         val response = client.newCall(httpRequest).execute()
+        val responseTime = System.currentTimeMillis() - startTime
         val responseBody = response.body.string()
 
         Log.d(TAG, "=== OpenAI API Response ===")
         Log.d(TAG, "Response code: ${response.code}")
         Log.d(TAG, "Response body size: ${responseBody.length} chars")
         Log.d(TAG, "Full response body:\n$responseBody")
+
+        AnalyticsLogger.logOpenAIResponse(
+            endpoint = apiUrl,
+            statusCode = response.code,
+            responseBody = responseBody,
+            responseTimeMs = responseTime,
+        )
 
         if (!response.isSuccessful) {
             Log.e(TAG, "API call failed with status ${response.code}")
@@ -340,10 +357,27 @@ open class ProgrammeTextParser(
                     ?: "API call failed with status ${response.code}"
 
             Log.e(TAG, "Error message: $errorMessage")
+            AnalyticsLogger.logOpenAIResponse(
+                endpoint = apiUrl,
+                statusCode = response.code,
+                responseBody = null,
+                responseTimeMs = responseTime,
+                error = errorMessage,
+            )
             throw IOException(errorMessage)
         }
 
         val jsonResponse = JsonParser.parseString(responseBody).asJsonObject
+
+        // Log token usage
+        jsonResponse.getAsJsonObject("usage")?.let { usage ->
+            AnalyticsLogger.logOpenAITokenUsage(
+                promptTokens = usage.get("prompt_tokens")?.asInt ?: 0,
+                completionTokens = usage.get("completion_tokens")?.asInt ?: 0,
+                totalTokens = usage.get("total_tokens")?.asInt ?: 0,
+            )
+        }
+
         return jsonResponse
             .getAsJsonArray("choices")
             .get(0)

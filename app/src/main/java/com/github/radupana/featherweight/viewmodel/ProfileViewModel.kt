@@ -48,6 +48,7 @@ data class ProfileUiState(
     val isBig4SubSectionExpanded: Boolean = true,
     val isOtherSubSectionExpanded: Boolean = true,
     val isDataManagementSectionExpanded: Boolean = true,
+    val syncUiState: SyncUiState = SyncUiState(),
     val seedingState: SeedingState = SeedingState.Idle,
     val seedingWeeks: Int = 12,
     val isExporting: Boolean = false,
@@ -102,6 +103,7 @@ class ProfileViewModel(
     private val weightUnitManager: WeightUnitManager = ServiceLocator.provideWeightUnitManager(application)
     private val authManager: AuthenticationManager = ServiceLocator.provideAuthenticationManager(application)
     private val firebaseAuth: FirebaseAuthService = ServiceLocator.provideFirebaseAuthService()
+    private val syncViewModel = SyncViewModel(application)
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -111,6 +113,7 @@ class ProfileViewModel(
         observeCurrentMaxes()
         observeBig4AndOtherExercises()
         loadCurrentWeightUnit()
+        observeSyncState()
         loadAccountInfo()
     }
 
@@ -486,6 +489,26 @@ class ProfileViewModel(
     fun setWeightUnit(unit: WeightUnit) {
         weightUnitManager.setUnit(unit)
         _uiState.value = _uiState.value.copy(currentWeightUnit = unit)
+    }
+
+    private fun observeSyncState() {
+        viewModelScope.launch {
+            syncViewModel.uiState.collect { syncState ->
+                _uiState.value = _uiState.value.copy(syncUiState = syncState)
+            }
+        }
+    }
+
+    fun syncNow() {
+        syncViewModel.syncNow()
+    }
+
+    fun restoreFromCloud() {
+        syncViewModel.restoreFromCloud()
+    }
+
+    fun toggleAutoSync(enabled: Boolean) {
+        syncViewModel.toggleAutoSync(enabled)
     }
 
     private fun loadAccountInfo() {

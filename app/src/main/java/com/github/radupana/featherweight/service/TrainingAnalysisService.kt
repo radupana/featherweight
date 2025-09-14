@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.service
 
 import android.util.Log
+import com.github.radupana.featherweight.util.AnalyticsLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -97,6 +98,12 @@ class TrainingAnalysisService {
             Log.d(TAG, "OpenAI API Request - URL: $OPENAI_API_URL")
             Log.d(TAG, "Request body: $requestBody")
 
+            AnalyticsLogger.logOpenAIRequest(
+                endpoint = OPENAI_API_URL,
+                model = MODEL,
+                requestBody = requestBody.toString(),
+            )
+
             val request =
                 Request
                     .Builder()
@@ -114,16 +121,39 @@ class TrainingAnalysisService {
             Log.d(TAG, "OpenAI API Response - Status: ${response.code}, Time: ${responseTime}ms")
             Log.d(TAG, "Response body: $responseBody")
 
+            AnalyticsLogger.logOpenAIResponse(
+                endpoint = OPENAI_API_URL,
+                statusCode = response.code,
+                responseBody = responseBody,
+                responseTimeMs = responseTime,
+            )
+
             if (!response.isSuccessful) {
                 val errorJson = JSONObject(responseBody)
                 val errorMessage =
                     errorJson.optJSONObject("error")?.optString("message")
                         ?: "API call failed with status ${response.code}"
                 Log.e(TAG, "OpenAI API error: $errorMessage")
+                AnalyticsLogger.logOpenAIResponse(
+                    endpoint = OPENAI_API_URL,
+                    statusCode = response.code,
+                    responseBody = null,
+                    responseTimeMs = responseTime,
+                    error = errorMessage,
+                )
                 throw IOException(errorMessage)
             }
 
             val jsonResponse = JSONObject(responseBody)
+            val usage = jsonResponse.optJSONObject("usage")
+            usage?.let {
+                AnalyticsLogger.logOpenAITokenUsage(
+                    promptTokens = it.optInt("prompt_tokens", 0),
+                    completionTokens = it.optInt("completion_tokens", 0),
+                    totalTokens = it.optInt("total_tokens", 0),
+                )
+            }
+
             jsonResponse
                 .getJSONArray("choices")
                 .getJSONObject(0)

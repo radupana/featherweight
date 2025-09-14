@@ -13,6 +13,7 @@ import com.github.radupana.featherweight.data.WorkoutMode
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.RMScalingType
+import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
@@ -570,6 +571,9 @@ class WorkoutViewModel(
                 )
 
             loadInProgressWorkouts()
+
+            // Trigger sync after workout completion
+            triggerAutoSync()
 
             // Check if programme is complete
             if (programmeId != null) {
@@ -2080,6 +2084,26 @@ class WorkoutViewModel(
                 Log.e(TAG, "Failed to save workout notes", e)
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Invalid state when saving workout notes", e)
+            }
+        }
+    }
+
+    private fun triggerAutoSync() {
+        viewModelScope.launch {
+            try {
+                val context = getApplication<Application>()
+                val prefs = context.getSharedPreferences("sync_prefs", android.content.Context.MODE_PRIVATE)
+                val autoSyncEnabled = prefs.getBoolean("auto_sync_enabled", true)
+
+                if (autoSyncEnabled) {
+                    val authManager = ServiceLocator.getAuthenticationManager(context)
+                    if (authManager.getCurrentUserId() != null) {
+                        val syncManager = ServiceLocator.getSyncManager(context)
+                        syncManager.syncAll()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Auto-sync failed", e)
             }
         }
     }
