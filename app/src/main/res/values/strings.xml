@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">Featherweight</string>
-    
+
     <!-- Firebase App Distribution Feedback -->
     <string name="feedback_prompt_text">Please describe any issues or suggestions for this alpha build</string>
+
+    <!-- Google Sign-In -->
+    <string name="default_web_client_id">828061562156-vs24u16u4naemoulrqb3lgdadk48jcus.apps.googleusercontent.com</string>
 </resources>

@@ -209,6 +209,8 @@ dependencies {
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
+    implementation(libs.firebase.auth)
+    implementation(libs.google.auth)
     implementation(libs.firebase.crashlytics.ndk)
     implementation(libs.google.firebase.analytics)
     implementation(libs.firebase.config)
