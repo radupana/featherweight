@@ -14,8 +14,12 @@
 - **Incremental Changes**: Make one small change, compile, and verify before moving to the next.
 - **Testable Code**: Write testable code using dependency injection. If tests are hard to write, fix
   the production code design.
-- **No Failing Tests**: There is no such thing as a minor test failure. All tests must pass, all the
-  time. If a test fails, it's all hands on deck to understand why and fix it.
+- **No Failing Tests**: There is no such thing as a minor test failure, or pre-existing failures.
+  All tests must pass, all the
+  time. If a test fails, it's all hands on deck to understand why and fix it. DO NOT delete tests
+  that are failing! Highlight the issues and we will find a fix.
+- **Small, Incremental Changes**: When writing code, regularly and frequently build and execute
+  tests to ensure no regressions were introduced.
 
 ## Code Quality
 

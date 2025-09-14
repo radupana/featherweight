@@ -11,10 +11,14 @@ enum class ParseStatus {
     IMPORTED, // Programme has been created from this parse request
 }
 
-@Entity(tableName = "parse_requests")
+@Entity(
+    tableName = "parse_requests",
+    indices = [androidx.room.Index("userId")],
+)
 data class ParseRequest(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val userId: String? = null,
     val rawText: String,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val status: ParseStatus = ParseStatus.PROCESSING,

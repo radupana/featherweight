@@ -9,10 +9,14 @@ import com.google.gson.reflect.TypeToken
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-@Entity(tableName = "training_analysis")
+@Entity(
+    tableName = "training_analysis",
+    indices = [androidx.room.Index("userId")],
+)
 data class TrainingAnalysis(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val userId: String? = null,
     val analysisDate: LocalDateTime,
     val periodStart: LocalDate,
     val periodEnd: LocalDate,

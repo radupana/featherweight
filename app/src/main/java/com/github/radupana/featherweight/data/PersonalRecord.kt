@@ -10,7 +10,7 @@ enum class PRType {
 }
 
 @Entity(
-    indices = [androidx.room.Index(value = ["exerciseVariationId"])],
+    indices = [androidx.room.Index(value = ["exerciseVariationId"]), androidx.room.Index("userId")],
     foreignKeys = [
         androidx.room.ForeignKey(
             entity = com.github.radupana.featherweight.data.exercise.ExerciseVariation::class,
@@ -22,6 +22,7 @@ enum class PRType {
 )
 data class PersonalRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val userId: String? = null,
     val exerciseVariationId: Long,
     val weight: Float,
     val reps: Int,

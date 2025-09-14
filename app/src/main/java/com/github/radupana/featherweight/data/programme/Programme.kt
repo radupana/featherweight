@@ -19,11 +19,13 @@ import java.time.LocalDateTime
         Index("status"),
         Index(value = ["isActive", "completedAt"]),
         Index(value = ["status", "completedAt"]),
+        Index("userId"),
     ],
 )
 data class Programme(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val userId: String? = null,
     val name: String,
     val description: String?,
     val durationWeeks: Int,
@@ -117,11 +119,12 @@ data class Programme(
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("programmeId")],
+    indices = [Index("programmeId"), Index("userId")],
 )
 data class ProgrammeWeek(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val userId: String? = null,
     val programmeId: Long,
     val weekNumber: Int,
     val name: String?,
@@ -146,11 +149,12 @@ data class ProgrammeWeek(
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("weekId")],
+    indices = [Index("weekId"), Index("userId")],
 )
 data class ProgrammeWorkout(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val userId: String? = null,
     val weekId: Long,
     val dayNumber: Int, // 1-7
     val name: String,
@@ -172,11 +176,12 @@ data class ProgrammeWorkout(
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("programmeId")],
+    indices = [Index("programmeId"), Index("userId")],
 )
 data class ExerciseSubstitution(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val userId: String? = null,
     val programmeId: Long,
     val originalExerciseName: String,
     val substitutionCategory: ExerciseCategory,
@@ -197,11 +202,12 @@ data class ExerciseSubstitution(
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("programmeId", unique = true)],
+    indices = [Index("programmeId", unique = true), Index("userId")],
 )
 data class ProgrammeProgress(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val userId: String? = null,
     val programmeId: Long,
     val currentWeek: Int,
     val currentDay: Int,

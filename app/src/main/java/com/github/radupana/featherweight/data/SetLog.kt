@@ -6,7 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
-    indices = [Index(value = ["exerciseLogId"])],
+    indices = [Index(value = ["exerciseLogId"]), Index("userId")],
     foreignKeys = [
         ForeignKey(
             entity = ExerciseLog::class,
@@ -18,6 +18,7 @@ import androidx.room.PrimaryKey
 )
 data class SetLog(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val userId: String? = null,
     val exerciseLogId: Long,
     val setOrder: Int,
     // Target (what programme says to do) - nullable for freestyle workouts

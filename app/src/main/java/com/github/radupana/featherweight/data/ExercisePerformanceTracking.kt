@@ -8,10 +8,14 @@ import java.time.LocalDateTime
  * Tracks performance history for exercises within a programme context.
  * This is used for intelligent progression decisions including deloads.
  */
-@Entity(tableName = "exercise_performance_tracking")
+@Entity(
+    tableName = "exercise_performance_tracking",
+    indices = [androidx.room.Index("userId")],
+)
 data class ExercisePerformanceTracking(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val userId: String? = null,
     val programmeId: Long,
     val exerciseName: String,
     val targetWeight: Float,

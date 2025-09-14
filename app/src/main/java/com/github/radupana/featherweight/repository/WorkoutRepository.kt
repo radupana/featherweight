@@ -126,6 +126,9 @@ class WorkoutRepository(
         } catch (e: NoClassDefFoundError) {
             ExceptionLogger.logNonCritical(TAG, "Firebase Performance class not found", e)
             null
+        } catch (e: RuntimeException) {
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance not available - likely in test environment", e)
+            null
         }
 
     suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> =

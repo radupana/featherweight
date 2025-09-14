@@ -19,6 +19,7 @@ class MainActivityRPETest {
         val setLog =
             SetLog(
                 id = -1L,
+                userId = null,
                 exerciseLogId = -1L,
                 setOrder = 1,
                 targetReps = 6,
@@ -47,6 +48,7 @@ class MainActivityRPETest {
         val setLog =
             SetLog(
                 id = -1L,
+                userId = null,
                 exerciseLogId = -1L,
                 setOrder = 1,
                 targetReps = 6,
@@ -72,11 +74,11 @@ class MainActivityRPETest {
         // Given multiple sets with different RPE values
         val sets =
             listOf(
-                SetLog(-1L, -1L, 1, 8, 100f, 6.0f, 0, 0f, null),
-                SetLog(-2L, -1L, 2, 6, 110f, 7.0f, 0, 0f, null),
-                SetLog(-3L, -1L, 3, 4, 120f, 8.0f, 0, 0f, null),
-                SetLog(-4L, -1L, 4, 2, 130f, 9.0f, 0, 0f, null),
-                SetLog(-5L, -1L, 5, 1, 140f, 10.0f, 0, 0f, null),
+                SetLog(-1L, null, -1L, 1, 8, 100f, 6.0f, 0, 0f, null),
+                SetLog(-2L, null, -1L, 2, 6, 110f, 7.0f, 0, 0f, null),
+                SetLog(-3L, null, -1L, 3, 4, 120f, 8.0f, 0, 0f, null),
+                SetLog(-4L, null, -1L, 4, 2, 130f, 9.0f, 0, 0f, null),
+                SetLog(-5L, null, -1L, 5, 1, 140f, 10.0f, 0, 0f, null),
             )
 
         // When MainActivity converts them (using the fixed code)
@@ -102,10 +104,10 @@ class MainActivityRPETest {
         // Given sets with mixed RPE values (some null)
         val sets =
             listOf(
-                SetLog(-1L, -1L, 1, 10, 60f, 7.5f, 0, 0f, null),
-                SetLog(-2L, -1L, 2, 10, 60f, null, 0, 0f, null), // No target RPE
-                SetLog(-3L, -1L, 3, 10, 60f, 8.5f, 0, 0f, null),
-                SetLog(-4L, -1L, 4, 10, 60f, null, 0, 0f, null), // No target RPE
+                SetLog(-1L, null, -1L, 1, 10, 60f, 7.5f, 0, 0f, null),
+                SetLog(-2L, null, -1L, 2, 10, 60f, null, 0, 0f, null), // No target RPE
+                SetLog(-3L, null, -1L, 3, 10, 60f, 8.5f, 0, 0f, null),
+                SetLog(-4L, null, -1L, 4, 10, 60f, null, 0, 0f, null), // No target RPE
             )
 
         // When converting with fixed code

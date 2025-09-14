@@ -86,6 +86,7 @@ class ExerciseRepositoryTest {
         mockVariation =
             ExerciseVariation(
                 id = 1L,
+                createdByUserId = null,
                 coreExerciseId = 1L,
                 name = "Barbell Bench Press",
                 equipment = Equipment.BARBELL,
@@ -97,6 +98,7 @@ class ExerciseRepositoryTest {
         mockExerciseLog =
             ExerciseLog(
                 id = 1L,
+                userId = null,
                 workoutId = 1L,
                 exerciseVariationId = 1L,
                 exerciseOrder = 1,
@@ -106,6 +108,7 @@ class ExerciseRepositoryTest {
         mockSetLog =
             SetLog(
                 id = 1L,
+                userId = null,
                 exerciseLogId = 1L,
                 setOrder = 1,
                 targetReps = 10,

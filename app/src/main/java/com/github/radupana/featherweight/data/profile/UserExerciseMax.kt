@@ -19,11 +19,13 @@ import java.time.LocalDateTime
     ],
     indices = [
         Index(value = ["exerciseVariationId"], unique = true),
+        Index("userId"),
     ],
 )
 data class UserExerciseMax(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val userId: String? = null,
     val exerciseVariationId: Long,
     // Most weight ever lifted
     val mostWeightLifted: Float,

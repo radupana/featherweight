@@ -9,6 +9,7 @@ import androidx.room.PrimaryKey
     indices = [
         Index(value = ["workoutId"]),
         Index(value = ["exerciseVariationId"]),
+        Index("userId"),
     ],
     foreignKeys = [
         ForeignKey(
@@ -27,6 +28,7 @@ import androidx.room.PrimaryKey
 )
 data class ExerciseLog(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val userId: String? = null,
     val workoutId: Long,
     val exerciseVariationId: Long,
     val exerciseOrder: Int,

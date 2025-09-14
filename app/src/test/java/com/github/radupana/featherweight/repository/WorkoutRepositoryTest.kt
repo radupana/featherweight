@@ -163,6 +163,7 @@ class WorkoutRepositoryTest {
         runTest(testDispatcher) {
             val workout =
                 Workout(
+                    userId = null,
                     name = "Morning Workout",
                     notes = "Test workout",
                     date = LocalDateTime.now(),
@@ -196,6 +197,7 @@ class WorkoutRepositoryTest {
             // Create workout with exercises and sets
             val workout =
                 Workout(
+                    userId = null,
                     name = "Test Workout",
                     date = LocalDateTime.now(),
                     status = WorkoutStatus.IN_PROGRESS,
@@ -296,7 +298,7 @@ class WorkoutRepositoryTest {
         runTest(testDispatcher) {
             val workoutId =
                 database.workoutDao().insertWorkout(
-                    Workout(name = "Test", date = LocalDateTime.now(), status = WorkoutStatus.IN_PROGRESS),
+                    Workout(userId = null, name = "Test", date = LocalDateTime.now(), status = WorkoutStatus.IN_PROGRESS),
                 )
 
             val exercise1 = ExerciseLog(workoutId = workoutId, exerciseVariationId = 1, exerciseOrder = 1)
@@ -316,7 +318,7 @@ class WorkoutRepositoryTest {
         runTest(testDispatcher) {
             val workoutId =
                 database.workoutDao().insertWorkout(
-                    Workout(name = "Test", date = LocalDateTime.now(), status = WorkoutStatus.IN_PROGRESS),
+                    Workout(userId = null, name = "Test", date = LocalDateTime.now(), status = WorkoutStatus.IN_PROGRESS),
                 )
             val exerciseId =
                 database.exerciseLogDao().insertExerciseLog(
@@ -515,14 +517,14 @@ class WorkoutRepositoryTest {
         runTest(testDispatcher) {
             // Create regular workout
             val regularId = nextWorkoutId++
-            workouts[regularId] = Workout(id = regularId, name = "Regular", date = LocalDateTime.now(), status = WorkoutStatus.COMPLETED)
+            workouts[regularId] = Workout(id = regularId, userId = null, name = "Regular", date = LocalDateTime.now(), status = WorkoutStatus.COMPLETED)
 
             // Create templates
             val template1Id = nextWorkoutId++
-            workouts[template1Id] = Workout(id = template1Id, name = "Template 1", date = LocalDateTime.now().minusDays(1), status = WorkoutStatus.TEMPLATE, isTemplate = true)
+            workouts[template1Id] = Workout(id = template1Id, userId = null, name = "Template 1", date = LocalDateTime.now().minusDays(1), status = WorkoutStatus.TEMPLATE, isTemplate = true)
 
             val template2Id = nextWorkoutId++
-            workouts[template2Id] = Workout(id = template2Id, name = "Template 2", date = LocalDateTime.now(), status = WorkoutStatus.TEMPLATE, isTemplate = true, notes = "Description")
+            workouts[template2Id] = Workout(id = template2Id, userId = null, name = "Template 2", date = LocalDateTime.now(), status = WorkoutStatus.TEMPLATE, isTemplate = true, notes = "Description")
 
             // Add exercises to template 2
             val exerciseLog = ExerciseLog(workoutId = template2Id, exerciseVariationId = 1, exerciseOrder = 1)
@@ -549,7 +551,7 @@ class WorkoutRepositoryTest {
         runTest(testDispatcher) {
             // Create template
             val templateId = nextWorkoutId++
-            workouts[templateId] = Workout(id = templateId, name = "Template", date = LocalDateTime.now(), status = WorkoutStatus.TEMPLATE, isTemplate = true)
+            workouts[templateId] = Workout(id = templateId, userId = null, name = "Template", date = LocalDateTime.now(), status = WorkoutStatus.TEMPLATE, isTemplate = true)
 
             // Add exercises and sets to template
             val exerciseLog = ExerciseLog(workoutId = templateId, exerciseVariationId = 1, exerciseOrder = 1)
@@ -596,7 +598,7 @@ class WorkoutRepositoryTest {
         runTest(testDispatcher) {
             // Create non-template workout
             val regularWorkoutId = nextWorkoutId++
-            workouts[regularWorkoutId] = Workout(id = regularWorkoutId, name = "Regular", date = LocalDateTime.now(), status = WorkoutStatus.COMPLETED)
+            workouts[regularWorkoutId] = Workout(id = regularWorkoutId, userId = null, name = "Regular", date = LocalDateTime.now(), status = WorkoutStatus.COMPLETED)
 
             try {
                 repository.startWorkoutFromTemplate(regularWorkoutId)

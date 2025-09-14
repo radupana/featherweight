@@ -19,6 +19,7 @@ import com.github.radupana.featherweight.data.exercise.VariationInstructionDao
 import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.data.exercise.VariationMuscleDao
 import com.github.radupana.featherweight.data.exercise.VariationRelation
+import com.github.radupana.featherweight.data.migration.Migration3to4
 import com.github.radupana.featherweight.data.profile.OneRMDao
 import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
@@ -57,7 +58,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         TrainingAnalysis::class,
         ParseRequest::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -111,7 +112,9 @@ abstract class FeatherweightDatabase : RoomDatabase() {
                             context.applicationContext,
                             FeatherweightDatabase::class.java,
                             "featherweight-db",
-                        ).build()
+                        ).addMigrations(Migration3to4())
+                        .fallbackToDestructiveMigrationOnDowngrade(false)
+                        .build()
                 INSTANCE = instance
                 instance
             }

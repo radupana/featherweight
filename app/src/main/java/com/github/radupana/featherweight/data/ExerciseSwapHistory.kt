@@ -11,11 +11,13 @@ import java.time.LocalDateTime
         Index(value = ["originalExerciseId"]),
         Index(value = ["swappedToExerciseId"]),
         Index(value = ["swapDate"]),
+        Index("userId"),
     ],
 )
 data class ExerciseSwapHistory(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val userId: String? = null,
     val originalExerciseId: Long,
     val swappedToExerciseId: Long,
     val swapDate: LocalDateTime,

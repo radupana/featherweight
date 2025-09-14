@@ -250,6 +250,7 @@ class ProgrammeRepositoryTest {
         completionNotes: String? = null,
     ) = Programme(
         id = id,
+        userId = null,
         name = name,
         description = "Test description for $name",
         durationWeeks = 8,

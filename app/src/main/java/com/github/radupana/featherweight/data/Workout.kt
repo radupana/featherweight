@@ -20,10 +20,12 @@ import java.time.LocalDateTime
         Index("programmeId"),
         Index(value = ["status", "date"]),
         Index(value = ["isProgrammeWorkout", "status", "date"]),
+        Index("userId"),
     ],
 )
 data class Workout(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val userId: String? = null,
     val date: LocalDateTime,
     val name: String? = null,
     val notes: String? = null,

@@ -319,6 +319,7 @@ class PersonalRecordRepositoryTest {
         actualReps: Int = 10,
     ) = SetLog(
         id = id,
+        userId = null,
         exerciseLogId = 1L,
         setOrder = 1,
         targetReps = 10,
@@ -333,6 +334,7 @@ class PersonalRecordRepositoryTest {
         name: String,
     ) = ExerciseVariation(
         id = id,
+        createdByUserId = null,
         coreExerciseId = 1L,
         name = name,
         equipment = Equipment.BARBELL,

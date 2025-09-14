@@ -19,11 +19,13 @@ import java.time.LocalDateTime
     ],
     indices = [
         Index(value = ["exerciseVariationId", "recordedAt"]),
+        Index("userId"),
     ],
 )
 data class OneRMHistory(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val userId: String? = null,
     val exerciseVariationId: Long,
     val oneRMEstimate: Float,
     val context: String, // e.g., "140kg × 3 @ RPE 8"
