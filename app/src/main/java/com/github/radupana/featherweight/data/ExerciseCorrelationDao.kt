@@ -12,4 +12,7 @@ interface ExerciseCorrelationDao {
 
     @Query("SELECT COUNT(*) FROM exercise_correlations")
     suspend fun getCount(): Int
+
+    @Query("SELECT * FROM exercise_correlations")
+    suspend fun getAllCorrelations(): List<ExerciseCorrelation>
 }

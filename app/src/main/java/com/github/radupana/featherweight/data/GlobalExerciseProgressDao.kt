@@ -23,4 +23,7 @@ interface GlobalExerciseProgressDao {
 
     @Query("DELETE FROM global_exercise_progress")
     suspend fun deleteAllGlobalProgress()
+
+    @Query("SELECT * FROM global_exercise_progress")
+    suspend fun getAllProgress(): List<GlobalExerciseProgress>
 }

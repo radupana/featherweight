@@ -28,4 +28,7 @@ interface VariationAliasDao {
     """,
     )
     suspend fun findVariationByAlias(alias: String): ExerciseVariation?
+
+    @Query("SELECT * FROM variation_aliases")
+    suspend fun getAllAliases(): List<VariationAlias>
 }

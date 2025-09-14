@@ -12,6 +12,7 @@ import androidx.room.Update
 import java.time.LocalDateTime
 
 @Dao
+@Suppress("TooManyFunctions")
 interface ProgrammeDao {
     // Programme CRUD operations
     @Insert
@@ -42,6 +43,9 @@ interface ProgrammeDao {
     @Query("SELECT * FROM programme_weeks WHERE id = :weekId")
     suspend fun getWeekById(weekId: Long): ProgrammeWeek?
 
+    @Query("SELECT * FROM programme_weeks")
+    suspend fun getAllProgrammeWeeks(): List<ProgrammeWeek>
+
     // Programme Workouts
     @Insert
     suspend fun insertProgrammeWorkout(workout: ProgrammeWorkout): Long
@@ -55,6 +59,9 @@ interface ProgrammeDao {
     """,
     )
     suspend fun getAllWorkoutsForProgramme(programmeId: Long): List<ProgrammeWorkout>
+
+    @Query("SELECT * FROM programme_workouts")
+    suspend fun getAllProgrammeWorkouts(): List<ProgrammeWorkout>
 
     // Programme Progress
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -73,6 +80,12 @@ interface ProgrammeDao {
 
     @Query("UPDATE programme_progress SET completedWorkouts = completedWorkouts + 1 WHERE programmeId = :programmeId")
     suspend fun incrementCompletedWorkouts(programmeId: Long)
+
+    @Query("SELECT * FROM programme_progress")
+    suspend fun getAllProgrammeProgress(): List<ProgrammeProgress>
+
+    @Query("SELECT * FROM exercise_substitutions")
+    suspend fun getAllSubstitutions(): List<ExerciseSubstitution>
 
     // Complex queries with relationships
     @Transaction

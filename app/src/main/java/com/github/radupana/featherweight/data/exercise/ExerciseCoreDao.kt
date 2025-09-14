@@ -21,4 +21,7 @@ interface ExerciseCoreDao {
 
     @Query("SELECT * FROM exercise_cores WHERE name = :name LIMIT 1")
     suspend fun getExerciseCoreByName(name: String): ExerciseCore?
+
+    @Query("SELECT * FROM exercise_cores")
+    suspend fun getAllCores(): List<ExerciseCore>
 }

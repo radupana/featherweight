@@ -43,4 +43,7 @@ interface ExercisePerformanceTrackingDao {
         programmeId: Long,
         exerciseName: String,
     ): Int
+
+    @Query("SELECT * FROM exercise_performance_tracking")
+    suspend fun getAllTracking(): List<ExercisePerformanceTracking>
 }

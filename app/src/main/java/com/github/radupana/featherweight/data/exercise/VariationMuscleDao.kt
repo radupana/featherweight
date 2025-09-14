@@ -21,4 +21,7 @@ interface VariationMuscleDao {
 
     @Query("SELECT * FROM variation_muscles WHERE variationId = :variationId")
     suspend fun getMusclesForVariation(variationId: Long): List<VariationMuscle>
+
+    @Query("SELECT * FROM variation_muscles")
+    suspend fun getAllVariationMuscles(): List<VariationMuscle>
 }

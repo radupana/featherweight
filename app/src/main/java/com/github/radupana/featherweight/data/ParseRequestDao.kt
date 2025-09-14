@@ -28,4 +28,7 @@ interface ParseRequestDao {
 
     @Query("SELECT COUNT(*) FROM parse_requests WHERE status IN ('PROCESSING', 'COMPLETED')")
     suspend fun getPendingRequestCount(): Int
+
+    @Query("SELECT * FROM parse_requests")
+    suspend fun getAllRequestsList(): List<ParseRequest>
 }

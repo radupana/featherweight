@@ -120,4 +120,7 @@ interface PersonalRecordDao {
         startDate: LocalDateTime,
         endDate: LocalDateTime,
     ): List<PersonalRecord>
+
+    @Query("SELECT * FROM PersonalRecord")
+    suspend fun getAllPersonalRecords(): List<PersonalRecord>
 }

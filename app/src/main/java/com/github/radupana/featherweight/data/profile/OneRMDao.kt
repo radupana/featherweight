@@ -263,6 +263,12 @@ interface OneRMDao {
         """,
     )
     suspend fun getAllCurrentMaxesForExport(): List<UserExerciseMaxWithName>
+
+    @Query("SELECT * FROM user_exercise_maxes")
+    suspend fun getAllUserExerciseMaxes(): List<UserExerciseMax>
+
+    @Query("SELECT * FROM one_rm_history")
+    suspend fun getAllOneRMHistory(): List<OneRMHistory>
 }
 
 data class OneRMWithExerciseName(

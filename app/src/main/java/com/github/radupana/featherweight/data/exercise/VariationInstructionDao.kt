@@ -18,10 +18,13 @@ interface VariationInstructionDao {
 
     @Query(
         """
-        SELECT * FROM variation_instructions 
-        WHERE variationId = :variationId 
+        SELECT * FROM variation_instructions
+        WHERE variationId = :variationId
         ORDER BY instructionType, orderIndex
     """,
     )
     suspend fun getInstructionsForVariation(variationId: Long): List<VariationInstruction>
+
+    @Query("SELECT * FROM variation_instructions")
+    suspend fun getAllInstructions(): List<VariationInstruction>
 }
