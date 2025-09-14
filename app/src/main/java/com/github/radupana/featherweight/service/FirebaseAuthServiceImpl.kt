@@ -2,6 +2,7 @@ package com.github.radupana.featherweight.service
 
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.auth.AuthCredential
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
@@ -57,9 +58,95 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
             Result.failure(e)
         }
 
+    override suspend fun sendEmailVerification(): Result<Unit> =
+        try {
+            val user = auth.currentUser
+            if (user != null) {
+                user.sendEmailVerification().await()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("No user logged in"))
+            }
+        } catch (e: FirebaseAuthException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Email verification failed", e)
+            Result.failure(e)
+        }
+
+    override suspend fun reloadUser(): Result<Unit> =
+        try {
+            val user = auth.currentUser
+            if (user != null) {
+                user.reload().await()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("No user logged in"))
+            }
+        } catch (e: FirebaseAuthException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "User reload failed", e)
+            Result.failure(e)
+        }
+
+    override suspend fun updatePassword(newPassword: String): Result<Unit> =
+        try {
+            val user = auth.currentUser
+            if (user != null) {
+                user.updatePassword(newPassword).await()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("No user logged in"))
+            }
+        } catch (e: FirebaseAuthException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Password update failed", e)
+            Result.failure(e)
+        }
+
+    override suspend fun reauthenticateWithEmail(
+        email: String,
+        password: String,
+    ): Result<Unit> =
+        try {
+            val credential = EmailAuthProvider.getCredential(email, password)
+            val user = auth.currentUser
+            if (user != null) {
+                user.reauthenticate(credential).await()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("No user logged in"))
+            }
+        } catch (e: FirebaseAuthException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Reauthentication failed", e)
+            Result.failure(e)
+        }
+
+    override suspend fun deleteAccount(): Result<Unit> =
+        try {
+            val user = auth.currentUser
+            if (user != null) {
+                user.delete().await()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("No user logged in"))
+            }
+        } catch (e: FirebaseAuthException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Account deletion failed", e)
+            Result.failure(e)
+        }
+
     override fun signOut() {
         auth.signOut()
     }
 
     override fun isUserAuthenticated(): Boolean = auth.currentUser != null
+
+    override fun isEmailVerified(): Boolean = auth.currentUser?.isEmailVerified ?: false
+
+    override fun getUserEmail(): String? = auth.currentUser?.email
+
+    override fun getAuthProvider(): String? =
+        auth.currentUser
+            ?.providerData
+            ?.firstOrNull { it.providerId != "firebase" }
+            ?.providerId
+
+    override fun getAccountCreationTime(): Long? = auth.currentUser?.metadata?.creationTimestamp
 }

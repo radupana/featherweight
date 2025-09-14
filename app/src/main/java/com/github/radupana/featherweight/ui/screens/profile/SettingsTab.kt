@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -20,20 +22,38 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.model.WeightUnit
+import com.github.radupana.featherweight.ui.components.AccountSection
+import com.github.radupana.featherweight.viewmodel.AccountInfo
 
 @Composable
 fun SettingsTab(
     currentWeightUnit: WeightUnit,
     onWeightUnitSelected: (WeightUnit) -> Unit,
+    accountInfo: AccountInfo?,
+    onSignOut: () -> Unit,
+    onSendVerificationEmail: () -> Unit,
+    onChangePassword: (String, String) -> Unit,
+    onResetPassword: () -> Unit,
+    onDeleteAccount: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier =
             modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        AccountSection(
+            accountInfo = accountInfo,
+            onSignOut = onSignOut,
+            onSendVerificationEmail = onSendVerificationEmail,
+            onChangePassword = onChangePassword,
+            onResetPassword = onResetPassword,
+            onDeleteAccount = onDeleteAccount,
+        )
+
         WeightUnitSelector(
             currentUnit = currentWeightUnit,
             onUnitSelected = onWeightUnitSelected,

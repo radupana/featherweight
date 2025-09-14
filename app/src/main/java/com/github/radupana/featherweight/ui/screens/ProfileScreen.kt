@@ -47,6 +47,7 @@ fun ProfileScreen(
     viewModel: ProfileViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onSignOut: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -55,6 +56,13 @@ fun ProfileScreen(
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     var clearingExerciseId by remember { mutableStateOf<Long?>(null) }
     var showExportDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.signOutRequested) {
+        if (uiState.signOutRequested) {
+            viewModel.clearSignOutRequest()
+            onSignOut()
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -139,6 +147,12 @@ fun ProfileScreen(
                         SettingsTab(
                             currentWeightUnit = uiState.currentWeightUnit,
                             onWeightUnitSelected = { unit -> viewModel.setWeightUnit(unit) },
+                            accountInfo = uiState.accountInfo,
+                            onSignOut = { viewModel.signOut() },
+                            onSendVerificationEmail = { viewModel.sendVerificationEmail() },
+                            onChangePassword = { current, new -> viewModel.changePassword(current, new) },
+                            onResetPassword = { viewModel.resetPassword() },
+                            onDeleteAccount = { viewModel.deleteAccount() },
                         )
                     }
                     ProfileTab.DATA -> {

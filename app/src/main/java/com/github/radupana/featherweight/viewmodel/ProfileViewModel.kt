@@ -9,10 +9,13 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.github.radupana.featherweight.data.export.ExportOptions
 import com.github.radupana.featherweight.di.ServiceLocator
+import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.manager.WeightUnitManager
 import com.github.radupana.featherweight.model.WeightUnit
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.service.FirebaseAuthService
 import com.github.radupana.featherweight.service.WorkoutSeedingService
+import com.github.radupana.featherweight.util.ExceptionLogger
 import com.github.radupana.featherweight.worker.ExportWorkoutsWorker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +29,13 @@ enum class ProfileTab {
     DATA,
     DEVELOPER,
 }
+
+data class AccountInfo(
+    val email: String?,
+    val isEmailVerified: Boolean,
+    val authProvider: String?,
+    val creationTime: Long?,
+)
 
 data class ProfileUiState(
     val isLoading: Boolean = false,
@@ -44,6 +54,8 @@ data class ProfileUiState(
     val exportedFilePath: String? = null,
     val currentTab: ProfileTab = ProfileTab.ONE_RM,
     val currentWeightUnit: WeightUnit = WeightUnit.KG,
+    val accountInfo: AccountInfo? = null,
+    val signOutRequested: Boolean = false,
 )
 
 sealed class SeedingState {
@@ -88,6 +100,8 @@ class ProfileViewModel(
     private val repository = FeatherweightRepository(application)
     private val workoutSeedingService = WorkoutSeedingService(repository)
     private val weightUnitManager: WeightUnitManager = ServiceLocator.provideWeightUnitManager(application)
+    private val authManager: AuthenticationManager = ServiceLocator.provideAuthenticationManager(application)
+    private val firebaseAuth: FirebaseAuthService = ServiceLocator.provideFirebaseAuthService()
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -97,6 +111,7 @@ class ProfileViewModel(
         observeCurrentMaxes()
         observeBig4AndOtherExercises()
         loadCurrentWeightUnit()
+        loadAccountInfo()
     }
 
     private fun loadProfileData() {
@@ -471,5 +486,165 @@ class ProfileViewModel(
     fun setWeightUnit(unit: WeightUnit) {
         weightUnitManager.setUnit(unit)
         _uiState.value = _uiState.value.copy(currentWeightUnit = unit)
+    }
+
+    private fun loadAccountInfo() {
+        val user = firebaseAuth.getCurrentUser()
+        _uiState.value =
+            _uiState.value.copy(
+                accountInfo =
+                    if (user != null) {
+                        AccountInfo(
+                            email = firebaseAuth.getUserEmail(),
+                            isEmailVerified = firebaseAuth.isEmailVerified(),
+                            authProvider = firebaseAuth.getAuthProvider(),
+                            creationTime = firebaseAuth.getAccountCreationTime(),
+                        )
+                    } else {
+                        null
+                    },
+            )
+    }
+
+    fun signOut() {
+        firebaseAuth.signOut()
+        authManager.clearUserData()
+        _uiState.value =
+            _uiState.value.copy(
+                signOutRequested = true,
+                accountInfo = null,
+            )
+    }
+
+    fun clearSignOutRequest() {
+        _uiState.value = _uiState.value.copy(signOutRequested = false)
+    }
+
+    fun sendVerificationEmail() {
+        viewModelScope.launch {
+            firebaseAuth.sendEmailVerification().fold(
+                onSuccess = {
+                    _uiState.value =
+                        _uiState.value.copy(
+                            successMessage = "Verification email sent to ${firebaseAuth.getUserEmail()}",
+                        )
+                },
+                onFailure = { e ->
+                    ExceptionLogger.logNonCritical("ProfileViewModel", "Failed to send verification email", e)
+                    _uiState.value =
+                        _uiState.value.copy(
+                            error = "Failed to send verification email: ${e.message}",
+                        )
+                },
+            )
+        }
+    }
+
+    fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+    ) {
+        viewModelScope.launch {
+            val email = firebaseAuth.getUserEmail()
+            if (email == null) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "No email address found for current user",
+                    )
+                return@launch
+            }
+
+            firebaseAuth.reauthenticateWithEmail(email, currentPassword).fold(
+                onSuccess = {
+                    firebaseAuth.updatePassword(newPassword).fold(
+                        onSuccess = {
+                            _uiState.value =
+                                _uiState.value.copy(
+                                    successMessage = "Password changed successfully",
+                                )
+                        },
+                        onFailure = { e ->
+                            ExceptionLogger.logNonCritical("ProfileViewModel", "Failed to update password", e)
+                            _uiState.value =
+                                _uiState.value.copy(
+                                    error = "Failed to update password: ${e.message}",
+                                )
+                        },
+                    )
+                },
+                onFailure = { e ->
+                    ExceptionLogger.logNonCritical("ProfileViewModel", "Failed to reauthenticate", e)
+                    _uiState.value =
+                        _uiState.value.copy(
+                            error = "Current password is incorrect",
+                        )
+                },
+            )
+        }
+    }
+
+    fun resetPassword() {
+        viewModelScope.launch {
+            val email = firebaseAuth.getUserEmail()
+            if (email == null) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "No email address found for current user",
+                    )
+                return@launch
+            }
+
+            firebaseAuth.sendPasswordResetEmail(email).fold(
+                onSuccess = {
+                    _uiState.value =
+                        _uiState.value.copy(
+                            successMessage = "Password reset email sent to $email",
+                        )
+                },
+                onFailure = { e ->
+                    ExceptionLogger.logNonCritical("ProfileViewModel", "Failed to send password reset", e)
+                    _uiState.value =
+                        _uiState.value.copy(
+                            error = "Failed to send password reset: ${e.message}",
+                        )
+                },
+            )
+        }
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            firebaseAuth.deleteAccount().fold(
+                onSuccess = {
+                    authManager.clearUserData()
+                    _uiState.value =
+                        _uiState.value.copy(
+                            signOutRequested = true,
+                            accountInfo = null,
+                            successMessage = "Account deleted successfully",
+                        )
+                },
+                onFailure = { e ->
+                    ExceptionLogger.logNonCritical("ProfileViewModel", "Failed to delete account", e)
+                    _uiState.value =
+                        _uiState.value.copy(
+                            error = "Failed to delete account. You may need to sign in again: ${e.message}",
+                        )
+                },
+            )
+        }
+    }
+
+    fun refreshAccountInfo() {
+        viewModelScope.launch {
+            firebaseAuth.reloadUser().fold(
+                onSuccess = {
+                    loadAccountInfo()
+                },
+                onFailure = { e ->
+                    ExceptionLogger.logNonCritical("ProfileViewModel", "Failed to reload user", e)
+                },
+            )
+        }
     }
 }

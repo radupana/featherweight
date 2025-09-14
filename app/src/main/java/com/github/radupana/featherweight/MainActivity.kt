@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -35,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -621,9 +623,14 @@ fun MainAppWithNavigation(
 
             Screen.PROFILE -> {
                 val profileViewModel: ProfileViewModel = viewModel()
+                val context = LocalContext.current
                 com.github.radupana.featherweight.ui.screens.ProfileScreen(
                     viewModel = profileViewModel,
                     onBack = { onScreenChange(previousScreen ?: Screen.WORKOUTS) },
+                    onSignOut = {
+                        context.startActivity(Intent(context, WelcomeActivity::class.java))
+                        (context as? ComponentActivity)?.finish()
+                    },
                     modifier = Modifier.padding(innerPadding),
                 )
             }

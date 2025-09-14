@@ -210,6 +210,21 @@ fun SignInScreen(
                         result.fold(
                             onSuccess = { user ->
                                 authManager.setCurrentUserId(user.uid)
+                                if (isSignUpMode) {
+                                    firebaseAuth.sendEmailVerification().fold(
+                                        onSuccess = {
+                                            Toast
+                                                .makeText(
+                                                    context,
+                                                    "Verification email sent to $email",
+                                                    Toast.LENGTH_LONG,
+                                                ).show()
+                                        },
+                                        onFailure = { e ->
+                                            Log.e("SignInActivity", "Failed to send verification email", e)
+                                        },
+                                    )
+                                }
                                 onSignInSuccess()
                             },
                             onFailure = { exception ->
