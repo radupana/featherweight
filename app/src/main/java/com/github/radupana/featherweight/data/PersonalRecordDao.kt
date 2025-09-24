@@ -11,7 +11,7 @@ interface PersonalRecordDao {
     @Insert
     suspend fun insertPersonalRecord(personalRecord: PersonalRecord): Long
 
-    @Query("SELECT * FROM PersonalRecord WHERE exerciseVariationId = :exerciseVariationId ORDER BY recordDate DESC LIMIT :limit")
+    @Query("SELECT * FROM personal_records WHERE exerciseVariationId = :exerciseVariationId ORDER BY recordDate DESC LIMIT :limit")
     suspend fun getRecentPRsForExercise(
         exerciseVariationId: Long,
         limit: Int = 5,
@@ -22,7 +22,7 @@ interface PersonalRecordDao {
         WITH RankedPRs AS (
             SELECT *,
                    ROW_NUMBER() OVER (PARTITION BY exerciseVariationId ORDER BY estimated1RM DESC, recordDate DESC) as rn
-            FROM PersonalRecord
+            FROM personal_records
             WHERE recordDate >= date('now', '-30 days')
         )
         SELECT * FROM RankedPRs 
@@ -36,7 +36,7 @@ interface PersonalRecordDao {
 
     @Query(
         """
-        SELECT * FROM PersonalRecord 
+        SELECT * FROM personal_records 
         WHERE exerciseVariationId = :exerciseVariationId 
         AND recordType = :recordType 
         ORDER BY recordDate DESC 
@@ -51,7 +51,7 @@ interface PersonalRecordDao {
     @Query(
         """
         SELECT MAX(weight) 
-        FROM PersonalRecord 
+        FROM personal_records 
         WHERE exerciseVariationId = :exerciseVariationId 
         AND recordType = 'WEIGHT'
     """,
@@ -61,7 +61,7 @@ interface PersonalRecordDao {
     @Query(
         """
         SELECT MAX(estimated1RM) 
-        FROM PersonalRecord 
+        FROM personal_records 
         WHERE exerciseVariationId = :exerciseVariationId 
         AND estimated1RM IS NOT NULL
     """,
@@ -70,7 +70,7 @@ interface PersonalRecordDao {
 
     @Query(
         """
-        SELECT * FROM PersonalRecord 
+        SELECT * FROM personal_records 
         WHERE exerciseVariationId = :exerciseVariationId 
         ORDER BY weight DESC, recordDate DESC 
         LIMIT 1
@@ -78,12 +78,18 @@ interface PersonalRecordDao {
     )
     suspend fun getLatestRecordForExercise(exerciseVariationId: Long): PersonalRecord?
 
-    @Query("DELETE FROM PersonalRecord")
+    @Query("DELETE FROM personal_records")
     suspend fun deleteAllPersonalRecords()
+
+    @Query("DELETE FROM personal_records WHERE userId = :userId")
+    suspend fun deleteAllByUserId(userId: String)
+
+    @Query("DELETE FROM personal_records WHERE userId IS NULL")
+    suspend fun deleteAllWhereUserIdIsNull()
 
     @Query(
         """
-        SELECT * FROM PersonalRecord 
+        SELECT * FROM personal_records 
         WHERE workoutId = :workoutId 
         ORDER BY recordDate DESC
     """,
@@ -92,7 +98,7 @@ interface PersonalRecordDao {
 
     @Query(
         """
-        SELECT * FROM PersonalRecord 
+        SELECT * FROM personal_records 
         WHERE workoutId = :workoutId 
         AND exerciseVariationId = :exerciseVariationId
         AND recordType = :recordType
@@ -105,12 +111,12 @@ interface PersonalRecordDao {
         recordType: PRType,
     ): PersonalRecord?
 
-    @Query("DELETE FROM PersonalRecord WHERE id = :prId")
+    @Query("DELETE FROM personal_records WHERE id = :prId")
     suspend fun deletePR(prId: Long)
 
     @Query(
         """
-        SELECT * FROM PersonalRecord 
+        SELECT * FROM personal_records 
         WHERE recordDate >= :startDate 
         AND recordDate <= :endDate
         ORDER BY recordDate DESC
@@ -121,12 +127,15 @@ interface PersonalRecordDao {
         endDate: LocalDateTime,
     ): List<PersonalRecord>
 
-    @Query("SELECT * FROM PersonalRecord")
+    @Query("SELECT * FROM personal_records")
     suspend fun getAllPersonalRecords(): List<PersonalRecord>
 
-    @Query("SELECT * FROM PersonalRecord WHERE id = :id")
+    @Query("SELECT * FROM personal_records WHERE id = :id")
     suspend fun getPersonalRecordById(id: Long): PersonalRecord?
 
     @androidx.room.Update
     suspend fun updatePersonalRecord(record: PersonalRecord)
+
+    @Query("DELETE FROM personal_records WHERE userId = :userId")
+    suspend fun deleteAllForUser(userId: String)
 }

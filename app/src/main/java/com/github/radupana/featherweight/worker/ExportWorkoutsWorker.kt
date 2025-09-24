@@ -33,6 +33,10 @@ class ExportWorkoutsWorker(
 
     private val database = FeatherweightDatabase.getDatabase(applicationContext)
     private val repository = FeatherweightRepository(applicationContext.applicationContext as android.app.Application)
+    private val authManager =
+        ServiceLocator.provideAuthenticationManager(
+            applicationContext.applicationContext as android.app.Application,
+        )
     private val exportService =
         WorkoutExportService(
             workoutDao = database.workoutDao(),
@@ -40,6 +44,7 @@ class ExportWorkoutsWorker(
             setLogDao = database.setLogDao(),
             oneRMDao = database.oneRMDao(),
             repository = repository,
+            authManager = authManager,
             weightUnitManager =
                 ServiceLocator.provideWeightUnitManager(
                     applicationContext.applicationContext as android.app.Application,

@@ -7,7 +7,9 @@ import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
+import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.WorkoutSummary
+import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.perf.FirebasePerformance
 import com.google.firebase.perf.metrics.Trace
@@ -23,6 +25,7 @@ class WorkoutRepository(
     application: Application,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val db: FeatherweightDatabase = FeatherweightDatabase.getDatabase(application),
+    private val authManager: AuthenticationManager = ServiceLocator.provideAuthenticationManager(application),
 ) {
     private val workoutDao = db.workoutDao()
     private val exerciseLogDao = db.exerciseLogDao()
@@ -37,8 +40,10 @@ class WorkoutRepository(
         withContext(ioDispatcher) {
             val trace = safeNewTrace("workout_creation")
             trace?.start()
-            val id = workoutDao.insertWorkout(workout)
-            Log.i(TAG, "Created workout - id: $id, name: ${workout.name}, status: ${workout.status}, programmeId: ${workout.programmeId}")
+            // Ensure userId is set (use "local" for unauthenticated users)
+            val workoutWithUserId = workout.copy(userId = authManager.getCurrentUserId() ?: "local")
+            val id = workoutDao.insertWorkout(workoutWithUserId)
+            Log.i(TAG, "Created workout - id: $id, name: ${workout.name}, status: ${workout.status}, programmeId: ${workout.programmeId}, userId: ${workoutWithUserId.userId}")
             trace?.stop()
             id
         }
@@ -144,7 +149,8 @@ class WorkoutRepository(
     suspend fun getWorkoutHistory(): List<WorkoutSummary> =
         withContext(ioDispatcher) {
             val startTime = System.currentTimeMillis()
-            val allWorkouts = workoutDao.getAllWorkouts()
+            val userId = authManager.getCurrentUserId() ?: "local"
+            val allWorkouts = workoutDao.getWorkoutsByUserId(userId)
             val result =
                 allWorkouts
                     .filter { it.status != WorkoutStatus.TEMPLATE } // Exclude templates from history
@@ -212,9 +218,10 @@ class WorkoutRepository(
             val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
             Log.i(TAG, "Found ${exerciseLogs.size} exercises in workout $workoutId")
 
-            // Create template workout
+            // Create template workout with current userId
             val templateWorkout =
                 Workout(
+                    userId = authManager.getCurrentUserId() ?: "local",
                     name = templateName,
                     notes = templateDescription,
                     date = LocalDateTime.now(),
@@ -242,11 +249,13 @@ class WorkoutRepository(
                     return@forEach // Skip exercises with no completed sets
                 }
 
-                // Create exercise log for template
+                // Create exercise log for template, preserving custom exercise flag
                 val templateExerciseLog =
                     ExerciseLog(
+                        userId = authManager.getCurrentUserId() ?: "local",
                         workoutId = templateId,
                         exerciseVariationId = exerciseLog.exerciseVariationId,
+                        isCustomExercise = exerciseLog.isCustomExercise, // Preserve custom exercise flag
                         exerciseOrder = exerciseLog.exerciseOrder,
                     )
                 val templateExerciseId = exerciseLogDao.insertExerciseLog(templateExerciseLog)
@@ -257,6 +266,7 @@ class WorkoutRepository(
                 originalSets.forEach { originalSet ->
                     val templateSet =
                         SetLog(
+                            userId = authManager.getCurrentUserId() ?: "local",
                             exerciseLogId = templateExerciseId,
                             setOrder = originalSet.setOrder,
                             targetReps = originalSet.actualReps,
@@ -279,8 +289,9 @@ class WorkoutRepository(
         withContext(ioDispatcher) {
             Log.i(TAG, "getTemplates() called")
             val startTime = System.currentTimeMillis()
-            val allWorkouts = workoutDao.getAllWorkouts()
-            Log.d(TAG, "Total workouts in database: ${allWorkouts.size}")
+            val userId = authManager.getCurrentUserId() ?: "local"
+            val allWorkouts = workoutDao.getWorkoutsByUserId(userId)
+            Log.d(TAG, "Total workouts for user $userId: ${allWorkouts.size}")
 
             val templates = allWorkouts.filter { it.status == WorkoutStatus.TEMPLATE }
             Log.i(TAG, "Found ${templates.size} templates out of ${allWorkouts.size} total workouts")
@@ -335,9 +346,10 @@ class WorkoutRepository(
 
             Log.i(TAG, "Found template: ${template.name}")
 
-            // Create new workout from template
+            // Create new workout from template with current userId
             val newWorkout =
                 Workout(
+                    userId = authManager.getCurrentUserId() ?: "local",
                     name = template.name,
                     notes = template.notes,
                     date = LocalDateTime.now(),
@@ -359,8 +371,10 @@ class WorkoutRepository(
             templateExercises.forEach { templateExercise ->
                 val newExercise =
                     ExerciseLog(
+                        userId = authManager.getCurrentUserId() ?: "local",
                         workoutId = newWorkoutId,
                         exerciseVariationId = templateExercise.exerciseVariationId,
+                        isCustomExercise = templateExercise.isCustomExercise, // Preserve custom exercise flag from template
                         exerciseOrder = templateExercise.exerciseOrder,
                         notes = templateExercise.notes,
                     )
@@ -374,6 +388,7 @@ class WorkoutRepository(
                 templateSets.forEach { templateSet ->
                     val newSet =
                         SetLog(
+                            userId = authManager.getCurrentUserId() ?: "local",
                             exerciseLogId = newExerciseId,
                             setOrder = templateSet.setOrder,
                             targetReps = templateSet.targetReps,

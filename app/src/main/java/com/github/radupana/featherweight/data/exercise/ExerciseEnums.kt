@@ -27,7 +27,6 @@ enum class MuscleGroup(
 
     // Lower Body
     QUADS("Quadriceps"),
-    QUADRICEPS("Quadriceps"), // Added for JSON compatibility
     HAMSTRINGS("Hamstrings"),
     GLUTES("Glutes"),
     CALVES("Calves"),

@@ -10,7 +10,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Entity(
-    tableName = "training_analysis",
+    tableName = "training_analyses",
     indices = [androidx.room.Index("userId")],
 )
 data class TrainingAnalysis(

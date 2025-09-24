@@ -7,6 +7,7 @@ import com.github.radupana.featherweight.data.ProgressTrend
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.VolumeTrend
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
+import com.github.radupana.featherweight.repository.CustomExerciseRepository
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.LocalDateTime
@@ -16,6 +17,7 @@ import kotlin.math.roundToInt
 class GlobalProgressTracker(
     private val repository: FeatherweightRepository,
     private val database: FeatherweightDatabase,
+    private val customExerciseRepository: CustomExerciseRepository? = null,
 ) {
     private val globalProgressDao = database.globalExerciseProgressDao()
 
@@ -63,6 +65,8 @@ class GlobalProgressTracker(
             return null
         }
 
+        val userId = completedSets.firstOrNull()?.userId
+
         // Calculate session metrics
         val maxWeight = completedSets.maxOf { it.actualWeight }
         val sessionVolume =
@@ -80,7 +84,7 @@ class GlobalProgressTracker(
         // Get or create progress record
         var progress =
             globalProgressDao.getProgressForExercise(exerciseVariationId)
-                ?: createInitialProgress(exerciseVariationId)
+                ?: createInitialProgress(exerciseVariationId, userId)
 
         // Update working weight
         val previousWeight = progress.currentWorkingWeight
@@ -133,13 +137,17 @@ class GlobalProgressTracker(
 
     private suspend fun createInitialProgress(
         exerciseVariationId: Long,
+        userId: String?,
     ): GlobalExerciseProgress {
         // Try to get 1RM from UserExerciseMax
-        val userMax = database.oneRMDao().getCurrentMax(exerciseVariationId)
+        val userMax = database.oneRMDao().getCurrentMax(exerciseVariationId, userId ?: "local")
         val estimatedMax = userMax?.oneRMEstimate ?: 0f
 
+        val isCustom = customExerciseRepository?.isCustomExercise(exerciseVariationId) ?: false
         return GlobalExerciseProgress(
+            userId = userId,
             exerciseVariationId = exerciseVariationId,
+            isCustomExercise = isCustom,
             currentWorkingWeight = 0f,
             estimatedMax = estimatedMax,
             lastUpdated = LocalDateTime.now(),
@@ -304,7 +312,7 @@ class GlobalProgressTracker(
         if (estimableSets.isEmpty()) return Pair(progress, null)
 
         // Get current stored max from profile FIRST for confidence calculation
-        val currentUserMax = database.oneRMDao().getCurrentMax(progress.exerciseVariationId)
+        val currentUserMax = database.oneRMDao().getCurrentMax(progress.exerciseVariationId, progress.userId ?: "local")
         val storedMaxWeight = currentUserMax?.oneRMEstimate
 
         // Find the best set for 1RM calculation
@@ -361,8 +369,10 @@ class GlobalProgressTracker(
             val bestSet = estimableSets.maxByOrNull { it.actualWeight }
             if (bestSet != null) {
                 if (currentUserMax != null) {
+                    val isCustom = customExerciseRepository?.isCustomExercise(progress.exerciseVariationId) ?: false
                     val updatedMax =
                         currentUserMax.copy(
+                            isCustomExercise = isCustom,
                             oneRMEstimate = estimated1RM,
                             oneRMContext = bestEstimate.source,
                             oneRMConfidence = bestEstimate.confidence,
@@ -375,9 +385,12 @@ class GlobalProgressTracker(
                         )
                     database.oneRMDao().updateExerciseMax(updatedMax)
                 } else {
+                    val isCustom = customExerciseRepository?.isCustomExercise(progress.exerciseVariationId) ?: false
                     val newMax =
                         UserExerciseMax(
+                            userId = bestSet.userId,
                             exerciseVariationId = progress.exerciseVariationId,
+                            isCustomExercise = isCustom,
                             oneRMEstimate = estimated1RM,
                             oneRMContext = bestEstimate.source,
                             oneRMConfidence = bestEstimate.confidence,

@@ -12,6 +12,7 @@ import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutMode
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.ExerciseHistory
@@ -81,8 +82,14 @@ data class InProgressWorkout(
 
 class WorkoutViewModel(
     application: Application,
+    val repository: FeatherweightRepository,
 ) : AndroidViewModel(application) {
-    val repository = FeatherweightRepository(application)
+    // Secondary constructor for Android ViewModelFactory
+    constructor(application: Application) : this(
+        application,
+        FeatherweightRepository(application),
+    )
+
     private val oneRMService = OneRMService()
     private val restTimerCalculationService = RestTimerCalculationService()
     private val restTimerNotificationService = RestTimerNotificationService(application)
@@ -163,8 +170,21 @@ class WorkoutViewModel(
     private val exerciseDetailsMap = MutableStateFlow<Map<Long, ExerciseVariation>>(emptyMap())
 
     // Reactive exercise name mapping
-    private val _exerciseNames = MutableStateFlow<Map<Long, String>>(emptyMap())
-    val exerciseNames: StateFlow<Map<Long, String>> = _exerciseNames
+    // Use String keys to avoid ID collisions between system and custom exercises
+    // Key format: "system_<id>" for system exercises, "custom_<id>" for custom exercises
+    private val _exerciseNames = MutableStateFlow<Map<String, String>>(emptyMap())
+    val exerciseNames: StateFlow<Map<String, String>> = _exerciseNames
+
+    // Helper functions for exercise name key management
+    private fun getExerciseNameKey(
+        exerciseId: Long,
+        isCustom: Boolean,
+    ): String = if (isCustom) "custom_$exerciseId" else "system_$exerciseId"
+
+    private fun getExerciseNameFromMap(
+        exerciseId: Long,
+        isCustom: Boolean,
+    ): String? = _exerciseNames.value[getExerciseNameKey(exerciseId, isCustom)]
 
     // Exercise swap state
     private val _swappingExercise = MutableStateFlow<ExerciseLog?>(null)
@@ -191,6 +211,9 @@ class WorkoutViewModel(
     private var workoutTimerJob: Job? = null
     private var workoutTimerStartTime: LocalDateTime? = null
 
+    // Flag to prevent concurrent workout creation
+    private var isCreatingWorkout = false
+
     init {
         loadInProgressWorkouts()
         checkForOngoingWorkout()
@@ -202,12 +225,46 @@ class WorkoutViewModel(
     private fun loadExercises() {
         viewModelScope.launch {
             try {
-                // Load all exercise names for reactive lookups
-                val exercises = repository.getAllExercises()
-                _exerciseNames.value = exercises.associate { it.id to it.name }
+                // Load all system exercises
+                val systemExercises = repository.getAllExercises()
+
+                // Load all custom exercises
+                val customExercises = repository.getCustomExercises()
+
+                // Convert custom exercises to ExerciseVariation for unified handling
+                val customAsVariations =
+                    customExercises.map { custom ->
+                        ExerciseVariation(
+                            id = custom.id,
+                            coreExerciseId = custom.customCoreExerciseId,
+                            name = custom.name,
+                            equipment = custom.equipment,
+                            difficulty = custom.difficulty,
+                            requiresWeight = custom.requiresWeight,
+                            restDurationSeconds = custom.restDurationSeconds,
+                        )
+                    }
+
+                // Populate exercise names with proper keys to avoid ID collisions
+                val namesMap = mutableMapOf<String, String>()
+
+                // Add system exercises with "system_" prefix
+                systemExercises.forEach { exercise ->
+                    namesMap[getExerciseNameKey(exercise.id, false)] = exercise.name
+                }
+
+                // Add custom exercises with "custom_" prefix
+                customExercises.forEach { custom ->
+                    namesMap[getExerciseNameKey(custom.id, true)] = custom.name
+                }
+
+                _exerciseNames.value = namesMap
+
+                // Combine all exercises for other uses
+                val allExercises = systemExercises + customAsVariations
 
                 // Create lookup map for exercise details
-                val detailsMap = exercises.associateBy { it.id }
+                val detailsMap = allExercises.associateBy { it.id }
                 exerciseDetailsMap.value = detailsMap
             } catch (e: android.database.sqlite.SQLiteException) {
                 Log.e(TAG, "Failed to load exercises", e)
@@ -443,67 +500,84 @@ class WorkoutViewModel(
 
     // Start a completely new workout (force new)
     fun startNewWorkout(forceNew: Boolean = false) {
+        Log.w(TAG, "🔴 [WORKOUT_CREATE] startNewWorkout called - forceNew: $forceNew, caller: ${Thread.currentThread().stackTrace[3]}")
+
+        // Prevent concurrent workout creation
+        if (isCreatingWorkout) {
+            Log.w(TAG, "🔴 [WORKOUT_CREATE] Already creating workout, skipping duplicate call")
+            return
+        }
+
         viewModelScope.launch {
-            if (forceNew || repository.getOngoingWorkout() == null) {
-                // Clear any existing timers
-                stopWorkoutTimer()
-                _workoutTimerSeconds.value = 0
-                workoutTimerStartTime = null
-
-                // Clear validation cache
-                _setCompletionValidation.value = emptyMap()
-
-                val now = LocalDateTime.now()
-                val defaultName =
-                    now.format(
-                        DateTimeFormatter
-                            .ofPattern("MMM d, yyyy 'at' HH:mm"),
-                    )
-                val workout =
-                    Workout(
-                        date = now,
-                        name = defaultName,
-                        notes = null,
-                    )
-                val workoutId = repository.insertWorkout(workout)
-
-                Log.i(
-                    TAG,
-                    "Starting new workout - id: $workoutId, forceNew: $forceNew, " +
-                        "timestamp: ${LocalDateTime.now()}",
-                )
-
-                _currentWorkoutId.value = workoutId
-                _workoutState.value =
-                    WorkoutState(
-                        isActive = true,
-                        status = WorkoutStatus.IN_PROGRESS,
-                        workoutId = workoutId,
-                        startTime = LocalDateTime.now(),
-                        workoutName = null,
-                        isReadOnly = false,
-                        isInEditMode = false,
-                        originalWorkoutData = null,
-                        // No programme context for regular workouts
-                        isProgrammeWorkout = false,
-                        programmeId = null,
-                        programmeName = null,
-                        weekNumber = null,
-                        dayNumber = null,
-                        programmeWorkoutName = null,
-                        // Clear any pending celebrations from previous workouts
-                        pendingPRs = emptyList(),
-                        shouldShowPRCelebration = false,
-                    )
-
-                loadExercisesForWorkout(workoutId, isInitialLoad = true)
-                loadInProgressWorkouts()
-            } else {
+            isCreatingWorkout = true
+            try {
                 val ongoingWorkout = repository.getOngoingWorkout()
-                if (ongoingWorkout != null) {
+                Log.w(TAG, "🔴 [WORKOUT_CREATE] Ongoing workout check - found: ${ongoingWorkout?.id}, status: ${ongoingWorkout?.status}")
+
+                if (forceNew || ongoingWorkout == null) {
+                    Log.w(TAG, "🔴 [WORKOUT_CREATE] Creating NEW workout - reason: ${if (forceNew) "FORCED" else "NO_ONGOING"}")
+                    // Clear any existing timers
+                    stopWorkoutTimer()
+                    _workoutTimerSeconds.value = 0
+                    workoutTimerStartTime = null
+
+                    // Clear validation cache
+                    _setCompletionValidation.value = emptyMap()
+
+                    val now = LocalDateTime.now()
+                    val defaultName =
+                        now.format(
+                            DateTimeFormatter
+                                .ofPattern("MMM d, yyyy 'at' HH:mm"),
+                        )
+                    val workout =
+                        Workout(
+                            date = now,
+                            name = defaultName,
+                            notes = null,
+                        )
+                    Log.w(TAG, "🔴 [WORKOUT_CREATE] About to INSERT workout to database")
+                    val workoutId = repository.insertWorkout(workout)
+                    Log.w(TAG, "🔴 [WORKOUT_CREATE] INSERTED workout - ID: $workoutId, timestamp: ${LocalDateTime.now()}")
+
+                    Log.i(
+                        TAG,
+                        "Starting new workout - id: $workoutId, forceNew: $forceNew, " +
+                            "timestamp: ${LocalDateTime.now()}",
+                    )
+
+                    _currentWorkoutId.value = workoutId
+                    _workoutState.value =
+                        WorkoutState(
+                            isActive = true,
+                            status = WorkoutStatus.IN_PROGRESS,
+                            workoutId = workoutId,
+                            startTime = LocalDateTime.now(),
+                            workoutName = null,
+                            isReadOnly = false,
+                            isInEditMode = false,
+                            originalWorkoutData = null,
+                            // No programme context for regular workouts
+                            isProgrammeWorkout = false,
+                            programmeId = null,
+                            programmeName = null,
+                            weekNumber = null,
+                            dayNumber = null,
+                            programmeWorkoutName = null,
+                            // Clear any pending celebrations from previous workouts
+                            pendingPRs = emptyList(),
+                            shouldShowPRCelebration = false,
+                        )
+
+                    loadExercisesForWorkout(workoutId, isInitialLoad = true)
+                    loadInProgressWorkouts()
+                } else {
+                    Log.w(TAG, "🔴 [WORKOUT_CREATE] NOT creating workout - resuming existing ID: ${ongoingWorkout.id}")
                     Log.i(TAG, "Resuming existing workout instead of starting new - workoutId: ${ongoingWorkout.id}")
                     resumeWorkout(ongoingWorkout.id)
                 }
+            } finally {
+                isCreatingWorkout = false
             }
         }
     }
@@ -628,7 +702,7 @@ class WorkoutViewModel(
             // Load the parsed exercises into the workout
             val tempExercises = mutableListOf<ExerciseLog>()
             val tempSets = mutableListOf<SetLog>()
-            val tempExerciseNames = mutableMapOf<Long, String>()
+            val tempExerciseNames = mutableMapOf<String, String>()
 
             var setIdCounter = -1L // Start with negative IDs for template sets
 
@@ -653,7 +727,9 @@ class WorkoutViewModel(
                         )
 
                     tempExercises.add(exerciseLog)
-                    tempExerciseNames[exerciseLog.exerciseVariationId] = variation.name
+                    // Use proper key based on whether it's a custom exercise
+                    val key = getExerciseNameKey(exerciseLog.exerciseVariationId, exerciseLog.isCustomExercise)
+                    tempExerciseNames[key] = variation.name
 
                     // Create sets for this exercise with unique negative IDs
                     parsedExercise.sets.forEachIndexed { setIndex, parsedSet ->
@@ -754,12 +830,21 @@ class WorkoutViewModel(
             _selectedWorkoutExercises.value = repository.getExercisesForWorkout(workoutId)
 
             // Load exercise names and last performance for all exercises
-            val namesMap = mutableMapOf<Long, String>()
+            val namesMap = mutableMapOf<String, String>()
             val performanceMap = mutableMapOf<Long, SetLog>()
             _selectedWorkoutExercises.value.forEach { exerciseLog ->
-                val exercise = repository.getExerciseById(exerciseLog.exerciseVariationId)
-                exercise?.let {
-                    namesMap[exerciseLog.exerciseVariationId] = it.name
+                val exerciseName =
+                    if (exerciseLog.isCustomExercise) {
+                        // For custom exercises, get name from custom exercise repository
+                        repository.getCustomExerciseById(exerciseLog.exerciseVariationId)?.name
+                    } else {
+                        // For system exercises, get name from system exercise repository
+                        repository.getExerciseById(exerciseLog.exerciseVariationId)?.name
+                    }
+                exerciseName?.let {
+                    // Store with proper key to avoid ID collisions
+                    val key = getExerciseNameKey(exerciseLog.exerciseVariationId, exerciseLog.isCustomExercise)
+                    namesMap[key] = it
                 }
                 // Load last performance for this exercise variation
                 val lastPerf = repository.getLastPerformanceForExercise(exerciseLog.exerciseVariationId)
@@ -857,9 +942,12 @@ class WorkoutViewModel(
 
     // ===== ENHANCED EXERCISE MANAGEMENT =====
 
-    // Updated to work with ExerciseVariation
-    fun addExerciseToCurrentWorkout(exercise: ExerciseVariation) {
+    // Updated to work with ExerciseWithDetails to preserve isCustom flag
+    fun addExerciseToCurrentWorkout(exerciseWithDetails: ExerciseWithDetails) {
         if (!canEditWorkout()) return
+
+        val exercise = exerciseWithDetails.variation
+        val isCustom = exerciseWithDetails.isCustom
 
         // In TEMPLATE_EDIT mode, add locally only
         if (_workoutState.value.mode == WorkoutMode.TEMPLATE_EDIT) {
@@ -870,6 +958,7 @@ class WorkoutViewModel(
                     id = newExerciseId,
                     workoutId = -1L, // Template workout
                     exerciseVariationId = exercise.id,
+                    isCustomExercise = isCustom,
                     exerciseOrder = currentExercises.size,
                     notes = null,
                 )
@@ -878,7 +967,9 @@ class WorkoutViewModel(
             _selectedWorkoutExercises.value = currentExercises + newExercise
 
             // Add exercise name to cache
-            _exerciseNames.value = _exerciseNames.value + (exercise.id to exercise.name)
+            // Add with proper key based on whether it's custom
+            val key = getExerciseNameKey(exercise.id, isCustom)
+            _exerciseNames.value = _exerciseNames.value + (key to exercise.name)
 
             // Auto-add first empty set
             val currentSets = _selectedExerciseSets.value
@@ -907,6 +998,8 @@ class WorkoutViewModel(
                     workoutId = currentId,
                     exercise = exercise,
                     exerciseOrder = selectedWorkoutExercises.value.size,
+                    notes = null,
+                    isCustomExercise = isCustom,
                 )
 
             Log.i(TAG, "Exercise added to workout - exercise: ${exercise.name}, workoutId: $currentId, order: ${selectedWorkoutExercises.value.size}, exerciseLogId: $exerciseLogId")
@@ -1348,8 +1441,29 @@ class WorkoutViewModel(
             val completedSet = updatedSets.find { it.id == setId } ?: return
             val exerciseLog = findExerciseLogForSet(setId, updatedSets) ?: return
 
-            val allPRs = repository.checkForPR(completedSet, exerciseLog.exerciseVariationId)
+            Log.d(TAG, "Checking for PR: exerciseLog.id=${exerciseLog.id}, variationId=${exerciseLog.exerciseVariationId}, isCustom=${exerciseLog.isCustomExercise}")
+            val allPRs = repository.checkForPR(completedSet, exerciseLog.exerciseVariationId, exerciseLog.isCustomExercise)
             if (allPRs.isNotEmpty()) {
+                // Ensure exercise name is available for PR dialog
+                Log.d(TAG, "PRs detected, looking up exercise name for dialog")
+                val exerciseName =
+                    if (exerciseLog.isCustomExercise) {
+                        val name = repository.getCustomExerciseById(exerciseLog.exerciseVariationId)?.name
+                        Log.d(TAG, "Custom exercise name lookup for ID ${exerciseLog.exerciseVariationId}: $name")
+                        name
+                    } else {
+                        val name = repository.getExerciseById(exerciseLog.exerciseVariationId)?.name
+                        Log.d(TAG, "System exercise name lookup for ID ${exerciseLog.exerciseVariationId}: $name")
+                        name
+                    }
+                if (exerciseName != null) {
+                    val key = getExerciseNameKey(exerciseLog.exerciseVariationId, exerciseLog.isCustomExercise)
+                    Log.d(TAG, "Adding to exerciseNames map: $key -> $exerciseName (ID: ${exerciseLog.exerciseVariationId}, isCustom: ${exerciseLog.isCustomExercise})")
+                    _exerciseNames.value = _exerciseNames.value + (key to exerciseName)
+                } else {
+                    Log.e(TAG, "Failed to get exercise name for PR dialog! ID: ${exerciseLog.exerciseVariationId}, isCustom: ${exerciseLog.isCustomExercise}")
+                }
+
                 _workoutState.value =
                     _workoutState.value.copy(
                         pendingPRs = _workoutState.value.pendingPRs + allPRs,
@@ -1560,6 +1674,10 @@ class WorkoutViewModel(
                 // Get the new exercise details
                 val newExercise = repository.getExerciseEntityById(newExerciseId)
                 if (newExercise != null) {
+                    // Determine if the new exercise is custom
+                    // Try to find it in system exercises first
+                    val isNewExerciseCustom = repository.getExerciseById(newExerciseId) == null
+
                     // Check if we're in template edit mode (negative IDs)
                     if (_workoutState.value.mode == WorkoutMode.TEMPLATE_EDIT || swappingExercise.id < 0) {
                         // For template edit, just update the in-memory state
@@ -1568,6 +1686,7 @@ class WorkoutViewModel(
                                 if (exercise.id == swappingExercise.id) {
                                     exercise.copy(
                                         exerciseVariationId = newExerciseId,
+                                        isCustomExercise = isNewExerciseCustom,
                                         originalVariationId = swappingExercise.originalVariationId ?: swappingExercise.exerciseVariationId,
                                     )
                                 } else {
@@ -1577,10 +1696,13 @@ class WorkoutViewModel(
                         _selectedWorkoutExercises.value = updatedExercises
 
                         // Update exercise name in the map
+                        // Remove old exercise name and add new one with proper keys
+                        val oldKey = getExerciseNameKey(swappingExercise.exerciseVariationId, swappingExercise.isCustomExercise)
+                        val newKey = getExerciseNameKey(newExerciseId, isNewExerciseCustom)
                         _exerciseNames.value =
                             _exerciseNames.value.toMutableMap().apply {
-                                remove(swappingExercise.exerciseVariationId)
-                                put(newExerciseId, newExercise.name)
+                                remove(oldKey)
+                                put(newKey, newExercise.name)
                             }
 
                         // Clear sets for this exercise to force re-creation with new exercise
@@ -1970,7 +2092,12 @@ class WorkoutViewModel(
                 exercises.map { exerciseLog ->
                     val exerciseSets = sets.filter { it.exerciseLogId == exerciseLog.id }
                     com.github.radupana.featherweight.data.ParsedExercise(
-                        exerciseName = _exerciseNames.value[exerciseLog.exerciseVariationId] ?: "Unknown Exercise",
+                        exerciseName =
+                            getExerciseNameFromMap(exerciseLog.exerciseVariationId, exerciseLog.isCustomExercise)
+                                ?: run {
+                                    Log.w(TAG, "Exercise name not found for template: ID ${exerciseLog.exerciseVariationId}, isCustom: ${exerciseLog.isCustomExercise}")
+                                    "Unknown Exercise"
+                                },
                         matchedExerciseId = exerciseLog.exerciseVariationId,
                         sets =
                             exerciseSets.map { setLog ->

@@ -1,10 +1,11 @@
 package com.github.radupana.featherweight.sync.repository
 
+import android.util.Log
+import com.github.radupana.featherweight.sync.models.FirestoreExercise
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseCore
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseCorrelation
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseLog
 import com.github.radupana.featherweight.sync.models.FirestoreExercisePerformanceTracking
-import com.github.radupana.featherweight.sync.models.FirestoreExerciseSubstitution
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseSwapHistory
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseVariation
 import com.github.radupana.featherweight.sync.models.FirestoreGlobalExerciseProgress
@@ -32,8 +33,15 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 
-class FirestoreRepository {
-    private val firestore = FirebaseFirestore.getInstance()
+class FirestoreRepository(
+    private val useTestDatabase: Boolean = false,
+) {
+    private val firestore =
+        if (useTestDatabase) {
+            FirebaseFirestore.getInstance("featherweight-new")
+        } else {
+            FirebaseFirestore.getInstance("featherweight-v2")
+        }
 
     companion object {
         private const val USERS_COLLECTION = "users"
@@ -43,8 +51,9 @@ class FirestoreRepository {
         private const val SYNC_METADATA_COLLECTION = "syncMetadata"
 
         // Exercise collections
-        private const val EXERCISE_CORES_COLLECTION = "exerciseCores"
-        private const val EXERCISE_VARIATIONS_COLLECTION = "exerciseVariations"
+        private const val EXERCISES_COLLECTION = "exercises" // Denormalized collection
+        private const val EXERCISE_CORES_COLLECTION = "exerciseCores" // Legacy normalized
+        private const val EXERCISE_VARIATIONS_COLLECTION = "exerciseVariations" // Legacy normalized
         private const val VARIATION_MUSCLES_COLLECTION = "variationMuscles"
         private const val VARIATION_INSTRUCTIONS_COLLECTION = "variationInstructions"
         private const val VARIATION_ALIASES_COLLECTION = "variationAliases"
@@ -54,7 +63,6 @@ class FirestoreRepository {
         private const val PROGRAMMES_COLLECTION = "programmes"
         private const val PROGRAMME_WEEKS_COLLECTION = "programmeWeeks"
         private const val PROGRAMME_WORKOUTS_COLLECTION = "programmeWorkouts"
-        private const val EXERCISE_SUBSTITUTIONS_COLLECTION = "exerciseSubstitutions"
         private const val PROGRAMME_PROGRESS_COLLECTION = "programmeProgress"
 
         // User profile/stats collections
@@ -72,6 +80,41 @@ class FirestoreRepository {
 
         private const val BATCH_SIZE = 500
     }
+
+    /**
+     * Downloads system exercises from the denormalized collection.
+     * @param lastSyncTime Optional timestamp to get only updated exercises
+     * @return Map of exercise ID to FirestoreExercise
+     */
+    suspend fun downloadSystemExercises(lastSyncTime: Timestamp?): Result<Map<String, FirestoreExercise>> =
+        try {
+            var query: Query = firestore.collection(EXERCISES_COLLECTION)
+
+            // Filter by update time if provided
+            lastSyncTime?.let {
+                query = query.whereGreaterThan("updatedAt", it.toDate().toInstant().toString())
+            }
+
+            val snapshot = query.get().await()
+            val exercises = mutableMapOf<String, FirestoreExercise>()
+
+            snapshot.documents.forEach { doc ->
+                try {
+                    val exercise = doc.toObject(FirestoreExercise::class.java)
+                    if (exercise != null) {
+                        exercises[doc.id] = exercise
+                    }
+                } catch (e: Exception) {
+                    Log.e("FirestoreRepository", "Failed to parse exercise ${doc.id}", e)
+                }
+            }
+
+            Log.d("FirestoreRepository", "Downloaded ${exercises.size} system exercises")
+            Result.success(exercises)
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Failed to download system exercises", e)
+            Result.failure(e)
+        }
 
     private fun userDocument(userId: String) = firestore.collection(USERS_COLLECTION).document(userId)
 
@@ -105,6 +148,8 @@ class FirestoreRepository {
         lastSyncTime: Timestamp? = null,
     ): Result<List<FirestoreWorkout>> =
         try {
+            Log.i("FirestoreRepository", "downloadWorkouts: Starting download for user $userId, lastSync=$lastSyncTime")
+            Log.i("FirestoreRepository", "Firestore project ID: ${firestore.app.options.projectId}")
             var query: Query =
                 userDocument(userId)
                     .collection(WORKOUTS_COLLECTION)
@@ -114,14 +159,23 @@ class FirestoreRepository {
                 query = query.whereGreaterThan("lastModified", it)
             }
 
+            Log.i("FirestoreRepository", "downloadWorkouts: Executing query...")
             val snapshot = query.get().await()
             val workouts =
                 snapshot.documents.mapNotNull { doc ->
                     doc.toObject(FirestoreWorkout::class.java)
                 }
+            Log.i("FirestoreRepository", "downloadWorkouts: Downloaded ${workouts.size} workouts")
             Result.success(workouts)
         } catch (e: FirebaseException) {
+            Log.e("FirestoreRepository", "downloadWorkouts failed: ${e.message}", e)
+            Log.e("FirestoreRepository", "FirebaseException type: ${e.javaClass.simpleName}")
+            Log.e("FirestoreRepository", "Error code: ${e.message?.contains("PERMISSION_DENIED") ?: false}")
             ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to download workouts", e)
+            Result.failure(e)
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "downloadWorkouts unexpected error: ${e.message}", e)
+            Log.e("FirestoreRepository", "Exception type: ${e.javaClass.simpleName}")
             Result.failure(e)
         }
 
@@ -208,6 +262,7 @@ class FirestoreRepository {
 
     suspend fun getSyncMetadata(userId: String): Result<FirestoreSyncMetadata?> =
         try {
+            Log.i("FirestoreRepository", "getSyncMetadata: Getting metadata for user $userId")
             val doc =
                 firestore
                     .collection(SYNC_METADATA_COLLECTION)
@@ -216,8 +271,10 @@ class FirestoreRepository {
                     .await()
 
             val metadata = doc.toObject(FirestoreSyncMetadata::class.java)
+            Log.i("FirestoreRepository", "getSyncMetadata: Retrieved metadata - exists=${doc.exists()}, data=$metadata")
             Result.success(metadata)
         } catch (e: FirebaseException) {
+            Log.e("FirestoreRepository", "getSyncMetadata failed: ${e.message}", e)
             ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to get sync metadata", e)
             Result.failure(e)
         }
@@ -254,11 +311,6 @@ class FirestoreRepository {
         userId: String,
         workouts: List<FirestoreProgrammeWorkout>,
     ): Result<Unit> = uploadBatchedData(userDocument(userId).collection(PROGRAMME_WORKOUTS_COLLECTION), workouts)
-
-    suspend fun uploadExerciseSubstitutions(
-        userId: String,
-        substitutions: List<FirestoreExerciseSubstitution>,
-    ): Result<Unit> = uploadBatchedData(userDocument(userId).collection(EXERCISE_SUBSTITUTIONS_COLLECTION), substitutions)
 
     suspend fun uploadProgrammeProgress(
         userId: String,
@@ -307,6 +359,100 @@ class FirestoreRepository {
         requests: List<FirestoreParseRequest>,
     ): Result<Unit> = uploadBatchedData(userDocument(userId).collection(PARSE_REQUESTS_COLLECTION), requests)
 
+    /**
+     * Downloads custom exercises for a specific user.
+     * @param userId The user whose custom exercises to download
+     * @param lastSyncTime Optional timestamp to get only updated exercises
+     * @return Map of exercise ID to custom exercise data
+     */
+    suspend fun downloadCustomExercises(
+        userId: String,
+        lastSyncTime: Timestamp?,
+    ): Result<Map<String, Map<String, Any>>> =
+        try {
+            var query: Query = userDocument(userId).collection("customExercises")
+
+            // Filter by update time if provided
+            lastSyncTime?.let {
+                query = query.whereGreaterThan("updatedAt", it)
+            }
+
+            val snapshot = query.get().await()
+            val exercises = mutableMapOf<String, Map<String, Any>>()
+
+            snapshot.documents.forEach { doc ->
+                exercises[doc.id] = doc.data ?: emptyMap()
+            }
+
+            Log.d("FirestoreRepository", "Downloaded ${exercises.size} custom exercises for user $userId")
+            Result.success(exercises)
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Failed to download custom exercises", e)
+            Result.failure(e)
+        }
+
+    /**
+     * Uploads a custom exercise to Firestore.
+     * @param userId The user who owns the exercise
+     * @param variation The custom exercise variation
+     * @param core The custom exercise core
+     */
+    suspend fun uploadCustomExercise(
+        userId: String,
+        variation: com.github.radupana.featherweight.data.exercise.CustomExerciseVariation,
+        core: com.github.radupana.featherweight.data.exercise.CustomExerciseCore,
+    ): Result<Unit> =
+        try {
+            val exerciseData =
+                hashMapOf(
+                    "id" to variation.id,
+                    "name" to variation.name,
+                    "coreId" to core.id,
+                    "coreName" to core.name,
+                    "category" to core.category.name,
+                    "movementPattern" to core.movementPattern.name,
+                    "isCompound" to core.isCompound,
+                    "equipment" to variation.equipment.name,
+                    "difficulty" to variation.difficulty.name,
+                    "requiresWeight" to variation.requiresWeight,
+                    "restDurationSeconds" to variation.restDurationSeconds,
+                    "updatedAt" to Timestamp.now(),
+                )
+
+            userDocument(userId)
+                .collection("customExercises")
+                .document(variation.id.toString())
+                .set(exerciseData, SetOptions.merge())
+                .await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Failed to upload custom exercise", e)
+            Result.failure(e)
+        }
+
+    /**
+     * Deletes a custom exercise from Firestore.
+     * @param userId The user who owns the exercise
+     * @param exerciseId The ID of the exercise to delete
+     */
+    suspend fun deleteCustomExercise(
+        userId: String,
+        exerciseId: Long,
+    ): Result<Unit> =
+        try {
+            userDocument(userId)
+                .collection("customExercises")
+                .document(exerciseId.toString())
+                .delete()
+                .await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Failed to delete custom exercise", e)
+            Result.failure(e)
+        }
+
     private suspend inline fun <reified T : Any> uploadBatchedData(
         collection: com.google.firebase.firestore.CollectionReference,
         data: List<T>,
@@ -332,6 +478,7 @@ class FirestoreRepository {
         lastSyncTime: Timestamp? = null,
     ): Result<List<FirestoreExerciseLog>> =
         try {
+            Log.i("FirestoreRepository", "downloadExerciseLogs: Starting download for user $userId")
             var query: Query =
                 userDocument(userId)
                     .collection(EXERCISE_LOGS_COLLECTION)
@@ -346,8 +493,10 @@ class FirestoreRepository {
                 snapshot.documents.mapNotNull { doc ->
                     doc.toObject(FirestoreExerciseLog::class.java)
                 }
+            Log.i("FirestoreRepository", "downloadExerciseLogs: Downloaded ${logs.size} exercise logs")
             Result.success(logs)
         } catch (e: FirebaseException) {
+            Log.e("FirestoreRepository", "downloadExerciseLogs failed: ${e.message}", e)
             ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to download exercise logs", e)
             Result.failure(e)
         }
@@ -377,9 +526,9 @@ class FirestoreRepository {
             Result.failure(e)
         }
 
-    suspend fun downloadExerciseCores(userId: String): Result<List<FirestoreExerciseCore>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_CORES_COLLECTION))
+    suspend fun downloadExerciseCores(): Result<List<FirestoreExerciseCore>> = downloadBatchedData(firestore.collection(EXERCISE_CORES_COLLECTION))
 
-    suspend fun downloadExerciseVariations(userId: String): Result<List<FirestoreExerciseVariation>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_VARIATIONS_COLLECTION))
+    suspend fun downloadExerciseVariations(): Result<List<FirestoreExerciseVariation>> = downloadBatchedData(firestore.collection(EXERCISE_VARIATIONS_COLLECTION))
 
     suspend fun downloadVariationMuscles(): Result<List<FirestoreVariationMuscle>> = downloadBatchedData(firestore.collection(VARIATION_MUSCLES_COLLECTION))
 
@@ -394,8 +543,6 @@ class FirestoreRepository {
     suspend fun downloadProgrammeWeeks(userId: String): Result<List<FirestoreProgrammeWeek>> = downloadBatchedData(userDocument(userId).collection(PROGRAMME_WEEKS_COLLECTION))
 
     suspend fun downloadProgrammeWorkouts(userId: String): Result<List<FirestoreProgrammeWorkout>> = downloadBatchedData(userDocument(userId).collection(PROGRAMME_WORKOUTS_COLLECTION))
-
-    suspend fun downloadExerciseSubstitutions(userId: String): Result<List<FirestoreExerciseSubstitution>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_SUBSTITUTIONS_COLLECTION))
 
     suspend fun downloadProgrammeProgress(userId: String): Result<List<FirestoreProgrammeProgress>> = downloadBatchedData(userDocument(userId).collection(PROGRAMME_PROGRESS_COLLECTION))
 

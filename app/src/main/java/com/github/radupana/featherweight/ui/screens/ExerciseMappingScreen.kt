@@ -301,8 +301,6 @@ fun ExerciseMappingScreen(
                         originalName = currentExercise,
                         name = name,
                         category = category,
-                        primaryMuscles = primaryMuscles,
-                        secondaryMuscles = secondaryMuscles,
                         equipment = equipment,
                         difficulty = difficulty,
                         requiresWeight = requiresWeight,

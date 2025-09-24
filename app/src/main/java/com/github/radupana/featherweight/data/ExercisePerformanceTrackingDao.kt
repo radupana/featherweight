@@ -52,4 +52,16 @@ interface ExercisePerformanceTrackingDao {
 
     @Insert
     suspend fun insertTracking(tracking: ExercisePerformanceTracking)
+
+    @Query("DELETE FROM exercise_performance_tracking WHERE userId = :userId")
+    suspend fun deleteAllForUser(userId: String)
+
+    @Query("DELETE FROM exercise_performance_tracking WHERE userId = :userId")
+    suspend fun deleteAllByUserId(userId: String)
+
+    @Query("DELETE FROM exercise_performance_tracking WHERE userId IS NULL")
+    suspend fun deleteAllWhereUserIdIsNull()
+
+    @Query("DELETE FROM exercise_performance_tracking")
+    suspend fun deleteAllTracking()
 }

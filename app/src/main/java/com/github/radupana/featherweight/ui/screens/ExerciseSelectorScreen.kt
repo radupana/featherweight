@@ -26,6 +26,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -92,6 +94,7 @@ fun ExerciseSelectorScreen(
     val currentSwapExerciseName by viewModel.currentSwapExerciseName.collectAsState()
     val exerciseToDelete by viewModel.exerciseToDelete.collectAsState()
     val deleteError by viewModel.deleteError.collectAsState()
+    val isAuthenticated by viewModel.isAuthenticated.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
 
@@ -105,6 +108,7 @@ fun ExerciseSelectorScreen(
                     muscles = emptyList(), // These will be loaded separately
                     aliases = emptyList(),
                     instructions = emptyList(),
+                    isCustom = true, // Newly created exercises are always custom
                 )
             onExerciseSelected(exerciseWithDetails)
             viewModel.clearExerciseCreated()
@@ -357,7 +361,7 @@ fun ExerciseSelectorScreen(
                                             suggestion = suggestion,
                                             onSelect = { onExerciseSelected(suggestion.exercise) },
                                             onDelete =
-                                                if (suggestion.exercise.variation.isCustom) {
+                                                if (suggestion.exercise.isCustom) {
                                                     { viewModel.requestDeleteExercise(suggestion.exercise) }
                                                 } else {
                                                     null
@@ -382,7 +386,7 @@ fun ExerciseSelectorScreen(
                                             suggestion = suggestion,
                                             onSelect = { onExerciseSelected(suggestion.exercise) },
                                             onDelete =
-                                                if (suggestion.exercise.variation.isCustom) {
+                                                if (suggestion.exercise.isCustom) {
                                                     { viewModel.requestDeleteExercise(suggestion.exercise) }
                                                 } else {
                                                     null
@@ -411,7 +415,7 @@ fun ExerciseSelectorScreen(
                                     exercise = exercise,
                                     onSelect = { onExerciseSelected(exercise) },
                                     onDelete =
-                                        if (exercise.variation.isCustom) {
+                                        if (exercise.isCustom) {
                                             { viewModel.requestDeleteExercise(exercise) }
                                         } else {
                                             null
@@ -605,19 +609,40 @@ private fun ExerciseCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     // Usage count indicator - only show if > 0
-                    if (exercise.variation.usageCount > 0) {
+                    if (exercise.usageCount > 0) {
                         Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
                             shape = RoundedCornerShape(12.dp),
                         ) {
-                            Text(
-                                text = "${exercise.variation.usageCount}×",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    Icons.Filled.FitnessCenter,
+                                    contentDescription = "Usage count",
+                                    modifier = Modifier.size(14.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                                Text(
+                                    text = "${exercise.usageCount}x",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                            }
                         }
+                    }
+
+                    // Favorite indicator
+                    if (exercise.isFavorite) {
+                        Icon(
+                            Icons.Filled.Favorite,
+                            contentDescription = "Favorite",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
                     }
 
                     // Delete button for custom exercises

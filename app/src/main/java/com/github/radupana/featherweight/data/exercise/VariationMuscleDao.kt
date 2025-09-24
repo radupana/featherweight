@@ -24,4 +24,7 @@ interface VariationMuscleDao {
 
     @Query("SELECT * FROM variation_muscles")
     suspend fun getAllVariationMuscles(): List<VariationMuscle>
+
+    @Query("DELETE FROM variation_muscles WHERE variationId = :variationId")
+    suspend fun deleteForVariation(variationId: Long)
 }

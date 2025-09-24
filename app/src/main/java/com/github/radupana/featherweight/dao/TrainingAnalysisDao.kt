@@ -11,12 +11,15 @@ interface TrainingAnalysisDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAnalysis(analysis: TrainingAnalysis): Long
 
-    @Query("SELECT * FROM training_analysis ORDER BY analysisDate DESC LIMIT 1")
+    @Query("SELECT * FROM training_analyses ORDER BY analysisDate DESC LIMIT 1")
     suspend fun getLatestAnalysis(): TrainingAnalysis?
 
-    @Query("SELECT * FROM training_analysis")
+    @Query("SELECT * FROM training_analyses")
     suspend fun getAllAnalyses(): List<TrainingAnalysis>
 
-    @Query("SELECT * FROM training_analysis WHERE id = :id")
+    @Query("SELECT * FROM training_analyses WHERE id = :id")
     suspend fun getAnalysisById(id: Long): TrainingAnalysis?
+
+    @Query("DELETE FROM training_analyses WHERE userId = :userId")
+    suspend fun deleteAllForUser(userId: String)
 }

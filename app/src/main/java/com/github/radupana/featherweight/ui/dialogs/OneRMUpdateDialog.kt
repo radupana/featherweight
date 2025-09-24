@@ -35,7 +35,7 @@ import kotlin.math.roundToInt
 @Composable
 fun OneRMUpdateDialog(
     pendingUpdates: List<PendingOneRMUpdate>,
-    exerciseNames: Map<Long, String>,
+    exerciseNames: Map<String, String>,
     onApply: (PendingOneRMUpdate) -> Unit,
     onDismiss: () -> Unit,
     onSkip: () -> Unit,
@@ -75,7 +75,14 @@ fun OneRMUpdateDialog(
                                     .fillMaxWidth()
                                     .padding(16.dp),
                         ) {
-                            val exerciseName = exerciseNames[update.exerciseVariationId] ?: "Unknown Exercise"
+                            // Use composite key to avoid ID collisions between system and custom exercises
+                            val key =
+                                if (update.isCustomExercise) {
+                                    "custom_${update.exerciseVariationId}"
+                                } else {
+                                    "system_${update.exerciseVariationId}"
+                                }
+                            val exerciseName = exerciseNames[key] ?: "Unknown Exercise"
                             Text(
                                 text = exerciseName,
                                 style = MaterialTheme.typography.titleMedium,

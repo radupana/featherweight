@@ -30,4 +30,7 @@ interface VariationInstructionDao {
 
     @Query("SELECT * FROM variation_instructions WHERE id = :id")
     suspend fun getInstructionById(id: Long): VariationInstruction?
+
+    @Query("DELETE FROM variation_instructions WHERE variationId = :variationId")
+    suspend fun deleteForVariation(variationId: Long)
 }

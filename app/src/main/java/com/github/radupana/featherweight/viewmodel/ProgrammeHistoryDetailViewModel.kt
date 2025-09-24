@@ -22,6 +22,7 @@ class ProgrammeHistoryDetailViewModel(
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
     private val database = FeatherweightDatabase.getDatabase(application)
+    private val authManager = ServiceLocator.provideAuthenticationManager(application)
     private val exportService =
         WorkoutExportService(
             database.workoutDao(),
@@ -29,6 +30,7 @@ class ProgrammeHistoryDetailViewModel(
             database.setLogDao(),
             database.oneRMDao(),
             repository,
+            authManager,
             ServiceLocator.provideWeightUnitManager(application),
         )
     private val exportHandler = ExportHandler(application)

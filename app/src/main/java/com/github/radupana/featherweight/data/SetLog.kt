@@ -6,6 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
+    tableName = "set_logs",
     indices = [Index(value = ["exerciseLogId"]), Index("userId")],
     foreignKeys = [
         ForeignKey(

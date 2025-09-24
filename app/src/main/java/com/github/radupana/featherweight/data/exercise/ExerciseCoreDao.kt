@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 
 /**
  * DAO for ExerciseCore operations.
@@ -30,4 +31,7 @@ interface ExerciseCoreDao {
 
     @Query("SELECT * FROM exercise_cores")
     suspend fun getAllCores(): List<ExerciseCore>
+
+    @Update
+    suspend fun updateCore(exerciseCore: ExerciseCore)
 }

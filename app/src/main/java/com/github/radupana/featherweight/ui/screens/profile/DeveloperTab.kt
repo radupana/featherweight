@@ -125,8 +125,12 @@ fun DeveloperTab(
                 FilledTonalButton(
                     onClick = onClearAllData,
                     modifier = Modifier.fillMaxWidth(),
+                    enabled = !uiState.isClearingData,
                 ) {
-                    Text("Clear All Workout Data", color = MaterialTheme.colorScheme.error)
+                    Text(
+                        if (uiState.isClearingData) "Clearing..." else "Clear All Workout Data",
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
             }
         }

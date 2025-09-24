@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.data.programme
 
-import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import java.time.LocalDateTime
@@ -200,68 +199,6 @@ class ProgrammeDataModelsTest {
     }
 
     @Test
-    fun exerciseSubstitution_withAllData_shouldStoreCorrectly() {
-        val substitution =
-            ExerciseSubstitution(
-                id = 1L,
-                programmeId = 10L,
-                originalExerciseName = "Barbell Squat",
-                substitutionCategory = ExerciseCategory.LEGS,
-                substitutionCriteria = "{\"equipment\":[\"dumbbell\",\"machine\"],\"pattern\":\"squat\"}",
-                isUserDefined = true,
-            )
-
-        assertThat(substitution.id).isEqualTo(1L)
-        assertThat(substitution.programmeId).isEqualTo(10L)
-        assertThat(substitution.originalExerciseName).isEqualTo("Barbell Squat")
-        assertThat(substitution.substitutionCategory).isEqualTo(ExerciseCategory.LEGS)
-        assertThat(substitution.substitutionCriteria).contains("dumbbell")
-        assertThat(substitution.isUserDefined).isTrue()
-    }
-
-    @Test
-    fun exerciseSubstitution_withSystemDefined_shouldNotBeUserDefined() {
-        val substitution =
-            ExerciseSubstitution(
-                programmeId = 5L,
-                originalExerciseName = "Bench Press",
-                substitutionCategory = ExerciseCategory.CHEST,
-                substitutionCriteria = null,
-                isUserDefined = false,
-            )
-
-        assertThat(substitution.isUserDefined).isFalse()
-    }
-
-    @Test
-    fun exerciseSubstitution_differentCategories_shouldHandleAllCategories() {
-        val categories =
-            listOf(
-                ExerciseCategory.CHEST,
-                ExerciseCategory.BACK,
-                ExerciseCategory.LEGS,
-                ExerciseCategory.SHOULDERS,
-                ExerciseCategory.ARMS,
-                ExerciseCategory.CORE,
-                ExerciseCategory.CARDIO,
-                ExerciseCategory.FULL_BODY,
-            )
-
-        categories.forEach { category ->
-            val substitution =
-                ExerciseSubstitution(
-                    programmeId = 1L,
-                    originalExerciseName = "Exercise",
-                    substitutionCategory = category,
-                    substitutionCriteria = null,
-                    isUserDefined = false,
-                )
-
-            assertThat(substitution.substitutionCategory).isEqualTo(category)
-        }
-    }
-
-    @Test
     fun programmeProgress_withAllData_shouldStoreCorrectly() {
         val now = LocalDateTime.now()
         val progress =
@@ -398,21 +335,12 @@ class ProgrammeDataModelsTest {
                 strengthProgress = null,
             )
 
-        val substitution =
-            ExerciseSubstitution(
-                programmeId = 1L,
-                originalExerciseName = "Barbell Squat",
-                substitutionCategory = ExerciseCategory.LEGS,
-                substitutionCriteria = null,
-                isUserDefined = false,
-            )
-
         val details =
             ProgrammeWithDetails(
                 programme = programme,
                 weeks = listOf(weekWithWorkouts),
                 progress = progress,
-                substitutions = listOf(substitution),
+                substitutions = emptyList(),
             )
 
         assertThat(details.programme.name).isEqualTo("Test Programme")
@@ -420,7 +348,7 @@ class ProgrammeDataModelsTest {
         assertThat(details.weeks[0].week.weekNumber).isEqualTo(1)
         assertThat(details.weeks[0].workouts).hasSize(1)
         assertThat(details.progress?.currentWeek).isEqualTo(1)
-        assertThat(details.substitutions).hasSize(1)
+        assertThat(details.substitutions).hasSize(0)
     }
 
     @Test
@@ -474,31 +402,5 @@ class ProgrammeDataModelsTest {
 
         assertThat(details.progress).isNull()
         assertThat(details.programme.status).isEqualTo(ProgrammeStatus.NOT_STARTED)
-    }
-
-    @Test
-    fun exerciseSubstitution_dataClassEquality_shouldWorkCorrectly() {
-        val sub1 =
-            ExerciseSubstitution(
-                id = 1L,
-                programmeId = 10L,
-                originalExerciseName = "Barbell Squat",
-                substitutionCategory = ExerciseCategory.LEGS,
-                substitutionCriteria = "{\"equipment\":\"any\"}",
-                isUserDefined = true,
-            )
-
-        val sub2 =
-            ExerciseSubstitution(
-                id = 1L,
-                programmeId = 10L,
-                originalExerciseName = "Barbell Squat",
-                substitutionCategory = ExerciseCategory.LEGS,
-                substitutionCriteria = "{\"equipment\":\"any\"}",
-                isUserDefined = true,
-            )
-
-        assertThat(sub1).isEqualTo(sub2)
-        assertThat(sub1.hashCode()).isEqualTo(sub2.hashCode())
     }
 }

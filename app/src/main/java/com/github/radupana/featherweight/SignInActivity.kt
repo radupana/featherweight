@@ -48,8 +48,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
+import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.di.ServiceLocator
+import com.github.radupana.featherweight.service.LocalDataMigrationService
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
+import com.github.radupana.featherweight.util.MigrationStateManager
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
@@ -57,27 +61,134 @@ import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.launch
 
 class SignInActivity : ComponentActivity() {
+    companion object {
+        private const val TAG = "SignInActivity"
+    }
+
     private val authManager by lazy { ServiceLocator.provideAuthenticationManager(this) }
     private val firebaseAuth by lazy { ServiceLocator.provideFirebaseAuthService() }
+    private val database by lazy { FeatherweightDatabase.getDatabase(this) }
+    private val migrationService by lazy { LocalDataMigrationService(database) }
+    private val migrationStateManager by lazy { MigrationStateManager(this) }
+    private val syncManager by lazy { ServiceLocator.getSyncManager(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        Log.i(TAG, "onCreate: Showing sign-in screen")
 
         setContent {
             FeatherweightTheme {
                 SignInScreen(
                     authManager = authManager,
                     firebaseAuth = firebaseAuth,
-                    onSignInSuccess = { navigateToMain() },
+                    onSignInSuccess = { handleSuccessfulSignIn() },
                 )
+            }
+        }
+    }
+
+    private fun handleSuccessfulSignIn() {
+        val userId = authManager.getCurrentUserId()
+        if (userId != null && userId != "local") {
+            // Check for local data migration in background coroutine
+            lifecycleScope.launch {
+                if (migrationStateManager.shouldAttemptMigration()) {
+                    val hasLocalData = migrationService.hasLocalData()
+                    if (hasLocalData) {
+                        Log.i("SignInActivity", "Local data detected, will migrate in background")
+                        migrationStateManager.incrementMigrationAttempts()
+                        migrateLocalDataInBackground(userId)
+                    }
+                }
+            }
+
+            // Navigate immediately - don't wait for sync
+            navigateToMain()
+
+            // Start sync in background AFTER navigation
+            lifecycleScope.launch {
+                syncDataInBackground(userId)
+            }
+        } else {
+            navigateToMain()
+        }
+    }
+
+    private suspend fun syncDataInBackground(userId: String) {
+        Log.i("SignInActivity", "Starting background sync for user: $userId")
+
+        // Update sync state to show syncing in progress
+        val syncViewModel = ServiceLocator.getSyncViewModel(this)
+        syncViewModel.startBackgroundSync()
+
+        try {
+            syncManager.syncAll().fold(
+                onSuccess = { syncState ->
+                    Log.i("SignInActivity", "Background sync completed successfully: $syncState")
+                    syncViewModel.onSyncCompleted(syncState)
+                },
+                onFailure = { error ->
+                    Log.e("SignInActivity", "Background sync failed", error)
+                    syncViewModel.onSyncFailed(error.message ?: "Sync failed")
+                },
+            )
+        } catch (e: Exception) {
+            Log.e("SignInActivity", "Background sync failed", e)
+            syncViewModel.onSyncFailed(e.message ?: "Sync failed")
+            // Sync failures are non-critical - user can still use the app with cached data
+        }
+    }
+
+    private suspend fun migrateLocalDataInBackground(userId: String) {
+        Log.i("SignInActivity", "Starting background migration for user: $userId")
+
+        val migrationSuccess = migrationService.migrateLocalDataToUser(userId)
+
+        if (migrationSuccess) {
+            Log.i("SignInActivity", "Migration successful")
+            migrationStateManager.markMigrationCompleted(userId)
+
+            // Clean up local data after successful migration
+            migrationService.cleanupLocalData()
+
+            // Sync migrated data to Firestore
+            Log.i("SignInActivity", "Syncing migrated data to Firestore")
+            try {
+                syncManager.syncUserData(userId)
+                Log.i("SignInActivity", "Migration sync completed successfully")
+            } catch (e: Exception) {
+                Log.e("SignInActivity", "Failed to sync migrated data", e)
+            }
+        } else {
+            Log.e("SignInActivity", "Migration failed, will retry on next sign-in")
+            if (migrationStateManager.getMigrationAttempts() >= MigrationStateManager.MAX_MIGRATION_ATTEMPTS) {
+                Log.e("SignInActivity", "Max migration attempts reached")
+                // Don't show toast from background - it could crash
+                // User will see the issue when they check their data
             }
         }
     }
 
     private fun navigateToMain() {
         authManager.setFirstLaunchComplete()
-        startActivity(Intent(this, MainActivity::class.java))
+
+        // Check if email verification is required
+        val currentUser =
+            com.google.firebase.auth.FirebaseAuth
+                .getInstance()
+                .currentUser
+        if (currentUser != null &&
+            !currentUser.isEmailVerified &&
+            currentUser.providerData.any { it.providerId == "password" }
+        ) {
+            // User signed in with email/password but not verified
+            startActivity(Intent(this, EmailVerificationActivity::class.java))
+        } else {
+            // User is verified or signed in with Google
+            startActivity(Intent(this, MainActivity::class.java))
+        }
         finish()
     }
 }
@@ -109,7 +220,9 @@ fun SignInScreen(
                         isLoading = true
                         firebaseAuth.signInWithCredential(credential).fold(
                             onSuccess = { user ->
+                                Log.i("SignInActivity", "Google sign-in successful, userId: ${user.uid}")
                                 authManager.setCurrentUserId(user.uid)
+                                Log.i("SignInActivity", "User ID saved, calling onSignInSuccess")
                                 onSignInSuccess()
                             },
                             onFailure = { exception ->
@@ -200,19 +313,27 @@ fun SignInScreen(
                 onClick = {
                     scope.launch {
                         isLoading = true
+                        val action = if (isSignUpMode) "sign-up" else "sign-in"
+                        Log.i("SignInActivity", "User attempting $action with email: $email")
+
                         val result =
                             if (isSignUpMode) {
+                                Log.i("SignInActivity", "Creating new account for email: $email")
                                 firebaseAuth.createUserWithEmailAndPassword(email, password)
                             } else {
+                                Log.i("SignInActivity", "Signing in with email: $email")
                                 firebaseAuth.signInWithEmailAndPassword(email, password)
                             }
 
                         result.fold(
                             onSuccess = { user ->
-                                authManager.setCurrentUserId(user.uid)
+                                Log.i("SignInActivity", "Authentication successful for user: ${user.uid}, email: $email")
                                 if (isSignUpMode) {
+                                    // For sign-up, send verification email and navigate directly to verification screen
+                                    Log.i("SignInActivity", "New user sign-up, sending verification email to: $email")
                                     firebaseAuth.sendEmailVerification().fold(
                                         onSuccess = {
+                                            Log.i("SignInActivity", "Verification email sent successfully to: $email")
                                             Toast
                                                 .makeText(
                                                     context,
@@ -221,13 +342,23 @@ fun SignInScreen(
                                                 ).show()
                                         },
                                         onFailure = { e ->
-                                            Log.e("SignInActivity", "Failed to send verification email", e)
+                                            Log.e("SignInActivity", "Failed to send verification email to: $email", e)
                                         },
                                     )
+                                    // Navigate directly to email verification without setting user ID or syncing
+                                    Log.i("SignInActivity", "Navigating to email verification for unverified user: ${user.uid}")
+                                    val intent = Intent(context, EmailVerificationActivity::class.java)
+                                    context.startActivity(intent)
+                                    (context as? ComponentActivity)?.finish()
+                                } else {
+                                    // For sign-in, set user ID and proceed with normal flow
+                                    Log.i("SignInActivity", "Existing user sign-in, proceeding with normal flow")
+                                    authManager.setCurrentUserId(user.uid)
+                                    onSignInSuccess()
                                 }
-                                onSignInSuccess()
                             },
                             onFailure = { exception ->
+                                Log.e("SignInActivity", "Authentication failed for email: $email - ${exception.message}", exception)
                                 Toast
                                     .makeText(
                                         context,
@@ -261,6 +392,7 @@ fun SignInScreen(
 
             GoogleSignInButton(
                 onClick = {
+                    Log.i("SignInActivity", "User initiated Google sign-in")
                     val gso =
                         GoogleSignInOptions
                             .Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -301,10 +433,12 @@ fun SignInScreen(
                 TextButton(
                     onClick = {
                         if (email.isNotBlank()) {
+                            Log.i("SignInActivity", "User requested password reset for email: $email")
                             scope.launch {
                                 isLoading = true
                                 firebaseAuth.sendPasswordResetEmail(email).fold(
                                     onSuccess = {
+                                        Log.i("SignInActivity", "Password reset email sent successfully to: $email")
                                         Toast
                                             .makeText(
                                                 context,
@@ -313,6 +447,7 @@ fun SignInScreen(
                                             ).show()
                                     },
                                     onFailure = { exception ->
+                                        Log.e("SignInActivity", "Failed to send password reset email to: $email", exception)
                                         Toast
                                             .makeText(
                                                 context,
@@ -324,6 +459,7 @@ fun SignInScreen(
                                 isLoading = false
                             }
                         } else {
+                            Log.i("SignInActivity", "Password reset requested but email field is empty")
                             Toast
                                 .makeText(
                                     context,

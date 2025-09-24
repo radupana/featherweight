@@ -30,6 +30,18 @@ interface ExerciseSwapHistoryDao {
 
     @Insert
     suspend fun insertSwapHistory(swapHistory: ExerciseSwapHistory)
+
+    @Query("DELETE FROM exercise_swap_history WHERE userId = :userId")
+    suspend fun deleteAllForUser(userId: String)
+
+    @Query("DELETE FROM exercise_swap_history WHERE userId = :userId")
+    suspend fun deleteAllByUserId(userId: String)
+
+    @Query("DELETE FROM exercise_swap_history WHERE userId IS NULL")
+    suspend fun deleteAllWhereUserIdIsNull()
+
+    @Query("DELETE FROM exercise_swap_history")
+    suspend fun deleteAllHistory()
 }
 
 data class SwapHistoryCount(

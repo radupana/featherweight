@@ -1,22 +1,28 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.export.ExportOptions
 import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.manager.WeightUnitManager
 import com.github.radupana.featherweight.model.WeightUnit
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.service.AccountDeletionService
 import com.github.radupana.featherweight.service.FirebaseAuthService
 import com.github.radupana.featherweight.service.WorkoutSeedingService
 import com.github.radupana.featherweight.util.ExceptionLogger
+import com.github.radupana.featherweight.util.MigrationStateManager
 import com.github.radupana.featherweight.worker.ExportWorkoutsWorker
+import com.google.firebase.auth.AuthCredential
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,6 +63,10 @@ data class ProfileUiState(
     val currentWeightUnit: WeightUnit = WeightUnit.KG,
     val accountInfo: AccountInfo? = null,
     val signOutRequested: Boolean = false,
+    val isDeletingAccount: Boolean = false,
+    val requiresReauthForDeletion: Boolean = false,
+    val reauthProvider: String? = null,
+    val isClearingData: Boolean = false,
 )
 
 sealed class SeedingState {
@@ -98,12 +108,23 @@ data class Big4Exercise(
 class ProfileViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
+    companion object {
+        private const val TAG = "ProfileViewModel"
+    }
+
     private val repository = FeatherweightRepository(application)
     private val workoutSeedingService = WorkoutSeedingService(repository)
     private val weightUnitManager: WeightUnitManager = ServiceLocator.provideWeightUnitManager(application)
     private val authManager: AuthenticationManager = ServiceLocator.provideAuthenticationManager(application)
     private val firebaseAuth: FirebaseAuthService = ServiceLocator.provideFirebaseAuthService()
     private val syncViewModel = SyncViewModel(application)
+    private val accountDeletionService =
+        AccountDeletionService(
+            database = FeatherweightDatabase.getDatabase(application),
+            authManager = authManager,
+            firebaseAuth = firebaseAuth,
+        )
+    private val migrationStateManager = MigrationStateManager(application)
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -115,6 +136,12 @@ class ProfileViewModel(
         loadCurrentWeightUnit()
         observeSyncState()
         loadAccountInfo()
+    }
+
+    fun refreshAccountState() {
+        // Call this when returning to Profile screen
+        loadAccountInfo()
+        observeSyncState()
     }
 
     private fun loadProfileData() {
@@ -361,30 +388,56 @@ class ProfileViewModel(
     }
 
     fun clearAllWorkoutData() {
+        // Prevent multiple calls while clearing
+        if (_uiState.value.isClearingData) return
+
         viewModelScope.launch {
             try {
-                repository.clearAllWorkoutData()
                 _uiState.value =
                     _uiState.value.copy(
-                        successMessage = "All workout data cleared",
+                        isClearingData = true,
+                        error = null,
+                    )
+
+                repository.clearAllUserData()
+
+                _uiState.value =
+                    _uiState.value.copy(
+                        isClearingData = false,
+                        successMessage = "All user data cleared successfully",
                         seedingState = SeedingState.Idle,
+                        // Clear all data from UI state as well
+                        currentMaxes = emptyList(),
+                        big4Exercises = emptyList(),
+                        otherExercises = emptyList(),
                     )
                 // Refresh the profile data
                 loadProfileData()
             } catch (e: android.database.sqlite.SQLiteException) {
                 _uiState.value =
                     _uiState.value.copy(
+                        isClearingData = false,
                         error = "Database error clearing data: ${e.message}",
                     )
             } catch (e: IllegalStateException) {
                 _uiState.value =
                     _uiState.value.copy(
+                        isClearingData = false,
                         error = "Invalid state clearing data: ${e.message}",
                     )
             } catch (e: SecurityException) {
                 _uiState.value =
                     _uiState.value.copy(
+                        isClearingData = false,
                         error = "Permission error clearing data: ${e.message}",
+                    )
+            } catch (e: Exception) {
+                // Catch-all for any other exceptions (including Firestore issues)
+                Log.e(TAG, "Error clearing data", e)
+                _uiState.value =
+                    _uiState.value.copy(
+                        isClearingData = false,
+                        error = "Error clearing data: ${e.message}",
                     )
             }
         }
@@ -499,10 +552,6 @@ class ProfileViewModel(
         }
     }
 
-    fun syncNow() {
-        syncViewModel.syncNow()
-    }
-
     fun restoreFromCloud() {
         syncViewModel.restoreFromCloud()
     }
@@ -530,13 +579,37 @@ class ProfileViewModel(
     }
 
     fun signOut() {
-        firebaseAuth.signOut()
-        authManager.clearUserData()
-        _uiState.value =
-            _uiState.value.copy(
-                signOutRequested = true,
-                accountInfo = null,
-            )
+        viewModelScope.launch {
+            try {
+                // Clear all user data from database BEFORE signing out
+                // This ensures no data leakage to next user
+                repository.clearAllUserData()
+
+                // Sign out from Firebase
+                firebaseAuth.signOut()
+
+                // Clear authentication data from SharedPreferences
+                authManager.clearUserData()
+
+                // Reset migration state so it can run again on next sign-in
+                migrationStateManager.resetMigrationState()
+
+                _uiState.value =
+                    _uiState.value.copy(
+                        signOutRequested = true,
+                        accountInfo = null,
+                    )
+
+                // Force UI refresh
+                loadAccountInfo()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during sign out", e)
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Error signing out: ${e.message}",
+                    )
+            }
+        }
     }
 
     fun clearSignOutRequest() {
@@ -636,38 +709,86 @@ class ProfileViewModel(
     }
 
     fun deleteAccount() {
-        viewModelScope.launch {
-            firebaseAuth.deleteAccount().fold(
-                onSuccess = {
+        // Use GlobalScope to ensure deletion completes even if ViewModel is destroyed
+        GlobalScope.launch {
+            _uiState.value =
+                _uiState.value.copy(
+                    isDeletingAccount = true,
+                    error = null,
+                )
+
+            when (val result = accountDeletionService.deleteAccount()) {
+                is AccountDeletionService.DeletionResult.Success -> {
+                    // Clear authentication state immediately
                     authManager.clearUserData()
+
                     _uiState.value =
                         _uiState.value.copy(
+                            isDeletingAccount = false,
                             signOutRequested = true,
                             accountInfo = null,
-                            successMessage = "Account deleted successfully",
+                            successMessage = "Account and all data deleted successfully",
                         )
-                },
-                onFailure = { e ->
-                    ExceptionLogger.logNonCritical("ProfileViewModel", "Failed to delete account", e)
+
+                    // Force UI refresh by updating account info
+                    loadAccountInfo()
+                }
+                is AccountDeletionService.DeletionResult.RequiresReauthentication -> {
                     _uiState.value =
                         _uiState.value.copy(
-                            error = "Failed to delete account. You may need to sign in again: ${e.message}",
+                            isDeletingAccount = false,
+                            requiresReauthForDeletion = true,
+                            reauthProvider = result.authProvider,
+                            error = "Please sign in again to delete your account",
                         )
-                },
-            )
+                }
+                is AccountDeletionService.DeletionResult.Error -> {
+                    ExceptionLogger.logNonCritical("ProfileViewModel", "Account deletion failed", Exception(result.message))
+                    _uiState.value =
+                        _uiState.value.copy(
+                            isDeletingAccount = false,
+                            error = result.message,
+                        )
+                }
+            }
         }
     }
 
-    fun refreshAccountInfo() {
+    fun deleteAccountWithReauthentication(credential: AuthCredential) {
         viewModelScope.launch {
-            firebaseAuth.reloadUser().fold(
-                onSuccess = {
-                    loadAccountInfo()
-                },
-                onFailure = { e ->
-                    ExceptionLogger.logNonCritical("ProfileViewModel", "Failed to reload user", e)
-                },
-            )
+            _uiState.value =
+                _uiState.value.copy(
+                    isDeletingAccount = true,
+                    error = null,
+                )
+
+            when (val result = accountDeletionService.deleteAccountWithReauthentication(credential)) {
+                is AccountDeletionService.DeletionResult.Success -> {
+                    _uiState.value =
+                        _uiState.value.copy(
+                            isDeletingAccount = false,
+                            signOutRequested = true,
+                            accountInfo = null,
+                            successMessage = "Account and all data deleted successfully",
+                        )
+                }
+                is AccountDeletionService.DeletionResult.Error -> {
+                    ExceptionLogger.logNonCritical("ProfileViewModel", "Re-auth deletion failed", Exception(result.message))
+                    _uiState.value =
+                        _uiState.value.copy(
+                            isDeletingAccount = false,
+                            requiresReauthForDeletion = false,
+                            error = result.message,
+                        )
+                }
+                else -> {
+                    _uiState.value =
+                        _uiState.value.copy(
+                            isDeletingAccount = false,
+                            requiresReauthForDeletion = false,
+                        )
+                }
+            }
         }
     }
 }

@@ -36,7 +36,6 @@ class ExerciseMappingViewModelTest {
                 equipment = Equipment.BARBELL,
                 difficulty = ExerciseDifficulty.INTERMEDIATE,
                 requiresWeight = true,
-                usageCount = 5,
             ),
             ExerciseVariation(
                 id = 2,
@@ -45,7 +44,6 @@ class ExerciseMappingViewModelTest {
                 equipment = Equipment.BARBELL,
                 difficulty = ExerciseDifficulty.ADVANCED,
                 requiresWeight = true,
-                usageCount = 3,
             ),
             ExerciseVariation(
                 id = 3,
@@ -54,7 +52,6 @@ class ExerciseMappingViewModelTest {
                 equipment = Equipment.BARBELL,
                 difficulty = ExerciseDifficulty.INTERMEDIATE,
                 requiresWeight = true,
-                usageCount = 1,
             ),
             ExerciseVariation(
                 id = 4,
@@ -63,7 +60,6 @@ class ExerciseMappingViewModelTest {
                 equipment = Equipment.DUMBBELL,
                 difficulty = ExerciseDifficulty.INTERMEDIATE,
                 requiresWeight = true,
-                usageCount = 2,
             ),
             ExerciseVariation(
                 id = 5,
@@ -72,7 +68,6 @@ class ExerciseMappingViewModelTest {
                 equipment = Equipment.MACHINE,
                 difficulty = ExerciseDifficulty.BEGINNER,
                 requiresWeight = true,
-                usageCount = 10,
             ),
             ExerciseVariation(
                 id = 6,
@@ -81,7 +76,6 @@ class ExerciseMappingViewModelTest {
                 equipment = Equipment.BARBELL,
                 difficulty = ExerciseDifficulty.INTERMEDIATE,
                 requiresWeight = true,
-                usageCount = 15,
             ),
         )
 
@@ -194,7 +188,6 @@ class ExerciseMappingViewModelTest {
                         equipment = Equipment.BARBELL,
                         difficulty = ExerciseDifficulty.INTERMEDIATE,
                         requiresWeight = true,
-                        usageCount = 0,
                     )
                 }
             coEvery { anyConstructed<FeatherweightRepository>().getAllExercises() } returns manyExercises
@@ -239,7 +232,6 @@ class ExerciseMappingViewModelTest {
                         equipment = Equipment.BODYWEIGHT,
                         difficulty = ExerciseDifficulty.BEGINNER,
                         requiresWeight = false,
-                        usageCount = 0,
                     )
             coEvery { anyConstructed<FeatherweightRepository>().getAllExercises() } returns exercisesWithExactMatch
             viewModel = ExerciseMappingViewModel(application)

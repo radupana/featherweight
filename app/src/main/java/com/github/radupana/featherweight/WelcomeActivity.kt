@@ -2,6 +2,7 @@ package com.github.radupana.featherweight
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,20 +23,54 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import com.github.radupana.featherweight.di.ServiceLocator
+import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
+import kotlinx.coroutines.launch
 
 class WelcomeActivity : ComponentActivity() {
     private val authManager by lazy { ServiceLocator.provideAuthenticationManager(this) }
+    private val repository by lazy { FeatherweightRepository(application) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        if (!authManager.isFirstLaunch()) {
+        // Validate Firebase Auth state first
+        val firebaseUser =
+            com.google.firebase.auth.FirebaseAuth
+                .getInstance()
+                .currentUser
+        val storedUserId = authManager.getCurrentUserId()
+
+        // Check for corrupted auth state
+        if (storedUserId != null && firebaseUser == null) {
+            Log.w("WelcomeActivity", "Corrupted auth state detected: stored user $storedUserId but Firebase Auth is null")
+            // Clear auth preferences
+            authManager.clearUserData()
+            // CRITICAL: Also clear ALL database data to prevent restored backup data
+            lifecycleScope.launch {
+                Log.w("WelcomeActivity", "Clearing ALL local database data due to corrupted auth state")
+                repository.clearAllUserData()
+                Log.i("WelcomeActivity", "Cleared corrupted auth data and database, showing welcome screen")
+            }
+        }
+
+        val isFirstLaunch = authManager.isFirstLaunch()
+        val isAuthenticated = authManager.isAuthenticated()
+        val userId = authManager.getCurrentUserId()
+
+        Log.d("WelcomeActivity", "onCreate: isFirstLaunch=$isFirstLaunch, isAuthenticated=$isAuthenticated, userId=$userId")
+
+        // Only skip to main if not first launch AND user is authenticated or has explicitly chosen unauthenticated
+        if (!isFirstLaunch && (isAuthenticated || authManager.hasSeenUnauthenticatedWarning())) {
+            Log.d("WelcomeActivity", "Skipping to MainActivity")
             navigateToMain()
             return
         }
+
+        Log.d("WelcomeActivity", "Showing welcome screen")
 
         setContent {
             FeatherweightTheme {
@@ -48,16 +83,19 @@ class WelcomeActivity : ComponentActivity() {
     }
 
     private fun navigateToMain() {
+        Log.i("WelcomeActivity", "Navigating to MainActivity")
         startActivity(Intent(this, MainActivity::class.java))
         finish()
     }
 
     private fun navigateToSignIn() {
+        Log.i("WelcomeActivity", "User chose to sign in, navigating to SignInActivity")
         startActivity(Intent(this, SignInActivity::class.java))
         finish()
     }
 
     private fun continueWithoutAccount() {
+        Log.i("WelcomeActivity", "User chose to continue without account")
         authManager.setFirstLaunchComplete()
         authManager.setUnauthenticatedWarningShown()
         navigateToMain()
@@ -117,7 +155,7 @@ fun WelcomeScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "⚠️ Warning: Without an account, your data will be lost if you uninstall the app",
+                text = "⚠️ Warning: Without an account:\n• Your data will be lost if you uninstall the app",
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.error,

@@ -107,9 +107,6 @@ class ProgrammeViewModel(
             try {
                 val startTime = System.currentTimeMillis()
 
-                // Seed database if needed
-                repository.seedDatabaseIfEmpty()
-
                 // Load active programme
                 val active = repository.getActiveProgramme()
                 _activeProgramme.value = active

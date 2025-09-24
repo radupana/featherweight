@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 
 /**
  * DAO for ExerciseVariation operations.
@@ -30,10 +31,9 @@ interface ExerciseVariationDao {
     @Query("SELECT * FROM exercise_variations WHERE LOWER(name) = LOWER(:name) LIMIT 1")
     suspend fun findVariationByName(name: String): ExerciseVariation?
 
-    @Query("SELECT * FROM exercise_variations ORDER BY usageCount DESC, name ASC")
+    @Query("SELECT * FROM exercise_variations ORDER BY name ASC")
     suspend fun getAllExerciseVariations(): List<ExerciseVariation>
 
-    // Usage tracking
-    @Query("UPDATE exercise_variations SET usageCount = usageCount + 1 WHERE id = :id")
-    suspend fun incrementUsageCount(id: Long)
+    @Update
+    suspend fun updateVariation(variation: ExerciseVariation)
 }

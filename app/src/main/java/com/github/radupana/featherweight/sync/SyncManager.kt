@@ -2,16 +2,21 @@ package com.github.radupana.featherweight.sync
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.core.content.edit
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.sync.converters.SyncConverters
 import com.github.radupana.featherweight.sync.repository.FirestoreRepository
+import com.github.radupana.featherweight.sync.strategies.CustomExerciseSyncStrategy
+import com.github.radupana.featherweight.sync.strategies.SystemExerciseSyncStrategy
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
@@ -29,9 +34,16 @@ class SyncManager(
     private val context: Context,
     private val database: FeatherweightDatabase,
     private val authManager: AuthenticationManager,
-    private val firestoreRepository: FirestoreRepository = FirestoreRepository(),
+    private val useTestDatabase: Boolean = false,
+    private val firestoreRepository: FirestoreRepository = FirestoreRepository(useTestDatabase),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
+    // Mutex to prevent concurrent sync operations
+    private val syncMutex = Mutex()
+
+    // Sync strategies for modular sync logic
+    private val systemExerciseStrategy = SystemExerciseSyncStrategy(database, firestoreRepository)
+    private val customExerciseStrategy = CustomExerciseSyncStrategy(database, firestoreRepository)
     private val deviceId: String by lazy {
         context
             .getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
@@ -54,37 +66,62 @@ class SyncManager(
 
     suspend fun syncAll(): Result<SyncState> =
         withContext(ioDispatcher) {
-            val userId = authManager.getCurrentUserId()
-            if (userId == null) {
-                val errorState = SyncState.Error("User not authenticated")
-                return@withContext Result.success(errorState)
-            }
+            // Use mutex to prevent concurrent sync operations
+            syncMutex.withLock {
+                val userId = authManager.getCurrentUserId()
+                Log.i("SyncManager", "syncAll started for userId: $userId")
+                if (userId == null) {
+                    Log.e("SyncManager", "User not authenticated")
+                    val errorState = SyncState.Error("User not authenticated")
+                    return@withContext Result.success(errorState)
+                }
 
-            try {
-                val lastSyncTime = getLastSyncTime(userId)
+                try {
+                    // Check if database is empty (fresh install scenario)
+                    val isEmptyDatabase = isDatabaseEmpty(userId)
+                    Log.i("SyncManager", "Database empty check: $isEmptyDatabase")
 
-                // Step 1: Download remote changes
-                downloadRemoteChanges(userId, lastSyncTime).fold(
-                    onSuccess = {
-                        // Step 2: Upload local changes
-                        uploadLocalChanges(userId, lastSyncTime).fold(
-                            onSuccess = {
-                                updateSyncMetadata(userId)
-                                Result.success(SyncState.Success(Timestamp.now()))
-                            },
-                            onFailure = { error ->
-                                Result.success(SyncState.Error("Upload failed: ${error.message}"))
-                            },
-                        )
-                    },
-                    onFailure = { error ->
-                        Result.success(SyncState.Error("Download failed: ${error.message}"))
-                    },
-                )
-            } catch (e: Exception) {
-                ExceptionLogger.logNonCritical("SyncManager", "Sync failed", e)
-                Result.success(SyncState.Error("Sync failed: ${e.message}"))
-            }
+                    Log.i("SyncManager", "Getting last sync time...")
+                    var lastSyncTime = getLastSyncTime(userId)
+
+                    // If database is empty but sync metadata exists, force full sync
+                    if (isEmptyDatabase && lastSyncTime != null) {
+                        Log.i("SyncManager", "Empty database detected with existing sync metadata - forcing full restore")
+                        lastSyncTime = null
+                    }
+
+                    Log.i("SyncManager", "Last sync time: $lastSyncTime")
+
+                    // Step 1: Download remote changes
+                    Log.i("SyncManager", "Starting download of remote changes...")
+                    downloadRemoteChanges(userId, lastSyncTime).fold(
+                        onSuccess = {
+                            Log.i("SyncManager", "Download successful, starting upload...")
+                            // Step 2: Upload local changes
+                            uploadLocalChanges(userId, lastSyncTime).fold(
+                                onSuccess = {
+                                    Log.i("SyncManager", "Upload successful, updating metadata...")
+                                    updateSyncMetadata(userId)
+                                    Log.i("SyncManager", "Sync completed successfully")
+                                    Result.success(SyncState.Success(Timestamp.now()))
+                                },
+                                onFailure = { error ->
+                                    Log.e("SyncManager", "Upload failed: ${error.message}", error)
+                                    Result.success(SyncState.Error("Upload failed: ${error.message}"))
+                                },
+                            )
+                        },
+                        onFailure = { error ->
+                            Log.e("SyncManager", "Download failed: ${error.message}", error)
+                            Result.success(SyncState.Error("Download failed: ${error.message}"))
+                        },
+                    )
+                } catch (e: Exception) {
+                    Log.e("SyncManager", "Sync failed with exception: ${e.message}", e)
+                    ExceptionLogger.logNonCritical("SyncManager", "Sync failed", e)
+                    Result.success(SyncState.Error("Sync failed: ${e.message}"))
+                }
+            } // End of mutex lock
         }
 
     suspend fun restoreFromCloud(): Result<SyncState> =
@@ -96,6 +133,10 @@ class SyncManager(
             }
 
             try {
+                // Clear all user data before restoring to avoid ID mismatches
+                Log.d("SyncManager", "Clearing all user data before restore...")
+                clearAllUserData(userId)
+
                 // Download all data without lastSyncTime filter
                 downloadRemoteChanges(userId, null).fold(
                     onSuccess = {
@@ -112,27 +153,48 @@ class SyncManager(
             }
         }
 
+    private suspend fun clearAllUserData(userId: String) {
+        // Clear all user-specific data
+        database.workoutDao().deleteAllForUser(userId)
+        database.exerciseLogDao().deleteAllForUser(userId)
+        database.setLogDao().deleteAllForUser(userId)
+        database.programmeDao().deleteAllProgrammesForUser(userId)
+        database.programmeDao().deleteAllProgrammeWeeksForUser(userId)
+        database.programmeDao().deleteAllProgrammeWorkoutsForUser(userId)
+        database.programmeDao().deleteAllProgrammeProgressForUser(userId)
+        database.oneRMDao().deleteAllUserExerciseMaxesForUser(userId)
+        database.oneRMDao().deleteAllOneRMHistoryForUser(userId)
+        database.personalRecordDao().deleteAllForUser(userId)
+        database.exerciseSwapHistoryDao().deleteAllForUser(userId)
+        database.exercisePerformanceTrackingDao().deleteAllForUser(userId)
+        database.globalExerciseProgressDao().deleteAllForUser(userId)
+        database.trainingAnalysisDao().deleteAllByUserId(userId)
+        database.parseRequestDao().deleteAllForUser(userId)
+        // Clear custom exercises
+        database.customExerciseDao().deleteAllCustomVariationsByUser(userId)
+        database.customExerciseDao().deleteAllCustomCoresByUser(userId)
+    }
+
     private suspend fun uploadLocalChanges(
         userId: String,
         @Suppress("UNUSED_PARAMETER")
         lastSyncTime: Timestamp?,
     ): Result<Unit> =
         try {
+            Log.d("SyncManager", "uploadLocalChanges: Starting upload for user $userId")
+
+            Log.d("SyncManager", "Uploading workouts...")
             uploadWorkouts(userId)
+            Log.d("SyncManager", "Uploading exercise logs...")
             uploadExerciseLogs(userId)
+            Log.d("SyncManager", "Uploading set logs...")
             uploadSetLogs(userId)
 
-            uploadExerciseCores(userId)
-            uploadExerciseVariations(userId)
-            uploadVariationMuscles()
-            uploadVariationInstructions()
-            uploadVariationAliases()
-            uploadVariationRelations()
+            // Custom exercises are uploaded via CustomExerciseSyncStrategy
 
             uploadProgrammes(userId)
             uploadProgrammeWeeks(userId)
             uploadProgrammeWorkouts(userId)
-            uploadExerciseSubstitutions(userId)
             uploadProgrammeProgress(userId)
 
             uploadUserExerciseMaxes(userId)
@@ -153,15 +215,15 @@ class SyncManager(
         }
 
     private suspend fun uploadWorkouts(userId: String) {
-        val workouts = database.workoutDao().getAllWorkouts()
-        val userWorkouts = workouts.filter { it.userId == userId }
+        val workouts = database.workoutDao().getAllWorkouts(userId)
+        val userWorkouts = workouts
         val firestoreWorkouts = userWorkouts.map { SyncConverters.toFirestoreWorkout(it) }
         firestoreRepository.uploadWorkouts(userId, firestoreWorkouts).getOrThrow()
     }
 
     private suspend fun uploadExerciseLogs(userId: String) {
-        val workouts = database.workoutDao().getAllWorkouts()
-        val userWorkouts = workouts.filter { it.userId == userId }
+        val workouts = database.workoutDao().getAllWorkouts(userId)
+        val userWorkouts = workouts
 
         val exerciseLogs = mutableListOf<com.github.radupana.featherweight.data.ExerciseLog>()
         userWorkouts.forEach { workout ->
@@ -174,8 +236,8 @@ class SyncManager(
     }
 
     private suspend fun uploadSetLogs(userId: String) {
-        val workouts = database.workoutDao().getAllWorkouts()
-        val userWorkouts = workouts.filter { it.userId == userId }
+        val workouts = database.workoutDao().getAllWorkouts(userId)
+        val userWorkouts = workouts
 
         val exerciseLogs = mutableListOf<com.github.radupana.featherweight.data.ExerciseLog>()
         userWorkouts.forEach { workout ->
@@ -193,6 +255,18 @@ class SyncManager(
         firestoreRepository.uploadSetLogs(userId, firestoreLogs).getOrThrow()
     }
 
+    private suspend fun isDatabaseEmpty(userId: String): Boolean {
+        // Check if the database has any user data
+        // We only need to check workouts as they are the primary data
+        val workouts = database.workoutDao().getAllWorkouts(userId)
+        val userWorkoutCount = workouts.size
+
+        val isEmpty = userWorkoutCount == 0
+        Log.d("SyncManager", "isDatabaseEmpty: userWorkouts=$userWorkoutCount, isEmpty=$isEmpty")
+
+        return isEmpty
+    }
+
     private suspend fun getLastSyncTime(userId: String): Timestamp? =
         firestoreRepository.getSyncMetadata(userId).fold(
             onSuccess = { metadata -> metadata?.lastSyncTime },
@@ -201,42 +275,6 @@ class SyncManager(
 
     private suspend fun updateSyncMetadata(userId: String) {
         firestoreRepository.updateSyncMetadata(userId, deviceId, deviceName).getOrThrow()
-    }
-
-    private suspend fun uploadExerciseCores(userId: String) {
-        val cores = database.exerciseCoreDao().getAllCores()
-        val firestoreCores = cores.map { SyncConverters.toFirestoreExerciseCore(it) }
-        firestoreRepository.uploadExerciseCores(userId, firestoreCores).getOrThrow()
-    }
-
-    private suspend fun uploadExerciseVariations(userId: String) {
-        val variations = database.exerciseVariationDao().getAllExerciseVariations()
-        val firestoreVariations = variations.map { SyncConverters.toFirestoreExerciseVariation(it) }
-        firestoreRepository.uploadExerciseVariations(userId, firestoreVariations).getOrThrow()
-    }
-
-    private suspend fun uploadVariationMuscles() {
-        val muscles = database.variationMuscleDao().getAllVariationMuscles()
-        val firestoreMuscles = muscles.map { SyncConverters.toFirestoreVariationMuscle(it) }
-        firestoreRepository.uploadVariationMuscles(firestoreMuscles).getOrThrow()
-    }
-
-    private suspend fun uploadVariationInstructions() {
-        val instructions = database.variationInstructionDao().getAllInstructions()
-        val firestoreInstructions = instructions.map { SyncConverters.toFirestoreVariationInstruction(it) }
-        firestoreRepository.uploadVariationInstructions(firestoreInstructions).getOrThrow()
-    }
-
-    private suspend fun uploadVariationAliases() {
-        val aliases = database.variationAliasDao().getAllAliases()
-        val firestoreAliases = aliases.map { SyncConverters.toFirestoreVariationAlias(it) }
-        firestoreRepository.uploadVariationAliases(firestoreAliases).getOrThrow()
-    }
-
-    private suspend fun uploadVariationRelations() {
-        val relations = database.variationRelationDao().getAllRelations()
-        val firestoreRelations = relations.map { SyncConverters.toFirestoreVariationRelation(it) }
-        firestoreRepository.uploadVariationRelations(firestoreRelations).getOrThrow()
     }
 
     private suspend fun uploadProgrammes(userId: String) {
@@ -260,13 +298,6 @@ class SyncManager(
         firestoreRepository.uploadProgrammeWorkouts(userId, firestoreWorkouts).getOrThrow()
     }
 
-    private suspend fun uploadExerciseSubstitutions(userId: String) {
-        val substitutions = database.programmeDao().getAllSubstitutions()
-        val userSubstitutions = substitutions.filter { it.userId == userId }
-        val firestoreSubstitutions = userSubstitutions.map { SyncConverters.toFirestoreExerciseSubstitution(it) }
-        firestoreRepository.uploadExerciseSubstitutions(userId, firestoreSubstitutions).getOrThrow()
-    }
-
     private suspend fun uploadProgrammeProgress(userId: String) {
         val progress = database.programmeDao().getAllProgrammeProgress()
         val userProgress = progress.filter { it.userId == userId }
@@ -275,15 +306,15 @@ class SyncManager(
     }
 
     private suspend fun uploadUserExerciseMaxes(userId: String) {
-        val maxes = database.oneRMDao().getAllUserExerciseMaxes()
-        val userMaxes = maxes.filter { it.userId == userId }
+        val maxes = database.oneRMDao().getAllUserExerciseMaxes(userId)
+        val userMaxes = maxes
         val firestoreMaxes = userMaxes.map { SyncConverters.toFirestoreUserExerciseMax(it) }
         firestoreRepository.uploadUserExerciseMaxes(userId, firestoreMaxes).getOrThrow()
     }
 
     private suspend fun uploadOneRMHistory(userId: String) {
-        val history = database.oneRMDao().getAllOneRMHistory()
-        val userHistory = history.filter { it.userId == userId }
+        val history = database.oneRMDao().getAllOneRMHistory(userId)
+        val userHistory = history
         val firestoreHistory = userHistory.map { SyncConverters.toFirestoreOneRMHistory(it) }
         firestoreRepository.uploadOneRMHistory(userId, firestoreHistory).getOrThrow()
     }
@@ -341,41 +372,62 @@ class SyncManager(
         lastSyncTime: Timestamp?,
     ): Result<Unit> =
         try {
-            // Download workouts and merge
+            Log.d("SyncManager", "downloadRemoteChanges: Starting download for user $userId")
+
+            // CRITICAL: Download exercises FIRST before any entities that reference them
+            // Download system exercises using new denormalized strategy
+            Log.d("SyncManager", "Downloading system exercises...")
+            systemExerciseStrategy.downloadAndMerge(null, lastSyncTime).getOrThrow()
+
+            // Download custom exercises for this user
+            Log.d("SyncManager", "Downloading custom exercises...")
+            customExerciseStrategy.downloadAndMerge(userId, lastSyncTime).getOrThrow()
+
+            // NOW download entities that reference exercises (workouts, logs, etc)
+            Log.d("SyncManager", "Downloading workouts...")
             downloadAndMergeWorkouts(userId, lastSyncTime)
+            Log.d("SyncManager", "Downloading exercise logs...")
             downloadAndMergeExerciseLogs(userId, lastSyncTime)
+            Log.d("SyncManager", "Downloading set logs...")
             downloadAndMergeSetLogs(userId, lastSyncTime)
 
-            // Download exercise data (system-wide, not user-specific)
-            downloadAndMergeExerciseCores(userId)
-            downloadAndMergeExerciseVariations(userId)
-            downloadAndMergeVariationMuscles()
-            downloadAndMergeVariationInstructions()
-            downloadAndMergeVariationAliases()
-            downloadAndMergeVariationRelations()
-
             // Download programme data
+            Log.d("SyncManager", "Downloading programmes...")
             downloadAndMergeProgrammes(userId)
+            Log.d("SyncManager", "Downloading programme weeks...")
             downloadAndMergeProgrammeWeeks(userId)
+            Log.d("SyncManager", "Downloading programme workouts...")
             downloadAndMergeProgrammeWorkouts(userId)
-            downloadAndMergeExerciseSubstitutions(userId)
+            Log.d("SyncManager", "Downloading programme progress...")
             downloadAndMergeProgrammeProgress(userId)
 
             // Download user stats
+            Log.d("SyncManager", "Downloading user exercise maxes...")
             downloadAndMergeUserExerciseMaxes(userId)
+            Log.d("SyncManager", "Downloading OneRM history...")
             downloadAndMergeOneRMHistory(userId)
+            Log.d("SyncManager", "Downloading personal records...")
             downloadAndMergePersonalRecords(userId)
 
             // Download tracking data
+            Log.d("SyncManager", "Starting download of tracking data...")
+            Log.d("SyncManager", "Downloading exercise swap history...")
             downloadAndMergeExerciseSwapHistory(userId)
+            Log.d("SyncManager", "Downloading exercise performance tracking...")
             downloadAndMergeExercisePerformanceTracking(userId)
+            Log.d("SyncManager", "Downloading global exercise progress...")
             downloadAndMergeGlobalExerciseProgress(userId)
+            Log.d("SyncManager", "Downloading exercise correlations...")
             downloadAndMergeExerciseCorrelations()
+            Log.d("SyncManager", "Downloading training analyses...")
             downloadAndMergeTrainingAnalyses(userId)
+            Log.d("SyncManager", "Downloading parse requests...")
             downloadAndMergeParseRequests(userId)
 
+            Log.d("SyncManager", "downloadRemoteChanges: All downloads completed successfully")
             Result.success(Unit)
         } catch (e: Exception) {
+            Log.e("SyncManager", "downloadRemoteChanges failed: ${e.message}", e)
             ExceptionLogger.logNonCritical("SyncManager", "Download failed", e)
             Result.failure(e)
         }
@@ -384,19 +436,14 @@ class SyncManager(
         userId: String,
         lastSyncTime: Timestamp?,
     ) {
+        Log.d("SyncManager", "downloadAndMergeWorkouts: Starting for user $userId")
         val remoteWorkouts = firestoreRepository.downloadWorkouts(userId, lastSyncTime).getOrThrow()
+        Log.d("SyncManager", "downloadAndMergeWorkouts: Downloaded ${remoteWorkouts.size} workouts")
         val localWorkouts = remoteWorkouts.map { SyncConverters.fromFirestoreWorkout(it) }
 
+        // Use upsert to avoid constraint violations - Room will handle insert or update
         localWorkouts.forEach { workout ->
-            val existing = database.workoutDao().getWorkoutById(workout.id)
-            if (existing == null) {
-                database.workoutDao().insertWorkout(workout)
-            } else {
-                // Conflict resolution: last-write-wins based on date
-                if (workout.date.isAfter(existing.date)) {
-                    database.workoutDao().updateWorkout(workout)
-                }
-            }
+            database.workoutDao().upsertWorkout(workout)
         }
     }
 
@@ -407,12 +454,9 @@ class SyncManager(
         val remoteLogs = firestoreRepository.downloadExerciseLogs(userId, lastSyncTime).getOrThrow()
         val localLogs = remoteLogs.map { SyncConverters.fromFirestoreExerciseLog(it) }
 
+        // Use upsert to avoid constraint violations
         localLogs.forEach { log ->
-            val existing = database.exerciseLogDao().getExerciseLogById(log.id)
-            if (existing == null) {
-                database.exerciseLogDao().insertExerciseLog(log)
-            }
-            // No update for exercise logs - they're immutable once created
+            database.exerciseLogDao().upsertExerciseLog(log)
         }
     }
 
@@ -423,84 +467,9 @@ class SyncManager(
         val remoteLogs = firestoreRepository.downloadSetLogs(userId, lastSyncTime).getOrThrow()
         val localLogs = remoteLogs.map { SyncConverters.fromFirestoreSetLog(it) }
 
+        // Use upsert to avoid constraint violations
         localLogs.forEach { log ->
-            val existing = database.setLogDao().getSetLogById(log.id)
-            if (existing == null) {
-                database.setLogDao().insertSetLog(log)
-            } else if (log.isCompleted && !existing.isCompleted) {
-                // Update if remote is completed but local is not
-                database.setLogDao().updateSetLog(log)
-            }
-        }
-    }
-
-    private suspend fun downloadAndMergeExerciseCores(userId: String) {
-        val remoteCores = firestoreRepository.downloadExerciseCores(userId).getOrThrow()
-        val localCores = remoteCores.map { SyncConverters.fromFirestoreExerciseCore(it) }
-
-        localCores.forEach { core ->
-            val existing = database.exerciseCoreDao().getCoreById(core.id)
-            if (existing == null) {
-                database.exerciseCoreDao().insertCore(core)
-            }
-        }
-    }
-
-    private suspend fun downloadAndMergeExerciseVariations(userId: String) {
-        val remoteVariations = firestoreRepository.downloadExerciseVariations(userId).getOrThrow()
-        val localVariations = remoteVariations.map { SyncConverters.fromFirestoreExerciseVariation(it) }
-
-        localVariations.forEach { variation ->
-            val existing = database.exerciseVariationDao().getExerciseVariationById(variation.id)
-            if (existing == null) {
-                database.exerciseVariationDao().insertExerciseVariation(variation)
-            }
-        }
-    }
-
-    private suspend fun downloadAndMergeVariationMuscles() {
-        val remoteMuscles = firestoreRepository.downloadVariationMuscles().getOrThrow()
-        val localMuscles = remoteMuscles.map { SyncConverters.fromFirestoreVariationMuscle(it) }
-
-        localMuscles.forEach { muscle ->
-            // VariationMuscle uses composite key, just insert with REPLACE strategy
-            database.variationMuscleDao().insertVariationMuscle(muscle)
-        }
-    }
-
-    private suspend fun downloadAndMergeVariationInstructions() {
-        val remoteInstructions = firestoreRepository.downloadVariationInstructions().getOrThrow()
-        val localInstructions = remoteInstructions.map { SyncConverters.fromFirestoreVariationInstruction(it) }
-
-        localInstructions.forEach { instruction ->
-            val existing = database.variationInstructionDao().getInstructionById(instruction.id)
-            if (existing == null) {
-                database.variationInstructionDao().insertInstruction(instruction)
-            }
-        }
-    }
-
-    private suspend fun downloadAndMergeVariationAliases() {
-        val remoteAliases = firestoreRepository.downloadVariationAliases().getOrThrow()
-        val localAliases = remoteAliases.map { SyncConverters.fromFirestoreVariationAlias(it) }
-
-        localAliases.forEach { alias ->
-            val existing = database.variationAliasDao().getAliasById(alias.id)
-            if (existing == null) {
-                database.variationAliasDao().insertAlias(alias)
-            }
-        }
-    }
-
-    private suspend fun downloadAndMergeVariationRelations() {
-        val remoteRelations = firestoreRepository.downloadVariationRelations().getOrThrow()
-        val localRelations = remoteRelations.map { SyncConverters.fromFirestoreVariationRelation(it) }
-
-        localRelations.forEach { relation ->
-            val existing = database.variationRelationDao().getRelationById(relation.id)
-            if (existing == null) {
-                database.variationRelationDao().insertRelation(relation)
-            }
+            database.setLogDao().upsertSetLog(log)
         }
     }
 
@@ -536,18 +505,6 @@ class SyncManager(
             val existing = database.programmeDao().getProgrammeWorkoutById(workout.id)
             if (existing == null) {
                 database.programmeDao().insertProgrammeWorkout(workout)
-            }
-        }
-    }
-
-    private suspend fun downloadAndMergeExerciseSubstitutions(userId: String) {
-        val remoteSubstitutions = firestoreRepository.downloadExerciseSubstitutions(userId).getOrThrow()
-        val localSubstitutions = remoteSubstitutions.map { SyncConverters.fromFirestoreExerciseSubstitution(it) }
-
-        localSubstitutions.forEach { substitution ->
-            val existing = database.programmeDao().getSubstitutionById(substitution.id)
-            if (existing == null) {
-                database.programmeDao().insertSubstitution(substitution)
             }
         }
     }
@@ -693,4 +650,146 @@ class SyncManager(
             }
         }
     }
+
+    /**
+     * Sync only system exercise reference data.
+     * This should be called less frequently than user data sync.
+     */
+    suspend fun syncSystemExercises(): Result<SyncState> =
+        withContext(ioDispatcher) {
+            // Use mutex to prevent concurrent sync operations
+            syncMutex.withLock {
+                Log.i("SyncManager", "Starting system exercise sync")
+                try {
+                    // System exercises don't require authentication
+                    systemExerciseStrategy.downloadAndMerge(null, null).fold(
+                        onSuccess = {
+                            Log.i("SyncManager", "System exercise sync completed successfully")
+                            Result.success(SyncState.Success(Timestamp.now()))
+                        },
+                        onFailure = { error ->
+                            Log.e("SyncManager", "System exercise sync failed: ${error.message}", error)
+                            Result.success(SyncState.Error("System exercise sync failed: ${error.message}"))
+                        },
+                    )
+                } catch (e: Exception) {
+                    Log.e("SyncManager", "System exercise sync failed with exception: ${e.message}", e)
+                    ExceptionLogger.logNonCritical("SyncManager", "System exercise sync failed", e)
+                    Result.success(SyncState.Error("System exercise sync failed: ${e.message}"))
+                }
+            } // End of mutex lock
+        }
+
+    /**
+     * Sync only user-specific data.
+     * This should be called more frequently than system data sync.
+     */
+    suspend fun syncUserData(userId: String): Result<SyncState> =
+        withContext(ioDispatcher) {
+            // Use mutex to prevent concurrent sync operations
+            syncMutex.withLock {
+                Log.i("SyncManager", "Starting user data sync for userId: $userId")
+
+                try {
+                    val lastSyncTime = getLastSyncTime(userId)
+
+                    // Download user data (excluding system exercises)
+                    downloadUserData(userId, lastSyncTime).fold(
+                        onSuccess = {
+                            // Upload user data changes
+                            uploadUserData(userId).fold(
+                                onSuccess = {
+                                    updateSyncMetadata(userId)
+                                    Log.i("SyncManager", "User data sync completed successfully")
+                                    Result.success(SyncState.Success(Timestamp.now()))
+                                },
+                                onFailure = { error ->
+                                    Log.e("SyncManager", "User data upload failed: ${error.message}", error)
+                                    Result.success(SyncState.Error("Upload failed: ${error.message}"))
+                                },
+                            )
+                        },
+                        onFailure = { error ->
+                            Log.e("SyncManager", "User data download failed: ${error.message}", error)
+                            Result.success(SyncState.Error("Download failed: ${error.message}"))
+                        },
+                    )
+                } catch (e: Exception) {
+                    Log.e("SyncManager", "User data sync failed with exception: ${e.message}", e)
+                    ExceptionLogger.logNonCritical("SyncManager", "User data sync failed", e)
+                    Result.success(SyncState.Error("User data sync failed: ${e.message}"))
+                }
+            } // End of mutex lock
+        }
+
+    private suspend fun downloadUserData(
+        userId: String,
+        lastSyncTime: Timestamp?,
+    ): Result<Unit> =
+        try {
+            // CRITICAL: Download custom exercises FIRST before entities that reference them
+            Log.d("SyncManager", "Downloading custom exercises for user...")
+            customExerciseStrategy.downloadAndMerge(userId, lastSyncTime).getOrThrow()
+
+            // NOW download entities that reference exercises
+            downloadAndMergeWorkouts(userId, lastSyncTime)
+            downloadAndMergeExerciseLogs(userId, lastSyncTime)
+            downloadAndMergeSetLogs(userId, lastSyncTime)
+
+            // Programme data
+            downloadAndMergeProgrammes(userId)
+            downloadAndMergeProgrammeWeeks(userId)
+            downloadAndMergeProgrammeWorkouts(userId)
+            downloadAndMergeProgrammeProgress(userId)
+
+            // User stats
+            downloadAndMergeUserExerciseMaxes(userId)
+            downloadAndMergeOneRMHistory(userId)
+            downloadAndMergePersonalRecords(userId)
+
+            // Tracking data
+            downloadAndMergeExerciseSwapHistory(userId)
+            downloadAndMergeExercisePerformanceTracking(userId)
+            downloadAndMergeGlobalExerciseProgress(userId)
+            downloadAndMergeTrainingAnalyses(userId)
+            downloadAndMergeParseRequests(userId)
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("SyncManager", "downloadUserData failed: ${e.message}", e)
+            Result.failure(e)
+        }
+
+    private suspend fun uploadUserData(
+        userId: String,
+    ): Result<Unit> =
+        try {
+            // Upload all user-specific data
+            uploadWorkouts(userId)
+            uploadExerciseLogs(userId)
+            uploadSetLogs(userId)
+
+            // Programme data
+            uploadProgrammes(userId)
+            uploadProgrammeWeeks(userId)
+            uploadProgrammeWorkouts(userId)
+            uploadProgrammeProgress(userId)
+
+            // User stats
+            uploadUserExerciseMaxes(userId)
+            uploadOneRMHistory(userId)
+            uploadPersonalRecords(userId)
+
+            // Tracking data
+            uploadExerciseSwapHistory(userId)
+            uploadExercisePerformanceTracking(userId)
+            uploadGlobalExerciseProgress(userId)
+            uploadTrainingAnalyses(userId)
+            uploadParseRequests(userId)
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("SyncManager", "uploadUserData failed: ${e.message}", e)
+            Result.failure(e)
+        }
 }

@@ -166,6 +166,7 @@ class ProgressionService(
 
         val performanceRecord =
             ExercisePerformanceTracking(
+                userId = sets.firstOrNull()?.userId,
                 programmeId = programmeId,
                 exerciseName = exerciseName,
                 targetWeight = targetWeight,

@@ -21,13 +21,19 @@ import kotlinx.coroutines.launch
 
 class ExerciseSelectorViewModel(
     application: Application,
+    private val repository: FeatherweightRepository,
+    private val namingService: ExerciseNamingService,
 ) : AndroidViewModel(application) {
+    // Secondary constructor for Android ViewModelFactory
+    constructor(application: Application) : this(
+        application,
+        FeatherweightRepository(application),
+        ExerciseNamingService(),
+    )
+
     companion object {
         private const val TAG = "ExerciseSelectorVM"
     }
-
-    private val repository = FeatherweightRepository(application)
-    private val namingService = ExerciseNamingService()
 
     // Raw data
     private val allExercisesCache = MutableStateFlow<List<ExerciseWithDetails>>(emptyList())
@@ -62,6 +68,10 @@ class ExerciseSelectorViewModel(
     // Computed state
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    // Authentication state
+    private val _isAuthenticated = MutableStateFlow(false)
+    val isAuthenticated: StateFlow<Boolean> = _isAuthenticated
+
     // Available filter options
     val categories = MutableStateFlow(ExerciseCategory.entries.toList())
 
@@ -81,6 +91,9 @@ class ExerciseSelectorViewModel(
     val currentSwapExerciseName: StateFlow<String?> = _currentSwapExerciseName
 
     init {
+        // Check authentication state
+        _isAuthenticated.value = repository.getCurrentUserId() != null
+
         // Combine all filter states and update filtered exercises
         viewModelScope.launch {
             combine(
@@ -112,8 +125,9 @@ class ExerciseSelectorViewModel(
                         )
 
                     if (baseScore > 0) {
-                        // Add small usage bonus to the score
-                        val finalScore = baseScore + (exerciseWithDetails.variation.usageCount / 10)
+                        // Add usage bonus - up to 20 points based on usage count
+                        val usageBonus = exerciseWithDetails.usageCount.coerceAtMost(20)
+                        val finalScore = baseScore + usageBonus
                         exerciseWithDetails to finalScore
                     } else {
                         null
@@ -123,43 +137,52 @@ class ExerciseSelectorViewModel(
                         .thenBy { it.first.variation.name },
                 ).map { it.first }
         } else {
-            // When not searching, maintain the usage-based order
-            exercises
+            // When not searching, sort by usage count (most used first)
+            exercises.sortedWith(
+                compareByDescending<ExerciseWithDetails> { it.usageCount }
+                    .thenBy { it.variation.name },
+            )
         }
 
     fun loadExercises() {
-        loadExercisesInternal(null, seedIfEmpty = true)
+        loadExercisesInternal(null)
     }
 
     private fun loadExercisesByCategory(category: ExerciseCategory?) {
-        loadExercisesInternal(category, seedIfEmpty = false)
+        loadExercisesInternal(category)
     }
 
     private fun loadExercisesInternal(
         category: ExerciseCategory?,
-        seedIfEmpty: Boolean,
     ) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Ensure database is seeded first (only for initial load)
-                if (seedIfEmpty) {
-                    repository.seedDatabaseIfEmpty()
-                }
-
-                val variations =
+                // Load system exercises
+                val systemVariations =
                     if (category != null) {
                         repository.getExercisesByCategory(category)
                     } else {
                         repository.getAllExercises()
                     }
 
-                // Load exercises with full muscle data
-                val exercises =
-                    variations.map { variation ->
-                        loadExerciseWithDetails(variation)
+                // Load system exercises with full muscle data
+                val systemExercises =
+                    systemVariations.map { variation ->
+                        loadExerciseWithDetails(variation, isCustom = false)
                     }
-                allExercisesCache.value = exercises
+
+                // Load custom exercises
+                val customVariations = repository.getCustomExercises()
+                val customExercises =
+                    customVariations
+                        .filter { custom -> category == null || custom.name.contains(category.displayName, ignoreCase = true) }
+                        .map { custom ->
+                            loadCustomExerciseWithDetails(custom)
+                        }
+
+                // Combine system and custom exercises
+                allExercisesCache.value = systemExercises + customExercises
             } catch (e: android.database.sqlite.SQLiteException) {
                 _errorMessage.value = "Database error loading exercises: ${e.message}"
             } catch (e: IllegalStateException) {
@@ -221,7 +244,7 @@ class ExerciseSelectorViewModel(
 
                 // Use provided values or fall back to extracted/inferred values
                 val finalCategory = category ?: components.category
-                val finalPrimaryMuscles =
+                val usedPrimaryMuscles =
                     if (primaryMuscles.isNotEmpty()) {
                         primaryMuscles
                     } else if (components.muscleGroup != null) {
@@ -239,34 +262,38 @@ class ExerciseSelectorViewModel(
 
                 val finalMovementPattern = components.movementPattern
 
-                // Create the exercise using the repository
-                val result =
+                // Create the custom exercise using the repository
+                val customExercise =
                     repository.createCustomExercise(
                         name = formattedName,
                         category = finalCategory,
-                        primaryMuscles = finalPrimaryMuscles,
-                        secondaryMuscles = secondaryMuscles,
                         equipment = finalEquipment,
                         difficulty = difficulty,
                         requiresWeight = requiresWeight,
                         movementPattern = finalMovementPattern,
                     )
 
-                result.fold(
-                    onSuccess = { createdExercise ->
-                        // Reload exercises to include the new one
-                        loadExercises()
-                        // Signal success
-                        _exerciseCreated.value = createdExercise
-                    },
-                    onFailure = { error ->
-                        _errorMessage.value =
-                            when (error) {
-                                is IllegalArgumentException -> error.message
-                                else -> "Failed to create exercise: ${error.message}"
-                            }
-                    },
-                )
+                if (customExercise != null) {
+                    // Convert to ExerciseVariation for compatibility
+                    val variation =
+                        ExerciseVariation(
+                            id = customExercise.id,
+                            coreExerciseId = customExercise.customCoreExerciseId,
+                            name = customExercise.name,
+                            equipment = customExercise.equipment,
+                            difficulty = customExercise.difficulty,
+                            requiresWeight = customExercise.requiresWeight,
+                            recommendedRepRange = customExercise.recommendedRepRange,
+                            rmScalingType = customExercise.rmScalingType,
+                            restDurationSeconds = customExercise.restDurationSeconds,
+                        )
+                    // Reload exercises to include the new one
+                    loadExercises()
+                    // Signal success
+                    _exerciseCreated.value = variation
+                } else {
+                    _errorMessage.value = "Failed to create custom exercise: Name may already exist"
+                }
             } catch (e: android.database.sqlite.SQLiteException) {
                 _errorMessage.value = "Database error creating exercise: ${e.message}"
             } catch (e: IllegalArgumentException) {
@@ -352,31 +379,19 @@ class ExerciseSelectorViewModel(
             try {
                 _deleteError.value = null
 
-                // First check if we can delete it
-                val canDelete = repository.canDeleteExercise(exercise.variation.id)
-                canDelete.fold(
-                    onSuccess = {
-                        // Proceed with deletion
-                        val deleteResult = repository.deleteCustomExercise(exercise.variation.id)
-                        deleteResult.fold(
-                            onSuccess = {
-                                // Reload exercises to reflect the deletion
-                                loadExercises()
-                                // Clear the delete state
-                                _exerciseToDelete.value = null
-                                _deleteError.value = null
-                                // Show success message
-                                _errorMessage.value = "Exercise deleted successfully"
-                            },
-                            onFailure = { error ->
-                                _deleteError.value = error.message ?: "Failed to delete exercise"
-                            },
-                        )
-                    },
-                    onFailure = { error ->
-                        _deleteError.value = error.message ?: "Cannot delete this exercise"
-                    },
-                )
+                // Delete custom exercise
+                val deleted = repository.deleteUserCustomExercise(exercise.variation.id)
+                if (deleted) {
+                    // Reload exercises to reflect the deletion
+                    loadExercises()
+                    // Clear the delete state
+                    _exerciseToDelete.value = null
+                    _deleteError.value = null
+                    // Show success message
+                    _errorMessage.value = "Exercise deleted successfully"
+                } else {
+                    _deleteError.value = "Cannot delete exercise: It may be in use or not found"
+                }
             } catch (e: android.database.sqlite.SQLiteException) {
                 _deleteError.value = "Database error deleting exercise: ${e.message}"
             } catch (e: IllegalArgumentException) {
@@ -395,13 +410,11 @@ class ExerciseSelectorViewModel(
             try {
                 // Wait for exercises to be loaded if they're not already
                 if (allExercisesCache.value.isEmpty()) {
-                    // Ensure exercises are loaded first
-                    repository.seedDatabaseIfEmpty()
                     val variations = repository.getAllExercises()
                     // Load exercises with muscle data
                     val exercises =
                         variations.map { variation ->
-                            loadExerciseWithDetails(variation)
+                            loadExerciseWithDetails(variation, isCustom = false)
                         }
                     allExercisesCache.value = exercises
                 }
@@ -414,7 +427,7 @@ class ExerciseSelectorViewModel(
                 swapHistory.forEach { historyCount ->
                     val variation = repository.getExerciseById(historyCount.swappedToExerciseId)
                     if (variation != null) {
-                        val exerciseWithDetails = loadExerciseWithDetails(variation)
+                        val exerciseWithDetails = loadExerciseWithDetails(variation, isCustom = false)
                         previouslySwapped.add(
                             ExerciseSuggestion(
                                 exercise = exerciseWithDetails,
@@ -433,7 +446,7 @@ class ExerciseSelectorViewModel(
                     // Set the current exercise name for display
                     _currentSwapExerciseName.value = currentVariation.name
 
-                    val currentExercise = loadExerciseWithDetails(currentVariation)
+                    val currentExercise = loadExerciseWithDetails(currentVariation, isCustom = false)
                     val suggestions = generateSmartSuggestions(currentExercise, previouslySwapped)
                     _swapSuggestions.value = suggestions
                 } else {
@@ -462,7 +475,7 @@ class ExerciseSelectorViewModel(
                 repository
                     .getAllExercises()
                     .map { variation ->
-                        loadExerciseWithDetails(variation)
+                        loadExerciseWithDetails(variation, isCustom = false)
                     }.also { allExercisesCache.value = it }
             }
 
@@ -541,8 +554,8 @@ class ExerciseSelectorViewModel(
             )
         score += (5 - difficultyDiff) * 10 // Closer difficulty = higher score
 
-        // Usage count (popular exercises are good alternatives)
-        score += candidate.variation.usageCount.coerceAtMost(20)
+        // Add usage count bonus
+        score += candidate.usageCount.coerceAtMost(20)
 
         return score
     }
@@ -613,15 +626,57 @@ class ExerciseSelectorViewModel(
         }
     }
 
-    // Helper method to load exercise with full details including muscles
-    private suspend fun loadExerciseWithDetails(variation: ExerciseVariation): ExerciseWithDetails {
+    // Helper method to load system exercise with full details including muscles
+    private suspend fun loadExerciseWithDetails(
+        variation: ExerciseVariation,
+        isCustom: Boolean,
+    ): ExerciseWithDetails {
         val muscles = repository.getMusclesForVariation(variation.id)
         val aliases = repository.getAliasesForVariation(variation.id)
+
+        // Get user-specific usage stats (use "local" for unauthenticated users)
+        val userId = repository.getCurrentUserId() ?: "local"
+        val usageStats = repository.getUserExerciseUsage(userId, variation.id, isCustom)
+
         return ExerciseWithDetails(
             variation = variation,
             muscles = muscles,
             aliases = aliases,
             instructions = emptyList(), // Can load if needed
+            usageCount = usageStats?.usageCount ?: 0,
+            isFavorite = usageStats?.favorited ?: false,
+            isCustom = isCustom,
+        )
+    }
+
+    // Helper method to load custom exercise with details
+    private suspend fun loadCustomExerciseWithDetails(custom: com.github.radupana.featherweight.data.exercise.CustomExerciseVariation): ExerciseWithDetails {
+        // Convert custom exercise to standard format
+        val variation =
+            ExerciseVariation(
+                id = custom.id,
+                coreExerciseId = custom.customCoreExerciseId,
+                name = custom.name,
+                equipment = custom.equipment,
+                difficulty = custom.difficulty,
+                requiresWeight = custom.requiresWeight,
+                recommendedRepRange = custom.recommendedRepRange,
+                rmScalingType = custom.rmScalingType,
+                restDurationSeconds = custom.restDurationSeconds,
+            )
+
+        // Get user-specific usage stats (use "local" for unauthenticated users)
+        val userId = repository.getCurrentUserId() ?: "local"
+        val usageStats = repository.getUserExerciseUsage(userId, custom.id, true) // true = custom exercise
+
+        return ExerciseWithDetails(
+            variation = variation,
+            muscles = emptyList(), // Custom exercises don't have muscle mappings yet
+            aliases = emptyList(),
+            instructions = emptyList(),
+            usageCount = usageStats?.usageCount ?: 0,
+            isFavorite = usageStats?.favorited ?: false,
+            isCustom = true, // This is a custom exercise
         )
     }
 }

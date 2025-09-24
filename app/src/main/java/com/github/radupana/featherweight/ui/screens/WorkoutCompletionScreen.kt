@@ -291,7 +291,7 @@ private fun WorkoutStatsCard(summary: CompletionSummary) {
 private fun PersonalRecordsCard(
     personalRecords: List<PersonalRecord>,
     repository: com.github.radupana.featherweight.repository.FeatherweightRepository,
-    exerciseNames: Map<Long, String>,
+    exerciseNames: Map<String, String>,
 ) {
     GlassmorphicCard(
         modifier = Modifier.fillMaxWidth(),
@@ -339,10 +339,17 @@ private fun PersonalRecordsCard(
 private fun PRItem(
     pr: PersonalRecord,
     repository: com.github.radupana.featherweight.repository.FeatherweightRepository,
-    exerciseNames: Map<Long, String>,
+    exerciseNames: Map<String, String>,
 ) {
     Column {
-        val exerciseName = exerciseNames[pr.exerciseVariationId] ?: "Unknown Exercise"
+        // Use composite key to look up exercise name
+        val key =
+            if (pr.isCustomExercise) {
+                "custom_${pr.exerciseVariationId}"
+            } else {
+                "system_${pr.exerciseVariationId}"
+            }
+        val exerciseName = exerciseNames[key] ?: "Unknown Exercise"
         Text(
             text = exerciseName,
             style = MaterialTheme.typography.titleMedium,

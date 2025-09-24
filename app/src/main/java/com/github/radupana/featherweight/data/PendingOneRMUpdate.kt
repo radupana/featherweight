@@ -4,6 +4,7 @@ import java.time.LocalDateTime
 
 data class PendingOneRMUpdate(
     val exerciseVariationId: Long,
+    val isCustomExercise: Boolean = false, // true for custom exercises, false for system exercises
     val currentMax: Float?,
     val suggestedMax: Float,
     val confidence: Float,

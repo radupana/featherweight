@@ -12,7 +12,7 @@ import androidx.room.Transaction
 interface ExerciseDao {
     // ============== ExerciseVariation operations ==============
 
-    @Query("SELECT * FROM exercise_variations ORDER BY usageCount DESC, name ASC")
+    @Query("SELECT * FROM exercise_variations ORDER BY name ASC")
     suspend fun getAllExercises(): List<ExerciseVariation>
 
     @Query("SELECT * FROM exercise_variations WHERE id = :id")
@@ -21,14 +21,8 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercise_variations WHERE id = :id")
     suspend fun getExerciseVariationById(id: Long): ExerciseVariation?
 
-    @Query("SELECT * FROM exercise_variations WHERE name LIKE '%' || :query || '%' ORDER BY usageCount DESC, name ASC")
+    @Query("SELECT * FROM exercise_variations WHERE name LIKE '%' || :query || '%' ORDER BY name ASC")
     suspend fun searchVariations(query: String): List<ExerciseVariation>
-
-    @Query("UPDATE exercise_variations SET usageCount = usageCount + 1 WHERE id = :exerciseId")
-    suspend fun incrementUsageCount(exerciseId: Long)
-
-    @Query("UPDATE exercise_variations SET usageCount = 0")
-    suspend fun resetAllUsageCounts()
 
     // ============== Find exercise by name or alias ==============
 
@@ -69,14 +63,14 @@ interface ExerciseDao {
         SELECT DISTINCT v.* FROM exercise_variations v
         INNER JOIN variation_muscles m ON v.id = m.variationId
         WHERE m.muscle = :muscleGroup
-        ORDER BY v.usageCount DESC, v.name ASC
+        ORDER BY v.name ASC
     """,
     )
     suspend fun getVariationsByMuscleGroup(muscleGroup: String): List<ExerciseVariation>
 
     // ============== Equipment queries ==============
 
-    @Query("SELECT * FROM exercise_variations WHERE equipment = :equipment ORDER BY usageCount DESC, name ASC")
+    @Query("SELECT * FROM exercise_variations WHERE equipment = :equipment ORDER BY name ASC")
     suspend fun getVariationsByEquipment(equipment: Equipment): List<ExerciseVariation>
 
     // ============== Category queries ==============
@@ -86,7 +80,7 @@ interface ExerciseDao {
         SELECT v.* FROM exercise_variations v
         INNER JOIN exercise_cores c ON v.coreExerciseId = c.id
         WHERE c.category = :category
-        ORDER BY v.usageCount DESC, v.name ASC
+        ORDER BY v.name ASC
     """,
     )
     suspend fun getVariationsByCategory(category: ExerciseCategory): List<ExerciseVariation>

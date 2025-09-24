@@ -19,6 +19,9 @@ import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.domain.ExerciseStats
+import com.github.radupana.featherweight.manager.AuthenticationManager
+import com.github.radupana.featherweight.service.ExerciseNamingService
+import com.github.radupana.featherweight.service.ValidationResult
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.perf.FirebasePerformance
 import com.google.firebase.perf.metrics.Trace
@@ -28,6 +31,7 @@ import java.time.LocalDateTime
 
 class ExerciseRepository(
     private val db: FeatherweightDatabase,
+    private val authManager: AuthenticationManager,
 ) {
     companion object {
         private const val TAG = "ExerciseRepository"
@@ -40,6 +44,7 @@ class ExerciseRepository(
     private val exerciseCoreDao = db.exerciseCoreDao()
     private val exerciseVariationDao = db.exerciseVariationDao()
     private val variationMuscleDao = db.variationMuscleDao()
+    private val userExerciseUsageDao = db.userExerciseUsageDao()
 
     // ===== EXERCISE QUERIES =====
 
@@ -85,11 +90,24 @@ class ExerciseRepository(
         withContext(Dispatchers.IO) {
             val startTime = System.currentTimeMillis()
             val variations = exerciseDao.getAllExercises()
+            val userId = authManager?.getCurrentUserId()
 
             val result =
                 variations
                     .map { variation ->
-                        val usageCount = exerciseLogDao.getExerciseUsageCount(variation.id)
+                        val usageCount =
+                            if (userId != null) {
+                                // Get user-specific usage count from UserExerciseUsage
+                                userExerciseUsageDao
+                                    .getUsage(
+                                        userId = userId,
+                                        variationId = variation.id,
+                                        isCustom = false, // System exercises for now
+                                    )?.usageCount ?: 0
+                            } else {
+                                // Fallback to global count if no user is logged in
+                                exerciseLogDao.getExerciseUsageCount(variation.id, "local")
+                            }
                         Pair(variation, usageCount)
                     }.sortedWith(
                         compareByDescending<Pair<ExerciseVariation, Int>> { it.second }
@@ -182,20 +200,55 @@ class ExerciseRepository(
 
     suspend fun getSetsForExercise(exerciseLogId: Long): List<SetLog> = setLogDao.getSetLogsForExercise(exerciseLogId)
 
-    suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long = exerciseLogDao.insertExerciseLog(exerciseLog)
+    suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long {
+        // Ensure userId is set for authenticated users
+        val exerciseWithUserId =
+            if (authManager != null) {
+                exerciseLog.copy(userId = authManager.getCurrentUserId() ?: "local")
+            } else {
+                exerciseLog
+            }
+        return exerciseLogDao.insertExerciseLog(exerciseWithUserId)
+    }
 
     suspend fun insertExerciseLogWithExerciseReference(
         workoutId: Long,
         exerciseVariationId: Long,
         order: Int = 0,
+        isCustomExercise: Boolean = false,
     ): Long {
         val exerciseLog =
             ExerciseLog(
+                userId = authManager?.getCurrentUserId() ?: "local",
                 workoutId = workoutId,
                 exerciseVariationId = exerciseVariationId,
                 exerciseOrder = order,
+                isCustomExercise = isCustomExercise,
             )
-        return insertExerciseLog(exerciseLog)
+
+        val id = insertExerciseLog(exerciseLog)
+
+        // Increment usage count for this exercise (use "local" for unauthenticated users)
+        try {
+            val userId = authManager?.getCurrentUserId() ?: "local"
+            // First ensure the usage record exists
+            userExerciseUsageDao.getOrCreateUsage(
+                userId = userId,
+                variationId = exerciseVariationId,
+                isCustom = isCustomExercise,
+            )
+            // Now increment the count
+            userExerciseUsageDao.incrementUsageCount(
+                userId = userId,
+                variationId = exerciseVariationId,
+                isCustom = isCustomExercise,
+                timestamp = LocalDateTime.now(),
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to increment usage count for exercise $exerciseVariationId", e)
+        }
+
+        return id
     }
 
     suspend fun insertExerciseLogWithExerciseReference(
@@ -203,19 +256,40 @@ class ExerciseRepository(
         exerciseVariation: ExerciseVariation,
         exerciseOrder: Int,
         notes: String? = null,
+        isCustomExercise: Boolean = false,
     ): Long {
         val exerciseLog =
             ExerciseLog(
+                userId = authManager?.getCurrentUserId() ?: "local",
                 workoutId = workoutId,
                 exerciseVariationId = exerciseVariation.id,
                 exerciseOrder = exerciseOrder,
                 notes = notes,
+                isCustomExercise = isCustomExercise,
             )
         val id = exerciseLogDao.insertExerciseLog(exerciseLog)
-        // Always increment usage count when adding exercise through this method
-        exerciseDao.incrementUsageCount(exerciseVariation.id)
 
-        Log.i(TAG, "Added exercise to workout - exercise: ${exerciseVariation.name}, workoutId: $workoutId, order: $exerciseOrder, exerciseLogId: $id")
+        // Increment usage count for this exercise (use "local" for unauthenticated users)
+        try {
+            val userId = authManager?.getCurrentUserId() ?: "local"
+            // First ensure the usage record exists
+            userExerciseUsageDao.getOrCreateUsage(
+                userId = userId,
+                variationId = exerciseVariation.id,
+                isCustom = isCustomExercise,
+            )
+            // Now increment the count
+            userExerciseUsageDao.incrementUsageCount(
+                userId = userId,
+                variationId = exerciseVariation.id,
+                isCustom = isCustomExercise,
+                timestamp = LocalDateTime.now(),
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to increment usage count for exercise ${exerciseVariation.name}", e)
+        }
+
+        Log.i(TAG, "Added exercise to workout - exercise: ${exerciseVariation.name}, workoutId: $workoutId, order: $exerciseOrder, exerciseLogId: $id, isCustom: $isCustomExercise")
         return id
     }
 
@@ -250,8 +324,9 @@ class ExerciseRepository(
     suspend fun getExerciseStats(exerciseVariationId: Long): ExerciseStats? {
         return withContext(Dispatchers.IO) {
             val startTime = System.currentTimeMillis()
+            val userId = authManager.getCurrentUserId() ?: "local"
             val variation = exerciseDao.getExerciseVariationById(exerciseVariationId) ?: return@withContext null
-            val allWorkouts = db.workoutDao().getAllWorkouts()
+            val allWorkouts = db.workoutDao().getAllWorkouts(userId)
             val allSetsForExercise = mutableListOf<SetLog>()
 
             // Only consider COMPLETED workouts for exercise stats
@@ -345,6 +420,7 @@ class ExerciseRepository(
     ) {
         val swapHistory =
             ExerciseSwapHistory(
+                userId = authManager?.getCurrentUserId() ?: "local",
                 originalExerciseId = originalExerciseId,
                 swappedToExerciseId = swappedToExerciseId,
                 swapDate = LocalDateTime.now(),
@@ -377,12 +453,31 @@ class ExerciseRepository(
             try {
                 Log.i(TAG, "Creating custom exercise: $name, category: $category, equipment: $equipment")
 
-                // Check for duplicate names (case-insensitive)
-                val existingExercise = exerciseVariationDao.findVariationByName(name)
-                if (existingExercise != null) {
-                    Log.w(TAG, "Custom exercise creation failed - duplicate name: $name")
+                // Get all existing exercise names and aliases for duplicate checking
+                val existingNames = mutableListOf<String>()
+
+                // Add all variation names
+                val variations = exerciseDao.getAllExercises()
+                existingNames.addAll(variations.map { it.name })
+
+                // Add all aliases
+                val aliases = exerciseDao.getAllAliases()
+                existingNames.addAll(aliases.map { it.alias })
+
+                // Validate name with duplicate check
+                val namingService = ExerciseNamingService()
+                val validationResult = namingService.validateExerciseNameWithDuplicateCheck(name, existingNames)
+
+                if (validationResult is ValidationResult.Invalid) {
+                    Log.w(TAG, "Custom exercise creation failed - ${validationResult.reason}: $name")
+                    val errorMessage =
+                        if (validationResult.suggestion != null) {
+                            "${validationResult.reason}. ${validationResult.suggestion}"
+                        } else {
+                            validationResult.reason
+                        }
                     return@withContext Result.failure(
-                        IllegalArgumentException("An exercise with this name already exists: ${existingExercise.name}"),
+                        IllegalArgumentException(errorMessage),
                     )
                 }
 
@@ -412,7 +507,7 @@ class ExerciseRepository(
                     )
                 }
 
-                // Create the exercise variation
+                // Create exercise variation (system exercise)
                 val variationId =
                     exerciseVariationDao.insertExerciseVariation(
                         ExerciseVariation(
@@ -421,8 +516,6 @@ class ExerciseRepository(
                             equipment = equipment,
                             difficulty = difficulty,
                             requiresWeight = requiresWeight,
-                            usageCount = 0,
-                            isCustom = true,
                             createdAt = LocalDateTime.now(),
                             updatedAt = LocalDateTime.now(),
                         ),
@@ -497,15 +590,17 @@ class ExerciseRepository(
                     exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
                         ?: return@withContext Result.failure(IllegalArgumentException("Exercise not found"))
 
-                if (!exercise.isCustom) {
-                    return@withContext Result.failure(IllegalArgumentException("Cannot delete built-in exercises"))
-                }
+                // System exercises cannot be deleted
+                return@withContext Result.failure(
+                    IllegalArgumentException("System exercises cannot be deleted. Only custom exercises can be removed."),
+                )
 
                 // Check if used in any completed workouts
+                val userId = authManager.getCurrentUserId() ?: "local"
                 val completedWorkouts =
                     db
                         .workoutDao()
-                        .getAllWorkouts()
+                        .getAllWorkouts(userId)
                         .filter { it.status == WorkoutStatus.COMPLETED }
 
                 for (workout in completedWorkouts) {
@@ -544,7 +639,8 @@ class ExerciseRepository(
                 db.withTransaction {
                     // First, remove from ALL workouts (not just in-progress)
                     // We need to remove from ALL non-completed workouts to prevent foreign key issues
-                    val allWorkouts = db.workoutDao().getAllWorkouts()
+                    val userId = authManager.getCurrentUserId() ?: "local"
+                    val allWorkouts = db.workoutDao().getAllWorkouts(userId)
 
                     for (workout in allWorkouts.filter { it.status != WorkoutStatus.COMPLETED }) {
                         val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)

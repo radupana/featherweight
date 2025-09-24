@@ -5,13 +5,17 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.github.radupana.featherweight.dao.TrainingAnalysisDao
+import com.github.radupana.featherweight.data.exercise.CustomExerciseCore
+import com.github.radupana.featherweight.data.exercise.CustomExerciseDao
+import com.github.radupana.featherweight.data.exercise.CustomExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseCore
 import com.github.radupana.featherweight.data.exercise.ExerciseCoreDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.ExerciseTypeConverters
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
+import com.github.radupana.featherweight.data.exercise.UserExerciseUsage
+import com.github.radupana.featherweight.data.exercise.UserExerciseUsageDao
 import com.github.radupana.featherweight.data.exercise.VariationAlias
 import com.github.radupana.featherweight.data.exercise.VariationAliasDao
 import com.github.radupana.featherweight.data.exercise.VariationInstruction
@@ -20,11 +24,9 @@ import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.data.exercise.VariationMuscleDao
 import com.github.radupana.featherweight.data.exercise.VariationRelation
 import com.github.radupana.featherweight.data.exercise.VariationRelationDao
-import com.github.radupana.featherweight.data.migration.Migration3to4
 import com.github.radupana.featherweight.data.profile.OneRMDao
 import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
-import com.github.radupana.featherweight.data.programme.ExerciseSubstitution
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeDao
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
@@ -43,11 +45,14 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         VariationRelation::class,
         VariationAlias::class,
         VariationMuscle::class,
+        // Custom exercises and usage tracking
+        CustomExerciseCore::class,
+        CustomExerciseVariation::class,
+        UserExerciseUsage::class,
         // Other entities
         Programme::class,
         ProgrammeWeek::class,
         ProgrammeWorkout::class,
-        ExerciseSubstitution::class,
         ProgrammeProgress::class,
         UserExerciseMax::class,
         OneRMHistory::class,
@@ -59,7 +64,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         TrainingAnalysis::class,
         ParseRequest::class,
     ],
-    version = 4,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -84,6 +89,10 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun variationMuscleDao(): VariationMuscleDao
 
     abstract fun variationRelationDao(): VariationRelationDao
+
+    abstract fun customExerciseDao(): CustomExerciseDao
+
+    abstract fun userExerciseUsageDao(): UserExerciseUsageDao
 
     abstract fun programmeDao(): ProgrammeDao
 
@@ -115,8 +124,7 @@ abstract class FeatherweightDatabase : RoomDatabase() {
                             context.applicationContext,
                             FeatherweightDatabase::class.java,
                             "featherweight-db",
-                        ).addMigrations(Migration3to4())
-                        .fallbackToDestructiveMigrationOnDowngrade(false)
+                        ).fallbackToDestructiveMigration()
                         .build()
                 INSTANCE = instance
                 instance

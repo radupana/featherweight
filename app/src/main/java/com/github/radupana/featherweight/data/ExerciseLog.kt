@@ -6,6 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
+    tableName = "exercise_logs",
     indices = [
         Index(value = ["workoutId"]),
         Index(value = ["exerciseVariationId"]),
@@ -18,22 +19,18 @@ import androidx.room.PrimaryKey
             childColumns = ["workoutId"],
             onDelete = ForeignKey.CASCADE,
         ),
-        ForeignKey(
-            entity = com.github.radupana.featherweight.data.exercise.ExerciseVariation::class,
-            parentColumns = ["id"],
-            childColumns = ["exerciseVariationId"],
-            onDelete = ForeignKey.RESTRICT,
-        ),
     ],
 )
 data class ExerciseLog(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val userId: String? = null,
     val workoutId: Long,
-    val exerciseVariationId: Long,
+    val exerciseVariationId: Long, // Can reference either system or custom exercise
+    val isCustomExercise: Boolean = false, // true = custom exercise, false = system exercise
     val exerciseOrder: Int,
     val supersetGroup: Int? = null,
     val notes: String? = null,
     val originalVariationId: Long? = null,
+    val originalIsCustom: Boolean = false, // true if original was custom exercise
     val isSwapped: Boolean = false, // Flag to indicate if exercise was swapped
 )

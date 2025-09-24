@@ -23,9 +23,9 @@ class WorkoutCompletionViewModel(
     private val _uiState = MutableStateFlow(WorkoutCompletionUiState())
     val uiState: StateFlow<WorkoutCompletionUiState> = _uiState.asStateFlow()
 
-    // Reactive exercise name mapping
-    private val _exerciseNames = MutableStateFlow<Map<Long, String>>(emptyMap())
-    val exerciseNames: StateFlow<Map<Long, String>> = _exerciseNames
+    // Reactive exercise name mapping using composite keys
+    private val _exerciseNames = MutableStateFlow<Map<String, String>>(emptyMap())
+    val exerciseNames: StateFlow<Map<String, String>> = _exerciseNames
 
     init {
         loadExerciseNames()
@@ -33,8 +33,28 @@ class WorkoutCompletionViewModel(
 
     private fun loadExerciseNames() {
         viewModelScope.launch {
-            val exercises = repository.getAllExercises()
-            _exerciseNames.value = exercises.associate { it.id to it.name }
+            try {
+                // Load both system and custom exercise names
+                val systemExercises = repository.getAllExercises()
+                val customExercises = repository.getCustomExercises()
+
+                val nameMap = mutableMapOf<String, String>()
+
+                // Add system exercises with "system_" prefix
+                systemExercises.forEach { exercise ->
+                    nameMap["system_${exercise.id}"] = exercise.name
+                }
+
+                // Add custom exercises with "custom_" prefix
+                customExercises.forEach { exercise ->
+                    nameMap["custom_${exercise.id}"] = exercise.name
+                }
+
+                Log.d(TAG, "Loaded ${systemExercises.size} system exercises and ${customExercises.size} custom exercises")
+                _exerciseNames.value = nameMap
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load exercise names", e)
+            }
         }
     }
 
@@ -56,6 +76,9 @@ class WorkoutCompletionViewModel(
                 val exercises = repository.getExercisesForWorkout(workoutId)
                 val sets = repository.getSetsForWorkout(workoutId)
                 val personalRecords = repository.getPersonalRecordsForWorkout(workoutId)
+
+                // Reload exercise names to ensure custom exercises are included
+                loadExerciseNames()
 
                 val summary = calculateSummary(workout, exercises, sets, personalRecords)
 
@@ -114,14 +137,18 @@ class WorkoutCompletionViewModel(
         val heaviestSet =
             completedSets.maxByOrNull { it.actualWeight * it.actualReps }?.let { set ->
                 val exerciseLog = exercises.find { it.id == set.exerciseLogId }
-                val exerciseVariation =
-                    exerciseLog?.let {
-                        repository.getExerciseById(it.exerciseVariationId)
-                    }
+                val exerciseName =
+                    exerciseLog?.let { log ->
+                        if (log.isCustomExercise) {
+                            repository.getCustomExerciseById(log.exerciseVariationId)?.name
+                        } else {
+                            repository.getExerciseById(log.exerciseVariationId)?.name
+                        }
+                    } ?: ""
                 SetInfo(
                     weight = set.actualWeight,
                     reps = set.actualReps,
-                    exerciseName = exerciseVariation?.name ?: "",
+                    exerciseName = exerciseName,
                 )
             }
 
@@ -130,11 +157,13 @@ class WorkoutCompletionViewModel(
             completedSets
                 .groupBy { set ->
                     val exerciseLog = exercises.find { it.id == set.exerciseLogId }
-                    val exerciseVariation =
-                        exerciseLog?.let {
-                            repository.getExerciseById(it.exerciseVariationId)
+                    exerciseLog?.let { log ->
+                        if (log.isCustomExercise) {
+                            repository.getCustomExerciseById(log.exerciseVariationId)?.name
+                        } else {
+                            repository.getExerciseById(log.exerciseVariationId)?.name
                         }
-                    exerciseVariation?.name ?: ""
+                    } ?: ""
                 }.mapValues { (_, sets) ->
                     sets.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
                 }
@@ -147,11 +176,15 @@ class WorkoutCompletionViewModel(
                     setCount =
                         completedSets.count { set ->
                             val exerciseLog = exercises.find { ex -> ex.id == set.exerciseLogId }
-                            val exerciseVariation =
+                            val name =
                                 exerciseLog?.let { log ->
-                                    repository.getExerciseById(log.exerciseVariationId)
+                                    if (log.isCustomExercise) {
+                                        repository.getCustomExerciseById(log.exerciseVariationId)?.name
+                                    } else {
+                                        repository.getExerciseById(log.exerciseVariationId)?.name
+                                    }
                                 }
-                            exerciseVariation?.name == it.key
+                            name == it.key
                         },
                 )
             }

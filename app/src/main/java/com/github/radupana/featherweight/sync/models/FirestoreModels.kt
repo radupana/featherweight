@@ -189,18 +189,6 @@ data class FirestoreProgrammeWorkout(
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
 
-data class FirestoreExerciseSubstitution(
-    @DocumentId val id: String = "",
-    val localId: Long = 0,
-    val userId: String? = null,
-    val programmeId: Long = 0,
-    val originalExerciseName: String = "",
-    val substitutionCategory: String = "",
-    val substitutionCriteria: String? = null,
-    val isUserDefined: Boolean = false,
-    @ServerTimestamp val lastModified: Timestamp? = null,
-)
-
 data class FirestoreProgrammeProgress(
     @DocumentId val id: String = "",
     val localId: Long = 0,
@@ -225,6 +213,7 @@ data class FirestoreUserExerciseMax(
     val localId: Long = 0,
     val userId: String? = null,
     val exerciseVariationId: Long = 0,
+    val isCustomExercise: Boolean? = false,
     val mostWeightLifted: Float = 0f,
     val mostWeightReps: Int = 0,
     val mostWeightRpe: Float? = null,
@@ -243,6 +232,7 @@ data class FirestoreOneRMHistory(
     val localId: Long = 0,
     val userId: String? = null,
     val exerciseVariationId: Long = 0,
+    val isCustomExercise: Boolean? = false,
     val oneRMEstimate: Float = 0f,
     val context: String = "",
     val recordedAt: Timestamp = Timestamp.now(),
@@ -254,6 +244,7 @@ data class FirestorePersonalRecord(
     val localId: Long = 0,
     val userId: String? = null,
     val exerciseVariationId: Long = 0,
+    val isCustomExercise: Boolean? = false,
     val weight: Float = 0f,
     val reps: Int = 0,
     val rpe: Float? = null,

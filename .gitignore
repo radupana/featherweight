@@ -29,3 +29,9 @@ app/schemas/
 app/google-services.json
 
 featherweight-release.keystore
+node_modules
+package-lock.json
+package.json*.js
+*.csv
+featherweight-new-service-key.json
+exercises.json

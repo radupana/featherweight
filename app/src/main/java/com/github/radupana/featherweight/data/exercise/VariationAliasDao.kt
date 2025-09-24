@@ -34,4 +34,7 @@ interface VariationAliasDao {
 
     @Query("SELECT * FROM variation_aliases WHERE id = :id")
     suspend fun getAliasById(id: Long): VariationAlias?
+
+    @Query("DELETE FROM variation_aliases WHERE variationId = :variationId")
+    suspend fun deleteForVariation(variationId: Long)
 }

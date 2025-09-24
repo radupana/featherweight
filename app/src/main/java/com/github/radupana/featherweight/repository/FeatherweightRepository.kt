@@ -16,12 +16,12 @@ import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
-import com.github.radupana.featherweight.data.exercise.ExerciseCorrelationSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
-import com.github.radupana.featherweight.data.exercise.ExerciseSeeder
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
+import com.github.radupana.featherweight.data.exercise.RMScalingType
+import com.github.radupana.featherweight.data.exercise.UserExerciseUsage
 import com.github.radupana.featherweight.data.exercise.VariationAlias
 import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.data.profile.OneRMHistory
@@ -42,6 +42,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
 import com.github.radupana.featherweight.data.programme.RepsStructure
 import com.github.radupana.featherweight.data.programme.StrengthImprovement
 import com.github.radupana.featherweight.data.programme.WorkoutStructure
+import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.domain.ExerciseStats
 import com.github.radupana.featherweight.domain.ProgrammeHistoryDetails
@@ -51,14 +52,21 @@ import com.github.radupana.featherweight.domain.WorkoutDayInfo
 import com.github.radupana.featherweight.domain.WorkoutHistoryDetail
 import com.github.radupana.featherweight.domain.WorkoutHistoryEntry
 import com.github.radupana.featherweight.domain.WorkoutSummary
+import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.service.ProgressionService
 import com.github.radupana.featherweight.util.WeightFormatter
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -71,9 +79,17 @@ class FeatherweightRepository(
     }
 
     private val db = FeatherweightDatabase.getDatabase(application)
+    private val authManager: AuthenticationManager = ServiceLocator.provideAuthenticationManager(application)
 
     // Sub-repositories
-    private val exerciseRepository = ExerciseRepository(db)
+    private val exerciseRepository = ExerciseRepository(db, authManager)
+    private val customExerciseRepository =
+        CustomExerciseRepository(
+            db.customExerciseDao(),
+            db.exerciseDao(),
+            db.userExerciseUsageDao(),
+            authManager,
+        )
     private val oneRMRepository = OneRMRepository(application)
     private val programmeRepository = ProgrammeRepository(application)
     private val workoutRepository = WorkoutRepository(application)
@@ -89,13 +105,15 @@ class FeatherweightRepository(
     private val variationAliasDao = db.variationAliasDao()
     private val variationInstructionDao = db.variationInstructionDao()
     private val programmeDao = db.programmeDao()
+    private val userExerciseUsageDao = db.userExerciseUsageDao()
+    private val customExerciseDao = db.customExerciseDao()
 
     private val globalExerciseProgressDao = db.globalExerciseProgressDao()
     private val exerciseCorrelationDao = db.exerciseCorrelationDao()
     private val personalRecordDao = db.personalRecordDao()
 
     // Initialize GlobalProgressTracker
-    private val globalProgressTracker = GlobalProgressTracker(this, db)
+    private val globalProgressTracker = GlobalProgressTracker(this, db, customExerciseRepository)
 
     // Delegate OneRM functionality to OneRMRepository
     val pendingOneRMUpdates: StateFlow<List<PendingOneRMUpdate>> = oneRMRepository.pendingOneRMUpdates
@@ -104,41 +122,42 @@ class FeatherweightRepository(
 
     suspend fun applyOneRMUpdate(update: PendingOneRMUpdate) = oneRMRepository.applyOneRMUpdate(update)
 
-    private val exerciseSeeder =
-        ExerciseSeeder(
-            exerciseCoreDao = exerciseCoreDao,
-            exerciseVariationDao = exerciseVariationDao,
-            variationMuscleDao = variationMuscleDao,
-            variationAliasDao = variationAliasDao,
-            variationInstructionDao = variationInstructionDao,
-            context = application,
-        )
-
-    private val exerciseCorrelationSeeder = ExerciseCorrelationSeeder(exerciseCorrelationDao)
-
-    // Initialize with seed data for testing
-    suspend fun seedDatabaseIfEmpty() {
-        withContext(Dispatchers.IO) {
-            val exerciseCount = exerciseDao.getAllExercisesWithDetails().size
-
-            // Always seed exercises if there are none
-            if (exerciseCount == 0) {
-                exerciseSeeder.seedExercises()
-            }
-
-            // Seed exercise correlations if none exist
-            if (exerciseCorrelationDao.getCount() == 0) {
-                exerciseCorrelationSeeder.seedExerciseCorrelations()
-            }
-        }
-    }
-
-    // ===== EXERCISE METHODS (Delegated to ExerciseRepository) =====
-
-    // Exercise methods - delegated to ExerciseRepository
     suspend fun getAllExercises() = exerciseRepository.getAllExercises()
 
     suspend fun getAllExercisesWithAliases() = exerciseRepository.getAllExercisesWithAliases()
+
+    // Custom exercise methods
+    suspend fun createCustomExercise(
+        name: String,
+        category: ExerciseCategory,
+        equipment: Equipment = Equipment.BODYWEIGHT,
+        difficulty: ExerciseDifficulty = ExerciseDifficulty.BEGINNER,
+        requiresWeight: Boolean = true,
+        movementPattern: MovementPattern = MovementPattern.PUSH,
+        isCompound: Boolean = false,
+        recommendedRepRange: String? = null,
+        rmScalingType: RMScalingType = RMScalingType.STANDARD,
+        restDurationSeconds: Int = 90,
+    ) = customExerciseRepository.createCustomExercise(
+        name = name,
+        category = category,
+        equipment = equipment,
+        difficulty = difficulty,
+        requiresWeight = requiresWeight,
+        movementPattern = movementPattern,
+        isCompound = isCompound,
+        recommendedRepRange = recommendedRepRange,
+        rmScalingType = rmScalingType,
+        restDurationSeconds = restDurationSeconds,
+    )
+
+    suspend fun getCustomExercises() = customExerciseRepository.getCustomExercises()
+
+    suspend fun getCustomExerciseById(exerciseId: Long) = customExerciseRepository.getCustomExerciseById(exerciseId)
+
+    suspend fun deleteUserCustomExercise(exerciseId: Long) = customExerciseRepository.deleteCustomExercise(exerciseId)
+
+    suspend fun isCustomExerciseNameAvailable(name: String) = customExerciseRepository.isNameAvailable(name)
 
     suspend fun getExerciseById(id: Long) = exerciseRepository.getExerciseById(id)
 
@@ -150,13 +169,13 @@ class FeatherweightRepository(
     // Get aliases for a variation
     suspend fun getAliasesForVariation(variationId: Long): List<VariationAlias> = variationAliasDao.getAliasesForVariation(variationId)
 
-    // Delete custom exercise
+    // Legacy exercise methods (will be deprecated - use custom exercise methods above)
     suspend fun canDeleteExercise(exerciseVariationId: Long): Result<Boolean> = exerciseRepository.canDeleteExercise(exerciseVariationId)
 
-    suspend fun deleteCustomExercise(exerciseVariationId: Long): Result<Unit> = exerciseRepository.deleteCustomExercise(exerciseVariationId)
+    suspend fun deleteSystemCustomExercise(exerciseVariationId: Long): Result<Unit> = exerciseRepository.deleteCustomExercise(exerciseVariationId)
 
-    // Create custom exercise
-    suspend fun createCustomExercise(
+    // Legacy create method
+    suspend fun createSystemCustomExercise(
         name: String,
         category: ExerciseCategory,
         primaryMuscles: Set<MuscleGroup>,
@@ -207,12 +226,39 @@ class FeatherweightRepository(
 
     suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long = exerciseRepository.insertExerciseLog(exerciseLog)
 
-    suspend fun incrementExerciseUsageCount(exerciseId: Long) = db.exerciseDao().incrementUsageCount(exerciseId)
+    suspend fun incrementExerciseUsageCount(exerciseId: Long) {
+        try {
+            val userId = authManager.getCurrentUserId() ?: "local"
+            // Check if this is a custom exercise
+            val isCustom =
+                if (userId == "local") {
+                    false // Unauthenticated users can't create custom exercises
+                } else {
+                    customExerciseDao.isCustomExercise(exerciseId, userId)
+                }
+
+            // First ensure the usage record exists
+            userExerciseUsageDao.getOrCreateUsage(
+                userId = userId,
+                variationId = exerciseId,
+                isCustom = isCustom,
+            )
+            // Now increment the count
+            userExerciseUsageDao.incrementUsageCount(
+                userId = userId,
+                variationId = exerciseId,
+                isCustom = isCustom,
+                timestamp = LocalDateTime.now(),
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to increment usage count for exercise $exerciseId", e)
+        }
+    }
 
     suspend fun insertSetLog(setLog: SetLog): Long {
-        // Round all weight fields to nearest 0.25
         val roundedSetLog =
             setLog.copy(
+                userId = authManager.getCurrentUserId() ?: "local",
                 targetWeight = setLog.targetWeight?.let { WeightFormatter.roundToNearestQuarter(it) },
                 actualWeight = WeightFormatter.roundToNearestQuarter(setLog.actualWeight),
                 suggestedWeight = setLog.suggestedWeight?.let { WeightFormatter.roundToNearestQuarter(it) },
@@ -221,9 +267,9 @@ class FeatherweightRepository(
     }
 
     suspend fun updateSetLog(setLog: SetLog) {
-        // Round all weight fields to nearest 0.25
         val roundedSetLog =
             setLog.copy(
+                userId = setLog.userId ?: (authManager.getCurrentUserId() ?: "local"),
                 targetWeight = setLog.targetWeight?.let { WeightFormatter.roundToNearestQuarter(it) },
                 actualWeight = WeightFormatter.roundToNearestQuarter(setLog.actualWeight),
                 suggestedWeight = setLog.suggestedWeight?.let { WeightFormatter.roundToNearestQuarter(it) },
@@ -239,11 +285,13 @@ class FeatherweightRepository(
         exercise: ExerciseVariation,
         exerciseOrder: Int,
         notes: String? = null,
-    ): Long = exerciseRepository.insertExerciseLogWithExerciseReference(workoutId, exercise, exerciseOrder, notes)
+        isCustomExercise: Boolean = false,
+    ): Long = exerciseRepository.insertExerciseLogWithExerciseReference(workoutId, exercise, exerciseOrder, notes, isCustomExercise)
 
     // Workout state management
     suspend fun getOngoingWorkout(): Workout? {
-        val allWorkouts = workoutDao.getAllWorkouts()
+        val userId = authManager.getCurrentUserId() ?: "local"
+        val allWorkouts = workoutDao.getAllWorkouts(userId)
         return allWorkouts.find { workout ->
             // Check if workout has exercises but no completion marker
             val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
@@ -373,9 +421,10 @@ class FeatherweightRepository(
         exerciseVariationId: Long,
         currentWorkoutId: Long,
     ): ExerciseHistory? {
+        val userId = authManager.getCurrentUserId() ?: "local"
         val allWorkouts =
             workoutDao
-                .getAllWorkouts()
+                .getAllWorkouts(userId)
                 .filter { it.status == WorkoutStatus.COMPLETED } // Only look at completed workouts
                 .sortedByDescending { it.date } // Most recent first
 
@@ -495,6 +544,7 @@ class FeatherweightRepository(
                 workoutStructure.name
             val workout =
                 Workout(
+                    userId = authManager.getCurrentUserId() ?: "local",
                     date = now,
                     name = defaultName,
                     status = WorkoutStatus.IN_PROGRESS,
@@ -515,6 +565,7 @@ class FeatherweightRepository(
                 if (exerciseVariationId != null) {
                     val exerciseLog =
                         ExerciseLog(
+                            userId = authManager.getCurrentUserId() ?: "local",
                             workoutId = workoutId,
                             exerciseVariationId = exerciseVariationId,
                             exerciseOrder = index,
@@ -537,6 +588,7 @@ class FeatherweightRepository(
 
                                 val setLog =
                                     SetLog(
+                                        userId = authManager.getCurrentUserId() ?: "local",
                                         exerciseLogId = exerciseLogId,
                                         setOrder = setIndex + 1,
                                         targetReps = targetReps,
@@ -557,6 +609,7 @@ class FeatherweightRepository(
 
                                 val setLog =
                                     SetLog(
+                                        userId = authManager.getCurrentUserId() ?: "local",
                                         exerciseLogId = exerciseLogId,
                                         setOrder = setIndex + 1,
                                         targetReps = reps.min,
@@ -575,6 +628,7 @@ class FeatherweightRepository(
 
                                 val setLog =
                                     SetLog(
+                                        userId = authManager.getCurrentUserId() ?: "local",
                                         exerciseLogId = exerciseLogId,
                                         setOrder = setIndex + 1,
                                         targetReps = reps.value,
@@ -598,6 +652,7 @@ class FeatherweightRepository(
 
                                 val setLog =
                                     SetLog(
+                                        userId = authManager.getCurrentUserId() ?: "local",
                                         exerciseLogId = exerciseLogId,
                                         setOrder = setIndex + 1,
                                         targetReps = targetReps,
@@ -760,6 +815,7 @@ class FeatherweightRepository(
 
             val programme =
                 Programme(
+                    userId = authManager.getCurrentUserId() ?: "local",
                     name = name,
                     description = description,
                     durationWeeks = durationWeeks,
@@ -1017,12 +1073,13 @@ class FeatherweightRepository(
 
             // For each exercise, find 1RM improvements
             val improvements = mutableListOf<StrengthImprovement>()
+            val userId = authManager.getCurrentUserId() ?: "local"
 
             for (exerciseVariationId in exerciseVariationIds) {
                 val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId) ?: continue
 
                 // Get 1RM history in programme date range
-                val history = db.oneRMDao().getOneRMHistoryInRange(exerciseVariationId, startDate, endDate)
+                val history = db.oneRMDao().getOneRMHistoryInRange(exerciseVariationId, userId, startDate, endDate)
                 // Only include exercises with 3+ data points to reduce noise
                 if (history.size >= 3) {
                     val startingMax = history.first().oneRMEstimate
@@ -1183,9 +1240,12 @@ class FeatherweightRepository(
         // Round weight to nearest 0.25
         val roundedWeight = WeightFormatter.roundToNearestQuarter(oneRMEstimate)
         val dateToUse = workoutDate ?: LocalDateTime.now()
+        val isCustom = customExerciseRepository.isCustomExercise(exerciseVariationId)
         val userExerciseMax =
             UserExerciseMax(
+                userId = authManager.getCurrentUserId() ?: "local",
                 exerciseVariationId = exerciseVariationId,
+                isCustomExercise = isCustom,
                 mostWeightLifted = roundedWeight,
                 mostWeightReps = 1,
                 mostWeightRpe = null,
@@ -1205,6 +1265,7 @@ class FeatherweightRepository(
             estimatedMax = roundedWeight,
             source = oneRMContext,
             date = dateToUse,
+            userId = authManager.getCurrentUserId() ?: "local",
         )
     }
 
@@ -1273,7 +1334,8 @@ class FeatherweightRepository(
     suspend fun checkForPR(
         setLog: SetLog,
         exerciseVariationId: Long,
-    ): List<PersonalRecord> = personalRecordRepository.checkForPR(setLog, exerciseVariationId, ::updateOrInsertOneRM)
+        isCustomExercise: Boolean = false,
+    ): List<PersonalRecord> = personalRecordRepository.checkForPR(setLog, exerciseVariationId, isCustomExercise, ::updateOrInsertOneRM)
 
     /**
      * Get recent personal records across all exercises
@@ -1293,9 +1355,10 @@ class FeatherweightRepository(
         endDate: LocalDateTime,
     ): List<OneRMHistory> =
         withContext(Dispatchers.IO) {
+            val userId = authManager.getCurrentUserId() ?: "local"
             val exercise = getExerciseByName(exerciseName)
             if (exercise != null) {
-                db.oneRMDao().getOneRMHistoryInRange(exercise.id, startDate, endDate)
+                db.oneRMDao().getOneRMHistoryInRange(exercise.id, userId, startDate, endDate)
             } else {
                 emptyList()
             }
@@ -1353,9 +1416,10 @@ class FeatherweightRepository(
      */
     suspend fun getWorkoutForDate(date: LocalDate): Workout? =
         withContext(Dispatchers.IO) {
+            val userId = authManager.getCurrentUserId() ?: "local"
             val startOfDay = date.atStartOfDay()
             val endOfDay = date.atTime(23, 59, 59)
-            workoutDao.getWorkoutsInDateRange(startOfDay, endOfDay).firstOrNull()
+            workoutDao.getWorkoutsInDateRange(userId, startOfDay, endOfDay).firstOrNull()
         }
 
     suspend fun getWorkoutCountsByMonth(
@@ -1366,8 +1430,10 @@ class FeatherweightRepository(
             val startOfMonth = LocalDate.of(year, month, 1)
             val endOfMonth = startOfMonth.plusMonths(1)
 
+            val userId = authManager.getCurrentUserId() ?: "local"
             val dateCountList =
                 workoutDao.getWorkoutCountsByDateRange(
+                    userId = userId,
                     startDate = startOfMonth.atStartOfDay(),
                     endDate = endOfMonth.atStartOfDay(),
                 )
@@ -1383,9 +1449,11 @@ class FeatherweightRepository(
     ): Map<LocalDate, WorkoutDayInfo> =
         withContext(Dispatchers.IO) {
             val startOfMonth = LocalDate.of(year, month, 1)
+            val userId = authManager.getCurrentUserId() ?: "local"
             val endOfMonth = startOfMonth.plusMonths(1)
             val dateStatusCountList =
                 workoutDao.getWorkoutCountsByDateRangeWithStatus(
+                    userId = userId,
                     startDate = startOfMonth.atStartOfDay(),
                     endDate = endOfMonth.atStartOfDay(),
                 )
@@ -1419,10 +1487,11 @@ class FeatherweightRepository(
 
     suspend fun getWorkoutsByWeek(weekStart: LocalDate): List<WorkoutSummary> =
         withContext(Dispatchers.IO) {
+            val userId = authManager.getCurrentUserId() ?: "local"
             val startOfWeek = weekStart.atStartOfDay()
             val endOfWeek = weekStart.plusDays(7).atStartOfDay()
 
-            val workouts = workoutDao.getWorkoutsByWeek(startOfWeek, endOfWeek)
+            val workouts = workoutDao.getWorkoutsByWeek(userId, startOfWeek, endOfWeek)
             workouts.map { workout ->
                 val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
                 val allSets = mutableListOf<SetLog>()
@@ -1456,8 +1525,10 @@ class FeatherweightRepository(
         endDate: LocalDate,
     ): List<WorkoutSummary> =
         withContext(Dispatchers.IO) {
+            val userId = authManager.getCurrentUserId() ?: "local"
             val workouts =
                 workoutDao.getWorkoutsInDateRange(
+                    userId = userId,
                     startDate = startDate.atStartOfDay(),
                     endDate = endDate.atTime(23, 59, 59),
                 )
@@ -1495,8 +1566,10 @@ class FeatherweightRepository(
         endDate: LocalDate,
     ): Int =
         withContext(Dispatchers.IO) {
+            val userId = authManager.getCurrentUserId() ?: "local"
             workoutDao
                 .getWorkoutsInDateRange(
+                    userId = userId,
                     startDate = startDate.atStartOfDay(),
                     endDate = endDate.atTime(23, 59, 59),
                 ).count { it.status == WorkoutStatus.COMPLETED }
@@ -1512,27 +1585,213 @@ class FeatherweightRepository(
         }
 
     /**
-     * Clear all workout data (for developer tools)
+     * Clear all data for the currently logged-in user
+     * Called on logout to prevent data leakage to next user
+     *
+     * For authenticated users: Deletes all data where userId matches the current user
+     * For unauthenticated users: Deletes all data where userId is "local"
+     *
+     * NEVER deletes system data (exercises, variations, aliases, etc.)
+     * NEVER deletes other users' data
      */
-    suspend fun clearAllWorkoutData() =
+    suspend fun clearAllUserData() =
         withContext(Dispatchers.IO) {
-            // Delete all workouts and related data
-            workoutDao.deleteAllWorkouts()
-            exerciseLogDao.deleteAllExerciseLogs()
-            setLogDao.deleteAllSetLogs()
-            personalRecordDao.deleteAllPersonalRecords()
-            globalExerciseProgressDao.deleteAllGlobalProgress()
+            val currentUserId = authManager.getCurrentUserId() ?: "local"
+            Log.w(TAG, "CLEARING ALL USER DATA for userId: $currentUserId")
 
-            // CRITICAL: Also delete all 1RM related data
-            // Delete all UserExerciseMax entries
-            db.oneRMDao().deleteAllUserExerciseMaxes()
+            // First, delete from Firestore if authenticated
+            if (currentUserId != "local") {
+                try {
+                    deleteAllUserDataFromFirestore(currentUserId)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to delete Firestore data", e)
+                    // Continue with local deletion even if Firestore fails
+                }
+            }
 
-            // Delete all OneRMHistory entries
-            db.oneRMDao().deleteAllOneRMHistory()
+            // Delete all user-specific data from local database
+            deleteAllUserDataFromLocalDatabase(currentUserId)
 
-            // Reset all exercise usage counts to 0
-            exerciseDao.resetAllUsageCounts()
+            Log.w(TAG, "User data deletion complete for userId: $currentUserId")
         }
+
+    private suspend fun deleteAllUserDataFromLocalDatabase(userId: String) {
+        // Delete in order to respect foreign key constraints
+        // This method deletes data ONLY for the specific userId
+        Log.d(TAG, "Starting local database deletion for userId: $userId")
+
+        try {
+            // 1. Delete SetLogs (leaf nodes) - for specific user
+            Log.d(TAG, "Deleting SetLogs for userId: $userId")
+            setLogDao.deleteAllByUserId(userId)
+            Log.d(TAG, "Deleted SetLogs")
+
+            // 2. Delete ExerciseLogs - for specific user
+            Log.d(TAG, "Deleting ExerciseLogs for userId: $userId")
+            exerciseLogDao.deleteAllByUserId(userId)
+            Log.d(TAG, "Deleted ExerciseLogs")
+
+            // 3. Delete Workouts - for specific user
+            Log.d(TAG, "Deleting Workouts for userId: $userId")
+            workoutDao.deleteAllByUserId(userId)
+            Log.d(TAG, "Deleted Workouts")
+
+            // 4. Delete PersonalRecords - for specific user
+            Log.d(TAG, "Deleting PersonalRecords for userId: $userId")
+            personalRecordDao.deleteAllByUserId(userId)
+            Log.d(TAG, "Deleted PersonalRecords")
+
+            // 5. Delete UserExerciseMax - for specific user
+            Log.d(TAG, "Deleting UserExerciseMaxes for userId: $userId")
+            db.oneRMDao().deleteAllByUserId(userId)
+
+            // 6. Delete OneRMHistory - for specific user
+            Log.d(TAG, "Deleting OneRMHistory for userId: $userId")
+            db.oneRMDao().deleteAllHistoryByUserId(userId)
+
+            // 7. Delete GlobalExerciseProgress - for specific user
+            Log.d(TAG, "Deleting GlobalExerciseProgress for userId: $userId")
+            globalExerciseProgressDao.deleteAllByUserId(userId)
+
+            // 8. Delete TrainingAnalysis - for specific user
+            Log.d(TAG, "Deleting TrainingAnalysis for userId: $userId")
+            db.trainingAnalysisDao().deleteAllByUserId(userId)
+
+            // 9. Delete all Programme-related data - for specific user
+            // Delete in proper order to respect foreign keys
+            Log.d(TAG, "Deleting Programme data for userId: $userId")
+            programmeDao.deleteAllProgrammeProgressForUser(userId)
+            programmeDao.deleteAllProgrammeWorkoutsForUser(userId)
+            programmeDao.deleteAllProgrammeWeeksForUser(userId)
+            programmeDao.deleteAllProgrammesForUser(userId)
+
+            // 10. Delete ExercisePerformanceTracking - for specific user
+            Log.d(TAG, "Deleting ExercisePerformanceTracking for userId: $userId")
+            db.exercisePerformanceTrackingDao().deleteAllByUserId(userId)
+
+            // 11. Delete ExerciseSwapHistory - for specific user
+            Log.d(TAG, "Deleting ExerciseSwapHistory for userId: $userId")
+            db.exerciseSwapHistoryDao().deleteAllByUserId(userId)
+
+            // 12. Delete ParseRequests - for specific user
+            Log.d(TAG, "Deleting ParseRequests for userId: $userId")
+            db.parseRequestDao().deleteAllByUserId(userId)
+
+            Log.d(TAG, "Local database deletion complete")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during local database deletion", e)
+            throw e
+        }
+
+        // NOTE: We DO NOT delete:
+        // - ExerciseCore (system data)
+        // - ExerciseVariation (system data)
+        // - VariationInstruction (system data)
+        // - VariationAlias (system data)
+        // - VariationMuscle (system data)
+        // - VariationRelation (system data)
+    }
+
+    private suspend fun deleteAllUserDataFromFirestore(userId: String) {
+        val firestore = FirebaseFirestore.getInstance()
+        val userPath = "users/$userId"
+
+        Log.w(TAG, "Starting Firestore deletion for user: $userPath")
+        Log.w(TAG, "WARNING: Only deleting from /users/$userId/* - NOT touching root collections!")
+
+        // Collections to delete (ONLY under /users/{userId}/*)
+        val collectionsToDelete =
+            listOf(
+                "workouts",
+                "exerciseLogs",
+                "setLogs",
+                "personalRecords",
+                "userExerciseMaxes",
+                "oneRMHistory",
+                "globalExerciseProgress",
+                "trainingAnalysis",
+                "programmes",
+                "programmeWeeks",
+                "programmeWorkouts",
+                "programmeExercises",
+                "exercisePerformanceTracking",
+                "exerciseSwapHistory",
+                "parseRequests",
+            )
+
+        // Delete all collections in PARALLEL for speed
+        val totalDeleted =
+            coroutineScope {
+                val deletionJobs =
+                    collectionsToDelete.map { collection ->
+                        async {
+                            val fullPath = "$userPath/$collection"
+                            try {
+                                Log.d(TAG, "Starting deletion of: $fullPath")
+                                val deletedCount = deleteCollection(firestore, fullPath)
+                                Log.d(TAG, "Deleted $deletedCount documents from $fullPath")
+                                deletedCount
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to delete Firestore collection: $fullPath", e)
+                                0
+                            }
+                        }
+                    }
+
+                // Wait for all deletions to complete and sum the results
+                deletionJobs.awaitAll().sum()
+            }
+
+        // Finally, delete the user document itself (with timeout to avoid hanging)
+        try {
+            Log.d(TAG, "Deleting user document: $userPath")
+            withTimeout(5000) {
+                // 5 second timeout
+                firestore.document(userPath).delete().await()
+            }
+            Log.d(TAG, "Successfully deleted user document")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete user document: $userPath", e)
+            // Continue anyway - don't let this block the operation
+        }
+
+        Log.w(TAG, "Firestore deletion complete. Total documents deleted: $totalDeleted")
+    }
+
+    private suspend fun deleteCollection(
+        firestore: FirebaseFirestore,
+        collectionPath: String,
+    ): Int {
+        val collection = firestore.collection(collectionPath)
+        val batchSize = 500 // Firestore batch limit
+
+        // First check if collection is empty - quick exit if no documents
+        val firstQuery = collection.limit(1).get().await()
+        if (firstQuery.isEmpty) {
+            Log.d(TAG, "Collection $collectionPath is empty, skipping")
+            return 0
+        }
+
+        var query = collection.limit(batchSize.toLong())
+        var deleted = 0
+
+        do {
+            val querySnapshot = query.get().await()
+
+            if (querySnapshot.isEmpty) break
+
+            val batch = firestore.batch()
+            for (document in querySnapshot.documents) {
+                batch.delete(document.reference)
+            }
+
+            batch.commit().await()
+            deleted += querySnapshot.size()
+        } while (querySnapshot.size() >= batchSize)
+
+        Log.d(TAG, "Deleted $deleted documents from $collectionPath")
+        return deleted
+    }
 
     // ===== INSIGHTS SECTION =====
 
@@ -1553,9 +1812,10 @@ class FeatherweightRepository(
         endDate: LocalDate,
     ): List<ExerciseWorkoutSummary> =
         withContext(Dispatchers.IO) {
+            val userId = authManager.getCurrentUserId() ?: "local"
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.atTime(23, 59, 59)
-            val exerciseLogs = exerciseLogDao.getExerciseLogsInDateRange(exerciseVariationId, startDateTime, endDateTime)
+            val exerciseLogs = exerciseLogDao.getExerciseLogsInDateRange(exerciseVariationId, userId, startDateTime, endDateTime)
 
             val results =
                 exerciseLogs.mapNotNull { exerciseLog ->
@@ -1591,9 +1851,10 @@ class FeatherweightRepository(
         endDate: LocalDate,
     ): List<SetLog> =
         withContext(Dispatchers.IO) {
+            val userId = authManager.getCurrentUserId() ?: "local"
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.atTime(23, 59, 59)
-            val exerciseLogs = exerciseLogDao.getExerciseLogsInDateRange(exerciseVariationId, startDateTime, endDateTime)
+            val exerciseLogs = exerciseLogDao.getExerciseLogsInDateRange(exerciseVariationId, userId, startDateTime, endDateTime)
 
             val allSets = mutableListOf<SetLog>()
             exerciseLogs.forEach { exerciseLog ->
@@ -1611,7 +1872,8 @@ class FeatherweightRepository(
         exerciseVariationId: Long,
     ): Int =
         withContext(Dispatchers.IO) {
-            exerciseLogDao.getTotalSessionsForExercise(exerciseVariationId)
+            val userId = authManager.getCurrentUserId() ?: "local"
+            exerciseLogDao.getTotalSessionsForExercise(exerciseVariationId, userId)
         }
 
     suspend fun getMaxWeightForExerciseInDateRange(
@@ -1635,10 +1897,11 @@ class FeatherweightRepository(
         endDate: LocalDate,
     ): List<LocalDate> =
         withContext(Dispatchers.IO) {
+            val userId = authManager.getCurrentUserId() ?: "local"
             val startDateTime = startDate.atStartOfDay()
             val endDateTime = endDate.atTime(23, 59, 59)
             exerciseLogDao
-                .getDistinctWorkoutsForExercise(exerciseVariationId, startDateTime, endDateTime)
+                .getDistinctWorkoutsForExercise(exerciseVariationId, userId, startDateTime, endDateTime)
                 .map { it.date.toLocalDate() }
                 .distinct()
         }
@@ -1671,7 +1934,8 @@ class FeatherweightRepository(
                 )
 
             // Get all unique exercises from completed workouts
-            val allExerciseVariationIds = exerciseLogDao.getAllUniqueExerciseVariationIds()
+            val userId = authManager.getCurrentUserId() ?: "local"
+            val allExerciseVariationIds = exerciseLogDao.getAllUniqueExerciseVariationIds(userId)
 
             val allSummaries =
                 allExerciseVariationIds
@@ -1761,7 +2025,8 @@ class FeatherweightRepository(
 
     suspend fun getCompletedWorkoutCountSince(since: LocalDateTime): Int =
         withContext(Dispatchers.IO) {
-            val workouts = db.workoutDao().getAllWorkouts()
+            val userId = authManager.getCurrentUserId() ?: "local"
+            val workouts = db.workoutDao().getAllWorkouts(userId)
             workouts.count { workout ->
                 workout.status == WorkoutStatus.COMPLETED &&
                     workout.date.isAfter(since)
@@ -1770,10 +2035,11 @@ class FeatherweightRepository(
 
     suspend fun getWeeklyStreak(): Int =
         withContext(Dispatchers.IO) {
+            val userId = authManager.getCurrentUserId() ?: "local"
             val workouts =
                 db
                     .workoutDao()
-                    .getAllWorkouts()
+                    .getAllWorkouts(userId)
                     .filter { it.status == WorkoutStatus.COMPLETED }
                     .sortedByDescending { it.date }
 
@@ -1939,7 +2205,8 @@ class FeatherweightRepository(
     // Training Analysis methods
     suspend fun saveTrainingAnalysis(analysis: TrainingAnalysis) =
         withContext(Dispatchers.IO) {
-            db.trainingAnalysisDao().insertAnalysis(analysis)
+            val analysisWithUserId = analysis.copy(userId = authManager.getCurrentUserId() ?: "local")
+            db.trainingAnalysisDao().insertAnalysis(analysisWithUserId)
         }
 
     suspend fun getLatestTrainingAnalysis(): TrainingAnalysis? =
@@ -1952,6 +2219,7 @@ class FeatherweightRepository(
         withContext(Dispatchers.IO) {
             val request =
                 ParseRequest(
+                    userId = authManager.getCurrentUserId() ?: "local",
                     rawText = rawText,
                     status = ParseStatus.PROCESSING,
                     createdAt = LocalDateTime.now(),
@@ -1986,5 +2254,21 @@ class FeatherweightRepository(
                 Log.e("FeatherweightRepository", "Failed to delete parse request ${request.id}", e)
                 throw e
             }
+        }
+
+    // User-specific exercise usage methods
+    fun getCurrentUserId(): String? = authManager.getCurrentUserId()
+
+    suspend fun getUserExerciseUsage(
+        userId: String,
+        variationId: Long,
+        isCustom: Boolean,
+    ): UserExerciseUsage? =
+        withContext(Dispatchers.IO) {
+            userExerciseUsageDao.getUsage(
+                userId = userId,
+                variationId = variationId,
+                isCustom = isCustom,
+            )
         }
 }

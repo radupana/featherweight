@@ -12,14 +12,12 @@ import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,7 +30,6 @@ import com.github.radupana.featherweight.viewmodel.SyncUiState
 @Composable
 fun SyncSection(
     syncState: SyncUiState,
-    onSyncNow: () -> Unit,
     onRestoreFromCloud: () -> Unit,
     onToggleAutoSync: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -59,7 +56,6 @@ fun SyncSection(
             } else {
                 SyncControls(
                     syncState = syncState,
-                    onSyncNow = onSyncNow,
                     onRestoreFromCloud = onRestoreFromCloud,
                     onToggleAutoSync = onToggleAutoSync,
                 )
@@ -107,7 +103,6 @@ private fun SyncStatusIcon(syncState: SyncUiState) {
 @Composable
 private fun SyncControls(
     syncState: SyncUiState,
-    onSyncNow: () -> Unit,
     onRestoreFromCloud: () -> Unit,
     onToggleAutoSync: (Boolean) -> Unit,
 ) {
@@ -136,7 +131,7 @@ private fun SyncControls(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Auto-sync",
+                text = "Auto-backup",
                 style = MaterialTheme.typography.bodyLarge,
             )
             Switch(
@@ -146,15 +141,14 @@ private fun SyncControls(
             )
         }
 
-        SyncButtons(
+        RestoreButton(
             isSyncing = syncState.isSyncing,
-            onSyncNow = onSyncNow,
             onRestoreFromCloud = onRestoreFromCloud,
         )
 
         if (syncState.autoSyncEnabled) {
             Text(
-                text = "Data syncs automatically every 6 hours",
+                text = "Data backs up automatically every 6 hours",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -163,19 +157,17 @@ private fun SyncControls(
 }
 
 @Composable
-private fun SyncButtons(
+private fun RestoreButton(
     isSyncing: Boolean,
-    onSyncNow: () -> Unit,
     onRestoreFromCloud: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Button(
-            onClick = onSyncNow,
+            onClick = onRestoreFromCloud,
             enabled = !isSyncing,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             if (isSyncing) {
                 CircularProgressIndicator(
@@ -184,23 +176,22 @@ private fun SyncButtons(
                 )
             } else {
                 Icon(
-                    Icons.Default.Sync,
+                    Icons.Default.CloudQueue,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                 )
             }
             Text(
-                text = if (isSyncing) "Syncing..." else "Sync Now",
+                text = if (isSyncing) "Restoring..." else "Restore from Cloud",
                 modifier = Modifier.padding(start = 8.dp),
             )
         }
 
-        OutlinedButton(
-            onClick = onRestoreFromCloud,
-            enabled = !isSyncing,
-            modifier = Modifier.weight(1f),
-        ) {
-            Text("Restore")
-        }
+        Text(
+            text = "Use this to download your data from the cloud and replace local data",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 8.dp),
+        )
     }
 }

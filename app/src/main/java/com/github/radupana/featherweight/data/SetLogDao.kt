@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 
 @Dao
 interface SetLogDao {
@@ -13,13 +14,16 @@ interface SetLogDao {
     @Insert
     suspend fun insert(setLog: SetLog): Long
 
-    @Query("SELECT * FROM SetLog WHERE exerciseLogId = :exerciseLogId ORDER BY setOrder")
+    @Upsert
+    suspend fun upsertSetLog(setLog: SetLog): Long
+
+    @Query("SELECT * FROM set_logs WHERE exerciseLogId = :exerciseLogId ORDER BY setOrder")
     suspend fun getSetLogsForExercise(exerciseLogId: Long): List<SetLog>
 
-    @Query("SELECT * FROM SetLog WHERE id = :setLogId")
+    @Query("SELECT * FROM set_logs WHERE id = :setLogId")
     suspend fun getSetLogById(setLogId: Long): SetLog?
 
-    @Query("UPDATE SetLog SET isCompleted = :completed, completedAt = :completedAt WHERE id = :setId")
+    @Query("UPDATE set_logs SET isCompleted = :completed, completedAt = :completedAt WHERE id = :setId")
     suspend fun markSetCompleted(
         setId: Long,
         completed: Boolean,
@@ -32,18 +36,18 @@ interface SetLogDao {
     @Update
     suspend fun update(setLog: SetLog)
 
-    @Query("DELETE FROM SetLog WHERE id = :setId")
+    @Query("DELETE FROM set_logs WHERE id = :setId")
     suspend fun deleteSetLog(setId: Long)
 
-    @Query("DELETE FROM SetLog WHERE exerciseLogId = :exerciseLogId")
+    @Query("DELETE FROM set_logs WHERE exerciseLogId = :exerciseLogId")
     suspend fun deleteAllSetsForExercise(exerciseLogId: Long)
 
     // Progress Analytics queries
     @Query(
         """
-        SELECT s.* FROM SetLog s 
-        INNER JOIN ExerciseLog e ON s.exerciseLogId = e.id 
-        INNER JOIN Workout w ON e.workoutId = w.id
+        SELECT s.* FROM set_logs s 
+        INNER JOIN exercise_logs e ON s.exerciseLogId = e.id 
+        INNER JOIN workouts w ON e.workoutId = w.id
         WHERE e.exerciseVariationId = :exerciseVariationId 
         AND s.isCompleted = 1 
         AND w.date >= :sinceDate 
@@ -58,9 +62,9 @@ interface SetLogDao {
     @Query(
         """
         SELECT w.date 
-        FROM Workout w 
-        INNER JOIN ExerciseLog e ON w.id = e.workoutId 
-        INNER JOIN SetLog s ON e.id = s.exerciseLogId 
+        FROM workouts w 
+        INNER JOIN exercise_logs e ON w.id = e.workoutId 
+        INNER JOIN set_logs s ON e.id = s.exerciseLogId 
         WHERE s.id = :setLogId
     """,
     )
@@ -69,23 +73,32 @@ interface SetLogDao {
     @Query(
         """
         SELECT w.id 
-        FROM Workout w 
-        INNER JOIN ExerciseLog e ON w.id = e.workoutId 
-        INNER JOIN SetLog s ON e.id = s.exerciseLogId 
+        FROM workouts w 
+        INNER JOIN exercise_logs e ON w.id = e.workoutId 
+        INNER JOIN set_logs s ON e.id = s.exerciseLogId 
         WHERE s.id = :setLogId
     """,
     )
     suspend fun getWorkoutIdForSetLog(setLogId: Long): Long?
 
-    @Query("DELETE FROM SetLog")
+    @Query("DELETE FROM set_logs")
     suspend fun deleteAllSetLogs()
+
+    @Query("DELETE FROM set_logs WHERE userId = :userId")
+    suspend fun deleteAllForUser(userId: String)
+
+    @Query("DELETE FROM set_logs WHERE userId = :userId")
+    suspend fun deleteAllByUserId(userId: String)
+
+    @Query("DELETE FROM set_logs WHERE userId IS NULL")
+    suspend fun deleteAllWhereUserIdIsNull()
 
     @Query(
         """
         SELECT MAX(s.actualWeight) 
-        FROM SetLog s 
-        INNER JOIN ExerciseLog e ON s.exerciseLogId = e.id 
-        INNER JOIN Workout w ON e.workoutId = w.id
+        FROM set_logs s 
+        INNER JOIN exercise_logs e ON s.exerciseLogId = e.id 
+        INNER JOIN workouts w ON e.workoutId = w.id
         WHERE e.exerciseVariationId = :exerciseVariationId 
         AND s.isCompleted = 1 
         AND s.actualWeight > 0
@@ -101,9 +114,9 @@ interface SetLogDao {
 
     @Query(
         """
-        SELECT s.* FROM SetLog s
-        INNER JOIN ExerciseLog e ON s.exerciseLogId = e.id
-        INNER JOIN Workout w ON e.workoutId = w.id
+        SELECT s.* FROM set_logs s
+        INNER JOIN exercise_logs e ON s.exerciseLogId = e.id
+        INNER JOIN workouts w ON e.workoutId = w.id
         WHERE e.exerciseVariationId = :exerciseVariationId
         AND s.isCompleted = 1
         AND w.status = 'COMPLETED'

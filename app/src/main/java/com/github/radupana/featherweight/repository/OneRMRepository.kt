@@ -8,6 +8,8 @@ import com.github.radupana.featherweight.data.profile.Big4ExerciseWithOptionalMa
 import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
+import com.github.radupana.featherweight.di.ServiceLocator
+import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +24,7 @@ import java.time.LocalDateTime
  */
 class OneRMRepository(
     application: Application,
+    private val authManager: AuthenticationManager = ServiceLocator.provideAuthenticationManager(application),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val db: FeatherweightDatabase = FeatherweightDatabase.getDatabase(application),
 ) {
@@ -30,6 +33,13 @@ class OneRMRepository(
     }
 
     private val oneRMDao = db.oneRMDao()
+    private val customExerciseRepository =
+        CustomExerciseRepository(
+            db.customExerciseDao(),
+            db.exerciseDao(),
+            db.userExerciseUsageDao(),
+            authManager,
+        )
     private val _pendingOneRMUpdates = MutableStateFlow<List<PendingOneRMUpdate>>(emptyList())
     val pendingOneRMUpdates = _pendingOneRMUpdates.asStateFlow()
 
@@ -38,21 +48,54 @@ class OneRMRepository(
     }
 
     suspend fun applyOneRMUpdate(update: PendingOneRMUpdate) {
+        val userId = authManager.getCurrentUserId() ?: "local"
         val roundedWeight = WeightFormatter.roundToNearestQuarter(update.suggestedMax)
-        val previousMax = oneRMDao.getCurrentMax(update.exerciseVariationId)?.oneRMEstimate
+        val previousMax = oneRMDao.getCurrentMax(update.exerciseVariationId, userId)?.oneRMEstimate
         val exercise = db.exerciseDao().getExerciseVariationById(update.exerciseVariationId)
         val exerciseName = exercise?.name ?: "Unknown"
 
-        oneRMDao.upsertExerciseMax(
-            exerciseVariationId = update.exerciseVariationId,
-            maxWeight = roundedWeight,
-            notes = "Updated from ${update.source}",
-        )
+        // Use proper method to maintain isCustomExercise flag
+        val isCustom = customExerciseRepository.isCustomExercise(update.exerciseVariationId)
+        val currentMax = oneRMDao.getCurrentMax(update.exerciseVariationId, userId)
+
+        if (currentMax != null) {
+            // Update existing record, preserving isCustomExercise flag
+            oneRMDao.updateExerciseMax(
+                currentMax.copy(
+                    oneRMEstimate = roundedWeight,
+                    mostWeightLifted = roundedWeight,
+                    mostWeightReps = 1,
+                    mostWeightDate = update.workoutDate ?: LocalDateTime.now(),
+                    oneRMDate = update.workoutDate ?: LocalDateTime.now(),
+                    oneRMContext = update.source,
+                    notes = "Updated from ${update.source}",
+                    isCustomExercise = isCustom,
+                ),
+            )
+        } else {
+            // Insert new record with correct isCustomExercise flag
+            oneRMDao.insertExerciseMax(
+                UserExerciseMax(
+                    userId = userId,
+                    exerciseVariationId = update.exerciseVariationId,
+                    isCustomExercise = isCustom,
+                    mostWeightLifted = roundedWeight,
+                    mostWeightReps = 1,
+                    mostWeightDate = update.workoutDate ?: LocalDateTime.now(),
+                    oneRMEstimate = roundedWeight,
+                    oneRMContext = update.source,
+                    oneRMConfidence = update.confidence,
+                    oneRMDate = update.workoutDate ?: LocalDateTime.now(),
+                    notes = "Updated from ${update.source}",
+                ),
+            )
+        }
         saveOneRMToHistory(
             exerciseVariationId = update.exerciseVariationId,
             estimatedMax = roundedWeight,
             source = update.source,
             date = update.workoutDate ?: LocalDateTime.now(),
+            userId = userId,
         )
 
         Log.i(
@@ -71,30 +114,46 @@ class OneRMRepository(
     suspend fun getCurrentMaxesForExercises(
         exerciseIds: List<Long>,
     ): Map<Long, Float> {
-        val maxes = oneRMDao.getCurrentMaxesForExercises(exerciseIds)
+        val userId = authManager.getCurrentUserId() ?: "local"
+        val maxes = oneRMDao.getCurrentMaxesForExercises(exerciseIds, userId)
         return maxes.associate { max ->
             max.exerciseVariationId to (max.oneRMEstimate ?: 0f)
         }
     }
 
-    fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>> = oneRMDao.getAllCurrentMaxesWithNames()
+    fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>> {
+        val userId = authManager.getCurrentUserId() ?: "local"
+        return oneRMDao.getAllCurrentMaxesWithNames(userId)
+    }
 
-    fun getBig4ExercisesWithMaxes(): Flow<List<Big4ExerciseWithOptionalMax>> = oneRMDao.getBig4ExercisesWithMaxes()
+    fun getBig4ExercisesWithMaxes(): Flow<List<Big4ExerciseWithOptionalMax>> {
+        val userId = authManager.getCurrentUserId() ?: "local"
+        return oneRMDao.getBig4ExercisesWithMaxes(userId)
+    }
 
-    fun getOtherExercisesWithMaxes(): Flow<List<OneRMWithExerciseName>> = oneRMDao.getOtherExercisesWithMaxes()
+    fun getOtherExercisesWithMaxes(): Flow<List<OneRMWithExerciseName>> {
+        val userId = authManager.getCurrentUserId() ?: "local"
+        return oneRMDao.getOtherExercisesWithMaxes(userId)
+    }
 
     suspend fun getOneRMForExercise(exerciseVariationId: Long): Float? {
-        val exerciseMax = oneRMDao.getCurrentMax(exerciseVariationId)
+        val userId = authManager.getCurrentUserId() ?: "local"
+        val exerciseMax = oneRMDao.getCurrentMax(exerciseVariationId, userId)
         return exerciseMax?.oneRMEstimate
     }
 
-    suspend fun deleteAllMaxesForExercise(exerciseId: Long) = oneRMDao.deleteAllMaxesForExercise(exerciseId)
+    suspend fun deleteAllMaxesForExercise(exerciseId: Long) {
+        val userId = authManager.getCurrentUserId() ?: "local"
+        oneRMDao.deleteAllMaxesForExercise(exerciseId, userId)
+    }
 
     suspend fun updateOrInsertOneRM(oneRMRecord: UserExerciseMax) =
         withContext(ioDispatcher) {
-            val existing = oneRMDao.getCurrentMax(oneRMRecord.exerciseVariationId)
+            val userId = authManager.getCurrentUserId() ?: "local"
+            val existing = oneRMDao.getCurrentMax(oneRMRecord.exerciseVariationId, userId)
             val exercise = db.exerciseDao().getExerciseVariationById(oneRMRecord.exerciseVariationId)
             val exerciseName = exercise?.name ?: "Unknown"
+            val isCustom = customExerciseRepository.isCustomExercise(oneRMRecord.exerciseVariationId)
 
             val shouldSaveHistory =
                 if (existing != null) {
@@ -103,7 +162,7 @@ class OneRMRepository(
                             TAG,
                             "New 1RM PR! Exercise: $exerciseName, old: ${existing.oneRMEstimate}kg, new: ${oneRMRecord.oneRMEstimate}kg",
                         )
-                        oneRMDao.updateExerciseMax(oneRMRecord.copy(id = existing.id))
+                        oneRMDao.updateExerciseMax(oneRMRecord.copy(id = existing.id, isCustomExercise = isCustom))
                         true
                     } else {
                         Log.d(
@@ -117,7 +176,7 @@ class OneRMRepository(
                         TAG,
                         "First 1RM recorded for $exerciseName: ${oneRMRecord.oneRMEstimate}kg",
                     )
-                    oneRMDao.insertExerciseMax(oneRMRecord)
+                    oneRMDao.insertExerciseMax(oneRMRecord.copy(isCustomExercise = isCustom))
                     true
                 }
 
@@ -126,23 +185,31 @@ class OneRMRepository(
                     exerciseVariationId = oneRMRecord.exerciseVariationId,
                     estimatedMax = oneRMRecord.oneRMEstimate,
                     source = oneRMRecord.oneRMContext,
+                    userId = oneRMRecord.userId,
                 )
             }
         }
 
     suspend fun getCurrentOneRMEstimate(
         exerciseVariationId: Long,
-    ): Float? = oneRMDao.getCurrentOneRMEstimate(exerciseVariationId)
+    ): Float? {
+        val userId = authManager.getCurrentUserId() ?: "local"
+        return oneRMDao.getCurrentOneRMEstimate(exerciseVariationId, userId)
+    }
 
     suspend fun saveOneRMToHistory(
         exerciseVariationId: Long,
         estimatedMax: Float,
         source: String,
         date: LocalDateTime = LocalDateTime.now(),
+        userId: String? = null,
     ) {
+        val isCustom = customExerciseRepository.isCustomExercise(exerciseVariationId)
         val history =
             OneRMHistory(
+                userId = userId,
                 exerciseVariationId = exerciseVariationId,
+                isCustomExercise = isCustom,
                 oneRMEstimate = estimatedMax,
                 context = source,
                 recordedAt = date,
@@ -158,7 +225,8 @@ class OneRMRepository(
     suspend fun getExercise1RM(
         exerciseVariationId: Long,
     ): Float? {
-        val exerciseMax = oneRMDao.getCurrentMax(exerciseVariationId)
+        val userId = authManager.getCurrentUserId() ?: "local"
+        val exerciseMax = oneRMDao.getCurrentMax(exerciseVariationId, userId)
         return exerciseMax?.oneRMEstimate
     }
 

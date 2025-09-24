@@ -9,12 +9,14 @@ import com.github.radupana.featherweight.manager.WeightUnitManagerImpl
 import com.github.radupana.featherweight.service.FirebaseAuthService
 import com.github.radupana.featherweight.service.FirebaseAuthServiceImpl
 import com.github.radupana.featherweight.sync.SyncManager
+import com.github.radupana.featherweight.viewmodel.SyncViewModel
 
 object ServiceLocator {
     private var authenticationManager: AuthenticationManager? = null
     private var firebaseAuthService: FirebaseAuthService? = null
     private var weightUnitManager: WeightUnitManager? = null
     private var syncManager: SyncManager? = null
+    private var syncViewModel: SyncViewModel? = null
 
     fun provideAuthenticationManager(context: Context): AuthenticationManager =
         authenticationManager ?: synchronized(this) {
@@ -48,6 +50,17 @@ object ServiceLocator {
             }
         }
 
+    fun getSyncViewModel(context: Context): SyncViewModel =
+        syncViewModel ?: synchronized(this) {
+            syncViewModel ?: SyncViewModel(
+                context = context.applicationContext,
+                syncManager = getSyncManager(context),
+                authManager = provideAuthenticationManager(context),
+            ).also {
+                syncViewModel = it
+            }
+        }
+
     fun getAuthenticationManager(context: Context): AuthenticationManager = provideAuthenticationManager(context)
 
     fun reset() {
@@ -55,5 +68,6 @@ object ServiceLocator {
         firebaseAuthService = null
         weightUnitManager = null
         syncManager = null
+        syncViewModel = null
     }
 }

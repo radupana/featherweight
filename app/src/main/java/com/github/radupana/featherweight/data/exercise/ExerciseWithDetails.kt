@@ -9,6 +9,9 @@ data class ExerciseWithDetails(
     val muscles: List<VariationMuscle> = emptyList(),
     val aliases: List<VariationAlias> = emptyList(),
     val instructions: List<VariationInstruction> = emptyList(),
+    val usageCount: Int = 0, // User-specific usage count
+    val isFavorite: Boolean = false, // User-specific favorite status
+    val isCustom: Boolean = false, // true if this is a user's custom exercise
 ) {
     /**
      * Get primary muscles for this variation.

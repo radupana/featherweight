@@ -43,7 +43,12 @@
             android:exported="false"
             android:theme="@style/Theme.Featherweight"
             android:windowSoftInputMode="adjustResize" />
-        
+
+        <activity
+            android:name=".EmailVerificationActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Featherweight" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

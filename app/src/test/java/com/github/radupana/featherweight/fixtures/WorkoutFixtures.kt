@@ -63,6 +63,7 @@ object WorkoutFixtures {
 
     fun createSetLog(
         id: Long = 1L,
+        userId: String? = "test-user-id",
         exerciseLogId: Long = 1L,
         setOrder: Int = 1,
         targetReps: Int? = 10,
@@ -81,6 +82,7 @@ object WorkoutFixtures {
         notes: String? = null,
     ) = SetLog(
         id = id,
+        userId = userId,
         exerciseLogId = exerciseLogId,
         setOrder = setOrder,
         targetReps = targetReps,
@@ -103,10 +105,12 @@ object WorkoutFixtures {
         count: Int = 3,
         weight: Float = 100f,
         reps: Int = 5,
+        userId: String? = "test-user-id",
     ): List<SetLog> =
         (1..count).map { setNumber ->
             createSetLog(
                 id = setNumber.toLong(),
+                userId = userId,
                 setOrder = setNumber,
                 targetReps = reps,
                 targetWeight = weight,

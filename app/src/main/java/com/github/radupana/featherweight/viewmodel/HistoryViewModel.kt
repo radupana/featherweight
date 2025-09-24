@@ -63,6 +63,7 @@ class HistoryViewModel(
 ) : AndroidViewModel(application) {
     private val repository = FeatherweightRepository(application)
     private val database = FeatherweightDatabase.getDatabase(application)
+    private val authManager = ServiceLocator.provideAuthenticationManager(application)
     private val exportService =
         WorkoutExportService(
             database.workoutDao(),
@@ -70,6 +71,7 @@ class HistoryViewModel(
             database.setLogDao(),
             database.oneRMDao(),
             repository,
+            authManager,
             ServiceLocator.provideWeightUnitManager(application),
         )
     private val exportHandler = ExportHandler(application)
@@ -99,9 +101,8 @@ class HistoryViewModel(
     var selectedProgrammeId: Long? = null
 
     init {
-        // Seed database if empty and load initial page
+        // Load initial page
         viewModelScope.launch {
-            repository.seedDatabaseIfEmpty()
             loadInitialData()
             loadCalendarData()
             loadWeekGroups()

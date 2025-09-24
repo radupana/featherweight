@@ -33,12 +33,12 @@ fun SettingsTab(
     onWeightUnitSelected: (WeightUnit) -> Unit,
     accountInfo: AccountInfo?,
     onSignOut: () -> Unit,
+    onSignIn: () -> Unit = {},
     onSendVerificationEmail: () -> Unit,
     onChangePassword: (String, String) -> Unit,
     onResetPassword: () -> Unit,
     onDeleteAccount: () -> Unit,
     syncState: SyncUiState,
-    onSyncNow: () -> Unit,
     onRestoreFromCloud: () -> Unit,
     onToggleAutoSync: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -54,6 +54,7 @@ fun SettingsTab(
         AccountSection(
             accountInfo = accountInfo,
             onSignOut = onSignOut,
+            onSignIn = onSignIn,
             onSendVerificationEmail = onSendVerificationEmail,
             onChangePassword = onChangePassword,
             onResetPassword = onResetPassword,
@@ -62,7 +63,6 @@ fun SettingsTab(
 
         SyncSection(
             syncState = syncState,
-            onSyncNow = onSyncNow,
             onRestoreFromCloud = onRestoreFromCloud,
             onToggleAutoSync = onToggleAutoSync,
         )

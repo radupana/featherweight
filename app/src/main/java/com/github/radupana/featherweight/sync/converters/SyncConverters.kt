@@ -32,7 +32,6 @@ import com.github.radupana.featherweight.data.exercise.VariationRelation
 import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.OneRMType
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
-import com.github.radupana.featherweight.data.programme.ExerciseSubstitution
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeDifficulty
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
@@ -44,7 +43,6 @@ import com.github.radupana.featherweight.sync.models.FirestoreExerciseCore
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseCorrelation
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseLog
 import com.github.radupana.featherweight.sync.models.FirestoreExercisePerformanceTracking
-import com.github.radupana.featherweight.sync.models.FirestoreExerciseSubstitution
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseSwapHistory
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseVariation
 import com.github.radupana.featherweight.sync.models.FirestoreGlobalExerciseProgress
@@ -179,7 +177,7 @@ object SyncConverters {
     fun toFirestoreExerciseCore(exerciseCore: ExerciseCore): FirestoreExerciseCore =
         FirestoreExerciseCore(
             localId = exerciseCore.id,
-            createdByUserId = exerciseCore.createdByUserId,
+            createdByUserId = null, // System exercises don't have creators
             name = exerciseCore.name,
             category = exerciseCore.category.name,
             movementPattern = exerciseCore.movementPattern.name,
@@ -191,7 +189,6 @@ object SyncConverters {
     fun fromFirestoreExerciseCore(firestoreCore: FirestoreExerciseCore): ExerciseCore =
         ExerciseCore(
             id = firestoreCore.localId,
-            createdByUserId = firestoreCore.createdByUserId,
             name = firestoreCore.name,
             category = ExerciseCategory.valueOf(firestoreCore.category),
             movementPattern = MovementPattern.valueOf(firestoreCore.movementPattern),
@@ -203,7 +200,7 @@ object SyncConverters {
     fun toFirestoreExerciseVariation(variation: ExerciseVariation): FirestoreExerciseVariation =
         FirestoreExerciseVariation(
             localId = variation.id,
-            createdByUserId = variation.createdByUserId,
+            createdByUserId = null, // System exercises don't have creators
             coreExerciseId = variation.coreExerciseId,
             name = variation.name,
             equipment = variation.equipment.name,
@@ -212,8 +209,8 @@ object SyncConverters {
             recommendedRepRange = variation.recommendedRepRange,
             rmScalingType = variation.rmScalingType.name,
             restDurationSeconds = variation.restDurationSeconds,
-            usageCount = variation.usageCount,
-            isCustom = variation.isCustom,
+            usageCount = 0, // Usage tracked separately
+            isCustom = false, // System exercises are never custom
             createdAt = localDateTimeToTimestamp(variation.createdAt),
             updatedAt = localDateTimeToTimestamp(variation.updatedAt),
         )
@@ -221,7 +218,6 @@ object SyncConverters {
     fun fromFirestoreExerciseVariation(firestoreVariation: FirestoreExerciseVariation): ExerciseVariation =
         ExerciseVariation(
             id = firestoreVariation.localId,
-            createdByUserId = firestoreVariation.createdByUserId,
             coreExerciseId = firestoreVariation.coreExerciseId,
             name = firestoreVariation.name,
             equipment = Equipment.valueOf(firestoreVariation.equipment),
@@ -230,8 +226,6 @@ object SyncConverters {
             recommendedRepRange = firestoreVariation.recommendedRepRange,
             rmScalingType = RMScalingType.valueOf(firestoreVariation.rmScalingType),
             restDurationSeconds = firestoreVariation.restDurationSeconds,
-            usageCount = firestoreVariation.usageCount,
-            isCustom = firestoreVariation.isCustom,
             createdAt = timestampToLocalDateTime(firestoreVariation.createdAt),
             updatedAt = timestampToLocalDateTime(firestoreVariation.updatedAt),
         )
@@ -422,28 +416,6 @@ object SyncConverters {
             workoutStructure = firestoreWorkout.workoutStructure,
         )
 
-    fun toFirestoreExerciseSubstitution(substitution: ExerciseSubstitution): FirestoreExerciseSubstitution =
-        FirestoreExerciseSubstitution(
-            localId = substitution.id,
-            userId = substitution.userId,
-            programmeId = substitution.programmeId,
-            originalExerciseName = substitution.originalExerciseName,
-            substitutionCategory = substitution.substitutionCategory.name,
-            substitutionCriteria = substitution.substitutionCriteria,
-            isUserDefined = substitution.isUserDefined,
-        )
-
-    fun fromFirestoreExerciseSubstitution(firestoreSubstitution: FirestoreExerciseSubstitution): ExerciseSubstitution =
-        ExerciseSubstitution(
-            id = firestoreSubstitution.localId,
-            userId = firestoreSubstitution.userId,
-            programmeId = firestoreSubstitution.programmeId,
-            originalExerciseName = firestoreSubstitution.originalExerciseName,
-            substitutionCategory = ExerciseCategory.valueOf(firestoreSubstitution.substitutionCategory),
-            substitutionCriteria = firestoreSubstitution.substitutionCriteria,
-            isUserDefined = firestoreSubstitution.isUserDefined,
-        )
-
     fun toFirestoreProgrammeProgress(progress: ProgrammeProgress): FirestoreProgrammeProgress =
         FirestoreProgrammeProgress(
             localId = progress.id,
@@ -477,6 +449,7 @@ object SyncConverters {
             localId = max.id,
             userId = max.userId,
             exerciseVariationId = max.exerciseVariationId,
+            isCustomExercise = max.isCustomExercise,
             mostWeightLifted = max.mostWeightLifted,
             mostWeightReps = max.mostWeightReps,
             mostWeightRpe = max.mostWeightRpe,
@@ -494,6 +467,7 @@ object SyncConverters {
             id = firestoreMax.localId,
             userId = firestoreMax.userId,
             exerciseVariationId = firestoreMax.exerciseVariationId,
+            isCustomExercise = firestoreMax.isCustomExercise ?: false,
             mostWeightLifted = firestoreMax.mostWeightLifted,
             mostWeightReps = firestoreMax.mostWeightReps,
             mostWeightRpe = firestoreMax.mostWeightRpe,
@@ -511,6 +485,7 @@ object SyncConverters {
             localId = history.id,
             userId = history.userId,
             exerciseVariationId = history.exerciseVariationId,
+            isCustomExercise = history.isCustomExercise,
             oneRMEstimate = history.oneRMEstimate,
             context = history.context,
             recordedAt = localDateTimeToTimestamp(history.recordedAt),
@@ -521,6 +496,7 @@ object SyncConverters {
             id = firestoreHistory.localId,
             userId = firestoreHistory.userId,
             exerciseVariationId = firestoreHistory.exerciseVariationId,
+            isCustomExercise = firestoreHistory.isCustomExercise ?: false,
             oneRMEstimate = firestoreHistory.oneRMEstimate,
             context = firestoreHistory.context,
             recordedAt = timestampToLocalDateTime(firestoreHistory.recordedAt),
@@ -531,6 +507,7 @@ object SyncConverters {
             localId = record.id,
             userId = record.userId,
             exerciseVariationId = record.exerciseVariationId,
+            isCustomExercise = record.isCustomExercise,
             weight = record.weight,
             reps = record.reps,
             rpe = record.rpe,
@@ -551,6 +528,7 @@ object SyncConverters {
             id = firestoreRecord.localId,
             userId = firestoreRecord.userId,
             exerciseVariationId = firestoreRecord.exerciseVariationId,
+            isCustomExercise = firestoreRecord.isCustomExercise ?: false,
             weight = firestoreRecord.weight,
             reps = firestoreRecord.reps,
             rpe = firestoreRecord.rpe,

@@ -1,13 +1,23 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Backup rules for Featherweight app
    See https://developer.android.com/guide/topics/data/autobackup
-   for details.
    Note: This file is ignored for devices older than API 31
    See https://developer.android.com/about/versions/12/backup-restore
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <!-- Exclude all databases to prevent data corruption after reinstall -->
+    <exclude domain="database" path="." />
+
+    <!-- Exclude auth preferences to prevent auth state corruption -->
+    <exclude domain="sharedpref" path="auth_prefs.xml" />
+
+    <!-- Exclude Firebase encrypted preferences -->
+    <exclude domain="sharedpref" path="com.google.firebase.auth" />
+
+    <!-- Exclude cache and temporary files -->
+    <exclude domain="cache" path="." />
+
+    <!-- Allow backup of non-sensitive preferences only -->
+    <include domain="sharedpref" path="app_settings.xml" />
 </full-backup-content>

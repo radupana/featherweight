@@ -18,21 +18,18 @@ enum class VolumeTrend {
 
 @Entity(
     tableName = "global_exercise_progress",
-    indices = [androidx.room.Index(value = ["exerciseVariationId"]), androidx.room.Index("userId")],
-    foreignKeys = [
-        androidx.room.ForeignKey(
-            entity = com.github.radupana.featherweight.data.exercise.ExerciseVariation::class,
-            parentColumns = ["id"],
-            childColumns = ["exerciseVariationId"],
-            onDelete = androidx.room.ForeignKey.RESTRICT,
-        ),
+    indices = [
+        androidx.room.Index(value = ["exerciseVariationId"]),
+        androidx.room.Index("userId"),
     ],
+    // Note: Removed foreign key since it can reference either system or custom exercises
 )
 data class GlobalExerciseProgress(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val userId: String? = null,
-    val exerciseVariationId: Long,
+    val exerciseVariationId: Long, // Can reference either system or custom exercise
+    val isCustomExercise: Boolean = false, // true = custom exercise, false = system exercise
     val currentWorkingWeight: Float, // Most recent working weight
     val estimatedMax: Float, // Calculated or from UserExerciseMax
     val lastUpdated: LocalDateTime,

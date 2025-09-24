@@ -176,7 +176,14 @@ fun ExerciseCard(
             )
             // Exercise name (no progress info for cleaner look)
             val exerciseNames by viewModel.exerciseNames.collectAsState()
-            val exerciseName = exerciseNames[exercise.exerciseVariationId] ?: "Unknown Exercise"
+            // Use composite key to avoid ID collisions between system and custom exercises
+            val key =
+                if (exercise.isCustomExercise) {
+                    "custom_${exercise.exerciseVariationId}"
+                } else {
+                    "system_${exercise.exerciseVariationId}"
+                }
+            val exerciseName = exerciseNames[key] ?: "Unknown Exercise"
 
             // Exercise name with last performance
             val lastPerformance by viewModel.lastPerformance.collectAsState()

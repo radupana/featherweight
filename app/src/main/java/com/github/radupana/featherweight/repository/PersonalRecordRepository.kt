@@ -29,6 +29,7 @@ class PersonalRecordRepository(
     private val personalRecordDao = db.personalRecordDao()
     private val setLogDao = db.setLogDao()
     private val exerciseVariationDao = db.exerciseVariationDao()
+    private val customExerciseDao = db.customExerciseDao()
     private val prService = prDetectionService ?: PRDetectionService(personalRecordDao, setLogDao, exerciseVariationDao)
 
     suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord> =
@@ -49,15 +50,25 @@ class PersonalRecordRepository(
     suspend fun checkForPR(
         setLog: SetLog,
         exerciseVariationId: Long,
+        isCustomExercise: Boolean,
         updateOrInsertOneRM: suspend (UserExerciseMax) -> Unit,
     ): List<PersonalRecord> =
         withContext(ioDispatcher) {
             Log.d(TAG, "Checking for PR: weight=${setLog.actualWeight}kg, reps=${setLog.actualReps}, completed=${setLog.isCompleted}")
-            val prs = prService.checkForPR(setLog, exerciseVariationId)
+            val prs = prService.checkForPR(setLog, exerciseVariationId, isCustomExercise)
 
             if (prs.isNotEmpty()) {
-                val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
-                val exerciseName = exercise?.name ?: "Unknown"
+                Log.d(TAG, "Looking up exercise name for ID $exerciseVariationId, isCustom: $isCustomExercise")
+                val exerciseName =
+                    if (isCustomExercise) {
+                        val customExercise = customExerciseDao.getCustomVariationById(exerciseVariationId)
+                        Log.d(TAG, "Custom exercise lookup result: ${customExercise?.name ?: "NULL"}")
+                        customExercise?.name ?: "Unknown"
+                    } else {
+                        val systemExercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
+                        Log.d(TAG, "System exercise lookup result: ${systemExercise?.name ?: "NULL"}")
+                        systemExercise?.name ?: "Unknown"
+                    }
 
                 prs.forEach { pr ->
                     Log.i(

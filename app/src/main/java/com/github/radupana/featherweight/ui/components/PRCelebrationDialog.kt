@@ -47,7 +47,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun PRCelebrationDialog(
     personalRecords: List<PersonalRecord>,
-    exerciseNames: Map<Long, String>,
+    exerciseNames: Map<String, String>,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -164,7 +164,7 @@ fun PRCelebrationDialog(
 @Composable
 private fun PRDetailCard(
     personalRecord: PersonalRecord,
-    exerciseNames: Map<Long, String>,
+    exerciseNames: Map<String, String>,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -182,7 +182,14 @@ private fun PRDetailCard(
                     .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            val exerciseName = exerciseNames[personalRecord.exerciseVariationId] ?: "Unknown Exercise"
+            // Use composite key to avoid ID collisions between system and custom exercises
+            val key =
+                if (personalRecord.isCustomExercise) {
+                    "custom_${personalRecord.exerciseVariationId}"
+                } else {
+                    "system_${personalRecord.exerciseVariationId}"
+                }
+            val exerciseName = exerciseNames[key] ?: "Unknown Exercise"
             Text(
                 text = exerciseName,
                 style = MaterialTheme.typography.titleLarge,

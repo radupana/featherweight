@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.Equipment
@@ -9,7 +8,6 @@ import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.MovementPattern
-import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.util.ExerciseSearchUtil
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -112,8 +110,6 @@ class ExerciseMappingViewModel(
         originalName: String,
         name: String,
         category: ExerciseCategory,
-        primaryMuscles: Set<MuscleGroup>,
-        secondaryMuscles: Set<MuscleGroup>,
         equipment: Set<Equipment>,
         difficulty: ExerciseDifficulty,
         requiresWeight: Boolean,
@@ -121,27 +117,19 @@ class ExerciseMappingViewModel(
         viewModelScope.launch {
             val singleEquipment = equipment.firstOrNull() ?: Equipment.NONE
 
-            val result =
+            val customExercise =
                 repository.createCustomExercise(
                     name = name,
                     category = category,
-                    primaryMuscles = primaryMuscles,
-                    secondaryMuscles = secondaryMuscles,
                     equipment = singleEquipment,
                     difficulty = difficulty,
                     requiresWeight = requiresWeight,
                     movementPattern = MovementPattern.PUSH,
                 )
 
-            result.fold(
-                onSuccess = { exercise ->
-                    Log.d("ExerciseMappingViewModel", "Created custom exercise: ${exercise.name} with ID ${exercise.id}")
-                    mapExercise(originalName, exercise.id, exercise.name)
-                },
-                onFailure = { error ->
-                    Log.e("ExerciseMappingViewModel", "Failed to create custom exercise: ${error.message}")
-                },
-            )
+            if (customExercise != null) {
+                mapExercise(originalName, customExercise.id, customExercise.name)
+            }
         }
     }
 }

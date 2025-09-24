@@ -41,8 +41,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import com.github.radupana.featherweight.data.FeatherweightDatabase
+import com.github.radupana.featherweight.di.ServiceLocator
+import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.FirebaseFeedbackService
+import com.github.radupana.featherweight.service.LocalDataMigrationService
+import com.github.radupana.featherweight.sync.worker.SystemExerciseSyncWorker
+import com.github.radupana.featherweight.sync.worker.UserDataSyncWorker
 import com.github.radupana.featherweight.ui.screens.CreateTemplateFromWorkoutScreen
 import com.github.radupana.featherweight.ui.screens.ExerciseSelectorScreen
 import com.github.radupana.featherweight.ui.screens.HistoryScreen
@@ -55,6 +67,7 @@ import com.github.radupana.featherweight.ui.screens.WorkoutSelectionForTemplateS
 import com.github.radupana.featherweight.ui.screens.WorkoutTemplateSelectionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutsScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
+import com.github.radupana.featherweight.util.MigrationStateManager
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
 import com.github.radupana.featherweight.viewmodel.ImportProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.InsightsViewModel
@@ -62,6 +75,7 @@ import com.github.radupana.featherweight.viewmodel.ProfileViewModel
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
 enum class Screen {
     SPLASH,
@@ -96,11 +110,121 @@ class MainActivity : ComponentActivity() {
         private const val TAG = "MainActivity"
     }
 
+    private val authManager by lazy { ServiceLocator.provideAuthenticationManager(this) }
+    private val database by lazy { FeatherweightDatabase.getDatabase(this) }
+    private val repository by lazy { FeatherweightRepository(application) }
+    private val migrationService by lazy { LocalDataMigrationService(database) }
+    private val migrationStateManager by lazy { MigrationStateManager(this) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install splash screen (Android 12+ native splash)
         installSplashScreen()
 
         super.onCreate(savedInstanceState)
+
+        // Validate Firebase Auth state first
+        val firebaseUser =
+            com.google.firebase.auth.FirebaseAuth
+                .getInstance()
+                .currentUser
+        val storedUserId = authManager.getCurrentUserId()
+
+        // Check for corrupted auth state
+        if (storedUserId != null && firebaseUser == null) {
+            Log.w(TAG, "Corrupted auth state detected: stored user $storedUserId but Firebase Auth is null")
+            // Clear auth preferences
+            authManager.clearUserData()
+            // CRITICAL: Also clear ALL database data to prevent restored backup data
+            lifecycleScope.launch {
+                Log.w(TAG, "Clearing ALL local database data due to corrupted auth state")
+                try {
+                    repository.clearAllUserData()
+                    Log.i(TAG, "Cleared corrupted auth data and database, redirecting to WelcomeActivity")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to clear database data", e)
+                }
+                // Navigate to Welcome after clearing (even if database clear fails)
+                startActivity(Intent(this@MainActivity, WelcomeActivity::class.java))
+                finish()
+            }
+            return
+        }
+
+        // Update stored user if Firebase user exists but differs
+        if (firebaseUser != null && storedUserId != firebaseUser.uid) {
+            Log.i(TAG, "Updating stored user ID from $storedUserId to ${firebaseUser.uid}")
+            authManager.setCurrentUserId(firebaseUser.uid)
+
+            // CRITICAL: Clean up any stale data from previous user
+            lifecycleScope.launch {
+                Log.w(TAG, "User ID changed, validating database for stale data")
+                try {
+                    // Clear any existing data to prevent cross-user data leakage
+                    repository.clearAllUserData()
+                    Log.i(TAG, "Cleared database to prevent data leakage between users")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to clear stale user data", e)
+                }
+            }
+        }
+
+        // Check if user should be in WelcomeActivity instead
+        val isFirstLaunch = authManager.isFirstLaunch()
+        val isAuthenticated = authManager.isAuthenticated()
+        val hasSeenWarning = authManager.hasSeenUnauthenticatedWarning()
+
+        Log.i(TAG, "MainActivity check: isFirstLaunch=$isFirstLaunch, isAuthenticated=$isAuthenticated, hasSeenWarning=$hasSeenWarning")
+
+        // Redirect to WelcomeActivity if:
+        // 1. It's the first launch OR
+        // 2. User is not authenticated AND hasn't explicitly chosen to continue without account
+        if (isFirstLaunch || (!isAuthenticated && !hasSeenWarning)) {
+            Log.i(TAG, "Redirecting to WelcomeActivity")
+            startActivity(Intent(this, WelcomeActivity::class.java))
+            finish()
+            return
+        }
+
+        // Check if email verification is required
+        val currentUser = firebaseUser
+        if (currentUser != null &&
+            !currentUser.isEmailVerified &&
+            currentUser.providerData.any { it.providerId == "password" }
+        ) {
+            Log.i(TAG, "Email not verified, redirecting to EmailVerificationActivity")
+            startActivity(Intent(this, EmailVerificationActivity::class.java))
+            finish()
+            return
+        }
+
+        // Check for local data migration if authenticated
+        val userId = authManager.getCurrentUserId()
+        if (userId != null && userId != "local" && migrationStateManager.shouldAttemptMigration()) {
+            Log.i(TAG, "Checking for local data migration on app startup for user: $userId")
+            lifecycleScope.launch {
+                try {
+                    val hasLocalData = migrationService.hasLocalData()
+                    if (hasLocalData) {
+                        Log.i(TAG, "Local data found on startup, attempting migration")
+                        migrationStateManager.incrementMigrationAttempts()
+
+                        val migrationSuccess = migrationService.migrateLocalDataToUser(userId)
+                        if (migrationSuccess) {
+                            Log.i(TAG, "Startup migration successful")
+                            migrationStateManager.markMigrationCompleted(userId)
+                            // Clean up local data after successful migration
+                            migrationService.cleanupLocalData()
+                        } else {
+                            Log.e(TAG, "Startup migration failed")
+                        }
+                    } else {
+                        Log.i(TAG, "No local data found on startup")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error checking/running migration on startup", e)
+                }
+            }
+        }
 
         Log.i(
             TAG,
@@ -185,6 +309,48 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private fun schedulePeriodicSync(context: android.content.Context) {
+    Log.i("MainActivity", "Scheduling periodic sync")
+
+    val constraints =
+        Constraints
+            .Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+    // Schedule user data sync every 2 hours
+    val userDataSyncRequest =
+        PeriodicWorkRequestBuilder<UserDataSyncWorker>(2, TimeUnit.HOURS)
+            .setConstraints(constraints)
+            .addTag("user_data_sync")
+            .build()
+
+    // Schedule system exercise sync every 7 days
+    val systemExerciseSyncRequest =
+        PeriodicWorkRequestBuilder<SystemExerciseSyncWorker>(7, TimeUnit.DAYS)
+            .setConstraints(constraints)
+            .addTag("system_exercise_sync")
+            .build()
+
+    val workManager = WorkManager.getInstance(context)
+
+    // Enqueue user data sync
+    workManager.enqueueUniquePeriodicWork(
+        "user_data_sync",
+        ExistingPeriodicWorkPolicy.KEEP,
+        userDataSyncRequest,
+    )
+
+    // Enqueue system exercise sync
+    workManager.enqueueUniquePeriodicWork(
+        "system_exercise_sync",
+        ExistingPeriodicWorkPolicy.KEEP,
+        systemExerciseSyncRequest,
+    )
+
+    Log.i("MainActivity", "Periodic sync scheduled successfully")
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainAppWithNavigation(
@@ -207,6 +373,38 @@ fun MainAppWithNavigation(
 
     // Initialize feedback service for debug builds
     val feedbackService = remember { FirebaseFeedbackService() }
+
+    // Trigger initial sync on app launch
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    LaunchedEffect(Unit) {
+        coroutineScope.launch {
+            try {
+                val syncManager = ServiceLocator.getSyncManager(context)
+                val authManager = ServiceLocator.getAuthenticationManager(context)
+                val userId = authManager.getCurrentUserId()
+
+                if (userId != null && userId != "local") {
+                    // Authenticated user - trigger full sync
+                    Log.i("MainActivity", "Triggering full sync for authenticated user: $userId")
+                    syncManager.syncAll()
+
+                    // Schedule periodic sync for authenticated users
+                    val prefs = context.getSharedPreferences("sync_prefs", android.content.Context.MODE_PRIVATE)
+                    val autoSyncEnabled = prefs.getBoolean("auto_sync_enabled", true)
+                    if (autoSyncEnabled) {
+                        schedulePeriodicSync(context)
+                    }
+                } else {
+                    // Unauthenticated user - just sync system exercises
+                    Log.i("MainActivity", "Triggering system exercise sync for unauthenticated user")
+                    syncManager.syncSystemExercises()
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Failed to sync on launch", e)
+            }
+        }
+    }
 
     val navigationItems =
         listOf(
@@ -387,8 +585,15 @@ fun MainAppWithNavigation(
                             val parsedExercises =
                                 exercises.map { exerciseLog ->
                                     val exerciseSets = sets.filter { it.exerciseLogId == exerciseLog.id }
+                                    // Use composite key to avoid ID collisions between system and custom exercises
+                                    val key =
+                                        if (exerciseLog.isCustomExercise) {
+                                            "custom_${exerciseLog.exerciseVariationId}"
+                                        } else {
+                                            "system_${exerciseLog.exerciseVariationId}"
+                                        }
                                     com.github.radupana.featherweight.data.ParsedExercise(
-                                        exerciseName = exerciseNames[exerciseLog.exerciseVariationId] ?: "Unknown Exercise",
+                                        exerciseName = exerciseNames[key] ?: "Unknown Exercise",
                                         matchedExerciseId = exerciseLog.exerciseVariationId,
                                         sets =
                                             exerciseSets.map { setLog ->
@@ -442,7 +647,7 @@ fun MainAppWithNavigation(
                             workoutViewModel.confirmExerciseSwap(exercise.variation.id)
                         } else {
                             // Normal add mode (works for both existing and newly created exercises)
-                            workoutViewModel.addExerciseToCurrentWorkout(exercise.variation)
+                            workoutViewModel.addExerciseToCurrentWorkout(exercise)
                         }
                         onScreenChange(Screen.ACTIVE_WORKOUT)
                     },
@@ -629,6 +834,10 @@ fun MainAppWithNavigation(
                     onBack = { onScreenChange(previousScreen ?: Screen.WORKOUTS) },
                     onSignOut = {
                         context.startActivity(Intent(context, WelcomeActivity::class.java))
+                        (context as? ComponentActivity)?.finish()
+                    },
+                    onSignIn = {
+                        context.startActivity(Intent(context, SignInActivity::class.java))
                         (context as? ComponentActivity)?.finish()
                     },
                     modifier = Modifier.padding(innerPadding),

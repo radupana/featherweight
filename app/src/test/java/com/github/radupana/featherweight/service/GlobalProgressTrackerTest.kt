@@ -111,7 +111,7 @@ class GlobalProgressTrackerTest {
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
 
             // Mock current 1RM
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
 
             // Mock exercise variation to be a Big 4 exercise
             val exerciseVariation =
@@ -158,7 +158,7 @@ class GlobalProgressTrackerTest {
 
             // Mock no existing progress
             coEvery { globalProgressDao.getProgressForExercise(any()) } returns null
-            coEvery { oneRMDao.getCurrentMax(any()) } returns null
+            coEvery { oneRMDao.getCurrentMax(any(), any()) } returns null
 
             // Mock exercise variations to be Big 4 exercises
             val variation1 =
@@ -223,7 +223,7 @@ class GlobalProgressTrackerTest {
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns existingProgress
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
@@ -281,7 +281,7 @@ class GlobalProgressTrackerTest {
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns existingProgress
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
@@ -364,7 +364,7 @@ class GlobalProgressTrackerTest {
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
@@ -513,7 +513,7 @@ class GlobalProgressTrackerTest {
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
@@ -618,7 +618,7 @@ class GlobalProgressTrackerTest {
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
             coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns exerciseVariation
 
             // Act
@@ -671,7 +671,7 @@ class GlobalProgressTrackerTest {
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns existingMax
+            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns existingMax
             coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns
                 mockk {
                     coEvery { name } returns "Barbell Back Squat"
@@ -748,7 +748,7 @@ class GlobalProgressTrackerTest {
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
             coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns
                 mockk {
                     coEvery { name } returns "Barbell Deadlift"
@@ -805,7 +805,7 @@ class GlobalProgressTrackerTest {
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
             coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns
                 mockk {
                     coEvery { name } returns "Barbell Overhead Press"
@@ -852,7 +852,7 @@ class GlobalProgressTrackerTest {
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
@@ -893,7 +893,7 @@ class GlobalProgressTrackerTest {
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
             coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns
                 mockk {
                     coEvery { name } returns "Barbell Back Squat"
@@ -941,7 +941,7 @@ class GlobalProgressTrackerTest {
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
             coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns
                 mockk {
                     coEvery { name } returns "Barbell Bench Press"

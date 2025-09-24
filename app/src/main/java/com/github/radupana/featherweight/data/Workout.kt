@@ -8,6 +8,7 @@ import com.github.radupana.featherweight.data.programme.Programme
 import java.time.LocalDateTime
 
 @Entity(
+    tableName = "workouts",
     foreignKeys = [
         ForeignKey(
             entity = Programme::class,

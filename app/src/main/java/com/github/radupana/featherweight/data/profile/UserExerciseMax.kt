@@ -1,24 +1,15 @@
 package com.github.radupana.featherweight.data.profile
 
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import java.time.LocalDateTime
 
 @Entity(
     tableName = "user_exercise_maxes",
-    foreignKeys = [
-        ForeignKey(
-            entity = ExerciseVariation::class,
-            parentColumns = ["id"],
-            childColumns = ["exerciseVariationId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
+    // Note: Removed foreign key since it can reference either system or custom exercises
     indices = [
-        Index(value = ["exerciseVariationId"], unique = true),
+        Index(value = ["exerciseVariationId"]),
         Index("userId"),
     ],
 )
@@ -26,7 +17,8 @@ data class UserExerciseMax(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val userId: String? = null,
-    val exerciseVariationId: Long,
+    val exerciseVariationId: Long, // Can reference either system or custom exercise
+    val isCustomExercise: Boolean = false, // true = custom exercise, false = system exercise
     // Most weight ever lifted
     val mostWeightLifted: Float,
     val mostWeightReps: Int,

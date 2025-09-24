@@ -5,7 +5,6 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 
@@ -164,32 +163,6 @@ data class ProgrammeWorkout(
 )
 
 /**
- * Exercise substitution rules for flexibility
- */
-@Entity(
-    tableName = "exercise_substitutions",
-    foreignKeys = [
-        ForeignKey(
-            entity = Programme::class,
-            parentColumns = ["id"],
-            childColumns = ["programmeId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-    indices = [Index("programmeId"), Index("userId")],
-)
-data class ExerciseSubstitution(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    val userId: String? = null,
-    val programmeId: Long,
-    val originalExerciseName: String,
-    val substitutionCategory: ExerciseCategory,
-    val substitutionCriteria: String?, // JSON with equipment, movement pattern requirements
-    val isUserDefined: Boolean = false,
-)
-
-/**
  * Programme progress tracking
  */
 @Entity(
@@ -248,7 +221,7 @@ data class ProgrammeWithDetails(
     val programme: Programme,
     val weeks: List<ProgrammeWeekWithWorkouts>,
     val progress: ProgrammeProgress?,
-    val substitutions: List<ExerciseSubstitution>,
+    val substitutions: List<Any> = emptyList(), // Placeholder for backwards compatibility
 )
 
 data class ProgrammeWeekWithWorkouts(

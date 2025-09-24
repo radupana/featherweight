@@ -8,6 +8,7 @@ import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.PersonalRecordDao
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SetLogDao
+import com.github.radupana.featherweight.data.exercise.CustomExerciseDao
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
@@ -33,6 +34,7 @@ class PersonalRecordRepositoryTest {
     private lateinit var personalRecordDao: PersonalRecordDao
     private lateinit var setLogDao: SetLogDao
     private lateinit var exerciseVariationDao: ExerciseVariationDao
+    private lateinit var customExerciseDao: CustomExerciseDao
     private lateinit var prDetectionService: PRDetectionService
     private lateinit var application: Application
     private val testDispatcher = StandardTestDispatcher()
@@ -52,12 +54,14 @@ class PersonalRecordRepositoryTest {
         personalRecordDao = mockk()
         setLogDao = mockk()
         exerciseVariationDao = mockk()
+        customExerciseDao = mockk()
         prDetectionService = mockk()
 
         // Setup database to return DAOs
         every { database.personalRecordDao() } returns personalRecordDao
         every { database.setLogDao() } returns setLogDao
         every { database.exerciseVariationDao() } returns exerciseVariationDao
+        every { database.customExerciseDao() } returns customExerciseDao
 
         // Create repository with mocked dependencies
         repository = PersonalRecordRepository(application, testDispatcher, database, prDetectionService)
@@ -167,18 +171,18 @@ class PersonalRecordRepositoryTest {
                 )
             val exerciseVariation = createExerciseVariation(exerciseVariationId, "Barbell Bench Press")
 
-            coEvery { prDetectionService.checkForPR(setLog, exerciseVariationId) } returns prs
+            coEvery { prDetectionService.checkForPR(setLog, exerciseVariationId, false) } returns prs
             coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns exerciseVariation
 
             val updateOrInsertOneRM: suspend (UserExerciseMax) -> Unit = mockk(relaxed = true)
 
             // When
-            val result = repository.checkForPR(setLog, exerciseVariationId, updateOrInsertOneRM)
+            val result = repository.checkForPR(setLog, exerciseVariationId, false, updateOrInsertOneRM)
             testDispatcher.scheduler.advanceUntilIdle()
 
             // Then
             assertThat(result).isEqualTo(prs)
-            coVerify(exactly = 1) { prDetectionService.checkForPR(setLog, exerciseVariationId) }
+            coVerify(exactly = 1) { prDetectionService.checkForPR(setLog, exerciseVariationId, false) }
             coVerify(exactly = 1) { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) }
         }
 
@@ -189,17 +193,17 @@ class PersonalRecordRepositoryTest {
             val setLog = createSetLog()
             val exerciseVariationId = 1L
 
-            coEvery { prDetectionService.checkForPR(setLog, exerciseVariationId) } returns emptyList()
+            coEvery { prDetectionService.checkForPR(setLog, exerciseVariationId, false) } returns emptyList()
 
             val updateOrInsertOneRM: suspend (UserExerciseMax) -> Unit = mockk(relaxed = true)
 
             // When
-            val result = repository.checkForPR(setLog, exerciseVariationId, updateOrInsertOneRM)
+            val result = repository.checkForPR(setLog, exerciseVariationId, false, updateOrInsertOneRM)
             testDispatcher.scheduler.advanceUntilIdle()
 
             // Then
             assertThat(result).isEmpty()
-            coVerify(exactly = 1) { prDetectionService.checkForPR(setLog, exerciseVariationId) }
+            coVerify(exactly = 1) { prDetectionService.checkForPR(setLog, exerciseVariationId, false) }
             coVerify(exactly = 0) { exerciseVariationDao.getExerciseVariationById(any()) }
             coVerify(exactly = 0) { updateOrInsertOneRM(any()) }
         }
@@ -217,7 +221,7 @@ class PersonalRecordRepositoryTest {
                 )
             val exerciseVariation = createExerciseVariation(exerciseVariationId, "Barbell Squat")
 
-            coEvery { prDetectionService.checkForPR(setLog, exerciseVariationId) } returns prs
+            coEvery { prDetectionService.checkForPR(setLog, exerciseVariationId, false) } returns prs
             coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns exerciseVariation
 
             val capturedOneRM = slot<UserExerciseMax>()
@@ -225,7 +229,7 @@ class PersonalRecordRepositoryTest {
             coEvery { updateOrInsertOneRM(capture(capturedOneRM)) } returns Unit
 
             // When
-            val result = repository.checkForPR(setLog, exerciseVariationId, updateOrInsertOneRM)
+            val result = repository.checkForPR(setLog, exerciseVariationId, false, updateOrInsertOneRM)
             testDispatcher.scheduler.advanceUntilIdle()
 
             // Then
@@ -253,13 +257,13 @@ class PersonalRecordRepositoryTest {
                 )
             val exerciseVariation = createExerciseVariation(exerciseVariationId, "Dumbbell Curl")
 
-            coEvery { prDetectionService.checkForPR(setLog, exerciseVariationId) } returns prs
+            coEvery { prDetectionService.checkForPR(setLog, exerciseVariationId, false) } returns prs
             coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns exerciseVariation
 
             val updateOrInsertOneRM: suspend (UserExerciseMax) -> Unit = mockk(relaxed = true)
 
             // When
-            val result = repository.checkForPR(setLog, exerciseVariationId, updateOrInsertOneRM)
+            val result = repository.checkForPR(setLog, exerciseVariationId, false, updateOrInsertOneRM)
             testDispatcher.scheduler.advanceUntilIdle()
 
             // Then
@@ -275,13 +279,13 @@ class PersonalRecordRepositoryTest {
             val exerciseVariationId = 1L
             val prs = listOf(createPersonalRecord(1L, PRType.WEIGHT))
 
-            coEvery { prDetectionService.checkForPR(setLog, exerciseVariationId) } returns prs
+            coEvery { prDetectionService.checkForPR(setLog, exerciseVariationId, false) } returns prs
             coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns null
 
             val updateOrInsertOneRM: suspend (UserExerciseMax) -> Unit = mockk(relaxed = true)
 
             // When
-            val result = repository.checkForPR(setLog, exerciseVariationId, updateOrInsertOneRM)
+            val result = repository.checkForPR(setLog, exerciseVariationId, false, updateOrInsertOneRM)
             testDispatcher.scheduler.advanceUntilIdle()
 
             // Then
@@ -334,7 +338,6 @@ class PersonalRecordRepositoryTest {
         name: String,
     ) = ExerciseVariation(
         id = id,
-        createdByUserId = null,
         coreExerciseId = 1L,
         name = name,
         equipment = Equipment.BARBELL,

@@ -17,6 +17,7 @@ import com.github.radupana.featherweight.data.exercise.MuscleGroup
  * - No hyphens (use "Step Up" not "Step-Up")
  * - Use singular forms ("Curl" not "Curls")
  * - No emojis
+ * - Cannot duplicate existing system exercise names or aliases
  */
 class ExerciseNamingService {
     companion object {
@@ -117,6 +118,7 @@ class ExerciseNamingService {
 
     /**
      * Validates an exercise name according to app conventions.
+     * Does NOT check for duplicates with existing exercises - use validateExerciseNameWithDuplicateCheck for that.
      */
     fun validateExerciseName(name: String): ValidationResult {
         val trimmedName = name.trim()
@@ -437,6 +439,40 @@ class ExerciseNamingService {
             lowerName.contains("carry") -> MovementPattern.CARRY
             else -> MovementPattern.PUSH
         }
+    }
+
+    /**
+     * Validates an exercise name including checking for duplicates with existing exercises.
+     * @param name The exercise name to validate
+     * @param existingExercises List of existing exercise names (including aliases) to check against
+     * @return ValidationResult indicating if the name is valid or not
+     */
+    fun validateExerciseNameWithDuplicateCheck(
+        name: String,
+        existingExercises: List<String>,
+    ): ValidationResult {
+        // First check for duplicates (case-insensitive) before formatting validation
+        // This ensures we catch duplicates even if they have different formatting
+        val trimmedName = name.trim()
+        val lowerName = trimmedName.lowercase()
+
+        val existingLowerNames = existingExercises.map { it.lowercase() }
+        if (lowerName in existingLowerNames) {
+            // Find the original casing of the duplicate
+            val originalName = existingExercises.firstOrNull { it.lowercase() == lowerName } ?: name
+            return ValidationResult.Invalid(
+                reason = "An exercise with this name already exists",
+                suggestion = "Exercise name '$originalName' is already taken. Please choose a different name.",
+            )
+        }
+
+        // Then do standard validation if no duplicates found
+        val standardValidation = validateExerciseName(name)
+        if (standardValidation is ValidationResult.Invalid) {
+            return standardValidation
+        }
+
+        return ValidationResult.Valid
     }
 }
 

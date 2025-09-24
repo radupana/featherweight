@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Lock
@@ -43,6 +44,7 @@ import java.util.Locale
 fun AccountSection(
     accountInfo: AccountInfo?,
     onSignOut: () -> Unit,
+    onSignIn: () -> Unit = {},
     onSendVerificationEmail: () -> Unit,
     onChangePassword: (String, String) -> Unit,
     onResetPassword: () -> Unit,
@@ -52,6 +54,7 @@ fun AccountSection(
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showPasswordDialog by remember { mutableStateOf(false) }
+    var deleteConfirmationText by remember { mutableStateOf("") }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -76,6 +79,27 @@ fun AccountSection(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+
+                Text(
+                    text = "Sign in to enable cloud sync and backup your data",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = onSignIn,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Default.Login,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text("Sign In")
+                }
             } else {
                 accountInfo.email?.let { email ->
                     Row(
@@ -231,24 +255,80 @@ fun AccountSection(
 
     if (showDeleteDialog) {
         AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Account") },
-            text = { Text("Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.") },
+            onDismissRequest = {
+                showDeleteDialog = false
+                deleteConfirmationText = ""
+            },
+            title = {
+                Text(
+                    "Delete Account?",
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        "This will permanently delete:",
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        "• All workout history\n" +
+                            "• Personal records and maxes\n" +
+                            "• Training programmes and progress\n" +
+                            "• Analytics and insights\n" +
+                            "• Custom exercises you created\n" +
+                            "• Cloud backups",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        "This action CANNOT be undone.",
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Type DELETE to confirm:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    OutlinedTextField(
+                        value = deleteConfirmationText,
+                        onValueChange = { deleteConfirmationText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Type DELETE here") },
+                        singleLine = true,
+                    )
+                }
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        showDeleteDialog = false
-                        onDeleteAccount()
+                        if (deleteConfirmationText == "DELETE") {
+                            showDeleteDialog = false
+                            deleteConfirmationText = ""
+                            onDeleteAccount()
+                        }
                     },
+                    enabled = deleteConfirmationText == "DELETE",
                 ) {
                     Text(
-                        text = "Delete",
-                        color = MaterialTheme.colorScheme.error,
+                        text = "Delete Account",
+                        color =
+                            if (deleteConfirmationText == "DELETE") {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                     )
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    deleteConfirmationText = ""
+                }) {
                     Text("Cancel")
                 }
             },

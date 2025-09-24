@@ -48,6 +48,7 @@ fun ProfileScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onSignOut: () -> Unit = {},
+    onSignIn: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -62,6 +63,11 @@ fun ProfileScreen(
             viewModel.clearSignOutRequest()
             onSignOut()
         }
+    }
+
+    // Refresh account state when screen becomes visible
+    LaunchedEffect(Unit) {
+        viewModel.refreshAccountState()
     }
 
     Scaffold(
@@ -148,11 +154,11 @@ fun ProfileScreen(
                             currentWeightUnit = uiState.currentWeightUnit,
                             onWeightUnitSelected = { unit -> viewModel.setWeightUnit(unit) },
                             syncState = uiState.syncUiState,
-                            onSyncNow = { viewModel.syncNow() },
                             onRestoreFromCloud = { viewModel.restoreFromCloud() },
                             onToggleAutoSync = { enabled -> viewModel.toggleAutoSync(enabled) },
                             accountInfo = uiState.accountInfo,
                             onSignOut = { viewModel.signOut() },
+                            onSignIn = onSignIn,
                             onSendVerificationEmail = { viewModel.sendVerificationEmail() },
                             onChangePassword = { current, new -> viewModel.changePassword(current, new) },
                             onResetPassword = { viewModel.resetPassword() },

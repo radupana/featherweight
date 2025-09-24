@@ -14,10 +14,13 @@ import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeDao
 import com.github.radupana.featherweight.data.programme.ProgrammeDifficulty
 import com.github.radupana.featherweight.data.programme.ProgrammeType
+import com.github.radupana.featherweight.di.ServiceLocator
+import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
 import io.mockk.mockkStatic
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -33,6 +36,7 @@ class WorkoutRepositoryTest {
     private lateinit var setLogDao: SetLogDao
     private lateinit var programmeDao: ProgrammeDao
     private lateinit var application: Application
+    private lateinit var authManager: AuthenticationManager
     private val testDispatcher = StandardTestDispatcher()
 
     // Storage for mock data
@@ -53,6 +57,12 @@ class WorkoutRepositoryTest {
         every { Log.d(any<String>(), any<String>()) } returns 0
         every { Log.e(any<String>(), any<String>()) } returns 0
         every { Log.w(any<String>(), any<String>()) } returns 0
+
+        // Mock ServiceLocator for AuthenticationManager
+        authManager = mockk(relaxed = true)
+        every { authManager.getCurrentUserId() } returns "test-user-id"
+        mockkObject(ServiceLocator)
+        every { ServiceLocator.provideAuthenticationManager(any()) } returns authManager
 
         // Mock application and database
         application = mockk<Application>(relaxed = true)
@@ -75,7 +85,7 @@ class WorkoutRepositoryTest {
         setupProgrammeDaoMocks()
 
         // Create repository with mocked database
-        repository = WorkoutRepository(application, testDispatcher, database)
+        repository = WorkoutRepository(application, testDispatcher, database, authManager)
     }
 
     private fun setupWorkoutDaoMocks() {
@@ -101,8 +111,20 @@ class WorkoutRepositoryTest {
             workouts[workout.id] = workout
         }
 
-        coEvery { workoutDao.getAllWorkouts() } answers {
-            workouts.values.toList()
+        coEvery { workoutDao.getAllWorkouts(any()) } answers {
+            val userId = firstArg<String>()
+            workouts.values.filter { it.userId == userId }.toList()
+        }
+
+        coEvery { workoutDao.getWorkoutsByUserId(any()) } answers {
+            val userId = firstArg<String>()
+            workouts.values
+                .filter {
+                    it.userId == userId ||
+                        it.userId == null ||
+                        // For backward compatibility with tests that don't set userId
+                        it.userId == "test-user-id" // Default test user
+                }.toList()
         }
     }
 
@@ -349,6 +371,7 @@ class WorkoutRepositoryTest {
                     date = now.minusDays(2),
                     status = WorkoutStatus.COMPLETED,
                     durationSeconds = 3600,
+                    userId = "test-user-id",
                 )
             database.workoutDao().insertWorkout(workout1)
 
@@ -358,6 +381,7 @@ class WorkoutRepositoryTest {
                     name = "In Progress",
                     date = now.minusDays(1),
                     status = WorkoutStatus.IN_PROGRESS,
+                    userId = "test-user-id",
                 )
             val id2 = database.workoutDao().insertWorkout(workout2)
             val exerciseId =
@@ -375,6 +399,7 @@ class WorkoutRepositoryTest {
                     date = now,
                     status = WorkoutStatus.TEMPLATE,
                     isTemplate = true,
+                    userId = "test-user-id",
                 )
             database.workoutDao().insertWorkout(template)
 
@@ -395,6 +420,7 @@ class WorkoutRepositoryTest {
                     name = "Empty",
                     date = LocalDateTime.now(),
                     status = WorkoutStatus.NOT_STARTED,
+                    userId = "test-user-id",
                 )
             val id = nextWorkoutId++
             workouts[id] = workout.copy(id = id)
@@ -427,6 +453,7 @@ class WorkoutRepositoryTest {
                     name = "Programme Workout",
                     date = LocalDateTime.now(),
                     status = WorkoutStatus.COMPLETED,
+                    userId = "test-user-id",
                     isProgrammeWorkout = true,
                     programmeId = programmeId,
                     programmeWorkoutName = "Week 1 Day 1",
@@ -517,14 +544,14 @@ class WorkoutRepositoryTest {
         runTest(testDispatcher) {
             // Create regular workout
             val regularId = nextWorkoutId++
-            workouts[regularId] = Workout(id = regularId, userId = null, name = "Regular", date = LocalDateTime.now(), status = WorkoutStatus.COMPLETED)
+            workouts[regularId] = Workout(id = regularId, userId = "test-user-id", name = "Regular", date = LocalDateTime.now(), status = WorkoutStatus.COMPLETED)
 
             // Create templates
             val template1Id = nextWorkoutId++
-            workouts[template1Id] = Workout(id = template1Id, userId = null, name = "Template 1", date = LocalDateTime.now().minusDays(1), status = WorkoutStatus.TEMPLATE, isTemplate = true)
+            workouts[template1Id] = Workout(id = template1Id, userId = "test-user-id", name = "Template 1", date = LocalDateTime.now().minusDays(1), status = WorkoutStatus.TEMPLATE, isTemplate = true)
 
             val template2Id = nextWorkoutId++
-            workouts[template2Id] = Workout(id = template2Id, userId = null, name = "Template 2", date = LocalDateTime.now(), status = WorkoutStatus.TEMPLATE, isTemplate = true, notes = "Description")
+            workouts[template2Id] = Workout(id = template2Id, userId = "test-user-id", name = "Template 2", date = LocalDateTime.now(), status = WorkoutStatus.TEMPLATE, isTemplate = true, notes = "Description")
 
             // Add exercises to template 2
             val exerciseLog = ExerciseLog(workoutId = template2Id, exerciseVariationId = 1, exerciseOrder = 1)

@@ -10,6 +10,7 @@ import com.github.radupana.featherweight.data.WorkoutDao
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.export.ExportOptions
 import com.github.radupana.featherweight.data.profile.OneRMDao
+import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.manager.WeightUnitManager
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,7 @@ class WorkoutExportService(
     private val setLogDao: SetLogDao,
     private val oneRMDao: OneRMDao,
     private val repository: FeatherweightRepository,
+    private val authManager: AuthenticationManager,
     private val weightUnitManager: WeightUnitManager? = null,
 ) {
     suspend fun exportWorkoutsToFile(
@@ -35,7 +37,8 @@ class WorkoutExportService(
         withContext(Dispatchers.IO) {
             val tempFile = File(context.cacheDir, "workout_export_${System.currentTimeMillis()}.json")
 
-            val totalWorkouts = workoutDao.getWorkoutCountInDateRange(startDate, endDate)
+            val userId = authManager.getCurrentUserId() ?: "local"
+            val totalWorkouts = workoutDao.getWorkoutCountInDateRange(userId, startDate, endDate)
 
             JsonWriter(tempFile.outputStream().bufferedWriter()).use { writer ->
                 writer.setIndent("  ") // Pretty print JSON
@@ -59,6 +62,7 @@ class WorkoutExportService(
                 while (true) {
                     val workouts =
                         workoutDao.getWorkoutsInDateRangePaged(
+                            userId,
                             startDate,
                             endDate,
                             WorkoutStatus.NOT_STARTED,
@@ -121,7 +125,8 @@ class WorkoutExportService(
         if (exportOptions.includeOneRepMaxes) {
             writer.name("oneRepMaxHistory").beginArray()
 
-            val currentMaxes = oneRMDao.getAllCurrentMaxesForExport()
+            val userId = authManager.getCurrentUserId() ?: "local"
+            val currentMaxes = oneRMDao.getAllCurrentMaxesForExport(userId)
 
             for (max in currentMaxes) {
                 writer.beginObject()

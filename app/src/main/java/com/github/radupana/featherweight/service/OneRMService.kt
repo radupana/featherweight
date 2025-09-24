@@ -192,6 +192,7 @@ class OneRMService {
             )
 
         return UserExerciseMax(
+            userId = set.userId,
             exerciseVariationId = exerciseId,
             mostWeightLifted = mostWeight.weight,
             mostWeightReps = mostWeight.reps,
@@ -202,6 +203,7 @@ class OneRMService {
             oneRMConfidence = confidence,
             oneRMDate = LocalDateTime.now(),
             oneRMType = OneRMType.AUTOMATICALLY_CALCULATED,
+            // Note: isCustomExercise should be set by the caller since we can't check async here
         )
     }
 

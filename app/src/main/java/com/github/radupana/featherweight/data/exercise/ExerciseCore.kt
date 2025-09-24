@@ -7,17 +7,15 @@ import androidx.room.PrimaryKey
 import java.time.LocalDateTime
 
 /**
- * ExerciseCore - just a grouping mechanism for variations.
- * No direct relationships to logs, instructions, or aliases.
+ * ExerciseCore - System-level exercise grouping mechanism for variations.
+ * Contains only reference data shared across all users.
  */
 @Entity(
     tableName = "exercise_cores",
-    indices = [Index("createdByUserId")],
 )
 data class ExerciseCore(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val createdByUserId: String? = null,
     val name: String, // e.g., "Squat", "Deadlift", "Bench Press"
     val category: ExerciseCategory,
     val movementPattern: MovementPattern,
@@ -27,7 +25,8 @@ data class ExerciseCore(
 )
 
 /**
- * The actual exercise that gets logged. This is the central entity.
+ * System-level exercise variation that can be logged.
+ * Contains only reference data shared across all users.
  */
 @Entity(
     tableName = "exercise_variations",
@@ -43,13 +42,11 @@ data class ExerciseCore(
         Index(value = ["coreExerciseId"]),
         Index(value = ["name"], unique = true),
         Index(value = ["equipment"]),
-        Index("createdByUserId"),
     ],
 )
 data class ExerciseVariation(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val createdByUserId: String? = null,
     val coreExerciseId: Long,
     val name: String,
     val equipment: Equipment,
@@ -58,8 +55,6 @@ data class ExerciseVariation(
     val recommendedRepRange: String? = null,
     val rmScalingType: RMScalingType = RMScalingType.STANDARD,
     val restDurationSeconds: Int = 90,
-    val usageCount: Int = 0,
-    val isCustom: Boolean = false,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now(),
 )

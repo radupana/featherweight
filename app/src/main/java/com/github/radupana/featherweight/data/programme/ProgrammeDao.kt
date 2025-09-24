@@ -99,15 +99,6 @@ interface ProgrammeDao {
     @Update
     suspend fun updateProgrammeProgress(progress: ProgrammeProgress)
 
-    @Query("SELECT * FROM exercise_substitutions")
-    suspend fun getAllSubstitutions(): List<ExerciseSubstitution>
-
-    @Query("SELECT * FROM exercise_substitutions WHERE id = :id")
-    suspend fun getSubstitutionById(id: Long): ExerciseSubstitution?
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSubstitution(substitution: ExerciseSubstitution): Long
-
     // Complex queries with relationships
     @Transaction
     @Query("SELECT * FROM programmes WHERE id = :programmeId")
@@ -178,6 +169,50 @@ interface ProgrammeDao {
         status: ProgrammeStatus,
         startedAt: LocalDateTime = LocalDateTime.now(),
     )
+
+    @Query("DELETE FROM programmes WHERE userId = :userId")
+    suspend fun deleteAllProgrammesForUser(userId: String)
+
+    @Query("DELETE FROM programmes WHERE userId = :userId")
+    suspend fun deleteAllByUserId(userId: String)
+
+    @Query("DELETE FROM programmes WHERE userId IS NULL")
+    suspend fun deleteAllWhereUserIdIsNull()
+
+    @Query("DELETE FROM programme_weeks WHERE programmeId IN (SELECT id FROM programmes WHERE userId = :userId)")
+    suspend fun deleteAllProgrammeWeeksForUser(userId: String)
+
+    @Query("DELETE FROM programme_workouts WHERE weekId IN (SELECT id FROM programme_weeks WHERE programmeId IN (SELECT id FROM programmes WHERE userId = :userId))")
+    suspend fun deleteAllProgrammeWorkoutsForUser(userId: String)
+
+    @Query("DELETE FROM programme_progress WHERE programmeId IN (SELECT id FROM programmes WHERE userId = :userId)")
+    suspend fun deleteAllProgrammeProgressForUser(userId: String)
+
+    // Methods to delete ALL data (for Clear All Workout Data feature)
+    @Query("DELETE FROM programmes")
+    suspend fun deleteAllProgrammes()
+
+    @Query("DELETE FROM programme_weeks")
+    suspend fun deleteAllProgrammeWeeks()
+
+    @Query("DELETE FROM programme_workouts")
+    suspend fun deleteAllProgrammeWorkouts()
+
+    @Query("DELETE FROM programme_progress")
+    suspend fun deleteAllProgrammeProgress()
+
+    // Methods to delete NULL userId data
+    @Query("DELETE FROM programmes WHERE userId IS NULL")
+    suspend fun deleteAllProgrammesWhereUserIdIsNull()
+
+    @Query("DELETE FROM programme_weeks WHERE programmeId IN (SELECT id FROM programmes WHERE userId IS NULL)")
+    suspend fun deleteAllProgrammeWeeksWhereUserIdIsNull()
+
+    @Query("DELETE FROM programme_workouts WHERE weekId IN (SELECT id FROM programme_weeks WHERE programmeId IN (SELECT id FROM programmes WHERE userId IS NULL))")
+    suspend fun deleteAllProgrammeWorkoutsWhereUserIdIsNull()
+
+    @Query("DELETE FROM programme_progress WHERE programmeId IN (SELECT id FROM programmes WHERE userId IS NULL)")
+    suspend fun deleteAllProgrammeProgressWhereUserIdIsNull()
 }
 
 // Raw data classes for Room @Transaction queries
