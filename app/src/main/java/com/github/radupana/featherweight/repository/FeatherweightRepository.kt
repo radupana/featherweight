@@ -1260,6 +1260,7 @@ class FeatherweightRepository(
             exerciseVariationId = exerciseVariationId,
             estimatedMax = roundedWeight,
             source = oneRMContext,
+            sourceSetId = null,
             date = dateToUse,
             userId = authManager.getCurrentUserId() ?: "local",
         )

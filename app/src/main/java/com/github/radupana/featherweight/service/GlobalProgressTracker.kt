@@ -6,6 +6,7 @@ import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.ProgressTrend
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.VolumeTrend
+import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.repository.CustomExerciseRepository
 import com.github.radupana.featherweight.repository.FeatherweightRepository
@@ -371,7 +372,7 @@ class GlobalProgressTracker(
                 if (currentUserMax != null) {
                     val updatedMax =
                         currentUserMax.copy(
-                            oneRMEstimate = estimated1RM,
+                            oneRMEstimate = WeightFormatter.roundToNearestQuarter(estimated1RM),
                             oneRMContext = bestEstimate.source,
                             oneRMConfidence = bestEstimate.confidence,
                             oneRMDate = LocalDateTime.now(),
@@ -382,13 +383,24 @@ class GlobalProgressTracker(
                             mostWeightDate = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) LocalDateTime.now() else currentUserMax.mostWeightDate,
                         )
                     database.oneRMDao().updateExerciseMax(updatedMax)
+                    // Save to history with sourceSetId for deduplication
+                    database.oneRMDao().insertOneRMHistory(
+                        OneRMHistory(
+                            userId = bestSet.userId,
+                            exerciseVariationId = progress.exerciseVariationId,
+                            oneRMEstimate = WeightFormatter.roundToNearestQuarter(estimated1RM),
+                            context = bestEstimate.source,
+                            sourceSetId = bestSet.id,
+                            recordedAt = LocalDateTime.now(),
+                        ),
+                    )
                 } else {
                     val isCustom = customExerciseRepository?.isCustomExercise(progress.exerciseVariationId) ?: false
                     val newMax =
                         UserExerciseMax(
                             userId = bestSet.userId,
                             exerciseVariationId = progress.exerciseVariationId,
-                            oneRMEstimate = estimated1RM,
+                            oneRMEstimate = WeightFormatter.roundToNearestQuarter(estimated1RM),
                             oneRMContext = bestEstimate.source,
                             oneRMConfidence = bestEstimate.confidence,
                             oneRMDate = LocalDateTime.now(),
@@ -398,6 +410,17 @@ class GlobalProgressTracker(
                             mostWeightDate = LocalDateTime.now(),
                         )
                     database.oneRMDao().insertExerciseMax(newMax)
+                    // Save to history with sourceSetId for deduplication
+                    database.oneRMDao().insertOneRMHistory(
+                        OneRMHistory(
+                            userId = bestSet.userId,
+                            exerciseVariationId = progress.exerciseVariationId,
+                            oneRMEstimate = WeightFormatter.roundToNearestQuarter(estimated1RM),
+                            context = bestEstimate.source,
+                            sourceSetId = bestSet.id,
+                            recordedAt = LocalDateTime.now(),
+                        ),
+                    )
                 }
             }
         }

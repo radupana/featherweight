@@ -255,6 +255,39 @@ interface OneRMDao {
     @Query("DELETE FROM one_rm_history")
     suspend fun deleteAllOneRMHistory()
 
+    // Data cleanup queries for removing duplicates
+    @Query(
+        """
+        DELETE FROM one_rm_history
+        WHERE id NOT IN (
+            SELECT MIN(id)
+            FROM one_rm_history
+            GROUP BY
+                userId,
+                exerciseVariationId,
+                ROUND(oneRMEstimate * 4) / 4,
+                strftime('%Y-%m-%d %H:%M', recordedAt)
+        )
+        """,
+    )
+    suspend fun removeDuplicateHistoryEntries()
+
+    @Query(
+        """
+        UPDATE one_rm_history
+        SET oneRMEstimate = ROUND(oneRMEstimate * 4) / 4
+        """,
+    )
+    suspend fun roundAllHistoryValues()
+
+    @Query(
+        """
+        UPDATE user_exercise_maxes
+        SET oneRMEstimate = ROUND(oneRMEstimate * 4) / 4
+        """,
+    )
+    suspend fun roundAllMaxValues()
+
     // Export-related queries
 
     @Query(

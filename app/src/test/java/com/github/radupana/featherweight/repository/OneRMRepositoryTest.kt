@@ -10,6 +10,7 @@ import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.UserExerciseUsageDao
 import com.github.radupana.featherweight.data.profile.OneRMDao
+import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.google.common.truth.Truth.assertThat
@@ -272,6 +273,105 @@ class OneRMRepositoryTest {
             assertThat(pendingUpdates).hasSize(2)
             assertThat(pendingUpdates.find { it.exerciseVariationId == "1" }?.suggestedMax).isEqualTo(115f)
             assertThat(pendingUpdates.find { it.exerciseVariationId == "2" }?.suggestedMax).isEqualTo(90f)
+        }
+
+    @Test
+    fun `saveOneRMToHistory should handle unique constraint violation gracefully`() =
+        runTest(testDispatcher) {
+            // Given
+            val exerciseId = "1"
+            val estimatedMax = 112.5f
+            val sourceSetId = "set-123"
+
+            coEvery { oneRMDao.insertOneRMHistory(any()) } throws
+                android.database.sqlite.SQLiteConstraintException("UNIQUE constraint failed")
+
+            repository.saveOneRMToHistory(
+                exerciseVariationId = exerciseId,
+                estimatedMax = estimatedMax,
+                source = "Test source",
+                sourceSetId = sourceSetId,
+                userId = "test-user",
+            )
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify(exactly = 1) { oneRMDao.insertOneRMHistory(any()) }
+        }
+
+    @Test
+    fun `saveOneRMToHistory should save with sourceSetId`() =
+        runTest(testDispatcher) {
+            // Given
+            val exerciseId = "1"
+            val estimatedMax = 112.5f
+            val sourceSetId = "set-456"
+
+            coEvery { oneRMDao.insertOneRMHistory(any()) } just runs
+
+            // When
+            repository.saveOneRMToHistory(
+                exerciseVariationId = exerciseId,
+                estimatedMax = estimatedMax,
+                source = "Test source",
+                sourceSetId = sourceSetId,
+                userId = "test-user",
+            )
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            // Then
+            val capturedHistory = slot<OneRMHistory>()
+            coVerify { oneRMDao.insertOneRMHistory(capture(capturedHistory)) }
+            assertThat(capturedHistory.captured.sourceSetId).isEqualTo(sourceSetId)
+            assertThat(capturedHistory.captured.oneRMEstimate).isEqualTo(112.5f)
+        }
+
+    @Test
+    fun `saveOneRMToHistory should save without sourceSetId for manual entries`() =
+        runTest(testDispatcher) {
+            // Given
+            val exerciseId = "1"
+            val estimatedMax = 115.0f
+
+            coEvery { oneRMDao.insertOneRMHistory(any()) } just runs
+
+            repository.saveOneRMToHistory(
+                exerciseVariationId = exerciseId,
+                estimatedMax = estimatedMax,
+                source = "Manual entry",
+                sourceSetId = null,
+                userId = "test-user",
+            )
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            // Then
+            val capturedHistory = slot<OneRMHistory>()
+            coVerify { oneRMDao.insertOneRMHistory(capture(capturedHistory)) }
+            assertThat(capturedHistory.captured.sourceSetId).isNull()
+            assertThat(capturedHistory.captured.oneRMEstimate).isEqualTo(115f)
+        }
+
+    @Test
+    fun `saveOneRMToHistory should round values to nearest quarter`() =
+        runTest(testDispatcher) {
+            // Given
+            val exerciseId = "1"
+            val estimatedMax = 112.6f
+
+            coEvery { oneRMDao.insertOneRMHistory(any()) } just runs
+
+            // When
+            repository.saveOneRMToHistory(
+                exerciseVariationId = exerciseId,
+                estimatedMax = estimatedMax,
+                source = "Test source",
+                userId = "test-user",
+            )
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            // Then
+            val capturedHistory = slot<OneRMHistory>()
+            coVerify { oneRMDao.insertOneRMHistory(capture(capturedHistory)) }
+            assertThat(capturedHistory.captured.oneRMEstimate).isEqualTo(112.5f)
         }
 
     // Helper functions

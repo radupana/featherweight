@@ -8,18 +8,19 @@ import java.time.LocalDateTime
 
 @Entity(
     tableName = "one_rm_history",
-    // Note: Removed foreign key since it can reference either system or custom exercises
     indices = [
         Index(value = ["exerciseVariationId", "recordedAt"]),
         Index("userId"),
+        Index(value = ["userId", "exerciseVariationId", "sourceSetId"], unique = true),
     ],
 )
 data class OneRMHistory(
     @PrimaryKey
     val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val exerciseVariationId: String, // References exercise_variations table
+    val exerciseVariationId: String,
     val oneRMEstimate: Float,
-    val context: String, // e.g., "140kg × 3 @ RPE 8"
+    val context: String,
+    val sourceSetId: String? = null,
     val recordedAt: LocalDateTime = LocalDateTime.now(),
 )

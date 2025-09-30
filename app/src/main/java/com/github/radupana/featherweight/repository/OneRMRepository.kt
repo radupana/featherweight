@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
+import android.database.sqlite.SQLiteConstraintException
 import android.util.Log
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
@@ -84,6 +85,7 @@ class OneRMRepository(
             exerciseVariationId = update.exerciseVariationId,
             estimatedMax = roundedWeight,
             source = update.source,
+            sourceSetId = null,
             date = update.workoutDate ?: LocalDateTime.now(),
             userId = userId,
         )
@@ -140,40 +142,44 @@ class OneRMRepository(
     suspend fun updateOrInsertOneRM(oneRMRecord: UserExerciseMax) =
         withContext(ioDispatcher) {
             val userId = authManager.getCurrentUserId() ?: "local"
+            val roundedEstimate = WeightFormatter.roundToNearestQuarter(oneRMRecord.oneRMEstimate)
+            val roundedRecord = oneRMRecord.copy(oneRMEstimate = roundedEstimate)
+
             val existing = oneRMDao.getCurrentMax(oneRMRecord.exerciseVariationId, userId)
             val exercise = db.exerciseDao().getExerciseVariationById(oneRMRecord.exerciseVariationId)
             val exerciseName = exercise?.name ?: "Unknown"
 
             val shouldSaveHistory =
                 if (existing != null) {
-                    if (oneRMRecord.oneRMEstimate > existing.oneRMEstimate) {
+                    if (roundedEstimate > existing.oneRMEstimate) {
                         Log.i(
                             TAG,
-                            "New 1RM PR! Exercise: $exerciseName, old: ${existing.oneRMEstimate}kg, new: ${oneRMRecord.oneRMEstimate}kg",
+                            "New 1RM PR! Exercise: $exerciseName, old: ${existing.oneRMEstimate}kg, new: ${roundedEstimate}kg",
                         )
-                        oneRMDao.updateExerciseMax(oneRMRecord.copy(id = existing.id))
+                        oneRMDao.updateExerciseMax(roundedRecord.copy(id = existing.id))
                         true
                     } else {
                         Log.d(
                             TAG,
-                            "1RM not updated (not a PR): $exerciseName, current: ${existing.oneRMEstimate}kg, attempted: ${oneRMRecord.oneRMEstimate}kg",
+                            "1RM not updated (not a PR): $exerciseName, current: ${existing.oneRMEstimate}kg, attempted: ${roundedEstimate}kg",
                         )
                         false
                     }
                 } else {
                     Log.i(
                         TAG,
-                        "First 1RM recorded for $exerciseName: ${oneRMRecord.oneRMEstimate}kg",
+                        "First 1RM recorded for $exerciseName: ${roundedEstimate}kg",
                     )
-                    oneRMDao.insertExerciseMax(oneRMRecord)
+                    oneRMDao.insertExerciseMax(roundedRecord)
                     true
                 }
 
             if (shouldSaveHistory) {
                 saveOneRMToHistory(
                     exerciseVariationId = oneRMRecord.exerciseVariationId,
-                    estimatedMax = oneRMRecord.oneRMEstimate,
+                    estimatedMax = roundedEstimate,
                     source = oneRMRecord.oneRMContext,
+                    sourceSetId = null,
                     userId = oneRMRecord.userId,
                 )
             }
@@ -190,23 +196,35 @@ class OneRMRepository(
         exerciseVariationId: String,
         estimatedMax: Float,
         source: String,
+        sourceSetId: String? = null,
         date: LocalDateTime = LocalDateTime.now(),
         userId: String? = null,
     ) {
+        val roundedMax = WeightFormatter.roundToNearestQuarter(estimatedMax)
+        val actualUserId = userId ?: authManager.getCurrentUserId() ?: "local"
+
         val history =
             OneRMHistory(
-                userId = userId,
+                userId = actualUserId,
                 exerciseVariationId = exerciseVariationId,
-                oneRMEstimate = estimatedMax,
+                oneRMEstimate = roundedMax,
                 context = source,
+                sourceSetId = sourceSetId,
                 recordedAt = date,
             )
-        oneRMDao.insertOneRMHistory(history)
 
-        Log.i(
-            TAG,
-            "Saved 1RM to history - exerciseId: $exerciseVariationId, max: ${estimatedMax}kg, source: $source",
-        )
+        try {
+            oneRMDao.insertOneRMHistory(history)
+            Log.i(
+                TAG,
+                "Saved 1RM to history - exerciseId: $exerciseVariationId, max: ${roundedMax}kg, source: $source, sourceSetId: $sourceSetId",
+            )
+        } catch (e: SQLiteConstraintException) {
+            Log.d(
+                TAG,
+                "1RM history already exists for sourceSetId: $sourceSetId - ${e.message}",
+            )
+        }
     }
 
     suspend fun getExercise1RM(
