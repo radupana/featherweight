@@ -99,16 +99,23 @@ After thorough investigation and implementation of database restructuring for Gi
 
 ## ⏳ REMAINING ISSUES
 
-### 3. PR/1RM Tracking Redundancy - NOT IMPLEMENTED (Complex)
+### 3. PR/1RM Tracking Redundancy - PARTIALLY ADDRESSED
 
 **Current State:**
 - Still have 3 overlapping tables:
   - `PersonalRecord` - Tracks PRs with weight, reps, dates
   - `UserExerciseMax` - Tracks all-time best lifts and 1RM estimates
-  - `OneRMHistory` - Tracks 1RM estimate history over time
+  - `OneRMHistory` - Tracks 1RM estimate history over time with deduplication
 - 380+ references across 34 files make this a complex refactor
 
-**Recommendation:** Defer to separate focused effort with careful planning
+**Recent Improvements (Phase 4.1):**
+- Added `sourceSetId` field to `OneRMHistory` table
+- Implemented unique constraint on `(userId, exerciseVariationId, sourceSetId)`
+- Replaced time-based deduplication with database constraint approach
+- GlobalProgressTracker now writes OneRMHistory directly when detecting new 1RMs
+- Full traceability of which set generated each 1RM record
+
+**Recommendation:** Core deduplication fixed; full consolidation deferred to separate effort
 
 ### 4. Potentially Unused Tables - PARTIALLY ADDRESSED
 
