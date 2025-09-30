@@ -1,10 +1,10 @@
 package com.github.radupana.featherweight.sync.converters
 
-import com.github.radupana.featherweight.data.exercise.CustomExerciseCore
-import com.github.radupana.featherweight.data.exercise.CustomExerciseVariation
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
+import com.github.radupana.featherweight.data.exercise.ExerciseCore
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
+import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.InstructionType
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
@@ -22,6 +22,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDateTime
+import java.util.UUID
 
 class ExerciseSyncConverterTest {
     @Test
@@ -122,8 +123,8 @@ class ExerciseSyncConverterTest {
     fun `toFirestore converts normalized entities to denormalized exercise correctly`() {
         // Given normalized SQLite entities
         val core =
-            CustomExerciseCore(
-                id = 1L,
+            ExerciseCore(
+                id = "1",
                 userId = "user123",
                 name = "Custom Press",
                 category = ExerciseCategory.CHEST,
@@ -134,10 +135,10 @@ class ExerciseSyncConverterTest {
             )
 
         val variation =
-            CustomExerciseVariation(
-                id = 2L,
+            ExerciseVariation(
+                id = "2",
                 userId = "user123",
-                customCoreExerciseId = 1L,
+                coreExerciseId = "1",
                 name = "Custom Barbell Press",
                 equipment = Equipment.BARBELL,
                 difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -152,7 +153,7 @@ class ExerciseSyncConverterTest {
         val muscles =
             listOf(
                 VariationMuscle(
-                    variationId = 2L,
+                    variationId = "2",
                     muscle = MuscleGroup.CHEST,
                     isPrimary = true,
                     emphasisModifier = 1.0f,
@@ -162,8 +163,8 @@ class ExerciseSyncConverterTest {
         val aliases =
             listOf(
                 VariationAlias(
-                    id = 3L,
-                    variationId = 2L,
+                    id = "3",
+                    variationId = "2",
                     alias = "Custom Press",
                     confidence = 1.0f,
                     languageCode = "en",
@@ -174,8 +175,8 @@ class ExerciseSyncConverterTest {
         val instructions =
             listOf(
                 VariationInstruction(
-                    id = 4L,
-                    variationId = 2L,
+                    id = "4",
+                    variationId = "2",
                     instructionType = InstructionType.EXECUTION,
                     content = "Custom instruction",
                     orderIndex = 0,
@@ -318,6 +319,51 @@ class ExerciseSyncConverterTest {
     }
 
     @Test
+    fun `generated IDs are valid UUIDs`() {
+        // Given a Firestore exercise
+        val firestoreExercise =
+            FirestoreExercise(
+                coreName = "Deadlift",
+                coreCategory = "LEGS",
+                coreMovementPattern = "HINGE",
+                coreIsCompound = true,
+                name = "Conventional Deadlift",
+                equipment = "BARBELL",
+                difficulty = "ADVANCED",
+                aliases = listOf("DL"),
+                instructions =
+                    listOf(
+                        FirestoreInstruction("EXECUTION", "Stand with feet hip-width", 0, "en"),
+                    ),
+                muscles =
+                    listOf(
+                        FirestoreMuscle("HAMSTRINGS", true, 1.0),
+                    ),
+            )
+
+        // When converting to SQLite entities
+        val bundle = ExerciseSyncConverter.fromFirestore(firestoreExercise, "deadlift")
+
+        // Then all generated IDs should be valid UUIDs
+        assertTrue("Core ID should be a valid UUID", isValidUUID(bundle.exerciseCore.id))
+        assertTrue("Variation ID should be a valid UUID", isValidUUID(bundle.exerciseVariation.id))
+        bundle.variationAliases.forEach { alias ->
+            assertTrue("Alias ID ${alias.id} should be a valid UUID", isValidUUID(alias.id))
+        }
+        bundle.variationInstructions.forEach { instruction ->
+            assertTrue("Instruction ID ${instruction.id} should be a valid UUID", isValidUUID(instruction.id))
+        }
+    }
+
+    private fun isValidUUID(uuid: String): Boolean =
+        try {
+            UUID.fromString(uuid)
+            true
+        } catch (e: IllegalArgumentException) {
+            false
+        }
+
+    @Test
     fun `fromFirestore preserves all muscle emphasis modifiers`() {
         // Given exercise with multiple muscles at different emphasis
         val firestoreExercise =
@@ -353,8 +399,8 @@ class ExerciseSyncConverterTest {
     fun `roundtrip conversion preserves all data`() {
         // Given a custom exercise
         val originalCore =
-            CustomExerciseCore(
-                id = 100L,
+            ExerciseCore(
+                id = "100",
                 userId = "user456",
                 name = "Test Exercise",
                 category = ExerciseCategory.BACK,
@@ -365,10 +411,10 @@ class ExerciseSyncConverterTest {
             )
 
         val originalVariation =
-            CustomExerciseVariation(
-                id = 200L,
+            ExerciseVariation(
+                id = "200",
                 userId = "user456",
-                customCoreExerciseId = 100L,
+                coreExerciseId = "100",
                 name = "Cable Test Exercise",
                 equipment = Equipment.CABLE,
                 difficulty = ExerciseDifficulty.ADVANCED,
@@ -380,20 +426,20 @@ class ExerciseSyncConverterTest {
 
         val originalMuscles =
             listOf(
-                VariationMuscle(200L, MuscleGroup.LATS, true, 1.0f),
-                VariationMuscle(200L, MuscleGroup.BICEPS, false, 0.6f),
+                VariationMuscle("200", MuscleGroup.LATS, true, 1.0f),
+                VariationMuscle("200", MuscleGroup.BICEPS, false, 0.6f),
             )
 
         val originalAliases =
             listOf(
-                VariationAlias(300L, 200L, "Test Alias 1", 1.0f, "en", "user"),
-                VariationAlias(301L, 200L, "Test Alias 2", 0.9f, "en", "user"),
+                VariationAlias("300", "200", "Test Alias 1", 1.0f, "en", "user"),
+                VariationAlias("301", "200", "Test Alias 2", 0.9f, "en", "user"),
             )
 
         val originalInstructions =
             listOf(
-                VariationInstruction(400L, 200L, InstructionType.EXECUTION, "Step 1", 0, "en"),
-                VariationInstruction(401L, 200L, InstructionType.EXECUTION, "Step 2", 1, "en"),
+                VariationInstruction("400", "200", InstructionType.EXECUTION, "Step 1", 0, "en"),
+                VariationInstruction("401", "200", InstructionType.EXECUTION, "Step 2", 1, "en"),
             )
 
         // When converting to Firestore and back

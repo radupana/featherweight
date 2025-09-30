@@ -2,6 +2,7 @@ package com.github.radupana.featherweight.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.IdGenerator
 import java.time.LocalDateTime
 
 /**
@@ -13,10 +14,10 @@ import java.time.LocalDateTime
     indices = [androidx.room.Index("userId")],
 )
 data class ExercisePerformanceTracking(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val programmeId: Long,
+    val programmeId: String,
     val exerciseName: String,
     val targetWeight: Float,
     val achievedWeight: Float,
@@ -27,7 +28,7 @@ data class ExercisePerformanceTracking(
     val missedReps: Int,
     val wasSuccessful: Boolean,
     val workoutDate: LocalDateTime,
-    val workoutId: Long,
+    val workoutId: String,
     val isDeloadWorkout: Boolean = false,
     val deloadReason: String? = null,
     val averageRpe: Float? = null,

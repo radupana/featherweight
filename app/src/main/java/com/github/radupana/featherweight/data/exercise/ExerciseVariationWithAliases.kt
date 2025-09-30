@@ -8,6 +8,6 @@ data class ExerciseVariationWithAliases(
     val variation: ExerciseVariation,
     val aliases: List<String> = emptyList(),
 ) {
-    val id: Long get() = variation.id
+    val id: String get() = variation.id
     val name: String get() = variation.name
 }

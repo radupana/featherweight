@@ -10,7 +10,7 @@ class SetCompletionTest {
     fun `completed set has actual values filled`() {
         val completedSet =
             SetLog(
-                exerciseLogId = 1L,
+                exerciseLogId = "1",
                 setOrder = 1,
                 targetReps = 10,
                 targetWeight = 100f,
@@ -31,7 +31,7 @@ class SetCompletionTest {
     fun `incomplete set has zero actual values`() {
         val incompleteSet =
             SetLog(
-                exerciseLogId = 1L,
+                exerciseLogId = "1",
                 setOrder = 1,
                 targetReps = 10,
                 targetWeight = 100f,
@@ -51,7 +51,7 @@ class SetCompletionTest {
     fun `set with RPE tracking`() {
         val setWithRpe =
             SetLog(
-                exerciseLogId = 1L,
+                exerciseLogId = "1",
                 setOrder = 1,
                 targetReps = 8,
                 targetWeight = 80f,
@@ -70,7 +70,7 @@ class SetCompletionTest {
     fun `set with intelligent suggestions`() {
         val suggestedSet =
             SetLog(
-                exerciseLogId = 1L,
+                exerciseLogId = "1",
                 setOrder = 1,
                 targetReps = 10,
                 targetWeight = null, // No target, using suggestion
@@ -93,7 +93,7 @@ class SetCompletionTest {
     fun `set order is maintained`() {
         val set1 =
             SetLog(
-                exerciseLogId = 1L,
+                exerciseLogId = "1",
                 setOrder = 1,
                 targetReps = 10,
                 targetWeight = 100f,
@@ -104,7 +104,7 @@ class SetCompletionTest {
 
         val set2 =
             SetLog(
-                exerciseLogId = 1L,
+                exerciseLogId = "1",
                 setOrder = 2,
                 targetReps = 10,
                 targetWeight = 100f,
@@ -115,7 +115,7 @@ class SetCompletionTest {
 
         val set3 =
             SetLog(
-                exerciseLogId = 1L,
+                exerciseLogId = "1",
                 setOrder = 3,
                 targetReps = 10,
                 targetWeight = 100f,
@@ -139,7 +139,7 @@ class SetCompletionTest {
     fun `set with notes and tags`() {
         val annotatedSet =
             SetLog(
-                exerciseLogId = 1L,
+                exerciseLogId = "1",
                 setOrder = 1,
                 targetReps = 5,
                 targetWeight = 120f,

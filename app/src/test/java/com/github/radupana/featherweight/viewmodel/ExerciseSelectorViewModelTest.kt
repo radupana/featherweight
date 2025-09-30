@@ -2,7 +2,6 @@ package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import com.github.radupana.featherweight.data.exercise.CustomExerciseVariation
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
@@ -53,19 +52,19 @@ class ExerciseSelectorViewModelTest {
         coEvery { mockRepository.getMusclesForVariation(any()) } returns emptyList()
         coEvery { mockRepository.getAliasesForVariation(any()) } returns emptyList()
         coEvery { mockRepository.getCurrentUserId() } returns null
-        coEvery { mockRepository.getUserExerciseUsage(any(), any(), any()) } returns null
+        coEvery { mockRepository.getUserExerciseUsage(any(), any()) } returns null
     }
 
     @Test
     fun `unauthenticated users should fetch usage stats with local userId`() =
         runTest {
             // Arrange
-            val exercise = createTestExercise(id = 1, name = "Barbell Squat")
-            val usageStats = createUsageStats(exerciseId = 1, usageCount = 5)
+            val exercise = createTestExercise(id = "1", name = "Barbell Squat")
+            val usageStats = createUsageStats(exerciseId = "1", usageCount = 5)
 
             coEvery { mockRepository.getAllExercises() } returns listOf(exercise)
             coEvery { mockRepository.getCurrentUserId() } returns null // Unauthenticated
-            coEvery { mockRepository.getUserExerciseUsage("local", 1L, false) } returns usageStats
+            coEvery { mockRepository.getUserExerciseUsage("local", "1") } returns usageStats
 
             // Act
             viewModel = ExerciseSelectorViewModel(application, mockRepository, mockNamingService)
@@ -73,7 +72,7 @@ class ExerciseSelectorViewModelTest {
             advanceUntilIdle()
 
             // Assert - Verify the repository was called with "local" userId
-            coVerify { mockRepository.getUserExerciseUsage("local", 1L, false) }
+            coVerify { mockRepository.getUserExerciseUsage("local", "1") }
 
             // Assert - Check the exercises have correct usage count
             val exercises = viewModel.filteredExercises.first()
@@ -86,12 +85,12 @@ class ExerciseSelectorViewModelTest {
         runTest {
             // Arrange
             val userId = "firebase_user_123"
-            val exercise = createTestExercise(id = 1, name = "Barbell Deadlift")
-            val usageStats = createUsageStats(exerciseId = 1, usageCount = 10, userId = userId)
+            val exercise = createTestExercise(id = "1", name = "Barbell Deadlift")
+            val usageStats = createUsageStats(exerciseId = "1", usageCount = 10, userId = userId)
 
             coEvery { mockRepository.getAllExercises() } returns listOf(exercise)
             coEvery { mockRepository.getCurrentUserId() } returns userId
-            coEvery { mockRepository.getUserExerciseUsage(userId, 1L, false) } returns usageStats
+            coEvery { mockRepository.getUserExerciseUsage(userId, "1") } returns usageStats
 
             // Act
             viewModel = ExerciseSelectorViewModel(application, mockRepository, mockNamingService)
@@ -99,7 +98,7 @@ class ExerciseSelectorViewModelTest {
             advanceUntilIdle()
 
             // Assert - Verify the repository was called with actual userId
-            coVerify { mockRepository.getUserExerciseUsage(userId, 1L, false) }
+            coVerify { mockRepository.getUserExerciseUsage(userId, "1") }
 
             // Assert - Check the exercises have correct usage count
             val exercises = viewModel.filteredExercises.first()
@@ -111,20 +110,20 @@ class ExerciseSelectorViewModelTest {
     fun `exercises are sorted by usage count when not searching`() =
         runTest {
             // Arrange
-            val exercise1 = createTestExercise(id = 1, name = "Squat")
-            val exercise2 = createTestExercise(id = 2, name = "Deadlift")
-            val exercise3 = createTestExercise(id = 3, name = "Bench Press")
+            val exercise1 = createTestExercise(id = "1", name = "Squat")
+            val exercise2 = createTestExercise(id = "2", name = "Deadlift")
+            val exercise3 = createTestExercise(id = "3", name = "Bench Press")
 
             coEvery { mockRepository.getAllExercises() } returns listOf(exercise1, exercise2, exercise3)
             coEvery { mockRepository.getCurrentUserId() } returns null
 
             // Setup different usage counts
-            coEvery { mockRepository.getUserExerciseUsage("local", 1L, false) } returns
-                createUsageStats(1, 3)
-            coEvery { mockRepository.getUserExerciseUsage("local", 2L, false) } returns
-                createUsageStats(2, 10)
-            coEvery { mockRepository.getUserExerciseUsage("local", 3L, false) } returns
-                createUsageStats(3, 5)
+            coEvery { mockRepository.getUserExerciseUsage("local", "1") } returns
+                createUsageStats("1", 3)
+            coEvery { mockRepository.getUserExerciseUsage("local", "2") } returns
+                createUsageStats("2", 10)
+            coEvery { mockRepository.getUserExerciseUsage("local", "3") } returns
+                createUsageStats("3", 5)
 
             // Act
             viewModel = ExerciseSelectorViewModel(application, mockRepository, mockNamingService)
@@ -146,16 +145,16 @@ class ExerciseSelectorViewModelTest {
     fun `exercises with same usage count are sorted alphabetically`() =
         runTest {
             // Arrange
-            val exercise1 = createTestExercise(id = 1, name = "Squat")
-            val exercise2 = createTestExercise(id = 2, name = "Deadlift")
-            val exercise3 = createTestExercise(id = 3, name = "Bench Press")
+            val exercise1 = createTestExercise(id = "1", name = "Squat")
+            val exercise2 = createTestExercise(id = "2", name = "Deadlift")
+            val exercise3 = createTestExercise(id = "3", name = "Bench Press")
 
             coEvery { mockRepository.getAllExercises() } returns listOf(exercise1, exercise2, exercise3)
             coEvery { mockRepository.getCurrentUserId() } returns null
 
             // All have same usage count
-            val sameUsageStats = createUsageStats(0, 5)
-            coEvery { mockRepository.getUserExerciseUsage("local", any(), false) } returns sameUsageStats
+            val sameUsageStats = createUsageStats("0", 5)
+            coEvery { mockRepository.getUserExerciseUsage("local", any()) } returns sameUsageStats
 
             // Act
             viewModel = ExerciseSelectorViewModel(application, mockRepository, mockNamingService)
@@ -174,12 +173,12 @@ class ExerciseSelectorViewModelTest {
     fun `custom exercises fetch usage stats correctly for unauthenticated users`() =
         runTest {
             // Arrange
-            val customExercise = createCustomExercise(id = 100, name = "Cable Fly")
-            val usageStats = createUsageStats(100, 7, isCustom = true)
+            val customExercise = createCustomExercise(id = "100", name = "Cable Fly")
+            val usageStats = createUsageStats("100", 7)
 
             coEvery { mockRepository.getCustomExercises() } returns listOf(customExercise)
             coEvery { mockRepository.getCurrentUserId() } returns null
-            coEvery { mockRepository.getUserExerciseUsage("local", 100L, true) } returns usageStats
+            coEvery { mockRepository.getUserExerciseUsage("local", "100") } returns usageStats
 
             // Act
             viewModel = ExerciseSelectorViewModel(application, mockRepository, mockNamingService)
@@ -187,7 +186,7 @@ class ExerciseSelectorViewModelTest {
             advanceUntilIdle()
 
             // Assert - Verify custom exercise usage was fetched with "local"
-            coVerify { mockRepository.getUserExerciseUsage("local", 100L, true) }
+            coVerify { mockRepository.getUserExerciseUsage("local", "100") }
 
             val exercises = viewModel.filteredExercises.first()
             assertThat(exercises).hasSize(1)
@@ -199,11 +198,11 @@ class ExerciseSelectorViewModelTest {
     fun `null usage stats defaults to zero count`() =
         runTest {
             // Arrange
-            val exercise = createTestExercise(id = 1, name = "Test Exercise")
+            val exercise = createTestExercise(id = "1", name = "Test Exercise")
 
             coEvery { mockRepository.getAllExercises() } returns listOf(exercise)
             coEvery { mockRepository.getCurrentUserId() } returns null
-            coEvery { mockRepository.getUserExerciseUsage(any(), any(), any()) } returns null
+            coEvery { mockRepository.getUserExerciseUsage(any(), any()) } returns null
 
             // Act
             viewModel = ExerciseSelectorViewModel(application, mockRepository, mockNamingService)
@@ -219,11 +218,11 @@ class ExerciseSelectorViewModelTest {
 
     // Helper functions
     private fun createTestExercise(
-        id: Long,
+        id: String,
         name: String,
     ) = ExerciseVariation(
         id = id,
-        coreExerciseId = 1,
+        coreExerciseId = "1",
         name = name,
         equipment = Equipment.BARBELL,
         difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -234,12 +233,12 @@ class ExerciseSelectorViewModelTest {
     )
 
     private fun createCustomExercise(
-        id: Long,
+        id: String,
         name: String,
-    ) = CustomExerciseVariation(
+    ) = ExerciseVariation(
         id = id,
         userId = "local",
-        customCoreExerciseId = 1,
+        coreExerciseId = "1",
         name = name,
         equipment = Equipment.CABLE,
         difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -247,20 +246,16 @@ class ExerciseSelectorViewModelTest {
         recommendedRepRange = "12-15",
         rmScalingType = RMScalingType.STANDARD,
         restDurationSeconds = 60,
-        createdAt = LocalDateTime.now(),
-        updatedAt = LocalDateTime.now(),
     )
 
     private fun createUsageStats(
-        exerciseId: Long,
+        exerciseId: String,
         usageCount: Int,
         userId: String = "local",
-        isCustom: Boolean = false,
     ) = UserExerciseUsage(
         id = exerciseId,
         userId = userId,
         exerciseVariationId = exerciseId,
-        isCustomExercise = isCustom,
         usageCount = usageCount,
         favorited = false,
         createdAt = LocalDateTime.now(),

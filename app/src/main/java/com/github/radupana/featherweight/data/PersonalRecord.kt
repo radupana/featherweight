@@ -2,6 +2,7 @@ package com.github.radupana.featherweight.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.IdGenerator
 import java.time.LocalDateTime
 
 enum class PRType {
@@ -18,10 +19,9 @@ enum class PRType {
     // Note: Removed foreign key since it can reference either system or custom exercises
 )
 data class PersonalRecord(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val exerciseVariationId: Long, // Can reference either system or custom exercise
-    val isCustomExercise: Boolean = false, // true = custom exercise, false = system exercise
+    val exerciseVariationId: String, // References exercise_variations table
     val weight: Float,
     val reps: Int,
     val rpe: Float? = null,
@@ -34,5 +34,5 @@ data class PersonalRecord(
     val volume: Float = weight * reps,
     val estimated1RM: Float? = null,
     val notes: String? = null,
-    val workoutId: Long? = null,
+    val workoutId: String? = null,
 )

@@ -143,10 +143,11 @@ class LocalDataMigrationService(
     }
 
     private fun migrateCustomExercises(targetUserId: String) {
+        // After DB restructuring, custom exercises are in the unified tables with userId field
         val coreCount =
             database
                 .compileStatement(
-                    "UPDATE custom_exercise_cores SET userId = ? WHERE userId = ?",
+                    "UPDATE exercise_cores SET userId = ? WHERE userId = ?",
                 ).use { statement ->
                     statement.bindString(1, targetUserId)
                     statement.bindString(2, LOCAL_USER_ID)
@@ -156,7 +157,7 @@ class LocalDataMigrationService(
         val variationCount =
             database
                 .compileStatement(
-                    "UPDATE custom_exercise_variations SET userId = ? WHERE userId = ?",
+                    "UPDATE exercise_variations SET userId = ? WHERE userId = ?",
                 ).use { statement ->
                     statement.bindString(1, targetUserId)
                     statement.bindString(2, LOCAL_USER_ID)
@@ -345,11 +346,12 @@ class LocalDataMigrationService(
                         it.bindString(1, LOCAL_USER_ID)
                         it.executeUpdateDelete()
                     }
-                    database.compileStatement("DELETE FROM custom_exercise_cores WHERE userId = ?").use {
+                    // Custom exercises are now in unified tables - delete user-specific ones
+                    database.compileStatement("DELETE FROM exercise_cores WHERE userId = ?").use {
                         it.bindString(1, LOCAL_USER_ID)
                         it.executeUpdateDelete()
                     }
-                    database.compileStatement("DELETE FROM custom_exercise_variations WHERE userId = ?").use {
+                    database.compileStatement("DELETE FROM exercise_variations WHERE userId = ?").use {
                         it.bindString(1, LOCAL_USER_ID)
                         it.executeUpdateDelete()
                     }

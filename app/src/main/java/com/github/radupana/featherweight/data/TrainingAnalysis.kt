@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.data
 import android.util.Log
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.IdGenerator
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
@@ -14,8 +15,8 @@ import java.time.LocalDateTime
     indices = [androidx.room.Index("userId")],
 )
 data class TrainingAnalysis(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
     val userId: String? = null,
     val analysisDate: LocalDateTime,
     val periodStart: LocalDate,

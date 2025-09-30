@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.data.profile
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.IdGenerator
 import java.time.LocalDateTime
 
 @Entity(
@@ -14,11 +15,10 @@ import java.time.LocalDateTime
     ],
 )
 data class UserExerciseMax(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val exerciseVariationId: Long, // Can reference either system or custom exercise
-    val isCustomExercise: Boolean = false, // true = custom exercise, false = system exercise
+    val exerciseVariationId: String, // References exercise_variations table
     // Most weight ever lifted
     val mostWeightLifted: Float,
     val mostWeightReps: Int,

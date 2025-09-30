@@ -9,13 +9,13 @@ class SetLogTest {
         // Act
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
             )
 
         // Assert
-        assertThat(setLog.id).isEqualTo(0L)
-        assertThat(setLog.exerciseLogId).isEqualTo(10L)
+        assertThat(setLog.id).isNotEmpty() // Auto-generated ID
+        assertThat(setLog.exerciseLogId).isEqualTo("10")
         assertThat(setLog.setOrder).isEqualTo(1)
         assertThat(setLog.targetReps).isNull()
         assertThat(setLog.targetWeight).isNull()
@@ -44,8 +44,8 @@ class SetLogTest {
         // Act
         val setLog =
             SetLog(
-                id = 123L,
-                exerciseLogId = 45L,
+                id = "123",
+                exerciseLogId = "45",
                 setOrder = 3,
                 targetReps = 10,
                 targetWeight = 80f,
@@ -65,8 +65,8 @@ class SetLogTest {
             )
 
         // Assert
-        assertThat(setLog.id).isEqualTo(123L)
-        assertThat(setLog.exerciseLogId).isEqualTo(45L)
+        assertThat(setLog.id).isEqualTo("123")
+        assertThat(setLog.exerciseLogId).isEqualTo("45")
         assertThat(setLog.setOrder).isEqualTo(3)
         assertThat(setLog.targetReps).isEqualTo(10)
         assertThat(setLog.targetWeight).isEqualTo(80f)
@@ -90,7 +90,7 @@ class SetLogTest {
         // Act - Bodyweight exercise
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 actualReps = 15,
                 actualWeight = 0f,
@@ -108,7 +108,7 @@ class SetLogTest {
         // Act
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 actualReps = 5,
                 actualWeight = 100f,
@@ -124,7 +124,7 @@ class SetLogTest {
         // Act
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 actualReps = 20,
                 actualWeight = 50f,
@@ -140,7 +140,7 @@ class SetLogTest {
         // Act - RPE can be in 0.5 increments
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 actualReps = 8,
                 actualWeight = 75f,
@@ -156,7 +156,7 @@ class SetLogTest {
         // Act
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 suggestedWeight = 100f,
                 suggestionConfidence = 1.0f, // Maximum confidence
@@ -171,7 +171,7 @@ class SetLogTest {
         // Act
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 suggestedWeight = 100f,
                 suggestionConfidence = 0.0f, // Minimum confidence
@@ -186,7 +186,7 @@ class SetLogTest {
         // Act - Set with targets but not performed yet
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 targetReps = 10,
                 targetWeight = 80f,
@@ -210,7 +210,7 @@ class SetLogTest {
         // Act - User did different weight/reps than planned
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 targetReps = 10,
                 targetWeight = 80f,
@@ -232,7 +232,7 @@ class SetLogTest {
         // Act
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 tag = "warmup",
             )
@@ -246,7 +246,7 @@ class SetLogTest {
         // Act
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 tag = "working",
             )
@@ -260,7 +260,7 @@ class SetLogTest {
         // Act
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 tag = "dropset",
             )
@@ -293,7 +293,7 @@ class SetLogTest {
         // Act
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 calculationDetails = complexJson,
             )
@@ -307,8 +307,8 @@ class SetLogTest {
         // Arrange
         val original =
             SetLog(
-                id = 1L,
-                exerciseLogId = 10L,
+                id = "1",
+                exerciseLogId = "10",
                 setOrder = 1,
                 actualReps = 10,
                 actualWeight = 100f,
@@ -322,8 +322,8 @@ class SetLogTest {
             )
 
         // Assert
-        assertThat(copy.id).isEqualTo(1L)
-        assertThat(copy.exerciseLogId).isEqualTo(10L)
+        assertThat(copy.id).isEqualTo("1")
+        assertThat(copy.exerciseLogId).isEqualTo("10")
         assertThat(copy.setOrder).isEqualTo(1)
         assertThat(copy.actualReps).isEqualTo(12)
         assertThat(copy.actualWeight).isEqualTo(105f)
@@ -338,8 +338,8 @@ class SetLogTest {
         // Arrange
         val set1 =
             SetLog(
-                id = 1L,
-                exerciseLogId = 10L,
+                id = "1",
+                exerciseLogId = "10",
                 setOrder = 1,
                 actualReps = 10,
                 actualWeight = 100f,
@@ -347,8 +347,8 @@ class SetLogTest {
 
         val set2 =
             SetLog(
-                id = 1L,
-                exerciseLogId = 10L,
+                id = "1",
+                exerciseLogId = "10",
                 setOrder = 1,
                 actualReps = 10,
                 actualWeight = 100f,
@@ -356,8 +356,8 @@ class SetLogTest {
 
         val set3 =
             SetLog(
-                id = 2L, // Different ID
-                exerciseLogId = 10L,
+                id = "2", // Different ID
+                exerciseLogId = "10",
                 setOrder = 1,
                 actualReps = 10,
                 actualWeight = 100f,
@@ -373,8 +373,8 @@ class SetLogTest {
         // Arrange
         val set1 =
             SetLog(
-                id = 1L,
-                exerciseLogId = 10L,
+                id = "1",
+                exerciseLogId = "10",
                 setOrder = 1,
                 actualReps = 10,
                 actualWeight = 100f,
@@ -382,8 +382,8 @@ class SetLogTest {
 
         val set2 =
             SetLog(
-                id = 1L,
-                exerciseLogId = 10L,
+                id = "1",
+                exerciseLogId = "10",
                 setOrder = 1,
                 actualReps = 10,
                 actualWeight = 100f,
@@ -400,7 +400,7 @@ class SetLogTest {
         // Act
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 targetRpe = 7f,
             )
@@ -415,7 +415,7 @@ class SetLogTest {
         // Act
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 targetRpe = 7f,
                 actualRpe = 8.5f,
@@ -431,7 +431,7 @@ class SetLogTest {
         // Act - RPE can be in 0.5 increments
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 targetRpe = 6.5f,
             )
@@ -445,7 +445,7 @@ class SetLogTest {
         // Act
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 targetRpe = 1f,
             )
@@ -459,7 +459,7 @@ class SetLogTest {
         // Act
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 targetRpe = 10f,
             )
@@ -473,7 +473,7 @@ class SetLogTest {
         // Act - Programme workout with all targets specified
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 targetReps = 8,
                 targetWeight = 100f,
@@ -491,7 +491,7 @@ class SetLogTest {
         // Act - User felt different RPE than planned
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 targetRpe = 7f, // Planned RPE 7
                 actualRpe = 9f, // Actually felt like RPE 9
@@ -511,7 +511,7 @@ class SetLogTest {
         // Act - Bodyweight exercise with RPE target
         val setLog =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 targetReps = 15,
                 targetRpe = 8f,
@@ -529,7 +529,7 @@ class SetLogTest {
         // Arrange
         val original =
             SetLog(
-                exerciseLogId = 10L,
+                exerciseLogId = "10",
                 setOrder = 1,
                 targetRpe = 7.5f,
                 actualRpe = 8f,

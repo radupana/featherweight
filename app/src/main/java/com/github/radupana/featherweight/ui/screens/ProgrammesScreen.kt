@@ -68,8 +68,8 @@ fun ProgrammesScreen(
     viewModel: ProgrammeViewModel = viewModel(),
     workoutViewModel: WorkoutViewModel = viewModel(),
     onNavigateToImport: (() -> Unit)? = null,
-    onNavigateToImportWithText: ((String, Long?) -> Unit)? = null,
-    onNavigateToImportWithParsedProgramme: ((com.github.radupana.featherweight.data.ParsedProgramme, Long) -> Unit)? = null,
+    onNavigateToImportWithText: ((String, String?) -> Unit)? = null,
+    onNavigateToImportWithParsedProgramme: ((com.github.radupana.featherweight.data.ParsedProgramme, String) -> Unit)? = null,
     onClearImportedProgramme: (() -> Unit)? = null,
     onStartProgrammeWorkout: (() -> Unit)? = null,
 ) {

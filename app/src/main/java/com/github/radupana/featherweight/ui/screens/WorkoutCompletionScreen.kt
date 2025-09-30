@@ -49,9 +49,9 @@ import kotlin.random.Random
 
 @Composable
 fun WorkoutCompletionScreen(
-    workoutId: Long,
+    workoutId: String,
     onDismiss: () -> Unit,
-    onSaveAsTemplate: (Long) -> Unit = {},
+    onSaveAsTemplate: (String) -> Unit = {},
 ) {
     // Get repository from application context
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -342,13 +342,8 @@ private fun PRItem(
     exerciseNames: Map<String, String>,
 ) {
     Column {
-        // Use composite key to look up exercise name
-        val key =
-            if (pr.isCustomExercise) {
-                "custom_${pr.exerciseVariationId}"
-            } else {
-                "system_${pr.exerciseVariationId}"
-            }
+        // Use unified key to look up exercise name
+        val key = "exercise_${pr.exerciseVariationId}"
         val exerciseName = exerciseNames[key] ?: "Unknown Exercise"
         Text(
             text = exerciseName,

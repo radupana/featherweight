@@ -7,7 +7,7 @@ import androidx.room.Query
 @Dao
 interface ExercisePerformanceTrackingDao {
     @Insert
-    suspend fun insertPerformanceRecord(record: ExercisePerformanceTracking): Long
+    suspend fun insertPerformanceRecord(record: ExercisePerformanceTracking)
 
     @Query(
         """
@@ -19,7 +19,7 @@ interface ExercisePerformanceTrackingDao {
     """,
     )
     suspend fun getRecentPerformance(
-        programmeId: Long,
+        programmeId: String,
         exerciseName: String,
         limit: Int = 3,
     ): List<ExercisePerformanceTracking>
@@ -40,7 +40,7 @@ interface ExercisePerformanceTrackingDao {
     """,
     )
     suspend fun getConsecutiveFailures(
-        programmeId: Long,
+        programmeId: String,
         exerciseName: String,
     ): Int
 
@@ -48,7 +48,7 @@ interface ExercisePerformanceTrackingDao {
     suspend fun getAllTracking(): List<ExercisePerformanceTracking>
 
     @Query("SELECT * FROM exercise_performance_tracking WHERE id = :id")
-    suspend fun getTrackingById(id: Long): ExercisePerformanceTracking?
+    suspend fun getTrackingById(id: String): ExercisePerformanceTracking?
 
     @Insert
     suspend fun insertTracking(tracking: ExercisePerformanceTracking)

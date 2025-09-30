@@ -5,9 +5,6 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.github.radupana.featherweight.data.exercise.CustomExerciseCore
-import com.github.radupana.featherweight.data.exercise.CustomExerciseDao
-import com.github.radupana.featherweight.data.exercise.CustomExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseCore
 import com.github.radupana.featherweight.data.exercise.ExerciseCoreDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
@@ -22,8 +19,6 @@ import com.github.radupana.featherweight.data.exercise.VariationInstruction
 import com.github.radupana.featherweight.data.exercise.VariationInstructionDao
 import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.data.exercise.VariationMuscleDao
-import com.github.radupana.featherweight.data.exercise.VariationRelation
-import com.github.radupana.featherweight.data.exercise.VariationRelationDao
 import com.github.radupana.featherweight.data.profile.OneRMDao
 import com.github.radupana.featherweight.data.profile.OneRMHistory
 import com.github.radupana.featherweight.data.profile.UserExerciseMax
@@ -42,12 +37,9 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         ExerciseCore::class,
         ExerciseVariation::class,
         VariationInstruction::class,
-        VariationRelation::class,
         VariationAlias::class,
         VariationMuscle::class,
-        // Custom exercises and usage tracking
-        CustomExerciseCore::class,
-        CustomExerciseVariation::class,
+        // Usage tracking
         UserExerciseUsage::class,
         // Other entities
         Programme::class,
@@ -59,12 +51,11 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         ExerciseSwapHistory::class,
         ExercisePerformanceTracking::class,
         GlobalExerciseProgress::class,
-        ExerciseCorrelation::class,
         PersonalRecord::class,
         TrainingAnalysis::class,
         ParseRequest::class,
     ],
-    version = 2,
+    version = 1,
     exportSchema = true,
 )
 @TypeConverters(DateConverters::class, ExerciseTypeConverters::class)
@@ -88,10 +79,6 @@ abstract class FeatherweightDatabase : RoomDatabase() {
 
     abstract fun variationMuscleDao(): VariationMuscleDao
 
-    abstract fun variationRelationDao(): VariationRelationDao
-
-    abstract fun customExerciseDao(): CustomExerciseDao
-
     abstract fun userExerciseUsageDao(): UserExerciseUsageDao
 
     abstract fun programmeDao(): ProgrammeDao
@@ -103,8 +90,6 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun exercisePerformanceTrackingDao(): ExercisePerformanceTrackingDao
 
     abstract fun globalExerciseProgressDao(): GlobalExerciseProgressDao
-
-    abstract fun exerciseCorrelationDao(): ExerciseCorrelationDao
 
     abstract fun personalRecordDao(): PersonalRecordDao
 

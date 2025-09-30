@@ -59,8 +59,8 @@ class ProgrammeRepositoryTest {
             // Given
             val programmes =
                 listOf(
-                    createProgramme(1L, "Programme 1"),
-                    createProgramme(2L, "Programme 2"),
+                    createProgramme("1", "Programme 1"),
+                    createProgramme("2", "Programme 2"),
                 )
             coEvery { programmeDao.getAllProgrammes() } returns programmes
 
@@ -77,7 +77,7 @@ class ProgrammeRepositoryTest {
     fun `getActiveProgramme should return active programme from dao`() =
         runTest(testDispatcher) {
             // Given
-            val activeProgramme = createProgramme(1L, "Active Programme", isActive = true)
+            val activeProgramme = createProgramme("1", "Active Programme", isActive = true)
             coEvery { programmeDao.getActiveProgramme() } returns activeProgramme
 
             // When
@@ -108,7 +108,7 @@ class ProgrammeRepositoryTest {
     fun `getProgrammeById should return programme from dao`() =
         runTest(testDispatcher) {
             // Given
-            val programmeId = 1L
+            val programmeId = "1"
             val programme = createProgramme(programmeId, "Test Programme")
             coEvery { programmeDao.getProgrammeById(programmeId) } returns programme
 
@@ -125,7 +125,7 @@ class ProgrammeRepositoryTest {
     fun `getProgrammeById should return null for non-existent programme`() =
         runTest(testDispatcher) {
             // Given
-            val programmeId = 999L
+            val programmeId = "999"
             coEvery { programmeDao.getProgrammeById(programmeId) } returns null
 
             // When
@@ -141,7 +141,7 @@ class ProgrammeRepositoryTest {
     fun `getProgrammeWithDetails should return programme with details from dao`() =
         runTest(testDispatcher) {
             // Given
-            val programmeId = 1L
+            val programmeId = "1"
             val programmeWithDetails =
                 ProgrammeWithDetailsRaw(
                     programme = createProgramme(programmeId, "Test Programme"),
@@ -162,7 +162,7 @@ class ProgrammeRepositoryTest {
     fun `getInProgressWorkoutCountByProgramme should return count from workout dao`() =
         runTest(testDispatcher) {
             // Given
-            val programmeId = 1L
+            val programmeId = "1"
             val count = 5
             coEvery { workoutDao.getInProgressWorkoutCountByProgramme(programmeId) } returns count
 
@@ -179,7 +179,7 @@ class ProgrammeRepositoryTest {
     fun `updateProgrammeCompletionNotes should update notes when programme exists`() =
         runTest(testDispatcher) {
             // Given
-            val programmeId = 1L
+            val programmeId = "1"
             val programme = createProgramme(programmeId, "Test Programme")
             val notes = "Completed successfully"
             coEvery { programmeDao.getProgrammeById(programmeId) } returns programme
@@ -206,7 +206,7 @@ class ProgrammeRepositoryTest {
     fun `updateProgrammeCompletionNotes should not update when programme does not exist`() =
         runTest(testDispatcher) {
             // Given
-            val programmeId = 999L
+            val programmeId = "999"
             val notes = "Completed successfully"
             coEvery { programmeDao.getProgrammeById(programmeId) } returns null
 
@@ -223,7 +223,7 @@ class ProgrammeRepositoryTest {
     fun `updateProgrammeCompletionNotes should handle null notes`() =
         runTest(testDispatcher) {
             // Given
-            val programmeId = 1L
+            val programmeId = "1"
             val programme = createProgramme(programmeId, "Test Programme", completionNotes = "Old notes")
             coEvery { programmeDao.getProgrammeById(programmeId) } returns programme
             coEvery { programmeDao.updateProgramme(any()) } returns Unit
@@ -244,7 +244,7 @@ class ProgrammeRepositoryTest {
 
     // Helper function to create a test Programme
     private fun createProgramme(
-        id: Long,
+        id: String,
         name: String,
         isActive: Boolean = false,
         completionNotes: String? = null,

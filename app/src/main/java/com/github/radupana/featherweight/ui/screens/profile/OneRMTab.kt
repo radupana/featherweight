@@ -38,10 +38,10 @@ fun OneRMTab(
     onToggleOtherSubSection: () -> Unit,
     onAddMax: (Big4Exercise) -> Unit,
     onEditMax: (Big4Exercise) -> Unit,
-    onClearMax: (Long) -> Unit,
+    onClearMax: (String) -> Unit,
     onShowExerciseSelector: () -> Unit,
     onEditOtherMax: (ExerciseMaxWithName) -> Unit,
-    onDeleteMax: (Long) -> Unit,
+    onDeleteMax: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(

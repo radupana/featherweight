@@ -29,7 +29,6 @@ class PersonalRecordRepository(
     private val personalRecordDao = db.personalRecordDao()
     private val setLogDao = db.setLogDao()
     private val exerciseVariationDao = db.exerciseVariationDao()
-    private val customExerciseDao = db.customExerciseDao()
     private val prService = prDetectionService ?: PRDetectionService(personalRecordDao, setLogDao, exerciseVariationDao)
 
     suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord> =
@@ -37,38 +36,30 @@ class PersonalRecordRepository(
             personalRecordDao.getRecentPRs(limit)
         }
 
-    suspend fun getPersonalRecordsForWorkout(workoutId: Long): List<PersonalRecord> =
+    suspend fun getPersonalRecordsForWorkout(workoutId: String): List<PersonalRecord> =
         withContext(ioDispatcher) {
             personalRecordDao.getPersonalRecordsForWorkout(workoutId)
         }
 
-    suspend fun getPersonalRecordForExercise(exerciseVariationId: Long): PersonalRecord? =
+    suspend fun getPersonalRecordForExercise(exerciseVariationId: String): PersonalRecord? =
         withContext(ioDispatcher) {
             personalRecordDao.getLatestRecordForExercise(exerciseVariationId)
         }
 
     suspend fun checkForPR(
         setLog: SetLog,
-        exerciseVariationId: Long,
-        isCustomExercise: Boolean,
+        exerciseVariationId: String,
         updateOrInsertOneRM: suspend (UserExerciseMax) -> Unit,
     ): List<PersonalRecord> =
         withContext(ioDispatcher) {
             Log.d(TAG, "Checking for PR: weight=${setLog.actualWeight}kg, reps=${setLog.actualReps}, completed=${setLog.isCompleted}")
-            val prs = prService.checkForPR(setLog, exerciseVariationId, isCustomExercise)
+            val prs = prService.checkForPR(setLog, exerciseVariationId)
 
             if (prs.isNotEmpty()) {
-                Log.d(TAG, "Looking up exercise name for ID $exerciseVariationId, isCustom: $isCustomExercise")
-                val exerciseName =
-                    if (isCustomExercise) {
-                        val customExercise = customExerciseDao.getCustomVariationById(exerciseVariationId)
-                        Log.d(TAG, "Custom exercise lookup result: ${customExercise?.name ?: "NULL"}")
-                        customExercise?.name ?: "Unknown"
-                    } else {
-                        val systemExercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
-                        Log.d(TAG, "System exercise lookup result: ${systemExercise?.name ?: "NULL"}")
-                        systemExercise?.name ?: "Unknown"
-                    }
+                Log.d(TAG, "Looking up exercise name for ID $exerciseVariationId")
+                val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
+                val exerciseName = exercise?.name ?: "Unknown"
+                Log.d(TAG, "Exercise lookup result: $exerciseName")
 
                 prs.forEach { pr ->
                     Log.i(

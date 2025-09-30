@@ -246,7 +246,7 @@ class WorkoutExportService(
 
     suspend fun exportSingleWorkout(
         context: Context,
-        workoutId: Long,
+        workoutId: String,
         exportOptions: ExportOptions,
     ): File =
         withContext(Dispatchers.IO) {
@@ -301,7 +301,7 @@ class WorkoutExportService(
 
     suspend fun exportProgrammeWorkouts(
         context: Context,
-        programmeId: Long,
+        programmeId: String,
         exportOptions: ExportOptions,
         onProgress: (current: Int, total: Int) -> Unit,
     ): File =

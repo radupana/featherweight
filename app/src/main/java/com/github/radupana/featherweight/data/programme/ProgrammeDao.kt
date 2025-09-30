@@ -16,7 +16,7 @@ import java.time.LocalDateTime
 interface ProgrammeDao {
     // Programme CRUD operations
     @Insert
-    suspend fun insertProgramme(programme: Programme): Long
+    suspend fun insertProgramme(programme: Programme)
 
     @Update
     suspend fun updateProgramme(programme: Programme)
@@ -25,7 +25,7 @@ interface ProgrammeDao {
     suspend fun deleteProgramme(programme: Programme)
 
     @Query("SELECT * FROM programmes WHERE id = :id")
-    suspend fun getProgrammeById(id: Long): Programme?
+    suspend fun getProgrammeById(id: String): Programme?
 
     @Query("SELECT * FROM programmes WHERE isActive = 1 LIMIT 1")
     suspend fun getActiveProgramme(): Programme?
@@ -35,23 +35,23 @@ interface ProgrammeDao {
 
     // Programme Weeks
     @Insert
-    suspend fun insertProgrammeWeek(week: ProgrammeWeek): Long
+    suspend fun insertProgrammeWeek(week: ProgrammeWeek)
 
     @Query("SELECT * FROM programme_weeks WHERE programmeId = :programmeId ORDER BY weekNumber ASC")
-    suspend fun getWeeksForProgramme(programmeId: Long): List<ProgrammeWeek>
+    suspend fun getWeeksForProgramme(programmeId: String): List<ProgrammeWeek>
 
     @Query("SELECT * FROM programme_weeks WHERE id = :weekId")
-    suspend fun getWeekById(weekId: Long): ProgrammeWeek?
+    suspend fun getWeekById(weekId: String): ProgrammeWeek?
 
     @Query("SELECT * FROM programme_weeks")
     suspend fun getAllProgrammeWeeks(): List<ProgrammeWeek>
 
     @Query("SELECT * FROM programme_weeks WHERE id = :id")
-    suspend fun getProgrammeWeekById(id: Long): ProgrammeWeek?
+    suspend fun getProgrammeWeekById(id: String): ProgrammeWeek?
 
     // Programme Workouts
     @Insert
-    suspend fun insertProgrammeWorkout(workout: ProgrammeWorkout): Long
+    suspend fun insertProgrammeWorkout(workout: ProgrammeWorkout)
 
     @Query(
         """
@@ -61,40 +61,40 @@ interface ProgrammeDao {
         ORDER BY weeks.weekNumber ASC, pw.dayNumber ASC
     """,
     )
-    suspend fun getAllWorkoutsForProgramme(programmeId: Long): List<ProgrammeWorkout>
+    suspend fun getAllWorkoutsForProgramme(programmeId: String): List<ProgrammeWorkout>
 
     @Query("SELECT * FROM programme_workouts")
     suspend fun getAllProgrammeWorkouts(): List<ProgrammeWorkout>
 
     @Query("SELECT * FROM programme_workouts WHERE id = :id")
-    suspend fun getProgrammeWorkoutById(id: Long): ProgrammeWorkout?
+    suspend fun getProgrammeWorkoutById(id: String): ProgrammeWorkout?
 
     // Programme Progress
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertOrUpdateProgress(progress: ProgrammeProgress): Long
+    suspend fun insertOrUpdateProgress(progress: ProgrammeProgress)
 
     @Query("SELECT * FROM programme_progress WHERE programmeId = :programmeId")
-    suspend fun getProgressForProgramme(programmeId: Long): ProgrammeProgress?
+    suspend fun getProgressForProgramme(programmeId: String): ProgrammeProgress?
 
     @Query("UPDATE programme_progress SET currentWeek = :week, currentDay = :day, lastWorkoutDate = :date WHERE programmeId = :programmeId")
     suspend fun updateProgress(
-        programmeId: Long,
+        programmeId: String,
         week: Int,
         day: Int,
         date: String,
     )
 
     @Query("UPDATE programme_progress SET completedWorkouts = completedWorkouts + 1 WHERE programmeId = :programmeId")
-    suspend fun incrementCompletedWorkouts(programmeId: Long)
+    suspend fun incrementCompletedWorkouts(programmeId: String)
 
     @Query("SELECT * FROM programme_progress")
     suspend fun getAllProgrammeProgress(): List<ProgrammeProgress>
 
     @Query("SELECT * FROM programme_progress WHERE id = :id")
-    suspend fun getProgrammeProgressById(id: Long): ProgrammeProgress?
+    suspend fun getProgrammeProgressById(id: String): ProgrammeProgress?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertProgrammeProgress(progress: ProgrammeProgress): Long
+    suspend fun insertProgrammeProgress(progress: ProgrammeProgress)
 
     @Update
     suspend fun updateProgrammeProgress(progress: ProgrammeProgress)
@@ -102,17 +102,17 @@ interface ProgrammeDao {
     // Complex queries with relationships
     @Transaction
     @Query("SELECT * FROM programmes WHERE id = :programmeId")
-    suspend fun getProgrammeWithDetails(programmeId: Long): ProgrammeWithDetailsRaw?
+    suspend fun getProgrammeWithDetails(programmeId: String): ProgrammeWithDetailsRaw?
 
     // Activation/Deactivation
     @Query("UPDATE programmes SET isActive = 0")
     suspend fun deactivateAllProgrammes()
 
     @Query("UPDATE programmes SET isActive = 1 WHERE id = :programmeId")
-    suspend fun activateProgramme(programmeId: Long)
+    suspend fun activateProgramme(programmeId: String)
 
     @Transaction
-    suspend fun setActiveProgramme(programmeId: Long) {
+    suspend fun setActiveProgramme(programmeId: String) {
         // No longer deactivating programmes, user must delete active programme first
         // This should only be called when there's no active programme
         activateProgramme(programmeId)
@@ -130,7 +130,7 @@ interface ProgrammeDao {
     """,
     )
     suspend fun completeProgrammeAtomic(
-        programmeId: Long,
+        programmeId: String,
         completedAt: LocalDateTime,
     )
 
@@ -165,7 +165,7 @@ interface ProgrammeDao {
     """,
     )
     suspend fun updateProgrammeStatus(
-        programmeId: Long,
+        programmeId: String,
         status: ProgrammeStatus,
         startedAt: LocalDateTime = LocalDateTime.now(),
     )

@@ -30,7 +30,7 @@ import com.github.radupana.featherweight.viewmodel.CreateTemplateFromWorkoutView
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateTemplateFromWorkoutScreen(
-    workoutId: Long,
+    workoutId: String,
     onBack: () -> Unit,
     onTemplateCreated: () -> Unit,
     modifier: Modifier = Modifier,

@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 
 data class ExerciseMapping(
     val originalName: String,
-    val exerciseId: Long?, // null means create as custom
+    val exerciseId: String?, // null means create as custom
     val exerciseName: String,
 )
 
@@ -39,6 +39,9 @@ class ExerciseMappingViewModel(
     private val _searchResults = MutableStateFlow<List<ExerciseVariation>>(emptyList())
     val searchResults: StateFlow<List<ExerciseVariation>> = _searchResults
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
+
     private var allExercises: List<ExerciseVariation> = emptyList()
 
     init {
@@ -60,7 +63,7 @@ class ExerciseMappingViewModel(
 
     fun mapExercise(
         originalName: String,
-        exerciseId: Long?,
+        exerciseId: String?,
         exerciseName: String,
     ) {
         val mappings = _uiState.value.mappings.toMutableMap()
@@ -101,7 +104,7 @@ class ExerciseMappingViewModel(
             _uiState.value.mappings.containsKey(exerciseName)
         }
 
-    fun getFinalMappings(): Map<String, Long?> =
+    fun getFinalMappings(): Map<String, String?> =
         _uiState.value.mappings.mapValues { (_, mapping) ->
             mapping.exerciseId
         }
@@ -129,7 +132,14 @@ class ExerciseMappingViewModel(
 
             if (customExercise != null) {
                 mapExercise(originalName, customExercise.id, customExercise.name)
+                _errorMessage.value = null
+            } else {
+                _errorMessage.value = "Failed to create '$name': An exercise with this name already exists"
             }
         }
+    }
+
+    fun clearError() {
+        _errorMessage.value = null
     }
 }

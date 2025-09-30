@@ -64,9 +64,9 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProgrammeHistoryDetailScreen(
-    programmeId: Long,
+    programmeId: String,
     onBack: () -> Unit,
-    onViewWorkout: (Long) -> Unit,
+    onViewWorkout: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProgrammeHistoryDetailViewModel = viewModel(),
 ) {
@@ -234,7 +234,7 @@ fun ProgrammeHistoryDetailScreen(
 fun ProgrammeDetailsContent(
     details: ProgrammeHistoryDetails,
     completionStats: com.github.radupana.featherweight.data.programme.ProgrammeCompletionStats?,
-    onViewWorkout: (Long) -> Unit,
+    onViewWorkout: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showDetailedAnalysis by remember { mutableStateOf(false) }
@@ -395,7 +395,7 @@ fun CollapsibleWeekSection(
     weekNumber: Int,
     totalCount: Int,
     workouts: List<WorkoutHistoryEntry>,
-    onViewWorkout: (Long) -> Unit,
+    onViewWorkout: (String) -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 

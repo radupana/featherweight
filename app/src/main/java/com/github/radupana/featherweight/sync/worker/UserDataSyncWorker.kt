@@ -32,6 +32,7 @@ class UserDataSyncWorker(
                     onSuccess = { state ->
                         when (state) {
                             is SyncState.Success -> Result.success()
+                            is SyncState.Skipped -> Result.success() // Skipped is not an error
                             is SyncState.Error -> {
                                 ExceptionLogger.logNonCritical(
                                     "UserDataSyncWorker",

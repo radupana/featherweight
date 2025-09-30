@@ -108,7 +108,7 @@ fun ExerciseSelectorScreen(
                     muscles = emptyList(), // These will be loaded separately
                     aliases = emptyList(),
                     instructions = emptyList(),
-                    isCustom = true, // Newly created exercises are always custom
+                    // isCustom is now a derived property based on variation.userId
                 )
             onExerciseSelected(exerciseWithDetails)
             viewModel.clearExerciseCreated()

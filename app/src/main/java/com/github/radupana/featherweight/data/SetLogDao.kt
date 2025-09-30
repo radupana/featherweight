@@ -9,23 +9,23 @@ import androidx.room.Upsert
 @Dao
 interface SetLogDao {
     @Insert
-    suspend fun insertSetLog(setLog: SetLog): Long
+    suspend fun insertSetLog(setLog: SetLog)
 
     @Insert
-    suspend fun insert(setLog: SetLog): Long
+    suspend fun insert(setLog: SetLog)
 
     @Upsert
-    suspend fun upsertSetLog(setLog: SetLog): Long
+    suspend fun upsertSetLog(setLog: SetLog)
 
     @Query("SELECT * FROM set_logs WHERE exerciseLogId = :exerciseLogId ORDER BY setOrder")
-    suspend fun getSetLogsForExercise(exerciseLogId: Long): List<SetLog>
+    suspend fun getSetLogsForExercise(exerciseLogId: String): List<SetLog>
 
     @Query("SELECT * FROM set_logs WHERE id = :setLogId")
-    suspend fun getSetLogById(setLogId: Long): SetLog?
+    suspend fun getSetLogById(setLogId: String): SetLog?
 
     @Query("UPDATE set_logs SET isCompleted = :completed, completedAt = :completedAt WHERE id = :setId")
     suspend fun markSetCompleted(
-        setId: Long,
+        setId: String,
         completed: Boolean,
         completedAt: String?,
     )
@@ -37,10 +37,10 @@ interface SetLogDao {
     suspend fun update(setLog: SetLog)
 
     @Query("DELETE FROM set_logs WHERE id = :setId")
-    suspend fun deleteSetLog(setId: Long)
+    suspend fun deleteSetLog(setId: String)
 
     @Query("DELETE FROM set_logs WHERE exerciseLogId = :exerciseLogId")
-    suspend fun deleteAllSetsForExercise(exerciseLogId: Long)
+    suspend fun deleteAllSetsForExercise(exerciseLogId: String)
 
     // Progress Analytics queries
     @Query(
@@ -55,7 +55,7 @@ interface SetLogDao {
     """,
     )
     suspend fun getSetsForExerciseSince(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         sinceDate: String,
     ): List<SetLog>
 
@@ -68,7 +68,7 @@ interface SetLogDao {
         WHERE s.id = :setLogId
     """,
     )
-    suspend fun getWorkoutDateForSetLog(setLogId: Long): String?
+    suspend fun getWorkoutDateForSetLog(setLogId: String): String?
 
     @Query(
         """
@@ -79,7 +79,7 @@ interface SetLogDao {
         WHERE s.id = :setLogId
     """,
     )
-    suspend fun getWorkoutIdForSetLog(setLogId: Long): Long?
+    suspend fun getWorkoutIdForSetLog(setLogId: String): String?
 
     @Query("DELETE FROM set_logs")
     suspend fun deleteAllSetLogs()
@@ -107,7 +107,7 @@ interface SetLogDao {
     """,
     )
     suspend fun getMaxWeightForExerciseInDateRange(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         startDate: String,
         endDate: String,
     ): Float?
@@ -125,5 +125,5 @@ interface SetLogDao {
         LIMIT 1
     """,
     )
-    suspend fun getLastCompletedSetForExercise(exerciseVariationId: Long): SetLog?
+    suspend fun getLastCompletedSetForExercise(exerciseVariationId: String): SetLog?
 }

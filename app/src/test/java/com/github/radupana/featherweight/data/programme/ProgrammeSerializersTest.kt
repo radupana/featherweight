@@ -202,7 +202,7 @@ class ProgrammeSerializersTest {
                                                     category = "compound",
                                                     note = null,
                                                     weightSource = "80% 1RM",
-                                                    exerciseId = 1L,
+                                                    exerciseId = "1",
                                                     weights = listOf(100f),
                                                     rpeValues = null,
                                                 ),

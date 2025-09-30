@@ -131,24 +131,6 @@ class ExerciseTypeConvertersTest {
     }
 
     @Test
-    fun `fromExerciseRelationType converts enum to string`() {
-        assertThat(converters.fromExerciseRelationType(ExerciseRelationType.PROGRESSION)).isEqualTo("PROGRESSION")
-        assertThat(converters.fromExerciseRelationType(ExerciseRelationType.REGRESSION)).isEqualTo("REGRESSION")
-        assertThat(converters.fromExerciseRelationType(ExerciseRelationType.ALTERNATIVE)).isEqualTo("ALTERNATIVE")
-        assertThat(converters.fromExerciseRelationType(ExerciseRelationType.SUPERSET_PARTNER)).isEqualTo("SUPERSET_PARTNER")
-        assertThat(converters.fromExerciseRelationType(ExerciseRelationType.COMPOUND_PART)).isEqualTo("COMPOUND_PART")
-    }
-
-    @Test
-    fun `toExerciseRelationType converts string to enum`() {
-        assertThat(converters.toExerciseRelationType("PROGRESSION")).isEqualTo(ExerciseRelationType.PROGRESSION)
-        assertThat(converters.toExerciseRelationType("REGRESSION")).isEqualTo(ExerciseRelationType.REGRESSION)
-        assertThat(converters.toExerciseRelationType("ALTERNATIVE")).isEqualTo(ExerciseRelationType.ALTERNATIVE)
-        assertThat(converters.toExerciseRelationType("SUPERSET_PARTNER")).isEqualTo(ExerciseRelationType.SUPERSET_PARTNER)
-        assertThat(converters.toExerciseRelationType("COMPOUND_PART")).isEqualTo(ExerciseRelationType.COMPOUND_PART)
-    }
-
-    @Test
     fun `fromOneRMType converts enum to string`() {
         assertThat(converters.fromOneRMType(OneRMType.MANUALLY_ENTERED)).isEqualTo("MANUALLY_ENTERED")
         assertThat(converters.fromOneRMType(OneRMType.AUTOMATICALLY_CALCULATED)).isEqualTo("AUTOMATICALLY_CALCULATED")
@@ -217,15 +199,6 @@ class ExerciseTypeConvertersTest {
         InstructionType.values().forEach { type ->
             val string = converters.fromInstructionType(type)
             val result = converters.toInstructionType(string)
-            assertThat(result).isEqualTo(type)
-        }
-    }
-
-    @Test
-    fun `round trip conversion for ExerciseRelationType`() {
-        ExerciseRelationType.values().forEach { type ->
-            val string = converters.fromExerciseRelationType(type)
-            val result = converters.toExerciseRelationType(string)
             assertThat(result).isEqualTo(type)
         }
     }

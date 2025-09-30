@@ -9,7 +9,7 @@ import com.github.radupana.featherweight.data.TrainingAnalysis
 @Dao
 interface TrainingAnalysisDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAnalysis(analysis: TrainingAnalysis): Long
+    suspend fun insertAnalysis(analysis: TrainingAnalysis)
 
     @Query("SELECT * FROM training_analyses ORDER BY analysisDate DESC LIMIT 1")
     suspend fun getLatestAnalysis(): TrainingAnalysis?
@@ -18,7 +18,7 @@ interface TrainingAnalysisDao {
     suspend fun getAllAnalyses(): List<TrainingAnalysis>
 
     @Query("SELECT * FROM training_analyses WHERE id = :id")
-    suspend fun getAnalysisById(id: Long): TrainingAnalysis?
+    suspend fun getAnalysisById(id: String): TrainingAnalysis?
 
     @Query("DELETE FROM training_analyses WHERE userId = :userId")
     suspend fun deleteAllForUser(userId: String)

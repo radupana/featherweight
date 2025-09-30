@@ -60,7 +60,7 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutTemplateSelectionScreen(
-    onTemplateSelected: (Long) -> Unit,
+    onTemplateSelected: (String) -> Unit,
     onBack: () -> Unit,
     onCreateFromHistory: () -> Unit,
     modifier: Modifier = Modifier,

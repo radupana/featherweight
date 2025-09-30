@@ -4,7 +4,7 @@ import java.time.Duration
 import java.time.LocalDateTime
 
 data class ProgrammeCompletionStats(
-    val programmeId: Long,
+    val programmeId: String,
     val programmeName: String,
     val startDate: LocalDateTime,
     val endDate: LocalDateTime,

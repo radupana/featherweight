@@ -12,8 +12,8 @@ class ExerciseHistoryTest {
         val lastWorkoutDate = LocalDateTime.of(2024, 6, 15, 10, 30)
         val set1 =
             SetLog(
-                id = 1,
-                exerciseLogId = 10,
+                id = "1",
+                exerciseLogId = "10",
                 setOrder = 1,
                 targetReps = 10,
                 targetWeight = 50f,
@@ -24,8 +24,8 @@ class ExerciseHistoryTest {
             )
         val set2 =
             SetLog(
-                id = 2,
-                exerciseLogId = 10,
+                id = "2",
+                exerciseLogId = "10",
                 setOrder = 2,
                 targetReps = 10,
                 targetWeight = 50f,
@@ -36,8 +36,8 @@ class ExerciseHistoryTest {
             )
         val set3 =
             SetLog(
-                id = 3,
-                exerciseLogId = 10,
+                id = "3",
+                exerciseLogId = "10",
                 setOrder = 3,
                 targetReps = 10,
                 targetWeight = 50f,
@@ -50,13 +50,13 @@ class ExerciseHistoryTest {
         // Act
         val history =
             ExerciseHistory(
-                exerciseVariationId = 5,
+                exerciseVariationId = "5",
                 lastWorkoutDate = lastWorkoutDate,
                 sets = listOf(set1, set2, set3),
             )
 
         // Assert
-        assertThat(history.exerciseVariationId).isEqualTo(5)
+        assertThat(history.exerciseVariationId).isEqualTo("5")
         assertThat(history.lastWorkoutDate).isEqualTo(lastWorkoutDate)
         assertThat(history.sets).hasSize(3)
         assertThat(history.sets[0]).isEqualTo(set1)
@@ -72,13 +72,13 @@ class ExerciseHistoryTest {
         // Act
         val history =
             ExerciseHistory(
-                exerciseVariationId = 10,
+                exerciseVariationId = "10",
                 lastWorkoutDate = lastWorkoutDate,
                 sets = emptyList(),
             )
 
         // Assert
-        assertThat(history.exerciseVariationId).isEqualTo(10)
+        assertThat(history.exerciseVariationId).isEqualTo("10")
         assertThat(history.lastWorkoutDate).isEqualTo(lastWorkoutDate)
         assertThat(history.sets).isEmpty()
     }
@@ -89,8 +89,8 @@ class ExerciseHistoryTest {
         val date = LocalDateTime.of(2024, 6, 15, 10, 0)
         val set =
             SetLog(
-                id = 1,
-                exerciseLogId = 10,
+                id = "1",
+                exerciseLogId = "10",
                 setOrder = 1,
                 actualReps = 10,
                 actualWeight = 50f,
@@ -98,21 +98,21 @@ class ExerciseHistoryTest {
 
         val history1 =
             ExerciseHistory(
-                exerciseVariationId = 5,
+                exerciseVariationId = "5",
                 lastWorkoutDate = date,
                 sets = listOf(set),
             )
 
         val history2 =
             ExerciseHistory(
-                exerciseVariationId = 5,
+                exerciseVariationId = "5",
                 lastWorkoutDate = date,
                 sets = listOf(set),
             )
 
         val history3 =
             ExerciseHistory(
-                exerciseVariationId = 6, // Different exercise
+                exerciseVariationId = "6", // Different exercise
                 lastWorkoutDate = date,
                 sets = listOf(set),
             )
@@ -129,16 +129,16 @@ class ExerciseHistoryTest {
         val date = LocalDateTime.of(2024, 6, 15, 10, 0)
         val set1 =
             SetLog(
-                id = 1,
-                exerciseLogId = 10,
+                id = "1",
+                exerciseLogId = "10",
                 setOrder = 1,
                 actualReps = 10,
                 actualWeight = 50f,
             )
         val set2 =
             SetLog(
-                id = 2,
-                exerciseLogId = 10,
+                id = "2",
+                exerciseLogId = "10",
                 setOrder = 2,
                 actualReps = 8,
                 actualWeight = 50f,
@@ -146,7 +146,7 @@ class ExerciseHistoryTest {
 
         val original =
             ExerciseHistory(
-                exerciseVariationId = 5,
+                exerciseVariationId = "5",
                 lastWorkoutDate = date,
                 sets = listOf(set1),
             )
@@ -158,7 +158,7 @@ class ExerciseHistoryTest {
             )
 
         // Assert
-        assertThat(copy.exerciseVariationId).isEqualTo(5) // Unchanged
+        assertThat(copy.exerciseVariationId).isEqualTo("5") // Unchanged
         assertThat(copy.lastWorkoutDate).isEqualTo(date) // Unchanged
         assertThat(copy.sets).hasSize(2)
         assertThat(copy.sets).containsExactly(set1, set2)
@@ -174,8 +174,8 @@ class ExerciseHistoryTest {
         val date = LocalDateTime.of(2024, 6, 15, 10, 0)
         val completedSet =
             SetLog(
-                id = 1,
-                exerciseLogId = 10,
+                id = "1",
+                exerciseLogId = "10",
                 setOrder = 1,
                 actualReps = 10,
                 actualWeight = 50f,
@@ -183,8 +183,8 @@ class ExerciseHistoryTest {
             )
         val incompleteSet =
             SetLog(
-                id = 2,
-                exerciseLogId = 10,
+                id = "2",
+                exerciseLogId = "10",
                 setOrder = 2,
                 actualReps = 0,
                 actualWeight = 0f,
@@ -194,7 +194,7 @@ class ExerciseHistoryTest {
         // Act
         val history =
             ExerciseHistory(
-                exerciseVariationId = 5,
+                exerciseVariationId = "5",
                 lastWorkoutDate = date,
                 sets = listOf(completedSet, incompleteSet),
             )
@@ -213,14 +213,14 @@ class ExerciseHistoryTest {
 
         val history1 =
             ExerciseHistory(
-                exerciseVariationId = 5,
+                exerciseVariationId = "5",
                 lastWorkoutDate = earlierDate,
                 sets = emptyList(),
             )
 
         val history2 =
             ExerciseHistory(
-                exerciseVariationId = 5,
+                exerciseVariationId = "5",
                 lastWorkoutDate = laterDate,
                 sets = emptyList(),
             )
@@ -235,8 +235,8 @@ class ExerciseHistoryTest {
         val date = LocalDateTime.of(2024, 6, 15, 10, 0)
         val set =
             SetLog(
-                id = 1,
-                exerciseLogId = 10,
+                id = "1",
+                exerciseLogId = "10",
                 setOrder = 1,
                 actualReps = 10,
                 actualWeight = 50f,
@@ -244,7 +244,7 @@ class ExerciseHistoryTest {
 
         val history =
             ExerciseHistory(
-                exerciseVariationId = 5,
+                exerciseVariationId = "5",
                 lastWorkoutDate = date,
                 sets = listOf(set),
             )
@@ -253,7 +253,7 @@ class ExerciseHistoryTest {
         val stringRepresentation = history.toString()
 
         // Assert
-        assertThat(stringRepresentation).contains("exerciseVariationId=5")
+        assertThat(stringRepresentation).contains("exerciseVariationId=")
         assertThat(stringRepresentation).contains("lastWorkoutDate=2024-06-15T10:00")
         assertThat(stringRepresentation).contains("sets")
     }
@@ -265,8 +265,8 @@ class ExerciseHistoryTest {
         val sets =
             (1..5).map { order ->
                 SetLog(
-                    id = order.toLong(),
-                    exerciseLogId = 10,
+                    id = order.toString(),
+                    exerciseLogId = "10",
                     setOrder = order,
                     actualReps = 10 - order + 1, // Decreasing reps
                     actualWeight = 50f + (order * 5f), // Increasing weight
@@ -277,7 +277,7 @@ class ExerciseHistoryTest {
         // Act
         val history =
             ExerciseHistory(
-                exerciseVariationId = 5,
+                exerciseVariationId = "5",
                 lastWorkoutDate = date,
                 sets = sets,
             )

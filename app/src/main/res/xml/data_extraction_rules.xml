@@ -7,27 +7,27 @@
 <data-extraction-rules>
     <cloud-backup>
         <!-- Exclude all databases to prevent data corruption after reinstall -->
-        <exclude domain="database" path="." />
-
-        <!-- Exclude auth preferences to prevent auth state corruption -->
-        <exclude domain="sharedpref" path="auth_prefs.xml" />
-
-        <!-- Exclude Firebase encrypted preferences -->
-        <exclude domain="sharedpref" path="com.google.firebase.auth" />
+        <exclude domain="database" />
 
         <!-- Exclude cache and temporary files -->
-        <exclude domain="cache" path="." />
+        <exclude domain="cache" />
 
-        <!-- Allow backup of non-sensitive preferences only -->
+        <!-- Exclude all external files -->
+        <exclude domain="external" />
+
+        <!-- Exclude root private files -->
+        <exclude domain="root" />
+
+        <!-- Only backup app_settings.xml from shared preferences -->
+        <!-- This implicitly excludes auth_prefs.xml and Firebase auth preferences -->
         <include domain="sharedpref" path="app_settings.xml" />
     </cloud-backup>
 
     <device-transfer>
-        <!-- For device-to-device transfer, exclude auth data but include databases -->
-        <include domain="database" path="." />
-        <include domain="sharedpref" path="." />
-        <exclude domain="sharedpref" path="auth_prefs.xml" />
-        <exclude domain="sharedpref" path="com.google.firebase.auth" />
-        <exclude domain="cache" path="." />
+        <!-- For device-to-device transfer, include databases and all sharedprefs except auth -->
+        <include domain="database" />
+        <include domain="sharedpref" />
+        <exclude domain="cache" />
+        <exclude domain="external" />
     </device-transfer>
 </data-extraction-rules>

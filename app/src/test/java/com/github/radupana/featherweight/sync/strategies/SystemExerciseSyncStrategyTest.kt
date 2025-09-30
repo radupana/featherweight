@@ -126,14 +126,14 @@ class SystemExerciseSyncStrategyTest {
             coEvery { exerciseVariationDao.getExerciseVariationById(any()) } returns null
 
             // Mock insertion methods
-            coEvery { exerciseCoreDao.insertCore(any()) } returns 1L
-            coEvery { exerciseVariationDao.insertExerciseVariation(any()) } returns 1L
+            coEvery { exerciseCoreDao.insertCore(any()) } returns Unit
+            coEvery { exerciseVariationDao.insertExerciseVariation(any()) } returns Unit
             coEvery { variationMuscleDao.deleteForVariation(any()) } returns Unit
             coEvery { variationMuscleDao.insertVariationMuscles(any()) } returns Unit
             coEvery { variationAliasDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationAliasDao.insertAliases(any()) } returns listOf(1L)
+            coEvery { variationAliasDao.insertAliases(any()) } returns Unit
             coEvery { variationInstructionDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationInstructionDao.insertInstructions(any()) } returns listOf(1L)
+            coEvery { variationInstructionDao.insertInstructions(any()) } returns Unit
 
             // When: Sync is performed
             val result = strategy.downloadAndMerge(null, null)
@@ -163,8 +163,8 @@ class SystemExerciseSyncStrategyTest {
             val newTimestamp = LocalDateTime.of(2024, 2, 1, 0, 0)
 
             // Calculate the stable IDs that will be generated
-            val coreId = "core_Bench Press".hashCode().toLong() and 0x7FFFFFFF
-            val variationId = "var_Barbell Bench Press Updated".hashCode().toLong() and 0x7FFFFFFF
+            val coreId = ("core_Bench Press".hashCode() and 0x7FFFFFFF).toString()
+            val variationId = ("var_Barbell Bench Press Updated".hashCode() and 0x7FFFFFFF).toString()
 
             val existingCore =
                 ExerciseCore(
@@ -215,9 +215,9 @@ class SystemExerciseSyncStrategyTest {
             coEvery { variationMuscleDao.deleteForVariation(any()) } returns Unit
             coEvery { variationMuscleDao.insertVariationMuscles(any()) } returns Unit
             coEvery { variationAliasDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationAliasDao.insertAliases(any()) } returns listOf(1L)
+            coEvery { variationAliasDao.insertAliases(any()) } returns Unit
             coEvery { variationInstructionDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationInstructionDao.insertInstructions(any()) } returns listOf(1L)
+            coEvery { variationInstructionDao.insertInstructions(any()) } returns Unit
 
             // When: Sync is performed
             val result = strategy.downloadAndMerge(null, null)
@@ -241,8 +241,8 @@ class SystemExerciseSyncStrategyTest {
             val oldTimestamp = LocalDateTime.of(2024, 1, 1, 0, 0)
 
             // Calculate the stable IDs that will be generated
-            val coreId = "core_Bench Press".hashCode().toLong() and 0x7FFFFFFF
-            val variationId = "var_Barbell Bench Press".hashCode().toLong() and 0x7FFFFFFF
+            val coreId = ("core_Bench Press".hashCode() and 0x7FFFFFFF).toString()
+            val variationId = ("var_Barbell Bench Press".hashCode() and 0x7FFFFFFF).toString()
 
             val existingCore =
                 ExerciseCore(
@@ -291,9 +291,9 @@ class SystemExerciseSyncStrategyTest {
             coEvery { variationMuscleDao.deleteForVariation(any()) } returns Unit
             coEvery { variationMuscleDao.insertVariationMuscles(any()) } returns Unit
             coEvery { variationAliasDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationAliasDao.insertAliases(any()) } returns listOf(1L)
+            coEvery { variationAliasDao.insertAliases(any()) } returns Unit
             coEvery { variationInstructionDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationInstructionDao.insertInstructions(any()) } returns listOf(1L)
+            coEvery { variationInstructionDao.insertInstructions(any()) } returns Unit
 
             // When: Sync is performed
             val result = strategy.downloadAndMerge(null, null)

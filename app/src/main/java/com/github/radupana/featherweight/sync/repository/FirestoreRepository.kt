@@ -3,7 +3,6 @@ package com.github.radupana.featherweight.sync.repository
 import android.util.Log
 import com.github.radupana.featherweight.sync.models.FirestoreExercise
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseCore
-import com.github.radupana.featherweight.sync.models.FirestoreExerciseCorrelation
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseLog
 import com.github.radupana.featherweight.sync.models.FirestoreExercisePerformanceTracking
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseSwapHistory
@@ -23,7 +22,6 @@ import com.github.radupana.featherweight.sync.models.FirestoreUserExerciseMax
 import com.github.radupana.featherweight.sync.models.FirestoreVariationAlias
 import com.github.radupana.featherweight.sync.models.FirestoreVariationInstruction
 import com.github.radupana.featherweight.sync.models.FirestoreVariationMuscle
-import com.github.radupana.featherweight.sync.models.FirestoreVariationRelation
 import com.github.radupana.featherweight.sync.models.FirestoreWorkout
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.FirebaseException
@@ -57,7 +55,6 @@ class FirestoreRepository(
         private const val VARIATION_MUSCLES_COLLECTION = "variationMuscles"
         private const val VARIATION_INSTRUCTIONS_COLLECTION = "variationInstructions"
         private const val VARIATION_ALIASES_COLLECTION = "variationAliases"
-        private const val VARIATION_RELATIONS_COLLECTION = "variationRelations"
 
         // Programme collections
         private const val PROGRAMMES_COLLECTION = "programmes"
@@ -74,7 +71,6 @@ class FirestoreRepository(
         private const val EXERCISE_SWAP_HISTORY_COLLECTION = "exerciseSwapHistory"
         private const val EXERCISE_PERFORMANCE_TRACKING_COLLECTION = "exercisePerformanceTracking"
         private const val GLOBAL_EXERCISE_PROGRESS_COLLECTION = "globalExerciseProgress"
-        private const val EXERCISE_CORRELATIONS_COLLECTION = "exerciseCorrelations"
         private const val TRAINING_ANALYSES_COLLECTION = "trainingAnalyses"
         private const val PARSE_REQUESTS_COLLECTION = "parseRequests"
 
@@ -295,8 +291,6 @@ class FirestoreRepository(
 
     suspend fun uploadVariationAliases(aliases: List<FirestoreVariationAlias>): Result<Unit> = uploadBatchedData(firestore.collection(VARIATION_ALIASES_COLLECTION), aliases)
 
-    suspend fun uploadVariationRelations(relations: List<FirestoreVariationRelation>): Result<Unit> = uploadBatchedData(firestore.collection(VARIATION_RELATIONS_COLLECTION), relations)
-
     suspend fun uploadProgrammes(
         userId: String,
         programmes: List<FirestoreProgramme>,
@@ -346,8 +340,6 @@ class FirestoreRepository(
         userId: String,
         progress: List<FirestoreGlobalExerciseProgress>,
     ): Result<Unit> = uploadBatchedData(userDocument(userId).collection(GLOBAL_EXERCISE_PROGRESS_COLLECTION), progress)
-
-    suspend fun uploadExerciseCorrelations(correlations: List<FirestoreExerciseCorrelation>): Result<Unit> = uploadBatchedData(firestore.collection(EXERCISE_CORRELATIONS_COLLECTION), correlations)
 
     suspend fun uploadTrainingAnalyses(
         userId: String,
@@ -399,8 +391,8 @@ class FirestoreRepository(
      */
     suspend fun uploadCustomExercise(
         userId: String,
-        variation: com.github.radupana.featherweight.data.exercise.CustomExerciseVariation,
-        core: com.github.radupana.featherweight.data.exercise.CustomExerciseCore,
+        variation: com.github.radupana.featherweight.data.exercise.ExerciseVariation,
+        core: com.github.radupana.featherweight.data.exercise.ExerciseCore,
     ): Result<Unit> =
         try {
             val exerciseData =
@@ -438,7 +430,7 @@ class FirestoreRepository(
      */
     suspend fun deleteCustomExercise(
         userId: String,
-        exerciseId: Long,
+        exerciseId: String,
     ): Result<Unit> =
         try {
             userDocument(userId)
@@ -536,8 +528,6 @@ class FirestoreRepository(
 
     suspend fun downloadVariationAliases(): Result<List<FirestoreVariationAlias>> = downloadBatchedData(firestore.collection(VARIATION_ALIASES_COLLECTION))
 
-    suspend fun downloadVariationRelations(): Result<List<FirestoreVariationRelation>> = downloadBatchedData(firestore.collection(VARIATION_RELATIONS_COLLECTION))
-
     suspend fun downloadProgrammes(userId: String): Result<List<FirestoreProgramme>> = downloadBatchedData(userDocument(userId).collection(PROGRAMMES_COLLECTION))
 
     suspend fun downloadProgrammeWeeks(userId: String): Result<List<FirestoreProgrammeWeek>> = downloadBatchedData(userDocument(userId).collection(PROGRAMME_WEEKS_COLLECTION))
@@ -557,8 +547,6 @@ class FirestoreRepository(
     suspend fun downloadExercisePerformanceTracking(userId: String): Result<List<FirestoreExercisePerformanceTracking>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_PERFORMANCE_TRACKING_COLLECTION))
 
     suspend fun downloadGlobalExerciseProgress(userId: String): Result<List<FirestoreGlobalExerciseProgress>> = downloadBatchedData(userDocument(userId).collection(GLOBAL_EXERCISE_PROGRESS_COLLECTION))
-
-    suspend fun downloadExerciseCorrelations(): Result<List<FirestoreExerciseCorrelation>> = downloadBatchedData(firestore.collection(EXERCISE_CORRELATIONS_COLLECTION))
 
     suspend fun downloadTrainingAnalyses(userId: String): Result<List<FirestoreTrainingAnalysis>> = downloadBatchedData(userDocument(userId).collection(TRAINING_ANALYSES_COLLECTION))
 

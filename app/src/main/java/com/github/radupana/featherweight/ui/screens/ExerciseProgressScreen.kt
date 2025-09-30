@@ -41,7 +41,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -104,19 +103,19 @@ fun ExerciseProgressScreen(
     val scope = rememberCoroutineScope()
 
     // Convert exercise name to ID
-    var exerciseVariationId by remember { mutableLongStateOf(0L) }
+    var exerciseVariationId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(exerciseName) {
-        exerciseVariationId = viewModel.repository.getExerciseByName(exerciseName)?.id ?: 0L
+        exerciseVariationId = viewModel.repository.getExerciseByName(exerciseName)?.id
     }
 
     LaunchedEffect(exerciseVariationId) {
-        if (exerciseVariationId > 0) {
-            viewModel.loadExerciseData(exerciseVariationId)
-            viewModel.loadChartData(exerciseVariationId)
-            viewModel.loadMaxWeightChartData(exerciseVariationId)
-            viewModel.loadVolumeChartData(exerciseVariationId)
-            viewModel.loadTrainingPatternsData(exerciseVariationId)
+        exerciseVariationId?.let { id ->
+            viewModel.loadExerciseData(id)
+            viewModel.loadChartData(id)
+            viewModel.loadMaxWeightChartData(id)
+            viewModel.loadVolumeChartData(id)
+            viewModel.loadTrainingPatternsData(id)
         }
     }
 
@@ -179,7 +178,7 @@ fun ExerciseProgressScreen(
 
             is ExerciseProgressViewModel.ExerciseProgressState.Error -> {
                 ErrorState(
-                    onRetry = { scope.launch { viewModel.loadExerciseData(exerciseVariationId) } },
+                    onRetry = { scope.launch { exerciseVariationId?.let { viewModel.loadExerciseData(it) } } },
                     modifier =
                         Modifier
                             .fillMaxSize()

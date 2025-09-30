@@ -26,7 +26,7 @@ class RPEPreservationTest {
         val parsedExercise =
             ParsedExercise(
                 exerciseName = "Barbell Back Squat",
-                matchedExerciseId = 1L,
+                matchedExerciseId = "1",
                 sets = listOf(parsedSet, parsedSet.copy(rpe = 7.0f)),
                 notes = null,
             )

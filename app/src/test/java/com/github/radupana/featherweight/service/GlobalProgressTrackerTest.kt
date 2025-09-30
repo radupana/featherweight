@@ -75,8 +75,8 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout returns pending 1RM updates for completed workout`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
 
             val workout =
                 WorkoutFixtures.createWorkout(
@@ -86,7 +86,7 @@ class GlobalProgressTrackerTest {
 
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -94,8 +94,8 @@ class GlobalProgressTrackerTest {
             val sets =
                 listOf(
                     WorkoutFixtures.createSetLog(
-                        id = 1L,
-                        exerciseLogId = 1L,
+                        id = "1",
+                        exerciseLogId = "1",
                         actualWeight = 100f,
                         actualReps = 5,
                         actualRpe = 8f,
@@ -137,14 +137,14 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout handles multiple exercises`() =
         runTest {
             // Arrange
-            val workoutId = 1L
+            val workoutId = "1"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
 
             val exerciseLogs =
                 listOf(
-                    WorkoutFixtures.createExerciseLog(id = 1L, workoutId = workoutId, exerciseVariationId = 100L),
-                    WorkoutFixtures.createExerciseLog(id = 2L, workoutId = workoutId, exerciseVariationId = 200L),
+                    WorkoutFixtures.createExerciseLog(id = "1", workoutId = workoutId, exerciseVariationId = "100"),
+                    WorkoutFixtures.createExerciseLog(id = "2", workoutId = workoutId, exerciseVariationId = "200"),
                 )
 
             coEvery { repository.getWorkoutById(workoutId) } returns workout
@@ -169,8 +169,8 @@ class GlobalProgressTrackerTest {
                 mockk<ExerciseVariation> {
                     coEvery { name } returns "Barbell Overhead Press"
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(100L) } returns variation1
-            coEvery { exerciseVariationDao.getExerciseVariationById(200L) } returns variation2
+            coEvery { exerciseVariationDao.getExerciseVariationById("100") } returns variation1
+            coEvery { exerciseVariationDao.getExerciseVariationById("200") } returns variation2
 
             // Act
             val result = tracker.updateProgressAfterWorkout(workoutId)
@@ -186,14 +186,14 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout detects stalls when weight unchanged`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
             val workingWeight = 80f
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -210,7 +210,7 @@ class GlobalProgressTrackerTest {
             // Mock existing progress showing same weight
             val existingProgress =
                 GlobalExerciseProgress(
-                    id = 1L,
+                    id = "1",
                     exerciseVariationId = exerciseVariationId,
                     currentWorkingWeight = workingWeight, // Same weight as current
                     estimatedMax = 100f,
@@ -226,7 +226,7 @@ class GlobalProgressTrackerTest {
             coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
-            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
+            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -241,15 +241,15 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout updates best performance when weight increases`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
             val oldWeight = 80f
             val newWeight = 85f
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -267,7 +267,7 @@ class GlobalProgressTrackerTest {
             // Mock existing progress with lower weight
             val existingProgress =
                 GlobalExerciseProgress(
-                    id = 1L,
+                    id = "1",
                     exerciseVariationId = exerciseVariationId,
                     currentWorkingWeight = oldWeight,
                     estimatedMax = 90f,
@@ -284,7 +284,7 @@ class GlobalProgressTrackerTest {
             coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
-            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
+            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -301,7 +301,7 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout handles empty workout`() =
         runTest {
             // Arrange
-            val workoutId = 1L
+            val workoutId = "1"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
 
@@ -322,7 +322,7 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout handles workout not found`() =
         runTest {
             // Arrange
-            val workoutId = 999L
+            val workoutId = "999"
 
             coEvery { repository.getWorkoutById(workoutId) } returns null
 
@@ -341,13 +341,13 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout tracks RPE averages correctly`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -367,7 +367,7 @@ class GlobalProgressTrackerTest {
             coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
-            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
+            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -381,13 +381,13 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout updates volume trends correctly`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -404,7 +404,7 @@ class GlobalProgressTrackerTest {
             // Previous progress with lower average volume
             val existingProgress =
                 GlobalExerciseProgress(
-                    id = 1L,
+                    id = "1",
                     exerciseVariationId = exerciseVariationId,
                     currentWorkingWeight = 95f,
                     estimatedMax = 120f,
@@ -420,7 +420,7 @@ class GlobalProgressTrackerTest {
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns existingProgress
 
             val capturedProgress = slot<GlobalExerciseProgress>()
-            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
+            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -436,13 +436,13 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout detects declining trend on weight regression`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -456,7 +456,7 @@ class GlobalProgressTrackerTest {
             // Previous progress with higher weight
             val existingProgress =
                 GlobalExerciseProgress(
-                    id = 1L,
+                    id = "1",
                     exerciseVariationId = exerciseVariationId,
                     currentWorkingWeight = 80f, // Higher than current
                     estimatedMax = 100f,
@@ -472,7 +472,7 @@ class GlobalProgressTrackerTest {
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns existingProgress
 
             val capturedProgress = slot<GlobalExerciseProgress>()
-            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
+            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -488,13 +488,13 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout updates all rep PRs correctly`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -516,7 +516,7 @@ class GlobalProgressTrackerTest {
             coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
-            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
+            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -534,14 +534,14 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout tracks weeks at current weight`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
             val sameWeight = 80f
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -554,7 +554,7 @@ class GlobalProgressTrackerTest {
             // Existing progress with same weight from 3 weeks ago
             val existingProgress =
                 GlobalExerciseProgress(
-                    id = 1L,
+                    id = "1",
                     exerciseVariationId = exerciseVariationId,
                     currentWorkingWeight = sameWeight,
                     estimatedMax = 100f,
@@ -571,7 +571,7 @@ class GlobalProgressTrackerTest {
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns existingProgress
 
             val capturedProgress = slot<GlobalExerciseProgress>()
-            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
+            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -586,13 +586,13 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout automatically saves 1RM for Big 4 exercises`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -632,13 +632,13 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout updates existing 1RM when improved`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -688,13 +688,13 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout handles sets with no completed ones`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -722,13 +722,13 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout calculates confidence correctly for singles with RPE`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -755,7 +755,7 @@ class GlobalProgressTrackerTest {
                 }
 
             val capturedMax = slot<UserExerciseMax>()
-            coEvery { oneRMDao.insertExerciseMax(capture(capturedMax)) } returns 1L
+            coEvery { oneRMDao.insertExerciseMax(capture(capturedMax)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -772,13 +772,13 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout prioritizes true 1RMs over calculated estimates`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -812,7 +812,7 @@ class GlobalProgressTrackerTest {
                 }
 
             val capturedMax = slot<UserExerciseMax>()
-            coEvery { oneRMDao.insertExerciseMax(capture(capturedMax)) } returns 1L
+            coEvery { oneRMDao.insertExerciseMax(capture(capturedMax)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -827,9 +827,9 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout handles programme vs freestyle workouts`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
-            val programmeId = 10L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
+            val programmeId = "10"
 
             val workout =
                 WorkoutFixtures.createWorkout(
@@ -838,7 +838,7 @@ class GlobalProgressTrackerTest {
                 )
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -855,7 +855,7 @@ class GlobalProgressTrackerTest {
             coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
-            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
+            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -870,13 +870,13 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout filters sets by rep range for 1RM calculation`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -900,7 +900,7 @@ class GlobalProgressTrackerTest {
                 }
 
             val capturedMax = slot<UserExerciseMax>()
-            coEvery { oneRMDao.insertExerciseMax(capture(capturedMax)) } returns 1L
+            coEvery { oneRMDao.insertExerciseMax(capture(capturedMax)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -915,13 +915,13 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout doesnt save 1RM with low confidence`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -959,13 +959,13 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout maintains average session volume calculation`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -976,7 +976,7 @@ class GlobalProgressTrackerTest {
             // Existing progress with 10 sessions tracked
             val existingProgress =
                 GlobalExerciseProgress(
-                    id = 1L,
+                    id = "1",
                     exerciseVariationId = exerciseVariationId,
                     currentWorkingWeight = 100f,
                     estimatedMax = 130f,
@@ -992,7 +992,7 @@ class GlobalProgressTrackerTest {
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns existingProgress
 
             val capturedProgress = slot<GlobalExerciseProgress>()
-            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
+            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -1008,13 +1008,13 @@ class GlobalProgressTrackerTest {
     fun `updateProgressAfterWorkout detects volume decrease trend`() =
         runTest {
             // Arrange
-            val workoutId = 1L
-            val exerciseVariationId = 100L
+            val workoutId = "1"
+            val exerciseVariationId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
-                    id = 1L,
+                    id = "1",
                     workoutId = workoutId,
                     exerciseVariationId = exerciseVariationId,
                 )
@@ -1029,7 +1029,7 @@ class GlobalProgressTrackerTest {
             // Existing progress with higher average volume
             val existingProgress =
                 GlobalExerciseProgress(
-                    id = 1L,
+                    id = "1",
                     exerciseVariationId = exerciseVariationId,
                     currentWorkingWeight = 80f,
                     estimatedMax = 100f,
@@ -1045,7 +1045,7 @@ class GlobalProgressTrackerTest {
             coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns existingProgress
 
             val capturedProgress = slot<GlobalExerciseProgress>()
-            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns 1L
+            coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)

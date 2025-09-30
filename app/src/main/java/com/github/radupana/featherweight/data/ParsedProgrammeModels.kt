@@ -32,7 +32,7 @@ data class ParsedWorkout(
 
 data class ParsedExercise(
     val exerciseName: String,
-    val matchedExerciseId: Long? = null,
+    val matchedExerciseId: String? = null,
     val sets: List<ParsedSet>,
     val notes: String? = null,
 )

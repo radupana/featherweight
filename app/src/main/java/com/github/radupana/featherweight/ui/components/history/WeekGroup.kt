@@ -50,7 +50,7 @@ fun WeekGroupView(
     weekGroup: WeekGroup,
     isExpanded: Boolean,
     onToggleExpanded: () -> Unit,
-    onWorkoutClick: (Long) -> Unit,
+    onWorkoutClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val rotation by animateFloatAsState(

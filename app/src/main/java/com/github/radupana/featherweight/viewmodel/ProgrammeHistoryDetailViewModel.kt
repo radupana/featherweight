@@ -60,7 +60,7 @@ class ProgrammeHistoryDetailViewModel(
     private val _pendingExportFile = MutableStateFlow<java.io.File?>(null)
     val pendingExportFile: StateFlow<java.io.File?> = _pendingExportFile.asStateFlow()
 
-    fun loadProgrammeDetails(programmeId: Long) {
+    fun loadProgrammeDetails(programmeId: String) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
@@ -84,7 +84,7 @@ class ProgrammeHistoryDetailViewModel(
         }
     }
 
-    fun exportProgramme(programmeId: Long) {
+    fun exportProgramme(programmeId: String) {
         viewModelScope.launch {
             _isExporting.value = true
             _exportProgress.value = 0f

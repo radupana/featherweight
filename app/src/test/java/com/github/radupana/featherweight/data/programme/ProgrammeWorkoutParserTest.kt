@@ -494,7 +494,7 @@ class ProgrammeWorkoutParserTest {
                 category = "compound",
                 note = "Focus on depth",
                 weightSource = "80% of 1RM",
-                exerciseId = 123L,
+                exerciseId = "123",
                 weights = listOf(100f, 110f, 120f),
                 rpeValues = listOf(7f, 8f, 9f),
             )

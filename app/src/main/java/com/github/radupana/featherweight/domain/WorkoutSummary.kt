@@ -4,7 +4,7 @@ import com.github.radupana.featherweight.data.WorkoutStatus
 import java.time.LocalDateTime
 
 data class WorkoutSummary(
-    val id: Long,
+    val id: String,
     val date: LocalDateTime,
     val name: String?,
     val exerciseCount: Int,
@@ -15,7 +15,7 @@ data class WorkoutSummary(
     val hasNotes: Boolean = false,
     // Programme Integration Fields
     val isProgrammeWorkout: Boolean = false,
-    val programmeId: Long? = null,
+    val programmeId: String? = null,
     val programmeName: String? = null,
     val programmeWorkoutName: String? = null,
     val weekNumber: Int? = null,

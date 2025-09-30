@@ -25,7 +25,7 @@ class GlobalProgressTracker(
      * Updates global exercise progress after any workout completion (programme or freestyle)
      */
     suspend fun updateProgressAfterWorkout(
-        workoutId: Long,
+        workoutId: String,
     ): List<PendingOneRMUpdate> {
         val pendingUpdates = mutableListOf<PendingOneRMUpdate>()
 
@@ -46,8 +46,8 @@ class GlobalProgressTracker(
     }
 
     private suspend fun updateExerciseProgress(
-        exerciseVariationId: Long,
-        workoutId: Long,
+        exerciseVariationId: String,
+        workoutId: String,
         isProgrammeWorkout: Boolean,
     ): PendingOneRMUpdate? {
         val exerciseLogs =
@@ -136,7 +136,7 @@ class GlobalProgressTracker(
     }
 
     private suspend fun createInitialProgress(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         userId: String?,
     ): GlobalExerciseProgress {
         // Try to get 1RM from UserExerciseMax
@@ -369,10 +369,8 @@ class GlobalProgressTracker(
             val bestSet = estimableSets.maxByOrNull { it.actualWeight }
             if (bestSet != null) {
                 if (currentUserMax != null) {
-                    val isCustom = customExerciseRepository?.isCustomExercise(progress.exerciseVariationId) ?: false
                     val updatedMax =
                         currentUserMax.copy(
-                            isCustomExercise = isCustom,
                             oneRMEstimate = estimated1RM,
                             oneRMContext = bestEstimate.source,
                             oneRMConfidence = bestEstimate.confidence,
@@ -390,7 +388,6 @@ class GlobalProgressTracker(
                         UserExerciseMax(
                             userId = bestSet.userId,
                             exerciseVariationId = progress.exerciseVariationId,
-                            isCustomExercise = isCustom,
                             oneRMEstimate = estimated1RM,
                             oneRMContext = bestEstimate.source,
                             oneRMConfidence = bestEstimate.confidence,

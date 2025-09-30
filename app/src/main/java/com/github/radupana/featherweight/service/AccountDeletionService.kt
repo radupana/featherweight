@@ -285,8 +285,9 @@ class AccountDeletionService(
             database.parseRequestDao().deleteAllForUser(userId)
 
             // Custom exercises (where user created them)
-            database.customExerciseDao().deleteAllCustomCoresByUser(userId)
-            database.customExerciseDao().deleteAllCustomVariationsByUser(userId)
+            database.exerciseCoreDao().deleteAllCustomCoresByUser(userId)
+            database.exerciseCoreDao().deleteAllCustomCoresByUser(userId)
+            database.exerciseVariationDao().deleteAllCustomVariationsByUser(userId)
 
             // User exercise usage tracking
             database.userExerciseUsageDao().deleteAllUsageForUser(userId)

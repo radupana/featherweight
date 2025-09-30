@@ -496,7 +496,7 @@ class WorkoutSeedingService(
         progressionMultiplier: Float,
         isDeloadWeek: Boolean,
         config: SeedConfig,
-    ): Long {
+    ): String {
         // Create workout as IN_PROGRESS for proper analytics processing
         val dateTime = date.atTime(18, 0) // 6 PM
         val defaultName =
@@ -603,7 +603,7 @@ class WorkoutSeedingService(
     }
 
     private suspend fun processWorkoutCompletion(
-        workoutId: Long,
+        workoutId: String,
     ) {
         // Use OneRMService for proper validation
         val oneRMService = OneRMService()
@@ -699,7 +699,7 @@ class WorkoutSeedingService(
 
         // Complete the workout to trigger all analytics
         val duration = (60 + Random.nextInt(30)) * 60L // 60-90 minutes
-        repository.completeWorkout(workoutId, duration)
+        repository.completeWorkout(workoutId, duration.toString())
     }
 
     // Removed unused cleanup methods - these were temporary debug utilities

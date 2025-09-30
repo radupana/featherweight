@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.IdGenerator
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
 
@@ -22,8 +23,8 @@ import java.time.LocalDateTime
     ],
 )
 data class Programme(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
     val userId: String? = null,
     val name: String,
     val description: String?,
@@ -121,10 +122,10 @@ data class Programme(
     indices = [Index("programmeId"), Index("userId")],
 )
 data class ProgrammeWeek(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val programmeId: Long,
+    val programmeId: String,
     val weekNumber: Int,
     val name: String?,
     val description: String?,
@@ -151,10 +152,10 @@ data class ProgrammeWeek(
     indices = [Index("weekId"), Index("userId")],
 )
 data class ProgrammeWorkout(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val weekId: Long,
+    val weekId: String,
     val dayNumber: Int, // 1-7
     val name: String,
     val description: String?,
@@ -178,10 +179,10 @@ data class ProgrammeWorkout(
     indices = [Index("programmeId", unique = true), Index("userId")],
 )
 data class ProgrammeProgress(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val programmeId: Long,
+    val programmeId: String,
     val currentWeek: Int,
     val currentDay: Int,
     val completedWorkouts: Int,

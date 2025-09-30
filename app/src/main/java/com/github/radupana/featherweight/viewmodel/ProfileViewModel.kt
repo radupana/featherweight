@@ -84,8 +84,8 @@ sealed class SeedingState {
 }
 
 data class ExerciseMaxWithName(
-    val id: Long,
-    val exerciseId: Long,
+    val id: String,
+    val exerciseId: String,
     val exerciseName: String,
     val oneRMEstimate: Float,
     val oneRMDate: LocalDateTime,
@@ -96,7 +96,7 @@ data class ExerciseMaxWithName(
 )
 
 data class Big4Exercise(
-    val exerciseId: Long,
+    val exerciseId: String,
     val exerciseName: String,
     val oneRMValue: Float? = null,
     val oneRMType: com.github.radupana.featherweight.data.profile.OneRMType? = null,
@@ -254,7 +254,7 @@ class ProfileViewModel(
     }
 
     fun update1RM(
-        exerciseId: Long,
+        exerciseId: String,
         exerciseName: String,
         newMax: Float,
     ) {
@@ -289,7 +289,7 @@ class ProfileViewModel(
         }
     }
 
-    fun deleteMax(exerciseId: Long) {
+    fun deleteMax(exerciseId: String) {
         viewModelScope.launch {
             try {
                 repository.deleteAllMaxesForExercise(exerciseId)

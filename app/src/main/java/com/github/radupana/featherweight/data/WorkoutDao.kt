@@ -10,13 +10,13 @@ import java.time.LocalDateTime
 @Dao
 interface WorkoutDao {
     @Insert
-    suspend fun insertWorkout(workout: Workout): Long
+    suspend fun insertWorkout(workout: Workout)
 
     @Update
     suspend fun updateWorkout(workout: Workout)
 
     @Upsert
-    suspend fun upsertWorkout(workout: Workout): Long
+    suspend fun upsertWorkout(workout: Workout)
 
     @Query("SELECT * FROM workouts WHERE userId = :userId ORDER BY date DESC")
     suspend fun getAllWorkouts(userId: String): List<Workout>
@@ -25,7 +25,7 @@ interface WorkoutDao {
     suspend fun getWorkoutsByUserId(userId: String): List<Workout>
 
     @Query("SELECT * FROM workouts WHERE id = :workoutId")
-    suspend fun getWorkoutById(workoutId: Long): Workout?
+    suspend fun getWorkoutById(workoutId: String): Workout?
 
     @Query("SELECT * FROM workouts WHERE userId = :userId AND date >= :startDate AND date <= :endDate ORDER BY date DESC")
     suspend fun getWorkoutsInDateRange(
@@ -35,17 +35,17 @@ interface WorkoutDao {
     ): List<Workout>
 
     @Query("DELETE FROM workouts WHERE id = :workoutId")
-    suspend fun deleteWorkout(workoutId: Long)
+    suspend fun deleteWorkout(workoutId: String)
 
     @Query("DELETE FROM workouts WHERE programmeId = :programmeId")
-    suspend fun deleteWorkoutsByProgramme(programmeId: Long)
+    suspend fun deleteWorkoutsByProgramme(programmeId: String)
 
     @Query("SELECT COUNT(*) FROM workouts WHERE programmeId = :programmeId AND status != 'COMPLETED'")
-    suspend fun getInProgressWorkoutCountByProgramme(programmeId: Long): Int
+    suspend fun getInProgressWorkoutCountByProgramme(programmeId: String): Int
 
     // Programme-related queries
     @Query("SELECT * FROM workouts WHERE programmeId = :programmeId ORDER BY date DESC")
-    suspend fun getWorkoutsByProgramme(programmeId: Long): List<Workout>
+    suspend fun getWorkoutsByProgramme(programmeId: String): List<Workout>
 
     @Query("DELETE FROM workouts")
     suspend fun deleteAllWorkouts()
@@ -74,7 +74,7 @@ interface WorkoutDao {
     """,
     )
     suspend fun getWorkoutDateForMaxWeight(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         weight: Float,
         startDateTime: LocalDateTime,
         endDateTime: LocalDateTime,
@@ -146,7 +146,7 @@ interface WorkoutDao {
     ): Int
 
     @Query("SELECT * FROM workouts WHERE programmeId = :programmeId AND status = 'COMPLETED' ORDER BY weekNumber, dayNumber")
-    suspend fun getCompletedWorkoutsByProgramme(programmeId: Long): List<Workout>
+    suspend fun getCompletedWorkoutsByProgramme(programmeId: String): List<Workout>
 }
 
 data class WorkoutDateCount(

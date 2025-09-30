@@ -30,48 +30,48 @@ class ExerciseMappingViewModelTest {
     private val testExercises =
         listOf(
             ExerciseVariation(
-                id = 1,
-                coreExerciseId = 1,
+                id = "1",
+                coreExerciseId = "1",
                 name = "Barbell Back Squat",
                 equipment = Equipment.BARBELL,
                 difficulty = ExerciseDifficulty.INTERMEDIATE,
                 requiresWeight = true,
             ),
             ExerciseVariation(
-                id = 2,
-                coreExerciseId = 1,
+                id = "2",
+                coreExerciseId = "1",
                 name = "Barbell Front Squat",
                 equipment = Equipment.BARBELL,
                 difficulty = ExerciseDifficulty.ADVANCED,
                 requiresWeight = true,
             ),
             ExerciseVariation(
-                id = 3,
-                coreExerciseId = 1,
+                id = "3",
+                coreExerciseId = "1",
                 name = "Barbell Hack Squat",
                 equipment = Equipment.BARBELL,
                 difficulty = ExerciseDifficulty.INTERMEDIATE,
                 requiresWeight = true,
             ),
             ExerciseVariation(
-                id = 4,
-                coreExerciseId = 1,
+                id = "4",
+                coreExerciseId = "1",
                 name = "Dumbbell Bulgarian Split Squat",
                 equipment = Equipment.DUMBBELL,
                 difficulty = ExerciseDifficulty.INTERMEDIATE,
                 requiresWeight = true,
             ),
             ExerciseVariation(
-                id = 5,
-                coreExerciseId = 2,
+                id = "5",
+                coreExerciseId = "2",
                 name = "Machine Leg Press",
                 equipment = Equipment.MACHINE,
                 difficulty = ExerciseDifficulty.BEGINNER,
                 requiresWeight = true,
             ),
             ExerciseVariation(
-                id = 6,
-                coreExerciseId = 3,
+                id = "6",
+                coreExerciseId = "3",
                 name = "Barbell Bench Press",
                 equipment = Equipment.BARBELL,
                 difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -182,8 +182,8 @@ class ExerciseMappingViewModelTest {
             val manyExercises =
                 (1..30).map { i ->
                     ExerciseVariation(
-                        id = i.toLong(),
-                        coreExerciseId = 1,
+                        id = i.toString(),
+                        coreExerciseId = "1",
                         name = "Test Squat Exercise $i",
                         equipment = Equipment.BARBELL,
                         difficulty = ExerciseDifficulty.INTERMEDIATE,
@@ -226,8 +226,8 @@ class ExerciseMappingViewModelTest {
             val exercisesWithExactMatch =
                 testExercises +
                     ExerciseVariation(
-                        id = 7,
-                        coreExerciseId = 1,
+                        id = "7",
+                        coreExerciseId = "1",
                         name = "Squat", // Exact match for "squat"
                         equipment = Equipment.BODYWEIGHT,
                         difficulty = ExerciseDifficulty.BEGINNER,
@@ -251,14 +251,14 @@ class ExerciseMappingViewModelTest {
             // When
             viewModel.mapExercise(
                 originalName = "Custom Squat",
-                exerciseId = 1L,
+                exerciseId = "1",
                 exerciseName = "Barbell Back Squat",
             )
 
             // Then
             val state = viewModel.uiState.first()
             assertThat(state.mappings).containsKey("Custom Squat")
-            assertThat(state.mappings["Custom Squat"]?.exerciseId).isEqualTo(1L)
+            assertThat(state.mappings["Custom Squat"]?.exerciseId).isEqualTo("1")
             assertThat(state.mappings["Custom Squat"]?.exerciseName).isEqualTo("Barbell Back Squat")
         }
 
@@ -268,7 +268,7 @@ class ExerciseMappingViewModelTest {
             // Given
             viewModel.mapExercise(
                 originalName = "Custom Squat",
-                exerciseId = 1L,
+                exerciseId = "1",
                 exerciseName = "Barbell Back Squat",
             )
             val stateWithMapping = viewModel.uiState.first()
@@ -287,8 +287,8 @@ class ExerciseMappingViewModelTest {
         runTest {
             // Given
             val unmatchedExercises = listOf("Exercise A", "Exercise B")
-            viewModel.mapExercise("Exercise A", 1L, "Barbell Back Squat")
-            viewModel.mapExercise("Exercise B", 2L, "Barbell Front Squat")
+            viewModel.mapExercise("Exercise A", "1", "Barbell Back Squat")
+            viewModel.mapExercise("Exercise B", "2", "Barbell Front Squat")
 
             // When
             val allMapped = viewModel.allExercisesMapped(unmatchedExercises)
@@ -302,7 +302,7 @@ class ExerciseMappingViewModelTest {
         runTest {
             // Given
             val unmatchedExercises = listOf("Exercise A", "Exercise B", "Exercise C")
-            viewModel.mapExercise("Exercise A", 1L, "Barbell Back Squat")
+            viewModel.mapExercise("Exercise A", "1", "Barbell Back Squat")
             // Exercise B and C not mapped
 
             // When
@@ -316,7 +316,7 @@ class ExerciseMappingViewModelTest {
     fun `getFinalMappings returns correct mapping structure`() =
         runTest {
             // Given
-            viewModel.mapExercise("Custom Squat", 1L, "Barbell Back Squat")
+            viewModel.mapExercise("Custom Squat", "1", "Barbell Back Squat")
             viewModel.mapExercise("Custom Press", null, "New Custom Press") // null means create as custom
 
             // When
@@ -324,7 +324,7 @@ class ExerciseMappingViewModelTest {
 
             // Then
             assertThat(finalMappings).hasSize(2)
-            assertThat(finalMappings["Custom Squat"]).isEqualTo(1L)
+            assertThat(finalMappings["Custom Squat"]).isEqualTo("1")
             assertThat(finalMappings["Custom Press"]).isNull()
         }
 }

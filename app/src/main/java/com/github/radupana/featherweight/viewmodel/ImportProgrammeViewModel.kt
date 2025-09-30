@@ -32,7 +32,7 @@ class ImportProgrammeViewModel(
 
     fun updateInputText(
         text: String,
-        editingRequestId: Long? = null,
+        editingRequestId: String? = null,
     ) {
         _uiState.value =
             _uiState.value.copy(
@@ -44,7 +44,7 @@ class ImportProgrammeViewModel(
 
     fun setParsedProgramme(
         programme: ParsedProgramme,
-        parseRequestId: Long? = null,
+        parseRequestId: String? = null,
     ) {
         _uiState.value =
             _uiState.value.copy(
@@ -107,7 +107,7 @@ class ImportProgrammeViewModel(
         }
     }
 
-    private fun processProgrammeAsync(requestId: Long) {
+    private fun processProgrammeAsync(requestId: String) {
         viewModelScope.launch {
             try {
                 val allMaxes = repository.getAllCurrentMaxesWithNames().first()
@@ -174,7 +174,7 @@ class ImportProgrammeViewModel(
     private suspend fun matchExercises(programme: ParsedProgramme): ParsedProgramme {
         val allExercisesWithAliases = repository.getAllExercisesWithAliases()
         val unmatchedExercises = mutableSetOf<String>()
-        val matchedExerciseCache = mutableMapOf<String, Long?>()
+        val matchedExerciseCache = mutableMapOf<String, String?>()
 
         val updatedWeeks =
             programme.weeks.map { week ->
@@ -224,7 +224,7 @@ class ImportProgrammeViewModel(
     private fun findBestExerciseMatch(
         exerciseName: String,
         allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
-    ): Long? {
+    ): String? {
         val nameLower = exerciseName.lowercase().trim()
         Log.d("ImportProgrammeViewModel", "=== EXERCISE MATCHING START ===")
         Log.d("ImportProgrammeViewModel", "Looking for: '$exerciseName' (normalized: '$nameLower')")
@@ -249,7 +249,7 @@ class ImportProgrammeViewModel(
     private fun tryExactNameMatch(
         nameLower: String,
         allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
-    ): Long? =
+    ): String? =
         allExercises.find { it.name.lowercase() == nameLower }?.let {
             Log.d("ImportProgrammeViewModel", "Exact name match found: ${it.name} (ID: ${it.id})")
             it.id
@@ -258,7 +258,7 @@ class ImportProgrammeViewModel(
     private fun tryExactAliasMatch(
         nameLower: String,
         allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
-    ): Long? =
+    ): String? =
         allExercises
             .find { exercise ->
                 exercise.aliases.any { alias -> alias.lowercase() == nameLower }
@@ -270,7 +270,7 @@ class ImportProgrammeViewModel(
     private fun tryImportantWordsMatch(
         nameLower: String,
         allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
-    ): Long? {
+    ): String? {
         val inputEquipment = extractEquipment(nameLower)
         val importantWords = nameLower.split(" ").filter { it.length > 2 }
 
@@ -301,7 +301,7 @@ class ImportProgrammeViewModel(
     private fun tryVariationMatch(
         nameLower: String,
         allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
-    ): Long? {
+    ): String? {
         if (!nameLower.contains(" or ")) return null
 
         val variations = nameLower.split(" or ")
@@ -318,7 +318,7 @@ class ImportProgrammeViewModel(
     private fun tryNormalizedMatch(
         nameLower: String,
         allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
-    ): Long? {
+    ): String? {
         val nameWithVariations = nameLower.replace("weighted ", "").trim()
         return allExercises
             .find {
@@ -329,7 +329,7 @@ class ImportProgrammeViewModel(
     private fun tryEquipmentStrippedMatch(
         nameLower: String,
         allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
-    ): Long? {
+    ): String? {
         val nameWithoutEquipment = stripEquipmentFromName(nameLower)
 
         // Special handling for cable exercises
@@ -352,7 +352,7 @@ class ImportProgrammeViewModel(
     private fun tryAbbreviationMatch(
         nameLower: String,
         allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
-    ): Long? {
+    ): String? {
         val normalizedName = normalizeExerciseName(nameLower)
         return allExercises
             .find {
@@ -449,7 +449,7 @@ class ImportProgrammeViewModel(
             ?.getOrNull(workoutIndex)
     }
 
-    fun setExerciseMappings(mappings: Map<String, Long?>) {
+    fun setExerciseMappings(mappings: Map<String, String?>) {
         _uiState.value = _uiState.value.copy(exerciseMappings = mappings)
     }
 
@@ -529,7 +529,7 @@ class ImportProgrammeViewModel(
         }
     }
 
-    private suspend fun createProgrammeFromParsed(parsedProgramme: ParsedProgramme): Long {
+    private suspend fun createProgrammeFromParsed(parsedProgramme: ParsedProgramme): String {
         Log.d("ImportProgrammeViewModel", "Creating programme: ${parsedProgramme.name} (${parsedProgramme.durationWeeks} weeks)")
 
         // Validation
@@ -701,7 +701,7 @@ data class ImportProgrammeUiState(
     val error: String? = null,
     val parsedProgramme: ParsedProgramme? = null,
     val successMessage: String? = null,
-    val parseRequestId: Long? = null, // Track which parse request this came from
-    val exerciseMappings: Map<String, Long?> = emptyMap(), // Store user's exercise mappings
-    val editingFailedRequestId: Long? = null, // Track which failed request we're editing
+    val parseRequestId: String? = null, // Track which parse request this came from
+    val exerciseMappings: Map<String, String?> = emptyMap(), // Store user's exercise mappings
+    val editingFailedRequestId: String? = null, // Track which failed request we're editing
 )

@@ -8,7 +8,7 @@ data class ExportOptions(
 )
 
 data class OneRMRecord(
-    val exerciseId: Long,
+    val exerciseId: String,
     val exerciseName: String,
     val weight: Float,
     val recordedDate: String,
@@ -26,7 +26,7 @@ data class ProgrammeInfo(
 )
 
 data class ExportedExercise(
-    val exerciseId: Long?,
+    val exerciseId: String?,
     val exerciseName: String,
     val order: Int,
     val supersetGroup: Int? = null,

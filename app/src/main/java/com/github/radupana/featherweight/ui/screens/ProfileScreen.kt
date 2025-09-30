@@ -55,7 +55,7 @@ fun ProfileScreen(
     var showExerciseSelector by remember { mutableStateOf(false) }
     var editingMax by remember { mutableStateOf<ExerciseMaxWithName?>(null) }
     var showClearConfirmDialog by remember { mutableStateOf(false) }
-    var clearingExerciseId by remember { mutableStateOf<Long?>(null) }
+    var clearingExerciseId by remember { mutableStateOf<String?>(null) }
     var showExportDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.signOutRequested) {
@@ -115,7 +115,7 @@ fun ProfileScreen(
                             onAddMax = { exercise ->
                                 editingMax =
                                     ExerciseMaxWithName(
-                                        id = 0,
+                                        id = "",
                                         exerciseId = exercise.exerciseId,
                                         exerciseName = exercise.exerciseName,
                                         oneRMEstimate = 0f,
@@ -129,7 +129,7 @@ fun ProfileScreen(
                             onEditMax = { exercise ->
                                 editingMax =
                                     ExerciseMaxWithName(
-                                        id = 0,
+                                        id = "",
                                         exerciseId = exercise.exerciseId,
                                         exerciseName = exercise.exerciseName,
                                         oneRMEstimate = exercise.oneRMValue ?: 0f,
@@ -199,7 +199,7 @@ fun ProfileScreen(
             } else {
                 editingMax =
                     ExerciseMaxWithName(
-                        id = 0,
+                        id = "",
                         exerciseId = exercise.variation.id,
                         exerciseName = exercise.variation.name,
                         oneRMEstimate = 0f,
@@ -279,7 +279,7 @@ private fun ProfileDialogs(
     showExerciseSelector: Boolean,
     editingMax: ExerciseMaxWithName?,
     showClearConfirmDialog: Boolean,
-    clearingExerciseId: Long?,
+    clearingExerciseId: String?,
     showExportDialog: Boolean,
     snackbarHostState: SnackbarHostState,
     onExerciseSelected: (com.github.radupana.featherweight.data.exercise.ExerciseWithDetails) -> Unit,

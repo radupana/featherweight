@@ -14,7 +14,7 @@ import java.time.LocalDateTime
 @Dao
 interface UserExerciseUsageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertUsage(usage: UserExerciseUsage): Long
+    suspend fun insertUsage(usage: UserExerciseUsage)
 
     @Update
     suspend fun updateUsage(usage: UserExerciseUsage)
@@ -22,14 +22,13 @@ interface UserExerciseUsageDao {
     @Query(
         """
         SELECT * FROM user_exercise_usage
-        WHERE userId = :userId AND exerciseVariationId = :variationId AND isCustomExercise = :isCustom
+        WHERE userId = :userId AND exerciseVariationId = :variationId
         LIMIT 1
     """,
     )
     suspend fun getUsage(
         userId: String,
-        variationId: Long,
-        isCustom: Boolean,
+        variationId: String,
     ): UserExerciseUsage?
 
     @Query(
@@ -54,13 +53,12 @@ interface UserExerciseUsageDao {
         """
         UPDATE user_exercise_usage
         SET usageCount = usageCount + 1, lastUsedAt = :timestamp, updatedAt = :timestamp
-        WHERE userId = :userId AND exerciseVariationId = :variationId AND isCustomExercise = :isCustom
+        WHERE userId = :userId AND exerciseVariationId = :variationId
     """,
     )
     suspend fun incrementUsageCount(
         userId: String,
-        variationId: Long,
-        isCustom: Boolean,
+        variationId: String,
         timestamp: LocalDateTime = LocalDateTime.now(),
     )
 
@@ -68,13 +66,12 @@ interface UserExerciseUsageDao {
         """
         UPDATE user_exercise_usage
         SET favorited = :favorited, updatedAt = :timestamp
-        WHERE userId = :userId AND exerciseVariationId = :variationId AND isCustomExercise = :isCustom
+        WHERE userId = :userId AND exerciseVariationId = :variationId
     """,
     )
     suspend fun setFavorited(
         userId: String,
-        variationId: Long,
-        isCustom: Boolean,
+        variationId: String,
         favorited: Boolean,
         timestamp: LocalDateTime = LocalDateTime.now(),
     )
@@ -82,21 +79,19 @@ interface UserExerciseUsageDao {
     @Query("DELETE FROM user_exercise_usage WHERE userId = :userId")
     suspend fun deleteAllUsageForUser(userId: String)
 
-    @Query("DELETE FROM user_exercise_usage WHERE userId = :userId AND exerciseVariationId = :variationId AND isCustomExercise = :isCustom")
+    @Query("DELETE FROM user_exercise_usage WHERE userId = :userId AND exerciseVariationId = :variationId")
     suspend fun deleteUsage(
         userId: String,
-        variationId: Long,
-        isCustom: Boolean,
+        variationId: String,
     )
 
     // Get or create usage record
     @Transaction
     suspend fun getOrCreateUsage(
         userId: String,
-        variationId: Long,
-        isCustom: Boolean,
+        variationId: String,
     ): UserExerciseUsage {
-        val existing = getUsage(userId, variationId, isCustom)
+        val existing = getUsage(userId, variationId)
         return if (existing != null) {
             existing
         } else {
@@ -104,10 +99,9 @@ interface UserExerciseUsageDao {
                 UserExerciseUsage(
                     userId = userId,
                     exerciseVariationId = variationId,
-                    isCustomExercise = isCustom,
                 )
-            val id = insertUsage(newUsage)
-            newUsage.copy(id = id)
+            insertUsage(newUsage)
+            newUsage
         }
     }
 

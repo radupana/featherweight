@@ -11,17 +11,17 @@ import java.time.LocalDateTime
  */
 object WorkoutFixtures {
     fun createWorkout(
-        id: Long = 1L,
+        id: String = "1",
         date: LocalDateTime = LocalDateTime.now(),
         name: String? = "Test Workout",
         notes: String? = null,
         status: WorkoutStatus = WorkoutStatus.IN_PROGRESS,
-        programmeId: Long? = null,
+        programmeId: String? = null,
         weekNumber: Int? = null,
         dayNumber: Int? = null,
         programmeWorkoutName: String? = null,
         isProgrammeWorkout: Boolean = false,
-        durationSeconds: Long? = null,
+        durationSeconds: String? = null,
         timerStartTime: LocalDateTime? = null,
         timerElapsedSeconds: Int = 0,
     ) = Workout(
@@ -42,13 +42,13 @@ object WorkoutFixtures {
     )
 
     fun createExerciseLog(
-        id: Long = 1L,
-        workoutId: Long = 1L,
-        exerciseVariationId: Long = 1L,
+        id: String = "1",
+        workoutId: String = "1",
+        exerciseVariationId: String = "1",
         exerciseOrder: Int = 0,
         supersetGroup: Int? = null,
         notes: String? = null,
-        originalVariationId: Long? = null,
+        originalVariationId: String? = null,
         isSwapped: Boolean = false,
     ) = ExerciseLog(
         id = id,
@@ -62,9 +62,9 @@ object WorkoutFixtures {
     )
 
     fun createSetLog(
-        id: Long = 1L,
+        id: String = "1",
         userId: String? = "test-user-id",
-        exerciseLogId: Long = 1L,
+        exerciseLogId: String = "1",
         setOrder: Int = 1,
         targetReps: Int? = 10,
         targetWeight: Float? = 60f,
@@ -109,7 +109,7 @@ object WorkoutFixtures {
     ): List<SetLog> =
         (1..count).map { setNumber ->
             createSetLog(
-                id = setNumber.toLong(),
+                id = setNumber.toString(),
                 userId = userId,
                 setOrder = setNumber,
                 targetReps = reps,

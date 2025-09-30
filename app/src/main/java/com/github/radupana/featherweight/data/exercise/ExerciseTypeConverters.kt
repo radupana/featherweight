@@ -41,12 +41,6 @@ class ExerciseTypeConverters {
     fun toInstructionType(type: String): InstructionType = InstructionType.valueOf(type)
 
     @TypeConverter
-    fun fromExerciseRelationType(type: ExerciseRelationType): String = type.name
-
-    @TypeConverter
-    fun toExerciseRelationType(type: String): ExerciseRelationType = ExerciseRelationType.valueOf(type)
-
-    @TypeConverter
     fun fromOneRMType(type: OneRMType): String = type.name
 
     @TypeConverter

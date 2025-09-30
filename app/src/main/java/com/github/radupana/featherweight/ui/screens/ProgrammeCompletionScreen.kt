@@ -57,7 +57,7 @@ import java.util.Locale
 
 @Composable
 fun ProgrammeCompletionScreen(
-    programmeId: Long,
+    programmeId: String,
     onDismiss: () -> Unit,
 ) {
     // Get repository from application context

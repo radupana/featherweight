@@ -11,7 +11,7 @@ class ProgrammeTest {
     fun programme_withValidData_shouldCreateSuccessfully() {
         val programme =
             Programme(
-                id = 1L,
+                id = "1",
                 name = "StrongLifts 5x5",
                 description = "Simple strength programme",
                 durationWeeks = 12,
@@ -365,7 +365,7 @@ class ProgrammeTest {
                 difficulty = ProgrammeDifficulty.BEGINNER,
             )
 
-        assertThat(programme.id).isEqualTo(0L)
+        assertThat(programme.id).isNotEmpty() // Auto-generated ID
         assertThat(programme.isCustom).isFalse()
         assertThat(programme.isActive).isFalse()
         assertThat(programme.status).isEqualTo(ProgrammeStatus.NOT_STARTED)

@@ -8,7 +8,7 @@ import androidx.room.Query
 @Dao
 interface GlobalExerciseProgressDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertOrUpdate(progress: GlobalExerciseProgress): Long
+    suspend fun insertOrUpdate(progress: GlobalExerciseProgress)
 
     @Query(
         """
@@ -18,7 +18,7 @@ interface GlobalExerciseProgressDao {
     """,
     )
     suspend fun getProgressForExercise(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
     ): GlobalExerciseProgress?
 
     @Query("DELETE FROM global_exercise_progress")
@@ -28,7 +28,7 @@ interface GlobalExerciseProgressDao {
     suspend fun getAllProgress(): List<GlobalExerciseProgress>
 
     @Query("SELECT * FROM global_exercise_progress WHERE id = :id")
-    suspend fun getProgressById(id: Long): GlobalExerciseProgress?
+    suspend fun getProgressById(id: String): GlobalExerciseProgress?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertProgress(progress: GlobalExerciseProgress)

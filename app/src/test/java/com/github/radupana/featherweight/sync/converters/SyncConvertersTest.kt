@@ -20,7 +20,7 @@ class SyncConvertersTest {
         val now = LocalDateTime.now()
         val workout =
             Workout(
-                id = 1,
+                id = "1",
                 userId = "user123",
                 name = "Morning Workout",
                 notes = "Great session",
@@ -31,14 +31,14 @@ class SyncConvertersTest {
                 dayNumber = null,
                 programmeWorkoutName = null,
                 isProgrammeWorkout = false,
-                durationSeconds = 3600,
+                durationSeconds = "3600",
                 timerStartTime = null,
                 timerElapsedSeconds = 0,
             )
 
         val result = SyncConverters.toFirestoreWorkout(workout)
 
-        assertEquals(1, result.localId)
+        assertEquals("1", result.localId)
         assertEquals("user123", result.userId)
         assertEquals("Morning Workout", result.name)
         assertEquals("Great session", result.notes)
@@ -49,7 +49,7 @@ class SyncConvertersTest {
     fun `toFirestoreWorkout handles null userId`() {
         val workout =
             Workout(
-                id = 1,
+                id = "1",
                 userId = null,
                 name = "Workout",
                 notes = null,
@@ -76,7 +76,7 @@ class SyncConvertersTest {
         val firestoreWorkout =
             FirestoreWorkout(
                 id = "firebase-id",
-                localId = 2,
+                localId = "2",
                 userId = "user456",
                 name = "Evening Workout",
                 notes = "Good form",
@@ -87,7 +87,7 @@ class SyncConvertersTest {
 
         val result = SyncConverters.fromFirestoreWorkout(firestoreWorkout)
 
-        assertEquals(2, result.id)
+        assertEquals("2", result.id)
         assertEquals("user456", result.userId)
         assertEquals("Evening Workout", result.name)
         assertEquals("Good form", result.notes)
@@ -99,7 +99,7 @@ class SyncConvertersTest {
         val firestoreWorkout =
             FirestoreWorkout(
                 id = "firebase-id",
-                localId = 1,
+                localId = "1",
                 userId = "",
                 name = "Workout",
                 notes = null,
@@ -116,10 +116,10 @@ class SyncConvertersTest {
     fun `toFirestoreExerciseLog converts ExerciseLog correctly`() {
         val exerciseLog =
             ExerciseLog(
-                id = 10,
+                id = "10",
                 userId = "user123",
-                workoutId = 1,
-                exerciseVariationId = 5,
+                workoutId = "1",
+                exerciseVariationId = "5",
                 exerciseOrder = 2,
                 supersetGroup = 1,
                 notes = "Focus on form",
@@ -129,9 +129,9 @@ class SyncConvertersTest {
 
         val result = SyncConverters.toFirestoreExerciseLog(exerciseLog)
 
-        assertEquals(10, result.localId)
-        assertEquals(1, result.workoutId)
-        assertEquals(5, result.exerciseVariationId)
+        assertEquals("10", result.localId)
+        assertEquals("1", result.workoutId)
+        assertEquals("5", result.exerciseVariationId)
         assertEquals(2, result.exerciseOrder)
         assertEquals("Focus on form", result.notes)
     }
@@ -141,18 +141,18 @@ class SyncConvertersTest {
         val firestoreLog =
             FirestoreExerciseLog(
                 id = "firebase-id",
-                localId = 15,
-                workoutId = 2,
-                exerciseVariationId = 8,
+                localId = "15",
+                workoutId = "2",
+                exerciseVariationId = "8",
                 exerciseOrder = 3,
                 notes = "Good pump",
             )
 
         val result = SyncConverters.fromFirestoreExerciseLog(firestoreLog)
 
-        assertEquals(15, result.id)
-        assertEquals(2, result.workoutId)
-        assertEquals(8, result.exerciseVariationId)
+        assertEquals("15", result.id)
+        assertEquals("2", result.workoutId)
+        assertEquals("8", result.exerciseVariationId)
         assertEquals(3, result.exerciseOrder)
         assertEquals("Good pump", result.notes)
         assertNull(result.userId)
@@ -162,9 +162,9 @@ class SyncConvertersTest {
     fun `toFirestoreSetLog converts SetLog correctly`() {
         val setLog =
             SetLog(
-                id = 20,
+                id = "20",
                 userId = "user123",
-                exerciseLogId = 10,
+                exerciseLogId = "10",
                 setOrder = 1,
                 targetReps = 12,
                 targetWeight = 50.5f,
@@ -184,8 +184,8 @@ class SyncConvertersTest {
 
         val result = SyncConverters.toFirestoreSetLog(setLog)
 
-        assertEquals(20, result.localId)
-        assertEquals(10, result.exerciseLogId)
+        assertEquals("20", result.localId)
+        assertEquals("10", result.exerciseLogId)
         assertEquals(1, result.setOrder)
         assertEquals(12, result.targetReps)
         assertEquals(50.5f, result.targetWeight)
@@ -199,8 +199,8 @@ class SyncConvertersTest {
         val firestoreLog =
             FirestoreSetLog(
                 id = "firebase-id",
-                localId = 25,
-                exerciseLogId = 15,
+                localId = "25",
+                exerciseLogId = "15",
                 setOrder = 2,
                 targetReps = 8,
                 targetWeight = 75f,
@@ -211,8 +211,8 @@ class SyncConvertersTest {
 
         val result = SyncConverters.fromFirestoreSetLog(firestoreLog)
 
-        assertEquals(25, result.id)
-        assertEquals(15, result.exerciseLogId)
+        assertEquals("25", result.id)
+        assertEquals("15", result.exerciseLogId)
         assertEquals(2, result.setOrder)
         assertEquals(8, result.targetReps)
         assertEquals(75f, result.targetWeight)
@@ -229,7 +229,7 @@ class SyncConvertersTest {
         val originalDate = LocalDateTime.of(2024, 1, 15, 10, 30, 45)
         val workout =
             Workout(
-                id = 1,
+                id = "1",
                 userId = "user",
                 name = "Test",
                 notes = null,

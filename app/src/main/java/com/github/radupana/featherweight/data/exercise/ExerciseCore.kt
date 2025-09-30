@@ -4,18 +4,24 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.IdGenerator
 import java.time.LocalDateTime
 
 /**
- * ExerciseCore - System-level exercise grouping mechanism for variations.
- * Contains only reference data shared across all users.
+ * ExerciseCore - Unified exercise grouping for both system and custom exercises.
+ * userId = null for system exercises, non-null for custom exercises.
  */
 @Entity(
     tableName = "exercise_cores",
+    indices = [
+        Index(value = ["userId"]),
+        Index(value = ["userId", "name"], unique = true),
+    ],
 )
 data class ExerciseCore(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
+    val userId: String? = null, // null = system exercise, non-null = custom exercise
     val name: String, // e.g., "Squat", "Deadlift", "Bench Press"
     val category: ExerciseCategory,
     val movementPattern: MovementPattern,
@@ -25,8 +31,8 @@ data class ExerciseCore(
 )
 
 /**
- * System-level exercise variation that can be logged.
- * Contains only reference data shared across all users.
+ * Exercise variation - unified for both system and custom exercises.
+ * userId = null for system exercises, non-null for custom exercises.
  */
 @Entity(
     tableName = "exercise_variations",
@@ -40,14 +46,16 @@ data class ExerciseCore(
     ],
     indices = [
         Index(value = ["coreExerciseId"]),
-        Index(value = ["name"], unique = true),
         Index(value = ["equipment"]),
+        Index(value = ["userId"]),
+        Index(value = ["userId", "name"], unique = true),
     ],
 )
 data class ExerciseVariation(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    val coreExerciseId: Long,
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
+    val userId: String? = null, // null = system exercise, non-null = custom exercise
+    val coreExerciseId: String,
     val name: String,
     val equipment: Equipment,
     val difficulty: ExerciseDifficulty,
@@ -79,7 +87,7 @@ data class ExerciseVariation(
     ],
 )
 data class VariationMuscle(
-    val variationId: Long,
+    val variationId: String,
     val muscle: MuscleGroup,
     val isPrimary: Boolean,
     val emphasisModifier: Float = 1.0f, // How much this variation emphasizes this muscle
@@ -104,9 +112,9 @@ data class VariationMuscle(
     ],
 )
 data class VariationInstruction(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    val variationId: Long, // Non-null, always references a variation
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
+    val variationId: String, // Non-null, always references a variation
     val instructionType: InstructionType,
     val content: String,
     val orderIndex: Int = 0,
@@ -133,46 +141,11 @@ data class VariationInstruction(
     ],
 )
 data class VariationAlias(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    val variationId: Long, // Non-null, always references a variation
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
+    val variationId: String, // Non-null, always references a variation
     val alias: String,
     val confidence: Float = 1.0f,
     val languageCode: String = "en",
     val source: String = "manual",
-)
-
-/**
- * Relationships between variations (progressions, regressions, alternatives, etc.).
- */
-@Entity(
-    tableName = "variation_relations",
-    foreignKeys = [
-        ForeignKey(
-            entity = ExerciseVariation::class,
-            parentColumns = ["id"],
-            childColumns = ["fromVariationId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-        ForeignKey(
-            entity = ExerciseVariation::class,
-            parentColumns = ["id"],
-            childColumns = ["toVariationId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-    indices = [
-        Index(value = ["fromVariationId"]),
-        Index(value = ["toVariationId"]),
-        Index(value = ["relationType"]),
-    ],
-)
-data class VariationRelation(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    val fromVariationId: Long, // Non-null
-    val toVariationId: Long, // Non-null
-    val relationType: ExerciseRelationType,
-    val strength: Float = 1.0f,
-    val notes: String? = null,
 )

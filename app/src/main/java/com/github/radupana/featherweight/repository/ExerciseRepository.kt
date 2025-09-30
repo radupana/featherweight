@@ -102,7 +102,6 @@ class ExerciseRepository(
                                     .getUsage(
                                         userId = userId,
                                         variationId = variation.id,
-                                        isCustom = false, // System exercises for now
                                     )?.usageCount ?: 0
                             } else {
                                 // Fallback to global count if no user is logged in
@@ -125,12 +124,12 @@ class ExerciseRepository(
             result
         }
 
-    suspend fun getExerciseById(id: Long): ExerciseVariation? =
+    suspend fun getExerciseById(id: String): ExerciseVariation? =
         withContext(Dispatchers.IO) {
             exerciseDao.getExerciseVariationById(id)
         }
 
-    suspend fun getExerciseEntityById(exerciseVariationId: Long): ExerciseVariation? = exerciseDao.getExerciseVariationById(exerciseVariationId)
+    suspend fun getExerciseEntityById(exerciseVariationId: String): ExerciseVariation? = exerciseDao.getExerciseVariationById(exerciseVariationId)
 
     suspend fun getExerciseByName(name: String): ExerciseVariation? {
         Log.i(TAG, "Searching for exercise: '$name'")
@@ -196,11 +195,11 @@ class ExerciseRepository(
 
     // ===== EXERCISE LOG OPERATIONS =====
 
-    suspend fun getExercisesForWorkout(workoutId: Long): List<ExerciseLog> = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
+    suspend fun getExercisesForWorkout(workoutId: String): List<ExerciseLog> = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
 
-    suspend fun getSetsForExercise(exerciseLogId: Long): List<SetLog> = setLogDao.getSetLogsForExercise(exerciseLogId)
+    suspend fun getSetsForExercise(exerciseLogId: String): List<SetLog> = setLogDao.getSetLogsForExercise(exerciseLogId)
 
-    suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long {
+    suspend fun insertExerciseLog(exerciseLog: ExerciseLog): String {
         // Ensure userId is set for authenticated users
         val exerciseWithUserId =
             if (authManager != null) {
@@ -208,22 +207,21 @@ class ExerciseRepository(
             } else {
                 exerciseLog
             }
-        return exerciseLogDao.insertExerciseLog(exerciseWithUserId)
+        exerciseLogDao.insertExerciseLog(exerciseWithUserId)
+        return exerciseWithUserId.id
     }
 
     suspend fun insertExerciseLogWithExerciseReference(
-        workoutId: Long,
-        exerciseVariationId: Long,
+        workoutId: String,
+        exerciseVariationId: String,
         order: Int = 0,
-        isCustomExercise: Boolean = false,
-    ): Long {
+    ): String {
         val exerciseLog =
             ExerciseLog(
                 userId = authManager?.getCurrentUserId() ?: "local",
                 workoutId = workoutId,
                 exerciseVariationId = exerciseVariationId,
                 exerciseOrder = order,
-                isCustomExercise = isCustomExercise,
             )
 
         val id = insertExerciseLog(exerciseLog)
@@ -235,13 +233,11 @@ class ExerciseRepository(
             userExerciseUsageDao.getOrCreateUsage(
                 userId = userId,
                 variationId = exerciseVariationId,
-                isCustom = isCustomExercise,
             )
             // Now increment the count
             userExerciseUsageDao.incrementUsageCount(
                 userId = userId,
                 variationId = exerciseVariationId,
-                isCustom = isCustomExercise,
                 timestamp = LocalDateTime.now(),
             )
         } catch (e: Exception) {
@@ -252,12 +248,11 @@ class ExerciseRepository(
     }
 
     suspend fun insertExerciseLogWithExerciseReference(
-        workoutId: Long,
+        workoutId: String,
         exerciseVariation: ExerciseVariation,
         exerciseOrder: Int,
         notes: String? = null,
-        isCustomExercise: Boolean = false,
-    ): Long {
+    ): String {
         val exerciseLog =
             ExerciseLog(
                 userId = authManager?.getCurrentUserId() ?: "local",
@@ -265,9 +260,9 @@ class ExerciseRepository(
                 exerciseVariationId = exerciseVariation.id,
                 exerciseOrder = exerciseOrder,
                 notes = notes,
-                isCustomExercise = isCustomExercise,
             )
-        val id = exerciseLogDao.insertExerciseLog(exerciseLog)
+        exerciseLogDao.insertExerciseLog(exerciseLog)
+        val id = exerciseLog.id
 
         // Increment usage count for this exercise (use "local" for unauthenticated users)
         try {
@@ -276,36 +271,34 @@ class ExerciseRepository(
             userExerciseUsageDao.getOrCreateUsage(
                 userId = userId,
                 variationId = exerciseVariation.id,
-                isCustom = isCustomExercise,
             )
             // Now increment the count
             userExerciseUsageDao.incrementUsageCount(
                 userId = userId,
                 variationId = exerciseVariation.id,
-                isCustom = isCustomExercise,
                 timestamp = LocalDateTime.now(),
             )
         } catch (e: Exception) {
             Log.e(TAG, "Failed to increment usage count for exercise ${exerciseVariation.name}", e)
         }
 
-        Log.i(TAG, "Added exercise to workout - exercise: ${exerciseVariation.name}, workoutId: $workoutId, order: $exerciseOrder, exerciseLogId: $id, isCustom: $isCustomExercise")
+        Log.i(TAG, "Added exercise to workout - exercise: ${exerciseVariation.name}, workoutId: $workoutId, order: $exerciseOrder, exerciseLogId: $id")
         return id
     }
 
     suspend fun updateExerciseLog(exerciseLog: ExerciseLog) = exerciseLogDao.update(exerciseLog)
 
-    suspend fun deleteExerciseLog(exerciseLogId: Long) = exerciseLogDao.deleteExerciseLog(exerciseLogId)
+    suspend fun deleteExerciseLog(exerciseLogId: String) = exerciseLogDao.deleteExerciseLog(exerciseLogId)
 
-    suspend fun deleteSetsForExercise(exerciseLogId: Long) = setLogDao.deleteAllSetsForExercise(exerciseLogId)
+    suspend fun deleteSetsForExercise(exerciseLogId: String) = setLogDao.deleteAllSetsForExercise(exerciseLogId)
 
     suspend fun updateExerciseOrder(
-        exerciseLogId: Long,
+        exerciseLogId: String,
         newOrder: Int,
     ) = exerciseLogDao.updateExerciseOrder(exerciseLogId, newOrder)
 
     suspend fun updateExerciseOrder(
-        exerciseOrders: Map<Long, Int>,
+        exerciseOrders: Map<String, Int>,
     ) {
         withContext(Dispatchers.IO) {
             exerciseOrders.forEach { (exerciseLogId, newOrder) ->
@@ -321,7 +314,7 @@ class ExerciseRepository(
 
     // ===== EXERCISE STATS AND HISTORY =====
 
-    suspend fun getExerciseStats(exerciseVariationId: Long): ExerciseStats? {
+    suspend fun getExerciseStats(exerciseVariationId: String): ExerciseStats? {
         return withContext(Dispatchers.IO) {
             val startTime = System.currentTimeMillis()
             val userId = authManager.getCurrentUserId() ?: "local"
@@ -386,9 +379,9 @@ class ExerciseRepository(
     }
 
     suspend fun swapExercise(
-        exerciseLogId: Long,
-        newExerciseVariationId: Long,
-        originalExerciseVariationId: Long,
+        exerciseLogId: String,
+        newExerciseVariationId: String,
+        originalExerciseVariationId: String,
     ) {
         val exerciseLog = exerciseLogDao.getExerciseLogById(exerciseLogId)
         if (exerciseLog != null) {
@@ -413,25 +406,39 @@ class ExerciseRepository(
     }
 
     suspend fun recordExerciseSwap(
-        originalExerciseId: Long,
-        swappedToExerciseId: Long,
-        workoutId: Long? = null,
-        programmeId: Long? = null,
+        originalExerciseId: String,
+        swappedToExerciseId: String,
+        workoutId: String? = null,
+        programmeId: String? = null,
     ) {
-        val swapHistory =
-            ExerciseSwapHistory(
-                userId = authManager?.getCurrentUserId() ?: "local",
+        val userId = authManager?.getCurrentUserId() ?: "local"
+
+        // Check if an identical swap already exists
+        val existingSwap =
+            exerciseSwapHistoryDao.getExistingSwap(
+                userId = userId,
                 originalExerciseId = originalExerciseId,
                 swappedToExerciseId = swappedToExerciseId,
-                swapDate = LocalDateTime.now(),
                 workoutId = workoutId,
-                programmeId = programmeId,
             )
-        exerciseSwapHistoryDao.insert(swapHistory)
+
+        // Only insert if no duplicate exists
+        if (existingSwap == null) {
+            val swapHistory =
+                ExerciseSwapHistory(
+                    userId = userId,
+                    originalExerciseId = originalExerciseId,
+                    swappedToExerciseId = swappedToExerciseId,
+                    swapDate = LocalDateTime.now(),
+                    workoutId = workoutId,
+                    programmeId = programmeId,
+                )
+            exerciseSwapHistoryDao.insert(swapHistory)
+        }
     }
 
     suspend fun getSwapHistoryForExercise(
-        exerciseId: Long,
+        exerciseId: String,
     ): List<SwapHistoryCount> =
         withContext(Dispatchers.IO) {
             exerciseSwapHistoryDao.getSwapHistoryForExercise(exerciseId)
@@ -487,18 +494,17 @@ class ExerciseRepository(
 
                 if (exerciseCore == null) {
                     // Create new core
-                    val coreId =
-                        exerciseCoreDao.insertExerciseCore(
-                            ExerciseCore(
-                                name = coreName,
-                                category = category,
-                                movementPattern = movementPattern,
-                                isCompound = true, // Most custom exercises are compound
-                                createdAt = LocalDateTime.now(),
-                                updatedAt = LocalDateTime.now(),
-                            ),
+                    val newCore =
+                        ExerciseCore(
+                            name = coreName,
+                            category = category,
+                            movementPattern = movementPattern,
+                            isCompound = true, // Most custom exercises are compound
+                            createdAt = LocalDateTime.now(),
+                            updatedAt = LocalDateTime.now(),
                         )
-                    exerciseCore = exerciseCoreDao.getExerciseCoreById(coreId)
+                    exerciseCoreDao.insertExerciseCore(newCore)
+                    exerciseCore = exerciseCoreDao.getExerciseCoreById(newCore.id)
                 }
 
                 if (exerciseCore == null) {
@@ -508,18 +514,18 @@ class ExerciseRepository(
                 }
 
                 // Create exercise variation (system exercise)
-                val variationId =
-                    exerciseVariationDao.insertExerciseVariation(
-                        ExerciseVariation(
-                            coreExerciseId = exerciseCore.id,
-                            name = name,
-                            equipment = equipment,
-                            difficulty = difficulty,
-                            requiresWeight = requiresWeight,
-                            createdAt = LocalDateTime.now(),
-                            updatedAt = LocalDateTime.now(),
-                        ),
+                val newVariation =
+                    ExerciseVariation(
+                        coreExerciseId = exerciseCore.id,
+                        name = name,
+                        equipment = equipment,
+                        difficulty = difficulty,
+                        requiresWeight = requiresWeight,
+                        createdAt = LocalDateTime.now(),
+                        updatedAt = LocalDateTime.now(),
                     )
+                exerciseVariationDao.insertExerciseVariation(newVariation)
+                val variationId = newVariation.id
 
                 // Create muscle relationships
                 val allMuscles = mutableListOf<VariationMuscle>()
@@ -582,7 +588,7 @@ class ExerciseRepository(
 
     // ===== DELETE CUSTOM EXERCISE =====
 
-    suspend fun canDeleteExercise(exerciseVariationId: Long): Result<Boolean> =
+    suspend fun canDeleteExercise(exerciseVariationId: String): Result<Boolean> =
         withContext(Dispatchers.IO) {
             try {
                 // Check if it's a custom exercise
@@ -620,7 +626,7 @@ class ExerciseRepository(
             }
         }
 
-    suspend fun deleteCustomExercise(exerciseVariationId: Long): Result<Unit> =
+    suspend fun deleteCustomExercise(exerciseVariationId: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             try {
                 val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)

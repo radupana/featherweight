@@ -48,7 +48,7 @@ data class ExerciseStructure(
     val category: String? = null, // For accessory categorization
     val note: String? = null, // User notes like "shoulder felt tight"
     val weightSource: String? = null, // Source of weight suggestion
-    val exerciseId: Long? = null, // Matched exercise variation ID
+    val exerciseId: String? = null, // Matched exercise variation ID
     val weights: List<Float>? = null, // Per-set weights in kg
     val rpeValues: List<Float?>? = null, // Per-set RPE values (1-10), null if not specified
 )

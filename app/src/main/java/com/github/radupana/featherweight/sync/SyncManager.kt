@@ -28,6 +28,10 @@ sealed class SyncState {
     data class Error(
         val message: String,
     ) : SyncState()
+
+    data class Skipped(
+        val reason: String,
+    ) : SyncState()
 }
 
 class SyncManager(
@@ -40,6 +44,10 @@ class SyncManager(
 ) {
     // Mutex to prevent concurrent sync operations
     private val syncMutex = Mutex()
+
+    // Track last sync time to prevent rapid successive syncs
+    private var lastSyncAttemptTime = 0L
+    private val MIN_SYNC_INTERVAL_MS = 10000L // 10 seconds minimum between syncs
 
     // Sync strategies for modular sync logic
     private val systemExerciseStrategy = SystemExerciseSyncStrategy(database, firestoreRepository)
@@ -68,6 +76,14 @@ class SyncManager(
         withContext(ioDispatcher) {
             // Use mutex to prevent concurrent sync operations
             syncMutex.withLock {
+                // Debounce rapid sync calls
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastSyncAttemptTime < MIN_SYNC_INTERVAL_MS) {
+                    Log.i("SyncManager", "Sync skipped - too soon after last sync (${currentTime - lastSyncAttemptTime}ms < ${MIN_SYNC_INTERVAL_MS}ms)")
+                    return@withContext Result.success(SyncState.Skipped("Sync throttled"))
+                }
+                lastSyncAttemptTime = currentTime
+
                 val userId = authManager.getCurrentUserId()
                 Log.i("SyncManager", "syncAll started for userId: $userId")
                 if (userId == null) {
@@ -171,8 +187,8 @@ class SyncManager(
         database.trainingAnalysisDao().deleteAllByUserId(userId)
         database.parseRequestDao().deleteAllForUser(userId)
         // Clear custom exercises
-        database.customExerciseDao().deleteAllCustomVariationsByUser(userId)
-        database.customExerciseDao().deleteAllCustomCoresByUser(userId)
+        database.exerciseVariationDao().deleteAllCustomVariationsByUser(userId)
+        database.exerciseCoreDao().deleteAllCustomCoresByUser(userId)
     }
 
     private suspend fun uploadLocalChanges(
@@ -204,7 +220,6 @@ class SyncManager(
             uploadExerciseSwapHistory(userId)
             uploadExercisePerformanceTracking(userId)
             uploadGlobalExerciseProgress(userId)
-            uploadExerciseCorrelations()
             uploadTrainingAnalyses(userId)
             uploadParseRequests(userId)
 
@@ -347,12 +362,6 @@ class SyncManager(
         firestoreRepository.uploadGlobalExerciseProgress(userId, firestoreProgress).getOrThrow()
     }
 
-    private suspend fun uploadExerciseCorrelations() {
-        val correlations = database.exerciseCorrelationDao().getAllCorrelations()
-        val firestoreCorrelations = correlations.map { SyncConverters.toFirestoreExerciseCorrelation(it) }
-        firestoreRepository.uploadExerciseCorrelations(firestoreCorrelations).getOrThrow()
-    }
-
     private suspend fun uploadTrainingAnalyses(userId: String) {
         val analyses = database.trainingAnalysisDao().getAllAnalyses()
         val userAnalyses = analyses.filter { it.userId == userId }
@@ -383,15 +392,7 @@ class SyncManager(
             Log.d("SyncManager", "Downloading custom exercises...")
             customExerciseStrategy.downloadAndMerge(userId, lastSyncTime).getOrThrow()
 
-            // NOW download entities that reference exercises (workouts, logs, etc)
-            Log.d("SyncManager", "Downloading workouts...")
-            downloadAndMergeWorkouts(userId, lastSyncTime)
-            Log.d("SyncManager", "Downloading exercise logs...")
-            downloadAndMergeExerciseLogs(userId, lastSyncTime)
-            Log.d("SyncManager", "Downloading set logs...")
-            downloadAndMergeSetLogs(userId, lastSyncTime)
-
-            // Download programme data
+            // Download programme data FIRST (workouts have FK to programmes)
             Log.d("SyncManager", "Downloading programmes...")
             downloadAndMergeProgrammes(userId)
             Log.d("SyncManager", "Downloading programme weeks...")
@@ -400,6 +401,14 @@ class SyncManager(
             downloadAndMergeProgrammeWorkouts(userId)
             Log.d("SyncManager", "Downloading programme progress...")
             downloadAndMergeProgrammeProgress(userId)
+
+            // NOW download entities that reference exercises and programmes
+            Log.d("SyncManager", "Downloading workouts...")
+            downloadAndMergeWorkouts(userId, lastSyncTime)
+            Log.d("SyncManager", "Downloading exercise logs...")
+            downloadAndMergeExerciseLogs(userId, lastSyncTime)
+            Log.d("SyncManager", "Downloading set logs...")
+            downloadAndMergeSetLogs(userId, lastSyncTime)
 
             // Download user stats
             Log.d("SyncManager", "Downloading user exercise maxes...")
@@ -417,8 +426,6 @@ class SyncManager(
             downloadAndMergeExercisePerformanceTracking(userId)
             Log.d("SyncManager", "Downloading global exercise progress...")
             downloadAndMergeGlobalExerciseProgress(userId)
-            Log.d("SyncManager", "Downloading exercise correlations...")
-            downloadAndMergeExerciseCorrelations()
             Log.d("SyncManager", "Downloading training analyses...")
             downloadAndMergeTrainingAnalyses(userId)
             Log.d("SyncManager", "Downloading parse requests...")
@@ -584,9 +591,21 @@ class SyncManager(
         val localSwaps = remoteSwaps.map { SyncConverters.fromFirestoreExerciseSwapHistory(it) }
 
         localSwaps.forEach { swap ->
-            val existing = database.exerciseSwapHistoryDao().getSwapHistoryById(swap.id)
+            // Check for existing swap by logical identity, not just ID
+            val existing =
+                database.exerciseSwapHistoryDao().getExistingSwap(
+                    userId = swap.userId,
+                    originalExerciseId = swap.originalExerciseId,
+                    swappedToExerciseId = swap.swappedToExerciseId,
+                    workoutId = swap.workoutId,
+                )
+
             if (existing == null) {
+                // No duplicate found, insert the swap
                 database.exerciseSwapHistoryDao().insertSwapHistory(swap)
+            } else {
+                // Duplicate found, use upsert to update if needed
+                database.exerciseSwapHistoryDao().upsertSwapHistory(swap)
             }
         }
     }
@@ -611,18 +630,6 @@ class SyncManager(
             val existing = database.globalExerciseProgressDao().getProgressById(progress.id)
             if (existing == null) {
                 database.globalExerciseProgressDao().insertProgress(progress)
-            }
-        }
-    }
-
-    private suspend fun downloadAndMergeExerciseCorrelations() {
-        val remoteCorrelations = firestoreRepository.downloadExerciseCorrelations().getOrThrow()
-        val localCorrelations = remoteCorrelations.map { SyncConverters.fromFirestoreExerciseCorrelation(it) }
-
-        localCorrelations.forEach { correlation ->
-            val existing = database.exerciseCorrelationDao().getCorrelationById(correlation.id)
-            if (existing == null) {
-                database.exerciseCorrelationDao().insertCorrelation(correlation)
             }
         }
     }

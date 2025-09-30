@@ -49,20 +49,20 @@ class ProgrammeRPEIntegrationTest {
                     name = "Barbell Back Squat",
                     sets = 3,
                     reps = RepsStructure.PerSet(listOf("6", "6", "6")),
-                    exerciseId = 1L,
+                    exerciseId = "1",
                     weights = listOf(90f, 90f, 90f),
                     rpeValues = listOf(8.0f, 8.5f, 9.0f), // Different RPE for each set
                 )
 
             // Mock the DAO responses
-            coEvery { workoutDao.insertWorkout(any()) } returns 1L
+            coEvery { workoutDao.insertWorkout(any()) } returns Unit
 
             // Capture the SetLog insertions
             val capturedSetLogs = mutableListOf<SetLog>()
-            coEvery { setLogDao.insertSetLog(capture(capturedSetLogs)) } returns 1L
+            coEvery { setLogDao.insertSetLog(capture(capturedSetLogs)) } returns Unit
 
             // When creating sets from structure (simulating the repository method)
-            val exerciseLogId = 1L
+            val exerciseLogId = "1"
             exerciseStructure.rpeValues?.forEachIndexed { index, rpeValue ->
                 val setLog =
                     SetLog(
@@ -100,17 +100,17 @@ class ProgrammeRPEIntegrationTest {
                     name = "Barbell Overhead Press",
                     sets = 4,
                     reps = RepsStructure.PerSet(listOf("5", "5", "5", "5")),
-                    exerciseId = 2L,
+                    exerciseId = "2",
                     weights = listOf(50f, 50f, 50f, 50f),
                     rpeValues = listOf(7.0f, null, 8.0f, null), // Some null RPE values
                 )
 
             // Capture the SetLog insertions
             val capturedSetLogs = mutableListOf<SetLog>()
-            coEvery { setLogDao.insertSetLog(capture(capturedSetLogs)) } returns 1L
+            coEvery { setLogDao.insertSetLog(capture(capturedSetLogs)) } returns Unit
 
             // When creating sets
-            val exerciseLogId = 2L
+            val exerciseLogId = "2"
             val repsList = (exerciseStructure.reps as RepsStructure.PerSet).values
             repsList.forEachIndexed { index, repsStr ->
                 val setLog =

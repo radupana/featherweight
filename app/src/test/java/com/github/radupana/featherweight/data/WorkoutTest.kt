@@ -13,34 +13,34 @@ class WorkoutTest {
 
         val workout =
             Workout(
-                id = 1L,
+                id = "1",
                 date = date,
                 name = "Push Day A",
                 notes = "Feeling strong today",
                 notesUpdatedAt = notesUpdatedAt,
-                programmeId = 100L,
+                programmeId = "100",
                 weekNumber = 2,
                 dayNumber = 1,
                 programmeWorkoutName = "Week 2 Day 1 - Push",
                 isProgrammeWorkout = true,
                 status = WorkoutStatus.COMPLETED,
-                durationSeconds = 3600L,
+                durationSeconds = "3600",
                 timerStartTime = timerStartTime,
                 timerElapsedSeconds = 3600,
             )
 
-        assertThat(workout.id).isEqualTo(1L)
+        assertThat(workout.id).isEqualTo("1")
         assertThat(workout.date).isEqualTo(date)
         assertThat(workout.name).isEqualTo("Push Day A")
         assertThat(workout.notes).isEqualTo("Feeling strong today")
         assertThat(workout.notesUpdatedAt).isEqualTo(notesUpdatedAt)
-        assertThat(workout.programmeId).isEqualTo(100L)
+        assertThat(workout.programmeId).isEqualTo("100")
         assertThat(workout.weekNumber).isEqualTo(2)
         assertThat(workout.dayNumber).isEqualTo(1)
         assertThat(workout.programmeWorkoutName).isEqualTo("Week 2 Day 1 - Push")
         assertThat(workout.isProgrammeWorkout).isTrue()
         assertThat(workout.status).isEqualTo(WorkoutStatus.COMPLETED)
-        assertThat(workout.durationSeconds).isEqualTo(3600L)
+        assertThat(workout.durationSeconds).isEqualTo("3600")
         assertThat(workout.timerStartTime).isEqualTo(timerStartTime)
         assertThat(workout.timerElapsedSeconds).isEqualTo(3600)
     }
@@ -51,7 +51,7 @@ class WorkoutTest {
 
         val workout = Workout(date = date)
 
-        assertThat(workout.id).isEqualTo(0L)
+        assertThat(workout.id).isNotEmpty() // Auto-generated ID
         assertThat(workout.date).isEqualTo(date)
         assertThat(workout.name).isNull()
         assertThat(workout.notes).isNull()
@@ -91,7 +91,7 @@ class WorkoutTest {
         val workout =
             Workout(
                 date = LocalDateTime.now(),
-                programmeId = 42L,
+                programmeId = "42",
                 weekNumber = 4,
                 dayNumber = 3,
                 programmeWorkoutName = "Week 4 Day 3 - Legs",
@@ -100,7 +100,7 @@ class WorkoutTest {
             )
 
         assertThat(workout.isProgrammeWorkout).isTrue()
-        assertThat(workout.programmeId).isEqualTo(42L)
+        assertThat(workout.programmeId).isEqualTo("42")
         assertThat(workout.weekNumber).isEqualTo(4)
         assertThat(workout.dayNumber).isEqualTo(3)
         assertThat(workout.programmeWorkoutName).isEqualTo("Week 4 Day 3 - Legs")
@@ -153,11 +153,11 @@ class WorkoutTest {
         val workout =
             Workout(
                 date = LocalDateTime.now(),
-                durationSeconds = 10800L, // 3 hours
+                durationSeconds = "10800", // 3 hours
                 status = WorkoutStatus.COMPLETED,
             )
 
-        assertThat(workout.durationSeconds).isEqualTo(10800L)
+        assertThat(workout.durationSeconds).isEqualTo("10800")
     }
 
     @Test
@@ -165,11 +165,11 @@ class WorkoutTest {
         val workout =
             Workout(
                 date = LocalDateTime.now(),
-                durationSeconds = 60L, // 1 minute
+                durationSeconds = "60", // 1 minute
                 status = WorkoutStatus.COMPLETED,
             )
 
-        assertThat(workout.durationSeconds).isEqualTo(60L)
+        assertThat(workout.durationSeconds).isEqualTo("60")
     }
 
     @Test
@@ -287,54 +287,54 @@ class WorkoutTest {
 
         val workout1 =
             Workout(
-                id = 1L,
+                id = "1",
                 date = date,
                 name = "Push Day",
                 notes = "Good workout",
                 notesUpdatedAt = notesUpdated,
-                programmeId = 10L,
+                programmeId = "10",
                 weekNumber = 1,
                 dayNumber = 1,
                 programmeWorkoutName = "Week 1 Day 1",
                 isProgrammeWorkout = true,
                 status = WorkoutStatus.COMPLETED,
-                durationSeconds = 3600L,
+                durationSeconds = "3600",
                 timerStartTime = timerStart,
                 timerElapsedSeconds = 3600,
             )
 
         val workout2 =
             Workout(
-                id = 1L,
+                id = "1",
                 date = date,
                 name = "Push Day",
                 notes = "Good workout",
                 notesUpdatedAt = notesUpdated,
-                programmeId = 10L,
+                programmeId = "10",
                 weekNumber = 1,
                 dayNumber = 1,
                 programmeWorkoutName = "Week 1 Day 1",
                 isProgrammeWorkout = true,
                 status = WorkoutStatus.COMPLETED,
-                durationSeconds = 3600L,
+                durationSeconds = "3600",
                 timerStartTime = timerStart,
                 timerElapsedSeconds = 3600,
             )
 
         val workout3 =
             Workout(
-                id = 2L, // Different ID
+                id = "2", // Different ID
                 date = date,
                 name = "Push Day",
                 notes = "Good workout",
                 notesUpdatedAt = notesUpdated,
-                programmeId = 10L,
+                programmeId = "10",
                 weekNumber = 1,
                 dayNumber = 1,
                 programmeWorkoutName = "Week 1 Day 1",
                 isProgrammeWorkout = true,
                 status = WorkoutStatus.COMPLETED,
-                durationSeconds = 3600L,
+                durationSeconds = "3600",
                 timerStartTime = timerStart,
                 timerElapsedSeconds = 3600,
             )
@@ -348,7 +348,7 @@ class WorkoutTest {
     fun workout_toString_includesKeyInfo() {
         val workout =
             Workout(
-                id = 1L,
+                id = "1",
                 date = LocalDateTime.of(2024, 1, 15, 10, 0),
                 name = "Leg Day",
                 status = WorkoutStatus.IN_PROGRESS,

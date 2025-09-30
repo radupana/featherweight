@@ -85,7 +85,8 @@ class FeatherweightRepository(
     private val exerciseRepository = ExerciseRepository(db, authManager)
     private val customExerciseRepository =
         CustomExerciseRepository(
-            db.customExerciseDao(),
+            db.exerciseCoreDao(),
+            db.exerciseVariationDao(),
             db.exerciseDao(),
             db.userExerciseUsageDao(),
             authManager,
@@ -106,10 +107,8 @@ class FeatherweightRepository(
     private val variationInstructionDao = db.variationInstructionDao()
     private val programmeDao = db.programmeDao()
     private val userExerciseUsageDao = db.userExerciseUsageDao()
-    private val customExerciseDao = db.customExerciseDao()
 
     private val globalExerciseProgressDao = db.globalExerciseProgressDao()
-    private val exerciseCorrelationDao = db.exerciseCorrelationDao()
     private val personalRecordDao = db.personalRecordDao()
 
     // Initialize GlobalProgressTracker
@@ -153,26 +152,26 @@ class FeatherweightRepository(
 
     suspend fun getCustomExercises() = customExerciseRepository.getCustomExercises()
 
-    suspend fun getCustomExerciseById(exerciseId: Long) = customExerciseRepository.getCustomExerciseById(exerciseId)
+    suspend fun getCustomExerciseById(exerciseId: String) = customExerciseRepository.getCustomExerciseById(exerciseId)
 
-    suspend fun deleteUserCustomExercise(exerciseId: Long) = customExerciseRepository.deleteCustomExercise(exerciseId)
+    suspend fun deleteUserCustomExercise(exerciseId: String) = customExerciseRepository.deleteCustomExercise(exerciseId)
 
     suspend fun isCustomExerciseNameAvailable(name: String) = customExerciseRepository.isNameAvailable(name)
 
-    suspend fun getExerciseById(id: Long) = exerciseRepository.getExerciseById(id)
+    suspend fun getExerciseById(id: String) = exerciseRepository.getExerciseById(id)
 
     suspend fun getExercisesByCategory(category: ExerciseCategory) = exerciseRepository.getExercisesByCategory(category)
 
     // Get muscles for a variation
-    suspend fun getMusclesForVariation(variationId: Long): List<VariationMuscle> = variationMuscleDao.getMusclesForVariation(variationId)
+    suspend fun getMusclesForVariation(variationId: String): List<VariationMuscle> = variationMuscleDao.getMusclesForVariation(variationId)
 
     // Get aliases for a variation
-    suspend fun getAliasesForVariation(variationId: Long): List<VariationAlias> = variationAliasDao.getAliasesForVariation(variationId)
+    suspend fun getAliasesForVariation(variationId: String): List<VariationAlias> = variationAliasDao.getAliasesForVariation(variationId)
 
     // Legacy exercise methods (will be deprecated - use custom exercise methods above)
-    suspend fun canDeleteExercise(exerciseVariationId: Long): Result<Boolean> = exerciseRepository.canDeleteExercise(exerciseVariationId)
+    suspend fun canDeleteExercise(exerciseVariationId: String): Result<Boolean> = exerciseRepository.canDeleteExercise(exerciseVariationId)
 
-    suspend fun deleteSystemCustomExercise(exerciseVariationId: Long): Result<Unit> = exerciseRepository.deleteCustomExercise(exerciseVariationId)
+    suspend fun deleteSystemCustomExercise(exerciseVariationId: String): Result<Unit> = exerciseRepository.deleteCustomExercise(exerciseVariationId)
 
     // Legacy create method
     suspend fun createSystemCustomExercise(
@@ -199,18 +198,18 @@ class FeatherweightRepository(
     // ===== EXISTING WORKOUT METHODS (Updated to work with new Exercise system) =====
 
     // Basic CRUD operations
-    suspend fun insertWorkout(workout: Workout): Long = workoutRepository.createWorkout(workout)
+    suspend fun insertWorkout(workout: Workout): String = workoutRepository.createWorkout(workout)
 
-    suspend fun getExercisesForWorkout(workoutId: Long): List<ExerciseLog> = exerciseRepository.getExercisesForWorkout(workoutId)
+    suspend fun getExercisesForWorkout(workoutId: String): List<ExerciseLog> = exerciseRepository.getExercisesForWorkout(workoutId)
 
-    suspend fun getSetsForExercise(exerciseLogId: Long): List<SetLog> = exerciseRepository.getSetsForExercise(exerciseLogId)
+    suspend fun getSetsForExercise(exerciseLogId: String): List<SetLog> = exerciseRepository.getSetsForExercise(exerciseLogId)
 
-    suspend fun getLastPerformanceForExercise(exerciseVariationId: Long): SetLog? =
+    suspend fun getLastPerformanceForExercise(exerciseVariationId: String): SetLog? =
         withContext(Dispatchers.IO) {
             setLogDao.getLastCompletedSetForExercise(exerciseVariationId)
         }
 
-    suspend fun getSetsForWorkout(workoutId: Long): List<SetLog> =
+    suspend fun getSetsForWorkout(workoutId: String): List<SetLog> =
         withContext(Dispatchers.IO) {
             val exercises = getExercisesForWorkout(workoutId)
             exercises.flatMap { exercise ->
@@ -219,35 +218,26 @@ class FeatherweightRepository(
         }
 
     suspend fun markSetCompleted(
-        setId: Long,
+        setId: String,
         completed: Boolean,
         completedAt: String?,
     ) = setLogDao.markSetCompleted(setId, completed, completedAt)
 
-    suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long = exerciseRepository.insertExerciseLog(exerciseLog)
+    suspend fun insertExerciseLog(exerciseLog: ExerciseLog): String = exerciseRepository.insertExerciseLog(exerciseLog)
 
-    suspend fun incrementExerciseUsageCount(exerciseId: Long) {
+    suspend fun incrementExerciseUsageCount(exerciseId: String) {
         try {
             val userId = authManager.getCurrentUserId() ?: "local"
-            // Check if this is a custom exercise
-            val isCustom =
-                if (userId == "local") {
-                    false // Unauthenticated users can't create custom exercises
-                } else {
-                    customExerciseDao.isCustomExercise(exerciseId, userId)
-                }
 
             // First ensure the usage record exists
             userExerciseUsageDao.getOrCreateUsage(
                 userId = userId,
                 variationId = exerciseId,
-                isCustom = isCustom,
             )
             // Now increment the count
             userExerciseUsageDao.incrementUsageCount(
                 userId = userId,
                 variationId = exerciseId,
-                isCustom = isCustom,
                 timestamp = LocalDateTime.now(),
             )
         } catch (e: Exception) {
@@ -255,7 +245,7 @@ class FeatherweightRepository(
         }
     }
 
-    suspend fun insertSetLog(setLog: SetLog): Long {
+    suspend fun insertSetLog(setLog: SetLog): String {
         val roundedSetLog =
             setLog.copy(
                 userId = authManager.getCurrentUserId() ?: "local",
@@ -263,7 +253,8 @@ class FeatherweightRepository(
                 actualWeight = WeightFormatter.roundToNearestQuarter(setLog.actualWeight),
                 suggestedWeight = setLog.suggestedWeight?.let { WeightFormatter.roundToNearestQuarter(it) },
             )
-        return setLogDao.insertSetLog(roundedSetLog)
+        setLogDao.insertSetLog(roundedSetLog)
+        return roundedSetLog.id
     }
 
     suspend fun updateSetLog(setLog: SetLog) {
@@ -277,16 +268,15 @@ class FeatherweightRepository(
         setLogDao.updateSetLog(roundedSetLog)
     }
 
-    suspend fun deleteSetLog(setId: Long) = setLogDao.deleteSetLog(setId)
+    suspend fun deleteSetLog(setId: String) = setLogDao.deleteSetLog(setId)
 
     // Enhanced exercise log creation that links to Exercise entity
     suspend fun insertExerciseLogWithExerciseReference(
-        workoutId: Long,
+        workoutId: String,
         exercise: ExerciseVariation,
         exerciseOrder: Int,
         notes: String? = null,
-        isCustomExercise: Boolean = false,
-    ): Long = exerciseRepository.insertExerciseLogWithExerciseReference(workoutId, exercise, exerciseOrder, notes, isCustomExercise)
+    ): String = exerciseRepository.insertExerciseLogWithExerciseReference(workoutId, exercise, exerciseOrder, notes)
 
     // Workout state management
     suspend fun getOngoingWorkout(): Workout? {
@@ -303,8 +293,8 @@ class FeatherweightRepository(
     }
 
     suspend fun completeWorkout(
-        workoutId: Long,
-        durationSeconds: Long? = null,
+        workoutId: String,
+        durationSeconds: String? = null,
     ) {
         val workout = workoutDao.getWorkoutById(workoutId)
         if (workout == null) {
@@ -351,7 +341,7 @@ class FeatherweightRepository(
     }
 
     private suspend fun updateProgrammeProgressAfterWorkout(
-        programmeId: Long,
+        programmeId: String,
     ) {
         try {
             // Always increment completed workouts when a workout is completed
@@ -418,8 +408,8 @@ class FeatherweightRepository(
 
     // Smart suggestions functionality (enhanced with exercise data)
     suspend fun getExerciseHistory(
-        exerciseVariationId: Long,
-        currentWorkoutId: Long,
+        exerciseVariationId: String,
+        currentWorkoutId: String,
     ): ExerciseHistory? {
         val userId = authManager.getCurrentUserId() ?: "local"
         val allWorkouts =
@@ -452,55 +442,55 @@ class FeatherweightRepository(
         return null
     }
 
-    private suspend fun getExerciseStats(exerciseVariationId: Long): ExerciseStats? = exerciseRepository.getExerciseStats(exerciseVariationId)
+    private suspend fun getExerciseStats(exerciseVariationId: String): ExerciseStats? = exerciseRepository.getExerciseStats(exerciseVariationId)
 
-    suspend fun getWorkoutById(workoutId: Long): Workout? = workoutRepository.getWorkoutById(workoutId)
+    suspend fun getWorkoutById(workoutId: String): Workout? = workoutRepository.getWorkoutById(workoutId)
 
-    suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> = workoutRepository.getExerciseLogsForWorkout(workoutId)
+    suspend fun getExerciseLogsForWorkout(workoutId: String): List<ExerciseLog> = workoutRepository.getExerciseLogsForWorkout(workoutId)
 
-    suspend fun getSetLogsForExercise(exerciseLogId: Long): List<SetLog> = setLogDao.getSetLogsForExercise(exerciseLogId)
+    suspend fun getSetLogsForExercise(exerciseLogId: String): List<SetLog> = setLogDao.getSetLogsForExercise(exerciseLogId)
 
     // Delete an exercise log (will cascade delete all its sets due to foreign key)
-    suspend fun deleteExerciseLog(exerciseLogId: Long) = exerciseRepository.deleteExerciseLog(exerciseLogId)
+    suspend fun deleteExerciseLog(exerciseLogId: String) = exerciseRepository.deleteExerciseLog(exerciseLogId)
 
     // Update exercise order
     suspend fun updateExerciseOrder(
-        exerciseLogId: Long,
+        exerciseLogId: String,
         newOrder: Int,
     ) = exerciseRepository.updateExerciseOrder(exerciseLogId, newOrder)
 
     // Delete an entire workout (will cascade delete all exercises and sets)
-    suspend fun deleteWorkout(workoutId: Long) = workoutRepository.deleteWorkoutById(workoutId)
+    suspend fun deleteWorkout(workoutId: String) = workoutRepository.deleteWorkoutById(workoutId)
 
-    suspend fun deleteSetsForExerciseLog(exerciseLogId: Long) = exerciseRepository.deleteSetsForExercise(exerciseLogId)
+    suspend fun deleteSetsForExerciseLog(exerciseLogId: String) = exerciseRepository.deleteSetsForExercise(exerciseLogId)
 
     // Get exercise by ID (returns ExerciseVariation)
-    suspend fun getExerciseEntityById(exerciseId: Long): ExerciseVariation? = exerciseRepository.getExerciseEntityById(exerciseId)
+    suspend fun getExerciseEntityById(exerciseId: String): ExerciseVariation? = exerciseRepository.getExerciseEntityById(exerciseId)
 
     // Swap exercise
     suspend fun swapExercise(
-        exerciseLogId: Long,
-        newExerciseVariationId: Long,
-        originalExerciseVariationId: Long,
+        exerciseLogId: String,
+        newExerciseVariationId: String,
+        originalExerciseVariationId: String,
     ) = exerciseRepository.swapExercise(exerciseLogId, newExerciseVariationId, originalExerciseVariationId)
 
     // Record an exercise swap in history
     suspend fun recordExerciseSwap(
-        originalExerciseId: Long,
-        swappedToExerciseId: Long,
-        workoutId: Long? = null,
-        programmeId: Long? = null,
+        originalExerciseId: String,
+        swappedToExerciseId: String,
+        workoutId: String? = null,
+        programmeId: String? = null,
     ) = exerciseRepository.recordExerciseSwap(originalExerciseId, swappedToExerciseId, workoutId, programmeId)
 
     // Get swap history for exercise
     suspend fun getSwapHistoryForExercise(
-        exerciseId: Long,
+        exerciseId: String,
     ): List<SwapHistoryCount> = exerciseRepository.getSwapHistoryForExercise(exerciseId)
 
     // ===== ANALYTICS METHODS =====
 
     suspend fun getRecentSetLogsForExercise(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         daysBack: Int,
     ): List<SetLog> =
         withContext(Dispatchers.IO) {
@@ -512,10 +502,10 @@ class FeatherweightRepository(
 
     // Create a workout from a programme template with full exercise structure
     suspend fun createWorkoutFromProgrammeTemplate(
-        programmeId: Long,
+        programmeId: String,
         weekNumber: Int,
         dayNumber: Int,
-    ): Long =
+    ): String =
         withContext(Dispatchers.IO) {
             Log.d("FeatherweightRepository", "=== CREATING WORKOUT FROM PROGRAMME ===")
             Log.d("FeatherweightRepository", "Programme ID: $programmeId, Week: $weekNumber, Day: $dayNumber")
@@ -554,7 +544,8 @@ class FeatherweightRepository(
                     programmeWorkoutName = workoutStructure.name,
                     isProgrammeWorkout = true,
                 )
-            val workoutId = workoutDao.insertWorkout(workout)
+            workoutDao.insertWorkout(workout)
+            val workoutId = workout.id
             Log.d("FeatherweightRepository", "Created workout with ID: $workoutId")
 
             workoutStructure.exercises.forEachIndexed { index, exerciseStructure ->
@@ -571,7 +562,8 @@ class FeatherweightRepository(
                             exerciseOrder = index,
                             notes = exerciseStructure.note,
                         )
-                    val exerciseLogId = exerciseLogDao.insertExerciseLog(exerciseLog)
+                    exerciseLogDao.insertExerciseLog(exerciseLog)
+                    val exerciseLogId = exerciseLog.id
                     Log.d("FeatherweightRepository", "  Created exercise log with ID: $exerciseLogId")
 
                     val weights = exerciseStructure.weights
@@ -680,7 +672,7 @@ class FeatherweightRepository(
         }
 
     // Get next programme workout to do
-    suspend fun getNextProgrammeWorkout(programmeId: Long): NextProgrammeWorkoutInfo? =
+    suspend fun getNextProgrammeWorkout(programmeId: String): NextProgrammeWorkoutInfo? =
         withContext(Dispatchers.IO) {
             val programme = programmeDao.getProgrammeById(programmeId)
             if (programme == null) {
@@ -706,7 +698,7 @@ class FeatherweightRepository(
 
     // Handle next workout for custom programmes (AI-generated or user-created)
     private suspend fun getNextWorkoutFromDatabase(
-        programmeId: Long,
+        programmeId: String,
         progress: ProgrammeProgress,
     ): NextProgrammeWorkoutInfo? {
         Log.d("FeatherweightRepository", "=== LOADING NEXT WORKOUT FROM PROGRAMME ===")
@@ -806,7 +798,7 @@ class FeatherweightRepository(
         jsonStructure: String,
         programmeType: ProgrammeType = ProgrammeType.GENERAL_FITNESS,
         difficulty: ProgrammeDifficulty = ProgrammeDifficulty.INTERMEDIATE,
-    ): Long =
+    ): String =
         withContext(Dispatchers.IO) {
             Log.d("FeatherweightRepository", "=== REPOSITORY: CREATING IMPORTED PROGRAMME ===")
             Log.d("FeatherweightRepository", "Programme name: $name")
@@ -825,7 +817,8 @@ class FeatherweightRepository(
                     isActive = false,
                 )
 
-            val programmeId = programmeDao.insertProgramme(programme)
+            programmeDao.insertProgramme(programme)
+            val programmeId = programme.id
             Log.d("FeatherweightRepository", "Programme inserted with ID: $programmeId")
 
             // Parse the JSON structure and create weeks/workouts
@@ -859,6 +852,7 @@ class FeatherweightRepository(
 
                 val week =
                     ProgrammeWeek(
+                        userId = authManager.getCurrentUserId() ?: "local",
                         programmeId = programmeId,
                         weekNumber = weekNumber,
                         name = weekName,
@@ -870,7 +864,8 @@ class FeatherweightRepository(
                         phase = phase,
                     )
 
-                val weekId = programmeDao.insertProgrammeWeek(week)
+                programmeDao.insertProgrammeWeek(week)
+                val weekId = week.id
 
                 workouts.forEachIndexed { index, workoutData ->
                     val workoutName = workoutData["name"] as String
@@ -889,7 +884,7 @@ class FeatherweightRepository(
                     val exerciseStructures =
                         exercisesList.map { exerciseData ->
                             val exerciseName = exerciseData["exerciseName"] as String
-                            val exerciseId = (exerciseData["exerciseId"] as? Double)?.toLong()
+                            val exerciseId = exerciseData["exerciseId"] as? String
 
                             @Suppress("UNCHECKED_CAST")
                             val sets = exerciseData["sets"] as? List<Map<String, Any>> ?: emptyList()
@@ -947,6 +942,7 @@ class FeatherweightRepository(
 
                     val workout =
                         ProgrammeWorkout(
+                            userId = authManager.getCurrentUserId() ?: "local",
                             weekId = weekId,
                             dayNumber = index + 1,
                             name = workoutName,
@@ -966,11 +962,11 @@ class FeatherweightRepository(
 
     suspend fun getActiveProgramme() = programmeRepository.getActiveProgramme()
 
-    suspend fun getProgrammeById(programmeId: Long) = programmeRepository.getProgrammeById(programmeId)
+    suspend fun getProgrammeById(programmeId: String) = programmeRepository.getProgrammeById(programmeId)
 
-    suspend fun getProgrammeWithDetails(programmeId: Long) = programmeRepository.getProgrammeWithDetails(programmeId)
+    suspend fun getProgrammeWithDetails(programmeId: String) = programmeRepository.getProgrammeWithDetails(programmeId)
 
-    suspend fun calculateProgrammeCompletionStats(programmeId: Long): ProgrammeCompletionStats? =
+    suspend fun calculateProgrammeCompletionStats(programmeId: String): ProgrammeCompletionStats? =
         withContext(Dispatchers.IO) {
             val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext null
             val progress = programmeDao.getProgressForProgramme(programmeId) ?: return@withContext null
@@ -978,8 +974,8 @@ class FeatherweightRepository(
 
             // Calculate total volume
             var totalVolume = 0.0
-            val exerciseFrequencyMap = mutableMapOf<Pair<Long, String>, Int>()
-            val programmeExerciseVariationIds = mutableSetOf<Long>()
+            val exerciseFrequencyMap = mutableMapOf<Pair<String, String>, Int>()
+            val programmeExerciseVariationIds = mutableSetOf<String>()
 
             for (workout in workouts.filter { it.status == WorkoutStatus.COMPLETED }) {
                 val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
@@ -1009,7 +1005,7 @@ class FeatherweightRepository(
             val completedWorkouts = workouts.filter { it.status == WorkoutStatus.COMPLETED && it.durationSeconds != null }
             val averageDuration =
                 if (completedWorkouts.isNotEmpty()) {
-                    val avgSeconds = completedWorkouts.mapNotNull { it.durationSeconds }.average().toLong()
+                    val avgSeconds = completedWorkouts.mapNotNull { it.durationSeconds?.toLongOrNull() }.average().toLong()
                     Duration.ofSeconds(avgSeconds)
                 } else {
                     Duration.ZERO
@@ -1055,7 +1051,7 @@ class FeatherweightRepository(
             )
         }
 
-    private suspend fun calculateStrengthImprovements(programmeId: Long): List<StrengthImprovement> =
+    private suspend fun calculateStrengthImprovements(programmeId: String): List<StrengthImprovement> =
         withContext(Dispatchers.IO) {
             val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext emptyList()
             val startDate = programme.startedAt ?: programme.createdAt
@@ -1140,11 +1136,11 @@ class FeatherweightRepository(
     }
 
     suspend fun updateProgrammeCompletionNotes(
-        programmeId: Long,
+        programmeId: String,
         notes: String?,
     ) = programmeRepository.updateProgrammeCompletionNotes(programmeId, notes)
 
-    suspend fun activateProgramme(programmeId: Long) =
+    suspend fun activateProgramme(programmeId: String) =
         withContext(Dispatchers.IO) {
             try {
                 programmeDao.setActiveProgramme(programmeId)
@@ -1160,6 +1156,7 @@ class FeatherweightRepository(
 
                 val progress =
                     ProgrammeProgress(
+                        userId = authManager.getCurrentUserId() ?: "local",
                         programmeId = programmeId,
                         currentWeek = 1,
                         currentDay = 1,
@@ -1176,7 +1173,7 @@ class FeatherweightRepository(
             }
         }
 
-    private suspend fun completeProgramme(programmeId: Long) =
+    private suspend fun completeProgramme(programmeId: String) =
         withContext(Dispatchers.IO) {
             // Get programme details for logging
             val programme = programmeDao.getProgrammeById(programmeId)
@@ -1203,15 +1200,15 @@ class FeatherweightRepository(
             programmeDao.deleteProgramme(programme)
         }
 
-    suspend fun getInProgressWorkoutCountByProgramme(programmeId: Long): Int = programmeRepository.getInProgressWorkoutCountByProgramme(programmeId)
+    suspend fun getInProgressWorkoutCountByProgramme(programmeId: String): Int = programmeRepository.getInProgressWorkoutCountByProgramme(programmeId)
 
     suspend fun updateWorkoutStatus(
-        workoutId: Long,
+        workoutId: String,
         status: WorkoutStatus,
     ) = workoutRepository.updateWorkoutStatus(workoutId, status)
 
     suspend fun updateWorkoutTimerStart(
-        workoutId: Long,
+        workoutId: String,
         timerStartTime: LocalDateTime,
     ) = withContext(Dispatchers.IO) {
         val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
@@ -1222,7 +1219,7 @@ class FeatherweightRepository(
     // Helper method to get exercise by name or alias
     suspend fun getExerciseByName(name: String): ExerciseVariation? = exerciseRepository.getExerciseByName(name)
 
-    suspend fun getExerciseVariationById(id: Long): ExerciseVariation? =
+    suspend fun getExerciseVariationById(id: String): ExerciseVariation? =
         withContext(Dispatchers.IO) {
             exerciseRepository.getExerciseById(id)
         }
@@ -1230,7 +1227,7 @@ class FeatherweightRepository(
     // ========== Profile & 1RM Management ==========
 
     suspend fun upsertExerciseMax(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         oneRMEstimate: Float,
         oneRMContext: String,
         oneRMType: OneRMType,
@@ -1245,7 +1242,6 @@ class FeatherweightRepository(
             UserExerciseMax(
                 userId = authManager.getCurrentUserId() ?: "local",
                 exerciseVariationId = exerciseVariationId,
-                isCustomExercise = isCustom,
                 mostWeightLifted = roundedWeight,
                 mostWeightReps = 1,
                 mostWeightRpe = null,
@@ -1271,7 +1267,7 @@ class FeatherweightRepository(
 
     // Remove getAllCurrentMaxes - this should only be used in Insights
 
-    suspend fun getCurrentMaxesForExercises(exerciseIds: List<Long>) = oneRMRepository.getCurrentMaxesForExercises(exerciseIds)
+    suspend fun getCurrentMaxesForExercises(exerciseIds: List<String>) = oneRMRepository.getCurrentMaxesForExercises(exerciseIds)
 
     fun getAllCurrentMaxesWithNames(): Flow<List<OneRMWithExerciseName>> = oneRMRepository.getAllCurrentMaxesWithNames()
 
@@ -1279,15 +1275,15 @@ class FeatherweightRepository(
 
     fun getOtherExercisesWithMaxes() = oneRMRepository.getOtherExercisesWithMaxes()
 
-    suspend fun getOneRMForExercise(exerciseVariationId: Long): Float? = oneRMRepository.getOneRMForExercise(exerciseVariationId)
+    suspend fun getOneRMForExercise(exerciseVariationId: String): Float? = oneRMRepository.getOneRMForExercise(exerciseVariationId)
 
-    suspend fun deleteAllMaxesForExercise(exerciseId: Long) = oneRMRepository.deleteAllMaxesForExercise(exerciseId)
+    suspend fun deleteAllMaxesForExercise(exerciseId: String) = oneRMRepository.deleteAllMaxesForExercise(exerciseId)
 
     suspend fun updateOrInsertOneRM(oneRMRecord: UserExerciseMax) = oneRMRepository.updateOrInsertOneRM(oneRMRecord)
 
     private suspend fun recordWorkoutPerformanceData(
-        workoutId: Long,
-        programmeId: Long,
+        workoutId: String,
+        programmeId: String,
     ) = withContext(Dispatchers.IO) {
         val progressionService =
             ProgressionService(
@@ -1321,7 +1317,7 @@ class FeatherweightRepository(
     // getOneRMForExercise is defined above at line 2015
 
     suspend fun getGlobalExerciseProgress(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
     ): GlobalExerciseProgress? =
         withContext(Dispatchers.IO) {
             globalExerciseProgressDao.getProgressForExercise(exerciseVariationId)
@@ -1333,9 +1329,8 @@ class FeatherweightRepository(
      */
     suspend fun checkForPR(
         setLog: SetLog,
-        exerciseVariationId: Long,
-        isCustomExercise: Boolean = false,
-    ): List<PersonalRecord> = personalRecordRepository.checkForPR(setLog, exerciseVariationId, isCustomExercise, ::updateOrInsertOneRM)
+        exerciseVariationId: String,
+    ): List<PersonalRecord> = personalRecordRepository.checkForPR(setLog, exerciseVariationId, ::updateOrInsertOneRM)
 
     /**
      * Get recent personal records across all exercises
@@ -1345,9 +1340,9 @@ class FeatherweightRepository(
     /**
      * Get personal records achieved during a specific workout
      */
-    suspend fun getPersonalRecordsForWorkout(workoutId: Long): List<PersonalRecord> = personalRecordRepository.getPersonalRecordsForWorkout(workoutId)
+    suspend fun getPersonalRecordsForWorkout(workoutId: String): List<PersonalRecord> = personalRecordRepository.getPersonalRecordsForWorkout(workoutId)
 
-    suspend fun getCurrentOneRMEstimate(exerciseId: Long): Float? = oneRMRepository.getCurrentOneRMEstimate(exerciseId)
+    suspend fun getCurrentOneRMEstimate(exerciseId: String): Float? = oneRMRepository.getCurrentOneRMEstimate(exerciseId)
 
     suspend fun getOneRMHistoryForExercise(
         exerciseName: String,
@@ -1368,7 +1363,7 @@ class FeatherweightRepository(
      * Update workout notes
      */
     suspend fun updateWorkoutNotes(
-        workoutId: Long,
+        workoutId: String,
         notes: String?,
     ) = withContext(Dispatchers.IO) {
         val workout = workoutDao.getWorkoutById(workoutId)
@@ -1385,7 +1380,7 @@ class FeatherweightRepository(
     /**
      * Get workout notes
      */
-    suspend fun getWorkoutNotes(workoutId: Long): String? =
+    suspend fun getWorkoutNotes(workoutId: String): String? =
         withContext(Dispatchers.IO) {
             workoutDao.getWorkoutById(workoutId)?.notes
         }
@@ -1394,7 +1389,7 @@ class FeatherweightRepository(
      * Update workout name (separate from notes)
      */
     suspend fun updateWorkoutName(
-        workoutId: Long,
+        workoutId: String,
         name: String?,
     ) = withContext(Dispatchers.IO) {
         val workout = workoutDao.getWorkoutById(workoutId)
@@ -1509,7 +1504,7 @@ class FeatherweightRepository(
                     exerciseCount = exercises.size,
                     setCount = completedSets.size,
                     totalWeight = totalWeight,
-                    duration = workout.durationSeconds,
+                    duration = workout.durationSeconds?.toLongOrNull(),
                     status = workout.status,
                     hasNotes = !workout.notes.isNullOrBlank(),
                     programmeId = workout.programmeId,
@@ -1550,7 +1545,7 @@ class FeatherweightRepository(
                     exerciseCount = exercises.size,
                     setCount = completedSets.size,
                     totalWeight = totalWeight,
-                    duration = workout.durationSeconds,
+                    duration = workout.durationSeconds?.toLongOrNull(),
                     status = workout.status,
                     hasNotes = !workout.notes.isNullOrBlank(),
                     programmeId = workout.programmeId,
@@ -1797,8 +1792,8 @@ class FeatherweightRepository(
 
     // Exercise Progress Analytics Methods
     data class ExerciseWorkoutSummary(
-        val exerciseLogId: Long,
-        val workoutId: Long,
+        val exerciseLogId: String,
+        val workoutId: String,
         val workoutDate: LocalDateTime,
         val actualWeight: Float,
         val actualReps: Int,
@@ -1807,7 +1802,7 @@ class FeatherweightRepository(
     )
 
     suspend fun getExerciseWorkoutsInDateRange(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         startDate: LocalDate,
         endDate: LocalDate,
     ): List<ExerciseWorkoutSummary> =
@@ -1846,7 +1841,7 @@ class FeatherweightRepository(
         }
 
     suspend fun getSetLogsForExerciseInDateRange(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         startDate: LocalDate,
         endDate: LocalDate,
     ): List<SetLog> =
@@ -1865,11 +1860,11 @@ class FeatherweightRepository(
         }
 
     suspend fun getPersonalRecordForExercise(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
     ): PersonalRecord? = personalRecordRepository.getPersonalRecordForExercise(exerciseVariationId)
 
     private suspend fun getTotalSessionsForExercise(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
     ): Int =
         withContext(Dispatchers.IO) {
             val userId = authManager.getCurrentUserId() ?: "local"
@@ -1877,7 +1872,7 @@ class FeatherweightRepository(
         }
 
     suspend fun getMaxWeightForExerciseInDateRange(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         startDate: LocalDate,
         endDate: LocalDate,
     ): Float? =
@@ -1892,7 +1887,7 @@ class FeatherweightRepository(
         }
 
     suspend fun getDistinctWorkoutDatesForExercise(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         startDate: LocalDate,
         endDate: LocalDate,
     ): List<LocalDate> =
@@ -1907,7 +1902,7 @@ class FeatherweightRepository(
         }
 
     suspend fun getDateOfMaxWeightForExercise(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         weight: Float,
         startDate: LocalDate,
         endDate: LocalDate,
@@ -2101,7 +2096,7 @@ class FeatherweightRepository(
         }
 
     // Get programme history details
-    suspend fun getProgrammeHistoryDetails(programmeId: Long): ProgrammeHistoryDetails? =
+    suspend fun getProgrammeHistoryDetails(programmeId: String): ProgrammeHistoryDetails? =
         withContext(Dispatchers.IO) {
             val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext null
             val weeks = programmeDao.getWeeksForProgramme(programmeId)
@@ -2146,7 +2141,7 @@ class FeatherweightRepository(
                                             .filter { set -> set.isCompleted }
                                             .sumOf { set -> (set.actualWeight * set.actualReps).toDouble() }
                                             .toFloat(),
-                                    duration = workout.durationSeconds,
+                                    duration = workout.durationSeconds?.toLongOrNull(),
                                 )
                             }.sortedBy { it.date },
                 )
@@ -2197,7 +2192,7 @@ class FeatherweightRepository(
         }
 
     // Start a workout from a template
-    suspend fun startWorkoutFromTemplate(templateId: Long): Long {
+    suspend fun startWorkoutFromTemplate(templateId: String): String {
         Log.i(TAG, "startWorkoutFromTemplate delegating to WorkoutRepository")
         return workoutRepository.startWorkoutFromTemplate(templateId)
     }
@@ -2215,7 +2210,7 @@ class FeatherweightRepository(
         }
 
     // ParseRequest methods
-    suspend fun createParseRequest(rawText: String): Long =
+    suspend fun createParseRequest(rawText: String): String =
         withContext(Dispatchers.IO) {
             val request =
                 ParseRequest(
@@ -2225,6 +2220,7 @@ class FeatherweightRepository(
                     createdAt = LocalDateTime.now(),
                 )
             db.parseRequestDao().insert(request)
+            request.id
         }
 
     suspend fun updateParseRequest(request: ParseRequest) =
@@ -2232,7 +2228,7 @@ class FeatherweightRepository(
             db.parseRequestDao().update(request)
         }
 
-    suspend fun getParseRequest(id: Long): ParseRequest? =
+    suspend fun getParseRequest(id: String): ParseRequest? =
         withContext(Dispatchers.IO) {
             db.parseRequestDao().getRequest(id)
         }
@@ -2261,14 +2257,12 @@ class FeatherweightRepository(
 
     suspend fun getUserExerciseUsage(
         userId: String,
-        variationId: Long,
-        isCustom: Boolean,
+        variationId: String,
     ): UserExerciseUsage? =
         withContext(Dispatchers.IO) {
             userExerciseUsageDao.getUsage(
                 userId = userId,
                 variationId = variationId,
-                isCustom = isCustom,
             )
         }
 }

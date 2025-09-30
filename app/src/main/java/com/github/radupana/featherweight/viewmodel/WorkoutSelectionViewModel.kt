@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
 data class WorkoutWithExercises(
-    val id: Long,
+    val id: String,
     val name: String,
     val date: LocalDateTime,
     val exercises: List<String>,

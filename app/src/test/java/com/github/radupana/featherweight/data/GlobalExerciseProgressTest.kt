@@ -13,8 +13,8 @@ class GlobalExerciseProgressTest {
 
         val progress =
             GlobalExerciseProgress(
-                id = 1L,
-                exerciseVariationId = 100L,
+                id = "1",
+                exerciseVariationId = "100",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = lastUpdated,
@@ -35,12 +35,12 @@ class GlobalExerciseProgressTest {
                 weeksAtCurrentWeight = 2,
                 lastProgressionDate = lastProgressionDate,
                 failureStreak = 0,
-                lastProgrammeWorkoutId = 50L,
-                lastFreestyleWorkoutId = 45L,
+                lastProgrammeWorkoutId = "50",
+                lastFreestyleWorkoutId = "45",
             )
 
-        assertThat(progress.id).isEqualTo(1L)
-        assertThat(progress.exerciseVariationId).isEqualTo(100L)
+        assertThat(progress.id).isEqualTo("1")
+        assertThat(progress.exerciseVariationId).isEqualTo("100")
         assertThat(progress.currentWorkingWeight).isEqualTo(100f)
         assertThat(progress.estimatedMax).isEqualTo(120f)
         assertThat(progress.lastUpdated).isEqualTo(lastUpdated)
@@ -61,8 +61,8 @@ class GlobalExerciseProgressTest {
         assertThat(progress.weeksAtCurrentWeight).isEqualTo(2)
         assertThat(progress.lastProgressionDate).isEqualTo(lastProgressionDate)
         assertThat(progress.failureStreak).isEqualTo(0)
-        assertThat(progress.lastProgrammeWorkoutId).isEqualTo(50L)
-        assertThat(progress.lastFreestyleWorkoutId).isEqualTo(45L)
+        assertThat(progress.lastProgrammeWorkoutId).isEqualTo("50")
+        assertThat(progress.lastFreestyleWorkoutId).isEqualTo("45")
     }
 
     @Test
@@ -71,14 +71,14 @@ class GlobalExerciseProgressTest {
 
         val progress =
             GlobalExerciseProgress(
-                exerciseVariationId = 50L,
+                exerciseVariationId = "50",
                 currentWorkingWeight = 80f,
                 estimatedMax = 100f,
                 lastUpdated = lastUpdated,
             )
 
-        assertThat(progress.id).isEqualTo(0L)
-        assertThat(progress.exerciseVariationId).isEqualTo(50L)
+        assertThat(progress.id).isNotEmpty() // Auto-generated ID
+        assertThat(progress.exerciseVariationId).isEqualTo("50")
         assertThat(progress.currentWorkingWeight).isEqualTo(80f)
         assertThat(progress.estimatedMax).isEqualTo(100f)
         assertThat(progress.lastUpdated).isEqualTo(lastUpdated)
@@ -109,7 +109,7 @@ class GlobalExerciseProgressTest {
 
         val improving =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = baseDate,
@@ -119,7 +119,7 @@ class GlobalExerciseProgressTest {
 
         val stalling =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = baseDate,
@@ -129,7 +129,7 @@ class GlobalExerciseProgressTest {
 
         val declining =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = baseDate,
@@ -144,7 +144,7 @@ class GlobalExerciseProgressTest {
 
         val increasing =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = baseDate,
@@ -154,7 +154,7 @@ class GlobalExerciseProgressTest {
 
         val maintaining =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = baseDate,
@@ -164,7 +164,7 @@ class GlobalExerciseProgressTest {
 
         val decreasing =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = baseDate,
@@ -177,7 +177,7 @@ class GlobalExerciseProgressTest {
     fun globalExerciseProgress_withHighConsecutiveStalls_tracksCorrectly() {
         val progress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 80f,
                 estimatedMax = 100f,
                 lastUpdated = LocalDateTime.now(),
@@ -195,7 +195,7 @@ class GlobalExerciseProgressTest {
     fun globalExerciseProgress_withAllRepMaxes_storesCorrectly() {
         val progress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 100f,
                 estimatedMax = 130f,
                 lastUpdated = LocalDateTime.now(),
@@ -219,7 +219,7 @@ class GlobalExerciseProgressTest {
     fun globalExerciseProgress_withVeryHighVolume_handlesCorrectly() {
         val progress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = LocalDateTime.now(),
@@ -238,7 +238,7 @@ class GlobalExerciseProgressTest {
     fun globalExerciseProgress_withHighRPE_indicatesDifficulty() {
         val progress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 100f,
                 estimatedMax = 105f, // Close to max
                 lastUpdated = LocalDateTime.now(),
@@ -255,7 +255,7 @@ class GlobalExerciseProgressTest {
     fun globalExerciseProgress_withFailureStreak_tracksDecline() {
         val progress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 80f,
                 estimatedMax = 100f,
                 lastUpdated = LocalDateTime.now(),
@@ -275,7 +275,7 @@ class GlobalExerciseProgressTest {
 
         val progress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = lastUpdated,
@@ -295,7 +295,7 @@ class GlobalExerciseProgressTest {
     fun globalExerciseProgress_withManySessionsTracked_showsExperience() {
         val progress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = LocalDateTime.now(),
@@ -311,23 +311,23 @@ class GlobalExerciseProgressTest {
     fun globalExerciseProgress_workoutTypeTracking_maintainsBothTypes() {
         val progress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = LocalDateTime.now(),
-                lastProgrammeWorkoutId = 99L,
-                lastFreestyleWorkoutId = 88L,
+                lastProgrammeWorkoutId = "99",
+                lastFreestyleWorkoutId = "88",
             )
 
-        assertThat(progress.lastProgrammeWorkoutId).isEqualTo(99L)
-        assertThat(progress.lastFreestyleWorkoutId).isEqualTo(88L)
+        assertThat(progress.lastProgrammeWorkoutId).isEqualTo("99")
+        assertThat(progress.lastFreestyleWorkoutId).isEqualTo("88")
     }
 
     @Test
     fun globalExerciseProgress_withZeroVolume_indicatesNoWork() {
         val progress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = LocalDateTime.now(),
@@ -348,7 +348,7 @@ class GlobalExerciseProgressTest {
 
         val progress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 110f,
                 estimatedMax = 130f,
                 lastUpdated = now,
@@ -370,8 +370,8 @@ class GlobalExerciseProgressTest {
 
         val progress1 =
             GlobalExerciseProgress(
-                id = 1L,
-                exerciseVariationId = 100L,
+                id = "1",
+                exerciseVariationId = "100",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = date,
@@ -382,8 +382,8 @@ class GlobalExerciseProgressTest {
 
         val progress2 =
             GlobalExerciseProgress(
-                id = 1L,
-                exerciseVariationId = 100L,
+                id = "1",
+                exerciseVariationId = "100",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = date,
@@ -394,8 +394,8 @@ class GlobalExerciseProgressTest {
 
         val progress3 =
             GlobalExerciseProgress(
-                id = 2L, // Different ID
-                exerciseVariationId = 100L,
+                id = "2", // Different ID
+                exerciseVariationId = "100",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = date,
@@ -413,8 +413,8 @@ class GlobalExerciseProgressTest {
     fun globalExerciseProgress_toString_includesKeyInfo() {
         val progress =
             GlobalExerciseProgress(
-                id = 1L,
-                exerciseVariationId = 100L,
+                id = "1",
+                exerciseVariationId = "100",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = LocalDateTime.of(2024, 1, 15, 10, 0),
@@ -424,15 +424,15 @@ class GlobalExerciseProgressTest {
         val toString = progress.toString()
         assertThat(toString).contains("GlobalExerciseProgress")
         assertThat(toString).contains("id=1")
-        assertThat(toString).contains("currentWorkingWeight=100")
-        assertThat(toString).contains("estimatedMax=120")
+        assertThat(toString).contains("currentWorkingWeight=100.0")
+        assertThat(toString).contains("estimatedMax=120.0")
     }
 
     @Test
     fun globalExerciseProgress_copy_createsIndependentInstance() {
         val original =
             GlobalExerciseProgress(
-                exerciseVariationId = 100L,
+                exerciseVariationId = "100",
                 currentWorkingWeight = 100f,
                 estimatedMax = 120f,
                 lastUpdated = LocalDateTime.now(),
@@ -460,7 +460,7 @@ class GlobalExerciseProgressTest {
     fun globalExerciseProgress_withLowRPE_indicatesEasyWork() {
         val progress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 60f,
                 estimatedMax = 100f,
                 lastUpdated = LocalDateTime.now(),
@@ -478,7 +478,7 @@ class GlobalExerciseProgressTest {
         // Edge case - negative values shouldn't happen in practice but testing data model
         val progress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = -10f, // Edge case
                 estimatedMax = 100f,
                 lastUpdated = LocalDateTime.now(),

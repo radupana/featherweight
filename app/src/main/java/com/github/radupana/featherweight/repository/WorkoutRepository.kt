@@ -36,19 +36,20 @@ class WorkoutRepository(
         private const val TAG = "WorkoutRepository"
     }
 
-    suspend fun createWorkout(workout: Workout): Long =
+    suspend fun createWorkout(workout: Workout): String =
         withContext(ioDispatcher) {
             val trace = safeNewTrace("workout_creation")
             trace?.start()
             // Ensure userId is set (use "local" for unauthenticated users)
             val workoutWithUserId = workout.copy(userId = authManager.getCurrentUserId() ?: "local")
-            val id = workoutDao.insertWorkout(workoutWithUserId)
+            workoutDao.insertWorkout(workoutWithUserId)
+            val id = workoutWithUserId.id
             Log.i(TAG, "Created workout - id: $id, name: ${workout.name}, status: ${workout.status}, programmeId: ${workout.programmeId}, userId: ${workoutWithUserId.userId}")
             trace?.stop()
             id
         }
 
-    suspend fun getWorkoutById(workoutId: Long): Workout? =
+    suspend fun getWorkoutById(workoutId: String): Workout? =
         withContext(ioDispatcher) {
             workoutDao.getWorkoutById(workoutId)
         }
@@ -66,7 +67,7 @@ class WorkoutRepository(
             Log.i(TAG, "Workout deleted - id: ${workout.id}, had ${exerciseLogs.size} exercises")
         }
 
-    suspend fun deleteWorkoutById(workoutId: Long) =
+    suspend fun deleteWorkoutById(workoutId: String) =
         withContext(ioDispatcher) {
             val workout = workoutDao.getWorkoutById(workoutId)
             if (workout != null) {
@@ -75,7 +76,7 @@ class WorkoutRepository(
         }
 
     suspend fun updateWorkoutStatus(
-        workoutId: Long,
+        workoutId: String,
         status: WorkoutStatus,
     ) = withContext(ioDispatcher) {
         val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
@@ -85,7 +86,7 @@ class WorkoutRepository(
     }
 
     suspend fun completeWorkout(
-        workoutId: Long,
+        workoutId: String,
         duration: Long? = null,
     ) = withContext(ioDispatcher) {
         val trace = safeNewTrace("workout_completion")
@@ -95,7 +96,7 @@ class WorkoutRepository(
         workoutDao.updateWorkout(
             workout.copy(
                 status = WorkoutStatus.COMPLETED,
-                durationSeconds = duration,
+                durationSeconds = duration?.toString(),
             ),
         )
 
@@ -136,12 +137,12 @@ class WorkoutRepository(
             null
         }
 
-    suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog> =
+    suspend fun getExerciseLogsForWorkout(workoutId: String): List<ExerciseLog> =
         withContext(ioDispatcher) {
             exerciseLogDao.getExerciseLogsForWorkout(workoutId)
         }
 
-    suspend fun getSetLogsForExercise(exerciseLogId: Long): List<SetLog> =
+    suspend fun getSetLogsForExercise(exerciseLogId: String): List<SetLog> =
         withContext(ioDispatcher) {
             setLogDao.getSetLogsForExercise(exerciseLogId)
         }
@@ -186,7 +187,7 @@ class WorkoutRepository(
                             exerciseCount = exercises.size,
                             setCount = allSets.size,
                             totalWeight = totalWeight,
-                            duration = workout.durationSeconds,
+                            duration = workout.durationSeconds?.toLongOrNull(),
                             status = workout.status,
                             hasNotes = !workout.notes.isNullOrBlank(),
                             isProgrammeWorkout = workout.isProgrammeWorkout,
@@ -208,10 +209,10 @@ class WorkoutRepository(
         }
 
     suspend fun createTemplateFromWorkout(
-        workoutId: Long,
+        workoutId: String,
         templateName: String,
         templateDescription: String?,
-    ): Long =
+    ): String =
         withContext(ioDispatcher) {
             Log.i(TAG, "createTemplateFromWorkout START - workoutId: $workoutId, name: $templateName, desc: $templateDescription")
 
@@ -229,7 +230,8 @@ class WorkoutRepository(
                     isTemplate = true,
                 )
             Log.i(TAG, "Creating template workout with status: ${templateWorkout.status}, isTemplate: ${templateWorkout.isTemplate}")
-            val templateId = workoutDao.insertWorkout(templateWorkout)
+            workoutDao.insertWorkout(templateWorkout)
+            val templateId = templateWorkout.id
             Log.i(TAG, "Template workout created with ID: $templateId")
 
             // Copy all exercises and their sets exactly as they were
@@ -255,10 +257,10 @@ class WorkoutRepository(
                         userId = authManager.getCurrentUserId() ?: "local",
                         workoutId = templateId,
                         exerciseVariationId = exerciseLog.exerciseVariationId,
-                        isCustomExercise = exerciseLog.isCustomExercise, // Preserve custom exercise flag
                         exerciseOrder = exerciseLog.exerciseOrder,
                     )
-                val templateExerciseId = exerciseLogDao.insertExerciseLog(templateExerciseLog)
+                exerciseLogDao.insertExerciseLog(templateExerciseLog)
+                val templateExerciseId = templateExerciseLog.id
                 Log.d(TAG, "Created template exercise with ID: $templateExerciseId")
                 copiedExercises++
 
@@ -334,7 +336,7 @@ class WorkoutRepository(
             result
         }
 
-    suspend fun startWorkoutFromTemplate(templateId: Long): Long =
+    suspend fun startWorkoutFromTemplate(templateId: String): String =
         withContext(ioDispatcher) {
             Log.i(TAG, "startWorkoutFromTemplate called with templateId: $templateId")
 
@@ -358,7 +360,8 @@ class WorkoutRepository(
                     isTemplate = false,
                     fromTemplateId = templateId,
                 )
-            val newWorkoutId = workoutDao.insertWorkout(newWorkout)
+            workoutDao.insertWorkout(newWorkout)
+            val newWorkoutId = newWorkout.id
             Log.i(TAG, "Created new workout with ID: $newWorkoutId from template: ${template.name} (templateId: $templateId)")
 
             // Copy exercises and sets from template
@@ -374,11 +377,11 @@ class WorkoutRepository(
                         userId = authManager.getCurrentUserId() ?: "local",
                         workoutId = newWorkoutId,
                         exerciseVariationId = templateExercise.exerciseVariationId,
-                        isCustomExercise = templateExercise.isCustomExercise, // Preserve custom exercise flag from template
                         exerciseOrder = templateExercise.exerciseOrder,
                         notes = templateExercise.notes,
                     )
-                val newExerciseId = exerciseLogDao.insertExerciseLog(newExercise)
+                exerciseLogDao.insertExerciseLog(newExercise)
+                val newExerciseId = newExercise.id
                 copiedExercises++
 
                 // Copy sets with target values

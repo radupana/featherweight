@@ -26,7 +26,7 @@ class FreestyleIntelligenceService(
      * Get intelligent weight suggestions for an exercise with detailed reasoning
      */
     suspend fun getIntelligentSuggestions(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         targetReps: Int? = null,
     ): SmartSuggestions {
         val progress = globalProgressDao.getProgressForExercise(exerciseVariationId)
@@ -67,7 +67,7 @@ class FreestyleIntelligenceService(
      * Get real-time suggestions as user types different rep counts
      */
     fun getSuggestionsForReps(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         repsFlow: kotlinx.coroutines.flow.Flow<Int>,
     ): kotlinx.coroutines.flow.Flow<SmartSuggestions> =
         repsFlow.map { reps ->

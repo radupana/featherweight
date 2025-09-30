@@ -187,14 +187,6 @@ enum class InstructionType {
     EXECUTION,
 }
 
-enum class ExerciseRelationType {
-    PROGRESSION,
-    REGRESSION,
-    ALTERNATIVE,
-    SUPERSET_PARTNER,
-    COMPOUND_PART,
-}
-
 enum class RMScalingType(
     val description: String,
 ) {

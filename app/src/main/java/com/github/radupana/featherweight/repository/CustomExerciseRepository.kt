@@ -1,13 +1,14 @@
 package com.github.radupana.featherweight.repository
 
 import android.util.Log
-import com.github.radupana.featherweight.data.exercise.CustomExerciseCore
-import com.github.radupana.featherweight.data.exercise.CustomExerciseDao
-import com.github.radupana.featherweight.data.exercise.CustomExerciseVariation
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
+import com.github.radupana.featherweight.data.exercise.ExerciseCore
+import com.github.radupana.featherweight.data.exercise.ExerciseCoreDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
+import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.data.exercise.UserExerciseUsageDao
@@ -20,7 +21,8 @@ import java.time.LocalDateTime
  * Repository for managing custom exercises created by users.
  */
 class CustomExerciseRepository(
-    private val customExerciseDao: CustomExerciseDao,
+    private val exerciseCoreDao: ExerciseCoreDao,
+    private val exerciseVariationDao: ExerciseVariationDao,
     private val exerciseDao: ExerciseDao,
     private val userExerciseUsageDao: UserExerciseUsageDao,
     private val authManager: AuthenticationManager?,
@@ -44,7 +46,7 @@ class CustomExerciseRepository(
         recommendedRepRange: String? = null,
         rmScalingType: RMScalingType = RMScalingType.STANDARD,
         restDurationSeconds: Int = 90,
-    ): CustomExerciseVariation? =
+    ): ExerciseVariation? =
         withContext(Dispatchers.IO) {
             val userId = authManager?.getCurrentUserId() ?: "local"
 
@@ -64,7 +66,7 @@ class CustomExerciseRepository(
                 }
 
                 // Check if custom exercise with same name already exists for this user
-                val existing = customExerciseDao.getCustomVariationByUserAndName(userId, name)
+                val existing = exerciseVariationDao.getCustomVariationByUserAndName(userId, name)
                 if (existing != null) {
                     Log.w(TAG, "Custom exercise '$name' already exists for user $userId")
                     return@withContext null
@@ -72,7 +74,7 @@ class CustomExerciseRepository(
 
                 // Create core exercise first
                 val core =
-                    CustomExerciseCore(
+                    ExerciseCore(
                         userId = userId,
                         name = name,
                         category = category,
@@ -82,14 +84,14 @@ class CustomExerciseRepository(
                         updatedAt = LocalDateTime.now(),
                     )
 
-                val coreId = customExerciseDao.insertCustomCore(core)
-                Log.d(TAG, "Created custom exercise core: $name (id: $coreId)")
+                exerciseCoreDao.insertCore(core)
+                Log.d(TAG, "Created custom exercise core: $name (id: ${core.id})")
 
                 // Create variation
                 val variation =
-                    CustomExerciseVariation(
+                    ExerciseVariation(
                         userId = userId,
-                        customCoreExerciseId = coreId,
+                        coreExerciseId = core.id,
                         name = name,
                         equipment = equipment,
                         difficulty = difficulty,
@@ -101,10 +103,10 @@ class CustomExerciseRepository(
                         updatedAt = LocalDateTime.now(),
                     )
 
-                val variationId = customExerciseDao.insertCustomVariation(variation)
-                Log.d(TAG, "Created custom exercise variation: $name (id: $variationId)")
+                exerciseVariationDao.insertExerciseVariation(variation)
+                Log.d(TAG, "Created custom exercise variation: $name (id: ${variation.id})")
 
-                return@withContext variation.copy(id = variationId)
+                return@withContext variation
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to create custom exercise", e)
                 return@withContext null
@@ -114,28 +116,34 @@ class CustomExerciseRepository(
     /**
      * Get all custom exercises for the current user.
      */
-    suspend fun getCustomExercises(): List<CustomExerciseVariation> =
+    suspend fun getCustomExercises(): List<ExerciseVariation> =
         withContext(Dispatchers.IO) {
             val userId = authManager?.getCurrentUserId() ?: "local"
-            customExerciseDao.getAllCustomExercisesForUser(userId)
+            exerciseVariationDao.getCustomVariationsByUser(userId)
         }
 
     /**
      * Get a custom exercise by ID.
      */
-    suspend fun getCustomExerciseById(exerciseId: Long): CustomExerciseVariation? =
+    suspend fun getCustomExerciseById(exerciseId: String): ExerciseVariation? =
         withContext(Dispatchers.IO) {
             Log.d(TAG, "Getting custom exercise by ID: $exerciseId")
-            val result = customExerciseDao.getCustomVariationById(exerciseId)
-            Log.d(TAG, "Custom exercise lookup result: ${result?.name ?: "NULL"} for ID $exerciseId")
-            result
+            val result = exerciseVariationDao.getExerciseVariationById(exerciseId)
+            // Check if it's actually a custom exercise (has userId)
+            if (result?.userId != null) {
+                Log.d(TAG, "Custom exercise lookup result: ${result.name} for ID $exerciseId")
+                result
+            } else {
+                Log.d(TAG, "Exercise ID $exerciseId is not a custom exercise")
+                null
+            }
         }
 
     /**
      * Update a custom exercise.
      */
     suspend fun updateCustomExercise(
-        exerciseId: Long,
+        exerciseId: String,
         name: String? = null,
         equipment: Equipment? = null,
         difficulty: ExerciseDifficulty? = null,
@@ -148,7 +156,7 @@ class CustomExerciseRepository(
             val userId = authManager?.getCurrentUserId() ?: "local"
 
             try {
-                val existing = customExerciseDao.getCustomVariationById(exerciseId)
+                val existing = exerciseVariationDao.getExerciseVariationById(exerciseId)
                 if (existing == null || existing.userId != userId) {
                     Log.e(TAG, "Custom exercise $exerciseId not found or not owned by user")
                     return@withContext false
@@ -171,7 +179,7 @@ class CustomExerciseRepository(
                     }
 
                     // Check other custom exercises
-                    val duplicate = customExerciseDao.getCustomVariationByUserAndName(userId, name)
+                    val duplicate = exerciseVariationDao.getCustomVariationByUserAndName(userId, name)
                     if (duplicate != null) {
                         Log.w(TAG, "Custom exercise with name '$name' already exists")
                         return@withContext false
@@ -190,13 +198,13 @@ class CustomExerciseRepository(
                         updatedAt = LocalDateTime.now(),
                     )
 
-                customExerciseDao.updateCustomVariation(updated)
+                exerciseVariationDao.updateVariation(updated)
 
                 // Update core if name changed
                 if (name != null && name != existing.name) {
-                    val core = customExerciseDao.getCustomCoreById(existing.customCoreExerciseId)
+                    val core = exerciseCoreDao.getCoreById(existing.coreExerciseId)
                     if (core != null) {
-                        customExerciseDao.updateCustomCore(
+                        exerciseCoreDao.updateCore(
                             core.copy(
                                 name = name,
                                 updatedAt = LocalDateTime.now(),
@@ -217,12 +225,12 @@ class CustomExerciseRepository(
      * Delete a custom exercise.
      * Returns true if deletion was successful.
      */
-    suspend fun deleteCustomExercise(exerciseId: Long): Boolean =
+    suspend fun deleteCustomExercise(exerciseId: String): Boolean =
         withContext(Dispatchers.IO) {
             val userId = authManager?.getCurrentUserId() ?: "local"
 
             try {
-                val exercise = customExerciseDao.getCustomVariationById(exerciseId)
+                val exercise = exerciseVariationDao.getExerciseVariationById(exerciseId)
                 if (exercise == null || exercise.userId != userId) {
                     Log.e(TAG, "Custom exercise $exerciseId not found or not owned by user")
                     return@withContext false
@@ -233,7 +241,6 @@ class CustomExerciseRepository(
                     userExerciseUsageDao.getUsage(
                         userId = userId,
                         variationId = exerciseId,
-                        isCustom = true,
                     )
 
                 if (usage != null && usage.usageCount > 0) {
@@ -242,17 +249,17 @@ class CustomExerciseRepository(
                 }
 
                 // Delete the variation (core will be cascade deleted if no other variations reference it)
-                customExerciseDao.deleteCustomVariation(exerciseId, userId)
+                exerciseVariationDao.deleteCustomVariation(exerciseId, userId)
 
                 // Clean up any orphaned cores
-                val core = customExerciseDao.getCustomCoreById(exercise.customCoreExerciseId)
+                val core = exerciseCoreDao.getCoreById(exercise.coreExerciseId)
                 if (core != null) {
                     val remainingVariations =
-                        customExerciseDao
+                        exerciseVariationDao
                             .getCustomVariationsByUser(userId)
-                            .filter { it.customCoreExerciseId == core.id }
+                            .filter { it.coreExerciseId == core.id }
                     if (remainingVariations.isEmpty()) {
-                        customExerciseDao.deleteCustomCore(core.id, userId)
+                        exerciseCoreDao.deleteCustomCore(core.id, userId)
                         Log.d(TAG, "Deleted orphaned custom exercise core: ${core.name}")
                     }
                 }
@@ -283,39 +290,15 @@ class CustomExerciseRepository(
             }
 
             // Check custom exercises for this user
-            customExerciseDao.getCustomVariationByUserAndName(userId, name) == null
-        }
-
-    /**
-     * Get custom exercises by equipment type.
-     */
-    suspend fun getCustomExercisesByEquipment(equipment: Equipment): List<CustomExerciseVariation> =
-        withContext(Dispatchers.IO) {
-            val userId = authManager?.getCurrentUserId() ?: "local"
-            customExerciseDao.getCustomVariationsByEquipment(userId, equipment)
-        }
-
-    /**
-     * Delete all custom exercises for a user (used when deleting account).
-     */
-    suspend fun deleteAllCustomExercisesForUser(userId: String) =
-        withContext(Dispatchers.IO) {
-            try {
-                customExerciseDao.deleteAllCustomVariationsByUser(userId)
-                customExerciseDao.deleteAllCustomCoresByUser(userId)
-                Log.d(TAG, "Deleted all custom exercises for user: $userId")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to delete custom exercises for user", e)
-            }
+            exerciseVariationDao.getCustomVariationByUserAndName(userId, name) == null
         }
 
     /**
      * Check if an exercise variation is a custom exercise.
      * Returns true if the exercise is custom, false if it's a system exercise.
      */
-    suspend fun isCustomExercise(exerciseVariationId: Long): Boolean =
+    suspend fun isCustomExercise(exerciseVariationId: String): Boolean =
         withContext(Dispatchers.IO) {
-            val customExercise = customExerciseDao.getCustomVariationById(exerciseVariationId)
-            customExercise != null
+            exerciseVariationDao.isCustomExercise(exerciseVariationId)
         }
 }

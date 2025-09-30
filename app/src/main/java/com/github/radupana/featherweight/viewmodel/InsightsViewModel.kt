@@ -49,8 +49,8 @@ class InsightsViewModel(
     val currentWorkoutCount: StateFlow<Int> = _currentWorkoutCount
 
     // Reactive exercise name mapping
-    private val _exerciseNames = MutableStateFlow<Map<Long, String>>(emptyMap())
-    val exerciseNames: StateFlow<Map<Long, String>> = _exerciseNames
+    private val _exerciseNames = MutableStateFlow<Map<String, String>>(emptyMap())
+    val exerciseNames: StateFlow<Map<String, String>> = _exerciseNames
 
     init {
         loadExerciseNames()

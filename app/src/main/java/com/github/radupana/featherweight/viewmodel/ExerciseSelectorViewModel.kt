@@ -169,16 +169,16 @@ class ExerciseSelectorViewModel(
                 // Load system exercises with full muscle data
                 val systemExercises =
                     systemVariations.map { variation ->
-                        loadExerciseWithDetails(variation, isCustom = false)
+                        loadExerciseWithDetails(variation)
                     }
 
-                // Load custom exercises
+                // Load custom exercises (now returns ExerciseVariation)
                 val customVariations = repository.getCustomExercises()
                 val customExercises =
                     customVariations
                         .filter { custom -> category == null || custom.name.contains(category.displayName, ignoreCase = true) }
                         .map { custom ->
-                            loadCustomExerciseWithDetails(custom)
+                            loadExerciseWithDetails(custom)
                         }
 
                 // Combine system and custom exercises
@@ -274,19 +274,8 @@ class ExerciseSelectorViewModel(
                     )
 
                 if (customExercise != null) {
-                    // Convert to ExerciseVariation for compatibility
-                    val variation =
-                        ExerciseVariation(
-                            id = customExercise.id,
-                            coreExerciseId = customExercise.customCoreExerciseId,
-                            name = customExercise.name,
-                            equipment = customExercise.equipment,
-                            difficulty = customExercise.difficulty,
-                            requiresWeight = customExercise.requiresWeight,
-                            recommendedRepRange = customExercise.recommendedRepRange,
-                            rmScalingType = customExercise.rmScalingType,
-                            restDurationSeconds = customExercise.restDurationSeconds,
-                        )
+                    // Already an ExerciseVariation
+                    val variation = customExercise
                     // Reload exercises to include the new one
                     loadExercises()
                     // Signal success
@@ -405,7 +394,7 @@ class ExerciseSelectorViewModel(
     }
 
     // Load swap suggestions for the given exercise
-    fun loadSwapSuggestions(exerciseId: Long) {
+    fun loadSwapSuggestions(exerciseId: String) {
         viewModelScope.launch {
             try {
                 // Wait for exercises to be loaded if they're not already
@@ -414,7 +403,7 @@ class ExerciseSelectorViewModel(
                     // Load exercises with muscle data
                     val exercises =
                         variations.map { variation ->
-                            loadExerciseWithDetails(variation, isCustom = false)
+                            loadExerciseWithDetails(variation)
                         }
                     allExercisesCache.value = exercises
                 }
@@ -427,7 +416,7 @@ class ExerciseSelectorViewModel(
                 swapHistory.forEach { historyCount ->
                     val variation = repository.getExerciseById(historyCount.swappedToExerciseId)
                     if (variation != null) {
-                        val exerciseWithDetails = loadExerciseWithDetails(variation, isCustom = false)
+                        val exerciseWithDetails = loadExerciseWithDetails(variation)
                         previouslySwapped.add(
                             ExerciseSuggestion(
                                 exercise = exerciseWithDetails,
@@ -446,7 +435,7 @@ class ExerciseSelectorViewModel(
                     // Set the current exercise name for display
                     _currentSwapExerciseName.value = currentVariation.name
 
-                    val currentExercise = loadExerciseWithDetails(currentVariation, isCustom = false)
+                    val currentExercise = loadExerciseWithDetails(currentVariation)
                     val suggestions = generateSmartSuggestions(currentExercise, previouslySwapped)
                     _swapSuggestions.value = suggestions
                 } else {
@@ -475,7 +464,7 @@ class ExerciseSelectorViewModel(
                 repository
                     .getAllExercises()
                     .map { variation ->
-                        loadExerciseWithDetails(variation, isCustom = false)
+                        loadExerciseWithDetails(variation)
                     }.also { allExercisesCache.value = it }
             }
 
@@ -627,16 +616,13 @@ class ExerciseSelectorViewModel(
     }
 
     // Helper method to load system exercise with full details including muscles
-    private suspend fun loadExerciseWithDetails(
-        variation: ExerciseVariation,
-        isCustom: Boolean,
-    ): ExerciseWithDetails {
+    private suspend fun loadExerciseWithDetails(variation: ExerciseVariation): ExerciseWithDetails {
         val muscles = repository.getMusclesForVariation(variation.id)
         val aliases = repository.getAliasesForVariation(variation.id)
 
         // Get user-specific usage stats (use "local" for unauthenticated users)
         val userId = repository.getCurrentUserId() ?: "local"
-        val usageStats = repository.getUserExerciseUsage(userId, variation.id, isCustom)
+        val usageStats = repository.getUserExerciseUsage(userId, variation.id)
 
         return ExerciseWithDetails(
             variation = variation,
@@ -645,38 +631,7 @@ class ExerciseSelectorViewModel(
             instructions = emptyList(), // Can load if needed
             usageCount = usageStats?.usageCount ?: 0,
             isFavorite = usageStats?.favorited ?: false,
-            isCustom = isCustom,
-        )
-    }
-
-    // Helper method to load custom exercise with details
-    private suspend fun loadCustomExerciseWithDetails(custom: com.github.radupana.featherweight.data.exercise.CustomExerciseVariation): ExerciseWithDetails {
-        // Convert custom exercise to standard format
-        val variation =
-            ExerciseVariation(
-                id = custom.id,
-                coreExerciseId = custom.customCoreExerciseId,
-                name = custom.name,
-                equipment = custom.equipment,
-                difficulty = custom.difficulty,
-                requiresWeight = custom.requiresWeight,
-                recommendedRepRange = custom.recommendedRepRange,
-                rmScalingType = custom.rmScalingType,
-                restDurationSeconds = custom.restDurationSeconds,
-            )
-
-        // Get user-specific usage stats (use "local" for unauthenticated users)
-        val userId = repository.getCurrentUserId() ?: "local"
-        val usageStats = repository.getUserExerciseUsage(userId, custom.id, true) // true = custom exercise
-
-        return ExerciseWithDetails(
-            variation = variation,
-            muscles = emptyList(), // Custom exercises don't have muscle mappings yet
-            aliases = emptyList(),
-            instructions = emptyList(),
-            usageCount = usageStats?.usageCount ?: 0,
-            isFavorite = usageStats?.favorited ?: false,
-            isCustom = true, // This is a custom exercise
+            // isCustom is now a derived property based on variation.userId
         )
     }
 }

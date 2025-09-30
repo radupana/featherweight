@@ -53,7 +53,7 @@ class ProgressionServiceTest {
 
     private val mockProgramme =
         Programme(
-            id = 1L,
+            id = "1",
             name = "Test Programme",
             description = "Test Description",
             durationWeeks = 8,
@@ -64,8 +64,8 @@ class ProgressionServiceTest {
 
     private val successfulPerformance =
         ExercisePerformanceTracking(
-            id = 1L,
-            programmeId = 1L,
+            id = "1",
+            programmeId = "1",
             exerciseName = "Squat",
             targetWeight = 100f,
             achievedWeight = 100f,
@@ -76,13 +76,13 @@ class ProgressionServiceTest {
             missedReps = 0,
             wasSuccessful = true,
             workoutDate = LocalDateTime.now(),
-            workoutId = 1L,
+            workoutId = "1",
             isDeloadWorkout = false,
         )
 
     private val failedPerformance =
         successfulPerformance.copy(
-            id = 2L,
+            id = "2",
             achievedReps = 3,
             wasSuccessful = false,
         )
@@ -123,11 +123,11 @@ class ProgressionServiceTest {
         runTest {
             // Arrange
             coEvery {
-                mockPerformanceTrackingDao.getRecentPerformance(1L, "Squat", 5)
+                mockPerformanceTrackingDao.getRecentPerformance("1", "Squat", 5)
             } returns listOf(failedPerformance)
 
             coEvery {
-                mockPerformanceTrackingDao.getConsecutiveFailures(1L, "Squat")
+                mockPerformanceTrackingDao.getConsecutiveFailures("1", "Squat")
             } returns 3
 
             // Act
@@ -151,11 +151,11 @@ class ProgressionServiceTest {
                 )
 
             coEvery {
-                mockPerformanceTrackingDao.getRecentPerformance(1L, "Squat", 5)
+                mockPerformanceTrackingDao.getRecentPerformance("1", "Squat", 5)
             } returns listOf(deloadPerformance, failedPerformance)
 
             coEvery {
-                mockPerformanceTrackingDao.getConsecutiveFailures(1L, "Squat")
+                mockPerformanceTrackingDao.getConsecutiveFailures("1", "Squat")
             } returns 0
 
             // Act
@@ -172,11 +172,11 @@ class ProgressionServiceTest {
         runTest {
             // Arrange
             coEvery {
-                mockPerformanceTrackingDao.getRecentPerformance(1L, "Squat", 5)
+                mockPerformanceTrackingDao.getRecentPerformance("1", "Squat", 5)
             } returns listOf(successfulPerformance)
 
             coEvery {
-                mockPerformanceTrackingDao.getConsecutiveFailures(1L, "Squat")
+                mockPerformanceTrackingDao.getConsecutiveFailures("1", "Squat")
             } returns 0
 
             // Act
@@ -193,11 +193,11 @@ class ProgressionServiceTest {
         runTest {
             // Arrange
             coEvery {
-                mockPerformanceTrackingDao.getRecentPerformance(1L, "Bench Press", 5)
+                mockPerformanceTrackingDao.getRecentPerformance("1", "Bench Press", 5)
             } returns listOf(failedPerformance.copy(exerciseName = "Bench Press"))
 
             coEvery {
-                mockPerformanceTrackingDao.getConsecutiveFailures(1L, "Bench Press")
+                mockPerformanceTrackingDao.getConsecutiveFailures("1", "Bench Press")
             } returns 1 // Not enough for deload
 
             // Act
@@ -219,11 +219,11 @@ class ProgressionServiceTest {
                 )
 
             coEvery {
-                mockPerformanceTrackingDao.getRecentPerformance(1L, "Unknown Exercise", 5)
+                mockPerformanceTrackingDao.getRecentPerformance("1", "Unknown Exercise", 5)
             } returns listOf(unknownExercisePerformance)
 
             coEvery {
-                mockPerformanceTrackingDao.getConsecutiveFailures(1L, "Unknown Exercise")
+                mockPerformanceTrackingDao.getConsecutiveFailures("1", "Unknown Exercise")
             } returns 0
 
             // Act
@@ -239,7 +239,7 @@ class ProgressionServiceTest {
         runTest {
             // Arrange
             coEvery {
-                mockPerformanceTrackingDao.getRecentPerformance(1L, "Squat", 5)
+                mockPerformanceTrackingDao.getRecentPerformance("1", "Squat", 5)
             } returns emptyList()
 
             coEvery {
@@ -271,11 +271,11 @@ class ProgressionServiceTest {
                 )
 
             coEvery {
-                mockPerformanceTrackingDao.getRecentPerformance(1L, "Squat", 5)
+                mockPerformanceTrackingDao.getRecentPerformance("1", "Squat", 5)
             } returns listOf(lowWeightPerformance)
 
             coEvery {
-                mockPerformanceTrackingDao.getConsecutiveFailures(1L, "Squat")
+                mockPerformanceTrackingDao.getConsecutiveFailures("1", "Squat")
             } returns 3
 
             // Act
@@ -292,17 +292,17 @@ class ProgressionServiceTest {
             // Arrange
             val successHistory =
                 listOf(
-                    successfulPerformance.copy(id = 1L, targetWeight = 105f, achievedWeight = 105f),
-                    successfulPerformance.copy(id = 2L, targetWeight = 100f, achievedWeight = 100f),
-                    successfulPerformance.copy(id = 3L, targetWeight = 95f, achievedWeight = 95f),
+                    successfulPerformance.copy(id = "1", targetWeight = 105f, achievedWeight = 105f),
+                    successfulPerformance.copy(id = "2", targetWeight = 100f, achievedWeight = 100f),
+                    successfulPerformance.copy(id = "3", targetWeight = 95f, achievedWeight = 95f),
                 )
 
             coEvery {
-                mockPerformanceTrackingDao.getRecentPerformance(1L, "Squat", 5)
+                mockPerformanceTrackingDao.getRecentPerformance("1", "Squat", 5)
             } returns successHistory
 
             coEvery {
-                mockPerformanceTrackingDao.getConsecutiveFailures(1L, "Squat")
+                mockPerformanceTrackingDao.getConsecutiveFailures("1", "Squat")
             } returns 0
 
             // Act
@@ -325,11 +325,11 @@ class ProgressionServiceTest {
                 )
 
             coEvery {
-                mockPerformanceTrackingDao.getRecentPerformance(1L, "Squat", 5)
+                mockPerformanceTrackingDao.getRecentPerformance("1", "Squat", 5)
             } returns listOf(partialPerformance)
 
             coEvery {
-                mockPerformanceTrackingDao.getConsecutiveFailures(1L, "Squat")
+                mockPerformanceTrackingDao.getConsecutiveFailures("1", "Squat")
             } returns 1
 
             // Act
@@ -360,11 +360,11 @@ class ProgressionServiceTest {
                 )
 
             coEvery {
-                mockPerformanceTrackingDao.getRecentPerformance(1L, "Squat", 5)
+                mockPerformanceTrackingDao.getRecentPerformance("1", "Squat", 5)
             } returns listOf(failedPerformance)
 
             coEvery {
-                mockPerformanceTrackingDao.getConsecutiveFailures(1L, "Squat")
+                mockPerformanceTrackingDao.getConsecutiveFailures("1", "Squat")
             } returns 5 // Many failures but deload disabled
 
             // Act
@@ -380,11 +380,11 @@ class ProgressionServiceTest {
         runTest {
             // Arrange
             coEvery {
-                mockPerformanceTrackingDao.getRecentPerformance(1L, "SQUAT", 5)
+                mockPerformanceTrackingDao.getRecentPerformance("1", "SQUAT", 5)
             } returns listOf(successfulPerformance)
 
             coEvery {
-                mockPerformanceTrackingDao.getConsecutiveFailures(1L, "SQUAT")
+                mockPerformanceTrackingDao.getConsecutiveFailures("1", "SQUAT")
             } returns 0
 
             // Act

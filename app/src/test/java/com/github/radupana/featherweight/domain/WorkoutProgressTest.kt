@@ -11,15 +11,15 @@ class WorkoutProgressTest {
     fun `workout progress calculation for completed workout`() {
         val workout =
             Workout(
-                id = 1L,
+                id = "1",
                 name = "Upper Body",
                 date = LocalDateTime.now(),
                 status = WorkoutStatus.COMPLETED,
-                durationSeconds = 3600, // 1 hour
+                durationSeconds = "3600", // 1 hour
             )
 
         assertThat(workout.status).isEqualTo(WorkoutStatus.COMPLETED)
-        assertThat(workout.durationSeconds).isEqualTo(3600)
+        assertThat(workout.durationSeconds).isEqualTo("3600")
     }
 
     @Test
@@ -39,10 +39,10 @@ class WorkoutProgressTest {
         val completed =
             inProgress.copy(
                 status = WorkoutStatus.COMPLETED,
-                durationSeconds = 2700,
+                durationSeconds = "2700",
             )
         assertThat(completed.status).isEqualTo(WorkoutStatus.COMPLETED)
-        assertThat(completed.durationSeconds).isEqualTo(2700)
+        assertThat(completed.durationSeconds).isEqualTo("2700")
     }
 
     @Test
@@ -51,7 +51,7 @@ class WorkoutProgressTest {
             Workout(
                 name = "Week 1 Day 1",
                 date = LocalDateTime.now(),
-                programmeId = 1L,
+                programmeId = "1",
                 weekNumber = 1,
                 dayNumber = 1,
                 isProgrammeWorkout = true,

@@ -13,14 +13,14 @@ import java.time.LocalDateTime
 @Dao
 interface OneRMDao {
     @Insert
-    suspend fun insertExerciseMax(max: UserExerciseMax): Long
+    suspend fun insertExerciseMax(max: UserExerciseMax)
 
     @Update
     suspend fun updateExerciseMax(max: UserExerciseMax)
 
     @Query("DELETE FROM user_exercise_maxes WHERE exerciseVariationId = :exerciseVariationId AND userId = :userId")
     suspend fun deleteAllMaxesForExercise(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         userId: String,
     )
 
@@ -34,7 +34,7 @@ interface OneRMDao {
     """,
     )
     suspend fun getCurrentMax(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         userId: String,
     ): UserExerciseMax?
 
@@ -49,7 +49,7 @@ interface OneRMDao {
     """,
     )
     suspend fun getCurrentOneRMEstimate(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         userId: String,
     ): Float?
 
@@ -67,13 +67,13 @@ interface OneRMDao {
     """,
     )
     suspend fun getCurrentMaxesForExercises(
-        exerciseVariationIds: List<Long>,
+        exerciseVariationIds: List<String>,
         userId: String,
     ): List<UserExerciseMax>
 
     @Transaction
     suspend fun upsertExerciseMax(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         userId: String,
         maxWeight: Float,
         notes: String? = null,
@@ -103,7 +103,7 @@ interface OneRMDao {
     }
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertOrUpdateExerciseMax(max: UserExerciseMax): Long
+    suspend fun insertOrUpdateExerciseMax(max: UserExerciseMax)
 
     @Query(
         """
@@ -230,7 +230,7 @@ interface OneRMDao {
 
     // OneRM History methods
     @Insert
-    suspend fun insertOneRMHistory(history: OneRMHistory): Long
+    suspend fun insertOneRMHistory(history: OneRMHistory)
 
     @Query(
         """
@@ -243,7 +243,7 @@ interface OneRMDao {
         """,
     )
     suspend fun getOneRMHistoryInRange(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         userId: String,
         startDate: LocalDateTime,
         endDate: LocalDateTime,
@@ -293,16 +293,16 @@ interface OneRMDao {
     suspend fun getAllOneRMHistory(userId: String): List<OneRMHistory>
 
     @Query("SELECT * FROM user_exercise_maxes WHERE id = :id")
-    suspend fun getUserExerciseMaxById(id: Long): UserExerciseMax?
+    suspend fun getUserExerciseMaxById(id: String): UserExerciseMax?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertUserExerciseMax(max: UserExerciseMax): Long
+    suspend fun insertUserExerciseMax(max: UserExerciseMax)
 
     @Update
     suspend fun updateUserExerciseMax(max: UserExerciseMax)
 
     @Query("SELECT * FROM one_rm_history WHERE id = :id")
-    suspend fun getOneRMHistoryById(id: Long): OneRMHistory?
+    suspend fun getOneRMHistoryById(id: String): OneRMHistory?
 
     @Query("DELETE FROM user_exercise_maxes WHERE userId = :userId")
     suspend fun deleteAllUserExerciseMaxesForUser(userId: String)
@@ -330,8 +330,8 @@ interface OneRMDao {
 }
 
 data class OneRMWithExerciseName(
-    val id: Long,
-    val exerciseVariationId: Long,
+    val id: String,
+    val exerciseVariationId: String,
     val exerciseName: String,
     val oneRMEstimate: Float,
     val oneRMDate: LocalDateTime,
@@ -347,8 +347,8 @@ data class OneRMWithExerciseName(
 )
 
 data class Big4ExerciseWithOptionalMax(
-    val id: Long,
-    val exerciseVariationId: Long,
+    val id: String,
+    val exerciseVariationId: String,
     val exerciseName: String,
     val oneRMEstimate: Float?,
     val oneRMDate: LocalDateTime?,
@@ -364,8 +364,8 @@ data class Big4ExerciseWithOptionalMax(
 )
 
 data class OneRMHistoryWithName(
-    val id: Long,
-    val exerciseVariationId: Long,
+    val id: String,
+    val exerciseVariationId: String,
     val exerciseName: String,
     val oneRMEstimate: Float,
     val context: String,
@@ -373,8 +373,8 @@ data class OneRMHistoryWithName(
 )
 
 data class UserExerciseMaxWithName(
-    val id: Long,
-    val exerciseVariationId: Long,
+    val id: String,
+    val exerciseVariationId: String,
     val exerciseName: String,
     val mostWeightLifted: Float,
     val mostWeightReps: Int,

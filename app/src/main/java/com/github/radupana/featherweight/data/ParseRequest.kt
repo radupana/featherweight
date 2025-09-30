@@ -2,6 +2,7 @@ package com.github.radupana.featherweight.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.IdGenerator
 import java.time.LocalDateTime
 
 enum class ParseStatus {
@@ -16,8 +17,8 @@ enum class ParseStatus {
     indices = [androidx.room.Index("userId")],
 )
 data class ParseRequest(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
     val userId: String? = null,
     val rawText: String,
     val createdAt: LocalDateTime = LocalDateTime.now(),

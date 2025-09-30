@@ -60,7 +60,7 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock exercise variation
             val variation =
@@ -75,7 +75,7 @@ class PRDetectionServiceTest {
 
             coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.WEIGHT) } returns
                 PersonalRecord(
-                    id = 1,
+                    id = "1",
                     exerciseVariationId = exerciseVariationId,
                     weight = 95f,
                     reps = 5,
@@ -88,7 +88,7 @@ class PRDetectionServiceTest {
                     recordType = PRType.WEIGHT,
                     estimated1RM = null,
                     notes = null,
-                    workoutId = 1L,
+                    workoutId = "1",
                 )
 
             // Mock 1RM records
@@ -96,7 +96,7 @@ class PRDetectionServiceTest {
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
-            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns 2L
+            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "2"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -122,7 +122,7 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock exercise variation
             val variation =
@@ -138,7 +138,7 @@ class PRDetectionServiceTest {
             // Mock previous PR for context
             coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.WEIGHT) } returns
                 PersonalRecord(
-                    id = 1,
+                    id = "1",
                     exerciseVariationId = exerciseVariationId,
                     weight = 100f, // Higher than current
                     reps = 5,
@@ -151,7 +151,7 @@ class PRDetectionServiceTest {
                     recordType = PRType.WEIGHT,
                     estimated1RM = null,
                     notes = null,
-                    workoutId = 1L,
+                    workoutId = "1",
                 )
 
             coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.ESTIMATED_1RM) } returns null
@@ -177,7 +177,7 @@ class PRDetectionServiceTest {
                     actualRpe = 9f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock exercise variation
             val variation =
@@ -193,7 +193,7 @@ class PRDetectionServiceTest {
             coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.WEIGHT) } returns null
             coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.ESTIMATED_1RM) } returns
                 PersonalRecord(
-                    id = 1,
+                    id = "1",
                     exerciseVariationId = exerciseVariationId,
                     weight = 75f,
                     reps = 10,
@@ -206,12 +206,12 @@ class PRDetectionServiceTest {
                     recordType = PRType.ESTIMATED_1RM,
                     estimated1RM = 95f, // Previous best 1RM
                     notes = null,
-                    workoutId = 1L,
+                    workoutId = "1",
                 )
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
-            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns 2L
+            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "2"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -246,7 +246,7 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock exercise variation
             val variation =
@@ -263,7 +263,7 @@ class PRDetectionServiceTest {
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
-            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns 1L
+            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -285,7 +285,7 @@ class PRDetectionServiceTest {
                     actualReps = 5,
                     isCompleted = false, // Not completed
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -308,7 +308,7 @@ class PRDetectionServiceTest {
                     actualReps = 10,
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -331,7 +331,7 @@ class PRDetectionServiceTest {
                     actualReps = 0,
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -355,7 +355,7 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock exercise variation with weighted bodyweight scaling
             val variation =
@@ -371,7 +371,7 @@ class PRDetectionServiceTest {
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
-            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns 1L
+            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -398,7 +398,7 @@ class PRDetectionServiceTest {
                     actualRpe = 9f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock exercise variation with isolation scaling
             val variation =
@@ -414,7 +414,7 @@ class PRDetectionServiceTest {
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
-            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns 1L
+            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -441,7 +441,7 @@ class PRDetectionServiceTest {
                     actualRpe = 6f, // Too low for reliable 1RM estimate
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock exercise variation
             val variation =
@@ -457,7 +457,7 @@ class PRDetectionServiceTest {
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
-            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns 1L
+            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -481,8 +481,8 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
-            val workoutId = 2L
+            val exerciseVariationId = "1"
+            val workoutId = "2"
 
             // Mock exercise variation
             val variation =
@@ -498,7 +498,7 @@ class PRDetectionServiceTest {
             // Mock existing PR in the same workout (lower weight)
             val existingPRInWorkout =
                 PersonalRecord(
-                    id = 10,
+                    id = "10",
                     exerciseVariationId = exerciseVariationId,
                     weight = 95f, // Lower than new PR
                     reps = 5,
@@ -533,7 +533,7 @@ class PRDetectionServiceTest {
             assertThat(result[0].weight).isEqualTo(100f)
 
             // Verify old PR was deleted and new one inserted
-            coVerify { personalRecordDao.deletePR(10) }
+            coVerify { personalRecordDao.deletePR("10") }
             coVerify { personalRecordDao.insertPersonalRecord(any()) }
         }
 
@@ -548,7 +548,7 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock exercise variation
             val variation =
@@ -564,7 +564,7 @@ class PRDetectionServiceTest {
 
             // Mock workout data with invalid date format
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns "invalid-date-format"
-            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns 1L
+            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -586,7 +586,7 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock exercise variation
             val variation =
@@ -601,7 +601,7 @@ class PRDetectionServiceTest {
 
             coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.WEIGHT) } returns
                 PersonalRecord(
-                    id = 1,
+                    id = "1",
                     exerciseVariationId = exerciseVariationId,
                     weight = 100f,
                     reps = 5,
@@ -614,14 +614,14 @@ class PRDetectionServiceTest {
                     recordType = PRType.WEIGHT,
                     estimated1RM = null,
                     notes = null,
-                    workoutId = 1L,
+                    workoutId = "1",
                 )
 
             coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.ESTIMATED_1RM) } returns null
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
-            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns 2L
+            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "2"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -643,7 +643,7 @@ class PRDetectionServiceTest {
                     actualRpe = 7f, // Low effort (3 RIR)
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock exercise variation
             val variation =
@@ -665,7 +665,7 @@ class PRDetectionServiceTest {
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
-            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns 1L
+            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -690,7 +690,7 @@ class PRDetectionServiceTest {
                     actualRpe = 7f, // 3 RIR = 18 total capacity
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock exercise variation
             val variation =
@@ -706,7 +706,7 @@ class PRDetectionServiceTest {
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
-            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns 1L
+            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -728,7 +728,7 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock exercise variation
             val variation =
@@ -766,7 +766,7 @@ class PRDetectionServiceTest {
                     actualRpe = 10f, // True max effort
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock exercise variation
             val variation =
@@ -782,7 +782,7 @@ class PRDetectionServiceTest {
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
-            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns 1L
+            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -800,12 +800,12 @@ class PRDetectionServiceTest {
     fun `getRecentPRsForExercise returns PRs for specific exercise`() =
         runTest {
             // Arrange
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
             val limit = 5
             val expectedPRs =
                 listOf(
                     PersonalRecord(
-                        id = 1,
+                        id = "1",
                         exerciseVariationId = exerciseVariationId,
                         weight = 100f,
                         reps = 5,
@@ -818,10 +818,10 @@ class PRDetectionServiceTest {
                         recordType = PRType.WEIGHT,
                         estimated1RM = 112f,
                         notes = "Weight PR",
-                        workoutId = 1L,
+                        workoutId = "1",
                     ),
                     PersonalRecord(
-                        id = 2,
+                        id = "2",
                         exerciseVariationId = exerciseVariationId,
                         weight = 90f,
                         reps = 8,
@@ -834,7 +834,7 @@ class PRDetectionServiceTest {
                         recordType = PRType.ESTIMATED_1RM,
                         estimated1RM = 110f,
                         notes = "1RM PR",
-                        workoutId = 2L,
+                        workoutId = "2",
                     ),
                 )
 
@@ -854,7 +854,7 @@ class PRDetectionServiceTest {
     fun `getRecentPRsForExercise with default limit`() =
         runTest {
             // Arrange
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
             val expectedPRs = emptyList<PersonalRecord>()
 
             coEvery {
@@ -879,8 +879,8 @@ class PRDetectionServiceTest {
             val expectedPRs =
                 listOf(
                     PersonalRecord(
-                        id = 1,
-                        exerciseVariationId = 1L,
+                        id = "1",
+                        exerciseVariationId = "1",
                         weight = 100f,
                         reps = 5,
                         rpe = 8f,
@@ -892,11 +892,11 @@ class PRDetectionServiceTest {
                         recordType = PRType.WEIGHT,
                         estimated1RM = 112f,
                         notes = "Squat PR",
-                        workoutId = 1L,
+                        workoutId = "1",
                     ),
                     PersonalRecord(
-                        id = 2,
-                        exerciseVariationId = 2L,
+                        id = "2",
+                        exerciseVariationId = "2",
                         weight = 80f,
                         reps = 5,
                         rpe = 9f,
@@ -908,7 +908,7 @@ class PRDetectionServiceTest {
                         recordType = PRType.WEIGHT,
                         estimated1RM = 88f,
                         notes = "Bench PR",
-                        workoutId = 2L,
+                        workoutId = "2",
                     ),
                 )
 
@@ -949,7 +949,7 @@ class PRDetectionServiceTest {
                     actualRpe = 9f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock exercise variation
             val variation =
@@ -966,7 +966,7 @@ class PRDetectionServiceTest {
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
-            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns 1L
+            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)
@@ -988,7 +988,7 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = 1L
+            val exerciseVariationId = "1"
 
             // Mock null exercise variation
             coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns null
@@ -1000,7 +1000,7 @@ class PRDetectionServiceTest {
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
-            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns 1L
+            coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
             val result = service.checkForPR(setLog, exerciseVariationId)

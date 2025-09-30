@@ -111,6 +111,10 @@ class SyncViewModel(
                                             syncError = null,
                                         )
                                 }
+                                is SyncState.Skipped -> {
+                                    Log.i("SyncViewModel", "performBackgroundSync: Sync skipped - ${state.reason}")
+                                    // Don't update UI for skipped syncs
+                                }
                                 is SyncState.Error -> {
                                     Log.e("SyncViewModel", "performBackgroundSync: Backup error - ${state.message}")
                                     _uiState.value =
@@ -164,6 +168,13 @@ class SyncViewModel(
                                     lastSyncTime = formatTimestamp(state.timestamp),
                                     syncError = null,
                                 )
+                        }
+                        is SyncState.Skipped -> {
+                            _uiState.value =
+                                _uiState.value.copy(
+                                    isSyncing = false,
+                                )
+                            // Don't update timestamp for skipped syncs
                         }
                         is SyncState.Error -> {
                             _uiState.value =
@@ -293,6 +304,13 @@ class SyncViewModel(
                         lastSyncTime = formatTimestamp(syncState.timestamp),
                         syncError = null,
                     )
+            }
+            is SyncState.Skipped -> {
+                _uiState.value =
+                    _uiState.value.copy(
+                        isSyncing = false,
+                    )
+                // Don't update timestamp for skipped syncs
             }
             is SyncState.Error -> {
                 _uiState.value =

@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.IdGenerator
 
 @Entity(
     tableName = "set_logs",
@@ -18,9 +19,9 @@ import androidx.room.PrimaryKey
     ],
 )
 data class SetLog(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val exerciseLogId: Long,
+    val exerciseLogId: String,
     val setOrder: Int,
     // Target (what programme says to do) - nullable for freestyle workouts
     val targetReps: Int? = null,

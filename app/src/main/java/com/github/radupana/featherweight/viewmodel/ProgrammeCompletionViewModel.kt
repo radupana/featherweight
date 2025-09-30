@@ -21,7 +21,7 @@ class ProgrammeCompletionViewModel(
     private val _uiState = MutableStateFlow(ProgrammeCompletionUiState())
     val uiState: StateFlow<ProgrammeCompletionUiState> = _uiState.asStateFlow()
 
-    fun loadProgrammeCompletionStats(programmeId: Long) {
+    fun loadProgrammeCompletionStats(programmeId: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
@@ -44,7 +44,7 @@ class ProgrammeCompletionViewModel(
     }
 
     fun saveProgrammeNotes(
-        programmeId: Long,
+        programmeId: String,
         notes: String,
     ) {
         viewModelScope.launch {

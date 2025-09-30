@@ -2,6 +2,7 @@ package com.github.radupana.featherweight.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.IdGenerator
 import java.time.LocalDateTime
 
 enum class ProgressTrend {
@@ -25,10 +26,10 @@ enum class VolumeTrend {
     // Note: Removed foreign key since it can reference either system or custom exercises
 )
 data class GlobalExerciseProgress(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val exerciseVariationId: Long, // Can reference either system or custom exercise
+    val exerciseVariationId: String, // Can reference either system or custom exercise
     val isCustomExercise: Boolean = false, // true = custom exercise, false = system exercise
     val currentWorkingWeight: Float, // Most recent working weight
     val estimatedMax: Float, // Calculated or from UserExerciseMax
@@ -53,6 +54,6 @@ data class GlobalExerciseProgress(
     val lastProgressionDate: LocalDateTime? = null, // Last time weight increased
     val failureStreak: Int = 0, // Consecutive sessions with missed reps
     // Cross-workout tracking
-    val lastProgrammeWorkoutId: Long? = null, // Track if from programme
-    val lastFreestyleWorkoutId: Long? = null, // Track if from freestyle
+    val lastProgrammeWorkoutId: String? = null, // Track if from programme
+    val lastFreestyleWorkoutId: String? = null, // Track if from freestyle
 )

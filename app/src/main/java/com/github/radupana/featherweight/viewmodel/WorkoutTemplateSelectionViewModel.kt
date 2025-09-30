@@ -106,7 +106,7 @@ class WorkoutTemplateSelectionViewModel(
         _searchQuery.value = query
     }
 
-    fun deleteTemplate(templateId: Long) {
+    fun deleteTemplate(templateId: String) {
         viewModelScope.launch {
             Log.i(TAG, "Deleting template with ID: $templateId")
             try {

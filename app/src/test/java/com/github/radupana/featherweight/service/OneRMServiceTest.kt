@@ -519,13 +519,13 @@ class OneRMServiceTest {
 
         val record =
             service.createOneRMRecord(
-                exerciseId = 123L,
+                exerciseId = "123",
                 set = set,
                 estimate = 115f,
                 confidence = 0.85f,
             )
 
-        assertThat(record.exerciseVariationId).isEqualTo(123L)
+        assertThat(record.exerciseVariationId).isEqualTo("123")
         assertThat(record.mostWeightLifted).isEqualTo(100f)
         assertThat(record.mostWeightReps).isEqualTo(5)
         assertThat(record.mostWeightRpe).isEqualTo(8f)
@@ -554,7 +554,7 @@ class OneRMServiceTest {
 
         val record =
             service.createOneRMRecord(
-                exerciseId = 123L,
+                exerciseId = "123",
                 set = set,
                 estimate = 120f,
                 confidence = 0.9f,
@@ -579,7 +579,7 @@ class OneRMServiceTest {
 
         val record =
             service.createOneRMRecord(
-                exerciseId = 123L,
+                exerciseId = "123",
                 set = set,
                 estimate = 112f,
                 confidence = 0.7f,
@@ -705,7 +705,7 @@ class OneRMServiceTest {
 
         val record =
             service.createOneRMRecord(
-                exerciseId = 123L,
+                exerciseId = "123",
                 set = set,
                 estimate = estimate,
                 confidence = confidence,
@@ -820,8 +820,8 @@ class OneRMServiceTest {
         rpe: Float? = null,
     ): SetLog =
         SetLog(
-            id = 1L,
-            exerciseLogId = 1L,
+            id = "1",
+            exerciseLogId = "1",
             setOrder = 1,
             targetReps = reps,
             targetWeight = weight,

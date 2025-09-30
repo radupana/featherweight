@@ -40,14 +40,14 @@ class WorkoutRepositoryTest {
     private val testDispatcher = StandardTestDispatcher()
 
     // Storage for mock data
-    private val workouts = mutableMapOf<Long, Workout>()
-    private val exerciseLogs = mutableMapOf<Long, ExerciseLog>()
-    private val setLogs = mutableMapOf<Long, SetLog>()
-    private val programmes = mutableMapOf<Long, Programme>()
-    private var nextWorkoutId = 1L
-    private var nextExerciseId = 1L
-    private var nextSetId = 1L
-    private var nextProgrammeId = 1L
+    private val workouts = mutableMapOf<String, Workout>()
+    private val exerciseLogs = mutableMapOf<String, ExerciseLog>()
+    private val setLogs = mutableMapOf<String, SetLog>()
+    private val programmes = mutableMapOf<String, Programme>()
+    private var nextWorkoutIdCounter = 1
+    private var nextExerciseIdCounter = 1
+    private var nextSetIdCounter = 1
+    private var nextProgrammeIdCounter = 1
 
     @Before
     fun setup() {
@@ -91,18 +91,17 @@ class WorkoutRepositoryTest {
     private fun setupWorkoutDaoMocks() {
         coEvery { workoutDao.insertWorkout(any()) } answers {
             val workout = firstArg<Workout>()
-            val id = nextWorkoutId++
-            workouts[id] = workout.copy(id = id)
-            id
+            // DAO doesn't return ID anymore, the ID is already in the workout
+            workouts[workout.id] = workout
         }
 
         coEvery { workoutDao.getWorkoutById(any()) } answers {
-            val id = firstArg<Long>()
+            val id = firstArg<String>()
             workouts[id]
         }
 
         coEvery { workoutDao.deleteWorkout(any()) } answers {
-            val id = firstArg<Long>()
+            val id = firstArg<String>()
             workouts.remove(id)
         }
 
@@ -131,18 +130,16 @@ class WorkoutRepositoryTest {
     private fun setupExerciseLogDaoMocks() {
         coEvery { exerciseLogDao.insertExerciseLog(any()) } answers {
             val exerciseLog = firstArg<ExerciseLog>()
-            val id = nextExerciseId++
-            exerciseLogs[id] = exerciseLog.copy(id = id)
-            id
+            exerciseLogs[exerciseLog.id] = exerciseLog
         }
 
         coEvery { exerciseLogDao.getExerciseLogsForWorkout(any()) } answers {
-            val workoutId = firstArg<Long>()
+            val workoutId = firstArg<String>()
             exerciseLogs.values.filter { it.workoutId == workoutId }
         }
 
         coEvery { exerciseLogDao.deleteExerciseLog(any()) } answers {
-            val id = firstArg<Long>()
+            val id = firstArg<String>()
             exerciseLogs.remove(id)
         }
     }
@@ -150,18 +147,16 @@ class WorkoutRepositoryTest {
     private fun setupSetLogDaoMocks() {
         coEvery { setLogDao.insertSetLog(any()) } answers {
             val setLog = firstArg<SetLog>()
-            val id = nextSetId++
-            setLogs[id] = setLog.copy(id = id)
-            id
+            setLogs[setLog.id] = setLog
         }
 
         coEvery { setLogDao.getSetLogsForExercise(any()) } answers {
-            val exerciseLogId = firstArg<Long>()
+            val exerciseLogId = firstArg<String>()
             setLogs.values.filter { it.exerciseLogId == exerciseLogId }
         }
 
         coEvery { setLogDao.deleteSetLog(any()) } answers {
-            val id = firstArg<Long>()
+            val id = firstArg<String>()
             setLogs.remove(id)
         }
     }
@@ -169,13 +164,11 @@ class WorkoutRepositoryTest {
     private fun setupProgrammeDaoMocks() {
         coEvery { programmeDao.insertProgramme(any<Programme>()) } answers {
             val programme = firstArg<Programme>()
-            val id = nextProgrammeId++
-            programmes[id] = programme.copy(id = id)
-            id
+            programmes[programme.id] = programme
         }
 
-        coEvery { programmeDao.getProgrammeById(any<Long>()) } answers {
-            val id = firstArg<Long>()
+        coEvery { programmeDao.getProgrammeById(any<String>()) } answers {
+            val id = firstArg<String>()
             programmes[id]
         }
     }
@@ -195,7 +188,7 @@ class WorkoutRepositoryTest {
             val id = repository.createWorkout(workout)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            assertThat(id).isGreaterThan(0)
+            assertThat(id).isNotNull()
             val retrieved = repository.getWorkoutById(id)
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -207,7 +200,7 @@ class WorkoutRepositoryTest {
     @Test
     fun `getWorkoutById should return null for non-existent workout`() =
         runTest(testDispatcher) {
-            val result = repository.getWorkoutById(999)
+            val result = repository.getWorkoutById("999")
             testDispatcher.scheduler.advanceUntilIdle()
 
             assertThat(result).isNull()
@@ -224,17 +217,17 @@ class WorkoutRepositoryTest {
                     date = LocalDateTime.now(),
                     status = WorkoutStatus.IN_PROGRESS,
                 )
-            val workoutId = nextWorkoutId++
+            val workoutId = (nextWorkoutIdCounter++).toString()
             workouts[workoutId] = workout.copy(id = workoutId)
 
             // Add exercise
             val exerciseLog =
                 ExerciseLog(
                     workoutId = workoutId,
-                    exerciseVariationId = 1,
+                    exerciseVariationId = "1",
                     exerciseOrder = 1,
                 )
-            val exerciseId = nextExerciseId++
+            val exerciseId = (nextExerciseIdCounter++).toString()
             exerciseLogs[exerciseId] = exerciseLog.copy(id = exerciseId)
 
             // Add sets
@@ -247,7 +240,7 @@ class WorkoutRepositoryTest {
                     actualReps = 10,
                     actualWeight = 100f,
                 )
-            val setId = nextSetId++
+            val setId = (nextSetIdCounter++).toString()
             setLogs[setId] = set1.copy(id = setId)
 
             val workoutToDelete = workouts[workoutId]!!
@@ -264,7 +257,7 @@ class WorkoutRepositoryTest {
     fun `deleteWorkoutById should handle non-existent workout gracefully`() =
         runTest(testDispatcher) {
             // Should not throw exception
-            repository.deleteWorkoutById(999)
+            repository.deleteWorkoutById("999")
             testDispatcher.scheduler.advanceUntilIdle()
         }
 
@@ -277,7 +270,7 @@ class WorkoutRepositoryTest {
                     date = LocalDateTime.now(),
                     status = WorkoutStatus.NOT_STARTED,
                 )
-            val id = nextWorkoutId++
+            val id = (nextWorkoutIdCounter++).toString()
             workouts[id] = workout.copy(id = id)
 
             repository.updateWorkoutStatus(id, WorkoutStatus.IN_PROGRESS)
@@ -296,7 +289,7 @@ class WorkoutRepositoryTest {
                     date = LocalDateTime.now(),
                     status = WorkoutStatus.IN_PROGRESS,
                 )
-            val id = nextWorkoutId++
+            val id = (nextWorkoutIdCounter++).toString()
             workouts[id] = workout.copy(id = id)
 
             repository.completeWorkout(id, duration = 3600)
@@ -304,13 +297,13 @@ class WorkoutRepositoryTest {
 
             val completed = workouts[id]
             assertThat(completed?.status).isEqualTo(WorkoutStatus.COMPLETED)
-            assertThat(completed?.durationSeconds).isEqualTo(3600)
+            assertThat(completed?.durationSeconds).isEqualTo("3600")
         }
 
     @Test
     fun `completeWorkout should handle missing workout gracefully`() =
         runTest(testDispatcher) {
-            repository.completeWorkout(999, duration = 1000)
+            repository.completeWorkout("999", duration = 1000)
             testDispatcher.scheduler.advanceUntilIdle()
             // Should not throw exception
         }
@@ -318,39 +311,36 @@ class WorkoutRepositoryTest {
     @Test
     fun `getExerciseLogsForWorkout should return all exercises for workout`() =
         runTest(testDispatcher) {
-            val workoutId =
-                database.workoutDao().insertWorkout(
-                    Workout(userId = null, name = "Test", date = LocalDateTime.now(), status = WorkoutStatus.IN_PROGRESS),
-                )
+            val workout = Workout(userId = null, name = "Test", date = LocalDateTime.now(), status = WorkoutStatus.IN_PROGRESS)
+            val workoutId = workout.id
+            workouts[workoutId] = workout
 
-            val exercise1 = ExerciseLog(workoutId = workoutId, exerciseVariationId = 1, exerciseOrder = 1)
-            val exercise2 = ExerciseLog(workoutId = workoutId, exerciseVariationId = 2, exerciseOrder = 2)
-            database.exerciseLogDao().insertExerciseLog(exercise1)
-            database.exerciseLogDao().insertExerciseLog(exercise2)
+            val exercise1 = ExerciseLog(workoutId = workoutId, exerciseVariationId = "1", exerciseOrder = 1)
+            val exercise2 = ExerciseLog(workoutId = workoutId, exerciseVariationId = "2", exerciseOrder = 2)
+            exerciseLogs[exercise1.id] = exercise1
+            exerciseLogs[exercise2.id] = exercise2
 
             val exercises = repository.getExerciseLogsForWorkout(workoutId)
 
             assertThat(exercises).hasSize(2)
-            assertThat(exercises[0].exerciseVariationId).isEqualTo(1)
-            assertThat(exercises[1].exerciseVariationId).isEqualTo(2)
+            assertThat(exercises[0].exerciseVariationId).isEqualTo("1")
+            assertThat(exercises[1].exerciseVariationId).isEqualTo("2")
         }
 
     @Test
     fun `getSetLogsForExercise should return all sets for exercise`() =
         runTest(testDispatcher) {
-            val workoutId =
-                database.workoutDao().insertWorkout(
-                    Workout(userId = null, name = "Test", date = LocalDateTime.now(), status = WorkoutStatus.IN_PROGRESS),
-                )
-            val exerciseId =
-                database.exerciseLogDao().insertExerciseLog(
-                    ExerciseLog(workoutId = workoutId, exerciseVariationId = 1, exerciseOrder = 1),
-                )
+            val workout = Workout(userId = null, name = "Test", date = LocalDateTime.now(), status = WorkoutStatus.IN_PROGRESS)
+            val workoutId = workout.id
+            workouts[workoutId] = workout
+            val exercise = ExerciseLog(workoutId = workoutId, exerciseVariationId = "1", exerciseOrder = 1)
+            val exerciseId = exercise.id
+            exerciseLogs[exerciseId] = exercise
 
             val set1 = SetLog(exerciseLogId = exerciseId, setOrder = 1, targetReps = 10)
             val set2 = SetLog(exerciseLogId = exerciseId, setOrder = 2, targetReps = 8)
-            database.setLogDao().insertSetLog(set1)
-            database.setLogDao().insertSetLog(set2)
+            setLogs[set1.id] = set1
+            setLogs[set2.id] = set2
 
             val sets = repository.getSetLogsForExercise(exerciseId)
 
@@ -370,10 +360,10 @@ class WorkoutRepositoryTest {
                     name = "Completed",
                     date = now.minusDays(2),
                     status = WorkoutStatus.COMPLETED,
-                    durationSeconds = 3600,
+                    durationSeconds = "3600",
                     userId = "test-user-id",
                 )
-            database.workoutDao().insertWorkout(workout1)
+            workouts[workout1.id] = workout1
 
             // Create in-progress workout with exercises
             val workout2 =
@@ -383,14 +373,13 @@ class WorkoutRepositoryTest {
                     status = WorkoutStatus.IN_PROGRESS,
                     userId = "test-user-id",
                 )
-            val id2 = database.workoutDao().insertWorkout(workout2)
-            val exerciseId =
-                database.exerciseLogDao().insertExerciseLog(
-                    ExerciseLog(workoutId = id2, exerciseVariationId = 1, exerciseOrder = 1),
-                )
-            database.setLogDao().insertSetLog(
-                SetLog(exerciseLogId = exerciseId, setOrder = 1, targetReps = 10, actualReps = 10, actualWeight = 100f, isCompleted = true),
-            )
+            val id2 = workout2.id
+            workouts[id2] = workout2
+            val exercise = ExerciseLog(workoutId = id2, exerciseVariationId = "1", exerciseOrder = 1)
+            val exerciseId = exercise.id
+            exerciseLogs[exerciseId] = exercise
+            val set = SetLog(exerciseLogId = exerciseId, setOrder = 1, targetReps = 10, actualReps = 10, actualWeight = 100f, isCompleted = true)
+            setLogs[set.id] = set
 
             // Create template (should be excluded)
             val template =
@@ -401,7 +390,7 @@ class WorkoutRepositoryTest {
                     isTemplate = true,
                     userId = "test-user-id",
                 )
-            database.workoutDao().insertWorkout(template)
+            workouts[template.id] = template
 
             val history = repository.getWorkoutHistory()
 
@@ -422,7 +411,7 @@ class WorkoutRepositoryTest {
                     status = WorkoutStatus.NOT_STARTED,
                     userId = "test-user-id",
                 )
-            val id = nextWorkoutId++
+            val id = (nextWorkoutIdCounter++).toString()
             workouts[id] = workout.copy(id = id)
 
             val history = repository.getWorkoutHistory()
@@ -444,7 +433,7 @@ class WorkoutRepositoryTest {
                     difficulty = ProgrammeDifficulty.INTERMEDIATE,
                     createdAt = LocalDateTime.now(),
                 )
-            val programmeId = nextProgrammeId++
+            val programmeId = (nextProgrammeIdCounter++).toString()
             programmes[programmeId] = programme.copy(id = programmeId)
 
             // Create programme workout
@@ -460,7 +449,7 @@ class WorkoutRepositoryTest {
                     weekNumber = 1,
                     dayNumber = 1,
                 )
-            val id = nextWorkoutId++
+            val id = (nextWorkoutIdCounter++).toString()
             workouts[id] = workout.copy(id = id)
 
             val history = repository.getWorkoutHistory()
@@ -484,28 +473,24 @@ class WorkoutRepositoryTest {
                     date = LocalDateTime.now(),
                     status = WorkoutStatus.COMPLETED,
                 )
-            val workoutId = database.workoutDao().insertWorkout(workout)
+            val workoutId = workout.id
+            workouts[workoutId] = workout
 
             // Add exercise with completed sets
-            val exerciseId =
-                database.exerciseLogDao().insertExerciseLog(
-                    ExerciseLog(workoutId = workoutId, exerciseVariationId = 1, exerciseOrder = 1),
-                )
-            database.setLogDao().insertSetLog(
-                SetLog(exerciseLogId = exerciseId, setOrder = 1, targetReps = 10, actualReps = 10, actualWeight = 100f, actualRpe = 7f),
-            )
-            database.setLogDao().insertSetLog(
-                SetLog(exerciseLogId = exerciseId, setOrder = 2, targetReps = 8, actualReps = 8, actualWeight = 100f, actualRpe = 8f),
-            )
+            val exercise = ExerciseLog(workoutId = workoutId, exerciseVariationId = "1", exerciseOrder = 1)
+            val exerciseId = exercise.id
+            exerciseLogs[exerciseId] = exercise
+            val set1 = SetLog(exerciseLogId = exerciseId, setOrder = 1, targetReps = 10, actualReps = 10, actualWeight = 100f, actualRpe = 7f)
+            setLogs[set1.id] = set1
+            val set2 = SetLog(exerciseLogId = exerciseId, setOrder = 2, targetReps = 8, actualReps = 8, actualWeight = 100f, actualRpe = 8f)
+            setLogs[set2.id] = set2
 
             // Add exercise with no completed sets (should be skipped)
-            val emptyExerciseId =
-                database.exerciseLogDao().insertExerciseLog(
-                    ExerciseLog(workoutId = workoutId, exerciseVariationId = 2, exerciseOrder = 2),
-                )
-            database.setLogDao().insertSetLog(
-                SetLog(exerciseLogId = emptyExerciseId, setOrder = 1, targetReps = 10, actualReps = 0, actualWeight = 0f),
-            )
+            val emptyExercise = ExerciseLog(workoutId = workoutId, exerciseVariationId = "2", exerciseOrder = 2)
+            val emptyExerciseId = emptyExercise.id
+            exerciseLogs[emptyExerciseId] = emptyExercise
+            val emptySet = SetLog(exerciseLogId = emptyExerciseId, setOrder = 1, targetReps = 10, actualReps = 0, actualWeight = 0f)
+            setLogs[emptySet.id] = emptySet
 
             val templateId =
                 repository.createTemplateFromWorkout(
@@ -516,7 +501,7 @@ class WorkoutRepositoryTest {
             testDispatcher.scheduler.advanceUntilIdle()
 
             // Verify template was created
-            val template = database.workoutDao().getWorkoutById(templateId)
+            val template = workouts[templateId]
             assertThat(template).isNotNull()
             assertThat(template?.name).isEqualTo("My Template")
             assertThat(template?.notes).isEqualTo("Test template")
@@ -526,7 +511,7 @@ class WorkoutRepositoryTest {
             // Verify exercises were copied (only one with completed sets)
             val templateExercises = database.exerciseLogDao().getExerciseLogsForWorkout(templateId)
             assertThat(templateExercises).hasSize(1)
-            assertThat(templateExercises[0].exerciseVariationId).isEqualTo(1)
+            assertThat(templateExercises[0].exerciseVariationId).isEqualTo("1")
 
             // Verify sets were copied with actual values as targets
             val templateSets = database.setLogDao().getSetLogsForExercise(templateExercises[0].id)
@@ -543,23 +528,23 @@ class WorkoutRepositoryTest {
     fun `getTemplates should return only template workouts`() =
         runTest(testDispatcher) {
             // Create regular workout
-            val regularId = nextWorkoutId++
+            val regularId = (nextWorkoutIdCounter++).toString()
             workouts[regularId] = Workout(id = regularId, userId = "test-user-id", name = "Regular", date = LocalDateTime.now(), status = WorkoutStatus.COMPLETED)
 
             // Create templates
-            val template1Id = nextWorkoutId++
+            val template1Id = (nextWorkoutIdCounter++).toString()
             workouts[template1Id] = Workout(id = template1Id, userId = "test-user-id", name = "Template 1", date = LocalDateTime.now().minusDays(1), status = WorkoutStatus.TEMPLATE, isTemplate = true)
 
-            val template2Id = nextWorkoutId++
+            val template2Id = (nextWorkoutIdCounter++).toString()
             workouts[template2Id] = Workout(id = template2Id, userId = "test-user-id", name = "Template 2", date = LocalDateTime.now(), status = WorkoutStatus.TEMPLATE, isTemplate = true, notes = "Description")
 
             // Add exercises to template 2
-            val exerciseLog = ExerciseLog(workoutId = template2Id, exerciseVariationId = 1, exerciseOrder = 1)
-            val exerciseId = nextExerciseId++
+            val exerciseLog = ExerciseLog(workoutId = template2Id, exerciseVariationId = "1", exerciseOrder = 1)
+            val exerciseId = (nextExerciseIdCounter++).toString()
             exerciseLogs[exerciseId] = exerciseLog.copy(id = exerciseId)
 
             val setLog = SetLog(exerciseLogId = exerciseId, setOrder = 1, targetReps = 10)
-            val setId = nextSetId++
+            val setId = (nextSetIdCounter++).toString()
             setLogs[setId] = setLog.copy(id = setId)
 
             val templates = repository.getTemplates()
@@ -577,18 +562,18 @@ class WorkoutRepositoryTest {
     fun `startWorkoutFromTemplate should create new workout with exercises and sets`() =
         runTest(testDispatcher) {
             // Create template
-            val templateId = nextWorkoutId++
+            val templateId = (nextWorkoutIdCounter++).toString()
             workouts[templateId] = Workout(id = templateId, userId = null, name = "Template", date = LocalDateTime.now(), status = WorkoutStatus.TEMPLATE, isTemplate = true)
 
             // Add exercises and sets to template
-            val exerciseLog = ExerciseLog(workoutId = templateId, exerciseVariationId = 1, exerciseOrder = 1)
-            val exerciseId = nextExerciseId++
+            val exerciseLog = ExerciseLog(workoutId = templateId, exerciseVariationId = "1", exerciseOrder = 1)
+            val exerciseId = (nextExerciseIdCounter++).toString()
             exerciseLogs[exerciseId] = exerciseLog.copy(id = exerciseId)
 
             val set1 = SetLog(exerciseLogId = exerciseId, setOrder = 1, targetReps = 10, targetWeight = 100f, targetRpe = 7f)
             val set2 = SetLog(exerciseLogId = exerciseId, setOrder = 2, targetReps = 8, targetWeight = 110f, targetRpe = 8f)
-            val setId1 = nextSetId++
-            val setId2 = nextSetId++
+            val setId1 = (nextSetIdCounter++).toString()
+            val setId2 = (nextSetIdCounter++).toString()
             setLogs[setId1] = set1.copy(id = setId1)
             setLogs[setId2] = set2.copy(id = setId2)
 
@@ -606,7 +591,7 @@ class WorkoutRepositoryTest {
             // Verify exercises were copied
             val newExercises = exerciseLogs.values.filter { it.workoutId == newWorkoutId }
             assertThat(newExercises).hasSize(1)
-            assertThat(newExercises[0].exerciseVariationId).isEqualTo(1)
+            assertThat(newExercises[0].exerciseVariationId).isEqualTo("1")
 
             // Verify sets were copied with targets but no actuals
             val newSets = setLogs.values.filter { it.exerciseLogId == newExercises[0].id }
@@ -624,7 +609,7 @@ class WorkoutRepositoryTest {
     fun `startWorkoutFromTemplate should throw exception for invalid template`() =
         runTest(testDispatcher) {
             // Create non-template workout
-            val regularWorkoutId = nextWorkoutId++
+            val regularWorkoutId = (nextWorkoutIdCounter++).toString()
             workouts[regularWorkoutId] = Workout(id = regularWorkoutId, userId = null, name = "Regular", date = LocalDateTime.now(), status = WorkoutStatus.COMPLETED)
 
             try {
@@ -641,7 +626,7 @@ class WorkoutRepositoryTest {
     fun `startWorkoutFromTemplate should throw exception for non-existent template`() =
         runTest(testDispatcher) {
             try {
-                repository.startWorkoutFromTemplate(999)
+                repository.startWorkoutFromTemplate("999")
                 testDispatcher.scheduler.advanceUntilIdle()
                 // Should not reach here
                 assertThat(false).isTrue()

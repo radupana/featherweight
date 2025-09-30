@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.data.exercise
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.IdGenerator
 import java.time.LocalDateTime
 
 /**
@@ -11,18 +12,17 @@ import java.time.LocalDateTime
 @Entity(
     tableName = "user_exercise_usage",
     indices = [
-        Index(value = ["userId", "exerciseVariationId", "isCustomExercise"], unique = true),
+        Index(value = ["userId", "exerciseVariationId"], unique = true),
         Index(value = ["userId", "usageCount"]),
         Index(value = ["userId", "lastUsedAt"]),
         Index(value = ["userId", "favorited"]),
     ],
 )
 data class UserExerciseUsage(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
     val userId: String,
-    val exerciseVariationId: Long,
-    val isCustomExercise: Boolean = false,
+    val exerciseVariationId: String,
     val usageCount: Int = 0,
     val favorited: Boolean = false,
     val lastUsedAt: LocalDateTime? = null,

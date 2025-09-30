@@ -13,7 +13,7 @@ class ExerciseProgressionTest {
     fun `personal record should be higher than previous weight`() {
         val previousPR =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 100f,
                 reps = 1,
                 recordType = PRType.WEIGHT,
@@ -27,7 +27,7 @@ class ExerciseProgressionTest {
 
         val newPR =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 105f,
                 reps = 1,
                 recordType = PRType.WEIGHT,
@@ -49,7 +49,7 @@ class ExerciseProgressionTest {
     fun `estimated 1RM PR with higher volume is tracked correctly`() {
         val estimated1RMPR =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 80f,
                 reps = 12,
                 recordType = PRType.ESTIMATED_1RM,
@@ -72,7 +72,7 @@ class ExerciseProgressionTest {
     fun `estimated 1RM PR tracks properly`() {
         val oneRMPR =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 90f,
                 reps = 5,
                 recordType = PRType.ESTIMATED_1RM,
@@ -93,7 +93,7 @@ class ExerciseProgressionTest {
     fun `global exercise progress tracking`() {
         val progress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 100f,
                 estimatedMax = 110f,
                 lastUpdated = LocalDateTime.now(),
@@ -113,7 +113,7 @@ class ExerciseProgressionTest {
     fun `stalling detection works correctly`() {
         val stallingProgress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 80f,
                 estimatedMax = 85f,
                 lastUpdated = LocalDateTime.now(),
@@ -133,7 +133,7 @@ class ExerciseProgressionTest {
     fun `declining trend detection`() {
         val decliningProgress =
             GlobalExerciseProgress(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 currentWorkingWeight = 70f,
                 estimatedMax = 75f,
                 lastUpdated = LocalDateTime.now(),

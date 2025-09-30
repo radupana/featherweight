@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.data.profile
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.IdGenerator
 import java.time.LocalDateTime
 
 @Entity(
@@ -14,11 +15,10 @@ import java.time.LocalDateTime
     ],
 )
 data class OneRMHistory(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val exerciseVariationId: Long, // Can reference either system or custom exercise
-    val isCustomExercise: Boolean = false, // true = custom exercise, false = system exercise
+    val exerciseVariationId: String, // References exercise_variations table
     val oneRMEstimate: Float,
     val context: String, // e.g., "140kg × 3 @ RPE 8"
     val recordedAt: LocalDateTime = LocalDateTime.now(),

@@ -11,13 +11,13 @@ import androidx.room.Query
 @Dao
 interface VariationAliasDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAlias(alias: VariationAlias): Long
+    suspend fun insertAlias(alias: VariationAlias)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAliases(aliases: List<VariationAlias>): List<Long>
+    suspend fun insertAliases(aliases: List<VariationAlias>)
 
     @Query("SELECT * FROM variation_aliases WHERE variationId = :variationId")
-    suspend fun getAliasesForVariation(variationId: Long): List<VariationAlias>
+    suspend fun getAliasesForVariation(variationId: String): List<VariationAlias>
 
     @Query(
         """
@@ -33,8 +33,8 @@ interface VariationAliasDao {
     suspend fun getAllAliases(): List<VariationAlias>
 
     @Query("SELECT * FROM variation_aliases WHERE id = :id")
-    suspend fun getAliasById(id: Long): VariationAlias?
+    suspend fun getAliasById(id: String): VariationAlias?
 
     @Query("DELETE FROM variation_aliases WHERE variationId = :variationId")
-    suspend fun deleteForVariation(variationId: Long)
+    suspend fun deleteForVariation(variationId: String)
 }

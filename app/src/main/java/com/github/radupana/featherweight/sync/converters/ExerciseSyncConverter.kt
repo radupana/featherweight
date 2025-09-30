@@ -1,7 +1,5 @@
 package com.github.radupana.featherweight.sync.converters
 
-import com.github.radupana.featherweight.data.exercise.CustomExerciseCore
-import com.github.radupana.featherweight.data.exercise.CustomExerciseVariation
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseCore
@@ -19,6 +17,7 @@ import com.github.radupana.featherweight.sync.models.FirestoreInstruction
 import com.github.radupana.featherweight.sync.models.FirestoreMuscle
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.util.UUID
 
 /**
  * Converts between denormalized Firestore exercise models and normalized SQLite entities.
@@ -115,11 +114,11 @@ class ExerciseSyncConverter {
 
         /**
          * Converts normalized SQLite entities to a denormalized Firestore exercise.
-         * Used for syncing custom exercises to Firestore.
+         * Used for syncing exercises to Firestore.
          */
         fun toFirestore(
-            core: CustomExerciseCore,
-            variation: CustomExerciseVariation,
+            core: ExerciseCore,
+            variation: ExerciseVariation,
             muscles: List<VariationMuscle>,
             aliases: List<VariationAlias>,
             instructions: List<VariationInstruction>,
@@ -159,10 +158,18 @@ class ExerciseSyncConverter {
             )
 
         /**
-         * Generates a stable ID based on a seed string.
-         * This ensures the same exercise always gets the same ID.
+         * Generates a stable UUID based on a seed string.
+         * This ensures the same exercise always gets the same UUID.
+         * Uses UUID v5 (name-based) for deterministic generation.
          */
-        private fun generateStableId(seed: String): Long = seed.hashCode().toLong() and 0x7FFFFFFF
+        private fun generateStableId(seed: String): String {
+            // Use a namespace UUID for Featherweight exercises
+            val namespace = UUID.fromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+            return UUID
+                .nameUUIDFromBytes(
+                    (namespace.toString() + seed).toByteArray(Charsets.UTF_8),
+                ).toString()
+        }
 
         private fun parseTimestamp(timestamp: String?): LocalDateTime =
             timestamp?.let {

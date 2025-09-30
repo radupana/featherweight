@@ -9,11 +9,11 @@ import java.time.LocalDateTime
 @Dao
 interface PersonalRecordDao {
     @Insert
-    suspend fun insertPersonalRecord(personalRecord: PersonalRecord): Long
+    suspend fun insertPersonalRecord(personalRecord: PersonalRecord)
 
     @Query("SELECT * FROM personal_records WHERE exerciseVariationId = :exerciseVariationId ORDER BY recordDate DESC LIMIT :limit")
     suspend fun getRecentPRsForExercise(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         limit: Int = 5,
     ): List<PersonalRecord>
 
@@ -44,7 +44,7 @@ interface PersonalRecordDao {
     """,
     )
     suspend fun getLatestPRForExerciseAndType(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         recordType: PRType,
     ): PersonalRecord?
 
@@ -56,7 +56,7 @@ interface PersonalRecordDao {
         AND recordType = 'WEIGHT'
     """,
     )
-    suspend fun getMaxWeightForExercise(exerciseVariationId: Long): Float?
+    suspend fun getMaxWeightForExercise(exerciseVariationId: String): Float?
 
     @Query(
         """
@@ -66,7 +66,7 @@ interface PersonalRecordDao {
         AND estimated1RM IS NOT NULL
     """,
     )
-    suspend fun getMaxEstimated1RMForExercise(exerciseVariationId: Long): Float?
+    suspend fun getMaxEstimated1RMForExercise(exerciseVariationId: String): Float?
 
     @Query(
         """
@@ -76,7 +76,7 @@ interface PersonalRecordDao {
         LIMIT 1
     """,
     )
-    suspend fun getLatestRecordForExercise(exerciseVariationId: Long): PersonalRecord?
+    suspend fun getLatestRecordForExercise(exerciseVariationId: String): PersonalRecord?
 
     @Query("DELETE FROM personal_records")
     suspend fun deleteAllPersonalRecords()
@@ -94,7 +94,7 @@ interface PersonalRecordDao {
         ORDER BY recordDate DESC
     """,
     )
-    suspend fun getPersonalRecordsForWorkout(workoutId: Long): List<PersonalRecord>
+    suspend fun getPersonalRecordsForWorkout(workoutId: String): List<PersonalRecord>
 
     @Query(
         """
@@ -106,13 +106,13 @@ interface PersonalRecordDao {
     """,
     )
     suspend fun getPRForExerciseInWorkout(
-        workoutId: Long,
-        exerciseVariationId: Long,
+        workoutId: String,
+        exerciseVariationId: String,
         recordType: PRType,
     ): PersonalRecord?
 
     @Query("DELETE FROM personal_records WHERE id = :prId")
-    suspend fun deletePR(prId: Long)
+    suspend fun deletePR(prId: String)
 
     @Query(
         """
@@ -131,7 +131,7 @@ interface PersonalRecordDao {
     suspend fun getAllPersonalRecords(): List<PersonalRecord>
 
     @Query("SELECT * FROM personal_records WHERE id = :id")
-    suspend fun getPersonalRecordById(id: Long): PersonalRecord?
+    suspend fun getPersonalRecordById(id: String): PersonalRecord?
 
     @androidx.room.Update
     suspend fun updatePersonalRecord(record: PersonalRecord)

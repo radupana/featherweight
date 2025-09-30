@@ -9,8 +9,8 @@ class ProgrammeDataModelsTest {
     fun programmeWeek_withAllData_shouldStoreCorrectly() {
         val week =
             ProgrammeWeek(
-                id = 1L,
-                programmeId = 10L,
+                id = "1",
+                programmeId = "10",
                 weekNumber = 1,
                 name = "Foundation Week",
                 description = "Build base strength",
@@ -21,8 +21,8 @@ class ProgrammeDataModelsTest {
                 phase = "Foundation",
             )
 
-        assertThat(week.id).isEqualTo(1L)
-        assertThat(week.programmeId).isEqualTo(10L)
+        assertThat(week.id).isEqualTo("1")
+        assertThat(week.programmeId).isEqualTo("10")
         assertThat(week.weekNumber).isEqualTo(1)
         assertThat(week.name).isEqualTo("Foundation Week")
         assertThat(week.description).isEqualTo("Build base strength")
@@ -37,7 +37,7 @@ class ProgrammeDataModelsTest {
     fun programmeWeek_withDeloadWeek_shouldIdentifyAsDeload() {
         val week =
             ProgrammeWeek(
-                programmeId = 5L,
+                programmeId = "5",
                 weekNumber = 4,
                 name = "Deload Week",
                 description = "Recovery week",
@@ -57,7 +57,7 @@ class ProgrammeDataModelsTest {
     fun programmeWeek_withNullOptionalFields_shouldHandleMissingData() {
         val week =
             ProgrammeWeek(
-                programmeId = 3L,
+                programmeId = "3",
                 weekNumber = 2,
                 name = null,
                 description = null,
@@ -80,7 +80,7 @@ class ProgrammeDataModelsTest {
     fun programmeWeek_withHighIntensity_shouldStoreCorrectly() {
         val week =
             ProgrammeWeek(
-                programmeId = 7L,
+                programmeId = "7",
                 weekNumber = 3,
                 name = "Peak Week",
                 description = "Maximum intensity",
@@ -100,7 +100,7 @@ class ProgrammeDataModelsTest {
     fun programmeWeek_dataClassCopy_shouldWorkCorrectly() {
         val original =
             ProgrammeWeek(
-                programmeId = 1L,
+                programmeId = "1",
                 weekNumber = 1,
                 name = "Week 1",
                 description = "Introduction",
@@ -129,8 +129,8 @@ class ProgrammeDataModelsTest {
     fun programmeWorkout_withAllData_shouldStoreCorrectly() {
         val workout =
             ProgrammeWorkout(
-                id = 1L,
-                weekId = 10L,
+                id = "1",
+                weekId = "10",
                 dayNumber = 1,
                 name = "Upper Power",
                 description = "Heavy upper body workout",
@@ -138,8 +138,8 @@ class ProgrammeDataModelsTest {
                 workoutStructure = "{\"exercises\":[{\"name\":\"Bench Press\",\"sets\":5,\"reps\":\"3-5\"}]}",
             )
 
-        assertThat(workout.id).isEqualTo(1L)
-        assertThat(workout.weekId).isEqualTo(10L)
+        assertThat(workout.id).isEqualTo("1")
+        assertThat(workout.weekId).isEqualTo("10")
         assertThat(workout.dayNumber).isEqualTo(1)
         assertThat(workout.name).isEqualTo("Upper Power")
         assertThat(workout.description).isEqualTo("Heavy upper body workout")
@@ -154,7 +154,7 @@ class ProgrammeDataModelsTest {
         validDays.forEach { day ->
             val workout =
                 ProgrammeWorkout(
-                    weekId = 1L,
+                    weekId = "1",
                     dayNumber = day,
                     name = "Day $day Workout",
                     description = null,
@@ -171,7 +171,7 @@ class ProgrammeDataModelsTest {
     fun programmeWorkout_withNullDescription_shouldHandleMissingData() {
         val workout =
             ProgrammeWorkout(
-                weekId = 5L,
+                weekId = "5",
                 dayNumber = 3,
                 name = "Quick Workout",
                 description = null,
@@ -187,7 +187,7 @@ class ProgrammeDataModelsTest {
     fun programmeWorkout_withLongDuration_shouldHandleExtendedWorkouts() {
         val workout =
             ProgrammeWorkout(
-                weekId = 2L,
+                weekId = "2",
                 dayNumber = 6,
                 name = "Saturday Marathon Session",
                 description = "Long volume day",
@@ -203,8 +203,8 @@ class ProgrammeDataModelsTest {
         val now = LocalDateTime.now()
         val progress =
             ProgrammeProgress(
-                id = 1L,
-                programmeId = 10L,
+                id = "1",
+                programmeId = "10",
                 currentWeek = 3,
                 currentDay = 2,
                 completedWorkouts = 8,
@@ -214,8 +214,8 @@ class ProgrammeDataModelsTest {
                 strengthProgress = "{\"squat\":\"120kg\",\"bench\":\"90kg\"}",
             )
 
-        assertThat(progress.id).isEqualTo(1L)
-        assertThat(progress.programmeId).isEqualTo(10L)
+        assertThat(progress.id).isEqualTo("1")
+        assertThat(progress.programmeId).isEqualTo("10")
         assertThat(progress.currentWeek).isEqualTo(3)
         assertThat(progress.currentDay).isEqualTo(2)
         assertThat(progress.completedWorkouts).isEqualTo(8)
@@ -229,7 +229,7 @@ class ProgrammeDataModelsTest {
     fun programmeProgress_withZeroProgress_shouldHandleNewProgramme() {
         val progress =
             ProgrammeProgress(
-                programmeId = 5L,
+                programmeId = "5",
                 currentWeek = 1,
                 currentDay = 1,
                 completedWorkouts = 0,
@@ -249,7 +249,7 @@ class ProgrammeDataModelsTest {
     fun programmeProgress_withPerfectAdherence_shouldShow100Percent() {
         val progress =
             ProgrammeProgress(
-                programmeId = 3L,
+                programmeId = "3",
                 currentWeek = 4,
                 currentDay = 3,
                 completedWorkouts = 12,
@@ -267,7 +267,7 @@ class ProgrammeDataModelsTest {
     fun programmeProgress_calculatedCompletion_shouldMatchPercentage() {
         val progress =
             ProgrammeProgress(
-                programmeId = 7L,
+                programmeId = "7",
                 currentWeek = 6,
                 currentDay = 2,
                 completedWorkouts = 17,
@@ -285,7 +285,7 @@ class ProgrammeDataModelsTest {
     fun programmeWithDetails_shouldCombineAllData() {
         val programme =
             Programme(
-                id = 1L,
+                id = "1",
                 name = "Test Programme",
                 description = "Test",
                 durationWeeks = 4,
@@ -295,8 +295,8 @@ class ProgrammeDataModelsTest {
 
         val week1 =
             ProgrammeWeek(
-                id = 1L,
-                programmeId = 1L,
+                id = "1",
+                programmeId = "1",
                 weekNumber = 1,
                 name = "Week 1",
                 description = null,
@@ -309,7 +309,7 @@ class ProgrammeDataModelsTest {
 
         val workout1 =
             ProgrammeWorkout(
-                weekId = 1L,
+                weekId = "1",
                 dayNumber = 1,
                 name = "Day 1",
                 description = null,
@@ -325,7 +325,7 @@ class ProgrammeDataModelsTest {
 
         val progress =
             ProgrammeProgress(
-                programmeId = 1L,
+                programmeId = "1",
                 currentWeek = 1,
                 currentDay = 1,
                 completedWorkouts = 0,
@@ -355,8 +355,8 @@ class ProgrammeDataModelsTest {
     fun programmeWeekWithWorkouts_shouldGroupWorkoutsCorrectly() {
         val week =
             ProgrammeWeek(
-                id = 1L,
-                programmeId = 1L,
+                id = "1",
+                programmeId = "1",
                 weekNumber = 1,
                 name = "Week 1",
                 description = null,
@@ -369,9 +369,9 @@ class ProgrammeDataModelsTest {
 
         val workouts =
             listOf(
-                ProgrammeWorkout(weekId = 1L, dayNumber = 1, name = "Monday", description = null, estimatedDuration = 60, workoutStructure = "{}"),
-                ProgrammeWorkout(weekId = 1L, dayNumber = 3, name = "Wednesday", description = null, estimatedDuration = 60, workoutStructure = "{}"),
-                ProgrammeWorkout(weekId = 1L, dayNumber = 5, name = "Friday", description = null, estimatedDuration = 60, workoutStructure = "{}"),
+                ProgrammeWorkout(weekId = "1", dayNumber = 1, name = "Monday", description = null, estimatedDuration = 60, workoutStructure = "{}"),
+                ProgrammeWorkout(weekId = "1", dayNumber = 3, name = "Wednesday", description = null, estimatedDuration = 60, workoutStructure = "{}"),
+                ProgrammeWorkout(weekId = "1", dayNumber = 5, name = "Friday", description = null, estimatedDuration = 60, workoutStructure = "{}"),
             )
 
         val weekWithWorkouts = ProgrammeWeekWithWorkouts(week, workouts)

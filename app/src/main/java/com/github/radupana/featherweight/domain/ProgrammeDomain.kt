@@ -5,7 +5,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeType
 import java.time.LocalDateTime
 
 data class ProgrammeSummary(
-    val id: Long,
+    val id: String,
     val name: String,
     val startDate: LocalDateTime,
     val completionDate: LocalDateTime,
@@ -19,7 +19,7 @@ data class ProgrammeSummary(
 )
 
 data class ProgrammeHistoryDetails(
-    val id: Long,
+    val id: String,
     val name: String,
     val programmeType: ProgrammeType,
     val difficulty: ProgrammeDifficulty,
@@ -40,7 +40,7 @@ data class ProgrammeWeekHistory(
 )
 
 data class WorkoutHistoryDetail(
-    val id: Long,
+    val id: String,
     val name: String,
     val date: LocalDateTime,
     val exerciseNames: List<String>,
@@ -50,7 +50,7 @@ data class WorkoutHistoryDetail(
 )
 
 data class WorkoutHistoryEntry(
-    val workoutId: Long,
+    val workoutId: String,
     val workoutName: String,
     val weekNumber: Int,
     val dayNumber: Int,

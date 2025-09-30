@@ -212,5 +212,8 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
             ?.firstOrNull { it.providerId != "firebase" }
             ?.providerId
 
-    override fun getAccountCreationTime(): Long? = auth.currentUser?.metadata?.creationTimestamp
+    override fun getAccountCreationTime(): Long? =
+        auth.currentUser
+            ?.metadata
+            ?.creationTimestamp
 }

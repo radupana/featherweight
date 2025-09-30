@@ -6,13 +6,13 @@ import com.google.firebase.firestore.ServerTimestamp
 
 data class FirestoreWorkout(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val userId: String = "",
     val name: String? = null,
     val notes: String? = null,
     val date: Timestamp = Timestamp.now(),
     val status: String = "NOT_STARTED",
-    val programmeId: Long? = null,
+    val programmeId: String? = null,
     val weekNumber: Int? = null,
     val dayNumber: Int? = null,
     val programmeWorkoutName: String? = null,
@@ -25,21 +25,21 @@ data class FirestoreWorkout(
 
 data class FirestoreExerciseLog(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
-    val workoutId: Long = 0,
-    val exerciseVariationId: Long = 0,
+    val localId: String = "",
+    val workoutId: String = "",
+    val exerciseVariationId: String = "",
     val exerciseOrder: Int = 0,
     val supersetGroup: Int? = null,
     val notes: String? = null,
-    val originalVariationId: Long? = null,
+    val originalVariationId: String? = null,
     val isSwapped: Boolean = false,
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
 
 data class FirestoreSetLog(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
-    val exerciseLogId: Long = 0,
+    val localId: String = "",
+    val exerciseLogId: String = "",
     val setOrder: Int = 0,
     val targetReps: Int? = null,
     val targetWeight: Float? = null,
@@ -61,7 +61,7 @@ data class FirestoreSetLog(
 
 data class FirestoreExerciseCore(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val createdByUserId: String? = null,
     val name: String = "",
     val category: String = "",
@@ -74,9 +74,9 @@ data class FirestoreExerciseCore(
 
 data class FirestoreExerciseVariation(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val createdByUserId: String? = null,
-    val coreExerciseId: Long = 0,
+    val coreExerciseId: String = "",
     val name: String = "",
     val equipment: String = "",
     val difficulty: String = "",
@@ -93,7 +93,7 @@ data class FirestoreExerciseVariation(
 
 data class FirestoreVariationMuscle(
     @DocumentId val id: String = "",
-    val variationId: Long = 0,
+    val variationId: String = "",
     val muscle: String = "",
     val isPrimary: Boolean = false,
     val emphasisModifier: Float = 1.0f,
@@ -102,8 +102,8 @@ data class FirestoreVariationMuscle(
 
 data class FirestoreVariationInstruction(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
-    val variationId: Long = 0,
+    val localId: String = "",
+    val variationId: String = "",
     val instructionType: String = "",
     val content: String = "",
     val orderIndex: Int = 0,
@@ -113,8 +113,8 @@ data class FirestoreVariationInstruction(
 
 data class FirestoreVariationAlias(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
-    val variationId: Long = 0,
+    val localId: String = "",
+    val variationId: String = "",
     val alias: String = "",
     val confidence: Float = 1.0f,
     val languageCode: String = "en",
@@ -122,20 +122,9 @@ data class FirestoreVariationAlias(
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
 
-data class FirestoreVariationRelation(
-    @DocumentId val id: String = "",
-    val localId: Long = 0,
-    val fromVariationId: Long = 0,
-    val toVariationId: Long = 0,
-    val relationType: String = "",
-    val strength: Float = 1.0f,
-    val notes: String? = null,
-    @ServerTimestamp val lastModified: Timestamp? = null,
-)
-
 data class FirestoreProgramme(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val userId: String? = null,
     val name: String = "",
     val description: String? = null,
@@ -162,9 +151,9 @@ data class FirestoreProgramme(
 
 data class FirestoreProgrammeWeek(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val userId: String? = null,
-    val programmeId: Long = 0,
+    val programmeId: String = "",
     val weekNumber: Int = 0,
     val name: String? = null,
     val description: String? = null,
@@ -178,9 +167,9 @@ data class FirestoreProgrammeWeek(
 
 data class FirestoreProgrammeWorkout(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val userId: String? = null,
-    val weekId: Long = 0,
+    val weekId: String = "",
     val dayNumber: Int = 0,
     val name: String = "",
     val description: String? = null,
@@ -191,9 +180,9 @@ data class FirestoreProgrammeWorkout(
 
 data class FirestoreProgrammeProgress(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val userId: String? = null,
-    val programmeId: Long = 0,
+    val programmeId: String = "",
     val currentWeek: Int = 0,
     val currentDay: Int = 0,
     val completedWorkouts: Int = 0,
@@ -210,9 +199,9 @@ data class FirestoreProgrammeProgress(
 
 data class FirestoreUserExerciseMax(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val userId: String? = null,
-    val exerciseVariationId: Long = 0,
+    val exerciseVariationId: String = "",
     val isCustomExercise: Boolean? = false,
     val mostWeightLifted: Float = 0f,
     val mostWeightReps: Int = 0,
@@ -229,9 +218,9 @@ data class FirestoreUserExerciseMax(
 
 data class FirestoreOneRMHistory(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val userId: String? = null,
-    val exerciseVariationId: Long = 0,
+    val exerciseVariationId: String = "",
     val isCustomExercise: Boolean? = false,
     val oneRMEstimate: Float = 0f,
     val context: String = "",
@@ -241,9 +230,9 @@ data class FirestoreOneRMHistory(
 
 data class FirestorePersonalRecord(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val userId: String? = null,
-    val exerciseVariationId: Long = 0,
+    val exerciseVariationId: String = "",
     val isCustomExercise: Boolean? = false,
     val weight: Float = 0f,
     val reps: Int = 0,
@@ -257,27 +246,27 @@ data class FirestorePersonalRecord(
     val volume: Float = 0f,
     val estimated1RM: Float? = null,
     val notes: String? = null,
-    val workoutId: Long? = null,
+    val workoutId: String? = null,
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
 
 data class FirestoreExerciseSwapHistory(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val userId: String? = null,
-    val originalExerciseId: Long = 0,
-    val swappedToExerciseId: Long = 0,
+    val originalExerciseId: String = "",
+    val swappedToExerciseId: String = "",
     val swapDate: Timestamp = Timestamp.now(),
-    val workoutId: Long? = null,
-    val programmeId: Long? = null,
+    val workoutId: String? = null,
+    val programmeId: String? = null,
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
 
 data class FirestoreExercisePerformanceTracking(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val userId: String? = null,
-    val programmeId: Long = 0,
+    val programmeId: String = "",
     val exerciseName: String = "",
     val targetWeight: Float = 0f,
     val achievedWeight: Float = 0f,
@@ -288,7 +277,7 @@ data class FirestoreExercisePerformanceTracking(
     val missedReps: Int = 0,
     val wasSuccessful: Boolean = false,
     val workoutDate: Timestamp = Timestamp.now(),
-    val workoutId: Long = 0,
+    val workoutId: String = "",
     val isDeloadWorkout: Boolean = false,
     val deloadReason: String? = null,
     val averageRpe: Float? = null,
@@ -298,9 +287,9 @@ data class FirestoreExercisePerformanceTracking(
 
 data class FirestoreGlobalExerciseProgress(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val userId: String? = null,
-    val exerciseVariationId: Long = 0,
+    val exerciseVariationId: String = "",
     val currentWorkingWeight: Float = 0f,
     val estimatedMax: Float = 0f,
     val lastUpdated: Timestamp = Timestamp.now(),
@@ -314,24 +303,9 @@ data class FirestoreGlobalExerciseProgress(
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
 
-data class FirestoreExerciseCorrelation(
-    @DocumentId val id: String = "",
-    val localId: Long = 0,
-    val primaryExercise: String = "",
-    val relatedExercise: String = "",
-    val correlationStrength: Float = 0f,
-    val movementPattern: String = "",
-    val primaryMuscleGroup: String = "",
-    val secondaryMuscleGroups: String? = null,
-    val isCompound: Boolean = true,
-    val equipmentCategory: String? = null,
-    val correlationType: String? = null,
-    @ServerTimestamp val lastModified: Timestamp? = null,
-)
-
 data class FirestoreTrainingAnalysis(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val userId: String? = null,
     val analysisDate: Timestamp = Timestamp.now(),
     val periodStart: String = "",
@@ -345,7 +319,7 @@ data class FirestoreTrainingAnalysis(
 
 data class FirestoreParseRequest(
     @DocumentId val id: String = "",
-    val localId: Long = 0,
+    val localId: String = "",
     val userId: String? = null,
     val rawText: String = "",
     val createdAt: Timestamp = Timestamp.now(),

@@ -174,7 +174,7 @@ class OneRMService {
      * Create a UserExerciseMax record from a completed set
      */
     fun createOneRMRecord(
-        exerciseId: Long,
+        exerciseId: String,
         set: SetLog,
         estimate: Float,
         confidence: Float,

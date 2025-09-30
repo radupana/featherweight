@@ -72,8 +72,8 @@ import java.util.Locale
 @Composable
 fun HistoryScreen(
     modifier: Modifier = Modifier,
-    onViewWorkout: (Long) -> Unit = {},
-    onViewProgramme: (Long) -> Unit = {},
+    onViewWorkout: (String) -> Unit = {},
+    onViewProgramme: (String) -> Unit = {},
     historyViewModel: HistoryViewModel = viewModel(),
 ) {
     val historyState by historyViewModel.historyState.collectAsState()
@@ -272,8 +272,8 @@ fun HistoryScreen(
 @Composable
 fun WorkoutHistoryCard(
     workout: WorkoutSummary,
-    onViewWorkout: (Long) -> Unit = {},
-    onDeleteWorkout: (Long) -> Unit = {},
+    onViewWorkout: (String) -> Unit = {},
+    onDeleteWorkout: (String) -> Unit = {},
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     // Color scheme based on workout status
@@ -500,7 +500,7 @@ fun ProgrammesHistorySection(
     isLoading: Boolean,
     isLoadingMore: Boolean,
     hasMoreData: Boolean,
-    onViewProgramme: (Long) -> Unit,
+    onViewProgramme: (String) -> Unit,
     onLoadMore: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -602,7 +602,7 @@ fun ProgrammesHistorySection(
 @Composable
 fun ProgrammeHistoryCard(
     programme: ProgrammeSummary,
-    onViewProgramme: (Long) -> Unit,
+    onViewProgramme: (String) -> Unit,
 ) {
     Card(
         modifier =

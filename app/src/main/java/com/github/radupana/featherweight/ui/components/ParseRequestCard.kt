@@ -58,7 +58,7 @@ import java.time.temporal.ChronoUnit
 @Composable
 fun ParseRequestCard(
     request: ParseRequest,
-    onView: (ParsedProgramme, Long) -> Unit,
+    onView: (ParsedProgramme, String) -> Unit,
     onViewRawText: (String) -> Unit,
     onEditAndRetry: (String) -> Unit,
     onDelete: () -> Unit,
@@ -184,8 +184,8 @@ private fun getStatusColorAndIcon(status: ParseStatus): Pair<androidx.compose.ui
 
 private fun parseAndViewProgramme(
     resultJson: String?,
-    onView: (ParsedProgramme, Long) -> Unit,
-    requestId: Long,
+    onView: (ParsedProgramme, String) -> Unit,
+    requestId: String,
 ) {
     if (!resultJson.isNullOrEmpty()) {
         try {

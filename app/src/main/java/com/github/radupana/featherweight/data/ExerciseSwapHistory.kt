@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.data
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.IdGenerator
 import java.time.LocalDateTime
 
 @Entity(
@@ -12,15 +13,19 @@ import java.time.LocalDateTime
         Index(value = ["swappedToExerciseId"]),
         Index(value = ["swapDate"]),
         Index("userId"),
+        Index(
+            value = ["userId", "originalExerciseId", "swappedToExerciseId", "workoutId"],
+            unique = true,
+        ),
     ],
 )
 data class ExerciseSwapHistory(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
+    val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val originalExerciseId: Long,
-    val swappedToExerciseId: Long,
+    val originalExerciseId: String,
+    val swappedToExerciseId: String,
     val swapDate: LocalDateTime,
-    val workoutId: Long? = null,
-    val programmeId: Long? = null,
+    val workoutId: String? = null,
+    val programmeId: String? = null,
 )

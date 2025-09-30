@@ -134,7 +134,7 @@ class ProgrammeCompletionModelsTest {
 
         val stats =
             ProgrammeCompletionStats(
-                programmeId = 1L,
+                programmeId = "1",
                 programmeName = "StrongLifts 5x5",
                 startDate = twelveWeeksAgo,
                 endDate = now,
@@ -149,12 +149,12 @@ class ProgrammeCompletionModelsTest {
                 topExercises = topExercises,
             )
 
-        assertThat(stats.programmeId).isEqualTo(1L)
+        assertThat(stats.programmeId).isEqualTo("1")
         assertThat(stats.programmeName).isEqualTo("StrongLifts 5x5")
         assertThat(stats.completedWorkouts).isEqualTo(35)
         assertThat(stats.totalWorkouts).isEqualTo(36)
         assertThat(stats.totalVolume).isEqualTo(250000f)
-        assertThat(stats.averageWorkoutDuration.toMinutes()).isEqualTo(75)
+        assertThat(stats.averageWorkoutDuration.toMinutes()).isEqualTo(75L)
         assertThat(stats.totalPRs).isEqualTo(15)
         assertThat(stats.strengthImprovements).hasSize(3)
         assertThat(stats.averageStrengthImprovement).isWithin(0.01f).of(17.98f)
@@ -168,7 +168,7 @@ class ProgrammeCompletionModelsTest {
         val now = LocalDateTime.now()
         val stats =
             ProgrammeCompletionStats(
-                programmeId = 2L,
+                programmeId = "2",
                 programmeName = "Custom Programme",
                 startDate = now,
                 endDate = now,
@@ -193,7 +193,7 @@ class ProgrammeCompletionModelsTest {
         val now = LocalDateTime.now()
         val stats =
             ProgrammeCompletionStats(
-                programmeId = 3L,
+                programmeId = "3",
                 programmeName = "5/3/1",
                 startDate = now.minusWeeks(4),
                 endDate = now,
@@ -222,7 +222,7 @@ class ProgrammeCompletionModelsTest {
 
         val stats =
             ProgrammeCompletionStats(
-                programmeId = 4L,
+                programmeId = "4",
                 programmeName = "Long Term Strength",
                 startDate = startDate,
                 endDate = endDate,
@@ -254,7 +254,7 @@ class ProgrammeCompletionModelsTest {
 
         val stats1 =
             ProgrammeCompletionStats(
-                programmeId = 1L,
+                programmeId = "1",
                 programmeName = "Test",
                 startDate = now,
                 endDate = now.plusWeeks(4),
@@ -270,7 +270,7 @@ class ProgrammeCompletionModelsTest {
 
         val stats2 =
             ProgrammeCompletionStats(
-                programmeId = 1L,
+                programmeId = "1",
                 programmeName = "Test",
                 startDate = now,
                 endDate = now.plusWeeks(4),
@@ -328,7 +328,7 @@ class ProgrammeCompletionModelsTest {
     fun programmeCompletionStats_withHighVolume_shouldHandleLargeNumbers() {
         val stats =
             ProgrammeCompletionStats(
-                programmeId = 5L,
+                programmeId = "5",
                 programmeName = "High Volume",
                 startDate = LocalDateTime.now().minusMonths(1),
                 endDate = LocalDateTime.now(),
@@ -343,7 +343,7 @@ class ProgrammeCompletionModelsTest {
             )
 
         assertThat(stats.totalVolume).isEqualTo(1_000_000f)
-        assertThat(stats.averageWorkoutDuration.toHours()).isEqualTo(2)
+        assertThat(stats.averageWorkoutDuration.toHours()).isEqualTo(2L)
     }
 
     @Test

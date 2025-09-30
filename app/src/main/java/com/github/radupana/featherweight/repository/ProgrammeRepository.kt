@@ -34,12 +34,12 @@ class ProgrammeRepository(
             programmeDao.getActiveProgramme()
         }
 
-    suspend fun getProgrammeById(programmeId: Long) =
+    suspend fun getProgrammeById(programmeId: String) =
         withContext(ioDispatcher) {
             programmeDao.getProgrammeById(programmeId)
         }
 
-    suspend fun getProgrammeWithDetails(programmeId: Long) =
+    suspend fun getProgrammeWithDetails(programmeId: String) =
         withContext(ioDispatcher) {
             val trace = safeNewTrace("programme_load_full")
             trace?.start()
@@ -66,13 +66,13 @@ class ProgrammeRepository(
             null
         }
 
-    suspend fun getInProgressWorkoutCountByProgramme(programmeId: Long): Int =
+    suspend fun getInProgressWorkoutCountByProgramme(programmeId: String): Int =
         withContext(ioDispatcher) {
             workoutDao.getInProgressWorkoutCountByProgramme(programmeId)
         }
 
     suspend fun updateProgrammeCompletionNotes(
-        programmeId: Long,
+        programmeId: String,
         notes: String?,
     ) = withContext(ioDispatcher) {
         val programme = programmeDao.getProgrammeById(programmeId)

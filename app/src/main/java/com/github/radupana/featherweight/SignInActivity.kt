@@ -153,14 +153,9 @@ class SignInActivity : ComponentActivity() {
             // Clean up local data after successful migration
             migrationService.cleanupLocalData()
 
-            // Sync migrated data to Firestore
-            Log.i("SignInActivity", "Syncing migrated data to Firestore")
-            try {
-                syncManager.syncUserData(userId)
-                Log.i("SignInActivity", "Migration sync completed successfully")
-            } catch (e: Exception) {
-                Log.e("SignInActivity", "Failed to sync migrated data", e)
-            }
+            // Note: Sync is handled by syncDataInBackground() which calls syncAll()
+            // We don't need a separate syncUserData() call here to avoid duplication
+            Log.i("SignInActivity", "Migration completed, sync will be handled by syncAll()")
         } else {
             Log.e("SignInActivity", "Migration failed, will retry on next sign-in")
             if (migrationStateManager.getMigrationAttempts() >= MigrationStateManager.MAX_MIGRATION_ATTEMPTS) {

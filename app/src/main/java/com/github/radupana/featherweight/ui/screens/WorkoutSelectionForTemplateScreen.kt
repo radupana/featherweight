@@ -46,7 +46,7 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutSelectionForTemplateScreen(
-    onWorkoutSelected: (Long) -> Unit,
+    onWorkoutSelected: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutSelectionViewModel = viewModel(),

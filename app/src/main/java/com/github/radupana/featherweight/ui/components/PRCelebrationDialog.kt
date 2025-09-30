@@ -182,13 +182,8 @@ private fun PRDetailCard(
                     .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Use composite key to avoid ID collisions between system and custom exercises
-            val key =
-                if (personalRecord.isCustomExercise) {
-                    "custom_${personalRecord.exerciseVariationId}"
-                } else {
-                    "system_${personalRecord.exerciseVariationId}"
-                }
+            // Use unified key (no more collisions since tables are merged)
+            val key = "exercise_${personalRecord.exerciseVariationId}"
             val exerciseName = exerciseNames[key] ?: "Unknown Exercise"
             Text(
                 text = exerciseName,

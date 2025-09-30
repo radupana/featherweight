@@ -9,26 +9,26 @@ import androidx.room.Upsert
 @Dao
 interface ExerciseLogDao {
     @Insert
-    suspend fun insertExerciseLog(exerciseLog: ExerciseLog): Long
+    suspend fun insertExerciseLog(exerciseLog: ExerciseLog)
 
     @Upsert
-    suspend fun upsertExerciseLog(exerciseLog: ExerciseLog): Long
+    suspend fun upsertExerciseLog(exerciseLog: ExerciseLog)
 
     @Query("SELECT * FROM exercise_logs WHERE workoutId = :workoutId ORDER BY exerciseOrder")
-    suspend fun getExerciseLogsForWorkout(workoutId: Long): List<ExerciseLog>
+    suspend fun getExerciseLogsForWorkout(workoutId: String): List<ExerciseLog>
 
     @Query("DELETE FROM exercise_logs WHERE id = :exerciseLogId")
-    suspend fun deleteExerciseLog(exerciseLogId: Long)
+    suspend fun deleteExerciseLog(exerciseLogId: String)
 
     @Query("SELECT COUNT(*) FROM exercise_logs WHERE exerciseVariationId = :exerciseVariationId AND userId = :userId")
     suspend fun getExerciseUsageCount(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         userId: String,
     ): Int
 
     @Query("UPDATE exercise_logs SET exerciseOrder = :newOrder WHERE id = :exerciseLogId")
     suspend fun updateExerciseOrder(
-        exerciseLogId: Long,
+        exerciseLogId: String,
         newOrder: Int,
     )
 
@@ -36,7 +36,7 @@ interface ExerciseLogDao {
     suspend fun update(exerciseLog: ExerciseLog)
 
     @Query("SELECT * FROM exercise_logs WHERE id = :id")
-    suspend fun getExerciseLogById(id: Long): ExerciseLog?
+    suspend fun getExerciseLogById(id: String): ExerciseLog?
 
     @Query(
         """
@@ -51,7 +51,7 @@ interface ExerciseLogDao {
     """,
     )
     suspend fun getExerciseLogsInDateRange(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         userId: String,
         startDate: java.time.LocalDateTime,
         endDate: java.time.LocalDateTime,
@@ -76,7 +76,7 @@ interface ExerciseLogDao {
     """,
     )
     suspend fun getTotalSessionsForExercise(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         userId: String,
     ): Int
 
@@ -89,7 +89,7 @@ interface ExerciseLogDao {
         ORDER BY el.exerciseVariationId
     """,
     )
-    suspend fun getAllUniqueExerciseVariationIds(userId: String): List<Long>
+    suspend fun getAllUniqueExerciseVariationIds(userId: String): List<String>
 
     @Query("DELETE FROM exercise_logs")
     suspend fun deleteAllExerciseLogs()
@@ -108,7 +108,7 @@ interface ExerciseLogDao {
     """,
     )
     suspend fun getDistinctWorkoutsForExercise(
-        exerciseVariationId: Long,
+        exerciseVariationId: String,
         userId: String,
         startDate: java.time.LocalDateTime,
         endDate: java.time.LocalDateTime,

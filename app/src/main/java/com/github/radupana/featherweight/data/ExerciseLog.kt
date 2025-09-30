@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.IdGenerator
 
 @Entity(
     tableName = "exercise_logs",
@@ -22,15 +23,13 @@ import androidx.room.PrimaryKey
     ],
 )
 data class ExerciseLog(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val workoutId: Long,
-    val exerciseVariationId: Long, // Can reference either system or custom exercise
-    val isCustomExercise: Boolean = false, // true = custom exercise, false = system exercise
+    val workoutId: String,
+    val exerciseVariationId: String, // References exercise_variations table
     val exerciseOrder: Int,
     val supersetGroup: Int? = null,
     val notes: String? = null,
-    val originalVariationId: Long? = null,
-    val originalIsCustom: Boolean = false, // true if original was custom exercise
+    val originalVariationId: String? = null,
     val isSwapped: Boolean = false, // Flag to indicate if exercise was swapped
 )

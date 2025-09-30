@@ -96,7 +96,6 @@ class AccountDeletionServiceTest {
         every { database.parseRequestDao() } returns parseRequestDao
         every { database.exerciseCoreDao() } returns mockk(relaxed = true)
         every { database.exerciseVariationDao() } returns mockk(relaxed = true)
-        every { database.customExerciseDao() } returns mockk(relaxed = true)
         every { database.userExerciseUsageDao() } returns mockk(relaxed = true)
 
         service = AccountDeletionService(database, authManager, firebaseAuth)

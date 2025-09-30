@@ -48,7 +48,7 @@ import com.github.radupana.featherweight.viewmodel.ExerciseSelectorViewModel
 fun ExerciseSelectorDialog(
     onExerciseSelected: (ExerciseWithDetails) -> Unit,
     onDismiss: () -> Unit,
-    excludeExerciseIds: Set<Long> = emptySet(),
+    excludeExerciseIds: Set<String> = emptySet(),
     viewModel: ExerciseSelectorViewModel = viewModel(),
 ) {
     val filteredExercises by viewModel.filteredExercises.collectAsState()

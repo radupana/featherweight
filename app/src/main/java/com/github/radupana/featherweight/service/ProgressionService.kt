@@ -106,8 +106,8 @@ class ProgressionService(
      * Record workout performance for tracking
      */
     suspend fun recordWorkoutPerformance(
-        workoutId: Long,
-        programmeId: Long,
+        workoutId: String,
+        programmeId: String,
         exerciseName: String,
         sets: List<SetLog>,
     ) = withContext(Dispatchers.IO) {

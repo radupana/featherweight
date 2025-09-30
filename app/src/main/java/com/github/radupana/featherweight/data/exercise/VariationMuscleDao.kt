@@ -17,14 +17,14 @@ interface VariationMuscleDao {
     suspend fun insertVariationMuscles(muscles: List<VariationMuscle>)
 
     @Query("DELETE FROM variation_muscles WHERE variationId = :variationId")
-    suspend fun deleteMuscleMappingsForVariation(variationId: Long)
+    suspend fun deleteMuscleMappingsForVariation(variationId: String)
 
     @Query("SELECT * FROM variation_muscles WHERE variationId = :variationId")
-    suspend fun getMusclesForVariation(variationId: Long): List<VariationMuscle>
+    suspend fun getMusclesForVariation(variationId: String): List<VariationMuscle>
 
     @Query("SELECT * FROM variation_muscles")
     suspend fun getAllVariationMuscles(): List<VariationMuscle>
 
     @Query("DELETE FROM variation_muscles WHERE variationId = :variationId")
-    suspend fun deleteForVariation(variationId: Long)
+    suspend fun deleteForVariation(variationId: String)
 }

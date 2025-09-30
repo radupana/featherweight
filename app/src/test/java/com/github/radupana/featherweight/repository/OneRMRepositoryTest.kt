@@ -4,7 +4,6 @@ import android.app.Application
 import android.util.Log
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
-import com.github.radupana.featherweight.data.exercise.CustomExerciseDao
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
@@ -17,8 +16,10 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.runs
 import io.mockk.slot
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -31,7 +32,6 @@ class OneRMRepositoryTest {
     private lateinit var database: FeatherweightDatabase
     private lateinit var oneRMDao: OneRMDao
     private lateinit var exerciseDao: ExerciseDao
-    private lateinit var customExerciseDao: CustomExerciseDao
     private lateinit var userExerciseUsageDao: UserExerciseUsageDao
     private lateinit var application: Application
     private lateinit var authManager: AuthenticationManager
@@ -49,7 +49,6 @@ class OneRMRepositoryTest {
         database = mockk()
         oneRMDao = mockk()
         exerciseDao = mockk()
-        customExerciseDao = mockk()
         userExerciseUsageDao = mockk()
         authManager = mockk(relaxed = true)
         every { authManager.getCurrentUserId() } returns "test-user"
@@ -57,11 +56,7 @@ class OneRMRepositoryTest {
         // Setup database to return DAOs
         every { database.oneRMDao() } returns oneRMDao
         every { database.exerciseDao() } returns exerciseDao
-        every { database.customExerciseDao() } returns customExerciseDao
         every { database.userExerciseUsageDao() } returns userExerciseUsageDao
-
-        // Mock isCustomExercise to return false (system exercise) by default
-        coEvery { customExerciseDao.getCustomVariationById(any()) } returns null
 
         // Create repository with mocked dependencies
         repository = OneRMRepository(application, authManager, testDispatcher, database)
@@ -71,8 +66,8 @@ class OneRMRepositoryTest {
     fun `clearPendingOneRMUpdates should clear all pending updates`() =
         runTest(testDispatcher) {
             // Given - add some pending updates first
-            val update1 = createPendingOneRMUpdate(1L, 100f, 110f)
-            val update2 = createPendingOneRMUpdate(2L, 150f, 160f)
+            val update1 = createPendingOneRMUpdate("1", 100f, 110f)
+            val update2 = createPendingOneRMUpdate("2", 150f, 160f)
             repository.addPendingOneRMUpdate(update1)
             repository.addPendingOneRMUpdate(update2)
 
@@ -88,14 +83,14 @@ class OneRMRepositoryTest {
     fun `applyOneRMUpdate should update max and remove from pending`() =
         runTest(testDispatcher) {
             // Given
-            val update = createPendingOneRMUpdate(1L, 100f, 112.5f, source = "3×100kg @ RPE 9")
-            val exercise = createExerciseVariation(1L, "Barbell Bench Press")
-            val currentMax = createUserExerciseMax(1L, 100f)
+            val update = createPendingOneRMUpdate("1", 100f, 112.5f, source = "3×100kg @ RPE 9")
+            val exercise = createExerciseVariation("1", "Barbell Bench Press")
+            val currentMax = createUserExerciseMax("1", 100f)
 
-            coEvery { oneRMDao.getCurrentMax(1L, "test-user") } returns currentMax
-            coEvery { exerciseDao.getExerciseVariationById(1L) } returns exercise
+            coEvery { oneRMDao.getCurrentMax("1", "test-user") } returns currentMax
+            coEvery { exerciseDao.getExerciseVariationById("1") } returns exercise
             coEvery { oneRMDao.updateExerciseMax(any()) } returns Unit
-            coEvery { oneRMDao.insertOneRMHistory(any()) } returns 1L
+            coEvery { oneRMDao.insertOneRMHistory(any()) } just runs
 
             repository.addPendingOneRMUpdate(update)
 
@@ -108,7 +103,6 @@ class OneRMRepositoryTest {
             coVerify { oneRMDao.updateExerciseMax(capture(capturedMax)) }
             assertThat(capturedMax.captured.oneRMEstimate).isEqualTo(112.5f)
             assertThat(capturedMax.captured.notes).isEqualTo("Updated from 3×100kg @ RPE 9")
-            assertThat(capturedMax.captured.isCustomExercise).isFalse() // System exercise
 
             coVerify { oneRMDao.insertOneRMHistory(any()) }
             assertThat(repository.pendingOneRMUpdates.value).isEmpty()
@@ -118,12 +112,12 @@ class OneRMRepositoryTest {
     fun `getCurrentMaxesForExercises should return map of exercise maxes`() =
         runTest(testDispatcher) {
             // Given
-            val exerciseIds = listOf(1L, 2L, 3L)
+            val exerciseIds = listOf("1", "2", "3")
             val maxes =
                 listOf(
-                    createUserExerciseMax(1L, 100f),
-                    createUserExerciseMax(2L, 150f),
-                    createUserExerciseMax(3L, 80f),
+                    createUserExerciseMax("1", 100f),
+                    createUserExerciseMax("2", 150f),
+                    createUserExerciseMax("3", 80f),
                 )
             coEvery { oneRMDao.getCurrentMaxesForExercises(exerciseIds, "test-user") } returns maxes
 
@@ -133,11 +127,11 @@ class OneRMRepositoryTest {
 
             // Then
             assertThat(result).containsExactly(
-                1L,
+                "1",
                 100f,
-                2L,
+                "2",
                 150f,
-                3L,
+                "3",
                 80f,
             )
         }
@@ -146,7 +140,7 @@ class OneRMRepositoryTest {
     fun `getOneRMForExercise should return max for specific exercise`() =
         runTest(testDispatcher) {
             // Given
-            val exerciseId = 1L
+            val exerciseId = "1"
             val exerciseMax = createUserExerciseMax(exerciseId, 120f)
             coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user") } returns exerciseMax
 
@@ -162,7 +156,7 @@ class OneRMRepositoryTest {
     fun `getOneRMForExercise should return null when no max exists`() =
         runTest(testDispatcher) {
             // Given
-            val exerciseId = 999L
+            val exerciseId = "999"
             coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user") } returns null
 
             // When
@@ -177,7 +171,7 @@ class OneRMRepositoryTest {
     fun `deleteAllMaxesForExercise should delete all maxes`() =
         runTest(testDispatcher) {
             // Given
-            val exerciseId = 1L
+            val exerciseId = "1"
             coEvery { oneRMDao.deleteAllMaxesForExercise(exerciseId, "test-user") } returns Unit
 
             // When
@@ -192,15 +186,15 @@ class OneRMRepositoryTest {
     fun `updateOrInsertOneRM should update existing record when new PR`() =
         runTest(testDispatcher) {
             // Given
-            val exerciseId = 1L
-            val existingMax = createUserExerciseMax(exerciseId, 100f).copy(id = 5L)
+            val exerciseId = "1"
+            val existingMax = createUserExerciseMax(exerciseId, 100f).copy(id = "5")
             val newRecord = createUserExerciseMax(exerciseId, 110f)
             val exercise = createExerciseVariation(exerciseId, "Barbell Squat")
 
             coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user") } returns existingMax
             coEvery { exerciseDao.getExerciseVariationById(exerciseId) } returns exercise
             coEvery { oneRMDao.updateExerciseMax(any()) } returns Unit
-            coEvery { oneRMDao.insertOneRMHistory(any()) } returns 1L
+            coEvery { oneRMDao.insertOneRMHistory(any()) } just runs
 
             // When
             repository.updateOrInsertOneRM(newRecord)
@@ -209,7 +203,7 @@ class OneRMRepositoryTest {
             // Then
             val capturedRecord = slot<UserExerciseMax>()
             coVerify { oneRMDao.updateExerciseMax(capture(capturedRecord)) }
-            assertThat(capturedRecord.captured.id).isEqualTo(5L)
+            assertThat(capturedRecord.captured.id).isEqualTo("5")
             assertThat(capturedRecord.captured.oneRMEstimate).isEqualTo(110f)
             coVerify { oneRMDao.insertOneRMHistory(any()) }
         }
@@ -218,7 +212,7 @@ class OneRMRepositoryTest {
     fun `updateOrInsertOneRM should not update when not a PR`() =
         runTest(testDispatcher) {
             // Given
-            val exerciseId = 1L
+            val exerciseId = "1"
             val existingMax = createUserExerciseMax(exerciseId, 120f)
             val newRecord = createUserExerciseMax(exerciseId, 110f) // Lower than existing
             val exercise = createExerciseVariation(exerciseId, "Barbell Deadlift")
@@ -239,14 +233,14 @@ class OneRMRepositoryTest {
     fun `updateOrInsertOneRM should insert new record when none exists`() =
         runTest(testDispatcher) {
             // Given
-            val exerciseId = 1L
+            val exerciseId = "1"
             val newRecord = createUserExerciseMax(exerciseId, 100f)
             val exercise = createExerciseVariation(exerciseId, "Barbell Row")
 
             coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user") } returns null
             coEvery { exerciseDao.getExerciseVariationById(exerciseId) } returns exercise
-            coEvery { oneRMDao.insertExerciseMax(any()) } returns 1L
-            coEvery { oneRMDao.insertOneRMHistory(any()) } returns 1L
+            coEvery { oneRMDao.insertExerciseMax(any()) } just runs
+            coEvery { oneRMDao.insertOneRMHistory(any()) } just runs
 
             // When
             repository.updateOrInsertOneRM(newRecord)
@@ -256,7 +250,6 @@ class OneRMRepositoryTest {
             val capturedRecord = slot<UserExerciseMax>()
             coVerify { oneRMDao.insertExerciseMax(capture(capturedRecord)) }
             assertThat(capturedRecord.captured.oneRMEstimate).isEqualTo(100f)
-            assertThat(capturedRecord.captured.isCustomExercise).isFalse() // System exercise
             coVerify { oneRMDao.insertOneRMHistory(any()) }
         }
 
@@ -264,9 +257,9 @@ class OneRMRepositoryTest {
     fun `addPendingOneRMUpdate should replace existing update for same exercise`() =
         runTest(testDispatcher) {
             // Given
-            val update1 = createPendingOneRMUpdate(1L, 100f, 110f)
-            val update2 = createPendingOneRMUpdate(1L, 100f, 115f) // Same exercise, different value
-            val update3 = createPendingOneRMUpdate(2L, 80f, 90f) // Different exercise
+            val update1 = createPendingOneRMUpdate("1", 100f, 110f)
+            val update2 = createPendingOneRMUpdate("1", 100f, 115f) // Same exercise, different value
+            val update3 = createPendingOneRMUpdate("2", 80f, 90f) // Different exercise
 
             // When
             repository.addPendingOneRMUpdate(update1)
@@ -277,13 +270,13 @@ class OneRMRepositoryTest {
             // Then
             val pendingUpdates = repository.pendingOneRMUpdates.value
             assertThat(pendingUpdates).hasSize(2)
-            assertThat(pendingUpdates.find { it.exerciseVariationId == 1L }?.suggestedMax).isEqualTo(115f)
-            assertThat(pendingUpdates.find { it.exerciseVariationId == 2L }?.suggestedMax).isEqualTo(90f)
+            assertThat(pendingUpdates.find { it.exerciseVariationId == "1" }?.suggestedMax).isEqualTo(115f)
+            assertThat(pendingUpdates.find { it.exerciseVariationId == "2" }?.suggestedMax).isEqualTo(90f)
         }
 
     // Helper functions
     private fun createPendingOneRMUpdate(
-        exerciseId: Long,
+        exerciseId: String,
         currentMax: Float?,
         suggestedMax: Float,
         confidence: Float = 0.8f,
@@ -298,10 +291,10 @@ class OneRMRepositoryTest {
     )
 
     private fun createUserExerciseMax(
-        exerciseId: Long,
+        exerciseId: String,
         oneRMEstimate: Float,
     ) = UserExerciseMax(
-        id = 0,
+        id = "0",
         exerciseVariationId = exerciseId,
         oneRMEstimate = oneRMEstimate,
         oneRMContext = "Test context",
@@ -313,11 +306,11 @@ class OneRMRepositoryTest {
     )
 
     private fun createExerciseVariation(
-        id: Long,
+        id: String,
         name: String,
     ) = ExerciseVariation(
         id = id,
-        coreExerciseId = 1L,
+        coreExerciseId = "1",
         name = name,
         equipment = Equipment.BARBELL,
         difficulty = ExerciseDifficulty.INTERMEDIATE,

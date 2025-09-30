@@ -16,10 +16,10 @@ interface ExerciseDao {
     suspend fun getAllExercises(): List<ExerciseVariation>
 
     @Query("SELECT * FROM exercise_variations WHERE id = :id")
-    suspend fun getExerciseById(id: Long): ExerciseVariation?
+    suspend fun getExerciseById(id: String): ExerciseVariation?
 
     @Query("SELECT * FROM exercise_variations WHERE id = :id")
-    suspend fun getExerciseVariationById(id: Long): ExerciseVariation?
+    suspend fun getExerciseVariationById(id: String): ExerciseVariation?
 
     @Query("SELECT * FROM exercise_variations WHERE name LIKE '%' || :query || '%' ORDER BY name ASC")
     suspend fun searchVariations(query: String): List<ExerciseVariation>
@@ -88,10 +88,10 @@ interface ExerciseDao {
     // ============== Alias operations ==============
 
     @Query("SELECT * FROM variation_aliases WHERE variationId = :exerciseId")
-    suspend fun getAliasesForExercise(exerciseId: Long): List<VariationAlias>
+    suspend fun getAliasesForExercise(exerciseId: String): List<VariationAlias>
 
     @Query("SELECT * FROM variation_aliases WHERE variationId = :variationId")
-    suspend fun getAliasesForVariation(variationId: Long): List<VariationAlias>
+    suspend fun getAliasesForVariation(variationId: String): List<VariationAlias>
 
     @Query("SELECT * FROM variation_aliases")
     suspend fun getAllAliases(): List<VariationAlias>
@@ -99,7 +99,7 @@ interface ExerciseDao {
     // ============== Comprehensive exercise details ==============
 
     @Transaction
-    suspend fun getExerciseWithDetails(id: Long): ExerciseWithDetails? {
+    suspend fun getExerciseWithDetails(id: String): ExerciseWithDetails? {
         val variation = getExerciseById(id) ?: return null
         val muscles = getMusclesForVariation(id)
         val aliases = getAliasesForExercise(id)
@@ -126,8 +126,8 @@ interface ExerciseDao {
 
     // Helper queries for comprehensive details
     @Query("SELECT * FROM variation_muscles WHERE variationId = :variationId")
-    suspend fun getMusclesForVariation(variationId: Long): List<VariationMuscle>
+    suspend fun getMusclesForVariation(variationId: String): List<VariationMuscle>
 
     @Query("SELECT * FROM variation_instructions WHERE variationId = :variationId ORDER BY instructionType, orderIndex")
-    suspend fun getInstructionsForVariation(variationId: Long): List<VariationInstruction>
+    suspend fun getInstructionsForVariation(variationId: String): List<VariationInstruction>
 }

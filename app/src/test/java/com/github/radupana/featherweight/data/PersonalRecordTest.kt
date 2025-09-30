@@ -12,8 +12,8 @@ class PersonalRecordTest {
 
         val pr =
             PersonalRecord(
-                id = 1L,
-                exerciseVariationId = 100L,
+                id = "1",
+                exerciseVariationId = "100",
                 weight = 100f,
                 reps = 5,
                 rpe = 8.5f,
@@ -25,11 +25,11 @@ class PersonalRecordTest {
                 recordType = PRType.WEIGHT,
                 estimated1RM = 116.67f,
                 notes = "Felt strong today",
-                workoutId = 42L,
+                workoutId = "42",
             )
 
-        assertThat(pr.id).isEqualTo(1L)
-        assertThat(pr.exerciseVariationId).isEqualTo(100L)
+        assertThat(pr.id).isEqualTo("1")
+        assertThat(pr.exerciseVariationId).isEqualTo("100")
         assertThat(pr.weight).isEqualTo(100f)
         assertThat(pr.reps).isEqualTo(5)
         assertThat(pr.rpe).isEqualTo(8.5f)
@@ -42,7 +42,7 @@ class PersonalRecordTest {
         assertThat(pr.volume).isEqualTo(500f) // 100 * 5
         assertThat(pr.estimated1RM).isEqualTo(116.67f)
         assertThat(pr.notes).isEqualTo("Felt strong today")
-        assertThat(pr.workoutId).isEqualTo(42L)
+        assertThat(pr.workoutId).isEqualTo("42")
     }
 
     @Test
@@ -51,7 +51,7 @@ class PersonalRecordTest {
 
         val pr =
             PersonalRecord(
-                exerciseVariationId = 50L,
+                exerciseVariationId = "50",
                 weight = 50f,
                 reps = 10,
                 recordDate = recordDate,
@@ -62,8 +62,8 @@ class PersonalRecordTest {
                 recordType = PRType.WEIGHT,
             )
 
-        assertThat(pr.id).isEqualTo(0L) // Default value
-        assertThat(pr.exerciseVariationId).isEqualTo(50L)
+        assertThat(pr.id).isNotEmpty() // Auto-generated ID
+        assertThat(pr.exerciseVariationId).isEqualTo("50")
         assertThat(pr.weight).isEqualTo(50f)
         assertThat(pr.reps).isEqualTo(10)
         assertThat(pr.rpe).isNull()
@@ -83,7 +83,7 @@ class PersonalRecordTest {
     fun personalRecord_volumeCalculation_isCorrect() {
         val pr1 =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 100f,
                 reps = 10,
                 recordDate = LocalDateTime.now(),
@@ -97,7 +97,7 @@ class PersonalRecordTest {
 
         val pr2 =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 225.5f,
                 reps = 3,
                 recordDate = LocalDateTime.now(),
@@ -111,7 +111,7 @@ class PersonalRecordTest {
 
         val pr3 =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 0f,
                 reps = 20,
                 recordDate = LocalDateTime.now(),
@@ -130,7 +130,7 @@ class PersonalRecordTest {
 
         val weightPR =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 100f,
                 reps = 5,
                 recordDate = baseDate,
@@ -144,7 +144,7 @@ class PersonalRecordTest {
 
         val repsPR =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 80f,
                 reps = 12,
                 recordDate = baseDate,
@@ -158,7 +158,7 @@ class PersonalRecordTest {
 
         val volumePR =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 85f,
                 reps = 10,
                 recordDate = baseDate,
@@ -172,7 +172,7 @@ class PersonalRecordTest {
 
         val estimated1RMPR =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 90f,
                 reps = 8,
                 recordDate = baseDate,
@@ -190,7 +190,7 @@ class PersonalRecordTest {
     fun personalRecord_withHighImprovementPercentage_isValid() {
         val pr =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 100f,
                 reps = 10,
                 recordDate = LocalDateTime.now(),
@@ -211,7 +211,7 @@ class PersonalRecordTest {
         // This shouldn't normally happen for a PR, but testing edge case
         val pr =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 90f,
                 reps = 5,
                 recordDate = LocalDateTime.now(),
@@ -229,7 +229,7 @@ class PersonalRecordTest {
     fun personalRecord_withRPE_validatesRange() {
         val pr1 =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 100f,
                 reps = 5,
                 rpe = 10f, // Maximum RPE
@@ -244,7 +244,7 @@ class PersonalRecordTest {
 
         val pr2 =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 100f,
                 reps = 5,
                 rpe = 6.5f, // Mid-range RPE
@@ -259,7 +259,7 @@ class PersonalRecordTest {
 
         val pr3 =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 100f,
                 reps = 5,
                 rpe = 0f, // Edge case - minimum
@@ -284,7 +284,7 @@ class PersonalRecordTest {
 
         val pr =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 100f,
                 reps = 5,
                 recordDate = LocalDateTime.now(),
@@ -307,7 +307,7 @@ class PersonalRecordTest {
 
         val pr =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 100f,
                 reps = 5,
                 recordDate = recordDate,
@@ -332,7 +332,7 @@ class PersonalRecordTest {
     fun personalRecord_withEstimated1RM_storesCorrectly() {
         val pr =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 85f,
                 reps = 8,
                 recordDate = LocalDateTime.now(),
@@ -352,7 +352,7 @@ class PersonalRecordTest {
     fun personalRecord_withWorkoutId_linksToWorkout() {
         val pr =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 100f,
                 reps = 5,
                 recordDate = LocalDateTime.now(),
@@ -361,17 +361,17 @@ class PersonalRecordTest {
                 previousDate = null,
                 improvementPercentage = 0f,
                 recordType = PRType.WEIGHT,
-                workoutId = 999L,
+                workoutId = "999",
             )
 
-        assertThat(pr.workoutId).isEqualTo(999L)
+        assertThat(pr.workoutId).isEqualTo("999")
     }
 
     @Test
     fun personalRecord_withZeroReps_calculatesZeroVolume() {
         val pr =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 100f,
                 reps = 0,
                 recordDate = LocalDateTime.now(),
@@ -389,7 +389,7 @@ class PersonalRecordTest {
     fun personalRecord_withVeryHighWeight_handlesCorrectly() {
         val pr =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 500f, // Very heavy weight
                 reps = 1,
                 recordDate = LocalDateTime.now(),
@@ -408,7 +408,7 @@ class PersonalRecordTest {
     fun personalRecord_withVeryHighReps_handlesCorrectly() {
         val pr =
             PersonalRecord(
-                exerciseVariationId = 1L,
+                exerciseVariationId = "1",
                 weight = 20f,
                 reps = 100, // Very high reps for endurance
                 recordDate = LocalDateTime.now(),
@@ -430,8 +430,8 @@ class PersonalRecordTest {
 
         val pr1 =
             PersonalRecord(
-                id = 1L,
-                exerciseVariationId = 100L,
+                id = "1",
+                exerciseVariationId = "100",
                 weight = 100f,
                 reps = 5,
                 rpe = 8f,
@@ -446,8 +446,8 @@ class PersonalRecordTest {
 
         val pr2 =
             PersonalRecord(
-                id = 1L,
-                exerciseVariationId = 100L,
+                id = "1",
+                exerciseVariationId = "100",
                 weight = 100f,
                 reps = 5,
                 rpe = 8f,
@@ -462,8 +462,8 @@ class PersonalRecordTest {
 
         val pr3 =
             PersonalRecord(
-                id = 2L, // Different ID
-                exerciseVariationId = 100L,
+                id = "2", // Different ID
+                exerciseVariationId = "100",
                 weight = 100f,
                 reps = 5,
                 rpe = 8f,
@@ -485,8 +485,8 @@ class PersonalRecordTest {
     fun personalRecord_toString_includesKeyInfo() {
         val pr =
             PersonalRecord(
-                id = 1L,
-                exerciseVariationId = 100L,
+                id = "1",
+                exerciseVariationId = "100",
                 weight = 100f,
                 reps = 5,
                 recordDate = LocalDateTime.of(2024, 1, 15, 10, 0),
@@ -508,7 +508,7 @@ class PersonalRecordTest {
     fun personalRecord_copy_createsIndependentInstance() {
         val original =
             PersonalRecord(
-                exerciseVariationId = 100L,
+                exerciseVariationId = "100",
                 weight = 100f,
                 reps = 5,
                 recordDate = LocalDateTime.now(),
@@ -540,7 +540,7 @@ class PersonalRecordTest {
     fun personalRecord_volumeRecalculation_requiresNewInstance() {
         val original =
             PersonalRecord(
-                exerciseVariationId = 100L,
+                exerciseVariationId = "100",
                 weight = 100f,
                 reps = 5,
                 recordDate = LocalDateTime.now(),

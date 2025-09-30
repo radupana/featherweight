@@ -27,10 +27,10 @@ class CreateTemplateFromWorkoutViewModel(
     private val _saveSuccess = MutableStateFlow(false)
     val saveSuccess: StateFlow<Boolean> = _saveSuccess.asStateFlow()
 
-    private var workoutId: Long = 0
+    private var workoutId: String = ""
     private var isInitialized = false
 
-    fun initialize(workoutId: Long) {
+    fun initialize(workoutId: String) {
         android.util.Log.i("CreateTemplateVM", "Initializing with workoutId: $workoutId")
         android.util.Log.i("CreateTemplateVM", "Previous saveSuccess state: ${_saveSuccess.value}")
         android.util.Log.i("CreateTemplateVM", "Previous isInitialized state: $isInitialized")

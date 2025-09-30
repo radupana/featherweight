@@ -11,8 +11,10 @@ data class ExerciseWithDetails(
     val instructions: List<VariationInstruction> = emptyList(),
     val usageCount: Int = 0, // User-specific usage count
     val isFavorite: Boolean = false, // User-specific favorite status
-    val isCustom: Boolean = false, // true if this is a user's custom exercise
 ) {
+    // Derived property: true if this is a user's custom exercise (userId is not null)
+    val isCustom: Boolean get() = variation.userId != null
+
     /**
      * Get primary muscles for this variation.
      */

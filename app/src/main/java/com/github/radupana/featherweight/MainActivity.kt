@@ -247,8 +247,8 @@ class MainActivity : ComponentActivity() {
                     var currentScreen by rememberSaveable { mutableStateOf(initialScreen) }
                     var previousScreen by rememberSaveable { mutableStateOf<Screen?>(null) }
                     var selectedExerciseName by rememberSaveable { mutableStateOf("") }
-                    var completedWorkoutId by rememberSaveable { mutableStateOf<Long?>(null) }
-                    var completedProgrammeId by rememberSaveable { mutableStateOf<Long?>(null) }
+                    var completedWorkoutId by rememberSaveable { mutableStateOf<String?>(null) }
+                    var completedProgrammeId by rememberSaveable { mutableStateOf<String?>(null) }
 
                     when (currentScreen) {
                         Screen.SPLASH ->
@@ -359,17 +359,17 @@ fun MainAppWithNavigation(
     previousScreen: Screen?,
     selectedExerciseName: String,
     onSelectedExerciseNameChange: (String) -> Unit,
-    completedWorkoutId: Long?,
-    onCompletedWorkoutIdChange: (Long?) -> Unit,
-    completedProgrammeId: Long?,
-    onCompletedProgrammeIdChange: (Long?) -> Unit,
+    completedWorkoutId: String?,
+    onCompletedWorkoutIdChange: (String?) -> Unit,
+    completedProgrammeId: String?,
+    onCompletedProgrammeIdChange: (String?) -> Unit,
 ) {
     // Track initial text for import programme screen
     var importProgrammeInitialText by remember { mutableStateOf<String?>(null) }
     // Track parsed programme for import screen
     var importParsedProgramme by remember { mutableStateOf<com.github.radupana.featherweight.data.ParsedProgramme?>(null) }
     // Track selected workout ID for template creation
-    var selectedTemplateWorkoutId by remember { mutableStateOf<Long?>(null) }
+    var selectedTemplateWorkoutId by remember { mutableStateOf<String?>(null) }
 
     // Initialize feedback service for debug builds
     val feedbackService = remember { FirebaseFeedbackService() }
@@ -585,13 +585,8 @@ fun MainAppWithNavigation(
                             val parsedExercises =
                                 exercises.map { exerciseLog ->
                                     val exerciseSets = sets.filter { it.exerciseLogId == exerciseLog.id }
-                                    // Use composite key to avoid ID collisions between system and custom exercises
-                                    val key =
-                                        if (exerciseLog.isCustomExercise) {
-                                            "custom_${exerciseLog.exerciseVariationId}"
-                                        } else {
-                                            "system_${exerciseLog.exerciseVariationId}"
-                                        }
+                                    // Use exerciseVariationId as key directly (no more collisions since tables are merged)
+                                    val key = "exercise_${exerciseLog.exerciseVariationId}"
                                     com.github.radupana.featherweight.data.ParsedExercise(
                                         exerciseName = exerciseNames[key] ?: "Unknown Exercise",
                                         matchedExerciseId = exerciseLog.exerciseVariationId,

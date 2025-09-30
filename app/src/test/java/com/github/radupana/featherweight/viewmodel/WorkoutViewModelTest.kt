@@ -41,7 +41,7 @@ class WorkoutViewModelTest {
             WorkoutState(
                 isActive = true,
                 status = WorkoutStatus.IN_PROGRESS,
-                workoutId = 123L,
+                workoutId = "123",
             )
 
         val modified =
@@ -52,7 +52,7 @@ class WorkoutViewModelTest {
 
         assertThat(modified.isActive).isFalse()
         assertThat(modified.status).isEqualTo(WorkoutStatus.COMPLETED)
-        assertThat(modified.workoutId).isEqualTo(123L) // unchanged
+        assertThat(modified.workoutId).isEqualTo("123") // unchanged
     }
 
     @Test
@@ -98,7 +98,7 @@ class WorkoutViewModelTest {
         val parsedExercise =
             ParsedExercise(
                 exerciseName = "Barbell Squat",
-                matchedExerciseId = 1L,
+                matchedExerciseId = "1",
                 sets = sets,
                 notes = null,
             )
@@ -131,13 +131,13 @@ class WorkoutViewModelTest {
             listOf(
                 ParsedExercise(
                     exerciseName = "Barbell Deadlift",
-                    matchedExerciseId = 8L,
+                    matchedExerciseId = "8",
                     sets = deadliftSets,
                     notes = null,
                 ),
                 ParsedExercise(
                     exerciseName = "Barbell Paused Bench Press",
-                    matchedExerciseId = 486L,
+                    matchedExerciseId = "486",
                     sets = benchSets,
                     notes = null,
                 ),
@@ -179,7 +179,7 @@ class WorkoutViewModelTest {
         // Simulate what WorkoutViewModel should do
         val setLog =
             SetLog(
-                exerciseLogId = 1L,
+                exerciseLogId = "1",
                 setOrder = 1,
                 targetReps = parsedSet.reps,
                 targetWeight = parsedSet.weight,
@@ -213,7 +213,7 @@ class WorkoutViewModelTest {
 
         val setLog =
             SetLog(
-                exerciseLogId = 1L,
+                exerciseLogId = "1",
                 setOrder = 1,
                 targetReps = parsedSet.reps,
                 targetWeight = parsedSet.weight,
@@ -243,7 +243,7 @@ class WorkoutViewModelTest {
         val exercise =
             ParsedExercise(
                 exerciseName = "Barbell Squat",
-                matchedExerciseId = 1L,
+                matchedExerciseId = "1",
                 sets = sets,
                 notes = "Progressive intensity",
             )

@@ -32,7 +32,7 @@ data class PaginatedHistoryState(
     val currentProgrammePage: Int = 0,
     val pageSize: Int = 20,
     val error: String? = null,
-    val exportingWorkoutId: Long? = null,
+    val exportingWorkoutId: String? = null,
     val pendingExportFile: java.io.File? = null,
 )
 
@@ -98,7 +98,7 @@ class HistoryViewModel(
     val weekGroupState: StateFlow<WeekGroupState> = _weekGroupState.asStateFlow()
 
     // Store selected programme ID for navigation
-    var selectedProgrammeId: Long? = null
+    var selectedProgrammeId: String? = null
 
     init {
         // Load initial page
@@ -402,7 +402,7 @@ class HistoryViewModel(
         return allWorkoutsInMonth.filter { it.date.toLocalDate() == date }
     }
 
-    fun exportWorkout(workoutId: Long) {
+    fun exportWorkout(workoutId: String) {
         viewModelScope.launch {
             _historyState.value =
                 _historyState.value.copy(

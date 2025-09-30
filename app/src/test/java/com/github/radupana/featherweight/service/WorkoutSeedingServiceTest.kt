@@ -47,18 +47,18 @@ class WorkoutSeedingServiceTest {
 
             val mockWorkout =
                 Workout(
-                    id = 1L,
+                    id = "1",
                     date = LocalDateTime.now(),
                     status = WorkoutStatus.COMPLETED,
                 )
 
             coEvery { mockRepository.getExercise1RM(any()) } returns null
             coEvery { mockRepository.getExerciseByName(any()) } returns null
-            coEvery { mockRepository.insertWorkout(any()) } returns 1L
+            coEvery { mockRepository.insertWorkout(any()) } returns "1"
             coEvery { mockRepository.getWorkoutForDate(any()) } returns null
-            coEvery { mockRepository.insertExerciseLog(any()) } returns 1L
+            coEvery { mockRepository.insertExerciseLog(any()) } returns "1"
             coEvery { mockRepository.incrementExerciseUsageCount(any()) } returns Unit
-            coEvery { mockRepository.insertSetLog(any()) } returns 1L
+            coEvery { mockRepository.insertSetLog(any()) } returns "1"
             coEvery { mockRepository.getWorkoutById(any()) } returns mockWorkout
             coEvery { mockRepository.getExerciseLogsForWorkout(any()) } returns emptyList()
             coEvery { mockRepository.completeWorkout(any(), any()) } returns Unit
@@ -85,9 +85,9 @@ class WorkoutSeedingServiceTest {
 
             coEvery { relaxedRepository.getExercise1RM(any()) } returns null
             coEvery { relaxedRepository.getWorkoutForDate(any()) } returns null
-            coEvery { relaxedRepository.insertWorkout(any()) } returns 1L
-            coEvery { relaxedRepository.insertExerciseLog(any()) } returns 1L
-            coEvery { relaxedRepository.insertSetLog(any()) } returns 1L
+            coEvery { relaxedRepository.insertWorkout(any()) } returns "1"
+            coEvery { relaxedRepository.insertExerciseLog(any()) } returns "1"
+            coEvery { relaxedRepository.insertSetLog(any()) } returns "1"
 
             // Act
             val result = relaxedService.seedRealisticWorkouts(config)
@@ -109,7 +109,7 @@ class WorkoutSeedingServiceTest {
 
             val mockWorkout =
                 Workout(
-                    id = 1L,
+                    id = "1",
                     date = LocalDateTime.now(),
                     status = WorkoutStatus.COMPLETED,
                 )
@@ -119,11 +119,11 @@ class WorkoutSeedingServiceTest {
             coEvery { mockRepository.getExercise1RM("Barbell Deadlift") } returns null
             coEvery { mockRepository.getExercise1RM("Barbell Overhead Press") } returns null
             coEvery { mockRepository.getExerciseByName(any()) } returns null
-            coEvery { mockRepository.insertWorkout(any()) } returns 1L
+            coEvery { mockRepository.insertWorkout(any()) } returns "1"
             coEvery { mockRepository.getWorkoutForDate(any()) } returns null
-            coEvery { mockRepository.insertExerciseLog(any()) } returns 1L
+            coEvery { mockRepository.insertExerciseLog(any()) } returns "1"
             coEvery { mockRepository.incrementExerciseUsageCount(any()) } returns Unit
-            coEvery { mockRepository.insertSetLog(any()) } returns 1L
+            coEvery { mockRepository.insertSetLog(any()) } returns "1"
             coEvery { mockRepository.getWorkoutById(any()) } returns mockWorkout
             coEvery { mockRepository.getExerciseLogsForWorkout(any()) } returns emptyList()
             coEvery { mockRepository.completeWorkout(any(), any()) } returns Unit
@@ -198,14 +198,14 @@ class WorkoutSeedingServiceTest {
 
             val existingWorkout =
                 Workout(
-                    id = 1L,
+                    id = "1",
                     date = LocalDateTime.now().minusDays(1),
                     status = WorkoutStatus.COMPLETED,
                 )
 
             val mockWorkout =
                 Workout(
-                    id = 2L,
+                    id = "2",
                     date = LocalDateTime.now(),
                     status = WorkoutStatus.COMPLETED,
                 )
@@ -215,11 +215,11 @@ class WorkoutSeedingServiceTest {
                 mockRepository.getWorkoutForDate(LocalDate.now().minusDays(1))
             } returns existingWorkout
             coEvery { mockRepository.getWorkoutForDate(any()) } returns null
-            coEvery { mockRepository.insertWorkout(any()) } returns 2L
+            coEvery { mockRepository.insertWorkout(any()) } returns "2"
             coEvery { mockRepository.getExerciseByName(any()) } returns null
-            coEvery { mockRepository.insertExerciseLog(any()) } returns 1L
+            coEvery { mockRepository.insertExerciseLog(any()) } returns "1"
             coEvery { mockRepository.incrementExerciseUsageCount(any()) } returns Unit
-            coEvery { mockRepository.insertSetLog(any()) } returns 1L
+            coEvery { mockRepository.insertSetLog(any()) } returns "1"
             coEvery { mockRepository.getWorkoutById(any()) } returns mockWorkout
             coEvery { mockRepository.getExerciseLogsForWorkout(any()) } returns emptyList()
             coEvery { mockRepository.completeWorkout(any(), any()) } returns Unit
@@ -279,9 +279,9 @@ class WorkoutSeedingServiceTest {
 
             coEvery { relaxedRepository.getExercise1RM(any()) } returns 100f
             coEvery { relaxedRepository.getWorkoutForDate(any()) } returns null
-            coEvery { relaxedRepository.insertWorkout(any()) } returns 1L
-            coEvery { relaxedRepository.insertExerciseLog(any()) } returns 1L
-            coEvery { relaxedRepository.insertSetLog(any()) } returns 1L
+            coEvery { relaxedRepository.insertWorkout(any()) } returns "1"
+            coEvery { relaxedRepository.insertExerciseLog(any()) } returns "1"
+            coEvery { relaxedRepository.insertSetLog(any()) } returns "1"
 
             // Act
             val result = service.seedRealisticWorkouts(config)
@@ -314,9 +314,9 @@ class WorkoutSeedingServiceTest {
 
             coEvery { relaxedRepository.getExercise1RM(any()) } returns 100f
             coEvery { relaxedRepository.getWorkoutForDate(any()) } returns null
-            coEvery { relaxedRepository.insertWorkout(any()) } returns 1L
-            coEvery { relaxedRepository.insertExerciseLog(any()) } returns 1L
-            coEvery { relaxedRepository.insertSetLog(any()) } returns 1L
+            coEvery { relaxedRepository.insertWorkout(any()) } returns "1"
+            coEvery { relaxedRepository.insertExerciseLog(any()) } returns "1"
+            coEvery { relaxedRepository.insertSetLog(any()) } returns "1"
 
             // Act
             val resultWith = service.seedRealisticWorkouts(configWithAccessories)

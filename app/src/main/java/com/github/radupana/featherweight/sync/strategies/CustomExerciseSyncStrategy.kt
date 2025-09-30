@@ -2,8 +2,8 @@ package com.github.radupana.featherweight.sync.strategies
 
 import android.util.Log
 import com.github.radupana.featherweight.data.FeatherweightDatabase
-import com.github.radupana.featherweight.data.exercise.CustomExerciseCore
-import com.github.radupana.featherweight.data.exercise.CustomExerciseVariation
+import com.github.radupana.featherweight.data.exercise.ExerciseCore
+import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.sync.SyncStrategy
 import com.github.radupana.featherweight.sync.repository.FirestoreRepository
 import com.google.firebase.Timestamp
@@ -41,13 +41,13 @@ class CustomExerciseSyncStrategy(
                 Log.d(TAG, "Downloaded ${remoteExercises.size} custom exercises from Firestore")
 
                 // Get local custom exercises for comparison
-                val localVariations = database.customExerciseDao().getCustomVariationsByUser(userId)
+                val localVariations = database.exerciseVariationDao().getCustomVariationsByUser(userId)
                 val localVariationMap = localVariations.associateBy { it.id }
 
                 // Process remote exercises
                 remoteExercises.forEach { (exerciseId, firestoreCustomExercise) ->
                     try {
-                        val remoteVariationId = exerciseId.toLongOrNull() ?: return@forEach
+                        val remoteVariationId = exerciseId
 
                         // Check if we have this exercise locally
                         val localVariation = localVariationMap[remoteVariationId]
@@ -83,21 +83,21 @@ class CustomExerciseSyncStrategy(
 
     private suspend fun insertRemoteExercise(
         userId: String,
-        variationId: Long,
+        variationId: String,
         firestoreData: Map<String, Any>,
     ) {
         // Extract core data
-        val coreId = (firestoreData["coreId"] as? Long) ?: return
+        val coreId = (firestoreData["coreId"] as? String) ?: (firestoreData["coreId"] as? Long)?.toString() ?: return
         val coreName = firestoreData["coreName"] as? String ?: return
         val category = firestoreData["category"] as? String ?: return
         val movementPattern = firestoreData["movementPattern"] as? String ?: return
         val isCompound = firestoreData["isCompound"] as? Boolean ?: false
 
         // Insert core if it doesn't exist
-        val existingCore = database.customExerciseDao().getCustomCoreById(coreId)
+        val existingCore = database.exerciseCoreDao().getCoreById(coreId)
         if (existingCore == null) {
             val core =
-                CustomExerciseCore(
+                ExerciseCore(
                     id = coreId,
                     userId = userId,
                     name = coreName,
@@ -109,15 +109,15 @@ class CustomExerciseSyncStrategy(
                             .valueOf(movementPattern),
                     isCompound = isCompound,
                 )
-            database.customExerciseDao().insertCustomCore(core)
+            database.exerciseCoreDao().insertCore(core)
         }
 
         // Insert variation
         val variation =
-            CustomExerciseVariation(
+            ExerciseVariation(
                 id = variationId,
                 userId = userId,
-                customCoreExerciseId = coreId,
+                coreExerciseId = coreId,
                 name = firestoreData["name"] as? String ?: return,
                 equipment =
                     com.github.radupana.featherweight.data.exercise.Equipment.valueOf(
@@ -130,14 +130,14 @@ class CustomExerciseSyncStrategy(
                 requiresWeight = firestoreData["requiresWeight"] as? Boolean ?: false,
                 restDurationSeconds = (firestoreData["restDurationSeconds"] as? Long)?.toInt() ?: 90,
             )
-        database.customExerciseDao().insertCustomVariation(variation)
+        database.exerciseVariationDao().insertExerciseVariation(variation)
     }
 
     private suspend fun updateLocalExercise(
-        variationId: Long,
+        variationId: String,
         firestoreData: Map<String, Any>,
     ) {
-        val existingVariation = database.customExerciseDao().getCustomVariationById(variationId) ?: return
+        val existingVariation = database.exerciseVariationDao().getExerciseVariationById(variationId) ?: return
 
         // Update variation with remote data
         val updatedVariation =
@@ -154,12 +154,12 @@ class CustomExerciseSyncStrategy(
                 requiresWeight = firestoreData["requiresWeight"] as? Boolean ?: existingVariation.requiresWeight,
                 restDurationSeconds = (firestoreData["restDurationSeconds"] as? Long)?.toInt() ?: existingVariation.restDurationSeconds,
             )
-        database.customExerciseDao().updateCustomVariation(updatedVariation)
+        database.exerciseVariationDao().updateVariation(updatedVariation)
     }
 
     private suspend fun uploadLocalChanges(
         userId: String,
-        localVariations: List<CustomExerciseVariation>,
+        localVariations: List<ExerciseVariation>,
         lastSyncTime: Timestamp?,
     ) {
         localVariations.forEach { variation ->
@@ -168,7 +168,7 @@ class CustomExerciseSyncStrategy(
                 val variationTimestamp = Timestamp(variation.updatedAt.toEpochSecond(ZoneOffset.UTC), 0)
                 if (lastSyncTime == null || variationTimestamp.seconds > lastSyncTime.seconds) {
                     // Get the core for this variation
-                    val core = database.customExerciseDao().getCustomCoreById(variation.customCoreExerciseId)
+                    val core = database.exerciseCoreDao().getCoreById(variation.coreExerciseId)
                     if (core != null) {
                         // Upload to Firestore
                         firestoreRepository.uploadCustomExercise(userId, variation, core)
@@ -191,7 +191,7 @@ class CustomExerciseSyncStrategy(
             }
 
             try {
-                val localVariations = database.customExerciseDao().getCustomVariationsByUser(userId)
+                val localVariations = database.exerciseVariationDao().getCustomVariationsByUser(userId)
                 uploadLocalChanges(userId, localVariations, lastSyncTime)
                 Result.success(Unit)
             } catch (e: Exception) {

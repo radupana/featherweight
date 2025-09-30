@@ -76,12 +76,13 @@ import com.github.radupana.featherweight.viewmodel.ExerciseSelectorViewModel
 @Composable
 fun ExerciseMappingScreen(
     unmatchedExercises: List<String>,
-    onMappingComplete: (Map<String, Long?>) -> Unit,
+    onMappingComplete: (Map<String, String?>) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ExerciseMappingViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
     var currentExerciseIndex by remember { mutableIntStateOf(0) }
     val currentExercise = unmatchedExercises.getOrNull(currentExerciseIndex)
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -207,7 +208,7 @@ fun ExerciseMappingScreen(
                 ExerciseSearchSection(
                     exerciseName = currentExercise,
                     onExerciseSelected = { exerciseId, exerciseName ->
-                        viewModel.mapExercise(currentExercise, exerciseId, exerciseName)
+                        viewModel.mapExercise(currentExercise, exerciseId.toString(), exerciseName)
                     },
                     viewModel = viewModel,
                 )
@@ -680,7 +681,7 @@ private fun CreateCustomExerciseDialog(
 @Composable
 private fun ExerciseSearchSection(
     exerciseName: String,
-    onExerciseSelected: (Long, String) -> Unit,
+    onExerciseSelected: (String, String) -> Unit,
     viewModel: ExerciseMappingViewModel,
     modifier: Modifier = Modifier,
 ) {
