@@ -116,8 +116,10 @@ class EmailVerificationActivity : ComponentActivity() {
             Log.i(TAG, "Triggering initial sync for verified user: $userId")
             syncManager.syncAll()
             Log.i(TAG, "Initial sync completed successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Initial sync failed", e)
+        } catch (e: com.google.firebase.FirebaseException) {
+            Log.e(TAG, "Initial sync failed - Firebase error", e)
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e(TAG, "Initial sync failed - database error", e)
         }
     }
 
@@ -151,8 +153,10 @@ class EmailVerificationActivity : ComponentActivity() {
         try {
             syncManager.syncUserData(userId)
             Log.i(TAG, "Migration sync completed successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to sync migrated data", e)
+        } catch (e: com.google.firebase.FirebaseException) {
+            Log.e(TAG, "Failed to sync migrated data - Firebase error", e)
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e(TAG, "Failed to sync migrated data - database error", e)
         }
     }
 
@@ -261,12 +265,20 @@ fun EmailVerificationScreen(
                                     Toast.LENGTH_LONG,
                                 ).show()
                         }
-                    } catch (e: Exception) {
+                    } catch (e: com.google.firebase.FirebaseException) {
                         Log.e("EmailVerificationActivity", "Error checking verification status for user: $userEmail", e)
                         Toast
                             .makeText(
                                 context,
                                 "Error checking verification status",
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                    } catch (e: java.io.IOException) {
+                        Log.e("EmailVerificationActivity", "Network error checking verification status for user: $userEmail", e)
+                        Toast
+                            .makeText(
+                                context,
+                                "Network error checking verification status",
                                 Toast.LENGTH_SHORT,
                             ).show()
                     }

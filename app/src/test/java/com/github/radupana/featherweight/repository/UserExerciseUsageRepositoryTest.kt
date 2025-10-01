@@ -153,7 +153,7 @@ class UserExerciseUsageRepositoryTest {
             coEvery { userExerciseUsageDao.getOrCreateUsage(any(), any()) } returns mockk(relaxed = true)
             coEvery {
                 userExerciseUsageDao.incrementUsageCount(any(), any(), any())
-            } throws RuntimeException("Database error")
+            } throws android.database.sqlite.SQLiteException("Database error")
 
             // Act
             val result =

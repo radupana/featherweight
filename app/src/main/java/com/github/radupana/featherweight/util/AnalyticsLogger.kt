@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.util
 
+import android.util.Log
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import org.json.JSONException
 import org.json.JSONObject
@@ -75,6 +76,7 @@ object AnalyticsLogger {
             json.remove("api_key")
             json.toString()
         } catch (e: JSONException) {
+            Log.d("AnalyticsLogger", "Failed to parse request as JSON for sanitization: ${e.message}")
             request
         }
 

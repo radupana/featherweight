@@ -536,7 +536,16 @@ class WorkoutRepositoryTest {
             workouts[template1Id] = Workout(id = template1Id, userId = "test-user-id", name = "Template 1", date = LocalDateTime.now().minusDays(1), status = WorkoutStatus.TEMPLATE, isTemplate = true)
 
             val template2Id = (nextWorkoutIdCounter++).toString()
-            workouts[template2Id] = Workout(id = template2Id, userId = "test-user-id", name = "Template 2", date = LocalDateTime.now(), status = WorkoutStatus.TEMPLATE, isTemplate = true, notes = "Description")
+            workouts[template2Id] =
+                Workout(
+                    id = template2Id,
+                    userId = "test-user-id",
+                    name = "Template 2",
+                    date = LocalDateTime.now(),
+                    status = WorkoutStatus.TEMPLATE,
+                    isTemplate = true,
+                    notes = "Description",
+                )
 
             // Add exercises to template 2
             val exerciseLog = ExerciseLog(workoutId = template2Id, exerciseVariationId = "1", exerciseOrder = 1)

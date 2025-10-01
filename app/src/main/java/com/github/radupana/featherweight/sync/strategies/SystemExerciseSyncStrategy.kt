@@ -41,8 +41,14 @@ class SystemExerciseSyncStrategy(
 
                 Log.d(TAG, "System exercise sync completed successfully")
                 Result.success(Unit)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to sync system exercises", e)
+            } catch (e: com.google.firebase.FirebaseException) {
+                Log.e(TAG, "Failed to sync system exercises - Firebase error", e)
+                Result.failure(e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to sync system exercises - database error", e)
+                Result.failure(e)
+            } catch (e: java.io.IOException) {
+                Log.e(TAG, "Failed to sync system exercises - network error", e)
                 Result.failure(e)
             }
         }
@@ -94,8 +100,14 @@ class SystemExerciseSyncStrategy(
             }
 
             Log.v(TAG, "Processed exercise: ${bundle.exerciseVariation.name}")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to process exercise $exerciseId", e)
+        } catch (e: com.google.firebase.FirebaseException) {
+            Log.e(TAG, "Failed to process exercise $exerciseId - Firebase error", e)
+            // Don't fail the whole sync for one bad exercise
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e(TAG, "Failed to process exercise $exerciseId - database error", e)
+            // Don't fail the whole sync for one bad exercise
+        } catch (e: IllegalStateException) {
+            Log.e(TAG, "Failed to process exercise $exerciseId - invalid state", e)
             // Don't fail the whole sync for one bad exercise
         }
     }

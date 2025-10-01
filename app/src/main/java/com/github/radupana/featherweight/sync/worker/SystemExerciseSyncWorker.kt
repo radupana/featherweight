@@ -54,8 +54,15 @@ class SystemExerciseSyncWorker(
                         }
                     },
                 )
-            } catch (e: Exception) {
-                ExceptionLogger.logNonCritical("SystemExerciseSyncWorker", "Unexpected sync error", e)
+            } catch (e: com.google.firebase.FirebaseException) {
+                ExceptionLogger.logNonCritical("SystemExerciseSyncWorker", "Unexpected Firebase sync error", e)
+                if (runAttemptCount < 3) {
+                    Result.retry()
+                } else {
+                    Result.failure()
+                }
+            } catch (e: android.database.sqlite.SQLiteException) {
+                ExceptionLogger.logNonCritical("SystemExerciseSyncWorker", "Unexpected database sync error", e)
                 if (runAttemptCount < 3) {
                     Result.retry()
                 } else {

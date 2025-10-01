@@ -47,7 +47,7 @@ class SyncManager(
 
     // Track last sync time to prevent rapid successive syncs
     private var lastSyncAttemptTime = 0L
-    private val MIN_SYNC_INTERVAL_MS = 10000L // 10 seconds minimum between syncs
+    private val minSyncIntervalMs = 10000L // 10 seconds minimum between syncs
 
     // Sync strategies for modular sync logic
     private val systemExerciseStrategy = SystemExerciseSyncStrategy(database, firestoreRepository)
@@ -78,8 +78,8 @@ class SyncManager(
             syncMutex.withLock {
                 // Debounce rapid sync calls
                 val currentTime = System.currentTimeMillis()
-                if (currentTime - lastSyncAttemptTime < MIN_SYNC_INTERVAL_MS) {
-                    Log.i("SyncManager", "Sync skipped - too soon after last sync (${currentTime - lastSyncAttemptTime}ms < ${MIN_SYNC_INTERVAL_MS}ms)")
+                if (currentTime - lastSyncAttemptTime < minSyncIntervalMs) {
+                    Log.i("SyncManager", "Sync skipped - too soon after last sync (${currentTime - lastSyncAttemptTime}ms < ${minSyncIntervalMs}ms)")
                     return@withContext Result.success(SyncState.Skipped("Sync throttled"))
                 }
                 lastSyncAttemptTime = currentTime
@@ -132,8 +132,12 @@ class SyncManager(
                             Result.success(SyncState.Error("Download failed: ${error.message}"))
                         },
                     )
-                } catch (e: Exception) {
-                    Log.e("SyncManager", "Sync failed with exception: ${e.message}", e)
+                } catch (e: com.google.firebase.FirebaseException) {
+                    Log.e("SyncManager", "Sync failed with Firebase exception: ${e.message}", e)
+                    ExceptionLogger.logNonCritical("SyncManager", "Sync failed", e)
+                    Result.success(SyncState.Error("Sync failed: ${e.message}"))
+                } catch (e: android.database.sqlite.SQLiteException) {
+                    Log.e("SyncManager", "Sync failed with database exception: ${e.message}", e)
                     ExceptionLogger.logNonCritical("SyncManager", "Sync failed", e)
                     Result.success(SyncState.Error("Sync failed: ${e.message}"))
                 }
@@ -163,8 +167,11 @@ class SyncManager(
                         Result.success(SyncState.Error("Restore failed: ${error.message}"))
                     },
                 )
-            } catch (e: Exception) {
-                ExceptionLogger.logNonCritical("SyncManager", "Restore failed", e)
+            } catch (e: com.google.firebase.FirebaseException) {
+                ExceptionLogger.logNonCritical("SyncManager", "Restore failed - Firebase error", e)
+                Result.success(SyncState.Error("Restore failed: ${e.message}"))
+            } catch (e: android.database.sqlite.SQLiteException) {
+                ExceptionLogger.logNonCritical("SyncManager", "Restore failed - database error", e)
                 Result.success(SyncState.Error("Restore failed: ${e.message}"))
             }
         }
@@ -224,8 +231,11 @@ class SyncManager(
             uploadParseRequests(userId)
 
             Result.success(Unit)
-        } catch (e: Exception) {
-            ExceptionLogger.logNonCritical("SyncManager", "Upload failed", e)
+        } catch (e: com.google.firebase.FirebaseException) {
+            ExceptionLogger.logNonCritical("SyncManager", "Upload failed - Firebase error", e)
+            Result.failure(e)
+        } catch (e: android.database.sqlite.SQLiteException) {
+            ExceptionLogger.logNonCritical("SyncManager", "Upload failed - database error", e)
             Result.failure(e)
         }
 
@@ -433,8 +443,12 @@ class SyncManager(
 
             Log.d("SyncManager", "downloadRemoteChanges: All downloads completed successfully")
             Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e("SyncManager", "downloadRemoteChanges failed: ${e.message}", e)
+        } catch (e: com.google.firebase.FirebaseException) {
+            Log.e("SyncManager", "downloadRemoteChanges failed - Firebase error: ${e.message}", e)
+            ExceptionLogger.logNonCritical("SyncManager", "Download failed", e)
+            Result.failure(e)
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e("SyncManager", "downloadRemoteChanges failed - database error: ${e.message}", e)
             ExceptionLogger.logNonCritical("SyncManager", "Download failed", e)
             Result.failure(e)
         }
@@ -679,8 +693,12 @@ class SyncManager(
                             Result.success(SyncState.Error("System exercise sync failed: ${error.message}"))
                         },
                     )
-                } catch (e: Exception) {
-                    Log.e("SyncManager", "System exercise sync failed with exception: ${e.message}", e)
+                } catch (e: com.google.firebase.FirebaseException) {
+                    Log.e("SyncManager", "System exercise sync failed with Firebase exception: ${e.message}", e)
+                    ExceptionLogger.logNonCritical("SyncManager", "System exercise sync failed", e)
+                    Result.success(SyncState.Error("System exercise sync failed: ${e.message}"))
+                } catch (e: android.database.sqlite.SQLiteException) {
+                    Log.e("SyncManager", "System exercise sync failed with database exception: ${e.message}", e)
                     ExceptionLogger.logNonCritical("SyncManager", "System exercise sync failed", e)
                     Result.success(SyncState.Error("System exercise sync failed: ${e.message}"))
                 }
@@ -721,8 +739,12 @@ class SyncManager(
                             Result.success(SyncState.Error("Download failed: ${error.message}"))
                         },
                     )
-                } catch (e: Exception) {
-                    Log.e("SyncManager", "User data sync failed with exception: ${e.message}", e)
+                } catch (e: com.google.firebase.FirebaseException) {
+                    Log.e("SyncManager", "User data sync failed with Firebase exception: ${e.message}", e)
+                    ExceptionLogger.logNonCritical("SyncManager", "User data sync failed", e)
+                    Result.success(SyncState.Error("User data sync failed: ${e.message}"))
+                } catch (e: android.database.sqlite.SQLiteException) {
+                    Log.e("SyncManager", "User data sync failed with database exception: ${e.message}", e)
                     ExceptionLogger.logNonCritical("SyncManager", "User data sync failed", e)
                     Result.success(SyncState.Error("User data sync failed: ${e.message}"))
                 }
@@ -762,8 +784,11 @@ class SyncManager(
             downloadAndMergeParseRequests(userId)
 
             Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e("SyncManager", "downloadUserData failed: ${e.message}", e)
+        } catch (e: com.google.firebase.FirebaseException) {
+            Log.e("SyncManager", "downloadUserData failed - Firebase error: ${e.message}", e)
+            Result.failure(e)
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e("SyncManager", "downloadUserData failed - database error: ${e.message}", e)
             Result.failure(e)
         }
 
@@ -795,8 +820,11 @@ class SyncManager(
             uploadParseRequests(userId)
 
             Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e("SyncManager", "uploadUserData failed: ${e.message}", e)
+        } catch (e: com.google.firebase.FirebaseException) {
+            Log.e("SyncManager", "uploadUserData failed - Firebase error: ${e.message}", e)
+            Result.failure(e)
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e("SyncManager", "uploadUserData failed - database error: ${e.message}", e)
             Result.failure(e)
         }
 }

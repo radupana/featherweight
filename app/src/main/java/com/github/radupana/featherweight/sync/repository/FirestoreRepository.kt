@@ -100,15 +100,20 @@ class FirestoreRepository(
                     if (exercise != null) {
                         exercises[doc.id] = exercise
                     }
-                } catch (e: Exception) {
-                    Log.e("FirestoreRepository", "Failed to parse exercise ${doc.id}", e)
+                } catch (e: FirebaseException) {
+                    Log.e("FirestoreRepository", "Failed to parse exercise ${doc.id} - Firebase error", e)
+                } catch (e: IllegalStateException) {
+                    Log.e("FirestoreRepository", "Failed to parse exercise ${doc.id} - invalid state", e)
                 }
             }
 
             Log.d("FirestoreRepository", "Downloaded ${exercises.size} system exercises")
             Result.success(exercises)
-        } catch (e: Exception) {
-            Log.e("FirestoreRepository", "Failed to download system exercises", e)
+        } catch (e: FirebaseException) {
+            Log.e("FirestoreRepository", "Failed to download system exercises - Firebase error", e)
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            Log.e("FirestoreRepository", "Failed to download system exercises - network error", e)
             Result.failure(e)
         }
 
@@ -169,9 +174,8 @@ class FirestoreRepository(
             Log.e("FirestoreRepository", "Error code: ${e.message?.contains("PERMISSION_DENIED") ?: false}")
             ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to download workouts", e)
             Result.failure(e)
-        } catch (e: Exception) {
-            Log.e("FirestoreRepository", "downloadWorkouts unexpected error: ${e.message}", e)
-            Log.e("FirestoreRepository", "Exception type: ${e.javaClass.simpleName}")
+        } catch (e: java.io.IOException) {
+            Log.e("FirestoreRepository", "downloadWorkouts network error: ${e.message}", e)
             Result.failure(e)
         }
 
@@ -378,8 +382,11 @@ class FirestoreRepository(
 
             Log.d("FirestoreRepository", "Downloaded ${exercises.size} custom exercises for user $userId")
             Result.success(exercises)
-        } catch (e: Exception) {
-            Log.e("FirestoreRepository", "Failed to download custom exercises", e)
+        } catch (e: FirebaseException) {
+            Log.e("FirestoreRepository", "Failed to download custom exercises - Firebase error", e)
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            Log.e("FirestoreRepository", "Failed to download custom exercises - network error", e)
             Result.failure(e)
         }
 
@@ -418,8 +425,11 @@ class FirestoreRepository(
                 .await()
 
             Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e("FirestoreRepository", "Failed to upload custom exercise", e)
+        } catch (e: FirebaseException) {
+            Log.e("FirestoreRepository", "Failed to upload custom exercise - Firebase error", e)
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            Log.e("FirestoreRepository", "Failed to upload custom exercise - network error", e)
             Result.failure(e)
         }
 
@@ -440,8 +450,11 @@ class FirestoreRepository(
                 .await()
 
             Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e("FirestoreRepository", "Failed to delete custom exercise", e)
+        } catch (e: FirebaseException) {
+            Log.e("FirestoreRepository", "Failed to delete custom exercise - Firebase error", e)
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            Log.e("FirestoreRepository", "Failed to delete custom exercise - network error", e)
             Result.failure(e)
         }
 
@@ -544,8 +557,10 @@ class FirestoreRepository(
 
     suspend fun downloadExerciseSwapHistory(userId: String): Result<List<FirestoreExerciseSwapHistory>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_SWAP_HISTORY_COLLECTION))
 
+    @Suppress("MaxLineLength")
     suspend fun downloadExercisePerformanceTracking(userId: String): Result<List<FirestoreExercisePerformanceTracking>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_PERFORMANCE_TRACKING_COLLECTION))
 
+    @Suppress("MaxLineLength")
     suspend fun downloadGlobalExerciseProgress(userId: String): Result<List<FirestoreGlobalExerciseProgress>> = downloadBatchedData(userDocument(userId).collection(GLOBAL_EXERCISE_PROGRESS_COLLECTION))
 
     suspend fun downloadTrainingAnalyses(userId: String): Result<List<FirestoreTrainingAnalysis>> = downloadBatchedData(userDocument(userId).collection(TRAINING_ANALYSES_COLLECTION))

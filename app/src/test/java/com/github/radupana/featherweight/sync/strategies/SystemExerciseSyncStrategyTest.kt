@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.sync.strategies
 
+import android.text.TextUtils
 import android.util.Log
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.exercise.Equipment
@@ -51,6 +52,13 @@ class SystemExerciseSyncStrategyTest {
         every { Log.e(any(), any(), any()) } returns 0
         every { Log.v(any(), any()) } returns 0
 
+        // Mock TextUtils
+        mockkStatic(TextUtils::class)
+        every { TextUtils.isEmpty(any()) } answers {
+            val str = arg<CharSequence?>(0)
+            str == null || str.isEmpty()
+        }
+
         // Create mocks
         database = mockk(relaxed = true)
         firestoreRepository = mockk(relaxed = true)
@@ -76,6 +84,7 @@ class SystemExerciseSyncStrategyTest {
     @After
     fun tearDown() {
         unmockkStatic(Log::class)
+        unmockkStatic(TextUtils::class)
         clearAllMocks()
     }
 
@@ -331,7 +340,7 @@ class SystemExerciseSyncStrategyTest {
         runBlocking {
             // Given: Firestore returns error
             coEvery { firestoreRepository.downloadSystemExercises(any()) } returns
-                Result.failure(Exception("Network error"))
+                Result.failure(com.google.firebase.FirebaseException("Network error"))
 
             // When: Sync is performed
             val result = strategy.downloadAndMerge(null, null)

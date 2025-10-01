@@ -22,7 +22,6 @@ import com.github.radupana.featherweight.util.ExceptionLogger
 import com.github.radupana.featherweight.util.MigrationStateManager
 import com.github.radupana.featherweight.worker.ExportWorkoutsWorker
 import com.google.firebase.auth.AuthCredential
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -431,13 +430,19 @@ class ProfileViewModel(
                         isClearingData = false,
                         error = "Permission error clearing data: ${e.message}",
                     )
-            } catch (e: Exception) {
-                // Catch-all for any other exceptions (including Firestore issues)
-                Log.e(TAG, "Error clearing data", e)
+            } catch (e: com.google.firebase.FirebaseException) {
+                Log.e(TAG, "Firebase error clearing data", e)
                 _uiState.value =
                     _uiState.value.copy(
                         isClearingData = false,
-                        error = "Error clearing data: ${e.message}",
+                        error = "Firebase error clearing data: ${e.message}",
+                    )
+            } catch (e: java.io.IOException) {
+                Log.e(TAG, "IO error clearing data", e)
+                _uiState.value =
+                    _uiState.value.copy(
+                        isClearingData = false,
+                        error = "IO error clearing data: ${e.message}",
                     )
             }
         }
@@ -602,11 +607,23 @@ class ProfileViewModel(
 
                 // Force UI refresh
                 loadAccountInfo()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error during sign out", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Database error during sign out", e)
                 _uiState.value =
                     _uiState.value.copy(
-                        error = "Error signing out: ${e.message}",
+                        error = "Database error signing out: ${e.message}",
+                    )
+            } catch (e: com.google.firebase.FirebaseException) {
+                Log.e(TAG, "Firebase error during sign out", e)
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Firebase error signing out: ${e.message}",
+                    )
+            } catch (e: java.io.IOException) {
+                Log.e(TAG, "IO error during sign out", e)
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "IO error signing out: ${e.message}",
                     )
             }
         }
@@ -709,8 +726,7 @@ class ProfileViewModel(
     }
 
     fun deleteAccount() {
-        // Use GlobalScope to ensure deletion completes even if ViewModel is destroyed
-        GlobalScope.launch {
+        viewModelScope.launch {
             _uiState.value =
                 _uiState.value.copy(
                     isDeletingAccount = true,

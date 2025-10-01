@@ -107,8 +107,11 @@ class CustomExerciseRepository(
                 Log.d(TAG, "Created custom exercise variation: $name (id: ${variation.id})")
 
                 return@withContext variation
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to create custom exercise", e)
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Failed to create custom exercise: invalid argument", e)
+                return@withContext null
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to create custom exercise: database error", e)
                 return@withContext null
             }
         }
@@ -215,8 +218,11 @@ class CustomExerciseRepository(
 
                 Log.d(TAG, "Updated custom exercise: ${updated.name}")
                 return@withContext true
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to update custom exercise", e)
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Failed to update custom exercise: invalid argument", e)
+                return@withContext false
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to update custom exercise: database error", e)
                 return@withContext false
             }
         }
@@ -266,8 +272,11 @@ class CustomExerciseRepository(
 
                 Log.d(TAG, "Deleted custom exercise: ${exercise.name}")
                 return@withContext true
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to delete custom exercise", e)
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Failed to delete custom exercise: invalid argument", e)
+                return@withContext false
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to delete custom exercise: database error", e)
                 return@withContext false
             }
         }

@@ -56,6 +56,7 @@ class RemoteConfigServiceTest {
         unmockkStatic("com.google.firebase.remoteconfig.RemoteConfigKt")
 
         // Clear the singleton instance for next test using reflection
+        @Suppress("SwallowedException")
         try {
             val companionClass = RemoteConfigService::class.java.getDeclaredField("Companion")
             companionClass.isAccessible = true
@@ -64,7 +65,7 @@ class RemoteConfigServiceTest {
             instanceField.isAccessible = true
             instanceField.set(companion, null)
         } catch (e: Exception) {
-            // Ignore if reflection fails
+            // Ignore if reflection fails - this is best-effort cleanup
         }
     }
 

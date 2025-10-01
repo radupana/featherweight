@@ -134,10 +134,13 @@ class SignInActivity : ComponentActivity() {
                     syncViewModel.onSyncFailed(error.message ?: "Sync failed")
                 },
             )
-        } catch (e: Exception) {
+        } catch (e: com.google.firebase.FirebaseException) {
             Log.e("SignInActivity", "Background sync failed", e)
             syncViewModel.onSyncFailed(e.message ?: "Sync failed")
             // Sync failures are non-critical - user can still use the app with cached data
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e("SignInActivity", "Background sync failed - database error", e)
+            syncViewModel.onSyncFailed(e.message ?: "Sync failed")
         }
     }
 

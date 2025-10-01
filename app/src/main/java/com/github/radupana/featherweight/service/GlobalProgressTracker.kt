@@ -395,7 +395,7 @@ class GlobalProgressTracker(
                         ),
                     )
                 } else {
-                    val isCustom = customExerciseRepository?.isCustomExercise(progress.exerciseVariationId) ?: false
+                    customExerciseRepository?.isCustomExercise(progress.exerciseVariationId) ?: false
                     val newMax =
                         UserExerciseMax(
                             userId = bestSet.userId,

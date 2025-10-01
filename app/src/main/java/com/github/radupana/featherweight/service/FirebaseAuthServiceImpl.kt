@@ -29,14 +29,15 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
                 Log.i(TAG, "Sign-in successful for user: ${it.uid}, email: $email")
                 Result.success(it)
             } ?: Result.failure(Exception("Sign in failed: No user returned"))
-        } catch (e: Exception) {
+        } catch (e: com.google.firebase.FirebaseTooManyRequestsException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Sign in failed: too many requests", e)
+            Result.failure(Exception("Too many attempts. Please wait before trying again."))
+        } catch (e: FirebaseAuthException) {
             ExceptionLogger.logNonCritical("FirebaseAuthService", "Sign in failed: ${e.message}", e)
-            when (e) {
-                is com.google.firebase.FirebaseTooManyRequestsException ->
-                    Result.failure(Exception("Too many attempts. Please wait before trying again."))
-                is FirebaseAuthException -> Result.failure(e)
-                else -> Result.failure(e)
-            }
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Sign in failed: ${e.message}", e)
+            Result.failure(e)
         }
 
     override suspend fun createUserWithEmailAndPassword(
@@ -50,14 +51,15 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
                 Log.i(TAG, "Account created successfully for user: ${it.uid}, email: $email")
                 Result.success(it)
             } ?: Result.failure(Exception("Account creation failed: No user returned"))
-        } catch (e: Exception) {
+        } catch (e: com.google.firebase.FirebaseTooManyRequestsException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Account creation failed: too many requests", e)
+            Result.failure(Exception("Too many attempts. Please wait before trying again."))
+        } catch (e: FirebaseAuthException) {
             ExceptionLogger.logNonCritical("FirebaseAuthService", "Account creation failed: ${e.message}", e)
-            when (e) {
-                is com.google.firebase.FirebaseTooManyRequestsException ->
-                    Result.failure(Exception("Too many attempts. Please wait before trying again."))
-                is FirebaseAuthException -> Result.failure(e)
-                else -> Result.failure(e)
-            }
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Account creation failed: ${e.message}", e)
+            Result.failure(e)
         }
 
     override suspend fun signInWithCredential(credential: AuthCredential): Result<FirebaseUser> =
@@ -65,14 +67,15 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
             val result = auth.signInWithCredential(credential).await()
             result.user?.let { Result.success(it) }
                 ?: Result.failure(Exception("Sign in with credential failed: No user returned"))
-        } catch (e: Exception) {
+        } catch (e: com.google.firebase.FirebaseTooManyRequestsException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Sign in with credential failed: too many requests", e)
+            Result.failure(Exception("Too many attempts. Please wait before trying again."))
+        } catch (e: FirebaseAuthException) {
             ExceptionLogger.logNonCritical("FirebaseAuthService", "Sign in with credential failed: ${e.message}", e)
-            when (e) {
-                is com.google.firebase.FirebaseTooManyRequestsException ->
-                    Result.failure(Exception("Too many attempts. Please wait before trying again."))
-                is FirebaseAuthException -> Result.failure(e)
-                else -> Result.failure(e)
-            }
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Sign in with credential failed: ${e.message}", e)
+            Result.failure(e)
         }
 
     override suspend fun sendPasswordResetEmail(email: String): Result<Unit> =
@@ -81,14 +84,15 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
             auth.sendPasswordResetEmail(email).await()
             Log.i(TAG, "Password reset email sent successfully to: $email")
             Result.success(Unit)
-        } catch (e: Exception) {
+        } catch (e: com.google.firebase.FirebaseTooManyRequestsException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Password reset email failed: too many requests", e)
+            Result.failure(Exception("Too many attempts. Please wait before trying again."))
+        } catch (e: FirebaseAuthException) {
             ExceptionLogger.logNonCritical("FirebaseAuthService", "Password reset email failed: ${e.message}", e)
-            when (e) {
-                is com.google.firebase.FirebaseTooManyRequestsException ->
-                    Result.failure(Exception("Too many attempts. Please wait before trying again."))
-                is FirebaseAuthException -> Result.failure(e)
-                else -> Result.failure(e)
-            }
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Password reset email failed: ${e.message}", e)
+            Result.failure(e)
         }
 
     override suspend fun sendEmailVerification(): Result<Unit> =
@@ -102,14 +106,15 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
             } else {
                 Result.failure(Exception("No user logged in"))
             }
-        } catch (e: Exception) {
+        } catch (e: com.google.firebase.FirebaseTooManyRequestsException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Email verification failed: too many requests", e)
+            Result.failure(Exception("Too many requests. Please wait a few minutes before trying again."))
+        } catch (e: FirebaseAuthException) {
             ExceptionLogger.logNonCritical("FirebaseAuthService", "Email verification failed: ${e.message}", e)
-            // Handle rate limiting specifically
-            when (e) {
-                is com.google.firebase.FirebaseTooManyRequestsException ->
-                    Result.failure(Exception("Too many requests. Please wait a few minutes before trying again."))
-                else -> Result.failure(e)
-            }
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Email verification failed: ${e.message}", e)
+            Result.failure(e)
         }
 
     override suspend fun reloadUser(): Result<Unit> =
@@ -121,14 +126,15 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
             } else {
                 Result.failure(Exception("No user logged in"))
             }
-        } catch (e: Exception) {
+        } catch (e: com.google.firebase.FirebaseTooManyRequestsException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "User reload failed: too many requests", e)
+            Result.failure(Exception("Too many attempts. Please wait before trying again."))
+        } catch (e: FirebaseAuthException) {
             ExceptionLogger.logNonCritical("FirebaseAuthService", "User reload failed: ${e.message}", e)
-            when (e) {
-                is com.google.firebase.FirebaseTooManyRequestsException ->
-                    Result.failure(Exception("Too many attempts. Please wait before trying again."))
-                is FirebaseAuthException -> Result.failure(e)
-                else -> Result.failure(e)
-            }
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "User reload failed: ${e.message}", e)
+            Result.failure(e)
         }
 
     override suspend fun updatePassword(newPassword: String): Result<Unit> =
@@ -140,14 +146,15 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
             } else {
                 Result.failure(Exception("No user logged in"))
             }
-        } catch (e: Exception) {
+        } catch (e: com.google.firebase.FirebaseTooManyRequestsException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Password update failed: too many requests", e)
+            Result.failure(Exception("Too many attempts. Please wait before trying again."))
+        } catch (e: FirebaseAuthException) {
             ExceptionLogger.logNonCritical("FirebaseAuthService", "Password update failed: ${e.message}", e)
-            when (e) {
-                is com.google.firebase.FirebaseTooManyRequestsException ->
-                    Result.failure(Exception("Too many attempts. Please wait before trying again."))
-                is FirebaseAuthException -> Result.failure(e)
-                else -> Result.failure(e)
-            }
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Password update failed: ${e.message}", e)
+            Result.failure(e)
         }
 
     override suspend fun reauthenticateWithEmail(
@@ -163,14 +170,15 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
             } else {
                 Result.failure(Exception("No user logged in"))
             }
-        } catch (e: Exception) {
+        } catch (e: com.google.firebase.FirebaseTooManyRequestsException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Reauthentication failed: too many requests", e)
+            Result.failure(Exception("Too many attempts. Please wait before trying again."))
+        } catch (e: FirebaseAuthException) {
             ExceptionLogger.logNonCritical("FirebaseAuthService", "Reauthentication failed: ${e.message}", e)
-            when (e) {
-                is com.google.firebase.FirebaseTooManyRequestsException ->
-                    Result.failure(Exception("Too many attempts. Please wait before trying again."))
-                is FirebaseAuthException -> Result.failure(e)
-                else -> Result.failure(e)
-            }
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Reauthentication failed: ${e.message}", e)
+            Result.failure(e)
         }
 
     override suspend fun deleteAccount(): Result<Unit> =
@@ -182,14 +190,15 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
             } else {
                 Result.failure(Exception("No user logged in"))
             }
-        } catch (e: Exception) {
+        } catch (e: com.google.firebase.FirebaseTooManyRequestsException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Account deletion failed: too many requests", e)
+            Result.failure(Exception("Too many attempts. Please wait before trying again."))
+        } catch (e: FirebaseAuthException) {
             ExceptionLogger.logNonCritical("FirebaseAuthService", "Account deletion failed: ${e.message}", e)
-            when (e) {
-                is com.google.firebase.FirebaseTooManyRequestsException ->
-                    Result.failure(Exception("Too many attempts. Please wait before trying again."))
-                is FirebaseAuthException -> Result.failure(e)
-                else -> Result.failure(e)
-            }
+            Result.failure(e)
+        } catch (e: java.io.IOException) {
+            ExceptionLogger.logNonCritical("FirebaseAuthService", "Account deletion failed: ${e.message}", e)
+            Result.failure(e)
         }
 
     override fun signOut() {

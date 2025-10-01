@@ -134,24 +134,6 @@ open class ProgrammeTextParser(
                     success = false,
                     error = userFriendlyError,
                 )
-            } catch (e: NumberFormatException) {
-                ExceptionLogger.logException(TAG, "Number format error in programme parsing", e)
-                TextParsingResult(
-                    success = false,
-                    error = "Invalid number format in programme: ${e.message}",
-                )
-            } catch (e: IndexOutOfBoundsException) {
-                ExceptionLogger.logException(TAG, "Index out of bounds in programme parsing", e)
-                TextParsingResult(
-                    success = false,
-                    error = "Programme structure error: ${e.message}",
-                )
-            } catch (e: NullPointerException) {
-                ExceptionLogger.logException(TAG, "Null pointer in programme parsing", e)
-                TextParsingResult(
-                    success = false,
-                    error = "Unexpected error: ${e.message ?: "Unknown error"}",
-                )
             }
         }
 

@@ -65,8 +65,12 @@ class CustomExerciseSyncStrategy(
                                 updateLocalExercise(remoteVariationId, firestoreCustomExercise)
                             }
                         }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to process custom exercise $exerciseId", e)
+                    } catch (e: com.google.firebase.FirebaseException) {
+                        Log.e(TAG, "Failed to process custom exercise $exerciseId - Firebase error", e)
+                    } catch (e: android.database.sqlite.SQLiteException) {
+                        Log.e(TAG, "Failed to process custom exercise $exerciseId - database error", e)
+                    } catch (e: IllegalStateException) {
+                        Log.e(TAG, "Failed to process custom exercise $exerciseId - invalid state", e)
                     }
                 }
 
@@ -75,8 +79,14 @@ class CustomExerciseSyncStrategy(
 
                 Log.d(TAG, "Custom exercise sync completed successfully")
                 Result.success(Unit)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to sync custom exercises", e)
+            } catch (e: com.google.firebase.FirebaseException) {
+                Log.e(TAG, "Failed to sync custom exercises - Firebase error", e)
+                Result.failure(e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to sync custom exercises - database error", e)
+                Result.failure(e)
+            } catch (e: java.io.IOException) {
+                Log.e(TAG, "Failed to sync custom exercises - network error", e)
                 Result.failure(e)
             }
         }
@@ -175,8 +185,10 @@ class CustomExerciseSyncStrategy(
                         Log.d(TAG, "Uploaded custom exercise: ${variation.name}")
                     }
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to upload custom exercise ${variation.id}", e)
+            } catch (e: com.google.firebase.FirebaseException) {
+                Log.e(TAG, "Failed to upload custom exercise ${variation.id} - Firebase error", e)
+            } catch (e: java.io.IOException) {
+                Log.e(TAG, "Failed to upload custom exercise ${variation.id} - network error", e)
             }
         }
     }
@@ -194,8 +206,14 @@ class CustomExerciseSyncStrategy(
                 val localVariations = database.exerciseVariationDao().getCustomVariationsByUser(userId)
                 uploadLocalChanges(userId, localVariations, lastSyncTime)
                 Result.success(Unit)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to upload custom exercises", e)
+            } catch (e: com.google.firebase.FirebaseException) {
+                Log.e(TAG, "Failed to upload custom exercises - Firebase error", e)
+                Result.failure(e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to upload custom exercises - database error", e)
+                Result.failure(e)
+            } catch (e: java.io.IOException) {
+                Log.e(TAG, "Failed to upload custom exercises - network error", e)
                 Result.failure(e)
             }
         }

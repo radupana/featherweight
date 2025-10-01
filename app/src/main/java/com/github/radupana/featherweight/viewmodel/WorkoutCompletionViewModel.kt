@@ -52,8 +52,8 @@ class WorkoutCompletionViewModel(
 
                 Log.d(TAG, "Loaded ${systemExercises.size} system exercises and ${customExercises.size} custom exercises")
                 _exerciseNames.value = nameMap
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to load exercise names", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Database error loading exercise names", e)
             }
         }
     }
@@ -89,6 +89,13 @@ class WorkoutCompletionViewModel(
                     )
             } catch (e: IllegalStateException) {
                 Log.e(TAG, "Failed to load workout summary for workoutId: $workoutId", e)
+                _uiState.value =
+                    _uiState.value.copy(
+                        isLoading = false,
+                        error = "Failed to load workout summary",
+                    )
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Database error loading workout summary for workoutId: $workoutId", e)
                 _uiState.value =
                     _uiState.value.copy(
                         isLoading = false,

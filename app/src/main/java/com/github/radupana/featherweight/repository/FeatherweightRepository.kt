@@ -240,8 +240,8 @@ class FeatherweightRepository(
                 variationId = exerciseId,
                 timestamp = LocalDateTime.now(),
             )
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to increment usage count for exercise $exerciseId", e)
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e(TAG, "Database error incrementing usage count for exercise $exerciseId", e)
         }
     }
 
@@ -1237,7 +1237,7 @@ class FeatherweightRepository(
         // Round weight to nearest 0.25
         val roundedWeight = WeightFormatter.roundToNearestQuarter(oneRMEstimate)
         val dateToUse = workoutDate ?: LocalDateTime.now()
-        val isCustom = customExerciseRepository.isCustomExercise(exerciseVariationId)
+        customExerciseRepository.isCustomExercise(exerciseVariationId)
         val userExerciseMax =
             UserExerciseMax(
                 userId = authManager.getCurrentUserId() ?: "local",
@@ -1599,8 +1599,11 @@ class FeatherweightRepository(
             if (currentUserId != "local") {
                 try {
                     deleteAllUserDataFromFirestore(currentUserId)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to delete Firestore data", e)
+                } catch (e: com.google.firebase.FirebaseException) {
+                    Log.e(TAG, "Firebase error deleting Firestore data", e)
+                    // Continue with local deletion even if Firestore fails
+                } catch (e: java.io.IOException) {
+                    Log.e(TAG, "IO error deleting Firestore data", e)
                     // Continue with local deletion even if Firestore fails
                 }
             }
@@ -1674,8 +1677,8 @@ class FeatherweightRepository(
             db.parseRequestDao().deleteAllByUserId(userId)
 
             Log.d(TAG, "Local database deletion complete")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error during local database deletion", e)
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e(TAG, "Database error during local database deletion", e)
             throw e
         }
 
@@ -1727,8 +1730,11 @@ class FeatherweightRepository(
                                 val deletedCount = deleteCollection(firestore, fullPath)
                                 Log.d(TAG, "Deleted $deletedCount documents from $fullPath")
                                 deletedCount
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Failed to delete Firestore collection: $fullPath", e)
+                            } catch (e: com.google.firebase.FirebaseException) {
+                                Log.e(TAG, "Firebase error deleting Firestore collection: $fullPath", e)
+                                0
+                            } catch (e: java.io.IOException) {
+                                Log.e(TAG, "IO error deleting Firestore collection: $fullPath", e)
                                 0
                             }
                         }
@@ -1746,8 +1752,14 @@ class FeatherweightRepository(
                 firestore.document(userPath).delete().await()
             }
             Log.d(TAG, "Successfully deleted user document")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete user document: $userPath", e)
+        } catch (e: com.google.firebase.FirebaseException) {
+            Log.e(TAG, "Firebase error deleting user document: $userPath", e)
+            // Continue anyway - don't let this block the operation
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.e(TAG, "Timeout deleting user document: $userPath", e)
+            // Continue anyway - don't let this block the operation
+        } catch (e: java.io.IOException) {
+            Log.e(TAG, "IO error deleting user document: $userPath", e)
             // Continue anyway - don't let this block the operation
         }
 

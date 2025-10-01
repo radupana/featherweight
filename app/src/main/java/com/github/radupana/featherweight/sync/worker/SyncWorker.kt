@@ -55,8 +55,15 @@ class SyncWorker(
                         }
                     },
                 )
-            } catch (e: Exception) {
-                ExceptionLogger.logNonCritical("SyncWorker", "Unexpected sync error", e)
+            } catch (e: com.google.firebase.FirebaseException) {
+                ExceptionLogger.logNonCritical("SyncWorker", "Unexpected Firebase sync error", e)
+                if (runAttemptCount < 3) {
+                    Result.retry()
+                } else {
+                    Result.failure()
+                }
+            } catch (e: android.database.sqlite.SQLiteException) {
+                ExceptionLogger.logNonCritical("SyncWorker", "Unexpected database sync error", e)
                 if (runAttemptCount < 3) {
                     Result.retry()
                 } else {

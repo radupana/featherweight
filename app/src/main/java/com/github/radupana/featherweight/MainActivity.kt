@@ -140,7 +140,7 @@ class MainActivity : ComponentActivity() {
                 try {
                     repository.clearAllUserData()
                     Log.i(TAG, "Cleared corrupted auth data and database, redirecting to WelcomeActivity")
-                } catch (e: Exception) {
+                } catch (e: android.database.sqlite.SQLiteException) {
                     Log.e(TAG, "Failed to clear database data", e)
                 }
                 // Navigate to Welcome after clearing (even if database clear fails)
@@ -162,7 +162,7 @@ class MainActivity : ComponentActivity() {
                     // Clear any existing data to prevent cross-user data leakage
                     repository.clearAllUserData()
                     Log.i(TAG, "Cleared database to prevent data leakage between users")
-                } catch (e: Exception) {
+                } catch (e: android.database.sqlite.SQLiteException) {
                     Log.e(TAG, "Failed to clear stale user data", e)
                 }
             }
@@ -220,8 +220,10 @@ class MainActivity : ComponentActivity() {
                     } else {
                         Log.i(TAG, "No local data found on startup")
                     }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error checking/running migration on startup", e)
+                } catch (e: android.database.sqlite.SQLiteException) {
+                    Log.e(TAG, "Database error during migration check", e)
+                } catch (e: com.google.firebase.FirebaseException) {
+                    Log.e(TAG, "Firebase error during migration check", e)
                 }
             }
         }
@@ -400,8 +402,10 @@ fun MainAppWithNavigation(
                     Log.i("MainActivity", "Triggering system exercise sync for unauthenticated user")
                     syncManager.syncSystemExercises()
                 }
-            } catch (e: Exception) {
-                Log.e("MainActivity", "Failed to sync on launch", e)
+            } catch (e: com.google.firebase.FirebaseException) {
+                Log.e("MainActivity", "Firebase error during sync", e)
+            } catch (e: java.io.IOException) {
+                Log.e("MainActivity", "Network error during sync", e)
             }
         }
     }

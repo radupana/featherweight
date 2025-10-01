@@ -2186,8 +2186,10 @@ class WorkoutViewModel(
                         syncManager.syncAll()
                     }
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Auto-sync failed", e)
+            } catch (e: com.google.firebase.FirebaseException) {
+                Log.e(TAG, "Auto-sync failed: Firebase error", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Auto-sync failed: database error", e)
             }
         }
     }

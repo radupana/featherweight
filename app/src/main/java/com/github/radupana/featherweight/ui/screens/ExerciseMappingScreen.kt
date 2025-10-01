@@ -82,7 +82,6 @@ fun ExerciseMappingScreen(
     viewModel: ExerciseMappingViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
     var currentExerciseIndex by remember { mutableIntStateOf(0) }
     val currentExercise = unmatchedExercises.getOrNull(currentExerciseIndex)
     var showCreateDialog by remember { mutableStateOf(false) }

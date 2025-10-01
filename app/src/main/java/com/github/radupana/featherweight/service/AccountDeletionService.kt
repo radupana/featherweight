@@ -94,8 +94,12 @@ class AccountDeletionService(
 
                 Log.d(TAG, "Account deletion completed successfully")
                 DeletionResult.Success
-            } catch (e: Exception) {
-                Log.e(TAG, "Account deletion failed", e)
+            } catch (e: com.google.firebase.FirebaseException) {
+                Log.e(TAG, "Account deletion failed - Firebase error", e)
+                ExceptionLogger.logNonCritical(TAG, "Account deletion failed", e)
+                DeletionResult.Error("Failed to delete account: ${e.message}")
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Account deletion failed - database error", e)
                 ExceptionLogger.logNonCritical(TAG, "Account deletion failed", e)
                 DeletionResult.Error("Failed to delete account: ${e.message}")
             }
@@ -122,8 +126,11 @@ class AccountDeletionService(
 
                 // Now try deletion again
                 deleteAccount()
-            } catch (e: Exception) {
-                Log.e(TAG, "Re-authentication failed", e)
+            } catch (e: com.google.firebase.auth.FirebaseAuthException) {
+                Log.e(TAG, "Re-authentication failed - Firebase auth error", e)
+                DeletionResult.Error("Re-authentication failed: ${e.message}")
+            } catch (e: java.io.IOException) {
+                Log.e(TAG, "Re-authentication failed - network error", e)
                 DeletionResult.Error("Re-authentication failed: ${e.message}")
             }
         }
@@ -163,8 +170,11 @@ class AccountDeletionService(
             } else {
                 DeletionResult.Success
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to check auth status", e)
+        } catch (e: com.google.firebase.FirebaseException) {
+            Log.e(TAG, "Failed to check auth status - Firebase error", e)
+            DeletionResult.Error("Failed to check authentication status: ${e.message}")
+        } catch (e: IllegalStateException) {
+            Log.e(TAG, "Failed to check auth status - invalid state", e)
             DeletionResult.Error("Failed to check authentication status: ${e.message}")
         }
     }
@@ -180,15 +190,22 @@ class AccountDeletionService(
             Log.d(TAG, "Firebase Auth account deleted successfully")
             DeletionResult.Success
         } catch (e: FirebaseAuthRecentLoginRequiredException) {
-            Log.d(TAG, "Recent login required for account deletion")
+            Log.d(TAG, "Recent login required for account deletion", e)
             val authProvider = firebaseAuth.getAuthProvider() ?: "password"
             DeletionResult.RequiresReauthentication(authProvider)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete Firebase Auth account", e)
+        } catch (e: com.google.firebase.auth.FirebaseAuthException) {
+            Log.e(TAG, "Failed to delete Firebase Auth account - Firebase auth error", e)
+            DeletionResult.Error("Failed to delete authentication account: ${e.message}")
+        } catch (e: java.io.IOException) {
+            Log.e(TAG, "Failed to delete Firebase Auth account - network error", e)
             DeletionResult.Error("Failed to delete authentication account: ${e.message}")
         }
     }
 
+    // Suppress TooGenericExceptionCaught: Firebase initialization can throw RuntimeException
+    // from unmocked Android methods in test environments. This method must handle all exceptions
+    // gracefully to allow local data deletion to proceed even if Firebase operations fail.
+    @Suppress("TooGenericExceptionCaught")
     private suspend fun deleteFirestoreData(userId: String) {
         try {
             val firestore = FirebaseFirestore.getInstance("featherweight-v2")
@@ -234,8 +251,8 @@ class AccountDeletionService(
                 .await()
 
             Log.d(TAG, "Firestore data deleted successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete Firestore data", e)
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to delete Firestore data: ${e.javaClass.simpleName} - ${e.message}", e)
             // Continue with local deletion even if Firestore fails
         }
     }
@@ -255,8 +272,10 @@ class AccountDeletionService(
                 batch.commit().await()
                 Log.d(TAG, "Deleted ${documents.size()} documents from $path")
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete subcollection: $path", e)
+        } catch (e: com.google.firebase.FirebaseException) {
+            Log.e(TAG, "Failed to delete subcollection: $path - Firebase error", e)
+        } catch (e: java.io.IOException) {
+            Log.e(TAG, "Failed to delete subcollection: $path - network error", e)
         }
     }
 
@@ -293,8 +312,8 @@ class AccountDeletionService(
             database.userExerciseUsageDao().deleteAllUsageForUser(userId)
 
             Log.d(TAG, "Local database data deleted successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete local data", e)
+        } catch (e: android.database.sqlite.SQLiteException) {
+            Log.e(TAG, "Failed to delete local data - database error", e)
             throw e
         }
     }

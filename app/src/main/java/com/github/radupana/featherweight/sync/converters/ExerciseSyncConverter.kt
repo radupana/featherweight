@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.sync.converters
 
+import android.util.Log
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseCore
@@ -25,6 +26,8 @@ import java.util.UUID
  */
 class ExerciseSyncConverter {
     companion object {
+        private const val TAG = "ExerciseSyncConverter"
+
         /**
          * Converts a denormalized Firestore exercise to normalized SQLite entities.
          * Returns a data class containing all the related entities.
@@ -184,6 +187,7 @@ class ExerciseSyncConverter {
             try {
                 ExerciseCategory.valueOf(value)
             } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Invalid ExerciseCategory value: $value, defaulting to FULL_BODY", e)
                 ExerciseCategory.FULL_BODY
             }
 
@@ -191,6 +195,7 @@ class ExerciseSyncConverter {
             try {
                 MovementPattern.valueOf(value)
             } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Invalid MovementPattern value: $value, defaulting to PUSH", e)
                 MovementPattern.PUSH
             }
 
@@ -198,6 +203,7 @@ class ExerciseSyncConverter {
             try {
                 Equipment.valueOf(value)
             } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Invalid Equipment value: $value, defaulting to NONE", e)
                 Equipment.NONE
             }
 
@@ -205,6 +211,7 @@ class ExerciseSyncConverter {
             try {
                 ExerciseDifficulty.valueOf(value)
             } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Invalid ExerciseDifficulty value: $value, defaulting to INTERMEDIATE", e)
                 ExerciseDifficulty.INTERMEDIATE
             }
 
@@ -212,6 +219,7 @@ class ExerciseSyncConverter {
             try {
                 RMScalingType.valueOf(value)
             } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Invalid RMScalingType value: $value, defaulting to STANDARD", e)
                 RMScalingType.STANDARD
             }
 
@@ -219,6 +227,7 @@ class ExerciseSyncConverter {
             try {
                 MuscleGroup.valueOf(value)
             } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Invalid MuscleGroup value: $value, defaulting to FULL_BODY", e)
                 MuscleGroup.FULL_BODY
             }
 
@@ -226,6 +235,7 @@ class ExerciseSyncConverter {
             try {
                 InstructionType.valueOf(value)
             } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Invalid InstructionType value: $value, defaulting to EXECUTION", e)
                 InstructionType.EXECUTION
             }
     }

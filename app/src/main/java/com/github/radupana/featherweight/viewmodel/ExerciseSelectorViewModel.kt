@@ -8,7 +8,6 @@ import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
-import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.ExerciseNamingService
 import com.github.radupana.featherweight.service.ValidationResult
@@ -218,8 +217,6 @@ class ExerciseSelectorViewModel(
     fun createCustomExercise(
         name: String,
         category: ExerciseCategory? = null,
-        primaryMuscles: Set<MuscleGroup> = emptySet(),
-        secondaryMuscles: Set<MuscleGroup> = emptySet(),
         equipment: Set<Equipment> = emptySet(),
         difficulty: ExerciseDifficulty = ExerciseDifficulty.BEGINNER,
         requiresWeight: Boolean = true,
@@ -244,14 +241,6 @@ class ExerciseSelectorViewModel(
 
                 // Use provided values or fall back to extracted/inferred values
                 val finalCategory = category ?: components.category
-                val usedPrimaryMuscles =
-                    if (primaryMuscles.isNotEmpty()) {
-                        primaryMuscles
-                    } else if (components.muscleGroup != null) {
-                        setOf(components.muscleGroup)
-                    } else {
-                        inferMusclesFromName(formattedName)
-                    }
 
                 val finalEquipment =
                     if (equipment.isNotEmpty()) {
@@ -301,31 +290,6 @@ class ExerciseSelectorViewModel(
 
     fun clearExerciseCreated() {
         _exerciseCreated.value = null
-    }
-
-    private fun inferMusclesFromName(name: String): Set<MuscleGroup> {
-        val nameLower = name.lowercase()
-        val muscles = mutableSetOf<MuscleGroup>()
-
-        when {
-            nameLower.contains("chest") || nameLower.contains("bench") -> muscles.add(MuscleGroup.CHEST)
-            nameLower.contains("back") || nameLower.contains("row") -> muscles.add(MuscleGroup.UPPER_BACK)
-            nameLower.contains("lat") -> muscles.add(MuscleGroup.LATS)
-            nameLower.contains("squat") || nameLower.contains("quad") -> muscles.add(MuscleGroup.QUADS)
-            nameLower.contains("deadlift") || nameLower.contains("glute") -> muscles.add(MuscleGroup.GLUTES)
-            nameLower.contains("shoulder") -> muscles.add(MuscleGroup.FRONT_DELTS)
-            nameLower.contains("bicep") || nameLower.contains("curl") -> muscles.add(MuscleGroup.BICEPS)
-            nameLower.contains("tricep") -> muscles.add(MuscleGroup.TRICEPS)
-            nameLower.contains("calf") -> muscles.add(MuscleGroup.CALVES)
-            nameLower.contains("ab") || nameLower.contains("core") -> muscles.add(MuscleGroup.ABS)
-        }
-
-        // Default to full body if we can't determine specific muscles
-        if (muscles.isEmpty()) {
-            muscles.add(MuscleGroup.FULL_BODY)
-        }
-
-        return muscles
     }
 
     fun validateExerciseName(name: String) {

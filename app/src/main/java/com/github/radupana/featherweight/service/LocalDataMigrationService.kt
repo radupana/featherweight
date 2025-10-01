@@ -45,8 +45,11 @@ class LocalDataMigrationService(
                 }
                 Log.i(TAG, "Successfully migrated local data to user: $targetUserId")
                 true
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to migrate local data", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to migrate local data - database error", e)
+                false
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Failed to migrate local data - invalid state", e)
                 false
             }
         }
@@ -304,8 +307,8 @@ class LocalDataMigrationService(
                             statement.simpleQueryForLong()
                         }
                 count > 0
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to check for local data", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to check for local data - database error", e)
                 false
             }
         }
@@ -398,8 +401,8 @@ class LocalDataMigrationService(
                 }
                 Log.i(TAG, "Successfully cleaned up local data")
                 true
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to cleanup local data", e)
+            } catch (e: android.database.sqlite.SQLiteException) {
+                Log.e(TAG, "Failed to cleanup local data - database error", e)
                 false
             }
         }

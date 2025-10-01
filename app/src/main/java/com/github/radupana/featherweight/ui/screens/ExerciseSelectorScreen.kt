@@ -94,7 +94,6 @@ fun ExerciseSelectorScreen(
     val currentSwapExerciseName by viewModel.currentSwapExerciseName.collectAsState()
     val exerciseToDelete by viewModel.exerciseToDelete.collectAsState()
     val deleteError by viewModel.deleteError.collectAsState()
-    val isAuthenticated by viewModel.isAuthenticated.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
 
@@ -442,8 +441,6 @@ fun ExerciseSelectorScreen(
                 viewModel.createCustomExercise(
                     name = name,
                     category = category,
-                    primaryMuscles = primaryMuscles,
-                    secondaryMuscles = secondaryMuscles,
                     equipment = equipment,
                     difficulty = difficulty,
                     requiresWeight = requiresWeight,

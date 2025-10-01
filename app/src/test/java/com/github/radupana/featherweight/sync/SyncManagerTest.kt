@@ -2,6 +2,7 @@ package com.github.radupana.featherweight.sync
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.text.TextUtils
 import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.ExerciseLogDao
@@ -78,6 +79,13 @@ class SyncManagerTest {
         every { Log.w(any<String>(), any<String>()) } returns 0
         every { Log.v(any<String>(), any<String>()) } returns 0
         every { Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
+
+        // Mock TextUtils
+        mockkStatic(TextUtils::class)
+        every { TextUtils.isEmpty(any()) } answers {
+            val str = arg<CharSequence?>(0)
+            str == null || str.isEmpty()
+        }
         every { Log.w(any<String>(), any<String>(), any<Throwable>()) } returns 0
 
         context = mockk()
@@ -343,7 +351,7 @@ class SyncManagerTest {
             coEvery { workoutDao.getAllWorkouts("test-user") } returns emptyList()
             mockAllDaoMethods()
             mockAllFirestoreDownloads()
-            coEvery { firestoreRepository.uploadWorkouts(any(), any()) } returns Result.failure(Exception(errorMessage))
+            coEvery { firestoreRepository.uploadWorkouts(any(), any()) } returns Result.failure(com.google.firebase.FirebaseException(errorMessage))
             coEvery { firestoreRepository.uploadExerciseLogs(any(), any()) } returns Result.success(Unit)
             coEvery { firestoreRepository.uploadSetLogs(any(), any()) } returns Result.success(Unit)
             coEvery { firestoreRepository.uploadExerciseCores(any(), any()) } returns Result.success(Unit)
@@ -517,7 +525,9 @@ class SyncManagerTest {
             every { authManager.getCurrentUserId() } returns userId
             coEvery { workoutDao.getAllWorkouts("test-user") } returns emptyList() // Mock isDatabaseEmpty check
             coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(null)
-            coEvery { firestoreRepository.downloadWorkouts(any(), any()) } returns Result.failure(Exception(errorMessage))
+            mockAllDaoMethods()
+            mockAllFirestoreDownloads()
+            coEvery { firestoreRepository.downloadWorkouts(any(), any()) } returns Result.failure(com.google.firebase.FirebaseException(errorMessage))
 
             val result = syncManager.syncAll()
 

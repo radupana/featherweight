@@ -161,20 +161,15 @@ class ExerciseRepository(
             results
         }
 
+    // Suppress TooGenericExceptionCaught: This is a safe wrapper that must handle ALL exceptions
+    // from Firebase Performance initialization, including RuntimeException from unmocked Android
+    // methods in test environments. The method is explicitly designed to never throw.
+    @Suppress("TooGenericExceptionCaught")
     private fun safeNewTrace(name: String): Trace? =
         try {
             FirebasePerformance.getInstance().newTrace(name)
-        } catch (e: IllegalStateException) {
-            ExceptionLogger.logNonCritical(TAG, "Firebase Performance not available - likely in test environment", e)
-            null
-        } catch (e: ExceptionInInitializerError) {
-            ExceptionLogger.logNonCritical(TAG, "Firebase Performance initialization failed", e)
-            null
-        } catch (e: NoClassDefFoundError) {
-            ExceptionLogger.logNonCritical(TAG, "Firebase Performance class not found", e)
-            null
-        } catch (e: RuntimeException) {
-            ExceptionLogger.logNonCritical(TAG, "Firebase Performance not available - likely in test environment", e)
+        } catch (e: Throwable) {
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance not available: ${e.javaClass.simpleName}", e)
             null
         }
 
@@ -240,8 +235,8 @@ class ExerciseRepository(
                 variationId = exerciseVariationId,
                 timestamp = LocalDateTime.now(),
             )
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to increment usage count for exercise $exerciseVariationId", e)
+        } catch (e: SQLiteException) {
+            Log.e(TAG, "Database error incrementing usage count for exercise $exerciseVariationId", e)
         }
 
         return id
@@ -278,8 +273,8 @@ class ExerciseRepository(
                 variationId = exerciseVariation.id,
                 timestamp = LocalDateTime.now(),
             )
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to increment usage count for exercise ${exerciseVariation.name}", e)
+        } catch (e: SQLiteException) {
+            Log.e(TAG, "Database error incrementing usage count for exercise ${exerciseVariation.name}", e)
         }
 
         Log.i(TAG, "Added exercise to workout - exercise: ${exerciseVariation.name}, workoutId: $workoutId, order: $exerciseOrder, exerciseLogId: $id")
@@ -592,9 +587,8 @@ class ExerciseRepository(
         withContext(Dispatchers.IO) {
             try {
                 // Check if it's a custom exercise
-                val exercise =
-                    exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
-                        ?: return@withContext Result.failure(IllegalArgumentException("Exercise not found"))
+                exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
+                    ?: return@withContext Result.failure(IllegalArgumentException("Exercise not found"))
 
                 // System exercises cannot be deleted
                 return@withContext Result.failure(

@@ -67,7 +67,7 @@ class ExerciseRepositoryTest {
         exerciseCoreDao = mockk<ExerciseCoreDao>()
         exerciseVariationDao = mockk<ExerciseVariationDao>()
         variationMuscleDao = mockk<VariationMuscleDao>()
-        userExerciseUsageDao = mockk<UserExerciseUsageDao>()
+        userExerciseUsageDao = mockk<UserExerciseUsageDao>(relaxed = true)
 
         every { db.exerciseDao() } returns exerciseDao
         every { db.exerciseLogDao() } returns exerciseLogDao
@@ -680,7 +680,7 @@ class ExerciseRepositoryTest {
             coEvery { userExerciseUsageDao.getOrCreateUsage(any(), any()) } returns mockk(relaxed = true)
             coEvery {
                 userExerciseUsageDao.incrementUsageCount(any(), any(), any())
-            } throws Exception("Database error")
+            } throws android.database.sqlite.SQLiteException("Database error")
 
             // Act
             val result =

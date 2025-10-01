@@ -60,8 +60,15 @@ class UserDataSyncWorker(
                         }
                     },
                 )
-            } catch (e: Exception) {
-                ExceptionLogger.logNonCritical("UserDataSyncWorker", "Unexpected sync error", e)
+            } catch (e: com.google.firebase.FirebaseException) {
+                ExceptionLogger.logNonCritical("UserDataSyncWorker", "Unexpected Firebase sync error", e)
+                if (runAttemptCount < 3) {
+                    Result.retry()
+                } else {
+                    Result.failure()
+                }
+            } catch (e: android.database.sqlite.SQLiteException) {
+                ExceptionLogger.logNonCritical("UserDataSyncWorker", "Unexpected database sync error", e)
                 if (runAttemptCount < 3) {
                     Result.retry()
                 } else {

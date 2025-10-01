@@ -355,6 +355,7 @@ class ExerciseSyncConverterTest {
         }
     }
 
+    @Suppress("SwallowedException")
     private fun isValidUUID(uuid: String): Boolean =
         try {
             UUID.fromString(uuid)

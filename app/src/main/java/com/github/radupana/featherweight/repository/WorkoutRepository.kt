@@ -120,20 +120,15 @@ class WorkoutRepository(
         trace?.stop()
     }
 
+    // Suppress TooGenericExceptionCaught: This is a safe wrapper that must handle ALL exceptions
+    // from Firebase Performance initialization, including RuntimeException from unmocked Android
+    // methods in test environments. The method is explicitly designed to never throw.
+    @Suppress("TooGenericExceptionCaught")
     private fun safeNewTrace(name: String): Trace? =
         try {
             FirebasePerformance.getInstance().newTrace(name)
-        } catch (e: IllegalStateException) {
-            ExceptionLogger.logNonCritical(TAG, "Firebase Performance not available - likely in test environment", e)
-            null
-        } catch (e: ExceptionInInitializerError) {
-            ExceptionLogger.logNonCritical(TAG, "Firebase Performance initialization failed", e)
-            null
-        } catch (e: NoClassDefFoundError) {
-            ExceptionLogger.logNonCritical(TAG, "Firebase Performance class not found", e)
-            null
-        } catch (e: RuntimeException) {
-            ExceptionLogger.logNonCritical(TAG, "Firebase Performance not available - likely in test environment", e)
+        } catch (e: Throwable) {
+            ExceptionLogger.logNonCritical(TAG, "Firebase Performance not available: ${e.javaClass.simpleName}", e)
             null
         }
 

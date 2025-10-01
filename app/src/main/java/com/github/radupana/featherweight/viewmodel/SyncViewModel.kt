@@ -133,16 +133,23 @@ class SyncViewModel(
                         },
                     )
                 }
-            } catch (e: Exception) {
-                Log.e("SyncViewModel", "performBackgroundSync: Backup timed out or failed - ${e.message}", e)
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                Log.e("SyncViewModel", "performBackgroundSync: Backup timed out - ${e.message}", e)
                 _uiState.value =
                     _uiState.value.copy(
-                        syncError =
-                            if (e is kotlinx.coroutines.TimeoutCancellationException) {
-                                "Backup timed out. Please check your internet connection."
-                            } else {
-                                e.message ?: "Unknown error"
-                            },
+                        syncError = "Backup timed out. Please check your internet connection.",
+                    )
+            } catch (e: com.google.firebase.FirebaseException) {
+                Log.e("SyncViewModel", "performBackgroundSync: Firebase error - ${e.message}", e)
+                _uiState.value =
+                    _uiState.value.copy(
+                        syncError = e.message ?: "Firebase error",
+                    )
+            } catch (e: java.io.IOException) {
+                Log.e("SyncViewModel", "performBackgroundSync: Network error - ${e.message}", e)
+                _uiState.value =
+                    _uiState.value.copy(
+                        syncError = e.message ?: "Network error",
                     )
             }
         }
