@@ -638,15 +638,9 @@ private fun WorkoutHeader(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                        } else if (workoutState.fromTemplateId != null) {
-                            Text(
-                                text = "From Template: ${workoutState.workoutName ?: "Unnamed"}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
                         } else {
                             Text(
-                                text = "Freestyle Workout",
+                                text = "${workoutState.workoutName ?: "Freestyle Workout"}",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

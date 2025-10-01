@@ -213,6 +213,13 @@ class SyncManager(
             Log.d("SyncManager", "Uploading set logs...")
             uploadSetLogs(userId)
 
+            Log.d("SyncManager", "Uploading workout templates...")
+            uploadWorkoutTemplates(userId)
+            Log.d("SyncManager", "Uploading template exercises...")
+            uploadTemplateExercises(userId)
+            Log.d("SyncManager", "Uploading template sets...")
+            uploadTemplateSets(userId)
+
             // Custom exercises are uploaded via CustomExerciseSyncStrategy
 
             uploadProgrammes(userId)
@@ -278,6 +285,41 @@ class SyncManager(
 
         val firestoreLogs = setLogs.map { SyncConverters.toFirestoreSetLog(it) }
         firestoreRepository.uploadSetLogs(userId, firestoreLogs).getOrThrow()
+    }
+
+    private suspend fun uploadWorkoutTemplates(userId: String) {
+        val templates = database.workoutTemplateDao().getTemplates(userId)
+        val firestoreTemplates = templates.map { SyncConverters.toFirestoreWorkoutTemplate(it) }
+        firestoreRepository.uploadWorkoutTemplates(userId, firestoreTemplates).getOrThrow()
+    }
+
+    private suspend fun uploadTemplateExercises(userId: String) {
+        val templates = database.workoutTemplateDao().getTemplates(userId)
+        val templateExercises = mutableListOf<com.github.radupana.featherweight.data.TemplateExercise>()
+        templates.forEach { template ->
+            val exercises = database.templateExerciseDao().getExercisesForTemplate(template.id)
+            templateExercises.addAll(exercises)
+        }
+        val firestoreExercises = templateExercises.map { SyncConverters.toFirestoreTemplateExercise(it) }
+        firestoreRepository.uploadTemplateExercises(userId, firestoreExercises).getOrThrow()
+    }
+
+    private suspend fun uploadTemplateSets(userId: String) {
+        val templates = database.workoutTemplateDao().getTemplates(userId)
+        val templateExercises = mutableListOf<com.github.radupana.featherweight.data.TemplateExercise>()
+        templates.forEach { template ->
+            val exercises = database.templateExerciseDao().getExercisesForTemplate(template.id)
+            templateExercises.addAll(exercises)
+        }
+
+        val templateSets = mutableListOf<com.github.radupana.featherweight.data.TemplateSet>()
+        templateExercises.forEach { exercise ->
+            val sets = database.templateSetDao().getSetsForTemplateExercise(exercise.id)
+            templateSets.addAll(sets)
+        }
+
+        val firestoreSets = templateSets.map { SyncConverters.toFirestoreTemplateSet(it) }
+        firestoreRepository.uploadTemplateSets(userId, firestoreSets).getOrThrow()
     }
 
     private suspend fun isDatabaseEmpty(userId: String): Boolean {
@@ -420,6 +462,14 @@ class SyncManager(
             Log.d("SyncManager", "Downloading set logs...")
             downloadAndMergeSetLogs(userId, lastSyncTime)
 
+            // Download templates
+            Log.d("SyncManager", "Downloading workout templates...")
+            downloadAndMergeWorkoutTemplates(userId, lastSyncTime)
+            Log.d("SyncManager", "Downloading template exercises...")
+            downloadAndMergeTemplateExercises(userId, lastSyncTime)
+            Log.d("SyncManager", "Downloading template sets...")
+            downloadAndMergeTemplateSets(userId, lastSyncTime)
+
             // Download user stats
             Log.d("SyncManager", "Downloading user exercise maxes...")
             downloadAndMergeUserExerciseMaxes(userId)
@@ -491,6 +541,47 @@ class SyncManager(
         // Use upsert to avoid constraint violations
         localLogs.forEach { log ->
             database.setLogDao().upsertSetLog(log)
+        }
+    }
+
+    private suspend fun downloadAndMergeWorkoutTemplates(
+        userId: String,
+        lastSyncTime: Timestamp?,
+    ) {
+        Log.d("SyncManager", "downloadAndMergeWorkoutTemplates: Starting for user $userId")
+        val remoteTemplates = firestoreRepository.downloadWorkoutTemplates(userId, lastSyncTime).getOrThrow()
+        Log.d("SyncManager", "downloadAndMergeWorkoutTemplates: Downloaded ${remoteTemplates.size} templates")
+        val localTemplates = remoteTemplates.map { SyncConverters.fromFirestoreWorkoutTemplate(it) }
+
+        // Use upsert to avoid constraint violations
+        localTemplates.forEach { template ->
+            database.workoutTemplateDao().upsertTemplate(template)
+        }
+    }
+
+    private suspend fun downloadAndMergeTemplateExercises(
+        userId: String,
+        lastSyncTime: Timestamp?,
+    ) {
+        val remoteExercises = firestoreRepository.downloadTemplateExercises(userId, lastSyncTime).getOrThrow()
+        val localExercises = remoteExercises.map { SyncConverters.fromFirestoreTemplateExercise(it) }
+
+        // Use upsert to avoid constraint violations
+        localExercises.forEach { exercise ->
+            database.templateExerciseDao().upsertTemplateExercise(exercise)
+        }
+    }
+
+    private suspend fun downloadAndMergeTemplateSets(
+        userId: String,
+        lastSyncTime: Timestamp?,
+    ) {
+        val remoteSets = firestoreRepository.downloadTemplateSets(userId, lastSyncTime).getOrThrow()
+        val localSets = remoteSets.map { SyncConverters.fromFirestoreTemplateSet(it) }
+
+        // Use upsert to avoid constraint violations
+        localSets.forEach { set ->
+            database.templateSetDao().upsertTemplateSet(set)
         }
     }
 

@@ -10,10 +10,13 @@ import com.github.radupana.featherweight.data.ParseStatus
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.ProgressTrend
 import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.data.TemplateExercise
+import com.github.radupana.featherweight.data.TemplateSet
 import com.github.radupana.featherweight.data.TrainingAnalysis
 import com.github.radupana.featherweight.data.VolumeTrend
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
+import com.github.radupana.featherweight.data.WorkoutTemplate
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseCore
@@ -50,12 +53,15 @@ import com.github.radupana.featherweight.sync.models.FirestoreProgrammeProgress
 import com.github.radupana.featherweight.sync.models.FirestoreProgrammeWeek
 import com.github.radupana.featherweight.sync.models.FirestoreProgrammeWorkout
 import com.github.radupana.featherweight.sync.models.FirestoreSetLog
+import com.github.radupana.featherweight.sync.models.FirestoreTemplateExercise
+import com.github.radupana.featherweight.sync.models.FirestoreTemplateSet
 import com.github.radupana.featherweight.sync.models.FirestoreTrainingAnalysis
 import com.github.radupana.featherweight.sync.models.FirestoreUserExerciseMax
 import com.github.radupana.featherweight.sync.models.FirestoreVariationAlias
 import com.github.radupana.featherweight.sync.models.FirestoreVariationInstruction
 import com.github.radupana.featherweight.sync.models.FirestoreVariationMuscle
 import com.github.radupana.featherweight.sync.models.FirestoreWorkout
+import com.github.radupana.featherweight.sync.models.FirestoreWorkoutTemplate
 import com.google.firebase.Timestamp
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -98,6 +104,75 @@ object SyncConverters {
             durationSeconds = firestoreWorkout.durationSeconds?.toString(),
             timerStartTime = firestoreWorkout.timerStartTime?.let { LocalDateTime.parse(it) },
             timerElapsedSeconds = firestoreWorkout.timerElapsedSeconds,
+        )
+
+    fun toFirestoreWorkoutTemplate(template: WorkoutTemplate): FirestoreWorkoutTemplate =
+        FirestoreWorkoutTemplate(
+            id = template.id,
+            localId = template.id,
+            userId = template.userId,
+            name = template.name,
+            description = template.description,
+            createdAt = localDateTimeToTimestamp(template.createdAt),
+            updatedAt = localDateTimeToTimestamp(template.updatedAt),
+        )
+
+    fun fromFirestoreWorkoutTemplate(firestoreTemplate: FirestoreWorkoutTemplate): WorkoutTemplate =
+        WorkoutTemplate(
+            id = firestoreTemplate.localId.ifEmpty { firestoreTemplate.id },
+            userId = firestoreTemplate.userId,
+            name = firestoreTemplate.name,
+            description = firestoreTemplate.description,
+            createdAt = timestampToLocalDateTime(firestoreTemplate.createdAt),
+            updatedAt = timestampToLocalDateTime(firestoreTemplate.updatedAt),
+        )
+
+    fun toFirestoreTemplateExercise(exercise: TemplateExercise): FirestoreTemplateExercise =
+        FirestoreTemplateExercise(
+            id = exercise.id,
+            localId = exercise.id,
+            userId = exercise.userId,
+            templateId = exercise.templateId,
+            exerciseVariationId = exercise.exerciseVariationId,
+            exerciseOrder = exercise.exerciseOrder,
+            supersetGroup = exercise.supersetGroup,
+            notes = exercise.notes,
+        )
+
+    fun fromFirestoreTemplateExercise(firestoreExercise: FirestoreTemplateExercise): TemplateExercise =
+        TemplateExercise(
+            id = firestoreExercise.localId.ifEmpty { firestoreExercise.id },
+            userId = firestoreExercise.userId,
+            templateId = firestoreExercise.templateId,
+            exerciseVariationId = firestoreExercise.exerciseVariationId,
+            exerciseOrder = firestoreExercise.exerciseOrder,
+            supersetGroup = firestoreExercise.supersetGroup,
+            notes = firestoreExercise.notes,
+        )
+
+    fun toFirestoreTemplateSet(set: TemplateSet): FirestoreTemplateSet =
+        FirestoreTemplateSet(
+            id = set.id,
+            localId = set.id,
+            userId = set.userId,
+            templateExerciseId = set.templateExerciseId,
+            setOrder = set.setOrder,
+            targetReps = set.targetReps,
+            targetWeight = set.targetWeight,
+            targetRpe = set.targetRpe,
+            notes = set.notes,
+        )
+
+    fun fromFirestoreTemplateSet(firestoreSet: FirestoreTemplateSet): TemplateSet =
+        TemplateSet(
+            id = firestoreSet.localId.ifEmpty { firestoreSet.id },
+            userId = firestoreSet.userId,
+            templateExerciseId = firestoreSet.templateExerciseId,
+            setOrder = firestoreSet.setOrder,
+            targetReps = firestoreSet.targetReps,
+            targetWeight = firestoreSet.targetWeight,
+            targetRpe = firestoreSet.targetRpe,
+            notes = firestoreSet.notes,
         )
 
     fun toFirestoreExerciseLog(exerciseLog: ExerciseLog): FirestoreExerciseLog =

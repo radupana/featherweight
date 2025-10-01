@@ -8,12 +8,11 @@ class WorkoutStatusTest {
     fun `WorkoutStatus has correct values`() {
         val statuses = WorkoutStatus.values()
 
-        assertThat(statuses).hasLength(4)
+        assertThat(statuses).hasLength(3)
         assertThat(statuses).asList().containsExactly(
             WorkoutStatus.NOT_STARTED,
             WorkoutStatus.IN_PROGRESS,
             WorkoutStatus.COMPLETED,
-            WorkoutStatus.TEMPLATE,
         )
     }
 

@@ -41,6 +41,4 @@ data class Workout(
     val durationSeconds: String? = null,
     val timerStartTime: LocalDateTime? = null,
     val timerElapsedSeconds: Int = 0,
-    val isTemplate: Boolean = false,
-    val fromTemplateId: String? = null,
 )

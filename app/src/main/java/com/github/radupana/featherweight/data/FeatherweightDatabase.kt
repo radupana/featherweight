@@ -33,6 +33,10 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         Workout::class,
         ExerciseLog::class,
         SetLog::class,
+        // Template entities
+        WorkoutTemplate::class,
+        TemplateExercise::class,
+        TemplateSet::class,
         // Normalized exercise entities
         ExerciseCore::class,
         ExerciseVariation::class,
@@ -96,6 +100,12 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun trainingAnalysisDao(): TrainingAnalysisDao
 
     abstract fun parseRequestDao(): ParseRequestDao
+
+    abstract fun workoutTemplateDao(): WorkoutTemplateDao
+
+    abstract fun templateExerciseDao(): TemplateExerciseDao
+
+    abstract fun templateSetDao(): TemplateSetDao
 
     companion object {
         @Volatile

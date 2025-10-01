@@ -337,3 +337,39 @@ data class FirestoreSyncMetadata(
     val deviceName: String = "",
     @ServerTimestamp val lastSyncTime: Timestamp? = null,
 )
+
+data class FirestoreWorkoutTemplate(
+    @DocumentId val id: String = "",
+    val localId: String = "",
+    val userId: String = "",
+    val name: String = "",
+    val description: String? = null,
+    val createdAt: Timestamp = Timestamp.now(),
+    val updatedAt: Timestamp = Timestamp.now(),
+    @ServerTimestamp val lastModified: Timestamp? = null,
+)
+
+data class FirestoreTemplateExercise(
+    @DocumentId val id: String = "",
+    val localId: String = "",
+    val userId: String = "",
+    val templateId: String = "",
+    val exerciseVariationId: String = "",
+    val exerciseOrder: Int = 0,
+    val supersetGroup: Int? = null,
+    val notes: String? = null,
+    @ServerTimestamp val lastModified: Timestamp? = null,
+)
+
+data class FirestoreTemplateSet(
+    @DocumentId val id: String = "",
+    val localId: String = "",
+    val userId: String = "",
+    val templateExerciseId: String = "",
+    val setOrder: Int = 0,
+    val targetReps: Int = 0,
+    val targetWeight: Float? = null,
+    val targetRpe: Float? = null,
+    val notes: String? = null,
+    @ServerTimestamp val lastModified: Timestamp? = null,
+)

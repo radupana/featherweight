@@ -343,9 +343,7 @@ fun ExerciseCard(
                     val oneRMEstimate = oneRMEstimates[exercise.exerciseVariationId]
                     val workoutState = viewModel.workoutState.collectAsState().value
                     val isProgrammeWorkout = workoutState.isProgrammeWorkout
-                    val isTemplate = workoutState.status == com.github.radupana.featherweight.data.WorkoutStatus.TEMPLATE
-                    val isFromTemplate = workoutState.fromTemplateId != null
-                    val showTargetValues = isProgrammeWorkout || isTemplate || isFromTemplate
+                    val showTargetValues = isProgrammeWorkout
 
                     sets.forEachIndexed { index, set ->
                         key(set.id) {

@@ -290,10 +290,6 @@ fun WorkoutHistoryCard(
             WorkoutStatus.NOT_STARTED -> {
                 Color(0xFFF5F5F5) // Light gray background for not started
             }
-
-            WorkoutStatus.TEMPLATE -> {
-                MaterialTheme.colorScheme.secondaryContainer // Different color for templates
-            }
         }
 
     Card(
@@ -339,7 +335,6 @@ fun WorkoutHistoryCard(
                                     Color(
                                         0xFF757575,
                                     ) // Gray for not started
-                                WorkoutStatus.TEMPLATE -> MaterialTheme.colorScheme.onSecondaryContainer
                             },
                     )
                     Text(
@@ -356,7 +351,6 @@ fun WorkoutHistoryCard(
                                     Color(
                                         0xFF9E9E9E,
                                     ) // Light gray for not started
-                                WorkoutStatus.TEMPLATE -> MaterialTheme.colorScheme.onSecondaryContainer
                             },
                     )
                 }

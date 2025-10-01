@@ -11,6 +11,7 @@ import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SwapHistoryCount
+import com.github.radupana.featherweight.data.TemplateExercise
 import com.github.radupana.featherweight.data.TrainingAnalysis
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
@@ -72,7 +73,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 class FeatherweightRepository(
-    application: Application,
+    private val application: Application,
 ) {
     companion object {
         private const val TAG = "FeatherweightRepository"
@@ -201,6 +202,11 @@ class FeatherweightRepository(
     suspend fun insertWorkout(workout: Workout): String = workoutRepository.createWorkout(workout)
 
     suspend fun getExercisesForWorkout(workoutId: String): List<ExerciseLog> = exerciseRepository.getExercisesForWorkout(workoutId)
+
+    suspend fun getTemplateExercises(templateId: String): List<TemplateExercise> =
+        withContext(Dispatchers.IO) {
+            db.templateExerciseDao().getTemplateExercisesByTemplateId(templateId)
+        }
 
     suspend fun getSetsForExercise(exerciseLogId: String): List<SetLog> = exerciseRepository.getSetsForExercise(exerciseLogId)
 
@@ -1474,7 +1480,6 @@ class FeatherweightRepository(
                         WorkoutStatus.COMPLETED -> currentInfo.copy(completedCount = item.count)
                         WorkoutStatus.IN_PROGRESS -> currentInfo.copy(inProgressCount = item.count)
                         WorkoutStatus.NOT_STARTED -> currentInfo.copy(notStartedCount = item.count)
-                        WorkoutStatus.TEMPLATE -> currentInfo // Templates don't count towards calendar
                     }
             }
 
@@ -2206,8 +2211,8 @@ class FeatherweightRepository(
 
     // Start a workout from a template
     suspend fun startWorkoutFromTemplate(templateId: String): String {
-        Log.i(TAG, "startWorkoutFromTemplate delegating to WorkoutRepository")
-        return workoutRepository.startWorkoutFromTemplate(templateId)
+        Log.i(TAG, "startWorkoutFromTemplate delegating to WorkoutTemplateRepository")
+        return WorkoutTemplateRepository(application).startWorkoutFromTemplate(templateId)
     }
 
     // Training Analysis methods

@@ -72,11 +72,10 @@ class WorkoutDataModelTest {
 
     @Test
     fun `WorkoutStatus enum has expected values`() {
-        assertThat(WorkoutStatus.entries.toTypedArray()).hasLength(4)
+        assertThat(WorkoutStatus.entries.toTypedArray()).hasLength(3)
         assertThat(WorkoutStatus.entries.toTypedArray()).asList().contains(WorkoutStatus.NOT_STARTED)
         assertThat(WorkoutStatus.entries.toTypedArray()).asList().contains(WorkoutStatus.IN_PROGRESS)
         assertThat(WorkoutStatus.entries.toTypedArray()).asList().contains(WorkoutStatus.COMPLETED)
-        assertThat(WorkoutStatus.entries.toTypedArray()).asList().contains(WorkoutStatus.TEMPLATE)
     }
 
     @Test

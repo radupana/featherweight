@@ -3,7 +3,7 @@ package com.github.radupana.featherweight.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.radupana.featherweight.repository.WorkoutRepository
+import com.github.radupana.featherweight.repository.WorkoutTemplateRepository
 import com.github.radupana.featherweight.util.ExceptionLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 class CreateTemplateFromWorkoutViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
-    private val workoutRepository = WorkoutRepository(application)
+    private val templateRepository = WorkoutTemplateRepository(application)
 
     private val _templateName = MutableStateFlow("")
     val templateName: StateFlow<String> = _templateName.asStateFlow()
@@ -85,7 +85,7 @@ class CreateTemplateFromWorkoutViewModel(
             android.util.Log.i("CreateTemplateVM", "Starting template creation for workoutId: $workoutId with name: '${_templateName.value.trim()}'")
             try {
                 val templateId =
-                    workoutRepository.createTemplateFromWorkout(
+                    templateRepository.createTemplateFromWorkout(
                         workoutId = workoutId,
                         templateName = _templateName.value.trim(),
                         templateDescription = _templateDescription.value.trim().takeIf { it.isNotEmpty() },

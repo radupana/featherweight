@@ -52,8 +52,6 @@ data class WorkoutState(
     val weekNumber: Int? = null,
     val dayNumber: Int? = null,
     val programmeWorkoutName: String? = null,
-    // Template tracking
-    val fromTemplateId: String? = null,
     // Loading state to prevent UI from showing "No exercises" while loading
     val isLoadingExercises: Boolean = false,
     // PR Celebration
@@ -275,7 +273,7 @@ class WorkoutViewModel(
             val workoutHistory = repository.getWorkoutHistory()
             val inProgress =
                 workoutHistory
-                    .filter { it.status != WorkoutStatus.COMPLETED && it.status != WorkoutStatus.TEMPLATE }
+                    .filter { it.status != WorkoutStatus.COMPLETED }
                     .map { summary ->
                         // Calculate completed sets
                         val completedSets =
@@ -344,7 +342,7 @@ class WorkoutViewModel(
         Log.i(TAG, "viewCompletedWorkout called with workoutId: $workoutId")
         viewModelScope.launch {
             repository.getWorkoutById(workoutId)?.let { workout ->
-                Log.i(TAG, "Found workout: id=${workout.id}, status=${workout.status}, fromTemplateId=${workout.fromTemplateId}")
+                Log.i(TAG, "Found workout: id=${workout.id}, status=${workout.status}")
                 if (workout.status != WorkoutStatus.COMPLETED) {
                     Log.w(TAG, "viewCompletedWorkout called on non-completed workout, status: ${workout.status}")
                     // viewCompletedWorkout called on non-completed workout
@@ -432,8 +430,6 @@ class WorkoutViewModel(
                     weekNumber = workout.weekNumber,
                     dayNumber = workout.dayNumber,
                     programmeWorkoutName = workout.programmeWorkoutName,
-                    // Template tracking
-                    fromTemplateId = workout.fromTemplateId,
                     // Clear any pending celebrations from previous sessions
                     pendingPRs = emptyList(),
                     shouldShowPRCelebration = false,

@@ -17,12 +17,15 @@ import com.github.radupana.featherweight.sync.models.FirestoreProgrammeWeek
 import com.github.radupana.featherweight.sync.models.FirestoreProgrammeWorkout
 import com.github.radupana.featherweight.sync.models.FirestoreSetLog
 import com.github.radupana.featherweight.sync.models.FirestoreSyncMetadata
+import com.github.radupana.featherweight.sync.models.FirestoreTemplateExercise
+import com.github.radupana.featherweight.sync.models.FirestoreTemplateSet
 import com.github.radupana.featherweight.sync.models.FirestoreTrainingAnalysis
 import com.github.radupana.featherweight.sync.models.FirestoreUserExerciseMax
 import com.github.radupana.featherweight.sync.models.FirestoreVariationAlias
 import com.github.radupana.featherweight.sync.models.FirestoreVariationInstruction
 import com.github.radupana.featherweight.sync.models.FirestoreVariationMuscle
 import com.github.radupana.featherweight.sync.models.FirestoreWorkout
+import com.github.radupana.featherweight.sync.models.FirestoreWorkoutTemplate
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.FirebaseException
 import com.google.firebase.Timestamp
@@ -47,6 +50,11 @@ class FirestoreRepository(
         private const val EXERCISE_LOGS_COLLECTION = "exerciseLogs"
         private const val SET_LOGS_COLLECTION = "setLogs"
         private const val SYNC_METADATA_COLLECTION = "syncMetadata"
+
+        // Template collections
+        private const val WORKOUT_TEMPLATES_COLLECTION = "workoutTemplates"
+        private const val TEMPLATE_EXERCISES_COLLECTION = "templateExercises"
+        private const val TEMPLATE_SETS_COLLECTION = "templateSets"
 
         // Exercise collections
         private const val EXERCISES_COLLECTION = "exercises" // Denormalized collection
@@ -232,6 +240,87 @@ class FirestoreRepository(
             Result.success(Unit)
         } catch (e: FirebaseException) {
             ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to upload set logs", e)
+            Result.failure(e)
+        }
+
+    suspend fun uploadWorkoutTemplates(
+        userId: String,
+        templates: List<FirestoreWorkoutTemplate>,
+    ): Result<Unit> =
+        try {
+            val batch = firestore.batch()
+            val collection = userDocument(userId).collection(WORKOUT_TEMPLATES_COLLECTION)
+
+            templates.forEach { template ->
+                val docRef =
+                    if (template.id.isNotEmpty()) {
+                        collection.document(template.id)
+                    } else {
+                        collection.document()
+                    }
+                batch.set(docRef, template, SetOptions.merge())
+            }
+
+            batch.commit().await()
+            Result.success(Unit)
+        } catch (e: FirebaseException) {
+            ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to upload workout templates", e)
+            Result.failure(e)
+        }
+
+    suspend fun uploadTemplateExercises(
+        userId: String,
+        exercises: List<FirestoreTemplateExercise>,
+    ): Result<Unit> =
+        try {
+            val batches = exercises.chunked(BATCH_SIZE)
+            val collection = userDocument(userId).collection(TEMPLATE_EXERCISES_COLLECTION)
+
+            batches.forEach { batch ->
+                val writeBatch = firestore.batch()
+                batch.forEach { exercise ->
+                    val docRef =
+                        if (exercise.id.isNotEmpty()) {
+                            collection.document(exercise.id)
+                        } else {
+                            collection.document()
+                        }
+                    writeBatch.set(docRef, exercise, SetOptions.merge())
+                }
+                writeBatch.commit().await()
+            }
+
+            Result.success(Unit)
+        } catch (e: FirebaseException) {
+            ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to upload template exercises", e)
+            Result.failure(e)
+        }
+
+    suspend fun uploadTemplateSets(
+        userId: String,
+        sets: List<FirestoreTemplateSet>,
+    ): Result<Unit> =
+        try {
+            val batches = sets.chunked(BATCH_SIZE)
+            val collection = userDocument(userId).collection(TEMPLATE_SETS_COLLECTION)
+
+            batches.forEach { batch ->
+                val writeBatch = firestore.batch()
+                batch.forEach { set ->
+                    val docRef =
+                        if (set.id.isNotEmpty()) {
+                            collection.document(set.id)
+                        } else {
+                            collection.document()
+                        }
+                    writeBatch.set(docRef, set, SetOptions.merge())
+                }
+                writeBatch.commit().await()
+            }
+
+            Result.success(Unit)
+        } catch (e: FirebaseException) {
+            ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to upload template sets", e)
             Result.failure(e)
         }
 
@@ -528,6 +617,84 @@ class FirestoreRepository(
             Result.success(logs)
         } catch (e: FirebaseException) {
             ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to download set logs", e)
+            Result.failure(e)
+        }
+
+    suspend fun downloadWorkoutTemplates(
+        userId: String,
+        lastSyncTime: Timestamp? = null,
+    ): Result<List<FirestoreWorkoutTemplate>> =
+        try {
+            Log.i("FirestoreRepository", "downloadWorkoutTemplates: Starting download for user $userId")
+            var query: Query =
+                userDocument(userId)
+                    .collection(WORKOUT_TEMPLATES_COLLECTION)
+                    .orderBy("lastModified", Query.Direction.DESCENDING)
+
+            lastSyncTime?.let {
+                query = query.whereGreaterThan("lastModified", it)
+            }
+
+            val snapshot = query.get().await()
+            val templates =
+                snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(FirestoreWorkoutTemplate::class.java)
+                }
+            Log.i("FirestoreRepository", "downloadWorkoutTemplates: Downloaded ${templates.size} templates")
+            Result.success(templates)
+        } catch (e: FirebaseException) {
+            Log.e("FirestoreRepository", "downloadWorkoutTemplates failed: ${e.message}", e)
+            ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to download workout templates", e)
+            Result.failure(e)
+        }
+
+    suspend fun downloadTemplateExercises(
+        userId: String,
+        lastSyncTime: Timestamp? = null,
+    ): Result<List<FirestoreTemplateExercise>> =
+        try {
+            var query: Query =
+                userDocument(userId)
+                    .collection(TEMPLATE_EXERCISES_COLLECTION)
+                    .orderBy("lastModified", Query.Direction.DESCENDING)
+
+            lastSyncTime?.let {
+                query = query.whereGreaterThan("lastModified", it)
+            }
+
+            val snapshot = query.get().await()
+            val exercises =
+                snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(FirestoreTemplateExercise::class.java)
+                }
+            Result.success(exercises)
+        } catch (e: FirebaseException) {
+            ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to download template exercises", e)
+            Result.failure(e)
+        }
+
+    suspend fun downloadTemplateSets(
+        userId: String,
+        lastSyncTime: Timestamp? = null,
+    ): Result<List<FirestoreTemplateSet>> =
+        try {
+            var query: Query =
+                userDocument(userId)
+                    .collection(TEMPLATE_SETS_COLLECTION)
+                    .orderBy("lastModified", Query.Direction.DESCENDING)
+
+            lastSyncTime?.let {
+                query = query.whereGreaterThan("lastModified", it)
+            }
+
+            val snapshot = query.get().await()
+            val sets =
+                snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(FirestoreTemplateSet::class.java)
+                }
+            Result.success(sets)
+        } catch (e: FirebaseException) {
+            ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to download template sets", e)
             Result.failure(e)
         }
 

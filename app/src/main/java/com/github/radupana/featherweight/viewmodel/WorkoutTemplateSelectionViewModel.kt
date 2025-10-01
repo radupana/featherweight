@@ -4,9 +4,9 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.radupana.featherweight.domain.WorkoutSummary
+import com.github.radupana.featherweight.domain.TemplateSummary
 import com.github.radupana.featherweight.repository.FeatherweightRepository
-import com.github.radupana.featherweight.repository.WorkoutRepository
+import com.github.radupana.featherweight.repository.WorkoutTemplateRepository
 import com.github.radupana.featherweight.util.ExceptionLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,15 +15,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 data class TemplateWithExercises(
-    val summary: WorkoutSummary,
+    val summary: TemplateSummary,
     val exerciseNames: List<String>,
-    val description: String? = null,
 )
 
 class WorkoutTemplateSelectionViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
-    private val workoutRepository = WorkoutRepository(application)
+    private val templateRepository = WorkoutTemplateRepository(application)
     private val repository = FeatherweightRepository(application)
 
     private val _templates = MutableStateFlow<List<TemplateWithExercises>>(emptyList())
@@ -41,8 +40,8 @@ class WorkoutTemplateSelectionViewModel(
                 templates
             } else {
                 templates.filter { template ->
-                    // Search only in template name
-                    template.summary.name?.contains(query, ignoreCase = true) == true
+                    // Search in template name
+                    template.summary.name.contains(query, ignoreCase = true)
                 }
             }
         }
@@ -61,27 +60,22 @@ class WorkoutTemplateSelectionViewModel(
             _isLoading.value = true
             Log.i(TAG, "Loading templates...")
             try {
-                val templateWorkouts = workoutRepository.getTemplates()
-                Log.i(TAG, "Got ${templateWorkouts.size} templates from repository")
+                val templateSummaries = templateRepository.getTemplates()
+                Log.i(TAG, "Got ${templateSummaries.size} templates from repository")
 
                 val templatesWithExercises =
-                    templateWorkouts.map { template ->
-                        val exercises = repository.getExercisesForWorkout(template.id)
+                    templateSummaries.map { template ->
+                        val exercises = repository.getTemplateExercises(template.id)
                         val exerciseNames =
                             exercises.mapNotNull { exerciseLog ->
                                 repository.getExerciseById(exerciseLog.exerciseVariationId)?.name
                             }
-
-                        // Get workout notes as description
-                        val workout = repository.getWorkoutById(template.id)
-                        val description = workout?.notes
 
                         Log.d(TAG, "Template ${template.id}: exercises=${exerciseNames.joinToString()}")
 
                         TemplateWithExercises(
                             summary = template,
                             exerciseNames = exerciseNames,
-                            description = description,
                         )
                     }
 
@@ -110,7 +104,7 @@ class WorkoutTemplateSelectionViewModel(
         viewModelScope.launch {
             Log.i(TAG, "Deleting template with ID: $templateId")
             try {
-                workoutRepository.deleteWorkoutById(templateId)
+                templateRepository.deleteTemplate(templateId)
                 Log.i(TAG, "Template deleted successfully")
                 loadTemplates() // Reload the list
             } catch (e: IllegalArgumentException) {

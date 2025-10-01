@@ -14,10 +14,13 @@ import com.github.radupana.featherweight.data.ParseRequestDao
 import com.github.radupana.featherweight.data.PersonalRecordDao
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SetLogDao
+import com.github.radupana.featherweight.data.TemplateExerciseDao
+import com.github.radupana.featherweight.data.TemplateSetDao
 import com.github.radupana.featherweight.data.TrainingAnalysisDao
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutDao
 import com.github.radupana.featherweight.data.WorkoutStatus
+import com.github.radupana.featherweight.data.WorkoutTemplateDao
 import com.github.radupana.featherweight.data.exercise.ExerciseCoreDao
 import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
 import com.github.radupana.featherweight.data.exercise.VariationAliasDao
@@ -65,6 +68,9 @@ class SyncManagerTest {
     private lateinit var globalExerciseProgressDao: GlobalExerciseProgressDao
     private lateinit var trainingAnalysisDao: TrainingAnalysisDao
     private lateinit var parseRequestDao: ParseRequestDao
+    private lateinit var workoutTemplateDao: WorkoutTemplateDao
+    private lateinit var templateExerciseDao: TemplateExerciseDao
+    private lateinit var templateSetDao: TemplateSetDao
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var sharedPreferencesEditor: SharedPreferences.Editor
     private lateinit var syncManager: SyncManager
@@ -108,6 +114,9 @@ class SyncManagerTest {
         globalExerciseProgressDao = mockk()
         trainingAnalysisDao = mockk()
         parseRequestDao = mockk()
+        workoutTemplateDao = mockk()
+        templateExerciseDao = mockk()
+        templateSetDao = mockk()
         sharedPreferences = mockk()
         sharedPreferencesEditor = mockk()
 
@@ -133,11 +142,20 @@ class SyncManagerTest {
         every { database.globalExerciseProgressDao() } returns globalExerciseProgressDao
         every { database.trainingAnalysisDao() } returns trainingAnalysisDao
         every { database.parseRequestDao() } returns parseRequestDao
+        every { database.workoutTemplateDao() } returns workoutTemplateDao
+        every { database.templateExerciseDao() } returns templateExerciseDao
+        every { database.templateSetDao() } returns templateSetDao
 
         syncManager = SyncManager(context, database, authManager, false, firestoreRepository)
     }
 
     private fun mockAllDaoMethods() {
+        coEvery { workoutTemplateDao.getTemplates(any()) } returns emptyList()
+        coEvery { workoutTemplateDao.upsertTemplate(any()) } returns Unit
+        coEvery { templateExerciseDao.getExercisesForTemplate(any()) } returns emptyList()
+        coEvery { templateExerciseDao.upsertTemplateExercise(any()) } returns Unit
+        coEvery { templateSetDao.getSetsForTemplateExercise(any()) } returns emptyList()
+        coEvery { templateSetDao.upsertTemplateSet(any()) } returns Unit
         coEvery { exerciseCoreDao.getAllCores() } returns emptyList()
         coEvery { exerciseCoreDao.getCustomCoresByUser(any()) } returns emptyList()
         coEvery { exerciseVariationDao.getAllExerciseVariations() } returns emptyList()
@@ -164,6 +182,9 @@ class SyncManagerTest {
         coEvery { firestoreRepository.uploadWorkouts(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadExerciseLogs(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadSetLogs(any(), any()) } returns Result.success(Unit)
+        coEvery { firestoreRepository.uploadWorkoutTemplates(any(), any()) } returns Result.success(Unit)
+        coEvery { firestoreRepository.uploadTemplateExercises(any(), any()) } returns Result.success(Unit)
+        coEvery { firestoreRepository.uploadTemplateSets(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadExerciseCores(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadExerciseVariations(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadVariationMuscles(any()) } returns Result.success(Unit)
@@ -192,6 +213,9 @@ class SyncManagerTest {
         coEvery { firestoreRepository.downloadWorkouts(any(), any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadExerciseLogs(any(), any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadSetLogs(any(), any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadWorkoutTemplates(any(), any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadTemplateExercises(any(), any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadTemplateSets(any(), any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadExerciseCores() } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadExerciseVariations() } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadVariationMuscles() } returns Result.success(emptyList())
@@ -483,6 +507,9 @@ class SyncManagerTest {
             coEvery { firestoreRepository.downloadWorkouts(userId, null) } returns Result.success(listOf(downloadedWorkout))
             coEvery { firestoreRepository.downloadExerciseLogs(any(), any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadSetLogs(any(), any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadWorkoutTemplates(any(), any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadTemplateExercises(any(), any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadTemplateSets(any(), any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExerciseCores() } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExerciseVariations() } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadVariationMuscles() } returns Result.success(emptyList())
@@ -552,6 +579,9 @@ class SyncManagerTest {
             coEvery { workoutDao.deleteAllForUser(userId) } returns Unit
             coEvery { exerciseLogDao.deleteAllForUser(userId) } returns Unit
             coEvery { setLogDao.deleteAllForUser(userId) } returns Unit
+            coEvery { workoutTemplateDao.deleteAllForUser(userId) } returns Unit
+            coEvery { templateExerciseDao.deleteAllForUser(userId) } returns Unit
+            coEvery { templateSetDao.deleteAllForUser(userId) } returns Unit
             coEvery { programmeDao.deleteAllProgrammesForUser(userId) } returns Unit
             coEvery { programmeDao.deleteAllProgrammeWeeksForUser(userId) } returns Unit
             coEvery { programmeDao.deleteAllProgrammeWorkoutsForUser(userId) } returns Unit
@@ -646,6 +676,9 @@ class SyncManagerTest {
             mockAllDaoMethods()
             coEvery { firestoreRepository.downloadExerciseLogs(any(), any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadSetLogs(any(), any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadWorkoutTemplates(any(), any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadTemplateExercises(any(), any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadTemplateSets(any(), any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExerciseCores() } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExerciseVariations() } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadVariationMuscles() } returns Result.success(emptyList())
@@ -734,6 +767,9 @@ class SyncManagerTest {
             // Mock all other downloads
             coEvery { firestoreRepository.downloadExerciseLogs(userId, null) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadSetLogs(userId, null) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadWorkoutTemplates(userId, null) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadTemplateExercises(userId, null) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadTemplateSets(userId, null) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadSystemExercises(null) } returns Result.success(emptyMap())
             coEvery { firestoreRepository.downloadCustomExercises(userId, null) } returns Result.success(emptyMap())
             coEvery { firestoreRepository.downloadProgrammes(any()) } returns Result.success(emptyList())
@@ -820,6 +856,9 @@ class SyncManagerTest {
             // Mock all other downloads with lastSyncTime
             coEvery { firestoreRepository.downloadExerciseLogs(userId, lastSyncTime) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadSetLogs(userId, lastSyncTime) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadWorkoutTemplates(userId, lastSyncTime) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadTemplateExercises(userId, lastSyncTime) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadTemplateSets(userId, lastSyncTime) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadSystemExercises(lastSyncTime) } returns Result.success(emptyMap())
             coEvery { firestoreRepository.downloadCustomExercises(userId, lastSyncTime) } returns Result.success(emptyMap())
             coEvery { firestoreRepository.downloadProgrammes(any()) } returns Result.success(emptyList())

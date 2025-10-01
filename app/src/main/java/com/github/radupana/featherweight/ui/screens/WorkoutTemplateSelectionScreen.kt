@@ -249,7 +249,7 @@ private fun TemplateCard(
                     )
 
                     // Description if available
-                    template.description?.let { description ->
+                    template.summary.description?.let { description ->
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = description,
@@ -395,7 +395,7 @@ private fun TemplateCard(
             // Created Date
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Created ${template.summary.date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}",
+                text = "Created ${template.summary.createdAt.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.align(Alignment.CenterHorizontally),

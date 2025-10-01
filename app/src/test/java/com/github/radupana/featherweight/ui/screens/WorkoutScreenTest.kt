@@ -27,8 +27,7 @@ class WorkoutScreenTest {
         assertThat(statuses).asList().contains(WorkoutStatus.NOT_STARTED)
         assertThat(statuses).asList().contains(WorkoutStatus.IN_PROGRESS)
         assertThat(statuses).asList().contains(WorkoutStatus.COMPLETED)
-        assertThat(statuses).asList().contains(WorkoutStatus.TEMPLATE)
-        assertThat(statuses.size).isEqualTo(4)
+        assertThat(statuses.size).isEqualTo(3)
     }
 
     @Test
@@ -53,6 +52,6 @@ class WorkoutScreenTest {
         assertThat(editMode.name).doesNotContain("ACTIVE")
 
         assertThat(WorkoutStatus.entries.map { it.name })
-            .containsExactly("NOT_STARTED", "IN_PROGRESS", "COMPLETED", "TEMPLATE")
+            .containsExactly("NOT_STARTED", "IN_PROGRESS", "COMPLETED")
     }
 }
