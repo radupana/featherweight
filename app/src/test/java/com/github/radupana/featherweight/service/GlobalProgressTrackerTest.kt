@@ -1059,4 +1059,69 @@ class GlobalProgressTrackerTest {
             val savedProgress = capturedProgress.captured
             assertThat(savedProgress.volumeTrend).isEqualTo(VolumeTrend.DECREASING) // 300 < 500 * 0.9
         }
+
+    @Test
+    fun `updateProgressAfterWorkout correctly tracks mostWeightLifted separate from oneRMEstimate`() =
+        runTest {
+            // Arrange
+            val workoutId = "1"
+            val exerciseId = "100"
+
+            val workout =
+                WorkoutFixtures.createWorkout(
+                    id = workoutId,
+                    programmeId = null,
+                )
+
+            val exerciseLog =
+                WorkoutFixtures.createExerciseLog(
+                    id = "1",
+                    workoutId = workoutId,
+                    exerciseId = exerciseId,
+                )
+
+            // User lifts 120kg × 3 @ RPE 8
+            // This will estimate ~135kg 1RM
+            // But mostWeightLifted should be 120kg, not 135kg
+            val sets =
+                listOf(
+                    WorkoutFixtures.createSetLog(
+                        id = "1",
+                        exerciseLogId = "1",
+                        actualWeight = 120f,
+                        actualReps = 3,
+                        actualRpe = 8f,
+                        userId = "local",
+                    ),
+                )
+
+            val exercise =
+                mockk<Exercise> {
+                    coEvery { id } returns exerciseId
+                    coEvery { name } returns "Barbell Bench Press"
+                }
+
+            coEvery { repository.getWorkoutById(workoutId) } returns workout
+            coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
+            coEvery { setLogDao.getSetLogsForExercise("1") } returns sets
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns exercise
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "local") } returns null
+
+            val capturedMax = slot<ExerciseMaxTracking>()
+            coEvery { oneRMDao.insert(capture(capturedMax)) } returns Unit
+            coEvery { globalProgressDao.insertOrUpdate(any()) } returns Unit
+
+            // Act
+            tracker.updateProgressAfterWorkout(workoutId)
+
+            // Assert
+            val savedMax = capturedMax.captured
+            // 1RM estimate should be calculated (~135kg)
+            assertThat(savedMax.oneRMEstimate).isGreaterThan(120f)
+            // But mostWeightLifted should be the actual weight lifted (120kg)
+            assertThat(savedMax.mostWeightLifted).isEqualTo(120f)
+            assertThat(savedMax.mostWeightReps).isEqualTo(3)
+            assertThat(savedMax.mostWeightRpe).isEqualTo(8f)
+        }
 }

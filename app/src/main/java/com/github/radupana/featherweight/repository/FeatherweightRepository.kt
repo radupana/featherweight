@@ -1218,23 +1218,43 @@ class FeatherweightRepository(
         // Round weight to nearest 0.25
         val roundedWeight = WeightFormatter.roundToNearestQuarter(oneRMEstimate)
         val dateToUse = workoutDate ?: LocalDateTime.now()
-        val exerciseMaxTracking =
-            ExerciseMaxTracking(
-                userId = authManager.getCurrentUserId() ?: "local",
-                exerciseId = exerciseId,
-                oneRMEstimate = roundedWeight,
-                context = oneRMContext,
-                sourceSetId = null,
-                recordedAt = dateToUse,
-                mostWeightLifted = roundedWeight,
-                mostWeightReps = 1,
-                mostWeightRpe = null,
-                mostWeightDate = dateToUse,
-                oneRMConfidence = if (oneRMType == OneRMType.MANUALLY_ENTERED) 1.0f else 0.9f,
-                oneRMType = oneRMType,
-                notes = notes,
-            )
-        db.exerciseMaxTrackingDao().insert(exerciseMaxTracking)
+        val userId = authManager.getCurrentUserId() ?: "local"
+
+        // Check if record exists
+        val existingMax = db.exerciseMaxTrackingDao().getCurrentMax(exerciseId, userId)
+
+        if (existingMax != null) {
+            // Update only 1RM fields, preserve actual lift data
+            val updated =
+                existingMax.copy(
+                    oneRMEstimate = roundedWeight,
+                    context = oneRMContext,
+                    oneRMType = oneRMType,
+                    oneRMConfidence = if (oneRMType == OneRMType.MANUALLY_ENTERED) 1.0f else 0.9f,
+                    recordedAt = dateToUse,
+                    notes = notes,
+                )
+            db.exerciseMaxTrackingDao().update(updated)
+        } else {
+            // New record - no actual lifts yet, set mostWeight fields to 0
+            val newRecord =
+                ExerciseMaxTracking(
+                    userId = userId,
+                    exerciseId = exerciseId,
+                    oneRMEstimate = roundedWeight,
+                    context = oneRMContext,
+                    sourceSetId = null,
+                    recordedAt = dateToUse,
+                    mostWeightLifted = 0f,
+                    mostWeightReps = 0,
+                    mostWeightRpe = null,
+                    mostWeightDate = dateToUse,
+                    oneRMConfidence = if (oneRMType == OneRMType.MANUALLY_ENTERED) 1.0f else 0.9f,
+                    oneRMType = oneRMType,
+                    notes = notes,
+                )
+            db.exerciseMaxTrackingDao().insert(newRecord)
+        }
     }
 
     // Remove getAllCurrentMaxes - this should only be used in Insights

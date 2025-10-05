@@ -474,24 +474,6 @@ object SyncConverters {
             recordedAt = localDateTimeToTimestamp(tracking.recordedAt),
         )
 
-    fun fromFirestoreOneRMHistory(firestoreHistory: FirestoreOneRMHistory): ExerciseMaxTracking =
-        ExerciseMaxTracking(
-            id = firestoreHistory.id.ifEmpty { firestoreHistory.localId },
-            userId = firestoreHistory.userId,
-            exerciseId = firestoreHistory.exerciseId,
-            oneRMEstimate = firestoreHistory.oneRMEstimate,
-            context = firestoreHistory.context,
-            recordedAt = timestampToLocalDateTime(firestoreHistory.recordedAt),
-            sourceSetId = null,
-            mostWeightLifted = firestoreHistory.oneRMEstimate,
-            mostWeightReps = 1,
-            mostWeightRpe = null,
-            mostWeightDate = timestampToLocalDateTime(firestoreHistory.recordedAt),
-            oneRMConfidence = 1.0f,
-            oneRMType = OneRMType.AUTOMATICALLY_CALCULATED,
-            notes = null,
-        )
-
     fun toFirestorePersonalRecord(record: PersonalRecord): FirestorePersonalRecord =
         FirestorePersonalRecord(
             id = record.id,

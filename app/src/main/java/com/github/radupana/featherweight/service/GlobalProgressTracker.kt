@@ -372,11 +372,31 @@ class GlobalProgressTracker(
                             sourceSetId = bestSet.id,
                             oneRMConfidence = bestEstimate.confidence,
                             recordedAt = LocalDateTime.now(),
-                            // Update most weight if this set had the most weight
-                            mostWeightLifted = maxOf(currentUserMax.mostWeightLifted, bestSet.actualWeight),
-                            mostWeightReps = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) bestSet.actualReps else currentUserMax.mostWeightReps,
-                            mostWeightRpe = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) bestSet.actualRpe else currentUserMax.mostWeightRpe,
-                            mostWeightDate = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) LocalDateTime.now() else currentUserMax.mostWeightDate,
+                            // Update mostWeight fields if this set is heavier
+                            mostWeightLifted =
+                                if (bestSet.actualWeight > currentUserMax.mostWeightLifted) {
+                                    bestSet.actualWeight
+                                } else {
+                                    currentUserMax.mostWeightLifted
+                                },
+                            mostWeightReps =
+                                if (bestSet.actualWeight > currentUserMax.mostWeightLifted) {
+                                    bestSet.actualReps
+                                } else {
+                                    currentUserMax.mostWeightReps
+                                },
+                            mostWeightRpe =
+                                if (bestSet.actualWeight > currentUserMax.mostWeightLifted) {
+                                    bestSet.actualRpe
+                                } else {
+                                    currentUserMax.mostWeightRpe
+                                },
+                            mostWeightDate =
+                                if (bestSet.actualWeight > currentUserMax.mostWeightLifted) {
+                                    LocalDateTime.now()
+                                } else {
+                                    currentUserMax.mostWeightDate
+                                },
                         )
                     database.exerciseMaxTrackingDao().update(updatedMax)
                 } else {

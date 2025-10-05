@@ -1392,7 +1392,24 @@ class WorkoutViewModel(
 
             // Update 1RM with the best set only
             if (bestSet != null) {
-                checkAndUpdateOneRM(bestSet)
+                val currentEstimate = _oneRMEstimates.value[exerciseId]
+                val newEstimate =
+                    oneRMService.calculateEstimated1RM(
+                        bestSet.actualWeight,
+                        bestSet.actualReps,
+                        bestSet.actualRpe,
+                        scalingType,
+                    )
+
+                if (newEstimate != null && oneRMService.shouldUpdateOneRM(bestSet, currentEstimate, newEstimate)) {
+                    Log.i(
+                        TAG,
+                        "Batch 1RM update - exercise: ${exerciseVariation?.name}, " +
+                            "old: ${currentEstimate?.toInt()}kg, new: ${newEstimate.toInt()}kg, " +
+                            "from: ${bestSet.actualWeight}kg x ${bestSet.actualReps} @ RPE ${bestSet.actualRpe}",
+                    )
+                    persistOneRMUpdate(exerciseId, bestSet, newEstimate, currentEstimate)
+                }
             }
         }
 
@@ -1530,9 +1547,6 @@ class WorkoutViewModel(
             startWorkoutTimer()
         }
 
-        // Check for 1RM updates
-        completedSet?.let { checkAndUpdateOneRM(it) }
-
         // Check for PRs
         checkForPersonalRecords(setId, updatedSets)
 
@@ -1588,6 +1602,13 @@ class WorkoutViewModel(
             val completedSet = updatedSets.find { it.id == setId } ?: return
             val exerciseLog = findExerciseLogForSet(setId, updatedSets) ?: return
 
+            Log.d(
+                TAG,
+                "[1RM_FLOW] updateOneRMEstimate called for set: $setId, " +
+                    "exercise: ${exerciseLog.exerciseId}, " +
+                    "weight: ${completedSet.actualWeight}kg, reps: ${completedSet.actualReps}, RPE: ${completedSet.actualRpe}",
+            )
+
             val exerciseVariation = repository.getExerciseById(exerciseLog.exerciseId)
             val scalingType = exerciseVariation?.rmScalingType?.toRMScalingType() ?: RMScalingType.STANDARD
 
@@ -1600,15 +1621,24 @@ class WorkoutViewModel(
                     scalingType,
                 )
 
+            Log.d(
+                TAG,
+                "[1RM_FLOW] Calculated estimate: ${newEstimate?.toInt()}kg, " +
+                    "current: ${currentEstimate?.toInt()}kg, " +
+                    "shouldUpdate: ${newEstimate != null && oneRMService.shouldUpdateOneRM(completedSet, currentEstimate, newEstimate)}",
+            )
+
             if (newEstimate != null && oneRMService.shouldUpdateOneRM(completedSet, currentEstimate, newEstimate)) {
                 val exercise = repository.getExerciseById(exerciseLog.exerciseId)
                 Log.i(
                     TAG,
-                    "1RM update - exercise: ${exercise?.name}, " +
+                    "[1RM_FLOW] Single set 1RM update - exercise: ${exercise?.name}, " +
                         "old: ${currentEstimate?.toInt()}kg, new: ${newEstimate.toInt()}kg, " +
                         "from: ${completedSet.actualWeight}kg x ${completedSet.actualReps} @ RPE ${completedSet.actualRpe}",
                 )
                 persistOneRMUpdate(exerciseLog.exerciseId, completedSet, newEstimate, currentEstimate)
+            } else {
+                Log.d(TAG, "[1RM_FLOW] 1RM not updated (estimate not better or shouldUpdate returned false)")
             }
         } catch (e: android.database.sqlite.SQLiteException) {
             Log.e(TAG, "Failed to update 1RM estimate", e)
@@ -1624,6 +1654,12 @@ class WorkoutViewModel(
         currentEstimate: Float?,
     ) {
         exerciseId ?: return
+
+        Log.d(
+            TAG,
+            "[1RM_FLOW] persistOneRMUpdate called - exerciseId: $exerciseId, " +
+                "estimate: ${newEstimate.toInt()}kg, setId: ${completedSet.id}",
+        )
 
         val percentOf1RM =
             if (currentEstimate != null && currentEstimate > 0) {
@@ -1647,7 +1683,16 @@ class WorkoutViewModel(
                 confidence = confidence,
             )
 
+        Log.d(
+            TAG,
+            "[1RM_FLOW] Created 1RM record - mostWeightLifted: ${oneRMRecord.mostWeightLifted}kg, " +
+                "mostWeightReps: ${oneRMRecord.mostWeightReps}, " +
+                "sourceSetId: ${oneRMRecord.sourceSetId}, " +
+                "confidence: $confidence",
+        )
+
         repository.updateOrInsertOneRM(oneRMRecord)
+        Log.d(TAG, "[1RM_FLOW] Called repository.updateOrInsertOneRM() - persistence complete")
         loadOneRMEstimatesForCurrentExercises()
     }
 
@@ -2222,58 +2267,6 @@ class WorkoutViewModel(
         super.onCleared()
         restTimerJob?.cancel()
         workoutTimerJob?.cancel()
-    }
-
-    private fun checkAndUpdateOneRM(set: SetLog) {
-        viewModelScope.launch {
-            // Get exercise info
-            val exercise = _selectedWorkoutExercises.value.find { it.id == set.exerciseLogId } ?: return@launch
-            val exerciseId = exercise.exerciseId
-
-            // Get the exercise variation to determine scaling type
-            val exerciseVariation = repository.getExerciseById(exerciseId)
-            val scalingType = exerciseVariation?.rmScalingType?.toRMScalingType() ?: RMScalingType.STANDARD
-
-            // Calculate estimated 1RM from this set (now with RPE consideration)
-            val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps, set.actualRpe, scalingType) ?: return@launch
-
-            // Get current 1RM
-            val currentMax =
-                repository
-                    .getCurrentMaxesForExercises(listOf(exerciseId))[exerciseId]
-
-            // Check if we should update
-            if (oneRMService.shouldUpdateOneRM(set, currentMax, estimated1RM)) {
-                // Calculate confidence
-                if (currentMax != null && currentMax > 0) {
-                    set.actualWeight / currentMax
-                } else {
-                    1f
-                }
-
-                // Create context string
-                val context = oneRMService.buildContext(set.actualWeight, set.actualReps, set.actualRpe)
-
-                // Get the workout date
-                val workoutDate =
-                    _currentWorkoutId.value?.let { workoutId ->
-                        repository.getWorkoutById(workoutId)?.date
-                    }
-
-                // Update the 1RM with the workout date
-                repository.upsertExerciseMax(
-                    exerciseId = exerciseId,
-                    oneRMEstimate = estimated1RM,
-                    oneRMContext = context,
-                    oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
-                    notes = "Updated from workout performance",
-                    workoutDate = workoutDate,
-                )
-
-                // Reload 1RM estimates to update UI immediately
-                loadOneRMEstimatesForCurrentExercises()
-            }
-        }
     }
 
     // Notes methods

@@ -45,7 +45,7 @@
 ## Database
 
 - **Direct Entity Changes**: Modify Room entities directly.
-- **NO USERS YET**: The app has NO USERS. Use destructive migrations freely. Keep database at version 1.
+- **NO USERS AND NO EXISTING DATA YET**: The app has NO USERS or DATA. Use destructive migrations freely. Keep database at version 1.
 
 ## Debugging
 
