@@ -125,7 +125,6 @@ object SyncConverters {
             templateId = exercise.templateId,
             exerciseId = exercise.exerciseId,
             exerciseOrder = exercise.exerciseOrder,
-            supersetGroup = exercise.supersetGroup,
             notes = exercise.notes,
         )
 
@@ -136,7 +135,6 @@ object SyncConverters {
             templateId = firestoreExercise.templateId,
             exerciseId = firestoreExercise.exerciseId,
             exerciseOrder = firestoreExercise.exerciseOrder,
-            supersetGroup = firestoreExercise.supersetGroup,
             notes = firestoreExercise.notes,
         )
 

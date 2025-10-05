@@ -28,6 +28,5 @@ data class TemplateExercise(
     val templateId: String,
     val exerciseId: String,
     val exerciseOrder: Int,
-    val supersetGroup: Int? = null,
     val notes: String? = null,
 )

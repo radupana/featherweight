@@ -279,7 +279,6 @@ data class FirestoreTemplateExercise(
     val templateId: String = "",
     val exerciseId: String = "",
     val exerciseOrder: Int = 0,
-    val supersetGroup: Int? = null,
     val notes: String? = null,
     @ServerTimestamp val lastModified: Timestamp? = null,
 )

@@ -102,7 +102,6 @@ class WorkoutTemplateRepository(
                         templateId = template.id,
                         exerciseId = exerciseLog.exerciseId,
                         exerciseOrder = exerciseLog.exerciseOrder,
-                        supersetGroup = null,
                         notes = exerciseLog.notes,
                     )
                 templateExerciseDao.insertTemplateExercise(templateExercise)
