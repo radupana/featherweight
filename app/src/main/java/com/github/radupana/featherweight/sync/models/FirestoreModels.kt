@@ -186,7 +186,7 @@ data class FirestoreExerciseSwapHistory(
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
 
-data class FirestoreExercisePerformanceTracking(
+data class FirestoreProgrammeExerciseTracking(
     @DocumentId val id: String = "",
     val localId: String = "",
     val userId: String? = null,
@@ -204,9 +204,7 @@ data class FirestoreExercisePerformanceTracking(
     val workoutDate: Timestamp = Timestamp.now(),
     val workoutId: String = "",
     val isDeloadWorkout: Boolean = false,
-    val deloadReason: String? = null,
     val averageRpe: Float? = null,
-    val notes: String? = null,
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
 

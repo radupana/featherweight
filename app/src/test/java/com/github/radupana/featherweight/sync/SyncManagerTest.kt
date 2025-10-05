@@ -6,12 +6,12 @@ import android.text.TextUtils
 import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.ExerciseLogDao
-import com.github.radupana.featherweight.data.ExercisePerformanceTrackingDao
 import com.github.radupana.featherweight.data.ExerciseSwapHistoryDao
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.GlobalExerciseProgressDao
 import com.github.radupana.featherweight.data.ParseRequestDao
 import com.github.radupana.featherweight.data.PersonalRecordDao
+import com.github.radupana.featherweight.data.ProgrammeExerciseTrackingDao
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SetLogDao
 import com.github.radupana.featherweight.data.TemplateExerciseDao
@@ -62,7 +62,7 @@ class SyncManagerTest {
     private lateinit var oneRMDao: ExerciseMaxTrackingDao
     private lateinit var personalRecordDao: PersonalRecordDao
     private lateinit var exerciseSwapHistoryDao: ExerciseSwapHistoryDao
-    private lateinit var exercisePerformanceTrackingDao: ExercisePerformanceTrackingDao
+    private lateinit var programmeExerciseTrackingDao: ProgrammeExerciseTrackingDao
     private lateinit var globalExerciseProgressDao: GlobalExerciseProgressDao
     private lateinit var trainingAnalysisDao: TrainingAnalysisDao
     private lateinit var parseRequestDao: ParseRequestDao
@@ -107,7 +107,7 @@ class SyncManagerTest {
         oneRMDao = mockk()
         personalRecordDao = mockk()
         exerciseSwapHistoryDao = mockk()
-        exercisePerformanceTrackingDao = mockk()
+        programmeExerciseTrackingDao = mockk()
         globalExerciseProgressDao = mockk()
         trainingAnalysisDao = mockk()
         parseRequestDao = mockk()
@@ -134,7 +134,7 @@ class SyncManagerTest {
         every { database.exerciseMaxTrackingDao() } returns oneRMDao
         every { database.personalRecordDao() } returns personalRecordDao
         every { database.exerciseSwapHistoryDao() } returns exerciseSwapHistoryDao
-        every { database.exercisePerformanceTrackingDao() } returns exercisePerformanceTrackingDao
+        every { database.programmeExerciseTrackingDao() } returns programmeExerciseTrackingDao
         every { database.globalExerciseProgressDao() } returns globalExerciseProgressDao
         every { database.trainingAnalysisDao() } returns trainingAnalysisDao
         every { database.parseRequestDao() } returns parseRequestDao
@@ -166,7 +166,7 @@ class SyncManagerTest {
         coEvery { oneRMDao.getAllForUser(any()) } returns emptyList()
         coEvery { personalRecordDao.getAllPersonalRecords() } returns emptyList()
         coEvery { exerciseSwapHistoryDao.getAllSwapHistory() } returns emptyList()
-        coEvery { exercisePerformanceTrackingDao.getAllTracking() } returns emptyList()
+        coEvery { programmeExerciseTrackingDao.getAllTracking() } returns emptyList()
         coEvery { globalExerciseProgressDao.getAllProgress() } returns emptyList()
         coEvery { trainingAnalysisDao.getAllAnalyses() } returns emptyList()
         coEvery { parseRequestDao.getAllRequestsList() } returns emptyList()
@@ -567,7 +567,7 @@ class SyncManagerTest {
             coEvery { oneRMDao.deleteAllForUser(userId) } returns Unit
             coEvery { personalRecordDao.deleteAllForUser(userId) } returns Unit
             coEvery { exerciseSwapHistoryDao.deleteAllForUser(userId) } returns Unit
-            coEvery { exercisePerformanceTrackingDao.deleteAllForUser(userId) } returns Unit
+            coEvery { programmeExerciseTrackingDao.deleteAllForUser(userId) } returns Unit
             coEvery { globalExerciseProgressDao.deleteAllForUser(userId) } returns Unit
             coEvery { trainingAnalysisDao.deleteAllByUserId(userId) } returns Unit
             coEvery { parseRequestDao.deleteAllForUser(userId) } returns Unit

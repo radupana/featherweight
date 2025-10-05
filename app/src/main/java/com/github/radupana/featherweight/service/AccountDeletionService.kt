@@ -297,7 +297,7 @@ class AccountDeletionService(
 
             // Analytics
             database.exerciseSwapHistoryDao().deleteAllForUser(userId)
-            database.exercisePerformanceTrackingDao().deleteAllForUser(userId)
+            database.programmeExerciseTrackingDao().deleteAllForUser(userId)
             database.globalExerciseProgressDao().deleteAllForUser(userId)
 
             // Parse requests

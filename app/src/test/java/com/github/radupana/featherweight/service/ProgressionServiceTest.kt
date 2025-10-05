@@ -1,7 +1,7 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.data.ExercisePerformanceTracking
-import com.github.radupana.featherweight.data.ExercisePerformanceTrackingDao
+import com.github.radupana.featherweight.data.ProgrammeExerciseTracking
+import com.github.radupana.featherweight.data.ProgrammeExerciseTrackingDao
 import com.github.radupana.featherweight.data.ProgressionAction
 import com.github.radupana.featherweight.data.programme.DeloadRules
 import com.github.radupana.featherweight.data.programme.Programme
@@ -24,7 +24,7 @@ import java.time.LocalDateTime
 
 class ProgressionServiceTest {
     @MockK
-    private lateinit var mockPerformanceTrackingDao: ExercisePerformanceTrackingDao
+    private lateinit var mockPerformanceTrackingDao: ProgrammeExerciseTrackingDao
 
     @MockK
     private lateinit var mockProgrammeDao: ProgrammeDao
@@ -63,7 +63,7 @@ class ProgressionServiceTest {
         )
 
     private val successfulPerformance =
-        ExercisePerformanceTracking(
+        ProgrammeExerciseTracking(
             id = "1",
             programmeId = "1",
             exerciseId = "1",

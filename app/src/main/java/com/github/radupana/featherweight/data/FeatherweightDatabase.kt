@@ -47,7 +47,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         ProgrammeProgress::class,
         ExerciseMaxTracking::class,
         ExerciseSwapHistory::class,
-        ExercisePerformanceTracking::class,
+        ProgrammeExerciseTracking::class,
         GlobalExerciseProgress::class,
         PersonalRecord::class,
         TrainingAnalysis::class,
@@ -81,7 +81,7 @@ abstract class FeatherweightDatabase : RoomDatabase() {
 
     abstract fun exerciseSwapHistoryDao(): ExerciseSwapHistoryDao
 
-    abstract fun exercisePerformanceTrackingDao(): ExercisePerformanceTrackingDao
+    abstract fun programmeExerciseTrackingDao(): ProgrammeExerciseTrackingDao
 
     abstract fun globalExerciseProgressDao(): GlobalExerciseProgressDao
 

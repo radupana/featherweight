@@ -3,13 +3,13 @@ package com.github.radupana.featherweight.sync.repository
 import android.util.Log
 import com.github.radupana.featherweight.sync.models.FirestoreExercise
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseLog
-import com.github.radupana.featherweight.sync.models.FirestoreExercisePerformanceTracking
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseSwapHistory
 import com.github.radupana.featherweight.sync.models.FirestoreGlobalExerciseProgress
 import com.github.radupana.featherweight.sync.models.FirestoreOneRMHistory
 import com.github.radupana.featherweight.sync.models.FirestoreParseRequest
 import com.github.radupana.featherweight.sync.models.FirestorePersonalRecord
 import com.github.radupana.featherweight.sync.models.FirestoreProgramme
+import com.github.radupana.featherweight.sync.models.FirestoreProgrammeExerciseTracking
 import com.github.radupana.featherweight.sync.models.FirestoreProgrammeProgress
 import com.github.radupana.featherweight.sync.models.FirestoreProgrammeWeek
 import com.github.radupana.featherweight.sync.models.FirestoreProgrammeWorkout
@@ -412,7 +412,7 @@ class FirestoreRepository(
 
     suspend fun uploadExercisePerformanceTracking(
         userId: String,
-        tracking: List<FirestoreExercisePerformanceTracking>,
+        tracking: List<FirestoreProgrammeExerciseTracking>,
     ): Result<Unit> = uploadBatchedData(userDocument(userId).collection(EXERCISE_PERFORMANCE_TRACKING_COLLECTION), tracking)
 
     suspend fun uploadGlobalExerciseProgress(
@@ -704,7 +704,7 @@ class FirestoreRepository(
     suspend fun downloadExerciseSwapHistory(userId: String): Result<List<FirestoreExerciseSwapHistory>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_SWAP_HISTORY_COLLECTION))
 
     @Suppress("MaxLineLength")
-    suspend fun downloadExercisePerformanceTracking(userId: String): Result<List<FirestoreExercisePerformanceTracking>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_PERFORMANCE_TRACKING_COLLECTION))
+    suspend fun downloadExercisePerformanceTracking(userId: String): Result<List<FirestoreProgrammeExerciseTracking>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_PERFORMANCE_TRACKING_COLLECTION))
 
     @Suppress("MaxLineLength")
     suspend fun downloadGlobalExerciseProgress(userId: String): Result<List<FirestoreGlobalExerciseProgress>> = downloadBatchedData(userDocument(userId).collection(GLOBAL_EXERCISE_PROGRESS_COLLECTION))

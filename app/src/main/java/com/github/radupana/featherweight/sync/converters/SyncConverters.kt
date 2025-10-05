@@ -1,13 +1,13 @@
 package com.github.radupana.featherweight.sync.converters
 
 import com.github.radupana.featherweight.data.ExerciseLog
-import com.github.radupana.featherweight.data.ExercisePerformanceTracking
 import com.github.radupana.featherweight.data.ExerciseSwapHistory
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.ParseRequest
 import com.github.radupana.featherweight.data.ParseStatus
 import com.github.radupana.featherweight.data.PersonalRecord
+import com.github.radupana.featherweight.data.ProgrammeExerciseTracking
 import com.github.radupana.featherweight.data.ProgressTrend
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.TemplateExercise
@@ -32,7 +32,6 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWeek
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
 import com.github.radupana.featherweight.sync.models.FirestoreExercise
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseLog
-import com.github.radupana.featherweight.sync.models.FirestoreExercisePerformanceTracking
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseSwapHistory
 import com.github.radupana.featherweight.sync.models.FirestoreGlobalExerciseProgress
 import com.github.radupana.featherweight.sync.models.FirestoreInstruction
@@ -41,6 +40,7 @@ import com.github.radupana.featherweight.sync.models.FirestoreOneRMHistory
 import com.github.radupana.featherweight.sync.models.FirestoreParseRequest
 import com.github.radupana.featherweight.sync.models.FirestorePersonalRecord
 import com.github.radupana.featherweight.sync.models.FirestoreProgramme
+import com.github.radupana.featherweight.sync.models.FirestoreProgrammeExerciseTracking
 import com.github.radupana.featherweight.sync.models.FirestoreProgrammeProgress
 import com.github.radupana.featherweight.sync.models.FirestoreProgrammeWeek
 import com.github.radupana.featherweight.sync.models.FirestoreProgrammeWorkout
@@ -537,8 +537,8 @@ object SyncConverters {
             programmeId = firestoreSwap.programmeId,
         )
 
-    fun toFirestoreExercisePerformanceTracking(tracking: ExercisePerformanceTracking): FirestoreExercisePerformanceTracking =
-        FirestoreExercisePerformanceTracking(
+    fun toFirestoreProgrammeExerciseTracking(tracking: ProgrammeExerciseTracking): FirestoreProgrammeExerciseTracking =
+        FirestoreProgrammeExerciseTracking(
             id = tracking.id,
             localId = tracking.id,
             userId = tracking.userId,
@@ -556,13 +556,11 @@ object SyncConverters {
             workoutDate = localDateTimeToTimestamp(tracking.workoutDate),
             workoutId = tracking.workoutId,
             isDeloadWorkout = tracking.isDeloadWorkout,
-            deloadReason = tracking.deloadReason,
             averageRpe = tracking.averageRpe,
-            notes = tracking.notes,
         )
 
-    fun fromFirestoreExercisePerformanceTracking(firestoreTracking: FirestoreExercisePerformanceTracking): ExercisePerformanceTracking =
-        ExercisePerformanceTracking(
+    fun fromFirestoreProgrammeExerciseTracking(firestoreTracking: FirestoreProgrammeExerciseTracking): ProgrammeExerciseTracking =
+        ProgrammeExerciseTracking(
             id = firestoreTracking.id.ifEmpty { firestoreTracking.localId },
             userId = firestoreTracking.userId,
             programmeId = firestoreTracking.programmeId,
@@ -579,9 +577,7 @@ object SyncConverters {
             workoutDate = timestampToLocalDateTime(firestoreTracking.workoutDate),
             workoutId = firestoreTracking.workoutId,
             isDeloadWorkout = firestoreTracking.isDeloadWorkout,
-            deloadReason = firestoreTracking.deloadReason,
             averageRpe = firestoreTracking.averageRpe,
-            notes = firestoreTracking.notes,
         )
 
     fun toFirestoreGlobalExerciseProgress(progress: GlobalExerciseProgress): FirestoreGlobalExerciseProgress =

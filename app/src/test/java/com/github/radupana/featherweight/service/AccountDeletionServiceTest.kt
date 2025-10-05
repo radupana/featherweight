@@ -3,12 +3,12 @@ package com.github.radupana.featherweight.service
 import android.text.TextUtils
 import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLogDao
-import com.github.radupana.featherweight.data.ExercisePerformanceTrackingDao
 import com.github.radupana.featherweight.data.ExerciseSwapHistoryDao
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.GlobalExerciseProgressDao
 import com.github.radupana.featherweight.data.ParseRequestDao
 import com.github.radupana.featherweight.data.PersonalRecordDao
+import com.github.radupana.featherweight.data.ProgrammeExerciseTrackingDao
 import com.github.radupana.featherweight.data.SetLogDao
 import com.github.radupana.featherweight.data.WorkoutDao
 import com.github.radupana.featherweight.data.profile.ExerciseMaxTrackingDao
@@ -47,7 +47,7 @@ class AccountDeletionServiceTest {
     private lateinit var oneRMDao: ExerciseMaxTrackingDao
     private lateinit var personalRecordDao: PersonalRecordDao
     private lateinit var exerciseSwapHistoryDao: ExerciseSwapHistoryDao
-    private lateinit var exercisePerformanceTrackingDao: ExercisePerformanceTrackingDao
+    private lateinit var programmeExerciseTrackingDao: ProgrammeExerciseTrackingDao
     private lateinit var globalExerciseProgressDao: GlobalExerciseProgressDao
     private lateinit var parseRequestDao: ParseRequestDao
 
@@ -80,7 +80,7 @@ class AccountDeletionServiceTest {
         oneRMDao = mockk(relaxed = true)
         personalRecordDao = mockk(relaxed = true)
         exerciseSwapHistoryDao = mockk(relaxed = true)
-        exercisePerformanceTrackingDao = mockk(relaxed = true)
+        programmeExerciseTrackingDao = mockk(relaxed = true)
         globalExerciseProgressDao = mockk(relaxed = true)
         parseRequestDao = mockk(relaxed = true)
 
@@ -91,7 +91,7 @@ class AccountDeletionServiceTest {
         every { database.exerciseMaxTrackingDao() } returns oneRMDao
         every { database.personalRecordDao() } returns personalRecordDao
         every { database.exerciseSwapHistoryDao() } returns exerciseSwapHistoryDao
-        every { database.exercisePerformanceTrackingDao() } returns exercisePerformanceTrackingDao
+        every { database.programmeExerciseTrackingDao() } returns programmeExerciseTrackingDao
         every { database.globalExerciseProgressDao() } returns globalExerciseProgressDao
         every { database.parseRequestDao() } returns parseRequestDao
         every { database.exerciseDao() } returns mockk(relaxed = true)
@@ -178,7 +178,7 @@ class AccountDeletionServiceTest {
             coVerify { oneRMDao.deleteAllForUser(userId) }
             coVerify { personalRecordDao.deleteAllForUser(userId) }
             coVerify { exerciseSwapHistoryDao.deleteAllForUser(userId) }
-            coVerify { exercisePerformanceTrackingDao.deleteAllForUser(userId) }
+            coVerify { programmeExerciseTrackingDao.deleteAllForUser(userId) }
             coVerify { globalExerciseProgressDao.deleteAllForUser(userId) }
             coVerify { parseRequestDao.deleteAllForUser(userId) }
             verify { authManager.clearUserData() }

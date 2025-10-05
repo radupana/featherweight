@@ -1,7 +1,7 @@
 package com.github.radupana.featherweight.service
 
-import com.github.radupana.featherweight.data.ExercisePerformanceTracking
-import com.github.radupana.featherweight.data.ExercisePerformanceTrackingDao
+import com.github.radupana.featherweight.data.ProgrammeExerciseTracking
+import com.github.radupana.featherweight.data.ProgrammeExerciseTrackingDao
 import com.github.radupana.featherweight.data.ProgressionAction
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.programme.DeloadRules
@@ -18,7 +18,7 @@ import java.time.LocalDateTime
  * This is programme-agnostic and uses the configured rules from each programme.
  */
 class ProgressionService(
-    private val performanceTrackingDao: ExercisePerformanceTrackingDao,
+    private val performanceTrackingDao: ProgrammeExerciseTrackingDao,
     private val programmeDao: ProgrammeDao,
     private val repository: FeatherweightRepository,
 ) {
@@ -169,7 +169,7 @@ class ProgressionService(
             }
 
         val performanceRecord =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 userId = sets.firstOrNull()?.userId,
                 programmeId = programmeId,
                 exerciseId = exerciseId,
@@ -255,7 +255,7 @@ class ProgressionService(
         exerciseName: String,
         deloadWeight: Float,
         progressionRules: ProgressionRules,
-        recentPerformance: List<ExercisePerformanceTracking>,
+        recentPerformance: List<ProgrammeExerciseTracking>,
     ): ProgressionDecision {
         // Find the weight we deloaded from
         val preDeloadWeight =

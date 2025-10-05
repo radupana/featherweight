@@ -1279,7 +1279,7 @@ class FeatherweightRepository(
     ) = withContext(Dispatchers.IO) {
         val progressionService =
             ProgressionService(
-                performanceTrackingDao = db.exercisePerformanceTrackingDao(),
+                performanceTrackingDao = db.programmeExerciseTrackingDao(),
                 programmeDao = programmeDao,
                 repository = this@FeatherweightRepository,
             )
@@ -1652,7 +1652,7 @@ class FeatherweightRepository(
 
             // 10. Delete ExercisePerformanceTracking - for specific user
             Log.d(TAG, "Deleting ExercisePerformanceTracking for userId: $userId")
-            db.exercisePerformanceTrackingDao().deleteAllByUserId(userId)
+            db.programmeExerciseTrackingDao().deleteAllByUserId(userId)
 
             // 11. Delete ExerciseSwapHistory - for specific user
             Log.d(TAG, "Deleting ExerciseSwapHistory for userId: $userId")

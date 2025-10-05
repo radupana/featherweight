@@ -4,13 +4,13 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import java.time.LocalDateTime
 
-class ExercisePerformanceTrackingTest {
+class ProgrammeExerciseTrackingTest {
     @Test
-    fun exercisePerformanceTracking_creation_withAllFields_createsCorrectly() {
+    fun programmeExerciseTracking_creation_withAllFields_createsCorrectly() {
         val workoutDate = LocalDateTime.of(2024, 1, 15, 10, 30)
 
         val performance =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 id = "1",
                 programmeId = "100",
                 exerciseId = "1",
@@ -26,9 +26,7 @@ class ExercisePerformanceTrackingTest {
                 workoutDate = workoutDate,
                 workoutId = "50",
                 isDeloadWorkout = false,
-                deloadReason = null,
                 averageRpe = 8.5f,
-                notes = "Last set was tough",
             )
 
         assertThat(performance.id).isEqualTo("1")
@@ -45,17 +43,15 @@ class ExercisePerformanceTrackingTest {
         assertThat(performance.workoutDate).isEqualTo(workoutDate)
         assertThat(performance.workoutId).isEqualTo("50")
         assertThat(performance.isDeloadWorkout).isFalse()
-        assertThat(performance.deloadReason).isNull()
         assertThat(performance.averageRpe).isEqualTo(8.5f)
-        assertThat(performance.notes).isEqualTo("Last set was tough")
     }
 
     @Test
-    fun exercisePerformanceTracking_creation_withMinimalFields_usesDefaults() {
+    fun programmeExerciseTracking_creation_withMinimalFields_usesDefaults() {
         val workoutDate = LocalDateTime.now()
 
         val performance =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 programmeId = "50",
                 exerciseId = "2",
                 exerciseName = "Barbell Squat",
@@ -85,15 +81,13 @@ class ExercisePerformanceTrackingTest {
         assertThat(performance.workoutDate).isEqualTo(workoutDate)
         assertThat(performance.workoutId).isEqualTo("25")
         assertThat(performance.isDeloadWorkout).isFalse()
-        assertThat(performance.deloadReason).isNull()
         assertThat(performance.averageRpe).isNull()
-        assertThat(performance.notes).isNull()
     }
 
     @Test
-    fun exercisePerformanceTracking_successfulWorkout_allTargetsMet() {
+    fun programmeExerciseTracking_successfulWorkout_allTargetsMet() {
         val performance =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 programmeId = "10",
                 exerciseId = "3",
                 exerciseName = "Barbell Deadlift",
@@ -116,9 +110,9 @@ class ExercisePerformanceTrackingTest {
     }
 
     @Test
-    fun exercisePerformanceTracking_failedWorkout_missedReps() {
+    fun programmeExerciseTracking_failedWorkout_missedReps() {
         val performance =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 programmeId = "10",
                 exerciseId = "4",
                 exerciseName = "Barbell Overhead Press",
@@ -140,9 +134,9 @@ class ExercisePerformanceTrackingTest {
     }
 
     @Test
-    fun exercisePerformanceTracking_deloadWorkout_tracksCorrectly() {
+    fun programmeExerciseTracking_deloadWorkout_tracksCorrectly() {
         val performance =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 programmeId = "10",
                 exerciseId = "1",
                 exerciseName = "Barbell Bench Press",
@@ -157,18 +151,16 @@ class ExercisePerformanceTrackingTest {
                 workoutDate = LocalDateTime.now(),
                 workoutId = "102",
                 isDeloadWorkout = true,
-                deloadReason = "3 consecutive failures at 100kg",
             )
 
         assertThat(performance.isDeloadWorkout).isTrue()
-        assertThat(performance.deloadReason).isEqualTo("3 consecutive failures at 100kg")
         assertThat(performance.targetWeight).isEqualTo(80f) // Reduced weight
     }
 
     @Test
-    fun exercisePerformanceTracking_withHighRPE_indicatesDifficulty() {
+    fun programmeExerciseTracking_withHighRPE_indicatesDifficulty() {
         val performance =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 programmeId = "10",
                 exerciseId = "5",
                 exerciseName = "Barbell Row",
@@ -191,9 +183,9 @@ class ExercisePerformanceTrackingTest {
     }
 
     @Test
-    fun exercisePerformanceTracking_partialCompletion_tracksIncomplete() {
+    fun programmeExerciseTracking_partialCompletion_tracksIncomplete() {
         val performance =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 programmeId = "10",
                 exerciseId = "6",
                 exerciseName = "Dumbbell Curl",
@@ -207,20 +199,18 @@ class ExercisePerformanceTrackingTest {
                 wasSuccessful = false,
                 workoutDate = LocalDateTime.now(),
                 workoutId = "104",
-                notes = "Had to stop early",
             )
 
         assertThat(performance.completedSets).isLessThan(performance.targetSets)
         assertThat(performance.wasSuccessful).isFalse()
-        assertThat(performance.notes).isEqualTo("Had to stop early")
     }
 
     @Test
-    fun exercisePerformanceTracking_dateTime_maintainsPrecision() {
+    fun programmeExerciseTracking_dateTime_maintainsPrecision() {
         val workoutDate = LocalDateTime.of(2024, 3, 15, 14, 30, 45, 123456789)
 
         val performance =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 programmeId = "10",
                 exerciseId = "2",
                 exerciseName = "Barbell Squat",
@@ -246,40 +236,9 @@ class ExercisePerformanceTrackingTest {
     }
 
     @Test
-    fun exercisePerformanceTracking_withLongNotes_storesCorrectly() {
-        val longNotes =
-            "This was a particularly challenging workout. The first two sets went well, " +
-                "but fatigue set in during the third set. Form started to break down slightly on the " +
-                "last few reps of set 4 and 5. Need to focus on maintaining tight core throughout. " +
-                "Consider reducing weight next session if form continues to deteriorate. Recovery " +
-                "between sets was adequate at 3 minutes. Overall a good effort despite the challenges."
-
+    fun programmeExerciseTracking_withVeryHighWeight_handlesCorrectly() {
         val performance =
-            ExercisePerformanceTracking(
-                programmeId = "10",
-                exerciseId = "3",
-                exerciseName = "Barbell Deadlift",
-                targetWeight = 200f,
-                achievedWeight = 200f,
-                targetSets = 5,
-                completedSets = 5,
-                targetReps = 3,
-                achievedReps = 14,
-                missedReps = 1,
-                wasSuccessful = false,
-                workoutDate = LocalDateTime.now(),
-                workoutId = "106",
-                notes = longNotes,
-            )
-
-        assertThat(performance.notes).isEqualTo(longNotes)
-        assertThat(performance.notes).hasLength(longNotes.length)
-    }
-
-    @Test
-    fun exercisePerformanceTracking_withVeryHighWeight_handlesCorrectly() {
-        val performance =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 programmeId = "10",
                 exerciseId = "2",
                 exerciseName = "Barbell Squat",
@@ -300,11 +259,11 @@ class ExercisePerformanceTrackingTest {
     }
 
     @Test
-    fun exercisePerformanceTracking_equality_basedOnAllFields() {
+    fun programmeExerciseTracking_equality_basedOnAllFields() {
         val date = LocalDateTime.now()
 
         val performance1 =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 id = "1",
                 programmeId = "10",
                 exerciseId = "1",
@@ -322,7 +281,7 @@ class ExercisePerformanceTrackingTest {
             )
 
         val performance2 =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 id = "1",
                 programmeId = "10",
                 exerciseId = "1",
@@ -340,7 +299,7 @@ class ExercisePerformanceTrackingTest {
             )
 
         val performance3 =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 id = "2", // Different ID
                 programmeId = "10",
                 exerciseId = "1",
@@ -363,9 +322,9 @@ class ExercisePerformanceTrackingTest {
     }
 
     @Test
-    fun exercisePerformanceTracking_toString_includesKeyInfo() {
+    fun programmeExerciseTracking_toString_includesKeyInfo() {
         val performance =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 id = "1",
                 programmeId = "10",
                 exerciseId = "2",
@@ -383,16 +342,16 @@ class ExercisePerformanceTrackingTest {
             )
 
         val toString = performance.toString()
-        assertThat(toString).contains("ExercisePerformanceTracking")
+        assertThat(toString).contains("ProgrammeExerciseTracking")
         assertThat(toString).contains("id=1")
         assertThat(toString).contains("exerciseName=Barbell Squat")
         assertThat(toString).contains("targetWeight=140")
     }
 
     @Test
-    fun exercisePerformanceTracking_copy_createsIndependentInstance() {
+    fun programmeExerciseTracking_copy_createsIndependentInstance() {
         val original =
-            ExercisePerformanceTracking(
+            ProgrammeExerciseTracking(
                 programmeId = "10",
                 exerciseId = "1",
                 exerciseName = "Barbell Bench Press",

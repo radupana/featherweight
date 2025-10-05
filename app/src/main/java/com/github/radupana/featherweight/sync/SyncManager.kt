@@ -188,7 +188,7 @@ class SyncManager(
         database.exerciseMaxTrackingDao().deleteAllForUser(userId)
         database.personalRecordDao().deleteAllForUser(userId)
         database.exerciseSwapHistoryDao().deleteAllForUser(userId)
-        database.exercisePerformanceTrackingDao().deleteAllForUser(userId)
+        database.programmeExerciseTrackingDao().deleteAllForUser(userId)
         database.globalExerciseProgressDao().deleteAllForUser(userId)
         database.trainingAnalysisDao().deleteAllByUserId(userId)
         database.parseRequestDao().deleteAllForUser(userId)
@@ -399,9 +399,9 @@ class SyncManager(
     }
 
     private suspend fun uploadExercisePerformanceTracking(userId: String) {
-        val tracking = database.exercisePerformanceTrackingDao().getAllTracking()
+        val tracking = database.programmeExerciseTrackingDao().getAllTracking()
         val userTracking = tracking.filter { it.userId == userId }
-        val firestoreTracking = userTracking.map { SyncConverters.toFirestoreExercisePerformanceTracking(it) }
+        val firestoreTracking = userTracking.map { SyncConverters.toFirestoreProgrammeExerciseTracking(it) }
         firestoreRepository.uploadExercisePerformanceTracking(userId, firestoreTracking).getOrThrow()
     }
 
@@ -717,12 +717,12 @@ class SyncManager(
 
     private suspend fun downloadAndMergeExercisePerformanceTracking(userId: String) {
         val remoteTracking = firestoreRepository.downloadExercisePerformanceTracking(userId).getOrThrow()
-        val localTracking = remoteTracking.map { SyncConverters.fromFirestoreExercisePerformanceTracking(it) }
+        val localTracking = remoteTracking.map { SyncConverters.fromFirestoreProgrammeExerciseTracking(it) }
 
         localTracking.forEach { tracking ->
-            val existing = database.exercisePerformanceTrackingDao().getTrackingById(tracking.id)
+            val existing = database.programmeExerciseTrackingDao().getTrackingById(tracking.id)
             if (existing == null) {
-                database.exercisePerformanceTrackingDao().insertTracking(tracking)
+                database.programmeExerciseTrackingDao().insertTracking(tracking)
             }
         }
     }

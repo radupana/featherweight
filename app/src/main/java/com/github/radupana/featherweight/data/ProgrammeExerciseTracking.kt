@@ -10,7 +10,7 @@ import java.time.LocalDateTime
  * This is used for intelligent progression decisions including deloads.
  */
 @Entity(
-    tableName = "exercise_performance_tracking",
+    tableName = "programme_exercise_tracking",
     indices = [
         androidx.room.Index("userId"),
         androidx.room.Index("exerciseId"),
@@ -24,7 +24,7 @@ import java.time.LocalDateTime
         ),
     ],
 )
-data class ExercisePerformanceTracking(
+data class ProgrammeExerciseTracking(
     @PrimaryKey
     val id: String = IdGenerator.generateId(),
     val userId: String? = null,
@@ -42,9 +42,7 @@ data class ExercisePerformanceTracking(
     val workoutDate: LocalDateTime,
     val workoutId: String,
     val isDeloadWorkout: Boolean = false,
-    val deloadReason: String? = null,
     val averageRpe: Float? = null,
-    val notes: String? = null,
 )
 
 /**
