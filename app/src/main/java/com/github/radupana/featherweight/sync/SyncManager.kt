@@ -226,7 +226,6 @@ class SyncManager(
             uploadProgrammeProgress(userId)
 
             uploadUserExerciseMaxes(userId)
-            // uploadOneRMHistory(userId) - Removed: redundant with uploadUserExerciseMaxes
             uploadPersonalRecords(userId)
 
             uploadExerciseSwapHistory(userId)
@@ -376,14 +375,6 @@ class SyncManager(
         firestoreRepository.uploadUserExerciseMaxes(userId, firestoreMaxes).getOrThrow()
     }
 
-    // Removed: uploadOneRMHistory is redundant with uploadUserExerciseMaxes
-    // Both were uploading the same data from exerciseMaxTrackingDao to different collections
-    // private suspend fun uploadOneRMHistory(userId: String) {
-    //     val allTracking = database.exerciseMaxTrackingDao().getAllForUser(userId)
-    //     val firestoreHistory = allTracking.map { SyncConverters.toFirestoreOneRMHistory(it) }
-    //     firestoreRepository.uploadOneRMHistory(userId, firestoreHistory).getOrThrow()
-    // }
-
     private suspend fun uploadPersonalRecords(userId: String) {
         val records = database.personalRecordDao().getAllPersonalRecords()
         val userRecords = records.filter { it.userId == userId }
@@ -472,7 +463,6 @@ class SyncManager(
             Log.d("SyncManager", "Downloading user exercise maxes...")
             downloadAndMergeUserExerciseMaxes(userId)
             // Log.d("SyncManager", "Downloading OneRM history...")
-            // downloadAndMergeOneRMHistory(userId) - Removed: redundant with downloadAndMergeUserExerciseMaxes
             Log.d("SyncManager", "Downloading personal records...")
             downloadAndMergePersonalRecords(userId)
 
@@ -654,20 +644,6 @@ class SyncManager(
             }
         }
     }
-
-    // Removed: downloadAndMergeOneRMHistory is redundant with downloadAndMergeUserExerciseMaxes
-    // This was causing data corruption by overwriting mostWeightLifted with oneRMEstimate
-    // private suspend fun downloadAndMergeOneRMHistory(userId: String) {
-    //     val remoteHistory = firestoreRepository.downloadOneRMHistory(userId).getOrThrow()
-    //     val localHistory = remoteHistory.map { SyncConverters.fromFirestoreOneRMHistory(it) }
-    //
-    //     localHistory.forEach { history ->
-    //         val existing = database.exerciseMaxTrackingDao().getById(history.id)
-    //         if (existing == null) {
-    //             database.exerciseMaxTrackingDao().insert(history)
-    //         }
-    //     }
-    // }
 
     private suspend fun downloadAndMergePersonalRecords(userId: String) {
         val remoteRecords = firestoreRepository.downloadPersonalRecords(userId).getOrThrow()
@@ -864,7 +840,6 @@ class SyncManager(
 
             // User stats
             downloadAndMergeUserExerciseMaxes(userId)
-            // downloadAndMergeOneRMHistory(userId) - Removed: redundant with downloadAndMergeUserExerciseMaxes
             downloadAndMergePersonalRecords(userId)
 
             // Tracking data
@@ -900,7 +875,6 @@ class SyncManager(
 
             // User stats
             uploadUserExerciseMaxes(userId)
-            // uploadOneRMHistory(userId) - Removed: redundant with uploadUserExerciseMaxes
             uploadPersonalRecords(userId)
 
             // Tracking data

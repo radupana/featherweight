@@ -5,7 +5,6 @@ import com.github.radupana.featherweight.sync.models.FirestoreExercise
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseLog
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseSwapHistory
 import com.github.radupana.featherweight.sync.models.FirestoreGlobalExerciseProgress
-import com.github.radupana.featherweight.sync.models.FirestoreOneRMHistory
 import com.github.radupana.featherweight.sync.models.FirestoreParseRequest
 import com.github.radupana.featherweight.sync.models.FirestorePersonalRecord
 import com.github.radupana.featherweight.sync.models.FirestoreProgramme
@@ -66,7 +65,6 @@ class FirestoreRepository(
 
         // User profile/stats collections
         private const val USER_EXERCISE_MAXES_COLLECTION = "userExerciseMaxes"
-        private const val ONE_RM_HISTORY_COLLECTION = "oneRMHistory"
         private const val PERSONAL_RECORDS_COLLECTION = "personalRecords"
 
         // Tracking/analysis collections
@@ -395,11 +393,6 @@ class FirestoreRepository(
         maxes: List<FirestoreUserExerciseMax>,
     ): Result<Unit> = uploadBatchedData(userDocument(userId).collection(USER_EXERCISE_MAXES_COLLECTION), maxes)
 
-    suspend fun uploadOneRMHistory(
-        userId: String,
-        history: List<FirestoreOneRMHistory>,
-    ): Result<Unit> = uploadBatchedData(userDocument(userId).collection(ONE_RM_HISTORY_COLLECTION), history)
-
     suspend fun uploadPersonalRecords(
         userId: String,
         records: List<FirestorePersonalRecord>,
@@ -696,8 +689,6 @@ class FirestoreRepository(
     suspend fun downloadProgrammeProgress(userId: String): Result<List<FirestoreProgrammeProgress>> = downloadBatchedData(userDocument(userId).collection(PROGRAMME_PROGRESS_COLLECTION))
 
     suspend fun downloadUserExerciseMaxes(userId: String): Result<List<FirestoreUserExerciseMax>> = downloadBatchedData(userDocument(userId).collection(USER_EXERCISE_MAXES_COLLECTION))
-
-    suspend fun downloadOneRMHistory(userId: String): Result<List<FirestoreOneRMHistory>> = downloadBatchedData(userDocument(userId).collection(ONE_RM_HISTORY_COLLECTION))
 
     suspend fun downloadPersonalRecords(userId: String): Result<List<FirestorePersonalRecord>> = downloadBatchedData(userDocument(userId).collection(PERSONAL_RECORDS_COLLECTION))
 

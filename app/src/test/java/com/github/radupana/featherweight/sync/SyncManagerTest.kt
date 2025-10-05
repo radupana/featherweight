@@ -187,7 +187,6 @@ class SyncManagerTest {
         // Note: uploadExerciseSubstitutions() method doesn't exist in FirestoreRepository
         coEvery { firestoreRepository.uploadProgrammeProgress(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadUserExerciseMaxes(any(), any()) } returns Result.success(Unit)
-        coEvery { firestoreRepository.uploadOneRMHistory(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadPersonalRecords(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadExerciseSwapHistory(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadExercisePerformanceTracking(any(), any()) } returns Result.success(Unit)
@@ -215,7 +214,6 @@ class SyncManagerTest {
         // Note: downloadExerciseSubstitutions() method doesn't exist in FirestoreRepository
         coEvery { firestoreRepository.downloadProgrammeProgress(any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadUserExerciseMaxes(any()) } returns Result.success(emptyList())
-        coEvery { firestoreRepository.downloadOneRMHistory(any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadPersonalRecords(any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadExerciseSwapHistory(any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadExercisePerformanceTracking(any()) } returns Result.success(emptyList())
@@ -368,7 +366,6 @@ class SyncManagerTest {
             // Note: uploadExerciseSubstitutions() method doesn't exist in FirestoreRepository
             coEvery { firestoreRepository.uploadProgrammeProgress(any(), any()) } returns Result.success(Unit)
             coEvery { firestoreRepository.uploadUserExerciseMaxes(any(), any()) } returns Result.success(Unit)
-            coEvery { firestoreRepository.uploadOneRMHistory(any(), any()) } returns Result.success(Unit)
             coEvery { firestoreRepository.uploadPersonalRecords(any(), any()) } returns Result.success(Unit)
             coEvery { firestoreRepository.uploadExerciseSwapHistory(any(), any()) } returns Result.success(Unit)
             coEvery { firestoreRepository.uploadExercisePerformanceTracking(any(), any()) } returns Result.success(Unit)
@@ -497,7 +494,6 @@ class SyncManagerTest {
             // Note: downloadExerciseSubstitutions() method doesn't exist in FirestoreRepository
             coEvery { firestoreRepository.downloadProgrammeProgress(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadUserExerciseMaxes(any()) } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadOneRMHistory(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadPersonalRecords(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExerciseSwapHistory(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExercisePerformanceTracking(any()) } returns Result.success(emptyList())
@@ -662,7 +658,6 @@ class SyncManagerTest {
             // Note: downloadExerciseSubstitutions() method doesn't exist in FirestoreRepository
             coEvery { firestoreRepository.downloadProgrammeProgress(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadUserExerciseMaxes(any()) } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadOneRMHistory(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadPersonalRecords(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExerciseSwapHistory(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExercisePerformanceTracking(any()) } returns Result.success(emptyList())
@@ -749,7 +744,6 @@ class SyncManagerTest {
             coEvery { firestoreRepository.downloadProgrammeWorkouts(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadProgrammeProgress(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadUserExerciseMaxes(any()) } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadOneRMHistory(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadPersonalRecords(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExerciseSwapHistory(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExercisePerformanceTracking(any()) } returns Result.success(emptyList())
@@ -838,7 +832,6 @@ class SyncManagerTest {
             coEvery { firestoreRepository.downloadProgrammeWorkouts(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadProgrammeProgress(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadUserExerciseMaxes(any()) } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadOneRMHistory(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadPersonalRecords(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExerciseSwapHistory(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExercisePerformanceTracking(any()) } returns Result.success(emptyList())

@@ -36,7 +36,6 @@ import com.github.radupana.featherweight.sync.models.FirestoreExerciseSwapHistor
 import com.github.radupana.featherweight.sync.models.FirestoreGlobalExerciseProgress
 import com.github.radupana.featherweight.sync.models.FirestoreInstruction
 import com.github.radupana.featherweight.sync.models.FirestoreMuscle
-import com.github.radupana.featherweight.sync.models.FirestoreOneRMHistory
 import com.github.radupana.featherweight.sync.models.FirestoreParseRequest
 import com.github.radupana.featherweight.sync.models.FirestorePersonalRecord
 import com.github.radupana.featherweight.sync.models.FirestoreProgramme
@@ -459,17 +458,6 @@ object SyncConverters {
             oneRMType = OneRMType.valueOf(firestoreMax.oneRMType),
             notes = firestoreMax.notes,
             sourceSetId = firestoreMax.sourceSetId,
-        )
-
-    fun toFirestoreOneRMHistory(tracking: ExerciseMaxTracking): FirestoreOneRMHistory =
-        FirestoreOneRMHistory(
-            id = tracking.id,
-            localId = tracking.id,
-            userId = tracking.userId,
-            exerciseId = tracking.exerciseId,
-            oneRMEstimate = tracking.oneRMEstimate,
-            context = tracking.context,
-            recordedAt = localDateTimeToTimestamp(tracking.recordedAt),
         )
 
     fun toFirestorePersonalRecord(record: PersonalRecord): FirestorePersonalRecord =

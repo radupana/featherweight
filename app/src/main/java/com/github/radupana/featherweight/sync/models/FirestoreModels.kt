@@ -142,17 +142,6 @@ data class FirestoreUserExerciseMax(
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
 
-data class FirestoreOneRMHistory(
-    @DocumentId val id: String = "",
-    val localId: String = "",
-    val userId: String? = null,
-    val exerciseId: String = "",
-    val oneRMEstimate: Float = 0f,
-    val context: String = "",
-    val recordedAt: Timestamp = Timestamp.now(),
-    @ServerTimestamp val lastModified: Timestamp? = null,
-)
-
 data class FirestorePersonalRecord(
     @DocumentId val id: String = "",
     val localId: String = "",

@@ -34,12 +34,9 @@ class LocalDataMigrationService(
                     migrateExerciseLogs(targetUserId)
                     migrateSetLogs(targetUserId)
                     migratePersonalRecords(targetUserId)
-                    migrateOneRMData(targetUserId)
                     migrateGlobalExerciseProgress(targetUserId)
                     migrateUserExerciseUsage(targetUserId)
                     migrateCustomExercises(targetUserId)
-                    migrateUserExerciseMax(targetUserId)
-                    migrateOneRMHistory(targetUserId)
                     migrateProgrammes(targetUserId)
                     migrateOtherTables(targetUserId)
                 }
@@ -106,19 +103,6 @@ class LocalDataMigrationService(
         Log.d(TAG, "Migrated $count personal records")
     }
 
-    private fun migrateOneRMData(targetUserId: String) {
-        val count =
-            database
-                .compileStatement(
-                    "UPDATE user_exercise_maxes SET userId = ? WHERE userId = ?",
-                ).use { statement ->
-                    statement.bindString(1, targetUserId)
-                    statement.bindString(2, LOCAL_USER_ID)
-                    statement.executeUpdateDelete()
-                }
-        Log.d(TAG, "Migrated $count one RM records")
-    }
-
     private fun migrateGlobalExerciseProgress(targetUserId: String) {
         val count =
             database
@@ -168,32 +152,6 @@ class LocalDataMigrationService(
                 }
 
         Log.d(TAG, "Migrated $coreCount custom exercise cores and $variationCount variations")
-    }
-
-    private fun migrateUserExerciseMax(targetUserId: String) {
-        val count =
-            database
-                .compileStatement(
-                    "UPDATE user_exercise_maxes SET userId = ? WHERE userId = ?",
-                ).use { statement ->
-                    statement.bindString(1, targetUserId)
-                    statement.bindString(2, LOCAL_USER_ID)
-                    statement.executeUpdateDelete()
-                }
-        Log.d(TAG, "Migrated $count user exercise max records")
-    }
-
-    private fun migrateOneRMHistory(targetUserId: String) {
-        val count =
-            database
-                .compileStatement(
-                    "UPDATE one_rm_history SET userId = ? WHERE userId = ?",
-                ).use { statement ->
-                    statement.bindString(1, targetUserId)
-                    statement.bindString(2, LOCAL_USER_ID)
-                    statement.executeUpdateDelete()
-                }
-        Log.d(TAG, "Migrated $count one RM history records")
     }
 
     private fun migrateProgrammes(targetUserId: String) {
@@ -337,10 +295,6 @@ class LocalDataMigrationService(
                         it.bindString(1, LOCAL_USER_ID)
                         it.executeUpdateDelete()
                     }
-                    database.compileStatement("DELETE FROM user_exercise_maxes WHERE userId = ?").use {
-                        it.bindString(1, LOCAL_USER_ID)
-                        it.executeUpdateDelete()
-                    }
                     database.compileStatement("DELETE FROM global_exercise_progress WHERE userId = ?").use {
                         it.bindString(1, LOCAL_USER_ID)
                         it.executeUpdateDelete()
@@ -355,14 +309,6 @@ class LocalDataMigrationService(
                         it.executeUpdateDelete()
                     }
                     database.compileStatement("DELETE FROM exercise_variations WHERE userId = ?").use {
-                        it.bindString(1, LOCAL_USER_ID)
-                        it.executeUpdateDelete()
-                    }
-                    database.compileStatement("DELETE FROM user_exercise_maxes WHERE userId = ?").use {
-                        it.bindString(1, LOCAL_USER_ID)
-                        it.executeUpdateDelete()
-                    }
-                    database.compileStatement("DELETE FROM one_rm_history WHERE userId = ?").use {
                         it.bindString(1, LOCAL_USER_ID)
                         it.executeUpdateDelete()
                     }
