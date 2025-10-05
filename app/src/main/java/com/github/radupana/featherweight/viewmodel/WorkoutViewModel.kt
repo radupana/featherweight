@@ -19,6 +19,7 @@ import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
+import com.github.radupana.featherweight.service.BatchCompletionService
 import com.github.radupana.featherweight.service.OneRMService
 import com.github.radupana.featherweight.service.RestTimerCalculationService
 import com.github.radupana.featherweight.service.RestTimerNotificationService
@@ -92,6 +93,7 @@ class WorkoutViewModel(
     private val oneRMService = OneRMService()
     private val restTimerCalculationService = RestTimerCalculationService()
     private val restTimerNotificationService = RestTimerNotificationService(application)
+    private val batchCompletionService = BatchCompletionService()
 
     companion object {
         private const val TAG = "WorkoutViewModel"
@@ -1313,6 +1315,148 @@ class WorkoutViewModel(
         loadInProgressWorkouts()
     }
 
+    /**
+     * Completes multiple sets in a batch, checking for PRs once at the end
+     */
+    private suspend fun completeSetsInBatch(
+        setsToComplete: List<SetLog>,
+    ) {
+        if (setsToComplete.isEmpty()) return
+
+        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        val completedSetIds = mutableListOf<String>()
+
+        // Step 1: Update all sets in local state and database
+        for (set in setsToComplete) {
+            // Validate
+            if (!validateSetCompletion(set.id, true)) continue
+
+            // Update local state
+            updateSetState(set.id, true, timestamp)
+
+            // Persist to database
+            repository.markSetCompleted(set.id, true, timestamp)
+
+            completedSetIds.add(set.id)
+        }
+
+        if (completedSetIds.isEmpty()) return
+
+        // Step 2: Update workout status once
+        updateWorkoutStatusIfNeeded(completedSetIds.first(), true)
+
+        // Step 3: Start timers once (use the last set's RPE for rest timer)
+        val lastCompletedSet = setsToComplete.lastOrNull()
+        if (lastCompletedSet != null) {
+            val exerciseLog = _selectedWorkoutExercises.value.find { it.id == lastCompletedSet.exerciseLogId }
+            val exerciseVariation = exerciseLog?.exerciseId?.let { repository.getExerciseById(it) }
+
+            val restDuration =
+                restTimerCalculationService.calculateRestDuration(
+                    rpe = lastCompletedSet.actualRpe,
+                    exerciseRestDuration = exerciseVariation?.restDurationSeconds,
+                )
+
+            Log.d(TAG, "Rest timer calculated for batch: ${restDuration}s (RPE: ${lastCompletedSet.actualRpe})")
+            startRestTimer(restDuration)
+
+            if (workoutTimerStartTime == null) {
+                startWorkoutTimer()
+            }
+        }
+
+        // Step 4: Group sets by exercise for batch 1RM processing
+        val completedSets =
+            completedSetIds.mapNotNull { setId ->
+                _selectedExerciseSets.value.find { it.id == setId }
+            }
+
+        // Group sets by exercise using the batch service
+        val setsByExercise =
+            batchCompletionService.groupSetsByExercise(completedSets) { set ->
+                _selectedWorkoutExercises.value.find { it.id == set.exerciseLogId }?.exerciseId
+            }
+
+        // Step 5: Process 1RM updates - one per exercise with the best set
+        for ((exerciseId, exerciseSets) in setsByExercise) {
+            // Get exercise variation to determine scaling type for this exercise
+            val exerciseVariation = repository.getExerciseById(exerciseId)
+            val scalingType = exerciseVariation?.rmScalingType?.toRMScalingType() ?: RMScalingType.STANDARD
+
+            // Find the best set for 1RM update
+            val bestSet =
+                batchCompletionService.findBestSetForOneRM(exerciseSets) { set ->
+                    // Calculate estimated 1RM for this set
+                    oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps, set.actualRpe, scalingType)
+                }
+
+            // Update 1RM with the best set only
+            if (bestSet != null) {
+                checkAndUpdateOneRM(bestSet)
+            }
+        }
+
+        // Step 6: Check for PRs for each completed set
+        val allPRs = mutableListOf<PersonalRecord>()
+        val exerciseIds = mutableSetOf<String>()
+
+        for (setId in completedSetIds) {
+            val completedSet = _selectedExerciseSets.value.find { it.id == setId } ?: continue
+            val exerciseLog = _selectedWorkoutExercises.value.find { it.id == completedSet.exerciseLogId } ?: continue
+
+            exerciseIds.add(exerciseLog.exerciseId)
+
+            // Collect PRs
+            val setPRs = repository.checkForPR(completedSet, exerciseLog.exerciseId)
+            allPRs.addAll(setPRs)
+        }
+
+        // Step 7: Show PR celebration once with all PRs
+        if (allPRs.isNotEmpty()) {
+            // Ensure exercise names are available
+            for (exerciseId in exerciseIds) {
+                val exerciseName = repository.getExerciseById(exerciseId)?.name
+                if (exerciseName != null) {
+                    val key = getExerciseNameKey(exerciseId)
+                    Log.d(TAG, "Adding exercise name for batch PR: $key -> $exerciseName")
+                    _exerciseNames.value = _exerciseNames.value + (key to exerciseName)
+                }
+            }
+
+            // Use the service to filter and keep only the best PR per exercise
+            val bestPRsByExercise = batchCompletionService.filterBestPRsPerExercise(allPRs)
+
+            Log.d(TAG, "Batch completion found ${allPRs.size} PRs, showing ${bestPRsByExercise.size} best PRs")
+
+            _workoutState.value =
+                _workoutState.value.copy(
+                    pendingPRs = _workoutState.value.pendingPRs + bestPRsByExercise,
+                    shouldShowPRCelebration = true,
+                )
+        }
+
+        // Step 6: Update 1RM estimates
+        for (setId in completedSetIds) {
+            val completedSet = _selectedExerciseSets.value.find { it.id == setId } ?: continue
+            val exerciseLog = _selectedWorkoutExercises.value.find { it.id == completedSet.exerciseLogId } ?: continue
+
+            val exerciseVariation = repository.getExerciseById(exerciseLog.exerciseId)
+            val scalingType = exerciseVariation?.rmScalingType?.toRMScalingType() ?: RMScalingType.STANDARD
+
+            val newEstimate =
+                oneRMService.calculateEstimated1RM(
+                    completedSet.actualWeight,
+                    completedSet.actualReps,
+                    completedSet.actualRpe,
+                    scalingType,
+                )
+
+            if (newEstimate != null) {
+                _oneRMEstimates.value = _oneRMEstimates.value + (exerciseLog.exerciseId to newEstimate)
+            }
+        }
+    }
+
     private fun validateSetCompletion(
         setId: String,
         completed: Boolean,
@@ -1538,17 +1682,15 @@ class WorkoutViewModel(
                     canMarkSetCompleteInternal(set) && !set.isCompleted
                 }
 
-            // Complete each set sequentially to avoid race conditions
-            setsToComplete.forEach { set ->
-                completeSetInternal(set.id, true)
-            }
+            if (setsToComplete.isEmpty()) return@launch
+
+            // Batch complete all sets
+            completeSetsInBatch(setsToComplete)
 
             // Auto-collapse the exercise after completing all sets
-            if (setsToComplete.isNotEmpty()) {
-                val currentExpanded = _expandedExerciseIds.value.toMutableSet()
-                currentExpanded.remove(exerciseLogId)
-                _expandedExerciseIds.value = currentExpanded
-            }
+            val currentExpanded = _expandedExerciseIds.value.toMutableSet()
+            currentExpanded.remove(exerciseLogId)
+            _expandedExerciseIds.value = currentExpanded
 
             loadAllSetsForCurrentExercises()
             loadInProgressWorkouts()
@@ -1563,11 +1705,10 @@ class WorkoutViewModel(
                     canMarkSetCompleteInternal(set) && !set.isCompleted
                 }
 
-            // Complete each set sequentially to avoid race conditions
-            setsToComplete.forEach { set ->
-                // Use the internal completion logic without launching new coroutines
-                completeSetInternal(set.id, true)
-            }
+            if (setsToComplete.isEmpty()) return@launch
+
+            // Batch complete all sets
+            completeSetsInBatch(setsToComplete)
 
             loadAllSetsForCurrentExercises()
             loadInProgressWorkouts()
