@@ -158,31 +158,20 @@ class ExerciseSelectorViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Load system exercises
-                val systemVariations =
+                val allExercises =
                     if (category != null) {
                         repository.getExercisesByCategory(category)
                     } else {
                         repository.getAllExercises()
                     }
 
-                // Load system exercises with full muscle data
-                val systemExercises =
-                    systemVariations.map { variation ->
-                        loadExerciseWithDetails(variation)
+                // Load exercises with full muscle data
+                val exercises =
+                    allExercises.map { exercise ->
+                        loadExerciseWithDetails(exercise)
                     }
 
-                // Load custom exercises (now returns Exercise)
-                val customVariations = repository.getCustomExercises()
-                val customExercises =
-                    customVariations
-                        .filter { custom -> category == null || custom.name.contains(category.displayName, ignoreCase = true) }
-                        .map { custom ->
-                            loadExerciseWithDetails(custom)
-                        }
-
-                // Combine system and custom exercises
-                allExercisesCache.value = systemExercises + customExercises
+                allExercisesCache.value = exercises
             } catch (e: android.database.sqlite.SQLiteException) {
                 _errorMessage.value = "Database error loading exercises: ${e.message}"
             } catch (e: IllegalStateException) {

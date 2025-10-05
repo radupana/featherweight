@@ -177,7 +177,7 @@ class ExerciseSelectorViewModelTest {
             val customExercise = createCustomExercise(id = "100", name = "Cable Fly")
             val usageStats = createUsageStats("100", 7)
 
-            coEvery { mockRepository.getCustomExercises() } returns listOf(customExercise)
+            coEvery { mockRepository.getAllExercises() } returns listOf(customExercise)
             coEvery { mockRepository.getCurrentUserId() } returns null
             coEvery { mockRepository.getUserExerciseUsage("local", "100") } returns usageStats
 
@@ -214,6 +214,35 @@ class ExerciseSelectorViewModelTest {
             val exercises = viewModel.filteredExercises.first()
             assertThat(exercises).hasSize(1)
             assertThat(exercises[0].usageCount).isEqualTo(0)
+        }
+
+    @Test
+    fun `getAllExercises returns both system and custom exercises without duplicates`() =
+        runTest {
+            // Arrange
+            val systemExercise = createTestExercise(id = "1", name = "Barbell Squat")
+            val customExercise = createCustomExercise(id = "2", name = "Radu Bench")
+
+            // getAllExercises should return BOTH system and custom exercises
+            coEvery { mockRepository.getAllExercises() } returns listOf(systemExercise, customExercise)
+            coEvery { mockRepository.getCustomExercises() } returns listOf(customExercise)
+            coEvery { mockRepository.getCurrentUserId() } returns null
+
+            // Act
+            viewModel = ExerciseSelectorViewModel(application, mockRepository, mockNamingService)
+            viewModel.loadExercises()
+            advanceUntilIdle()
+
+            // Assert - Should have exactly 2 exercises, no duplicates
+            val exercises = viewModel.filteredExercises.first()
+            assertThat(exercises).hasSize(2)
+
+            val exerciseIds = exercises.map { it.variation.id }
+            assertThat(exerciseIds).containsExactly("1", "2")
+
+            // Verify custom exercise appears only once
+            val customExerciseMatches = exercises.filter { it.variation.name == "Radu Bench" }
+            assertThat(customExerciseMatches).hasSize(1)
         }
 
     // Helper functions
