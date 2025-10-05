@@ -33,7 +33,7 @@ class FreestyleIntelligenceServiceTest {
             // When
             val result =
                 service.getIntelligentSuggestions(
-                    exerciseVariationId = "100",
+                    exerciseId = "100",
                     targetReps = 8,
                 )
 
@@ -62,7 +62,7 @@ class FreestyleIntelligenceServiceTest {
             // When
             val result =
                 service.getIntelligentSuggestions(
-                    exerciseVariationId = "100",
+                    exerciseId = "100",
                     targetReps = 5,
                 )
 
@@ -90,7 +90,7 @@ class FreestyleIntelligenceServiceTest {
             // When
             val result =
                 service.getIntelligentSuggestions(
-                    exerciseVariationId = "100",
+                    exerciseId = "100",
                     targetReps = 5,
                 )
 
@@ -114,7 +114,7 @@ class FreestyleIntelligenceServiceTest {
             // When
             val result =
                 service.getIntelligentSuggestions(
-                    exerciseVariationId = "100",
+                    exerciseId = "100",
                     targetReps = 5,
                 )
 
@@ -141,7 +141,7 @@ class FreestyleIntelligenceServiceTest {
             // When
             val result =
                 service.getIntelligentSuggestions(
-                    exerciseVariationId = "100",
+                    exerciseId = "100",
                     targetReps = 5,
                 )
 
@@ -180,7 +180,7 @@ class FreestyleIntelligenceServiceTest {
             // When
             val result =
                 service.getIntelligentSuggestions(
-                    exerciseVariationId = "100",
+                    exerciseId = "100",
                     targetReps = 5,
                 )
 
@@ -206,7 +206,7 @@ class FreestyleIntelligenceServiceTest {
             // When
             val result =
                 service.getIntelligentSuggestions(
-                    exerciseVariationId = "100",
+                    exerciseId = "100",
                     targetReps = 5,
                 )
 
@@ -231,7 +231,7 @@ class FreestyleIntelligenceServiceTest {
             // When
             val result =
                 service.getIntelligentSuggestions(
-                    exerciseVariationId = "100",
+                    exerciseId = "100",
                     targetReps = 5,
                 )
 
@@ -257,7 +257,7 @@ class FreestyleIntelligenceServiceTest {
             // When
             val result =
                 service.getIntelligentSuggestions(
-                    exerciseVariationId = "100",
+                    exerciseId = "100",
                     targetReps = 5,
                 )
 
@@ -283,7 +283,7 @@ class FreestyleIntelligenceServiceTest {
             // When
             val result =
                 service.getIntelligentSuggestions(
-                    exerciseVariationId = "100",
+                    exerciseId = "100",
                     targetReps = 5,
                 )
 
@@ -303,7 +303,7 @@ class FreestyleIntelligenceServiceTest {
             // When
             val result =
                 service.getIntelligentSuggestions(
-                    exerciseVariationId = "100",
+                    exerciseId = "100",
                     targetReps = null,
                 )
 
@@ -326,7 +326,7 @@ class FreestyleIntelligenceServiceTest {
             // When
             val result =
                 service.getIntelligentSuggestions(
-                    exerciseVariationId = "100",
+                    exerciseId = "100",
                     targetReps = 5,
                 )
 
@@ -360,7 +360,7 @@ class FreestyleIntelligenceServiceTest {
             // When
             val result =
                 service.getIntelligentSuggestions(
-                    exerciseVariationId = "100",
+                    exerciseId = "100",
                     targetReps = 5,
                 )
 
@@ -392,7 +392,7 @@ class FreestyleIntelligenceServiceTest {
             val results =
                 service
                     .getSuggestionsForReps(
-                        exerciseVariationId = "100",
+                        exerciseId = "100",
                         repsFlow = repsFlow,
                     ).toList()
 
@@ -533,7 +533,7 @@ class FreestyleIntelligenceServiceTest {
         sessionsTracked: Int = 10,
     ) = GlobalExerciseProgress(
         id = "1",
-        exerciseVariationId = "100",
+        exerciseId = "100",
         currentWorkingWeight = currentWeight,
         estimatedMax = estimatedMax,
         recentAvgRpe = avgRpe,

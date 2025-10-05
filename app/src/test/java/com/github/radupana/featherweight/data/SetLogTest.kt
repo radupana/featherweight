@@ -23,11 +23,6 @@ class SetLogTest {
         assertThat(setLog.actualReps).isEqualTo(0)
         assertThat(setLog.actualWeight).isEqualTo(0f)
         assertThat(setLog.actualRpe).isNull()
-        assertThat(setLog.suggestedWeight).isNull()
-        assertThat(setLog.suggestedReps).isNull()
-        assertThat(setLog.suggestionSource).isNull()
-        assertThat(setLog.suggestionConfidence).isNull()
-        assertThat(setLog.calculationDetails).isNull()
         assertThat(setLog.tag).isNull()
         assertThat(setLog.notes).isNull()
         assertThat(setLog.isCompleted).isFalse()
@@ -38,8 +33,6 @@ class SetLogTest {
     fun setLog_withAllValues_storesCorrectly() {
         // Arrange
         val timestamp = "2024-01-15T10:30:00"
-        val suggestionJson = """{"source": "previous_performance"}"""
-        val calculationJson = """{"formula": "brzycki", "estimated_1rm": 100}"""
 
         // Act
         val setLog =
@@ -53,11 +46,6 @@ class SetLogTest {
                 actualReps = 8,
                 actualWeight = 85f,
                 actualRpe = 8.5f,
-                suggestedWeight = 82.5f,
-                suggestedReps = 9,
-                suggestionSource = suggestionJson,
-                suggestionConfidence = 0.85f,
-                calculationDetails = calculationJson,
                 tag = "warmup",
                 notes = "Felt strong today",
                 isCompleted = true,
@@ -74,11 +62,6 @@ class SetLogTest {
         assertThat(setLog.actualReps).isEqualTo(8)
         assertThat(setLog.actualWeight).isEqualTo(85f)
         assertThat(setLog.actualRpe).isEqualTo(8.5f)
-        assertThat(setLog.suggestedWeight).isEqualTo(82.5f)
-        assertThat(setLog.suggestedReps).isEqualTo(9)
-        assertThat(setLog.suggestionSource).isEqualTo(suggestionJson)
-        assertThat(setLog.suggestionConfidence).isEqualTo(0.85f)
-        assertThat(setLog.calculationDetails).isEqualTo(calculationJson)
         assertThat(setLog.tag).isEqualTo("warmup")
         assertThat(setLog.notes).isEqualTo("Felt strong today")
         assertThat(setLog.isCompleted).isTrue()
@@ -149,36 +132,6 @@ class SetLogTest {
 
         // Assert
         assertThat(setLog.actualRpe).isEqualTo(7.5f)
-    }
-
-    @Test
-    fun setLog_withHighConfidenceSuggestion_isValid() {
-        // Act
-        val setLog =
-            SetLog(
-                exerciseLogId = "10",
-                setOrder = 1,
-                suggestedWeight = 100f,
-                suggestionConfidence = 1.0f, // Maximum confidence
-            )
-
-        // Assert
-        assertThat(setLog.suggestionConfidence).isEqualTo(1.0f)
-    }
-
-    @Test
-    fun setLog_withLowConfidenceSuggestion_isValid() {
-        // Act
-        val setLog =
-            SetLog(
-                exerciseLogId = "10",
-                setOrder = 1,
-                suggestedWeight = 100f,
-                suggestionConfidence = 0.0f, // Minimum confidence
-            )
-
-        // Assert
-        assertThat(setLog.suggestionConfidence).isEqualTo(0.0f)
     }
 
     @Test
@@ -267,39 +220,6 @@ class SetLogTest {
 
         // Assert
         assertThat(setLog.tag).isEqualTo("dropset")
-    }
-
-    @Test
-    fun setLog_withComplexCalculationDetails_storesJson() {
-        // Arrange
-        val complexJson =
-            """
-            {
-                "formula": "brzycki",
-                "estimated_1rm": 120.5,
-                "percentage_used": 85,
-                "previous_sets": [
-                    {"weight": 100, "reps": 8},
-                    {"weight": 105, "reps": 6}
-                ],
-                "confidence_factors": {
-                    "recent_performance": 0.8,
-                    "exercise_familiarity": 0.9,
-                    "recovery_status": 0.7
-                }
-            }
-            """.trimIndent()
-
-        // Act
-        val setLog =
-            SetLog(
-                exerciseLogId = "10",
-                setOrder = 1,
-                calculationDetails = complexJson,
-            )
-
-        // Assert
-        assertThat(setLog.calculationDetails).isEqualTo(complexJson)
     }
 
     @Test

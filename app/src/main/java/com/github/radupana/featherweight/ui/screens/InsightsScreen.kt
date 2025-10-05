@@ -99,7 +99,7 @@ fun InsightsScreen(
             val prExerciseNamesMap =
                 remember(recentPRs, exerciseNames) {
                     recentPRs.take(3).associateWith { pr ->
-                        exerciseNames[pr.exerciseVariationId] ?: "Unknown Exercise"
+                        exerciseNames[pr.exerciseId] ?: "Unknown Exercise"
                     }
                 }
 

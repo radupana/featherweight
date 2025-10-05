@@ -66,6 +66,7 @@ class ProgressionServiceTest {
         ExercisePerformanceTracking(
             id = "1",
             programmeId = "1",
+            exerciseId = "1",
             exerciseName = "Squat",
             targetWeight = 100f,
             achievedWeight = 100f,

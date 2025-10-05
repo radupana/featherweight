@@ -183,7 +183,7 @@ private fun PRDetailCard(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Use unified key (no more collisions since tables are merged)
-            val key = "exercise_${personalRecord.exerciseVariationId}"
+            val key = "exercise_${personalRecord.exerciseId}"
             val exerciseName = exerciseNames[key] ?: "Unknown Exercise"
             Text(
                 text = exerciseName,

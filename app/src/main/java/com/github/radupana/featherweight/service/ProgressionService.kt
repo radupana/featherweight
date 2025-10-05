@@ -111,6 +111,10 @@ class ProgressionService(
         exerciseName: String,
         sets: List<SetLog>,
     ) = withContext(Dispatchers.IO) {
+        // Get exercise variation ID from name
+        val exercise = repository.getExerciseByName(exerciseName)
+        val exerciseId = exercise?.id ?: return@withContext
+
         val targetSets = sets.size
         val completedSets = sets.count { it.isCompleted }
         val targetReps = sets.firstOrNull()?.targetReps
@@ -168,6 +172,7 @@ class ProgressionService(
             ExercisePerformanceTracking(
                 userId = sets.firstOrNull()?.userId,
                 programmeId = programmeId,
+                exerciseId = exerciseId,
                 exerciseName = exerciseName,
                 targetWeight = targetWeight,
                 achievedWeight = achievedWeight,
@@ -191,7 +196,7 @@ class ProgressionService(
     ): ProgressionDecision {
         // Get exercise ID from name
         val exercise = repository.getExerciseByName(exerciseName)
-        val exerciseVariationId =
+        val exerciseId =
             exercise?.id ?: return ProgressionDecision(
                 weight = 20f,
                 action = ProgressionAction.MAINTAIN,
@@ -199,7 +204,7 @@ class ProgressionService(
             )
 
         // Try to get 1RM
-        val oneRM = repository.getOneRMForExercise(exerciseVariationId)
+        val oneRM = repository.getOneRMForExercise(exerciseId)
 
         val startingWeight =
             if (oneRM != null && oneRM > 0) {

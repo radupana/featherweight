@@ -525,14 +525,14 @@ class OneRMServiceTest {
                 confidence = 0.85f,
             )
 
-        assertThat(record.exerciseVariationId).isEqualTo("123")
+        assertThat(record.exerciseId).isEqualTo("123")
         assertThat(record.mostWeightLifted).isEqualTo(100f)
         assertThat(record.mostWeightReps).isEqualTo(5)
         assertThat(record.mostWeightRpe).isEqualTo(8f)
         assertThat(record.oneRMEstimate).isEqualTo(115f)
         assertThat(record.oneRMConfidence).isEqualTo(0.85f)
         assertThat(record.oneRMType).isEqualTo(OneRMType.AUTOMATICALLY_CALCULATED)
-        assertThat(record.oneRMContext).isEqualTo("100kg × 5 @ RPE 8")
+        assertThat(record.context).isEqualTo("100kg × 5 @ RPE 8")
     }
 
     @Test
@@ -565,7 +565,7 @@ class OneRMServiceTest {
         assertThat(record.mostWeightReps).isEqualTo(3)
         assertThat(record.mostWeightRpe).isEqualTo(9f)
         assertThat(record.mostWeightDate).isEqualTo(LocalDateTime.of(2024, 1, 1, 12, 0))
-        assertThat(record.oneRMContext).isEqualTo("90kg × 8 @ RPE 7")
+        assertThat(record.context).isEqualTo("90kg × 8 @ RPE 7")
     }
 
     @Test
@@ -585,7 +585,7 @@ class OneRMServiceTest {
                 confidence = 0.7f,
             )
 
-        assertThat(record.oneRMContext).isEqualTo("100kg × 5")
+        assertThat(record.context).isEqualTo("100kg × 5")
         assertThat(record.mostWeightRpe).isNull()
     }
 
@@ -830,11 +830,6 @@ class OneRMServiceTest {
             actualRpe = rpe,
             isCompleted = true,
             completedAt = LocalDateTime.now().toString(),
-            suggestedWeight = null,
-            suggestedReps = null,
-            suggestionSource = null,
-            suggestionConfidence = null,
-            calculationDetails = null,
             tag = null,
             notes = null,
         )

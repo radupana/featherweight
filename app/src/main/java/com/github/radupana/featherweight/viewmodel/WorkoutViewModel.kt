@@ -11,9 +11,10 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutMode
 import com.github.radupana.featherweight.data.WorkoutStatus
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.data.exercise.RMScalingType
+import com.github.radupana.featherweight.data.exercise.toRMScalingType
 import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.ExerciseHistory
 import com.github.radupana.featherweight.repository.FeatherweightRepository
@@ -165,7 +166,7 @@ class WorkoutViewModel(
     val inProgressWorkouts: StateFlow<List<InProgressWorkout>> = _inProgressWorkouts
 
     // Exercise-related state
-    private val exerciseDetailsMap = MutableStateFlow<Map<String, ExerciseVariation>>(emptyMap())
+    private val exerciseDetailsMap = MutableStateFlow<Map<String, Exercise>>(emptyMap())
 
     // Reactive exercise name mapping
     // Use String keys to avoid ID collisions between system and custom exercises
@@ -223,7 +224,7 @@ class WorkoutViewModel(
                 // Load all custom exercises
                 val customExercises = repository.getCustomExercises()
 
-                // Convert custom exercises to ExerciseVariation for unified handling
+                // Convert custom exercises to Exercise for unified handling
                 val customAsVariations =
                     customExercises
 
@@ -685,7 +686,7 @@ class WorkoutViewModel(
                 // Use matchedExerciseId if available, otherwise try to find by name
                 val variation =
                     if (parsedExercise.matchedExerciseId != null) {
-                        repository.getExerciseVariationById(parsedExercise.matchedExerciseId)
+                        repository.getExerciseById(parsedExercise.matchedExerciseId)
                     } else {
                         repository.getExerciseByName(parsedExercise.exerciseName)
                     }
@@ -696,14 +697,14 @@ class WorkoutViewModel(
                         ExerciseLog(
                             id = "template_exercise_${exerciseIndex + 1}", // Template ID
                             workoutId = "template_workout", // Temporary ID for template
-                            exerciseVariationId = variation.id,
+                            exerciseId = variation.id,
                             exerciseOrder = exerciseIndex,
                             notes = parsedExercise.notes,
                         )
 
                     tempExercises.add(exerciseLog)
                     // Use proper key based on whether it's a custom exercise
-                    val key = getExerciseNameKey(exerciseLog.exerciseVariationId)
+                    val key = getExerciseNameKey(exerciseLog.exerciseId)
                     tempExerciseNames[key] = variation.name
 
                     // Create sets for this exercise with unique negative IDs
@@ -778,8 +779,8 @@ class WorkoutViewModel(
         // Find the exercise log for this set
         val exerciseLog = _selectedWorkoutExercises.value.find { it.id == set.exerciseLogId }
 
-        // If exerciseLog has an exerciseVariationId, check if the exercise requires weight
-        val exerciseDetails = exerciseLog?.exerciseVariationId?.let { repository.getExerciseById(it) }
+        // If exerciseLog has an exerciseId, check if the exercise requires weight
+        val exerciseDetails = exerciseLog?.exerciseId?.let { repository.getExerciseById(it) }
         val requiresWeight = exerciseDetails?.requiresWeight ?: true
 
         val result =
@@ -809,16 +810,16 @@ class WorkoutViewModel(
             val performanceMap = mutableMapOf<String, SetLog>()
             _selectedWorkoutExercises.value.forEach { exerciseLog ->
                 // Get exercise name from the unified table
-                val exerciseName = repository.getExerciseVariationById(exerciseLog.exerciseVariationId)?.name
+                val exerciseName = repository.getExerciseById(exerciseLog.exerciseId)?.name
                 exerciseName?.let {
                     // Store with proper key to avoid ID collisions
-                    val key = getExerciseNameKey(exerciseLog.exerciseVariationId)
+                    val key = getExerciseNameKey(exerciseLog.exerciseId)
                     namesMap[key] = it
                 }
                 // Load last performance for this exercise variation
-                val lastPerf = repository.getLastPerformanceForExercise(exerciseLog.exerciseVariationId)
+                val lastPerf = repository.getLastPerformanceForExercise(exerciseLog.exerciseId)
                 lastPerf?.let {
-                    performanceMap[exerciseLog.exerciseVariationId] = it
+                    performanceMap[exerciseLog.exerciseId] = it
                 }
             }
             _exerciseNames.value = namesMap
@@ -875,7 +876,7 @@ class WorkoutViewModel(
 
     private fun loadOneRMEstimatesForCurrentExercises() {
         viewModelScope.launch {
-            val exerciseIds = _selectedWorkoutExercises.value.map { it.exerciseVariationId }
+            val exerciseIds = _selectedWorkoutExercises.value.map { it.exerciseId }
             if (exerciseIds.isEmpty()) {
                 _oneRMEstimates.value = emptyMap()
                 return@launch
@@ -924,7 +925,7 @@ class WorkoutViewModel(
                 ExerciseLog(
                     id = newExerciseId,
                     workoutId = "temp_workout", // Template workout
-                    exerciseVariationId = exercise.id,
+                    exerciseId = exercise.id,
                     exerciseOrder = currentExercises.size,
                     notes = null,
                 )
@@ -994,13 +995,13 @@ class WorkoutViewModel(
         }
     }
 
-    private fun loadExerciseHistory(exerciseVariationId: String) {
+    private fun loadExerciseHistory(exerciseId: String) {
         val currentId = _currentWorkoutId.value ?: return
         viewModelScope.launch {
-            val history = repository.getExerciseHistory(exerciseVariationId, currentId)
+            val history = repository.getExerciseHistory(exerciseId, currentId)
             if (history != null) {
                 val currentHistory = _exerciseHistory.value.toMutableMap()
-                currentHistory[exerciseVariationId] = history
+                currentHistory[exerciseId] = history
                 _exerciseHistory.value = currentHistory
             }
         }
@@ -1364,7 +1365,7 @@ class WorkoutViewModel(
             if (completedSet != null) {
                 val exerciseLog = _selectedWorkoutExercises.value.find { it.id == completedSet.exerciseLogId }
                 val exerciseVariation =
-                    exerciseLog?.exerciseVariationId?.let {
+                    exerciseLog?.exerciseId?.let {
                         repository.getExerciseById(it)
                     }
 
@@ -1406,20 +1407,20 @@ class WorkoutViewModel(
             val completedSet = updatedSets.find { it.id == setId } ?: return
             val exerciseLog = findExerciseLogForSet(setId, updatedSets) ?: return
 
-            Log.d(TAG, "Checking for PR: exerciseLog.id=${exerciseLog.id}, variationId=${exerciseLog.exerciseVariationId}")
-            val allPRs = repository.checkForPR(completedSet, exerciseLog.exerciseVariationId)
+            Log.d(TAG, "Checking for PR: exerciseLog.id=${exerciseLog.id}, exerciseId=${exerciseLog.exerciseId}")
+            val allPRs = repository.checkForPR(completedSet, exerciseLog.exerciseId)
             if (allPRs.isNotEmpty()) {
                 // Ensure exercise name is available for PR dialog
                 Log.d(TAG, "PRs detected, looking up exercise name for dialog")
                 // Get exercise name from the unified table
-                val exerciseName = repository.getExerciseVariationById(exerciseLog.exerciseVariationId)?.name
-                Log.d(TAG, "Exercise name lookup for ID ${exerciseLog.exerciseVariationId}: $exerciseName")
+                val exerciseName = repository.getExerciseById(exerciseLog.exerciseId)?.name
+                Log.d(TAG, "Exercise name lookup for ID ${exerciseLog.exerciseId}: $exerciseName")
                 if (exerciseName != null) {
-                    val key = getExerciseNameKey(exerciseLog.exerciseVariationId)
-                    Log.d(TAG, "Adding to exerciseNames map: $key -> $exerciseName (ID: ${exerciseLog.exerciseVariationId})")
+                    val key = getExerciseNameKey(exerciseLog.exerciseId)
+                    Log.d(TAG, "Adding to exerciseNames map: $key -> $exerciseName (ID: ${exerciseLog.exerciseId})")
                     _exerciseNames.value = _exerciseNames.value + (key to exerciseName)
                 } else {
-                    Log.e(TAG, "Failed to get exercise name for PR dialog! ID: ${exerciseLog.exerciseVariationId})")
+                    Log.e(TAG, "Failed to get exercise name for PR dialog! ID: ${exerciseLog.exerciseId})")
                 }
 
                 _workoutState.value =
@@ -1443,10 +1444,10 @@ class WorkoutViewModel(
             val completedSet = updatedSets.find { it.id == setId } ?: return
             val exerciseLog = findExerciseLogForSet(setId, updatedSets) ?: return
 
-            val exerciseVariation = repository.getExerciseById(exerciseLog.exerciseVariationId)
-            val scalingType = exerciseVariation?.rmScalingType ?: RMScalingType.STANDARD
+            val exerciseVariation = repository.getExerciseById(exerciseLog.exerciseId)
+            val scalingType = exerciseVariation?.rmScalingType?.toRMScalingType() ?: RMScalingType.STANDARD
 
-            val currentEstimate = _oneRMEstimates.value[exerciseLog.exerciseVariationId]
+            val currentEstimate = _oneRMEstimates.value[exerciseLog.exerciseId]
             val newEstimate =
                 oneRMService.calculateEstimated1RM(
                     completedSet.actualWeight,
@@ -1456,14 +1457,14 @@ class WorkoutViewModel(
                 )
 
             if (newEstimate != null && oneRMService.shouldUpdateOneRM(completedSet, currentEstimate, newEstimate)) {
-                val exercise = repository.getExerciseVariationById(exerciseLog.exerciseVariationId)
+                val exercise = repository.getExerciseById(exerciseLog.exerciseId)
                 Log.i(
                     TAG,
                     "1RM update - exercise: ${exercise?.name}, " +
                         "old: ${currentEstimate?.toInt()}kg, new: ${newEstimate.toInt()}kg, " +
                         "from: ${completedSet.actualWeight}kg x ${completedSet.actualReps} @ RPE ${completedSet.actualRpe}",
                 )
-                persistOneRMUpdate(exerciseLog.exerciseVariationId, completedSet, newEstimate, currentEstimate)
+                persistOneRMUpdate(exerciseLog.exerciseId, completedSet, newEstimate, currentEstimate)
             }
         } catch (e: android.database.sqlite.SQLiteException) {
             Log.e(TAG, "Failed to update 1RM estimate", e)
@@ -1473,12 +1474,12 @@ class WorkoutViewModel(
     }
 
     private suspend fun persistOneRMUpdate(
-        exerciseVariationId: String?,
+        exerciseId: String?,
         completedSet: SetLog,
         newEstimate: Float,
         currentEstimate: Float?,
     ) {
-        exerciseVariationId ?: return
+        exerciseId ?: return
 
         val percentOf1RM =
             if (currentEstimate != null && currentEstimate > 0) {
@@ -1496,7 +1497,7 @@ class WorkoutViewModel(
 
         val oneRMRecord =
             oneRMService.createOneRMRecord(
-                exerciseId = exerciseVariationId,
+                exerciseId = exerciseId,
                 set = completedSet,
                 estimate = newEstimate,
                 confidence = confidence,
@@ -1639,8 +1640,8 @@ class WorkoutViewModel(
                             _selectedWorkoutExercises.value.map { exercise ->
                                 if (exercise.id == swappingExercise.id) {
                                     exercise.copy(
-                                        exerciseVariationId = newExerciseId,
-                                        originalVariationId = swappingExercise.originalVariationId ?: swappingExercise.exerciseVariationId,
+                                        exerciseId = newExerciseId,
+                                        originalExerciseId = swappingExercise.originalExerciseId ?: swappingExercise.exerciseId,
                                     )
                                 } else {
                                     exercise
@@ -1650,7 +1651,7 @@ class WorkoutViewModel(
 
                         // Update exercise name in the map
                         // Remove old exercise name and add new one with proper keys
-                        val oldKey = getExerciseNameKey(swappingExercise.exerciseVariationId)
+                        val oldKey = getExerciseNameKey(swappingExercise.exerciseId)
                         val newKey = getExerciseNameKey(newExerciseId)
                         _exerciseNames.value =
                             _exerciseNames.value.toMutableMap().apply {
@@ -1667,8 +1668,8 @@ class WorkoutViewModel(
                         // For regular workouts, use database operations
                         repository.swapExercise(
                             exerciseLogId = swappingExercise.id,
-                            newExerciseVariationId = newExerciseId,
-                            originalExerciseVariationId = swappingExercise.originalVariationId ?: swappingExercise.exerciseVariationId,
+                            newExerciseId = newExerciseId,
+                            originalExerciseId = swappingExercise.originalExerciseId ?: swappingExercise.exerciseId,
                         )
 
                         // Clear all sets for this exercise
@@ -1676,7 +1677,7 @@ class WorkoutViewModel(
 
                         // Record swap history
                         repository.recordExerciseSwap(
-                            originalExerciseId = swappingExercise.originalVariationId ?: swappingExercise.exerciseVariationId,
+                            originalExerciseId = swappingExercise.originalExerciseId ?: swappingExercise.exerciseId,
                             swappedToExerciseId = newExerciseId,
                             workoutId = _currentWorkoutId.value,
                             programmeId = _workoutState.value.programmeId,
@@ -2046,12 +2047,12 @@ class WorkoutViewModel(
                     val exerciseSets = sets.filter { it.exerciseLogId == exerciseLog.id }
                     com.github.radupana.featherweight.data.ParsedExercise(
                         exerciseName =
-                            getExerciseNameFromMap(exerciseLog.exerciseVariationId)
+                            getExerciseNameFromMap(exerciseLog.exerciseId)
                                 ?: run {
-                                    Log.w(TAG, "Exercise name not found for template: ID ${exerciseLog.exerciseVariationId})")
+                                    Log.w(TAG, "Exercise name not found for template: ID ${exerciseLog.exerciseId})")
                                     "Unknown Exercise"
                                 },
-                        matchedExerciseId = exerciseLog.exerciseVariationId,
+                        matchedExerciseId = exerciseLog.exerciseId,
                         sets =
                             exerciseSets.map { setLog ->
                                 com.github.radupana.featherweight.data.ParsedSet(
@@ -2086,11 +2087,11 @@ class WorkoutViewModel(
         viewModelScope.launch {
             // Get exercise info
             val exercise = _selectedWorkoutExercises.value.find { it.id == set.exerciseLogId } ?: return@launch
-            val exerciseVariationId = exercise.exerciseVariationId
+            val exerciseId = exercise.exerciseId
 
             // Get the exercise variation to determine scaling type
-            val exerciseVariation = repository.getExerciseById(exerciseVariationId)
-            val scalingType = exerciseVariation?.rmScalingType ?: RMScalingType.STANDARD
+            val exerciseVariation = repository.getExerciseById(exerciseId)
+            val scalingType = exerciseVariation?.rmScalingType?.toRMScalingType() ?: RMScalingType.STANDARD
 
             // Calculate estimated 1RM from this set (now with RPE consideration)
             val estimated1RM = oneRMService.calculateEstimated1RM(set.actualWeight, set.actualReps, set.actualRpe, scalingType) ?: return@launch
@@ -2098,7 +2099,7 @@ class WorkoutViewModel(
             // Get current 1RM
             val currentMax =
                 repository
-                    .getCurrentMaxesForExercises(listOf(exerciseVariationId))[exerciseVariationId]
+                    .getCurrentMaxesForExercises(listOf(exerciseId))[exerciseId]
 
             // Check if we should update
             if (oneRMService.shouldUpdateOneRM(set, currentMax, estimated1RM)) {
@@ -2120,7 +2121,7 @@ class WorkoutViewModel(
 
                 // Update the 1RM with the workout date
                 repository.upsertExerciseMax(
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     oneRMEstimate = estimated1RM,
                     oneRMContext = context,
                     oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,

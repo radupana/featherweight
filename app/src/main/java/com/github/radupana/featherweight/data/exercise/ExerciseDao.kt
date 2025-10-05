@@ -1,133 +1,93 @@
 package com.github.radupana.featherweight.data.exercise
 
 import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Transaction
+import androidx.room.Update
 
 /**
- * DAO for exercise operations.
- * This DAO now works with the normalized schema where ExerciseVariation is the central entity.
+ * DAO for Exercise operations.
+ * Handles both SYSTEM and USER type exercises.
  */
 @Dao
 interface ExerciseDao {
-    // ============== ExerciseVariation operations ==============
+    // Basic CRUD operations
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertExercise(exercise: Exercise)
 
-    @Query("SELECT * FROM exercise_variations ORDER BY name ASC")
-    suspend fun getAllExercises(): List<ExerciseVariation>
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertExercises(exercises: List<Exercise>)
 
-    @Query("SELECT * FROM exercise_variations WHERE id = :id")
-    suspend fun getExerciseById(id: String): ExerciseVariation?
+    @Update
+    suspend fun updateExercise(exercise: Exercise)
 
-    @Query("SELECT * FROM exercise_variations WHERE id = :id")
-    suspend fun getExerciseVariationById(id: String): ExerciseVariation?
+    @Query("DELETE FROM exercises WHERE id = :id")
+    suspend fun deleteExercise(id: String)
 
-    @Query("SELECT * FROM exercise_variations WHERE name LIKE '%' || :query || '%' ORDER BY name ASC")
-    suspend fun searchVariations(query: String): List<ExerciseVariation>
+    // Basic queries
+    @Query("SELECT * FROM exercises WHERE id = :id")
+    suspend fun getExerciseById(id: String): Exercise?
 
-    // ============== Find exercise by name or alias ==============
+    @Query("SELECT * FROM exercises WHERE name = :name LIMIT 1")
+    suspend fun getExerciseByName(name: String): Exercise?
 
-    @Query("SELECT * FROM exercise_variations WHERE LOWER(name) = LOWER(:name) LIMIT 1")
-    suspend fun findVariationByExactName(name: String): ExerciseVariation?
+    @Query("SELECT * FROM exercises WHERE LOWER(name) = LOWER(:name) LIMIT 1")
+    suspend fun findExerciseByName(name: String): Exercise?
 
+    @Query("SELECT * FROM exercises WHERE LOWER(name) = LOWER(:name) AND type = 'SYSTEM' LIMIT 1")
+    suspend fun findSystemExerciseByName(name: String): Exercise?
+
+    @Query("SELECT * FROM exercises ORDER BY name ASC")
+    suspend fun getAllExercises(): List<Exercise>
+
+    // System exercise queries (type = SYSTEM)
+    @Query("SELECT * FROM exercises WHERE type = 'SYSTEM' ORDER BY name ASC")
+    suspend fun getSystemExercises(): List<Exercise>
+
+    // Custom exercise queries (type = USER)
+    @Query("SELECT * FROM exercises WHERE userId = :userId ORDER BY name ASC")
+    suspend fun getCustomExercisesByUser(userId: String): List<Exercise>
+
+    @Query("SELECT * FROM exercises WHERE userId = :userId AND name = :name LIMIT 1")
+    suspend fun getCustomExerciseByUserAndName(
+        userId: String,
+        name: String,
+    ): Exercise?
+
+    @Query("SELECT * FROM exercises WHERE userId = :userId AND equipment = :equipment ORDER BY name ASC")
+    suspend fun getCustomExercisesByEquipment(
+        userId: String,
+        equipment: String,
+    ): List<Exercise>
+
+    @Query("DELETE FROM exercises WHERE id = :id AND userId = :userId")
+    suspend fun deleteCustomExercise(
+        id: String,
+        userId: String,
+    )
+
+    @Query("DELETE FROM exercises WHERE userId = :userId")
+    suspend fun deleteAllCustomExercisesByUser(userId: String)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM exercises WHERE id = :exerciseId AND type = 'USER')")
+    suspend fun isCustomExercise(exerciseId: String): Boolean
+
+    // Search exercises by name pattern
     @Query(
         """
-        SELECT v.* FROM exercise_variations v
-        INNER JOIN variation_aliases a ON v.id = a.variationId
-        WHERE LOWER(a.alias) = LOWER(:alias)
-        LIMIT 1
+        SELECT * FROM exercises
+        WHERE LOWER(name) LIKE LOWER('%' || :query || '%')
+        ORDER BY name ASC
     """,
     )
-    suspend fun findVariationByAlias(alias: String): ExerciseVariation?
+    suspend fun searchExercises(query: String): List<Exercise>
 
-    // ============== Big 4 exercises ==============
+    // Get exercises by category
+    @Query("SELECT * FROM exercises WHERE category = :category ORDER BY name ASC")
+    suspend fun getExercisesByCategory(category: String): List<Exercise>
 
-    @Query(
-        """
-        SELECT v.* FROM exercise_variations v
-        WHERE v.name IN ('Barbell Back Squat', 'Barbell Deadlift', 'Barbell Bench Press', 'Barbell Overhead Press')
-        ORDER BY 
-            CASE v.name
-                WHEN 'Barbell Back Squat' THEN 1
-                WHEN 'Barbell Deadlift' THEN 2
-                WHEN 'Barbell Bench Press' THEN 3
-                WHEN 'Barbell Overhead Press' THEN 4
-            END
-    """,
-    )
-    suspend fun getBig4Exercises(): List<ExerciseVariation>
-
-    // ============== Muscle group queries ==============
-
-    @Query(
-        """
-        SELECT DISTINCT v.* FROM exercise_variations v
-        INNER JOIN variation_muscles m ON v.id = m.variationId
-        WHERE m.muscle = :muscleGroup
-        ORDER BY v.name ASC
-    """,
-    )
-    suspend fun getVariationsByMuscleGroup(muscleGroup: String): List<ExerciseVariation>
-
-    // ============== Equipment queries ==============
-
-    @Query("SELECT * FROM exercise_variations WHERE equipment = :equipment ORDER BY name ASC")
-    suspend fun getVariationsByEquipment(equipment: Equipment): List<ExerciseVariation>
-
-    // ============== Category queries ==============
-
-    @Query(
-        """
-        SELECT v.* FROM exercise_variations v
-        INNER JOIN exercise_cores c ON v.coreExerciseId = c.id
-        WHERE c.category = :category
-        ORDER BY v.name ASC
-    """,
-    )
-    suspend fun getVariationsByCategory(category: ExerciseCategory): List<ExerciseVariation>
-
-    // ============== Alias operations ==============
-
-    @Query("SELECT * FROM variation_aliases WHERE variationId = :exerciseId")
-    suspend fun getAliasesForExercise(exerciseId: String): List<VariationAlias>
-
-    @Query("SELECT * FROM variation_aliases WHERE variationId = :variationId")
-    suspend fun getAliasesForVariation(variationId: String): List<VariationAlias>
-
-    @Query("SELECT * FROM variation_aliases")
-    suspend fun getAllAliases(): List<VariationAlias>
-
-    // ============== Comprehensive exercise details ==============
-
-    @Transaction
-    suspend fun getExerciseWithDetails(id: String): ExerciseWithDetails? {
-        val variation = getExerciseById(id) ?: return null
-        val muscles = getMusclesForVariation(id)
-        val aliases = getAliasesForExercise(id)
-        val instructions = getInstructionsForVariation(id)
-
-        return ExerciseWithDetails(
-            variation = variation,
-            muscles = muscles,
-            aliases = aliases,
-            instructions = instructions,
-        )
-    }
-
-    @Transaction
-    suspend fun getAllExercisesWithDetails(): List<ExerciseWithDetails> =
-        getAllExercises().map { variation ->
-            ExerciseWithDetails(
-                variation = variation,
-                muscles = getMusclesForVariation(variation.id),
-                aliases = getAliasesForExercise(variation.id),
-                instructions = getInstructionsForVariation(variation.id),
-            )
-        }
-
-    // Helper queries for comprehensive details
-    @Query("SELECT * FROM variation_muscles WHERE variationId = :variationId")
-    suspend fun getMusclesForVariation(variationId: String): List<VariationMuscle>
-
-    @Query("SELECT * FROM variation_instructions WHERE variationId = :variationId ORDER BY instructionType, orderIndex")
-    suspend fun getInstructionsForVariation(variationId: String): List<VariationInstruction>
+    // Get exercises by equipment
+    @Query("SELECT * FROM exercises WHERE equipment = :equipment ORDER BY name ASC")
+    suspend fun getExercisesByEquipment(equipment: String): List<Exercise>
 }

@@ -4,8 +4,8 @@ import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.PersonalRecordDao
 import com.github.radupana.featherweight.data.SetLogDao
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
-import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
+import com.github.radupana.featherweight.data.exercise.Exercise
+import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.fixtures.WorkoutFixtures
 import com.github.radupana.featherweight.testutil.CoroutineTestRule
@@ -37,14 +37,14 @@ class PRDetectionServiceTest {
 
     private val personalRecordDao: PersonalRecordDao = mockk(relaxed = true)
     private val setLogDao: SetLogDao = mockk(relaxed = true)
-    private val exerciseVariationDao: ExerciseVariationDao = mockk(relaxed = true)
+    private val exerciseDao: ExerciseDao = mockk(relaxed = true)
 
     private lateinit var service: PRDetectionService
 
     @Before
     fun setUp() {
         LogMock.setup()
-        service = PRDetectionService(personalRecordDao, setLogDao, exerciseVariationDao)
+        service = PRDetectionService(personalRecordDao, setLogDao, exerciseDao)
     }
 
     // ========== checkForPR Tests ==========
@@ -60,23 +60,23 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock exercise variation
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.STANDARD
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.STANDARD.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // Mock previous best weight (less than current)
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns 95f // Less than current 100f
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns 110f // Some 1RM
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns 95f // Less than current 100f
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns 110f // Some 1RM
 
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.WEIGHT) } returns
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.WEIGHT) } returns
                 PersonalRecord(
                     id = "1",
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     weight = 95f,
                     reps = 5,
                     rpe = null,
@@ -92,14 +92,14 @@ class PRDetectionServiceTest {
                 )
 
             // Mock 1RM records
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.ESTIMATED_1RM) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.ESTIMATED_1RM) } returns null
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "2"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert
             assertThat(result).hasSize(1)
@@ -122,24 +122,24 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock exercise variation
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.STANDARD
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.STANDARD.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // Mock previous best weight (higher than current)
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns 100f // Higher than current 90f
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns 120f // Some high 1RM
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns 100f // Higher than current 90f
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns 120f // Some high 1RM
 
             // Mock previous PR for context
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.WEIGHT) } returns
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.WEIGHT) } returns
                 PersonalRecord(
                     id = "1",
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     weight = 100f, // Higher than current
                     reps = 5,
                     rpe = null,
@@ -154,10 +154,10 @@ class PRDetectionServiceTest {
                     workoutId = "1",
                 )
 
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.ESTIMATED_1RM) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.ESTIMATED_1RM) } returns null
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert
             assertThat(result).isEmpty()
@@ -177,24 +177,24 @@ class PRDetectionServiceTest {
                     actualRpe = 9f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock exercise variation
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.STANDARD
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.STANDARD.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // Mock previous PRs
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns 75f // Lower than current 80f
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns 95f // Previous best 1RM
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns 75f // Lower than current 80f
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns 95f // Previous best 1RM
 
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.WEIGHT) } returns null
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.ESTIMATED_1RM) } returns
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.WEIGHT) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.ESTIMATED_1RM) } returns
                 PersonalRecord(
                     id = "1",
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     weight = 75f,
                     reps = 10,
                     rpe = null,
@@ -214,7 +214,7 @@ class PRDetectionServiceTest {
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "2"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert - The estimated 1RM for 80kg x 8 @ RPE 9 should be higher than 95kg
             // 80kg is also a weight PR (higher than 75kg), so we should get both PRs
@@ -246,27 +246,27 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock exercise variation
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.STANDARD
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.STANDARD.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // No previous PRs
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.WEIGHT) } returns null
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.ESTIMATED_1RM) } returns null
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.WEIGHT) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.ESTIMATED_1RM) } returns null
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert - Should create first PR record (weight PR which includes estimated 1RM)
             assertThat(result).hasSize(1) // Only weight PR (includes estimated 1RM)
@@ -285,10 +285,10 @@ class PRDetectionServiceTest {
                     actualReps = 5,
                     isCompleted = false, // Not completed
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert
             assertThat(result).isEmpty()
@@ -308,10 +308,10 @@ class PRDetectionServiceTest {
                     actualReps = 10,
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert
             assertThat(result).isEmpty()
@@ -331,10 +331,10 @@ class PRDetectionServiceTest {
                     actualReps = 0,
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert
             assertThat(result).isEmpty()
@@ -355,26 +355,26 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock exercise variation with weighted bodyweight scaling
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.WEIGHTED_BODYWEIGHT
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.WEIGHTED_BODYWEIGHT.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // No previous PRs
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, any()) } returns null
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, any()) } returns null
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert
             assertThat(result).hasSize(1)
@@ -398,26 +398,26 @@ class PRDetectionServiceTest {
                     actualRpe = 9f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock exercise variation with isolation scaling
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.ISOLATION
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.ISOLATION.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // No previous PRs
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, any()) } returns null
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, any()) } returns null
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert
             assertThat(result).hasSize(1)
@@ -441,26 +441,26 @@ class PRDetectionServiceTest {
                     actualRpe = 6f, // Too low for reliable 1RM estimate
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock exercise variation
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.STANDARD
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.STANDARD.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // No previous PRs
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, any()) } returns null
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, any()) } returns null
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert
             assertThat(result).hasSize(1)
@@ -481,25 +481,25 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
             val workoutId = "2"
 
             // Mock exercise variation
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.STANDARD
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.STANDARD.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // Mock previous best weight
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns 90f
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns 100f
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns 90f
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns 100f
 
             // Mock existing PR in the same workout (lower weight)
             val existingPRInWorkout =
                 PersonalRecord(
                     id = "10",
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     weight = 95f, // Lower than new PR
                     reps = 5,
                     rpe = 7f,
@@ -515,18 +515,18 @@ class PRDetectionServiceTest {
                 )
 
             coEvery {
-                personalRecordDao.getPRForExerciseInWorkout(workoutId, exerciseVariationId, PRType.WEIGHT)
+                personalRecordDao.getPRForExerciseInWorkout(workoutId, exerciseId, PRType.WEIGHT)
             } returns existingPRInWorkout
 
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.WEIGHT) } returns null
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.ESTIMATED_1RM) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.WEIGHT) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.ESTIMATED_1RM) } returns null
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns workoutId
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert
             assertThat(result).hasSize(1)
@@ -548,26 +548,26 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock exercise variation
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.STANDARD
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.STANDARD.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // Mock previous best weight
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, any()) } returns null
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, any()) } returns null
 
             // Mock workout data with invalid date format
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns "invalid-date-format"
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert - Should still create PR with current date
             assertThat(result).hasSize(1)
@@ -586,23 +586,23 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock exercise variation
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.STANDARD
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.STANDARD.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // Mock previous best weight
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns 100f
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns 110f
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns 100f
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns 110f
 
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.WEIGHT) } returns
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.WEIGHT) } returns
                 PersonalRecord(
                     id = "1",
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     weight = 100f,
                     reps = 5,
                     rpe = null,
@@ -617,14 +617,14 @@ class PRDetectionServiceTest {
                     workoutId = "1",
                 )
 
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.ESTIMATED_1RM) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.ESTIMATED_1RM) } returns null
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "2"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert
             assertThat(result).hasSize(1)
@@ -643,32 +643,32 @@ class PRDetectionServiceTest {
                     actualRpe = 7f, // Low effort (3 RIR)
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock exercise variation
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.STANDARD
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.STANDARD.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // Mock previous best weight - lower than current
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns 80f
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns 80f
             // High existing 1RM - higher than what would be calculated from current set
             // 85kg x 12 @ RPE 7 (3 RIR = 15 total capacity)
             // = 85 / (1.0278 - 0.0278 * 15) = 85 / 0.611 = 139kg
             // So we need existing 1RM > 139kg for the message to appear
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns 145f
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns 145f
 
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.WEIGHT) } returns null
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.ESTIMATED_1RM) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.WEIGHT) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.ESTIMATED_1RM) } returns null
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert
             assertThat(result).hasSize(1)
@@ -690,26 +690,26 @@ class PRDetectionServiceTest {
                     actualRpe = 7f, // 3 RIR = 18 total capacity
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock exercise variation
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.STANDARD
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.STANDARD.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // No previous PRs
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, any()) } returns null
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, any()) } returns null
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert
             assertThat(result).hasSize(1)
@@ -728,26 +728,26 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock exercise variation
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.STANDARD
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.STANDARD.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // Mock previous best weight
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, any()) } returns null
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, any()) } returns null
 
             // Mock workout data with null date
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns null
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns null
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert
             assertThat(result).hasSize(1)
@@ -766,26 +766,26 @@ class PRDetectionServiceTest {
                     actualRpe = 10f, // True max effort
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock exercise variation
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.STANDARD
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.STANDARD.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // Mock previous best weight
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, any()) } returns null
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, any()) } returns null
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert
             assertThat(result).hasSize(1)
@@ -800,13 +800,13 @@ class PRDetectionServiceTest {
     fun `getRecentPRsForExercise returns PRs for specific exercise`() =
         runTest {
             // Arrange
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
             val limit = 5
             val expectedPRs =
                 listOf(
                     PersonalRecord(
                         id = "1",
-                        exerciseVariationId = exerciseVariationId,
+                        exerciseId = exerciseId,
                         weight = 100f,
                         reps = 5,
                         rpe = 8f,
@@ -822,7 +822,7 @@ class PRDetectionServiceTest {
                     ),
                     PersonalRecord(
                         id = "2",
-                        exerciseVariationId = exerciseVariationId,
+                        exerciseId = exerciseId,
                         weight = 90f,
                         reps = 8,
                         rpe = 9f,
@@ -839,11 +839,11 @@ class PRDetectionServiceTest {
                 )
 
             coEvery {
-                personalRecordDao.getRecentPRsForExercise(exerciseVariationId, limit)
+                personalRecordDao.getRecentPRsForExercise(exerciseId, limit)
             } returns expectedPRs
 
             // Act
-            val result = service.getRecentPRsForExercise(exerciseVariationId, limit)
+            val result = service.getRecentPRsForExercise(exerciseId, limit)
 
             // Assert
             assertThat(result).isEqualTo(expectedPRs)
@@ -854,19 +854,19 @@ class PRDetectionServiceTest {
     fun `getRecentPRsForExercise with default limit`() =
         runTest {
             // Arrange
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
             val expectedPRs = emptyList<PersonalRecord>()
 
             coEvery {
-                personalRecordDao.getRecentPRsForExercise(exerciseVariationId, 5) // Default limit
+                personalRecordDao.getRecentPRsForExercise(exerciseId, 5) // Default limit
             } returns expectedPRs
 
             // Act
-            val result = service.getRecentPRsForExercise(exerciseVariationId)
+            val result = service.getRecentPRsForExercise(exerciseId)
 
             // Assert
             assertThat(result).isEmpty()
-            coVerify { personalRecordDao.getRecentPRsForExercise(exerciseVariationId, 5) }
+            coVerify { personalRecordDao.getRecentPRsForExercise(exerciseId, 5) }
         }
 
     // ========== getRecentPRs Tests ==========
@@ -880,7 +880,7 @@ class PRDetectionServiceTest {
                 listOf(
                     PersonalRecord(
                         id = "1",
-                        exerciseVariationId = "1",
+                        exerciseId = "1",
                         weight = 100f,
                         reps = 5,
                         rpe = 8f,
@@ -896,7 +896,7 @@ class PRDetectionServiceTest {
                     ),
                     PersonalRecord(
                         id = "2",
-                        exerciseVariationId = "2",
+                        exerciseId = "2",
                         weight = 80f,
                         reps = 5,
                         rpe = 9f,
@@ -949,27 +949,27 @@ class PRDetectionServiceTest {
                     actualRpe = 9f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock exercise variation
             val variation =
-                mockk<ExerciseVariation> {
-                    coEvery { rmScalingType } returns RMScalingType.STANDARD
+                mockk<Exercise> {
+                    coEvery { rmScalingType } returns RMScalingType.STANDARD.name
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns variation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns variation
 
             // Previous best: both weight and 1RM are lower
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns 95f
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns 105f
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns 95f
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns 105f
 
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, any()) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, any()) } returns null
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert - Should only get weight PR, not duplicate 1RM PR
             assertThat(result).hasSize(1)
@@ -988,22 +988,22 @@ class PRDetectionServiceTest {
                     actualRpe = 8f,
                     isCompleted = true,
                 )
-            val exerciseVariationId = "1"
+            val exerciseId = "1"
 
             // Mock null exercise variation
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns null
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns null
 
             // Mock previous best weight
-            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId) } returns null
-            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, any()) } returns null
+            coEvery { personalRecordDao.getMaxWeightForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getMaxEstimated1RMForExercise(exerciseId) } returns null
+            coEvery { personalRecordDao.getLatestPRForExerciseAndType(exerciseId, any()) } returns null
 
             // Mock workout data
             coEvery { setLogDao.getWorkoutDateForSetLog(setLog.id) } returns LocalDateTime.now().toString()
             coEvery { setLogDao.getWorkoutIdForSetLog(setLog.id) } returns "1"
 
             // Act
-            val result = service.checkForPR(setLog, exerciseVariationId)
+            val result = service.checkForPR(setLog, exerciseId)
 
             // Assert - Should still work with default STANDARD scaling
             assertThat(result).hasSize(1)

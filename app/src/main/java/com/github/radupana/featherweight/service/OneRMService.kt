@@ -3,8 +3,8 @@ package com.github.radupana.featherweight.service
 import android.util.Log
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.exercise.RMScalingType
+import com.github.radupana.featherweight.data.profile.ExerciseMaxTracking
 import com.github.radupana.featherweight.data.profile.OneRMType
-import com.github.radupana.featherweight.data.profile.UserExerciseMax
 import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.LocalDateTime
 import kotlin.math.pow
@@ -80,6 +80,13 @@ class OneRMService {
                 RMScalingType.STANDARD -> {
                     val calc = weight / (1.0278f - 0.0278f * totalRepCapacity)
                     Log.d("OneRMService", "Standard Brzycki: $weight / (1.0278 - 0.0278 × $totalRepCapacity) = $calc")
+                    calc
+                }
+                RMScalingType.CONSERVATIVE, RMScalingType.UNKNOWN -> {
+                    // Use standard formula with 5% reduction for safety
+                    val standardCalc = weight / (1.0278f - 0.0278f * totalRepCapacity)
+                    val calc = standardCalc * 0.95f
+                    Log.d("OneRMService", "Conservative formula: Standard × 0.95 = $standardCalc × 0.95 = $calc")
                     calc
                 }
             }
@@ -171,7 +178,7 @@ class OneRMService {
     }
 
     /**
-     * Create a UserExerciseMax record from a completed set
+     * Create an ExerciseMaxTracking record from a completed set
      */
     fun createOneRMRecord(
         exerciseId: String,
@@ -179,7 +186,7 @@ class OneRMService {
         estimate: Float,
         confidence: Float,
         mostWeightData: MostWeightData? = null,
-    ): UserExerciseMax {
+    ): ExerciseMaxTracking {
         val context = buildContext(set.actualWeight, set.actualReps, set.actualRpe)
 
         // Use provided most weight data or use this set's data
@@ -191,19 +198,20 @@ class OneRMService {
                 date = LocalDateTime.now(),
             )
 
-        return UserExerciseMax(
+        return ExerciseMaxTracking(
             userId = set.userId,
-            exerciseVariationId = exerciseId,
+            exerciseId = exerciseId,
             mostWeightLifted = mostWeight.weight,
             mostWeightReps = mostWeight.reps,
             mostWeightRpe = mostWeight.rpe,
             mostWeightDate = mostWeight.date,
             oneRMEstimate = estimate,
-            oneRMContext = context,
+            context = context,
             oneRMConfidence = confidence,
-            oneRMDate = LocalDateTime.now(),
+            recordedAt = LocalDateTime.now(),
+            sourceSetId = set.id,
             oneRMType = OneRMType.AUTOMATICALLY_CALCULATED,
-            // Note: isCustomExercise should be set by the caller since we can't check async here
+            notes = null,
         )
     }
 

@@ -20,9 +20,9 @@ interface ExerciseLogDao {
     @Query("DELETE FROM exercise_logs WHERE id = :exerciseLogId")
     suspend fun deleteExerciseLog(exerciseLogId: String)
 
-    @Query("SELECT COUNT(*) FROM exercise_logs WHERE exerciseVariationId = :exerciseVariationId AND userId = :userId")
+    @Query("SELECT COUNT(*) FROM exercise_logs WHERE exerciseId = :exerciseId AND userId = :userId")
     suspend fun getExerciseUsageCount(
-        exerciseVariationId: String,
+        exerciseId: String,
         userId: String,
     ): Int
 
@@ -42,7 +42,7 @@ interface ExerciseLogDao {
         """
         SELECT el.* FROM exercise_logs el
         INNER JOIN workouts w ON el.workoutId = w.id
-        WHERE el.exerciseVariationId = :exerciseVariationId
+        WHERE el.exerciseId = :exerciseId
         AND el.userId = :userId
         AND w.date >= :startDate
         AND w.date <= :endDate
@@ -51,7 +51,7 @@ interface ExerciseLogDao {
     """,
     )
     suspend fun getExerciseLogsInDateRange(
-        exerciseVariationId: String,
+        exerciseId: String,
         userId: String,
         startDate: java.time.LocalDateTime,
         endDate: java.time.LocalDateTime,
@@ -70,26 +70,26 @@ interface ExerciseLogDao {
         """
         SELECT COUNT(DISTINCT w.id) FROM exercise_logs el
         INNER JOIN workouts w ON el.workoutId = w.id
-        WHERE el.exerciseVariationId = :exerciseVariationId
+        WHERE el.exerciseId = :exerciseId
         AND el.userId = :userId
         AND w.status = 'COMPLETED'
     """,
     )
     suspend fun getTotalSessionsForExercise(
-        exerciseVariationId: String,
+        exerciseId: String,
         userId: String,
     ): Int
 
     @Query(
         """
-        SELECT DISTINCT el.exerciseVariationId FROM exercise_logs el
+        SELECT DISTINCT el.exerciseId FROM exercise_logs el
         INNER JOIN workouts w ON el.workoutId = w.id
         WHERE el.userId = :userId
         AND w.status = 'COMPLETED'
-        ORDER BY el.exerciseVariationId
+        ORDER BY el.exerciseId
     """,
     )
-    suspend fun getAllUniqueExerciseVariationIds(userId: String): List<String>
+    suspend fun getAllUniqueExerciseIds(userId: String): List<String>
 
     @Query("DELETE FROM exercise_logs")
     suspend fun deleteAllExerciseLogs()
@@ -98,7 +98,7 @@ interface ExerciseLogDao {
         """
         SELECT w.* FROM exercise_logs el
         INNER JOIN workouts w ON el.workoutId = w.id
-        WHERE el.exerciseVariationId = :exerciseVariationId
+        WHERE el.exerciseId = :exerciseId
         AND el.userId = :userId
         AND w.status = 'COMPLETED'
         AND w.date >= :startDate
@@ -108,7 +108,7 @@ interface ExerciseLogDao {
     """,
     )
     suspend fun getDistinctWorkoutsForExercise(
-        exerciseVariationId: String,
+        exerciseId: String,
         userId: String,
         startDate: java.time.LocalDateTime,
         endDate: java.time.LocalDateTime,

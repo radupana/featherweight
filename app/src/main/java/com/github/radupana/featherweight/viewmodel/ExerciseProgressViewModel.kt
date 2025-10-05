@@ -37,7 +37,7 @@ class ExerciseProgressViewModel(
     }
 
     data class ExerciseProgressData(
-        val exerciseVariationId: String,
+        val exerciseId: String,
         val exerciseName: String,
         val allTimePR: Float,
         val allTimePRDate: LocalDate?,
@@ -104,18 +104,18 @@ class ExerciseProgressViewModel(
         RPE_ZONES,
     }
 
-    fun loadExerciseData(exerciseVariationId: String) {
+    fun loadExerciseData(exerciseId: String) {
         viewModelScope.launch {
             _state.value = ExerciseProgressState.Loading
 
             try {
-                val globalProgress = repository.getGlobalExerciseProgress(exerciseVariationId)
+                val globalProgress = repository.getGlobalExerciseProgress(exerciseId)
                 if (globalProgress == null) {
                     _state.value = ExerciseProgressState.Success(null)
                     return@launch
                 }
 
-                val progressData = buildExerciseProgressData(exerciseVariationId, globalProgress)
+                val progressData = buildExerciseProgressData(exerciseId, globalProgress)
                 _state.value = ExerciseProgressState.Success(progressData)
             } catch (e: android.database.sqlite.SQLiteException) {
                 _state.value = ExerciseProgressState.Error("Database error: ${e.message}")
@@ -126,19 +126,19 @@ class ExerciseProgressViewModel(
     }
 
     private suspend fun buildExerciseProgressData(
-        exerciseVariationId: String,
+        exerciseId: String,
         globalProgress: GlobalExerciseProgress,
     ): ExerciseProgressData {
-        val exercise = repository.getExerciseById(exerciseVariationId)
+        val exercise = repository.getExerciseById(exerciseId)
         val exerciseName = exercise?.name ?: "Unknown Exercise"
 
-        val prData = calculatePRData(exerciseVariationId)
-        val recentBestData = calculateRecentBest(exerciseVariationId)
-        val frequencyData = calculateFrequencyData(exerciseVariationId)
+        val prData = calculatePRData(exerciseId)
+        val recentBestData = calculateRecentBest(exerciseId)
+        val frequencyData = calculateFrequencyData(exerciseId)
         val progressStatusData = determineProgressStatus(globalProgress, recentBestData.weight)
 
         return ExerciseProgressData(
-            exerciseVariationId = exerciseVariationId,
+            exerciseId = exerciseId,
             exerciseName = exerciseName,
             allTimePR = prData.weight,
             allTimePRDate = prData.date,
@@ -180,15 +180,15 @@ class ExerciseProgressViewModel(
         val plateauWeeks: Int,
     )
 
-    private suspend fun calculatePRData(exerciseVariationId: String): PRData {
-        val prRecord = repository.getPersonalRecordForExercise(exerciseVariationId)
+    private suspend fun calculatePRData(exerciseId: String): PRData {
+        val prRecord = repository.getPersonalRecordForExercise(exerciseId)
         return PRData(
             weight = prRecord?.weight ?: 0f,
             date = prRecord?.recordDate?.toLocalDate(),
         )
     }
 
-    private suspend fun calculateRecentBest(exerciseVariationId: String): RecentBestData {
+    private suspend fun calculateRecentBest(exerciseId: String): RecentBestData {
         val now = LocalDate.now()
         val thirtyDaysAgo = now.minusDays(30)
         var recentBestDate: LocalDate? = null
@@ -196,26 +196,26 @@ class ExerciseProgressViewModel(
         val recentBest =
             repository
                 .getMaxWeightForExerciseInDateRange(
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     startDate = thirtyDaysAgo,
                     endDate = now,
                 )?.also {
                     recentBestDate =
                         repository.getDateOfMaxWeightForExercise(
-                            exerciseVariationId = exerciseVariationId,
+                            exerciseId = exerciseId,
                             weight = it,
                             startDate = thirtyDaysAgo,
                             endDate = now,
                         )
                 } ?: repository
                 .getMaxWeightForExerciseInDateRange(
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     startDate = now.minusDays(60),
                     endDate = now,
                 )?.also {
                     recentBestDate =
                         repository.getDateOfMaxWeightForExercise(
-                            exerciseVariationId = exerciseVariationId,
+                            exerciseId = exerciseId,
                             weight = it,
                             startDate = now.minusDays(60),
                             endDate = now,
@@ -225,7 +225,7 @@ class ExerciseProgressViewModel(
         return RecentBestData(recentBest, recentBestDate)
     }
 
-    private suspend fun calculateFrequencyData(exerciseVariationId: String): FrequencyData {
+    private suspend fun calculateFrequencyData(exerciseId: String): FrequencyData {
         val now = LocalDate.now()
         val eightWeeksAgo = now.minusWeeks(8)
         val fourWeeksAgo = now.minusWeeks(4)
@@ -233,7 +233,7 @@ class ExerciseProgressViewModel(
         val sessionCountLast8Weeks =
             repository
                 .getDistinctWorkoutDatesForExercise(
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     startDate = eightWeeksAgo,
                     endDate = now,
                 ).size
@@ -241,7 +241,7 @@ class ExerciseProgressViewModel(
         val sessionCountLast4Weeks =
             repository
                 .getDistinctWorkoutDatesForExercise(
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     startDate = fourWeeksAgo,
                     endDate = now,
                 ).size
@@ -249,7 +249,7 @@ class ExerciseProgressViewModel(
         val sessionCountPrevious4Weeks =
             repository
                 .getDistinctWorkoutDatesForExercise(
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     startDate = eightWeeksAgo,
                     endDate = fourWeeksAgo,
                 ).size
@@ -321,11 +321,11 @@ class ExerciseProgressViewModel(
         }
     }
 
-    fun loadChartData(exerciseVariationId: String) {
+    fun loadChartData(exerciseId: String) {
         viewModelScope.launch {
             try {
                 // Get exercise name for display
-                val exercise = repository.getExerciseById(exerciseVariationId)
+                val exercise = repository.getExerciseById(exerciseId)
                 val exerciseName = exercise?.name ?: "Unknown Exercise"
 
                 // Get 1RM history data for this exercise
@@ -386,7 +386,7 @@ class ExerciseProgressViewModel(
         }
     }
 
-    fun loadMaxWeightChartData(exerciseVariationId: String) {
+    fun loadMaxWeightChartData(exerciseId: String) {
         viewModelScope.launch {
             try {
                 // Get workout data for this exercise in the last 2 years
@@ -395,7 +395,7 @@ class ExerciseProgressViewModel(
 
                 val workouts =
                     repository.getExerciseWorkoutsInDateRange(
-                        exerciseVariationId = exerciseVariationId,
+                        exerciseId = exerciseId,
                         startDate = startDate,
                         endDate = endDate,
                     )
@@ -452,7 +452,7 @@ class ExerciseProgressViewModel(
         _selectedChartType.value = chartType
     }
 
-    fun loadVolumeChartData(exerciseVariationId: String) {
+    fun loadVolumeChartData(exerciseId: String) {
         viewModelScope.launch {
             try {
                 // Get workout data for this exercise in the last 12 weeks
@@ -461,7 +461,7 @@ class ExerciseProgressViewModel(
 
                 val workouts =
                     repository.getExerciseWorkoutsInDateRange(
-                        exerciseVariationId = exerciseVariationId,
+                        exerciseId = exerciseId,
                         startDate = startDate,
                         endDate = endDate,
                     )
@@ -503,12 +503,12 @@ class ExerciseProgressViewModel(
         _selectedPatternType.value = patternType
     }
 
-    fun loadTrainingPatternsData(exerciseVariationId: String) {
+    fun loadTrainingPatternsData(exerciseId: String) {
         viewModelScope.launch {
             try {
-                loadFrequencyData(exerciseVariationId)
-                loadRepRangeData(exerciseVariationId)
-                loadRPEZoneData(exerciseVariationId)
+                loadFrequencyData(exerciseId)
+                loadRepRangeData(exerciseId)
+                loadRPEZoneData(exerciseId)
             } catch (e: IllegalArgumentException) {
                 android.util.Log.e("ExerciseProgress", "Error loading training patterns data", e)
             } catch (e: IllegalStateException) {
@@ -519,7 +519,7 @@ class ExerciseProgressViewModel(
         }
     }
 
-    private suspend fun loadFrequencyData(exerciseVariationId: String) {
+    private suspend fun loadFrequencyData(exerciseId: String) {
         try {
             // Get workout data for this exercise in the last 12 weeks
             val startDate = LocalDate.now().minusWeeks(12)
@@ -527,7 +527,7 @@ class ExerciseProgressViewModel(
 
             val workouts =
                 repository.getExerciseWorkoutsInDateRange(
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     startDate = startDate,
                     endDate = endDate,
                 )
@@ -558,7 +558,7 @@ class ExerciseProgressViewModel(
         }
     }
 
-    private suspend fun loadRepRangeData(exerciseVariationId: String) {
+    private suspend fun loadRepRangeData(exerciseId: String) {
         try {
             // Get workout data for this exercise in the last 12 weeks
             val startDate = LocalDate.now().minusWeeks(12)
@@ -566,7 +566,7 @@ class ExerciseProgressViewModel(
 
             val workouts =
                 repository.getExerciseWorkoutsInDateRange(
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     startDate = startDate,
                     endDate = endDate,
                 )
@@ -609,7 +609,7 @@ class ExerciseProgressViewModel(
         }
     }
 
-    private suspend fun loadRPEZoneData(exerciseVariationId: String) {
+    private suspend fun loadRPEZoneData(exerciseId: String) {
         try {
             // Get set logs with RPE data for this exercise in the last 12 weeks
             val startDate = LocalDate.now().minusWeeks(12)
@@ -617,7 +617,7 @@ class ExerciseProgressViewModel(
 
             val sets =
                 repository.getSetLogsForExerciseInDateRange(
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     startDate = startDate,
                     endDate = endDate,
                 )

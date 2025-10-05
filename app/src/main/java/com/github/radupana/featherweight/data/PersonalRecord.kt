@@ -13,7 +13,7 @@ enum class PRType {
 @Entity(
     tableName = "personal_records",
     indices = [
-        androidx.room.Index(value = ["exerciseVariationId"]),
+        androidx.room.Index(value = ["exerciseId"]),
         androidx.room.Index("userId"),
     ],
     // Note: Removed foreign key since it can reference either system or custom exercises
@@ -21,7 +21,7 @@ enum class PRType {
 data class PersonalRecord(
     @PrimaryKey val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val exerciseVariationId: String, // References exercise_variations table
+    val exerciseId: String, // References exercises table
     val weight: Float,
     val reps: Int,
     val rpe: Float? = null,

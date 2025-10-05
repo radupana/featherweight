@@ -17,7 +17,7 @@ class ExerciseProgressViewModelStateTest {
     fun `ExerciseProgressState Success state holds data correctly`() {
         val progressData =
             ExerciseProgressViewModel.ExerciseProgressData(
-                exerciseVariationId = "1",
+                exerciseId = "1",
                 exerciseName = "Squat",
                 allTimePR = 125f,
                 allTimePRDate = LocalDate.now(),

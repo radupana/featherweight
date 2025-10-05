@@ -31,12 +31,6 @@ data class SetLog(
     val actualReps: Int = 0,
     val actualWeight: Float = 0f,
     val actualRpe: Float? = null,
-    // Intelligent suggestions with explanations
-    val suggestedWeight: Float? = null,
-    val suggestedReps: Int? = null,
-    val suggestionSource: String? = null, // JSON with sources
-    val suggestionConfidence: Float? = null, // 0.0-1.0
-    val calculationDetails: String? = null, // JSON explaining the math
     // Metadata
     val tag: String? = null,
     val notes: String? = null,

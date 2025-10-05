@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.ExerciseLog
+import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.repository.FeatherweightRepository
@@ -34,24 +35,9 @@ class WorkoutCompletionViewModel(
     private fun loadExerciseNames() {
         viewModelScope.launch {
             try {
-                // Load both system and custom exercise names
-                val systemExercises = repository.getAllExercises()
-                val customExercises = repository.getCustomExercises()
-
-                val nameMap = mutableMapOf<String, String>()
-
-                // Add system exercises with "system_" prefix
-                systemExercises.forEach { exercise ->
-                    nameMap["system_${exercise.id}"] = exercise.name
-                }
-
-                // Add custom exercises with "custom_" prefix
-                customExercises.forEach { exercise ->
-                    nameMap["custom_${exercise.id}"] = exercise.name
-                }
-
-                Log.d(TAG, "Loaded ${systemExercises.size} system exercises and ${customExercises.size} custom exercises")
-                _exerciseNames.value = nameMap
+                val exercises = repository.getAllExercises()
+                _exerciseNames.value = exercises.associate { it.id to it.name }
+                Log.d(TAG, "Loaded ${exercises.size} exercise names")
             } catch (e: android.database.sqlite.SQLiteException) {
                 Log.e(TAG, "Database error loading exercise names", e)
             }
@@ -105,6 +91,21 @@ class WorkoutCompletionViewModel(
         }
     }
 
+    /**
+     * Filters personal records to show only the best PR per exercise and record type.
+     * For multiple PRs of the same exercise and type within a workout, returns only the highest achievement.
+     */
+    internal fun filterBestPersonalRecords(personalRecords: List<PersonalRecord>): List<PersonalRecord> =
+        personalRecords
+            .groupBy { pr -> pr.exerciseId to pr.recordType }
+            .mapNotNull { (_, prsForExerciseAndType) ->
+                when (prsForExerciseAndType.firstOrNull()?.recordType) {
+                    PRType.WEIGHT -> prsForExerciseAndType.maxByOrNull { it.weight }
+                    PRType.ESTIMATED_1RM -> prsForExerciseAndType.maxByOrNull { it.estimated1RM ?: 0f }
+                    null -> null
+                }
+            }
+
     private suspend fun calculateSummary(
         workout: com.github.radupana.featherweight.data.Workout,
         exercises: List<ExerciseLog>,
@@ -147,7 +148,7 @@ class WorkoutCompletionViewModel(
                 val exerciseName =
                     exerciseLog?.let { log ->
                         // Get from unified exercise table
-                        repository.getExerciseVariationById(log.exerciseVariationId)?.name
+                        repository.getExerciseById(log.exerciseId)?.name
                     } ?: ""
                 SetInfo(
                     weight = set.actualWeight,
@@ -163,7 +164,7 @@ class WorkoutCompletionViewModel(
                     val exerciseLog = exercises.find { it.id == set.exerciseLogId }
                     exerciseLog?.let { log ->
                         // Get from unified exercise table
-                        repository.getExerciseVariationById(log.exerciseVariationId)?.name
+                        repository.getExerciseById(log.exerciseId)?.name
                     } ?: ""
                 }.mapValues { (_, sets) ->
                     sets.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
@@ -180,7 +181,7 @@ class WorkoutCompletionViewModel(
                             val name =
                                 exerciseLog?.let { log ->
                                     // Get from unified exercise table
-                                    repository.getExerciseVariationById(log.exerciseVariationId)?.name
+                                    repository.getExerciseById(log.exerciseId)?.name
                                 }
                             name == it.key
                         },
@@ -190,6 +191,9 @@ class WorkoutCompletionViewModel(
         // Calculate average intensity if 1RMs are available
         val averageIntensity = calculateAverageIntensity(exercises, completedSets)
 
+        // Filter personal records to show only the best per exercise
+        val filteredPersonalRecords = filterBestPersonalRecords(personalRecords)
+
         return CompletionSummary(
             totalVolume = totalVolume,
             duration = duration,
@@ -197,7 +201,7 @@ class WorkoutCompletionViewModel(
             totalSets = sets.size,
             totalReps = totalReps,
             exerciseCount = exercises.size,
-            personalRecords = personalRecords,
+            personalRecords = filteredPersonalRecords,
             averageRpe = averageRpe,
             heaviestSet = heaviestSet,
             volumeLeader = volumeLeader,
@@ -213,7 +217,7 @@ class WorkoutCompletionViewModel(
 
         for (set in completedSets) {
             val exerciseLog = exercises.find { it.id == set.exerciseLogId } ?: continue
-            val oneRM = repository.getCurrentOneRMEstimate(exerciseLog.exerciseVariationId) ?: continue
+            val oneRM = repository.getCurrentOneRMEstimate(exerciseLog.exerciseId) ?: continue
 
             if (oneRM > 0) {
                 val intensity = (set.actualWeight / oneRM) * 100

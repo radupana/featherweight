@@ -3,8 +3,9 @@ package com.github.radupana.featherweight.viewmodel
 import android.app.Application
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.github.radupana.featherweight.data.exercise.Equipment
+import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.ExerciseType
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.data.exercise.UserExerciseUsage
 import com.github.radupana.featherweight.repository.FeatherweightRepository
@@ -50,7 +51,7 @@ class ExerciseSelectorViewModelTest {
         coEvery { mockRepository.getAllExercises() } returns emptyList()
         coEvery { mockRepository.getCustomExercises() } returns emptyList()
         coEvery { mockRepository.getMusclesForVariation(any()) } returns emptyList()
-        coEvery { mockRepository.getAliasesForVariation(any()) } returns emptyList()
+        coEvery { mockRepository.getAliasesForExercise(any()) } returns emptyList()
         coEvery { mockRepository.getCurrentUserId() } returns null
         coEvery { mockRepository.getUserExerciseUsage(any(), any()) } returns null
     }
@@ -213,38 +214,42 @@ class ExerciseSelectorViewModelTest {
             val exercises = viewModel.filteredExercises.first()
             assertThat(exercises).hasSize(1)
             assertThat(exercises[0].usageCount).isEqualTo(0)
-            assertThat(exercises[0].isFavorite).isFalse()
         }
 
     // Helper functions
     private fun createTestExercise(
         id: String,
         name: String,
-    ) = ExerciseVariation(
+    ) = Exercise(
         id = id,
-        coreExerciseId = "1",
+        type = ExerciseType.SYSTEM.name,
+        userId = null,
         name = name,
-        equipment = Equipment.BARBELL,
-        difficulty = ExerciseDifficulty.INTERMEDIATE,
+        category = com.github.radupana.featherweight.data.exercise.ExerciseCategory.LEGS.name,
+        movementPattern = com.github.radupana.featherweight.data.exercise.MovementPattern.SQUAT.name,
+        isCompound = true,
+        equipment = Equipment.BARBELL.name,
+        difficulty = ExerciseDifficulty.INTERMEDIATE.name,
         requiresWeight = true,
-        recommendedRepRange = "8-12",
-        rmScalingType = RMScalingType.STANDARD,
+        rmScalingType = RMScalingType.STANDARD.name,
         restDurationSeconds = 90,
     )
 
     private fun createCustomExercise(
         id: String,
         name: String,
-    ) = ExerciseVariation(
+    ) = Exercise(
         id = id,
+        type = ExerciseType.USER.name,
         userId = "local",
-        coreExerciseId = "1",
         name = name,
-        equipment = Equipment.CABLE,
-        difficulty = ExerciseDifficulty.INTERMEDIATE,
+        category = com.github.radupana.featherweight.data.exercise.ExerciseCategory.CHEST.name,
+        movementPattern = com.github.radupana.featherweight.data.exercise.MovementPattern.HORIZONTAL_PUSH.name,
+        isCompound = false,
+        equipment = Equipment.CABLE.name,
+        difficulty = ExerciseDifficulty.INTERMEDIATE.name,
         requiresWeight = true,
-        recommendedRepRange = "12-15",
-        rmScalingType = RMScalingType.STANDARD,
+        rmScalingType = RMScalingType.STANDARD.name,
         restDurationSeconds = 60,
     )
 
@@ -255,9 +260,8 @@ class ExerciseSelectorViewModelTest {
     ) = UserExerciseUsage(
         id = exerciseId,
         userId = userId,
-        exerciseVariationId = exerciseId,
+        exerciseId = exerciseId,
         usageCount = usageCount,
-        favorited = false,
         createdAt = LocalDateTime.now(),
         updatedAt = LocalDateTime.now(),
     )

@@ -69,7 +69,7 @@ class HistoryViewModel(
             database.workoutDao(),
             database.exerciseLogDao(),
             database.setLogDao(),
-            database.oneRMDao(),
+            database.exerciseMaxTrackingDao(),
             repository,
             authManager,
             ServiceLocator.provideWeightUnitManager(application),

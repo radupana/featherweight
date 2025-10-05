@@ -10,7 +10,7 @@ import java.time.LocalDateTime
     tableName = "user_exercise_maxes",
     // Note: Removed foreign key since it can reference either system or custom exercises
     indices = [
-        Index(value = ["exerciseVariationId"]),
+        Index(value = ["exerciseId"]),
         Index("userId"),
     ],
 )
@@ -18,7 +18,7 @@ data class UserExerciseMax(
     @PrimaryKey
     val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val exerciseVariationId: String, // References exercise_variations table
+    val exerciseId: String, // References exercises table
     // Most weight ever lifted
     val mostWeightLifted: Float,
     val mostWeightReps: Int,

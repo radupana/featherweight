@@ -527,7 +527,7 @@ class WorkoutSeedingService(
                 val exerciseLog =
                     ExerciseLog(
                         workoutId = workoutId,
-                        exerciseVariationId = exercise.id,
+                        exerciseId = exercise.id,
                         exerciseOrder = allExercises.indexOf(plannedExercise) + 1,
                         notes = null,
                     )
@@ -617,13 +617,21 @@ class WorkoutSeedingService(
                 val sets = repository.getSetLogsForExercise(exerciseLog.id)
 
                 // Get the exercise variation to determine scaling type
-                val exerciseVariation = repository.getExerciseById(exerciseLog.exerciseVariationId)
-                val scalingType = exerciseVariation?.rmScalingType ?: com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
+                val exerciseVariation = repository.getExerciseById(exerciseLog.exerciseId)
+                val scalingType =
+                    exerciseVariation?.rmScalingType?.let {
+                        try {
+                            com.github.radupana.featherweight.data.exercise.RMScalingType
+                                .valueOf(it)
+                        } catch (e: IllegalArgumentException) {
+                            com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
+                        }
+                    } ?: com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
 
                 // Get current 1RM for this exercise
                 val currentMax =
                     repository
-                        .getCurrentMaxesForExercises(listOf(exerciseLog.exerciseVariationId))[exerciseLog.exerciseVariationId]
+                        .getCurrentMaxesForExercises(listOf(exerciseLog.exerciseId))[exerciseLog.exerciseId]
 
                 // Find the best set that would actually update the 1RM
                 var shouldUpdate = false
@@ -633,9 +641,9 @@ class WorkoutSeedingService(
                 sets.filter { it.isCompleted }.forEach { set ->
                     // Check for PRs
                     try {
-                        repository.checkForPR(set, exerciseLog.exerciseVariationId)
+                        repository.checkForPR(set, exerciseLog.exerciseId)
                     } catch (e: IllegalStateException) {
-                        Log.w(TAG, "PR check failed during seeding for exerciseId: ${exerciseLog.exerciseVariationId}, setId: ${set.id}", e)
+                        Log.w(TAG, "PR check failed during seeding for exerciseId: ${exerciseLog.exerciseId}, setId: ${set.id}", e)
                     }
 
                     // Only calculate 1RM for meaningful sets (not warmups)
@@ -683,7 +691,7 @@ class WorkoutSeedingService(
 
                     try {
                         repository.upsertExerciseMax(
-                            exerciseVariationId = exerciseLog.exerciseVariationId,
+                            exerciseId = exerciseLog.exerciseId,
                             oneRMEstimate = bestEstimated1RM,
                             oneRMContext = context,
                             oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
@@ -691,7 +699,7 @@ class WorkoutSeedingService(
                             workoutDate = workout.date,
                         )
                     } catch (e: IllegalStateException) {
-                        Log.w(TAG, "1RM update failed during seeding for exerciseId: ${exerciseLog.exerciseVariationId}, workoutId: $workoutId", e)
+                        Log.w(TAG, "1RM update failed during seeding for exerciseId: ${exerciseLog.exerciseId}, workoutId: $workoutId", e)
                     }
                 }
             }

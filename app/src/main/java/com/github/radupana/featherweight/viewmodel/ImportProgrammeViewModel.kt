@@ -223,7 +223,7 @@ class ImportProgrammeViewModel(
 
     private fun findBestExerciseMatch(
         exerciseName: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
     ): String? {
         val nameLower = exerciseName.lowercase().trim()
         Log.d("ImportProgrammeViewModel", "=== EXERCISE MATCHING START ===")
@@ -248,7 +248,7 @@ class ImportProgrammeViewModel(
 
     private fun tryExactNameMatch(
         nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
     ): String? =
         allExercises.find { it.name.lowercase() == nameLower }?.let {
             Log.d("ImportProgrammeViewModel", "Exact name match found: ${it.name} (ID: ${it.id})")
@@ -257,7 +257,7 @@ class ImportProgrammeViewModel(
 
     private fun tryExactAliasMatch(
         nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
     ): String? =
         allExercises
             .find { exercise ->
@@ -269,7 +269,7 @@ class ImportProgrammeViewModel(
 
     private fun tryImportantWordsMatch(
         nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
     ): String? {
         val inputEquipment = extractEquipment(nameLower)
         val importantWords = nameLower.split(" ").filter { it.length > 2 }
@@ -300,7 +300,7 @@ class ImportProgrammeViewModel(
 
     private fun tryVariationMatch(
         nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
     ): String? {
         if (!nameLower.contains(" or ")) return null
 
@@ -317,7 +317,7 @@ class ImportProgrammeViewModel(
 
     private fun tryNormalizedMatch(
         nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
     ): String? {
         val nameWithVariations = nameLower.replace("weighted ", "").trim()
         return allExercises
@@ -328,7 +328,7 @@ class ImportProgrammeViewModel(
 
     private fun tryEquipmentStrippedMatch(
         nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
     ): String? {
         val nameWithoutEquipment = stripEquipmentFromName(nameLower)
 
@@ -351,7 +351,7 @@ class ImportProgrammeViewModel(
 
     private fun tryAbbreviationMatch(
         nameLower: String,
-        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases>,
+        allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
     ): String? {
         val normalizedName = normalizeExerciseName(nameLower)
         return allExercises

@@ -20,7 +20,7 @@ enum class VolumeTrend {
 @Entity(
     tableName = "global_exercise_progress",
     indices = [
-        androidx.room.Index(value = ["exerciseVariationId"]),
+        androidx.room.Index(value = ["exerciseId"]),
         androidx.room.Index("userId"),
     ],
     // Note: Removed foreign key since it can reference either system or custom exercises
@@ -29,8 +29,7 @@ data class GlobalExerciseProgress(
     @PrimaryKey
     val id: String = IdGenerator.generateId(),
     val userId: String? = null,
-    val exerciseVariationId: String, // Can reference either system or custom exercise
-    val isCustomExercise: Boolean = false, // true = custom exercise, false = system exercise
+    val exerciseId: String, // Can reference either system or custom exercise
     val currentWorkingWeight: Float, // Most recent working weight
     val estimatedMax: Float, // Calculated or from UserExerciseMax
     val lastUpdated: LocalDateTime,

@@ -8,17 +8,16 @@ import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SetLogDao
 import com.github.radupana.featherweight.data.exercise.Equipment
+import com.github.radupana.featherweight.data.exercise.Exercise
+import com.github.radupana.featherweight.data.exercise.ExerciseAlias
+import com.github.radupana.featherweight.data.exercise.ExerciseAliasDao
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
-import com.github.radupana.featherweight.data.exercise.ExerciseCore
-import com.github.radupana.featherweight.data.exercise.ExerciseCoreDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
-import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
+import com.github.radupana.featherweight.data.exercise.ExerciseMuscleDao
+import com.github.radupana.featherweight.data.exercise.ExerciseType
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.UserExerciseUsageDao
-import com.github.radupana.featherweight.data.exercise.VariationAlias
-import com.github.radupana.featherweight.data.exercise.VariationMuscleDao
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -39,13 +38,11 @@ class ExerciseRepositoryTest {
     private lateinit var exerciseLogDao: ExerciseLogDao
     private lateinit var setLogDao: SetLogDao
     private lateinit var exerciseSwapHistoryDao: ExerciseSwapHistoryDao
-    private lateinit var exerciseCoreDao: ExerciseCoreDao
-    private lateinit var exerciseVariationDao: ExerciseVariationDao
-    private lateinit var variationMuscleDao: VariationMuscleDao
+    private lateinit var exerciseAliasDao: ExerciseAliasDao
+    private lateinit var exerciseMuscleDao: ExerciseMuscleDao
     private lateinit var userExerciseUsageDao: UserExerciseUsageDao
 
-    private lateinit var mockCore: ExerciseCore
-    private lateinit var mockVariation: ExerciseVariation
+    private lateinit var mockVariation: Exercise
     private lateinit var mockExerciseLog: ExerciseLog
     private lateinit var mockSetLog: SetLog
 
@@ -64,40 +61,31 @@ class ExerciseRepositoryTest {
         exerciseLogDao = mockk<ExerciseLogDao>()
         setLogDao = mockk<SetLogDao>()
         exerciseSwapHistoryDao = mockk<ExerciseSwapHistoryDao>()
-        exerciseCoreDao = mockk<ExerciseCoreDao>()
-        exerciseVariationDao = mockk<ExerciseVariationDao>()
-        variationMuscleDao = mockk<VariationMuscleDao>()
+        exerciseAliasDao = mockk<ExerciseAliasDao>()
+        exerciseMuscleDao = mockk<ExerciseMuscleDao>()
         userExerciseUsageDao = mockk<UserExerciseUsageDao>(relaxed = true)
 
         every { db.exerciseDao() } returns exerciseDao
         every { db.exerciseLogDao() } returns exerciseLogDao
         every { db.setLogDao() } returns setLogDao
         every { db.exerciseSwapHistoryDao() } returns exerciseSwapHistoryDao
-        every { db.exerciseCoreDao() } returns exerciseCoreDao
-        every { db.exerciseVariationDao() } returns exerciseVariationDao
-        every { db.variationMuscleDao() } returns variationMuscleDao
+        every { db.exerciseAliasDao() } returns exerciseAliasDao
+        every { db.exerciseMuscleDao() } returns exerciseMuscleDao
         every { db.userExerciseUsageDao() } returns userExerciseUsageDao
 
         val authManager = mockk<AuthenticationManager>(relaxed = true)
         every { authManager.getCurrentUserId() } returns "test-user"
         repository = ExerciseRepository(db, authManager)
 
-        mockCore =
-            ExerciseCore(
-                id = "1",
-                name = "Bench Press",
-                category = ExerciseCategory.CHEST,
-                movementPattern = MovementPattern.PUSH,
-                isCompound = true,
-            )
-
         mockVariation =
-            ExerciseVariation(
+            Exercise(
                 id = "1",
-                coreExerciseId = "1",
                 name = "Barbell Bench Press",
-                equipment = Equipment.BARBELL,
-                difficulty = ExerciseDifficulty.INTERMEDIATE,
+                category = ExerciseCategory.CHEST.name,
+                movementPattern = MovementPattern.PUSH.name,
+                isCompound = true,
+                equipment = Equipment.BARBELL.name,
+                difficulty = ExerciseDifficulty.INTERMEDIATE.name,
                 requiresWeight = true,
             )
 
@@ -106,7 +94,7 @@ class ExerciseRepositoryTest {
                 id = "1",
                 userId = null,
                 workoutId = "1",
-                exerciseVariationId = "1",
+                exerciseId = "1",
                 exerciseOrder = 1,
                 notes = "Felt strong",
             )
@@ -147,11 +135,11 @@ class ExerciseRepositoryTest {
             val variations = listOf(mockVariation)
             val aliases =
                 listOf(
-                    VariationAlias(id = "1", variationId = "1", alias = "BP"),
-                    VariationAlias(id = "2", variationId = "1", alias = "Bench"),
+                    ExerciseAlias(id = "1", exerciseId = "1", alias = "BP"),
+                    ExerciseAlias(id = "2", exerciseId = "1", alias = "Bench"),
                 )
             coEvery { exerciseDao.getAllExercises() } returns variations
-            coEvery { exerciseDao.getAliasesForVariation("1") } returns aliases
+            coEvery { exerciseAliasDao.getAliasesForExercise("1") } returns aliases
 
             // Act
             val result = repository.getAllExercisesWithAliases()
@@ -170,12 +158,12 @@ class ExerciseRepositoryTest {
                     mockVariation,
                     mockVariation.copy(id = "2", name = "Dumbbell Press"),
                 )
-            val aliases1 = listOf(VariationAlias(id = "1", variationId = "1", alias = "BP"))
-            val aliases2 = listOf(VariationAlias(id = "2", variationId = "2", alias = "DB Press"))
+            val aliases1 = listOf(ExerciseAlias(id = "1", exerciseId = "1", alias = "BP"))
+            val aliases2 = listOf(ExerciseAlias(id = "2", exerciseId = "2", alias = "DB Press"))
 
             coEvery { exerciseDao.getAllExercises() } returns variations
-            coEvery { exerciseDao.getAliasesForVariation("1") } returns aliases1
-            coEvery { exerciseDao.getAliasesForVariation("2") } returns aliases2
+            coEvery { exerciseAliasDao.getAliasesForExercise("1") } returns aliases1
+            coEvery { exerciseAliasDao.getAliasesForExercise("2") } returns aliases2
 
             // Act
             val result = repository.getAllExerciseNamesIncludingAliases()
@@ -196,10 +184,10 @@ class ExerciseRepositoryTest {
             // Arrange
             val aliases =
                 listOf(
-                    VariationAlias(id = "1", variationId = "1", alias = "BP"),
-                    VariationAlias(id = "2", variationId = "2", alias = "DL"),
+                    ExerciseAlias(id = "1", exerciseId = "1", alias = "BP"),
+                    ExerciseAlias(id = "2", exerciseId = "2", alias = "DL"),
                 )
-            coEvery { exerciseDao.getAllAliases() } returns aliases
+            coEvery { exerciseAliasDao.getAllAliases() } returns aliases
 
             // Act
             val result = repository.getAllExerciseAliases()
@@ -246,7 +234,7 @@ class ExerciseRepositoryTest {
     fun `getExerciseById_existingId_returnsExercise`() =
         runTest {
             // Arrange
-            coEvery { exerciseDao.getExerciseVariationById("1") } returns mockVariation
+            coEvery { exerciseDao.getExerciseById("1") } returns mockVariation
 
             // Act
             val result = repository.getExerciseById("1")
@@ -259,7 +247,7 @@ class ExerciseRepositoryTest {
     fun `getExerciseById_nonExistentId_returnsNull`() =
         runTest {
             // Arrange
-            coEvery { exerciseDao.getExerciseVariationById("999") } returns null
+            coEvery { exerciseDao.getExerciseById("999") } returns null
 
             // Act
             val result = repository.getExerciseById("999")
@@ -272,7 +260,7 @@ class ExerciseRepositoryTest {
     fun `getExerciseByName_exactMatch_returnsExercise`() =
         runTest {
             // Arrange
-            coEvery { exerciseDao.findVariationByExactName("Barbell Bench Press") } returns mockVariation
+            coEvery { exerciseDao.findExerciseByName("Barbell Bench Press") } returns mockVariation
 
             // Act
             val result = repository.getExerciseByName("Barbell Bench Press")
@@ -285,8 +273,8 @@ class ExerciseRepositoryTest {
     fun `getExerciseByName_aliasMatch_returnsExercise`() =
         runTest {
             // Arrange
-            coEvery { exerciseDao.findVariationByExactName("BP") } returns null
-            coEvery { exerciseDao.findVariationByAlias("BP") } returns mockVariation
+            coEvery { exerciseDao.findExerciseByName("BP") } returns null
+            coEvery { exerciseAliasDao.findExerciseByAlias("BP") } returns mockVariation
 
             // Act
             val result = repository.getExerciseByName("BP")
@@ -300,7 +288,7 @@ class ExerciseRepositoryTest {
         runTest {
             // Arrange
             val results = listOf(mockVariation, mockVariation.copy(id = "2"))
-            coEvery { exerciseDao.searchVariations("bench") } returns results
+            coEvery { exerciseDao.searchExercises("bench") } returns results
 
             // Act
             val result = repository.searchExercises("bench")
@@ -314,7 +302,7 @@ class ExerciseRepositoryTest {
         runTest {
             // Arrange
             val exercises = listOf(mockVariation)
-            coEvery { exerciseDao.getVariationsByCategory(ExerciseCategory.CHEST) } returns exercises
+            coEvery { exerciseDao.getExercisesByCategory(ExerciseCategory.CHEST.name) } returns exercises
 
             // Act
             val result = repository.getExercisesByCategory(ExerciseCategory.CHEST)
@@ -328,7 +316,7 @@ class ExerciseRepositoryTest {
         runTest {
             // Arrange
             val exercises = listOf(mockVariation)
-            coEvery { exerciseDao.getVariationsByMuscleGroup("Chest") } returns exercises
+            coEvery { exerciseMuscleDao.getExercisesByMuscleGroup("Chest") } returns exercises
 
             // Act
             val result = repository.getExercisesByMuscleGroup("Chest")
@@ -342,7 +330,7 @@ class ExerciseRepositoryTest {
         runTest {
             // Arrange
             val exercises = listOf(mockVariation)
-            coEvery { exerciseDao.getVariationsByEquipment(Equipment.BARBELL) } returns exercises
+            coEvery { exerciseDao.getExercisesByEquipment(Equipment.BARBELL.name) } returns exercises
 
             // Act
             val result = repository.getExercisesByEquipment(Equipment.BARBELL)
@@ -407,7 +395,7 @@ class ExerciseRepositoryTest {
                 exerciseLogDao.insertExerciseLog(
                     match {
                         it.workoutId == "1" &&
-                            it.exerciseVariationId == "2" &&
+                            it.exerciseId == "2" &&
                             it.exerciseOrder == 3
                     },
                 )
@@ -436,7 +424,7 @@ class ExerciseRepositoryTest {
                 exerciseLogDao.insertExerciseLog(
                     match {
                         it.workoutId == "1" &&
-                            it.exerciseVariationId == "1" &&
+                            it.exerciseId == "1" &&
                             it.exerciseOrder == 2 &&
                             it.notes == "Test notes"
                     },
@@ -516,7 +504,7 @@ class ExerciseRepositoryTest {
     fun `getExerciseDetailsForLog_returnsVariation`() =
         runTest {
             // Arrange
-            coEvery { exerciseDao.getExerciseVariationById("1") } returns mockVariation
+            coEvery { exerciseDao.getExerciseById("1") } returns mockVariation
 
             // Act
             val result = repository.getExerciseDetailsForLog(mockExerciseLog)
@@ -557,7 +545,7 @@ class ExerciseRepositoryTest {
             coVerify {
                 userExerciseUsageDao.incrementUsageCount(
                     userId = userId,
-                    variationId = mockVariation.id,
+                    exerciseId = mockVariation.id,
                     timestamp = any(),
                 )
             }
@@ -594,7 +582,7 @@ class ExerciseRepositoryTest {
             coVerify {
                 userExerciseUsageDao.incrementUsageCount(
                     userId = "local",
-                    variationId = mockVariation.id,
+                    exerciseId = mockVariation.id,
                     timestamp = any(),
                 )
             }
@@ -622,7 +610,7 @@ class ExerciseRepositoryTest {
             val result =
                 repository.insertExerciseLogWithExerciseReference(
                     workoutId = "2",
-                    exerciseVariationId = "5",
+                    exerciseId = "5",
                     order = 2,
                 )
 
@@ -631,7 +619,7 @@ class ExerciseRepositoryTest {
             coVerify {
                 userExerciseUsageDao.incrementUsageCount(
                     userId = userId,
-                    variationId = "5",
+                    exerciseId = "5",
                     timestamp = any(),
                 )
             }
@@ -653,7 +641,7 @@ class ExerciseRepositoryTest {
             val result =
                 repository.insertExerciseLogWithExerciseReference(
                     workoutId = "3",
-                    exerciseVariationId = "10",
+                    exerciseId = "10",
                     order = 3,
                 )
 
@@ -662,7 +650,7 @@ class ExerciseRepositoryTest {
             coVerify {
                 userExerciseUsageDao.incrementUsageCount(
                     userId = "local",
-                    variationId = "10",
+                    exerciseId = "10",
                     timestamp = any(),
                 )
             }
@@ -686,7 +674,7 @@ class ExerciseRepositoryTest {
             val result =
                 repository.insertExerciseLogWithExerciseReference(
                     workoutId = "4",
-                    exerciseVariationId = "15",
+                    exerciseId = "15",
                     order = 4,
                 )
 
@@ -695,9 +683,92 @@ class ExerciseRepositoryTest {
             coVerify {
                 userExerciseUsageDao.incrementUsageCount(
                     userId = "local",
-                    variationId = "15",
+                    exerciseId = "15",
                     timestamp = any(),
                 )
             }
+        }
+
+    @Test
+    fun `findExerciseByName returns both system and custom exercises`() =
+        runTest {
+            // Arrange - Create system and custom exercises
+            val systemExercise =
+                mockVariation.copy(
+                    id = "system-1",
+                    name = "Bench Press",
+                    type = ExerciseType.SYSTEM.name,
+                )
+            val customExercise =
+                mockVariation.copy(
+                    id = "custom-1",
+                    name = "Radu Bench",
+                    type = ExerciseType.USER.name,
+                )
+
+            // First test: find system exercise
+            coEvery { exerciseDao.findExerciseByName("Bench Press") } returns systemExercise
+
+            val systemResult = repository.findExerciseByName("Bench Press")
+
+            assertThat(systemResult).isNotNull()
+            assertThat(systemResult?.id).isEqualTo("system-1")
+            assertThat(systemResult?.type).isEqualTo(ExerciseType.SYSTEM.name)
+
+            // Second test: find custom exercise
+            coEvery { exerciseDao.findExerciseByName("Radu Bench") } returns customExercise
+
+            val customResult = repository.findExerciseByName("Radu Bench")
+
+            assertThat(customResult).isNotNull()
+            assertThat(customResult?.id).isEqualTo("custom-1")
+            assertThat(customResult?.type).isEqualTo(ExerciseType.USER.name)
+        }
+
+    @Test
+    fun `findSystemExerciseByName returns only system exercises`() =
+        runTest {
+            // Arrange
+            val systemExercise =
+                mockVariation.copy(
+                    id = "system-1",
+                    name = "Bench Press",
+                    type = ExerciseType.SYSTEM.name,
+                )
+
+            coEvery { exerciseDao.findSystemExerciseByName("Bench Press") } returns systemExercise
+            coEvery { exerciseDao.findSystemExerciseByName("Custom Exercise") } returns null
+
+            // Act & Assert - system exercise found
+            val result = repository.findSystemExerciseByName("Bench Press")
+            assertThat(result).isNotNull()
+            assertThat(result?.type).isEqualTo(ExerciseType.SYSTEM.name)
+
+            // Act & Assert - custom exercise not found
+            val customResult = repository.findSystemExerciseByName("Custom Exercise")
+            assertThat(customResult).isNull()
+        }
+
+    @Test
+    fun `getExerciseByName returns both system and custom exercises`() =
+        runTest {
+            // Arrange
+            val customExercise =
+                mockVariation.copy(
+                    id = "custom-1",
+                    name = "Custom Squat",
+                    type = ExerciseType.USER.name,
+                )
+
+            // Mock the internal calls that getExerciseByName makes
+            coEvery { exerciseDao.findExerciseByName("Custom Squat") } returns customExercise
+
+            // Act
+            val result = repository.getExerciseByName("Custom Squat")
+
+            // Assert
+            assertThat(result).isNotNull()
+            assertThat(result?.id).isEqualTo("custom-1")
+            assertThat(result?.type).isEqualTo(ExerciseType.USER.name)
         }
 }

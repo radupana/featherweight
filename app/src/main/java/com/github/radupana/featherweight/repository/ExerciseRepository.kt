@@ -10,14 +10,13 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SwapHistoryCount
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.exercise.Equipment
+import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
-import com.github.radupana.featherweight.data.exercise.ExerciseCore
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
-import com.github.radupana.featherweight.data.exercise.ExerciseVariationWithAliases
+import com.github.radupana.featherweight.data.exercise.ExerciseMuscle
+import com.github.radupana.featherweight.data.exercise.ExerciseWithAliases
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
-import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.domain.ExerciseStats
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.service.ExerciseNamingService
@@ -41,25 +40,24 @@ class ExerciseRepository(
     private val exerciseLogDao = db.exerciseLogDao()
     private val setLogDao = db.setLogDao()
     private val exerciseSwapHistoryDao = db.exerciseSwapHistoryDao()
-    private val exerciseCoreDao = db.exerciseCoreDao()
-    private val exerciseVariationDao = db.exerciseVariationDao()
-    private val variationMuscleDao = db.variationMuscleDao()
+    private val exerciseAliasDao = db.exerciseAliasDao()
+    private val exerciseMuscleDao = db.exerciseMuscleDao()
     private val userExerciseUsageDao = db.userExerciseUsageDao()
 
     // ===== EXERCISE QUERIES =====
 
-    suspend fun getAllExercises(): List<ExerciseVariation> =
+    suspend fun getAllExercises(): List<Exercise> =
         withContext(Dispatchers.IO) {
             exerciseDao.getAllExercises()
         }
 
-    suspend fun getAllExercisesWithAliases(): List<ExerciseVariationWithAliases> =
+    suspend fun getAllExercisesWithAliases(): List<ExerciseWithAliases> =
         withContext(Dispatchers.IO) {
-            val variations = exerciseDao.getAllExercises()
-            variations.map { variation ->
-                val aliases = exerciseDao.getAliasesForVariation(variation.id)
-                ExerciseVariationWithAliases(
-                    variation = variation,
+            val exercises = exerciseDao.getAllExercises()
+            exercises.map { exercise ->
+                val aliases = exerciseAliasDao.getAliasesForExercise(exercise.id)
+                ExerciseWithAliases(
+                    exercise = exercise,
                     aliases = aliases.map { it.alias },
                 )
             }
@@ -67,12 +65,12 @@ class ExerciseRepository(
 
     suspend fun getAllExerciseNamesIncludingAliases(): List<String> =
         withContext(Dispatchers.IO) {
-            val variations = exerciseDao.getAllExercises()
+            val exercises = exerciseDao.getAllExercises()
             val allNames = mutableListOf<String>()
 
-            variations.forEach { variation ->
-                allNames.add(variation.name)
-                val aliases = exerciseDao.getAliasesForVariation(variation.id)
+            exercises.forEach { exercise ->
+                allNames.add(exercise.name)
+                val aliases = exerciseAliasDao.getAliasesForExercise(exercise.id)
                 aliases.forEach { alias ->
                     allNames.add(alias.alias)
                 }
@@ -83,33 +81,33 @@ class ExerciseRepository(
 
     suspend fun getAllExerciseAliases() =
         withContext(Dispatchers.IO) {
-            exerciseDao.getAllAliases()
+            exerciseAliasDao.getAllAliases()
         }
 
-    suspend fun getAllExercisesWithUsageStats(): List<Pair<ExerciseVariation, Int>> =
+    suspend fun getAllExercisesWithUsageStats(): List<Pair<Exercise, Int>> =
         withContext(Dispatchers.IO) {
             val startTime = System.currentTimeMillis()
-            val variations = exerciseDao.getAllExercises()
+            val exercises = exerciseDao.getAllExercises()
             val userId = authManager?.getCurrentUserId()
 
             val result =
-                variations
-                    .map { variation ->
+                exercises
+                    .map { exercise ->
                         val usageCount =
                             if (userId != null) {
                                 // Get user-specific usage count from UserExerciseUsage
                                 userExerciseUsageDao
                                     .getUsage(
                                         userId = userId,
-                                        variationId = variation.id,
+                                        exerciseId = exercise.id,
                                     )?.usageCount ?: 0
                             } else {
                                 // Fallback to global count if no user is logged in
-                                exerciseLogDao.getExerciseUsageCount(variation.id, "local")
+                                exerciseLogDao.getExerciseUsageCount(exercise.id, "local")
                             }
-                        Pair(variation, usageCount)
+                        Pair(exercise, usageCount)
                     }.sortedWith(
-                        compareByDescending<Pair<ExerciseVariation, Int>> { it.second }
+                        compareByDescending<Pair<Exercise, Int>> { it.second }
                             .thenBy { it.first.name },
                     )
 
@@ -117,31 +115,35 @@ class ExerciseRepository(
             Log.d(
                 TAG,
                 "getAllExercisesWithUsageStats completed in ${elapsedTime}ms - " +
-                    "totalExercises: ${variations.size}, " +
+                    "totalExercises: ${exercises.size}, " +
                     "topExercise: ${result.firstOrNull()?.first?.name ?: "none"}, " +
                     "topUsageCount: ${result.firstOrNull()?.second ?: 0}",
             )
             result
         }
 
-    suspend fun getExerciseById(id: String): ExerciseVariation? =
+    suspend fun getExerciseById(id: String): Exercise? =
         withContext(Dispatchers.IO) {
-            exerciseDao.getExerciseVariationById(id)
+            exerciseDao.getExerciseById(id)
         }
 
-    suspend fun getExerciseEntityById(exerciseVariationId: String): ExerciseVariation? = exerciseDao.getExerciseVariationById(exerciseVariationId)
+    suspend fun getExerciseEntityById(exerciseId: String): Exercise? = exerciseDao.getExerciseById(exerciseId)
 
-    suspend fun getExerciseByName(name: String): ExerciseVariation? {
+    suspend fun findExerciseByName(name: String): Exercise? = exerciseDao.findExerciseByName(name)
+
+    suspend fun findSystemExerciseByName(name: String): Exercise? = exerciseDao.findSystemExerciseByName(name)
+
+    suspend fun getExerciseByName(name: String): Exercise? {
         Log.i(TAG, "Searching for exercise: '$name'")
         // First try exact name match
-        val exactMatch = exerciseDao.findVariationByExactName(name)
+        val exactMatch = exerciseDao.findExerciseByName(name)
         if (exactMatch != null) {
             Log.i(TAG, "Found exact match: ${exactMatch.name} (id: ${exactMatch.id})")
             return exactMatch
         }
 
         // Then try alias match
-        val aliasMatch = exerciseDao.findVariationByAlias(name)
+        val aliasMatch = exerciseAliasDao.findExerciseByAlias(name)
         if (aliasMatch != null) {
             Log.d(TAG, "Found via alias: ${aliasMatch.name} (id: ${aliasMatch.id}) for query: '$name'")
         } else {
@@ -150,12 +152,12 @@ class ExerciseRepository(
         return aliasMatch
     }
 
-    suspend fun searchExercises(query: String): List<ExerciseVariation> =
+    suspend fun searchExercises(query: String): List<Exercise> =
         withContext(Dispatchers.IO) {
             val trace = safeNewTrace("exercise_search")
             trace?.start()
             trace?.putAttribute("query_length", query.length.toString())
-            val results = exerciseDao.searchVariations(query)
+            val results = exerciseDao.searchExercises(query)
             trace?.putAttribute("result_count", results.size.toString())
             trace?.stop()
             results
@@ -173,19 +175,19 @@ class ExerciseRepository(
             null
         }
 
-    suspend fun getExercisesByCategory(category: ExerciseCategory): List<ExerciseVariation> =
+    suspend fun getExercisesByCategory(category: ExerciseCategory): List<Exercise> =
         withContext(Dispatchers.IO) {
-            exerciseDao.getVariationsByCategory(category)
+            exerciseDao.getExercisesByCategory(category.name)
         }
 
-    suspend fun getExercisesByMuscleGroup(muscleGroup: String): List<ExerciseVariation> =
+    suspend fun getExercisesByMuscleGroup(muscleGroup: String): List<Exercise> =
         withContext(Dispatchers.IO) {
-            exerciseDao.getVariationsByMuscleGroup(muscleGroup)
+            exerciseMuscleDao.getExercisesByMuscleGroup(muscleGroup)
         }
 
-    suspend fun getExercisesByEquipment(equipment: Equipment): List<ExerciseVariation> =
+    suspend fun getExercisesByEquipment(equipment: Equipment): List<Exercise> =
         withContext(Dispatchers.IO) {
-            exerciseDao.getVariationsByEquipment(equipment)
+            exerciseDao.getExercisesByEquipment(equipment.name)
         }
 
     // ===== EXERCISE LOG OPERATIONS =====
@@ -208,14 +210,14 @@ class ExerciseRepository(
 
     suspend fun insertExerciseLogWithExerciseReference(
         workoutId: String,
-        exerciseVariationId: String,
+        exerciseId: String,
         order: Int = 0,
     ): String {
         val exerciseLog =
             ExerciseLog(
                 userId = authManager?.getCurrentUserId() ?: "local",
                 workoutId = workoutId,
-                exerciseVariationId = exerciseVariationId,
+                exerciseId = exerciseId,
                 exerciseOrder = order,
             )
 
@@ -227,16 +229,16 @@ class ExerciseRepository(
             // First ensure the usage record exists
             userExerciseUsageDao.getOrCreateUsage(
                 userId = userId,
-                variationId = exerciseVariationId,
+                exerciseId = exerciseId,
             )
             // Now increment the count
             userExerciseUsageDao.incrementUsageCount(
                 userId = userId,
-                variationId = exerciseVariationId,
+                exerciseId = exerciseId,
                 timestamp = LocalDateTime.now(),
             )
         } catch (e: SQLiteException) {
-            Log.e(TAG, "Database error incrementing usage count for exercise $exerciseVariationId", e)
+            Log.e(TAG, "Database error incrementing usage count for exercise $exerciseId", e)
         }
 
         return id
@@ -244,7 +246,7 @@ class ExerciseRepository(
 
     suspend fun insertExerciseLogWithExerciseReference(
         workoutId: String,
-        exerciseVariation: ExerciseVariation,
+        exerciseVariation: Exercise,
         exerciseOrder: Int,
         notes: String? = null,
     ): String {
@@ -252,7 +254,7 @@ class ExerciseRepository(
             ExerciseLog(
                 userId = authManager?.getCurrentUserId() ?: "local",
                 workoutId = workoutId,
-                exerciseVariationId = exerciseVariation.id,
+                exerciseId = exerciseVariation.id,
                 exerciseOrder = exerciseOrder,
                 notes = notes,
             )
@@ -265,12 +267,12 @@ class ExerciseRepository(
             // First ensure the usage record exists
             userExerciseUsageDao.getOrCreateUsage(
                 userId = userId,
-                variationId = exerciseVariation.id,
+                exerciseId = exerciseVariation.id,
             )
             // Now increment the count
             userExerciseUsageDao.incrementUsageCount(
                 userId = userId,
-                variationId = exerciseVariation.id,
+                exerciseId = exerciseVariation.id,
                 timestamp = LocalDateTime.now(),
             )
         } catch (e: SQLiteException) {
@@ -302,18 +304,18 @@ class ExerciseRepository(
         }
     }
 
-    suspend fun getExerciseDetailsForLog(exerciseLog: ExerciseLog): ExerciseVariation? =
+    suspend fun getExerciseDetailsForLog(exerciseLog: ExerciseLog): Exercise? =
         withContext(Dispatchers.IO) {
-            exerciseDao.getExerciseVariationById(exerciseLog.exerciseVariationId)
+            exerciseDao.getExerciseById(exerciseLog.exerciseId)
         }
 
     // ===== EXERCISE STATS AND HISTORY =====
 
-    suspend fun getExerciseStats(exerciseVariationId: String): ExerciseStats? {
+    suspend fun getExerciseStats(exerciseId: String): ExerciseStats? {
         return withContext(Dispatchers.IO) {
             val startTime = System.currentTimeMillis()
             val userId = authManager.getCurrentUserId() ?: "local"
-            val variation = exerciseDao.getExerciseVariationById(exerciseVariationId) ?: return@withContext null
+            val exercise = exerciseDao.getExerciseById(exerciseId) ?: return@withContext null
             val allWorkouts = db.workoutDao().getAllWorkouts(userId)
             val allSetsForExercise = mutableListOf<SetLog>()
 
@@ -321,7 +323,7 @@ class ExerciseRepository(
             val completedWorkouts = allWorkouts.filter { it.status == WorkoutStatus.COMPLETED }
             for (workout in completedWorkouts) {
                 val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                val matchingExercise = exercises.find { it.exerciseVariationId == exerciseVariationId }
+                val matchingExercise = exercises.find { it.exerciseId == exerciseId }
                 if (matchingExercise != null) {
                     val sets = setLogDao.getSetLogsForExercise(matchingExercise.id)
                     allSetsForExercise.addAll(sets)
@@ -329,7 +331,7 @@ class ExerciseRepository(
             }
 
             if (allSetsForExercise.isEmpty()) {
-                Log.d(TAG, "No sets found for exercise: ${variation.name}")
+                Log.d(TAG, "No sets found for exercise: ${exercise.name}")
                 return@withContext null
             }
 
@@ -339,13 +341,13 @@ class ExerciseRepository(
                 }
 
             if (completedSets.isEmpty()) {
-                Log.d(TAG, "No completed sets found for exercise: ${variation.name}")
+                Log.d(TAG, "No completed sets found for exercise: ${exercise.name}")
                 return@withContext null
             }
 
             val stats =
                 ExerciseStats(
-                    exerciseName = variation.name,
+                    exerciseName = exercise.name,
                     avgWeight = completedSets.map { it.actualWeight }.average().toFloat(),
                     avgReps = completedSets.map { it.actualReps }.average().toInt(),
                     avgRpe =
@@ -362,7 +364,7 @@ class ExerciseRepository(
             Log.d(
                 TAG,
                 "getExerciseStats completed in ${elapsedTime}ms - " +
-                    "exercise: ${variation.name}, " +
+                    "exercise: ${exercise.name}, " +
                     "workoutsAnalyzed: ${completedWorkouts.size}, " +
                     "setsFound: ${allSetsForExercise.size}, " +
                     "completedSets: ${completedSets.size}, " +
@@ -375,21 +377,21 @@ class ExerciseRepository(
 
     suspend fun swapExercise(
         exerciseLogId: String,
-        newExerciseVariationId: String,
-        originalExerciseVariationId: String,
+        newExerciseId: String,
+        originalExerciseId: String,
     ) {
         val exerciseLog = exerciseLogDao.getExerciseLogById(exerciseLogId)
         if (exerciseLog != null) {
             val updatedLog =
                 exerciseLog.copy(
-                    exerciseVariationId = newExerciseVariationId,
-                    originalVariationId = originalExerciseVariationId,
+                    exerciseId = newExerciseId,
+                    originalExerciseId = originalExerciseId,
                     isSwapped = true,
                 )
             exerciseLogDao.update(updatedLog)
 
-            val originalExercise = exerciseDao.getExerciseVariationById(originalExerciseVariationId)
-            val newExercise = exerciseDao.getExerciseVariationById(newExerciseVariationId)
+            val originalExercise = exerciseDao.getExerciseById(originalExerciseId)
+            val newExercise = exerciseDao.getExerciseById(newExerciseId)
             Log.i(
                 TAG,
                 "USER_ACTION: exercise_swap - " +
@@ -450,7 +452,7 @@ class ExerciseRepository(
         difficulty: ExerciseDifficulty = ExerciseDifficulty.BEGINNER,
         requiresWeight: Boolean = true,
         movementPattern: MovementPattern = MovementPattern.PUSH,
-    ): Result<ExerciseVariation> =
+    ): Result<Exercise> =
         withContext(Dispatchers.IO) {
             try {
                 Log.i(TAG, "Creating custom exercise: $name, category: $category, equipment: $equipment")
@@ -458,12 +460,12 @@ class ExerciseRepository(
                 // Get all existing exercise names and aliases for duplicate checking
                 val existingNames = mutableListOf<String>()
 
-                // Add all variation names
-                val variations = exerciseDao.getAllExercises()
-                existingNames.addAll(variations.map { it.name })
+                // Add all exercise names
+                val exercises = exerciseDao.getAllExercises()
+                existingNames.addAll(exercises.map { it.name })
 
                 // Add all aliases
-                val aliases = exerciseDao.getAllAliases()
+                val aliases = exerciseAliasDao.getAllAliases()
                 existingNames.addAll(aliases.map { it.alias })
 
                 // Validate name with duplicate check
@@ -483,56 +485,32 @@ class ExerciseRepository(
                     )
                 }
 
-                // Find or create ExerciseCore based on category and movement pattern
-                val coreName = inferCoreName(name, category)
-                var exerciseCore = exerciseCoreDao.getExerciseCoreByName(coreName)
-
-                if (exerciseCore == null) {
-                    // Create new core
-                    val newCore =
-                        ExerciseCore(
-                            name = coreName,
-                            category = category,
-                            movementPattern = movementPattern,
-                            isCompound = true, // Most custom exercises are compound
-                            createdAt = LocalDateTime.now(),
-                            updatedAt = LocalDateTime.now(),
-                        )
-                    exerciseCoreDao.insertExerciseCore(newCore)
-                    exerciseCore = exerciseCoreDao.getExerciseCoreById(newCore.id)
-                }
-
-                if (exerciseCore == null) {
-                    return@withContext Result.failure(
-                        IllegalStateException("Failed to create or find exercise core"),
-                    )
-                }
-
-                // Create exercise variation (system exercise)
-                val newVariation =
-                    ExerciseVariation(
-                        coreExerciseId = exerciseCore.id,
+                // Create exercise with all fields (no separate core)
+                val newExercise =
+                    Exercise(
                         name = name,
-                        equipment = equipment,
-                        difficulty = difficulty,
+                        category = category.name,
+                        movementPattern = movementPattern?.name,
+                        isCompound = true, // Most custom exercises are compound
+                        equipment = equipment.name,
+                        difficulty = difficulty?.name,
                         requiresWeight = requiresWeight,
                         createdAt = LocalDateTime.now(),
                         updatedAt = LocalDateTime.now(),
                     )
-                exerciseVariationDao.insertExerciseVariation(newVariation)
-                val variationId = newVariation.id
+                exerciseDao.insertExercise(newExercise)
+                val exerciseId = newExercise.id
 
                 // Create muscle relationships
-                val allMuscles = mutableListOf<VariationMuscle>()
+                val allMuscles = mutableListOf<ExerciseMuscle>()
 
                 // Add primary muscles
                 primaryMuscles.forEach { muscle ->
                     allMuscles.add(
-                        VariationMuscle(
-                            variationId = variationId,
-                            muscle = muscle,
-                            isPrimary = true,
-                            emphasisModifier = 1.0f,
+                        ExerciseMuscle(
+                            exerciseId = exerciseId,
+                            muscle = muscle.name,
+                            targetType = "PRIMARY",
                         ),
                     )
                 }
@@ -540,22 +518,21 @@ class ExerciseRepository(
                 // Add secondary muscles
                 secondaryMuscles.forEach { muscle ->
                     allMuscles.add(
-                        VariationMuscle(
-                            variationId = variationId,
-                            muscle = muscle,
-                            isPrimary = false,
-                            emphasisModifier = 0.5f,
+                        ExerciseMuscle(
+                            exerciseId = exerciseId,
+                            muscle = muscle.name,
+                            targetType = "SECONDARY",
                         ),
                     )
                 }
 
                 // Insert all muscle relationships
                 if (allMuscles.isNotEmpty()) {
-                    variationMuscleDao.insertVariationMuscles(allMuscles)
+                    exerciseMuscleDao.insertExerciseMuscles(allMuscles)
                 }
 
                 // Return the created exercise
-                val createdExercise = exerciseVariationDao.getExerciseVariationById(variationId)
+                val createdExercise = exerciseDao.getExerciseById(exerciseId)
                 if (createdExercise != null) {
                     Log.i(
                         TAG,
@@ -565,7 +542,7 @@ class ExerciseRepository(
                             "equipment: ${equipment.name}, " +
                             "primaryMuscles: ${primaryMuscles.joinToString(", ") { it.name }}, " +
                             "secondaryMuscles: ${secondaryMuscles.joinToString(", ") { it.name }}, " +
-                            "exerciseId: $variationId",
+                            "exerciseId: $exerciseId",
                     )
                     Result.success(createdExercise)
                 } else {
@@ -583,11 +560,11 @@ class ExerciseRepository(
 
     // ===== DELETE CUSTOM EXERCISE =====
 
-    suspend fun canDeleteExercise(exerciseVariationId: String): Result<Boolean> =
+    suspend fun canDeleteExercise(exerciseId: String): Result<Boolean> =
         withContext(Dispatchers.IO) {
             try {
                 // Check if it's a custom exercise
-                exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
+                exerciseDao.getExerciseById(exerciseId)
                     ?: return@withContext Result.failure(IllegalArgumentException("Exercise not found"))
 
                 // System exercises cannot be deleted
@@ -605,7 +582,7 @@ class ExerciseRepository(
 
                 for (workout in completedWorkouts) {
                     val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                    if (exerciseLogs.any { it.exerciseVariationId == exerciseVariationId }) {
+                    if (exerciseLogs.any { it.exerciseId == exerciseId }) {
                         return@withContext Result.failure(
                             IllegalStateException("Cannot delete exercise: Used in completed workouts"),
                         )
@@ -620,16 +597,16 @@ class ExerciseRepository(
             }
         }
 
-    suspend fun deleteCustomExercise(exerciseVariationId: String): Result<Unit> =
+    suspend fun deleteCustomExercise(exerciseId: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             try {
-                val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
+                val exercise = exerciseDao.getExerciseById(exerciseId)
                 val exerciseName = exercise?.name ?: "Unknown"
 
-                Log.i(TAG, "Attempting to delete custom exercise: $exerciseName (id: $exerciseVariationId)")
+                Log.i(TAG, "Attempting to delete custom exercise: $exerciseName (id: $exerciseId)")
 
                 // First check if we can delete it
-                val canDelete = canDeleteExercise(exerciseVariationId)
+                val canDelete = canDeleteExercise(exerciseId)
                 if (canDelete.isFailure) {
                     Log.w(TAG, "Cannot delete exercise: $exerciseName - ${canDelete.exceptionOrNull()?.message}")
                     return@withContext Result.failure(canDelete.exceptionOrNull() ?: Exception("Cannot delete exercise"))
@@ -644,7 +621,7 @@ class ExerciseRepository(
 
                     for (workout in allWorkouts.filter { it.status != WorkoutStatus.COMPLETED }) {
                         val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-                        val logsToDelete = exerciseLogs.filter { it.exerciseVariationId == exerciseVariationId }
+                        val logsToDelete = exerciseLogs.filter { it.exerciseId == exerciseId }
 
                         for (log in logsToDelete) {
                             // Delete all sets for this exercise log FIRST
@@ -655,69 +632,28 @@ class ExerciseRepository(
                     }
 
                     // Now delete all muscle associations
-                    variationMuscleDao.deleteMuscleMappingsForVariation(exerciseVariationId)
+                    exerciseMuscleDao.deleteMuscleMappingsForExercise(exerciseId)
 
-                    // Finally delete the exercise variation itself
-                    exerciseVariationDao.deleteExerciseVariation(exerciseVariationId)
+                    // Finally delete the exercise exercise itself
+                    exerciseDao.deleteExercise(exerciseId)
 
                     // Verify deletion
-                    val stillExists = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
+                    val stillExists = exerciseDao.getExerciseById(exerciseId)
                     check(stillExists == null) { "Exercise was not deleted from database!" }
                 }
 
                 Log.i(
                     TAG,
                     "USER_ACTION: custom_exercise_deleted - " +
-                        "name: $exerciseName, exerciseId: $exerciseVariationId",
+                        "name: $exerciseName, exerciseId: $exerciseId",
                 )
                 Result.success(Unit)
             } catch (e: SQLiteException) {
-                Log.e(TAG, "SQLite error deleting custom exercise id: $exerciseVariationId", e)
+                Log.e(TAG, "SQLite error deleting custom exercise id: $exerciseId", e)
                 Result.failure(e)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "State error deleting custom exercise id: $exerciseVariationId", e)
+                Log.e(TAG, "State error deleting custom exercise id: $exerciseId", e)
                 Result.failure(e)
             }
         }
-
-    private fun inferCoreName(
-        name: String,
-        category: ExerciseCategory,
-    ): String {
-        // Try to infer a core name from the exercise name
-        val lowerName = name.lowercase()
-
-        // Common core exercise patterns
-        return when {
-            lowerName.contains("squat") -> "Squat"
-            lowerName.contains("deadlift") -> "Deadlift"
-            lowerName.contains("bench") && lowerName.contains("press") -> "Bench Press"
-            lowerName.contains("overhead") && lowerName.contains("press") -> "Overhead Press"
-            lowerName.contains("row") -> "Row"
-            lowerName.contains("pulldown") -> "Pulldown"
-            lowerName.contains("pull up") || lowerName.contains("pullup") -> "Pull Up"
-            lowerName.contains("chin up") || lowerName.contains("chinup") -> "Chin Up"
-            lowerName.contains("curl") && lowerName.contains("bicep") -> "Bicep Curl"
-            lowerName.contains("tricep") && lowerName.contains("extension") -> "Tricep Extension"
-            lowerName.contains("fly") || lowerName.contains("flye") -> "Fly"
-            lowerName.contains("raise") && lowerName.contains("lateral") -> "Lateral Raise"
-            lowerName.contains("raise") && lowerName.contains("front") -> "Front Raise"
-            lowerName.contains("lunge") -> "Lunge"
-            lowerName.contains("plank") -> "Plank"
-            lowerName.contains("crunch") -> "Crunch"
-            else -> {
-                // Use category as fallback
-                when (category) {
-                    ExerciseCategory.CHEST -> "Chest Exercise"
-                    ExerciseCategory.BACK -> "Back Exercise"
-                    ExerciseCategory.SHOULDERS -> "Shoulder Exercise"
-                    ExerciseCategory.ARMS -> "Arm Exercise"
-                    ExerciseCategory.LEGS -> "Leg Exercise"
-                    ExerciseCategory.CORE -> "Core Exercise"
-                    ExerciseCategory.CARDIO -> "Cardio Exercise"
-                    ExerciseCategory.FULL_BODY -> "Full Body Exercise"
-                }
-            }
-        }
-    }
 }

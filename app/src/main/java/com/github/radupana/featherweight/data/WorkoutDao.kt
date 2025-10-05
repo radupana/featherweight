@@ -65,7 +65,7 @@ interface WorkoutDao {
         SELECT w.date FROM workouts w
         INNER JOIN exercise_logs el ON el.workoutId = w.id
         INNER JOIN set_logs sl ON sl.exerciseLogId = el.id
-        WHERE el.exerciseVariationId = :exerciseVariationId
+        WHERE el.exerciseId = :exerciseId
         AND sl.actualWeight = :weight
         AND sl.isCompleted = 1
         AND w.date BETWEEN :startDateTime AND :endDateTime
@@ -74,7 +74,7 @@ interface WorkoutDao {
     """,
     )
     suspend fun getWorkoutDateForMaxWeight(
-        exerciseVariationId: String,
+        exerciseId: String,
         weight: Float,
         startDateTime: LocalDateTime,
         endDateTime: LocalDateTime,

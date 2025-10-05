@@ -58,48 +58,39 @@ class SystemExerciseSyncStrategy(
         firestoreExercise: FirestoreExercise,
     ) {
         try {
-            // Convert denormalized Firestore data to normalized SQLite entities
+            // Convert denormalized Firestore data to SQLite entities
             val bundle = ExerciseSyncConverter.fromFirestore(firestoreExercise, exerciseId)
 
-            // Insert or update ExerciseCore
-            val existingCore = database.exerciseCoreDao().getCoreById(bundle.exerciseCore.id)
-            if (existingCore == null) {
-                database.exerciseCoreDao().insertCore(bundle.exerciseCore)
-            } else if (existingCore.updatedAt < bundle.exerciseCore.updatedAt) {
-                // Update if remote is newer
-                database.exerciseCoreDao().updateCore(bundle.exerciseCore)
-            }
-
-            // Insert or update ExerciseVariation
-            val existingVariation = database.exerciseVariationDao().getExerciseVariationById(bundle.exerciseVariation.id)
+            // Insert or update Exercise (contains all fields now)
+            val existingVariation = database.exerciseDao().getExerciseById(bundle.exercise.id)
             if (existingVariation == null) {
-                database.exerciseVariationDao().insertExerciseVariation(bundle.exerciseVariation)
-            } else if (existingVariation.updatedAt < bundle.exerciseVariation.updatedAt) {
-                database.exerciseVariationDao().updateVariation(bundle.exerciseVariation)
+                database.exerciseDao().insertExercise(bundle.exercise)
+            } else if (existingVariation.updatedAt < bundle.exercise.updatedAt) {
+                database.exerciseDao().updateExercise(bundle.exercise)
             }
 
             // Clear and re-insert related data (muscles, aliases, instructions)
             // This ensures we have the latest data without complex merge logic
 
             // Muscles
-            database.variationMuscleDao().deleteForVariation(bundle.exerciseVariation.id)
-            if (bundle.variationMuscles.isNotEmpty()) {
-                database.variationMuscleDao().insertVariationMuscles(bundle.variationMuscles)
+            database.exerciseMuscleDao().deleteForVariation(bundle.exercise.id)
+            if (bundle.exerciseMuscles.isNotEmpty()) {
+                database.exerciseMuscleDao().insertExerciseMuscles(bundle.exerciseMuscles)
             }
 
             // Aliases
-            database.variationAliasDao().deleteForVariation(bundle.exerciseVariation.id)
-            if (bundle.variationAliases.isNotEmpty()) {
-                database.variationAliasDao().insertAliases(bundle.variationAliases)
+            database.exerciseAliasDao().deleteForVariation(bundle.exercise.id)
+            if (bundle.exerciseAliases.isNotEmpty()) {
+                database.exerciseAliasDao().insertAliases(bundle.exerciseAliases)
             }
 
             // Instructions
-            database.variationInstructionDao().deleteForVariation(bundle.exerciseVariation.id)
-            if (bundle.variationInstructions.isNotEmpty()) {
-                database.variationInstructionDao().insertInstructions(bundle.variationInstructions)
+            database.exerciseInstructionDao().deleteForVariation(bundle.exercise.id)
+            if (bundle.exerciseInstructions.isNotEmpty()) {
+                database.exerciseInstructionDao().insertInstructions(bundle.exerciseInstructions)
             }
 
-            Log.v(TAG, "Processed exercise: ${bundle.exerciseVariation.name}")
+            Log.v(TAG, "Processed exercise: ${bundle.exercise.name}")
         } catch (e: com.google.firebase.FirebaseException) {
             Log.e(TAG, "Failed to process exercise $exerciseId - Firebase error", e)
             // Don't fail the whole sync for one bad exercise

@@ -103,14 +103,14 @@ fun ExerciseProgressScreen(
     val scope = rememberCoroutineScope()
 
     // Convert exercise name to ID
-    var exerciseVariationId by remember { mutableStateOf<String?>(null) }
+    var exerciseId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(exerciseName) {
-        exerciseVariationId = viewModel.repository.getExerciseByName(exerciseName)?.id
+        exerciseId = viewModel.repository.getExerciseByName(exerciseName)?.id
     }
 
-    LaunchedEffect(exerciseVariationId) {
-        exerciseVariationId?.let { id ->
+    LaunchedEffect(exerciseId) {
+        exerciseId?.let { id ->
             viewModel.loadExerciseData(id)
             viewModel.loadChartData(id)
             viewModel.loadMaxWeightChartData(id)
@@ -178,7 +178,7 @@ fun ExerciseProgressScreen(
 
             is ExerciseProgressViewModel.ExerciseProgressState.Error -> {
                 ErrorState(
-                    onRetry = { scope.launch { exerciseVariationId?.let { viewModel.loadExerciseData(it) } } },
+                    onRetry = { scope.launch { exerciseId?.let { viewModel.loadExerciseData(it) } } },
                     modifier =
                         Modifier
                             .fillMaxSize()

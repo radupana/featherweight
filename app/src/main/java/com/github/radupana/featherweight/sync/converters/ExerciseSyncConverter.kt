@@ -2,17 +2,17 @@ package com.github.radupana.featherweight.sync.converters
 
 import android.util.Log
 import com.github.radupana.featherweight.data.exercise.Equipment
+import com.github.radupana.featherweight.data.exercise.Exercise
+import com.github.radupana.featherweight.data.exercise.ExerciseAlias
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
-import com.github.radupana.featherweight.data.exercise.ExerciseCore
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.ExerciseInstruction
+import com.github.radupana.featherweight.data.exercise.ExerciseMuscle
+import com.github.radupana.featherweight.data.exercise.ExerciseType
 import com.github.radupana.featherweight.data.exercise.InstructionType
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.data.exercise.RMScalingType
-import com.github.radupana.featherweight.data.exercise.VariationAlias
-import com.github.radupana.featherweight.data.exercise.VariationInstruction
-import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.sync.models.FirestoreExercise
 import com.github.radupana.featherweight.sync.models.FirestoreInstruction
 import com.github.radupana.featherweight.sync.models.FirestoreMuscle
@@ -29,135 +29,118 @@ class ExerciseSyncConverter {
         private const val TAG = "ExerciseSyncConverter"
 
         /**
-         * Converts a denormalized Firestore exercise to normalized SQLite entities.
+         * Converts a denormalized Firestore exercise to SQLite entities.
          * Returns a data class containing all the related entities.
          */
         fun fromFirestore(
             firestoreExercise: FirestoreExercise,
-            exerciseId: String,
+            firestoreId: String,
         ): ExerciseEntityBundle {
             // Generate stable IDs based on exercise name
-            val coreId = generateStableId("core_${firestoreExercise.coreName}")
-            val variationId = generateStableId("var_${firestoreExercise.name}")
+            val exerciseId = generateStableId("var_${firestoreExercise.name}")
 
-            // Create ExerciseCore
-            val exerciseCore =
-                ExerciseCore(
-                    id = coreId,
-                    name = firestoreExercise.coreName,
-                    category = parseExerciseCategory(firestoreExercise.coreCategory),
-                    movementPattern = parseMovementPattern(firestoreExercise.coreMovementPattern),
-                    isCompound = firestoreExercise.coreIsCompound,
-                    createdAt = parseTimestamp(firestoreExercise.createdAt),
-                    updatedAt = parseTimestamp(firestoreExercise.updatedAt),
-                )
-
-            // Create ExerciseVariation
-            val exerciseVariation =
-                ExerciseVariation(
-                    id = variationId,
-                    coreExerciseId = coreId,
+            // Create Exercise with all fields - system exercises have type = SYSTEM and userId = null
+            val exercise =
+                Exercise(
+                    id = exerciseId,
+                    type = ExerciseType.SYSTEM.name,
+                    userId = null,
                     name = firestoreExercise.name,
-                    equipment = parseEquipment(firestoreExercise.equipment),
-                    difficulty = parseDifficulty(firestoreExercise.difficulty),
+                    category = parseExerciseCategory(firestoreExercise.coreCategory).name,
+                    movementPattern = parseMovementPattern(firestoreExercise.coreMovementPattern).name,
+                    isCompound = firestoreExercise.coreIsCompound,
+                    equipment = parseEquipment(firestoreExercise.equipment).name,
+                    difficulty = parseDifficulty(firestoreExercise.difficulty)?.name,
                     requiresWeight = firestoreExercise.requiresWeight,
-                    recommendedRepRange = firestoreExercise.recommendedRepRange,
-                    rmScalingType = parseRMScalingType(firestoreExercise.rmScalingType),
+                    rmScalingType = parseRMScalingType(firestoreExercise.rmScalingType)?.name,
                     restDurationSeconds = firestoreExercise.restDurationSeconds,
                     createdAt = parseTimestamp(firestoreExercise.createdAt),
                     updatedAt = parseTimestamp(firestoreExercise.updatedAt),
                 )
 
-            // Create VariationMuscles
-            val variationMuscles =
+            // Create ExerciseMuscles
+            val exerciseMuscles =
                 firestoreExercise.muscles.map { muscle ->
-                    VariationMuscle(
-                        variationId = variationId,
-                        muscle = parseMuscleGroup(muscle.muscle),
-                        isPrimary = muscle.isPrimary,
-                        emphasisModifier = muscle.emphasisModifier.toFloat(),
+                    ExerciseMuscle(
+                        exerciseId = exerciseId,
+                        muscle = parseMuscleGroup(muscle.muscle).name,
+                        targetType = if (muscle.isPrimary) "primary" else "secondary",
                     )
                 }
 
-            // Create VariationAliases
-            val variationAliases =
+            // Create ExerciseAliases
+            val exerciseAliases =
                 firestoreExercise.aliases.mapIndexed { index, alias ->
-                    VariationAlias(
-                        id = generateStableId("alias_${variationId}_$alias"),
-                        variationId = variationId,
+                    ExerciseAlias(
+                        id = generateStableId("alias_${exerciseId}_$alias"),
+                        exerciseId = exerciseId,
                         alias = alias,
-                        confidence = 1.0f,
-                        languageCode = "en",
-                        source = "firestore",
                     )
                 }
 
-            // Create VariationInstructions
-            val variationInstructions =
+            // Create ExerciseInstructions
+            val exerciseInstructions =
                 firestoreExercise.instructions.map { instruction ->
-                    VariationInstruction(
-                        id = generateStableId("inst_${variationId}_${instruction.orderIndex}"),
-                        variationId = variationId,
-                        instructionType = parseInstructionType(instruction.type),
-                        content = instruction.content,
+                    ExerciseInstruction(
+                        id = generateStableId("inst_${exerciseId}_${instruction.orderIndex}"),
+                        exerciseId = exerciseId,
+                        instructionType = parseInstructionType(instruction.type).name,
+                        instructionText = instruction.content,
                         orderIndex = instruction.orderIndex,
-                        languageCode = instruction.languageCode,
                     )
                 }
 
             return ExerciseEntityBundle(
-                exerciseCore = exerciseCore,
-                exerciseVariation = exerciseVariation,
-                variationMuscles = variationMuscles,
-                variationAliases = variationAliases,
-                variationInstructions = variationInstructions,
-                firestoreId = exerciseId,
+                exercise = exercise,
+                exerciseMuscles = exerciseMuscles,
+                exerciseAliases = exerciseAliases,
+                exerciseInstructions = exerciseInstructions,
+                firestoreId = firestoreId,
             )
         }
 
         /**
-         * Converts normalized SQLite entities to a denormalized Firestore exercise.
+         * Converts SQLite entities to a denormalized Firestore exercise.
          * Used for syncing exercises to Firestore.
          */
         fun toFirestore(
-            core: ExerciseCore,
-            variation: ExerciseVariation,
-            muscles: List<VariationMuscle>,
-            aliases: List<VariationAlias>,
-            instructions: List<VariationInstruction>,
+            exercise: Exercise,
+            muscles: List<ExerciseMuscle>,
+            aliases: List<ExerciseAlias>,
+            instructions: List<ExerciseInstruction>,
         ): FirestoreExercise =
             FirestoreExercise(
-                coreName = core.name,
-                coreCategory = core.category.name,
-                coreMovementPattern = core.movementPattern.name,
-                coreIsCompound = core.isCompound,
-                name = variation.name,
-                equipment = variation.equipment.name,
-                difficulty = variation.difficulty.name,
-                requiresWeight = variation.requiresWeight,
-                recommendedRepRange = variation.recommendedRepRange,
-                rmScalingType = variation.rmScalingType.name,
-                restDurationSeconds = variation.restDurationSeconds,
+                coreName = exercise.name,
+                coreCategory = exercise.category,
+                coreMovementPattern = exercise.movementPattern ?: "PUSH",
+                coreIsCompound = exercise.isCompound,
+                name = exercise.name,
+                equipment = exercise.equipment,
+                difficulty = exercise.difficulty ?: "BEGINNER",
+                requiresWeight = exercise.requiresWeight,
+                recommendedRepRange = null, // This field doesn't exist anymore
+                rmScalingType = exercise.rmScalingType ?: "STANDARD",
+                restDurationSeconds = exercise.restDurationSeconds ?: 90,
                 muscles =
-                    muscles.map { variationMuscle ->
+                    muscles.map { exerciseMuscle ->
                         FirestoreMuscle(
-                            variationMuscle.muscle.name,
-                            variationMuscle.isPrimary,
-                            variationMuscle.emphasisModifier.toDouble(),
+                            exerciseMuscle.muscle,
+                            isPrimary = exerciseMuscle.targetType == "primary",
+                            emphasisModifier = 1.0, // Default value
                         )
                     },
                 aliases = aliases.map { it.alias },
                 instructions =
                     instructions.map { instruction ->
                         FirestoreInstruction(
-                            type = instruction.instructionType.name,
-                            content = instruction.content,
+                            type = instruction.instructionType,
+                            content = instruction.instructionText,
                             orderIndex = instruction.orderIndex,
-                            languageCode = instruction.languageCode,
+                            languageCode = "en", // Default value
                         )
                     },
-                createdAt = formatTimestamp(core.createdAt),
-                updatedAt = formatTimestamp(core.updatedAt),
+                createdAt = formatTimestamp(exercise.createdAt),
+                updatedAt = formatTimestamp(exercise.updatedAt),
             )
 
         /**
@@ -187,48 +170,86 @@ class ExerciseSyncConverter {
             try {
                 ExerciseCategory.valueOf(value)
             } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Invalid ExerciseCategory value: $value, defaulting to FULL_BODY", e)
-                ExerciseCategory.FULL_BODY
+                Log.w(TAG, "Invalid ExerciseCategory value: $value, defaulting to OTHER", e)
+                ExerciseCategory.OTHER
             }
 
         private fun parseMovementPattern(value: String): MovementPattern =
             try {
-                MovementPattern.valueOf(value)
+                // Handle legacy values from old schema and removed redundant values
+                when (value) {
+                    "COMPOUND" -> MovementPattern.PUSH
+                    "ISOLATION" -> MovementPattern.EXTENSION
+                    "POWER" -> MovementPattern.PUSH
+                    "STABILIZATION" -> MovementPattern.ISOMETRIC
+                    "FLEXION" -> MovementPattern.PULL
+                    "PRESS" -> MovementPattern.PUSH
+                    "ROW" -> MovementPattern.PULL
+                    "CURL" -> MovementPattern.PULL
+                    "FLY" -> MovementPattern.HORIZONTAL_PUSH
+                    "RAISE" -> MovementPattern.PUSH
+                    "SHRUG" -> MovementPattern.PULL
+                    "CRUNCH" -> MovementPattern.CORE
+                    "HOLD" -> MovementPattern.ISOMETRIC
+                    "WALK", "STEP", "CYCLE", "CRAWL" -> MovementPattern.LOCOMOTION
+                    "COMPLEX", "EXPLOSIVE", "LIFT" -> MovementPattern.OTHER
+                    "PIKE", "TUCK", "ROLL" -> MovementPattern.CORE
+                    "KICK", "FLIP", "CIRCLE", "WAVE" -> MovementPattern.OTHER
+                    else -> MovementPattern.valueOf(value)
+                }
             } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Invalid MovementPattern value: $value, defaulting to PUSH", e)
-                MovementPattern.PUSH
+                Log.w(TAG, "Invalid MovementPattern value: $value, defaulting to OTHER", e)
+                MovementPattern.OTHER
             }
 
         private fun parseEquipment(value: String): Equipment =
             try {
-                Equipment.valueOf(value)
+                // Handle legacy values from old schema
+                when (value) {
+                    "RESISTANCE_BAND" -> Equipment.BAND
+                    "CAR_DEADLIFT" -> Equipment.MACHINE
+                    else -> Equipment.valueOf(value)
+                }
             } catch (e: IllegalArgumentException) {
                 Log.w(TAG, "Invalid Equipment value: $value, defaulting to NONE", e)
                 Equipment.NONE
             }
 
-        private fun parseDifficulty(value: String): ExerciseDifficulty =
-            try {
-                ExerciseDifficulty.valueOf(value)
-            } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Invalid ExerciseDifficulty value: $value, defaulting to INTERMEDIATE", e)
-                ExerciseDifficulty.INTERMEDIATE
+        private fun parseDifficulty(value: String?): ExerciseDifficulty? =
+            value?.let {
+                try {
+                    ExerciseDifficulty.valueOf(it)
+                } catch (e: IllegalArgumentException) {
+                    Log.w(TAG, "Invalid ExerciseDifficulty value: $it, defaulting to INTERMEDIATE", e)
+                    ExerciseDifficulty.INTERMEDIATE
+                }
             }
 
-        private fun parseRMScalingType(value: String): RMScalingType =
-            try {
-                RMScalingType.valueOf(value)
-            } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Invalid RMScalingType value: $value, defaulting to STANDARD", e)
-                RMScalingType.STANDARD
+        private fun parseRMScalingType(value: String?): RMScalingType? =
+            value?.let {
+                try {
+                    // Handle legacy values from old schema
+                    when (it) {
+                        "OLYMPIC" -> RMScalingType.STANDARD // Legacy Olympic lifts default to STANDARD
+                        else -> RMScalingType.valueOf(it)
+                    }
+                } catch (e: IllegalArgumentException) {
+                    Log.w(TAG, "Invalid RMScalingType value: $it, defaulting to STANDARD", e)
+                    RMScalingType.STANDARD
+                }
             }
 
         private fun parseMuscleGroup(value: String): MuscleGroup =
             try {
-                MuscleGroup.valueOf(value)
+                // Handle legacy values from old schema
+                when (value) {
+                    "PECTORALS" -> MuscleGroup.CHEST
+                    "ABS" -> MuscleGroup.CORE
+                    else -> MuscleGroup.valueOf(value)
+                }
             } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Invalid MuscleGroup value: $value, defaulting to FULL_BODY", e)
-                MuscleGroup.FULL_BODY
+                Log.w(TAG, "Invalid MuscleGroup value: $value, defaulting to OTHER", e)
+                MuscleGroup.OTHER
             }
 
         private fun parseInstructionType(value: String): InstructionType =
@@ -241,14 +262,13 @@ class ExerciseSyncConverter {
     }
 
     /**
-     * Bundle containing all normalized entities for a single exercise.
+     * Bundle containing all entities for a single exercise.
      */
     data class ExerciseEntityBundle(
-        val exerciseCore: ExerciseCore,
-        val exerciseVariation: ExerciseVariation,
-        val variationMuscles: List<VariationMuscle>,
-        val variationAliases: List<VariationAlias>,
-        val variationInstructions: List<VariationInstruction>,
+        val exercise: Exercise,
+        val exerciseMuscles: List<ExerciseMuscle>,
+        val exerciseAliases: List<ExerciseAlias>,
+        val exerciseInstructions: List<ExerciseInstruction>,
         val firestoreId: String,
     )
 }

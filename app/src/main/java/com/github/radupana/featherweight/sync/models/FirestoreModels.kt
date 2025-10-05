@@ -27,11 +27,10 @@ data class FirestoreExerciseLog(
     @DocumentId val id: String = "",
     val localId: String = "",
     val workoutId: String = "",
-    val exerciseVariationId: String = "",
+    val exerciseId: String = "",
     val exerciseOrder: Int = 0,
-    val supersetGroup: Int? = null,
     val notes: String? = null,
-    val originalVariationId: String? = null,
+    val originalExerciseId: String? = null,
     val isSwapped: Boolean = false,
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
@@ -47,11 +46,6 @@ data class FirestoreSetLog(
     val actualReps: Int = 0,
     val actualWeight: Float = 0f,
     val actualRpe: Float? = null,
-    val suggestedWeight: Float? = null,
-    val suggestedReps: Int? = null,
-    val suggestionSource: String? = null,
-    val suggestionConfidence: Float? = null,
-    val calculationDetails: String? = null,
     val tag: String? = null,
     val notes: String? = null,
     val isCompleted: Boolean = false,
@@ -59,68 +53,7 @@ data class FirestoreSetLog(
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
 
-data class FirestoreExerciseCore(
-    @DocumentId val id: String = "",
-    val localId: String = "",
-    val createdByUserId: String? = null,
-    val name: String = "",
-    val category: String = "",
-    val movementPattern: String = "",
-    val isCompound: Boolean = false,
-    val createdAt: Timestamp = Timestamp.now(),
-    val updatedAt: Timestamp = Timestamp.now(),
-    @ServerTimestamp val lastModified: Timestamp? = null,
-)
-
-data class FirestoreExerciseVariation(
-    @DocumentId val id: String = "",
-    val localId: String = "",
-    val createdByUserId: String? = null,
-    val coreExerciseId: String = "",
-    val name: String = "",
-    val equipment: String = "",
-    val difficulty: String = "",
-    val requiresWeight: Boolean = false,
-    val recommendedRepRange: String? = null,
-    val rmScalingType: String = "STANDARD",
-    val restDurationSeconds: Int = 90,
-    val usageCount: Int = 0,
-    val isCustom: Boolean = false,
-    val createdAt: Timestamp = Timestamp.now(),
-    val updatedAt: Timestamp = Timestamp.now(),
-    @ServerTimestamp val lastModified: Timestamp? = null,
-)
-
-data class FirestoreVariationMuscle(
-    @DocumentId val id: String = "",
-    val variationId: String = "",
-    val muscle: String = "",
-    val isPrimary: Boolean = false,
-    val emphasisModifier: Float = 1.0f,
-    @ServerTimestamp val lastModified: Timestamp? = null,
-)
-
-data class FirestoreVariationInstruction(
-    @DocumentId val id: String = "",
-    val localId: String = "",
-    val variationId: String = "",
-    val instructionType: String = "",
-    val content: String = "",
-    val orderIndex: Int = 0,
-    val languageCode: String = "en",
-    @ServerTimestamp val lastModified: Timestamp? = null,
-)
-
-data class FirestoreVariationAlias(
-    @DocumentId val id: String = "",
-    val localId: String = "",
-    val variationId: String = "",
-    val alias: String = "",
-    val confidence: Float = 1.0f,
-    val languageCode: String = "en",
-    val source: String = "manual",
-    @ServerTimestamp val lastModified: Timestamp? = null,
-)
+// Exercise-related models are now in FirestoreExerciseModels.kt
 
 data class FirestoreProgramme(
     @DocumentId val id: String = "",
@@ -157,11 +90,6 @@ data class FirestoreProgrammeWeek(
     val weekNumber: Int = 0,
     val name: String? = null,
     val description: String? = null,
-    val focusAreas: String? = null,
-    val intensityLevel: String? = null,
-    val volumeLevel: String? = null,
-    val isDeload: Boolean = false,
-    val phase: String? = null,
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
 
@@ -188,8 +116,6 @@ data class FirestoreProgrammeProgress(
     val completedWorkouts: Int = 0,
     val totalWorkouts: Int = 0,
     val lastWorkoutDate: Timestamp? = null,
-    val adherencePercentage: Float = 0f,
-    val strengthProgress: String? = null,
     @ServerTimestamp val lastModified: Timestamp? = null,
 )
 
@@ -201,8 +127,8 @@ data class FirestoreUserExerciseMax(
     @DocumentId val id: String = "",
     val localId: String = "",
     val userId: String? = null,
-    val exerciseVariationId: String = "",
-    val isCustomExercise: Boolean? = false,
+    val exerciseId: String = "",
+    val sourceSetId: String? = null,
     val mostWeightLifted: Float = 0f,
     val mostWeightReps: Int = 0,
     val mostWeightRpe: Float? = null,
@@ -220,8 +146,7 @@ data class FirestoreOneRMHistory(
     @DocumentId val id: String = "",
     val localId: String = "",
     val userId: String? = null,
-    val exerciseVariationId: String = "",
-    val isCustomExercise: Boolean? = false,
+    val exerciseId: String = "",
     val oneRMEstimate: Float = 0f,
     val context: String = "",
     val recordedAt: Timestamp = Timestamp.now(),
@@ -232,8 +157,7 @@ data class FirestorePersonalRecord(
     @DocumentId val id: String = "",
     val localId: String = "",
     val userId: String? = null,
-    val exerciseVariationId: String = "",
-    val isCustomExercise: Boolean? = false,
+    val exerciseId: String = "",
     val weight: Float = 0f,
     val reps: Int = 0,
     val rpe: Float? = null,
@@ -267,6 +191,7 @@ data class FirestoreExercisePerformanceTracking(
     val localId: String = "",
     val userId: String? = null,
     val programmeId: String = "",
+    val exerciseId: String = "",
     val exerciseName: String = "",
     val targetWeight: Float = 0f,
     val achievedWeight: Float = 0f,
@@ -289,7 +214,7 @@ data class FirestoreGlobalExerciseProgress(
     @DocumentId val id: String = "",
     val localId: String = "",
     val userId: String? = null,
-    val exerciseVariationId: String = "",
+    val exerciseId: String = "",
     val currentWorkingWeight: Float = 0f,
     val estimatedMax: Float = 0f,
     val lastUpdated: Timestamp = Timestamp.now(),
@@ -354,7 +279,7 @@ data class FirestoreTemplateExercise(
     val localId: String = "",
     val userId: String = "",
     val templateId: String = "",
-    val exerciseVariationId: String = "",
+    val exerciseId: String = "",
     val exerciseOrder: Int = 0,
     val supersetGroup: Int? = null,
     val notes: String? = null,

@@ -526,8 +526,8 @@ private fun ActiveProgrammeCard(
                         modifier = Modifier.weight(1f),
                     )
                     ProgressMetric(
-                        label = "Adherence",
-                        value = "${if (prog.adherencePercentage.isNaN()) 0 else prog.adherencePercentage.toInt()}%",
+                        label = "Completed",
+                        value = "${prog.completedWorkouts}/${prog.totalWorkouts}",
                         modifier = Modifier.weight(1f),
                     )
                 }

@@ -1,24 +1,22 @@
 package com.github.radupana.featherweight.sync.converters
 
 import com.github.radupana.featherweight.data.exercise.Equipment
+import com.github.radupana.featherweight.data.exercise.Exercise
+import com.github.radupana.featherweight.data.exercise.ExerciseAlias
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
-import com.github.radupana.featherweight.data.exercise.ExerciseCore
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
+import com.github.radupana.featherweight.data.exercise.ExerciseInstruction
+import com.github.radupana.featherweight.data.exercise.ExerciseMuscle
 import com.github.radupana.featherweight.data.exercise.InstructionType
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
 import com.github.radupana.featherweight.data.exercise.RMScalingType
-import com.github.radupana.featherweight.data.exercise.VariationAlias
-import com.github.radupana.featherweight.data.exercise.VariationInstruction
-import com.github.radupana.featherweight.data.exercise.VariationMuscle
 import com.github.radupana.featherweight.sync.models.FirestoreExercise
 import com.github.radupana.featherweight.sync.models.FirestoreInstruction
 import com.github.radupana.featherweight.sync.models.FirestoreMuscle
+import com.github.radupana.featherweight.testutil.LogMock
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDateTime
@@ -38,7 +36,6 @@ class ExerciseSyncConverterTest {
                 equipment = "BARBELL",
                 difficulty = "INTERMEDIATE",
                 requiresWeight = true,
-                recommendedRepRange = "6-10",
                 rmScalingType = "STANDARD",
                 restDurationSeconds = 120,
                 muscles =
@@ -68,51 +65,43 @@ class ExerciseSyncConverterTest {
                 "barbell-bench-press",
             )
 
-        // Then the core exercise is correct
-        with(bundle.exerciseCore) {
-            assertEquals("Bench Press", name)
-            assertEquals(ExerciseCategory.CHEST, category)
-            assertEquals(MovementPattern.PRESS, movementPattern)
-            assertTrue(isCompound)
-        }
-
-        // And the variation is correct
-        with(bundle.exerciseVariation) {
+        // Then the variation contains all fields (merged from core + variation)
+        with(bundle.exercise) {
             assertEquals("Barbell Bench Press", name)
-            assertEquals(Equipment.BARBELL, equipment)
-            assertEquals(ExerciseDifficulty.INTERMEDIATE, difficulty)
+            assertEquals(ExerciseCategory.CHEST.name, category)
+            assertEquals(MovementPattern.PUSH.name, movementPattern)
+            assertTrue(isCompound)
+            assertEquals(Equipment.BARBELL.name, equipment)
+            assertEquals(ExerciseDifficulty.INTERMEDIATE.name, difficulty)
             assertTrue(requiresWeight)
-            assertEquals("6-10", recommendedRepRange)
-            assertEquals(RMScalingType.STANDARD, rmScalingType)
+            // recommendedRepRange field no longer exists
+            assertEquals(RMScalingType.STANDARD.name, rmScalingType)
             assertEquals(120, restDurationSeconds)
         }
 
         // And muscles are correct
-        assertEquals(3, bundle.variationMuscles.size)
-        with(bundle.variationMuscles[0]) {
-            assertEquals(MuscleGroup.CHEST, muscle)
-            assertTrue(isPrimary)
-            assertEquals(1.0f, emphasisModifier)
+        assertEquals(3, bundle.exerciseMuscles.size)
+        with(bundle.exerciseMuscles[0]) {
+            assertEquals(MuscleGroup.CHEST.name, muscle)
+            assertEquals("primary", targetType)
         }
-        with(bundle.variationMuscles[1]) {
-            assertEquals(MuscleGroup.TRICEPS, muscle)
-            assertFalse(isPrimary)
-            assertEquals(0.5f, emphasisModifier)
+        with(bundle.exerciseMuscles[1]) {
+            assertEquals(MuscleGroup.TRICEPS.name, muscle)
+            assertEquals("secondary", targetType)
         }
 
         // And aliases are correct
-        assertEquals(3, bundle.variationAliases.size)
-        assertEquals("Bench Press", bundle.variationAliases[0].alias)
-        assertEquals("Flat Bench", bundle.variationAliases[1].alias)
-        assertEquals("BP", bundle.variationAliases[2].alias)
+        assertEquals(3, bundle.exerciseAliases.size)
+        assertEquals("Bench Press", bundle.exerciseAliases[0].alias)
+        assertEquals("Flat Bench", bundle.exerciseAliases[1].alias)
+        assertEquals("BP", bundle.exerciseAliases[2].alias)
 
         // And instructions are correct
-        assertEquals(1, bundle.variationInstructions.size)
-        with(bundle.variationInstructions[0]) {
-            assertEquals(InstructionType.EXECUTION, instructionType)
-            assertTrue(content.contains("Lie on bench"))
+        assertEquals(1, bundle.exerciseInstructions.size)
+        with(bundle.exerciseInstructions[0]) {
+            assertEquals(InstructionType.EXECUTION.name, instructionType)
+            assertTrue(instructionText.contains("Lie on bench"))
             assertEquals(0, orderIndex)
-            assertEquals("en", languageCode)
         }
 
         // And firestore ID is preserved
@@ -122,29 +111,18 @@ class ExerciseSyncConverterTest {
     @Test
     fun `toFirestore converts normalized entities to denormalized exercise correctly`() {
         // Given normalized SQLite entities
-        val core =
-            ExerciseCore(
-                id = "1",
-                userId = "user123",
-                name = "Custom Press",
-                category = ExerciseCategory.CHEST,
-                movementPattern = MovementPattern.PRESS,
-                isCompound = true,
-                createdAt = LocalDateTime.of(2024, 1, 1, 0, 0),
-                updatedAt = LocalDateTime.of(2024, 1, 1, 0, 0),
-            )
-
         val variation =
-            ExerciseVariation(
+            Exercise(
                 id = "2",
                 userId = "user123",
-                coreExerciseId = "1",
                 name = "Custom Barbell Press",
-                equipment = Equipment.BARBELL,
-                difficulty = ExerciseDifficulty.INTERMEDIATE,
+                category = ExerciseCategory.CHEST.name,
+                movementPattern = MovementPattern.PUSH.name,
+                isCompound = true,
+                equipment = Equipment.BARBELL.name,
+                difficulty = ExerciseDifficulty.INTERMEDIATE.name,
                 requiresWeight = true,
-                recommendedRepRange = "8-12",
-                rmScalingType = RMScalingType.STANDARD,
+                rmScalingType = RMScalingType.STANDARD.name,
                 restDurationSeconds = 90,
                 createdAt = LocalDateTime.of(2024, 1, 1, 0, 0),
                 updatedAt = LocalDateTime.of(2024, 1, 1, 0, 0),
@@ -152,42 +130,36 @@ class ExerciseSyncConverterTest {
 
         val muscles =
             listOf(
-                VariationMuscle(
-                    variationId = "2",
-                    muscle = MuscleGroup.CHEST,
-                    isPrimary = true,
-                    emphasisModifier = 1.0f,
+                ExerciseMuscle(
+                    exerciseId = "2",
+                    muscle = MuscleGroup.CHEST.name,
+                    targetType = "primary",
                 ),
             )
 
         val aliases =
             listOf(
-                VariationAlias(
+                ExerciseAlias(
                     id = "3",
-                    variationId = "2",
+                    exerciseId = "2",
                     alias = "Custom Press",
-                    confidence = 1.0f,
-                    languageCode = "en",
-                    source = "user",
                 ),
             )
 
         val instructions =
             listOf(
-                VariationInstruction(
+                ExerciseInstruction(
                     id = "4",
-                    variationId = "2",
-                    instructionType = InstructionType.EXECUTION,
-                    content = "Custom instruction",
+                    exerciseId = "2",
+                    instructionType = InstructionType.EXECUTION.name,
+                    instructionText = "Custom instruction",
                     orderIndex = 0,
-                    languageCode = "en",
                 ),
             )
 
         // When converting to Firestore
         val firestoreExercise =
             ExerciseSyncConverter.toFirestore(
-                core,
                 variation,
                 muscles,
                 aliases,
@@ -195,15 +167,15 @@ class ExerciseSyncConverterTest {
             )
 
         // Then the denormalized structure is correct
-        assertEquals("Custom Press", firestoreExercise.coreName)
+        assertEquals("Custom Barbell Press", firestoreExercise.coreName)
         assertEquals("CHEST", firestoreExercise.coreCategory)
-        assertEquals("PRESS", firestoreExercise.coreMovementPattern)
+        assertEquals("PUSH", firestoreExercise.coreMovementPattern)
         assertTrue(firestoreExercise.coreIsCompound)
         assertEquals("Custom Barbell Press", firestoreExercise.name)
         assertEquals("BARBELL", firestoreExercise.equipment)
         assertEquals("INTERMEDIATE", firestoreExercise.difficulty)
         assertTrue(firestoreExercise.requiresWeight)
-        assertEquals("8-12", firestoreExercise.recommendedRepRange)
+        // recommendedRepRange field was removed from FirestoreExercise
         assertEquals("STANDARD", firestoreExercise.rmScalingType)
         assertEquals(90, firestoreExercise.restDurationSeconds)
         assertEquals(1, firestoreExercise.muscles.size)
@@ -245,15 +217,17 @@ class ExerciseSyncConverterTest {
             )
 
         // Then it should handle missing data
-        assertNull(bundle.exerciseVariation.recommendedRepRange)
-        assertTrue(bundle.variationMuscles.isEmpty())
-        assertTrue(bundle.variationAliases.isEmpty())
-        assertTrue(bundle.variationInstructions.isEmpty())
-        assertNotNull(bundle.exerciseCore.createdAt) // Should default to now
+        // recommendedRepRange field no longer exists
+        assertTrue(bundle.exerciseMuscles.isEmpty())
+        assertTrue(bundle.exerciseAliases.isEmpty())
+        assertTrue(bundle.exerciseInstructions.isEmpty())
+        assertNotNull(bundle.exercise.createdAt) // Should default to now
     }
 
     @Test
     fun `fromFirestore handles invalid enum values with defaults`() {
+        // Setup Log mock
+        LogMock.setup()
         // Given Firestore exercise with invalid enums
         val firestoreExercise =
             FirestoreExercise(
@@ -286,13 +260,13 @@ class ExerciseSyncConverterTest {
             )
 
         // Then it should use defaults for invalid values
-        assertEquals(ExerciseCategory.FULL_BODY, bundle.exerciseCore.category)
-        assertEquals(MovementPattern.PUSH, bundle.exerciseCore.movementPattern)
-        assertEquals(Equipment.NONE, bundle.exerciseVariation.equipment)
-        assertEquals(ExerciseDifficulty.INTERMEDIATE, bundle.exerciseVariation.difficulty)
-        assertEquals(RMScalingType.STANDARD, bundle.exerciseVariation.rmScalingType)
-        assertEquals(MuscleGroup.FULL_BODY, bundle.variationMuscles[0].muscle)
-        assertEquals(InstructionType.EXECUTION, bundle.variationInstructions[0].instructionType)
+        assertEquals(ExerciseCategory.OTHER.name, bundle.exercise.category)
+        assertEquals(MovementPattern.OTHER.name, bundle.exercise.movementPattern)
+        assertEquals(Equipment.NONE.name, bundle.exercise.equipment)
+        assertEquals(ExerciseDifficulty.INTERMEDIATE.name, bundle.exercise.difficulty)
+        assertEquals(RMScalingType.STANDARD.name, bundle.exercise.rmScalingType)
+        assertEquals(MuscleGroup.OTHER.name, bundle.exerciseMuscles[0].muscle)
+        assertEquals(InstructionType.EXECUTION.name, bundle.exerciseInstructions[0].instructionType)
     }
 
     @Test
@@ -314,8 +288,7 @@ class ExerciseSyncConverterTest {
         val bundle2 = ExerciseSyncConverter.fromFirestore(firestoreExercise, "barbell-squat")
 
         // Then IDs should be stable
-        assertEquals(bundle1.exerciseCore.id, bundle2.exerciseCore.id)
-        assertEquals(bundle1.exerciseVariation.id, bundle2.exerciseVariation.id)
+        assertEquals(bundle1.exercise.id, bundle2.exercise.id)
     }
 
     @Test
@@ -345,12 +318,11 @@ class ExerciseSyncConverterTest {
         val bundle = ExerciseSyncConverter.fromFirestore(firestoreExercise, "deadlift")
 
         // Then all generated IDs should be valid UUIDs
-        assertTrue("Core ID should be a valid UUID", isValidUUID(bundle.exerciseCore.id))
-        assertTrue("Variation ID should be a valid UUID", isValidUUID(bundle.exerciseVariation.id))
-        bundle.variationAliases.forEach { alias ->
+        assertTrue("Variation ID should be a valid UUID", isValidUUID(bundle.exercise.id))
+        bundle.exerciseAliases.forEach { alias ->
             assertTrue("Alias ID ${alias.id} should be a valid UUID", isValidUUID(alias.id))
         }
-        bundle.variationInstructions.forEach { instruction ->
+        bundle.exerciseInstructions.forEach { instruction ->
             assertTrue("Instruction ID ${instruction.id} should be a valid UUID", isValidUUID(instruction.id))
         }
     }
@@ -388,65 +360,52 @@ class ExerciseSyncConverterTest {
         // When converting
         val bundle = ExerciseSyncConverter.fromFirestore(firestoreExercise, "rdl")
 
-        // Then all emphasis modifiers are preserved
-        assertEquals(4, bundle.variationMuscles.size)
-        assertEquals(1.0f, bundle.variationMuscles[0].emphasisModifier)
-        assertEquals(0.75f, bundle.variationMuscles[1].emphasisModifier)
-        assertEquals(0.5f, bundle.variationMuscles[2].emphasisModifier)
-        assertEquals(0.25f, bundle.variationMuscles[3].emphasisModifier)
+        // Then all muscles are converted
+        assertEquals(4, bundle.exerciseMuscles.size)
+        // emphasisModifier field no longer exists in ExerciseMuscle
     }
 
     @Test
     fun `roundtrip conversion preserves all data`() {
         // Given a custom exercise
-        val originalCore =
-            ExerciseCore(
-                id = "100",
+        val originalVariation =
+            Exercise(
+                id = "200",
                 userId = "user456",
-                name = "Test Exercise",
-                category = ExerciseCategory.BACK,
-                movementPattern = MovementPattern.PULL,
+                name = "Cable Test Exercise",
+                category = ExerciseCategory.BACK.name,
+                movementPattern = MovementPattern.PULL.name,
                 isCompound = true,
+                equipment = Equipment.CABLE.name,
+                difficulty = ExerciseDifficulty.ADVANCED.name,
+                requiresWeight = true,
+                rmScalingType = RMScalingType.ISOLATION.name,
+                restDurationSeconds = 180,
                 createdAt = LocalDateTime.now(),
                 updatedAt = LocalDateTime.now(),
             )
 
-        val originalVariation =
-            ExerciseVariation(
-                id = "200",
-                userId = "user456",
-                coreExerciseId = "100",
-                name = "Cable Test Exercise",
-                equipment = Equipment.CABLE,
-                difficulty = ExerciseDifficulty.ADVANCED,
-                requiresWeight = true,
-                recommendedRepRange = "4-6",
-                rmScalingType = RMScalingType.ISOLATION,
-                restDurationSeconds = 180,
-            )
-
         val originalMuscles =
             listOf(
-                VariationMuscle("200", MuscleGroup.LATS, true, 1.0f),
-                VariationMuscle("200", MuscleGroup.BICEPS, false, 0.6f),
+                ExerciseMuscle(exerciseId = "200", muscle = MuscleGroup.LATS.name, targetType = "primary"),
+                ExerciseMuscle(exerciseId = "200", muscle = MuscleGroup.BICEPS.name, targetType = "secondary"),
             )
 
         val originalAliases =
             listOf(
-                VariationAlias("300", "200", "Test Alias 1", 1.0f, "en", "user"),
-                VariationAlias("301", "200", "Test Alias 2", 0.9f, "en", "user"),
+                ExerciseAlias("300", "200", "Test Alias 1"),
+                ExerciseAlias("301", "200", "Test Alias 2"),
             )
 
         val originalInstructions =
             listOf(
-                VariationInstruction("400", "200", InstructionType.EXECUTION, "Step 1", 0, "en"),
-                VariationInstruction("401", "200", InstructionType.EXECUTION, "Step 2", 1, "en"),
+                ExerciseInstruction("400", "200", InstructionType.EXECUTION.name, 0, "Step 1"),
+                ExerciseInstruction("401", "200", InstructionType.EXECUTION.name, 1, "Step 2"),
             )
 
         // When converting to Firestore and back
         val firestoreExercise =
             ExerciseSyncConverter.toFirestore(
-                originalCore,
                 originalVariation,
                 originalMuscles,
                 originalAliases,
@@ -459,42 +418,36 @@ class ExerciseSyncConverterTest {
                 "test-exercise",
             )
 
-        // Then core data is preserved
-        with(reconvertedBundle.exerciseCore) {
-            assertEquals(originalCore.name, name)
-            assertEquals(originalCore.category, category)
-            assertEquals(originalCore.movementPattern, movementPattern)
-            assertEquals(originalCore.isCompound, isCompound)
-        }
-
-        // And variation data is preserved
-        with(reconvertedBundle.exerciseVariation) {
+        // Then all variation data is preserved (including merged core fields)
+        with(reconvertedBundle.exercise) {
             assertEquals(originalVariation.name, name)
+            assertEquals(originalVariation.category, category)
+            assertEquals(originalVariation.movementPattern, movementPattern)
+            assertEquals(originalVariation.isCompound, isCompound)
             assertEquals(originalVariation.equipment, equipment)
             assertEquals(originalVariation.difficulty, difficulty)
             assertEquals(originalVariation.requiresWeight, requiresWeight)
-            assertEquals(originalVariation.recommendedRepRange, recommendedRepRange)
+            // recommendedRepRange field no longer exists
             assertEquals(originalVariation.rmScalingType, rmScalingType)
             assertEquals(originalVariation.restDurationSeconds, restDurationSeconds)
         }
 
         // And muscle data is preserved
-        assertEquals(originalMuscles.size, reconvertedBundle.variationMuscles.size)
-        originalMuscles.zip(reconvertedBundle.variationMuscles).forEach { (original, reconverted) ->
+        assertEquals(originalMuscles.size, reconvertedBundle.exerciseMuscles.size)
+        originalMuscles.zip(reconvertedBundle.exerciseMuscles).forEach { (original, reconverted) ->
             assertEquals(original.muscle, reconverted.muscle)
-            assertEquals(original.isPrimary, reconverted.isPrimary)
-            assertEquals(original.emphasisModifier, reconverted.emphasisModifier)
+            assertEquals(original.targetType, reconverted.targetType)
         }
 
         // And aliases are preserved
-        assertEquals(originalAliases.size, reconvertedBundle.variationAliases.size)
-        assertEquals(originalAliases[0].alias, reconvertedBundle.variationAliases[0].alias)
-        assertEquals(originalAliases[1].alias, reconvertedBundle.variationAliases[1].alias)
+        assertEquals(originalAliases.size, reconvertedBundle.exerciseAliases.size)
+        assertEquals(originalAliases[0].alias, reconvertedBundle.exerciseAliases[0].alias)
+        assertEquals(originalAliases[1].alias, reconvertedBundle.exerciseAliases[1].alias)
 
         // And instructions are preserved
-        assertEquals(originalInstructions.size, reconvertedBundle.variationInstructions.size)
-        originalInstructions.zip(reconvertedBundle.variationInstructions).forEach { (original, reconverted) ->
-            assertEquals(original.content, reconverted.content)
+        assertEquals(originalInstructions.size, reconvertedBundle.exerciseInstructions.size)
+        originalInstructions.zip(reconvertedBundle.exerciseInstructions).forEach { (original, reconverted) ->
+            assertEquals(original.instructionText, reconverted.instructionText)
             assertEquals(original.orderIndex, reconverted.orderIndex)
         }
     }

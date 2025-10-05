@@ -50,13 +50,13 @@ class ExerciseHistoryTest {
         // Act
         val history =
             ExerciseHistory(
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 lastWorkoutDate = lastWorkoutDate,
                 sets = listOf(set1, set2, set3),
             )
 
         // Assert
-        assertThat(history.exerciseVariationId).isEqualTo("5")
+        assertThat(history.exerciseId).isEqualTo("5")
         assertThat(history.lastWorkoutDate).isEqualTo(lastWorkoutDate)
         assertThat(history.sets).hasSize(3)
         assertThat(history.sets[0]).isEqualTo(set1)
@@ -72,13 +72,13 @@ class ExerciseHistoryTest {
         // Act
         val history =
             ExerciseHistory(
-                exerciseVariationId = "10",
+                exerciseId = "10",
                 lastWorkoutDate = lastWorkoutDate,
                 sets = emptyList(),
             )
 
         // Assert
-        assertThat(history.exerciseVariationId).isEqualTo("10")
+        assertThat(history.exerciseId).isEqualTo("10")
         assertThat(history.lastWorkoutDate).isEqualTo(lastWorkoutDate)
         assertThat(history.sets).isEmpty()
     }
@@ -98,21 +98,21 @@ class ExerciseHistoryTest {
 
         val history1 =
             ExerciseHistory(
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 lastWorkoutDate = date,
                 sets = listOf(set),
             )
 
         val history2 =
             ExerciseHistory(
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 lastWorkoutDate = date,
                 sets = listOf(set),
             )
 
         val history3 =
             ExerciseHistory(
-                exerciseVariationId = "6", // Different exercise
+                exerciseId = "6", // Different exercise
                 lastWorkoutDate = date,
                 sets = listOf(set),
             )
@@ -146,7 +146,7 @@ class ExerciseHistoryTest {
 
         val original =
             ExerciseHistory(
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 lastWorkoutDate = date,
                 sets = listOf(set1),
             )
@@ -158,7 +158,7 @@ class ExerciseHistoryTest {
             )
 
         // Assert
-        assertThat(copy.exerciseVariationId).isEqualTo("5") // Unchanged
+        assertThat(copy.exerciseId).isEqualTo("5") // Unchanged
         assertThat(copy.lastWorkoutDate).isEqualTo(date) // Unchanged
         assertThat(copy.sets).hasSize(2)
         assertThat(copy.sets).containsExactly(set1, set2)
@@ -194,7 +194,7 @@ class ExerciseHistoryTest {
         // Act
         val history =
             ExerciseHistory(
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 lastWorkoutDate = date,
                 sets = listOf(completedSet, incompleteSet),
             )
@@ -213,14 +213,14 @@ class ExerciseHistoryTest {
 
         val history1 =
             ExerciseHistory(
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 lastWorkoutDate = earlierDate,
                 sets = emptyList(),
             )
 
         val history2 =
             ExerciseHistory(
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 lastWorkoutDate = laterDate,
                 sets = emptyList(),
             )
@@ -244,7 +244,7 @@ class ExerciseHistoryTest {
 
         val history =
             ExerciseHistory(
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 lastWorkoutDate = date,
                 sets = listOf(set),
             )
@@ -253,7 +253,7 @@ class ExerciseHistoryTest {
         val stringRepresentation = history.toString()
 
         // Assert
-        assertThat(stringRepresentation).contains("exerciseVariationId=")
+        assertThat(stringRepresentation).contains("exerciseId=")
         assertThat(stringRepresentation).contains("lastWorkoutDate=2024-06-15T10:00")
         assertThat(stringRepresentation).contains("sets")
     }
@@ -277,7 +277,7 @@ class ExerciseHistoryTest {
         // Act
         val history =
             ExerciseHistory(
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 lastWorkoutDate = date,
                 sets = sets,
             )

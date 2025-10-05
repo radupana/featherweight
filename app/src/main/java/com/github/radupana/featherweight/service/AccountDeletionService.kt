@@ -292,7 +292,7 @@ class AccountDeletionService(
             database.programmeDao().deleteAllProgrammesForUser(userId)
 
             // User stats
-            database.oneRMDao().deleteAllForUser(userId)
+            database.exerciseMaxTrackingDao().deleteAllForUser(userId)
             database.personalRecordDao().deleteAllForUser(userId)
 
             // Analytics
@@ -304,9 +304,7 @@ class AccountDeletionService(
             database.parseRequestDao().deleteAllForUser(userId)
 
             // Custom exercises (where user created them)
-            database.exerciseCoreDao().deleteAllCustomCoresByUser(userId)
-            database.exerciseCoreDao().deleteAllCustomCoresByUser(userId)
-            database.exerciseVariationDao().deleteAllCustomVariationsByUser(userId)
+            database.exerciseDao().deleteAllCustomExercisesByUser(userId)
 
             // User exercise usage tracking
             database.userExerciseUsageDao().deleteAllUsageForUser(userId)

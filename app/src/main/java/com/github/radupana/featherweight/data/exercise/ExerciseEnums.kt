@@ -5,7 +5,6 @@ enum class MuscleGroup(
 ) {
     // Upper Body
     CHEST("Chest"),
-    PECTORALS("Pectorals"), // Added for JSON compatibility
     BACK("Back"),
     UPPER_BACK("Upper Back"),
     MIDDLE_BACK("Middle Back"),
@@ -34,11 +33,13 @@ enum class MuscleGroup(
 
     // Core
     CORE("Core"),
-    ABS("Abs"),
     OBLIQUES("Obliques"),
 
     // Full Body
     FULL_BODY("Full Body"),
+
+    // Other
+    OTHER("Other"),
 }
 
 enum class ExerciseCategory(
@@ -52,6 +53,10 @@ enum class ExerciseCategory(
     CORE("Core"),
     CARDIO("Cardio"),
     FULL_BODY("Full Body"),
+    OLYMPIC("Olympic"),
+    MOBILITY("Mobility"),
+    PLYOMETRIC("Plyometric"),
+    OTHER("Other"),
 }
 
 enum class Equipment(
@@ -82,8 +87,7 @@ enum class Equipment(
     AB_WHEEL("Ab Wheel"),
 
     // Accessories
-    RESISTANCE_BAND("Resistance Band"),
-    BAND("Resistance Band"), // Alias for RESISTANCE_BAND
+    BAND("Resistance Band"),
     TRX("TRX"),
     MEDICINE_BALL("Medicine Ball"),
     STABILITY_BALL("Stability Ball"),
@@ -96,7 +100,6 @@ enum class Equipment(
     // Strongman Equipment
     ATLAS_STONE("Atlas Stone"),
     SANDBAG("Sandbag"),
-    CAR_DEADLIFT("Car Deadlift Frame"),
     BATTLE_ROPES("Battle Ropes"),
     LOG("Log"), // Used in exercises.json
     YOKE("Yoke"), // Used in exercises.json
@@ -112,6 +115,7 @@ enum class Equipment(
     POLE("Pole"), // Used in exercises.json
 
     NONE("No Equipment"),
+    OTHER("Other"),
 }
 
 enum class MovementPattern {
@@ -130,48 +134,29 @@ enum class MovementPattern {
     VERTICAL_PULL,
     HORIZONTAL_PULL,
     EXTENSION,
-    PRESS, // Used in exercises.json
-    ROW, // Used in exercises.json
-    CURL, // Used in exercises.json
-    FLY, // Used in exercises.json
-    RAISE, // Used in exercises.json
-    SHRUG, // Used in exercises.json
 
     // Core/Stability
     PLANK,
     ANTI_ROTATION,
     ISOMETRIC,
-    CORE, // Used in exercises.json
-    CRUNCH, // Used in exercises.json
-    ROLLOUT, // Used in exercises.json
-    HOLD, // Used in exercises.json
-    PIKE, // Used in exercises.json
-    TUCK, // Used in exercises.json
-    ROLL, // Used in exercises.json
+    CORE,
+    ROLLOUT,
 
     // Cardio/Conditioning
     CONDITIONING,
     JUMP,
-    SPRINT, // Used in exercises.json
-    WALK, // Used in exercises.json
-    STEP, // Used in exercises.json
-    CYCLE, // Used in exercises.json
-    CRAWL, // Used in exercises.json
-    LOCOMOTION, // Used in exercises.json
+    SPRINT,
+    LOCOMOTION,
 
     // Specialized movements
-    ABDUCTION, // Used in exercises.json
-    ADDUCTION, // Used in exercises.json
-    CIRCLE, // Used in exercises.json
-    COMPLEX, // Used in exercises.json
-    EXPLOSIVE, // Used in exercises.json
-    FLIP, // Used in exercises.json
-    KICK, // Used in exercises.json
-    LIFT, // Used in exercises.json
-    OLYMPIC, // Used in exercises.json
-    SLAM, // Used in exercises.json
-    SWING, // Used in exercises.json
-    WAVE, // Used in exercises.json
+    ABDUCTION,
+    ADDUCTION,
+    SWING,
+    SLAM,
+    OLYMPIC,
+
+    // Other
+    OTHER,
 }
 
 enum class ExerciseDifficulty(
@@ -185,6 +170,14 @@ enum class ExerciseDifficulty(
 
 enum class InstructionType {
     EXECUTION,
+    SETUP,
+    SAFETY,
+    BREATHING,
+    COMMON_MISTAKES,
+    PROGRESSION,
+    REGRESSION,
+    CUE,
+    OTHER,
 }
 
 enum class RMScalingType(
@@ -198,5 +191,11 @@ enum class RMScalingType(
     ),
     ISOLATION(
         "Single-joint movements like curls, extensions, lateral raises",
+    ),
+    CONSERVATIVE(
+        "Conservative scaling for safety - reduces estimated 1RM by 5%",
+    ),
+    UNKNOWN(
+        "Unknown scaling type - defaults to conservative calculations",
     ),
 }

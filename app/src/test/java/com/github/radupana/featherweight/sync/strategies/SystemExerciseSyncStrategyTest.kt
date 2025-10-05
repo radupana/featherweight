@@ -4,16 +4,14 @@ import android.text.TextUtils
 import android.util.Log
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.exercise.Equipment
+import com.github.radupana.featherweight.data.exercise.Exercise
+import com.github.radupana.featherweight.data.exercise.ExerciseAliasDao
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
-import com.github.radupana.featherweight.data.exercise.ExerciseCore
-import com.github.radupana.featherweight.data.exercise.ExerciseCoreDao
+import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
-import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
+import com.github.radupana.featherweight.data.exercise.ExerciseInstructionDao
+import com.github.radupana.featherweight.data.exercise.ExerciseMuscleDao
 import com.github.radupana.featherweight.data.exercise.MovementPattern
-import com.github.radupana.featherweight.data.exercise.VariationAliasDao
-import com.github.radupana.featherweight.data.exercise.VariationInstructionDao
-import com.github.radupana.featherweight.data.exercise.VariationMuscleDao
 import com.github.radupana.featherweight.sync.models.FirestoreExercise
 import com.github.radupana.featherweight.sync.models.FirestoreMuscle
 import com.github.radupana.featherweight.sync.repository.FirestoreRepository
@@ -38,11 +36,10 @@ class SystemExerciseSyncStrategyTest {
     private lateinit var strategy: SystemExerciseSyncStrategy
 
     // DAOs
-    private lateinit var exerciseCoreDao: ExerciseCoreDao
-    private lateinit var exerciseVariationDao: ExerciseVariationDao
-    private lateinit var variationMuscleDao: VariationMuscleDao
-    private lateinit var variationAliasDao: VariationAliasDao
-    private lateinit var variationInstructionDao: VariationInstructionDao
+    private lateinit var exerciseDao: ExerciseDao
+    private lateinit var exerciseMuscleDao: ExerciseMuscleDao
+    private lateinit var exerciseAliasDao: ExerciseAliasDao
+    private lateinit var exerciseInstructionDao: ExerciseInstructionDao
 
     @Before
     fun setup() {
@@ -64,18 +61,16 @@ class SystemExerciseSyncStrategyTest {
         firestoreRepository = mockk(relaxed = true)
 
         // Create DAO mocks
-        exerciseCoreDao = mockk(relaxed = true)
-        exerciseVariationDao = mockk(relaxed = true)
-        variationMuscleDao = mockk(relaxed = true)
-        variationAliasDao = mockk(relaxed = true)
-        variationInstructionDao = mockk(relaxed = true)
+        exerciseDao = mockk(relaxed = true)
+        exerciseMuscleDao = mockk(relaxed = true)
+        exerciseAliasDao = mockk(relaxed = true)
+        exerciseInstructionDao = mockk(relaxed = true)
 
         // Setup database to return DAOs
-        every { database.exerciseCoreDao() } returns exerciseCoreDao
-        every { database.exerciseVariationDao() } returns exerciseVariationDao
-        every { database.variationMuscleDao() } returns variationMuscleDao
-        every { database.variationAliasDao() } returns variationAliasDao
-        every { database.variationInstructionDao() } returns variationInstructionDao
+        every { database.exerciseDao() } returns exerciseDao
+        every { database.exerciseMuscleDao() } returns exerciseMuscleDao
+        every { database.exerciseAliasDao() } returns exerciseAliasDao
+        every { database.exerciseInstructionDao() } returns exerciseInstructionDao
 
         // Create strategy
         strategy = SystemExerciseSyncStrategy(database, firestoreRepository)
@@ -131,18 +126,16 @@ class SystemExerciseSyncStrategyTest {
             coEvery { firestoreRepository.downloadSystemExercises(any()) } returns Result.success(remoteExercises)
 
             // Setup DAOs to return null (new exercises)
-            coEvery { exerciseCoreDao.getCoreById(any()) } returns null
-            coEvery { exerciseVariationDao.getExerciseVariationById(any()) } returns null
+            coEvery { exerciseDao.getExerciseById(any()) } returns null
 
             // Mock insertion methods
-            coEvery { exerciseCoreDao.insertCore(any()) } returns Unit
-            coEvery { exerciseVariationDao.insertExerciseVariation(any()) } returns Unit
-            coEvery { variationMuscleDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationMuscleDao.insertVariationMuscles(any()) } returns Unit
-            coEvery { variationAliasDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationAliasDao.insertAliases(any()) } returns Unit
-            coEvery { variationInstructionDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationInstructionDao.insertInstructions(any()) } returns Unit
+            coEvery { exerciseDao.insertExercise(any()) } returns Unit
+            coEvery { exerciseMuscleDao.deleteForVariation(any()) } returns Unit
+            coEvery { exerciseMuscleDao.insertExerciseMuscles(any()) } returns Unit
+            coEvery { exerciseAliasDao.deleteForVariation(any()) } returns Unit
+            coEvery { exerciseAliasDao.insertAliases(any()) } returns Unit
+            coEvery { exerciseInstructionDao.deleteForVariation(any()) } returns Unit
+            coEvery { exerciseInstructionDao.insertInstructions(any()) } returns Unit
 
             // When: Sync is performed
             val result = strategy.downloadAndMerge(null, null)
@@ -153,15 +146,12 @@ class SystemExerciseSyncStrategyTest {
             // Verify exercises were downloaded
             coVerify { firestoreRepository.downloadSystemExercises(null) }
 
-            // Verify cores were inserted
-            coVerify(exactly = 2) { exerciseCoreDao.insertCore(any()) }
-
             // Verify variations were inserted
-            coVerify(exactly = 2) { exerciseVariationDao.insertExerciseVariation(any()) }
+            coVerify(exactly = 2) { exerciseDao.insertExercise(any()) }
 
             // Verify muscles were inserted
-            coVerify(exactly = 2) { variationMuscleDao.deleteForVariation(any()) }
-            coVerify(exactly = 2) { variationMuscleDao.insertVariationMuscles(any()) }
+            coVerify(exactly = 2) { exerciseMuscleDao.deleteForVariation(any()) }
+            coVerify(exactly = 2) { exerciseMuscleDao.insertExerciseMuscles(any()) }
         }
 
     @Test
@@ -172,27 +162,17 @@ class SystemExerciseSyncStrategyTest {
             val newTimestamp = LocalDateTime.of(2024, 2, 1, 0, 0)
 
             // Calculate the stable IDs that will be generated
-            val coreId = ("core_Bench Press".hashCode() and 0x7FFFFFFF).toString()
-            val variationId = ("var_Barbell Bench Press Updated".hashCode() and 0x7FFFFFFF).toString()
-
-            val existingCore =
-                ExerciseCore(
-                    id = coreId,
-                    name = "Bench Press",
-                    category = ExerciseCategory.CHEST,
-                    movementPattern = MovementPattern.PRESS,
-                    isCompound = true,
-                    createdAt = oldTimestamp,
-                    updatedAt = oldTimestamp,
-                )
+            val exerciseId = ("var_Barbell Bench Press Updated".hashCode() and 0x7FFFFFFF).toString()
 
             val existingVariation =
-                ExerciseVariation(
-                    id = variationId,
-                    coreExerciseId = coreId,
+                Exercise(
+                    id = exerciseId,
                     name = "Barbell Bench Press",
-                    equipment = Equipment.BARBELL,
-                    difficulty = ExerciseDifficulty.INTERMEDIATE,
+                    category = ExerciseCategory.CHEST.name,
+                    movementPattern = MovementPattern.PUSH.name,
+                    isCompound = true,
+                    equipment = Equipment.BARBELL.name,
+                    difficulty = ExerciseDifficulty.INTERMEDIATE.name,
                     requiresWeight = true,
                     createdAt = oldTimestamp,
                     updatedAt = oldTimestamp,
@@ -215,18 +195,16 @@ class SystemExerciseSyncStrategyTest {
             coEvery { firestoreRepository.downloadSystemExercises(any()) } returns
                 Result.success(mapOf("bench-press" to remoteExercise))
 
-            coEvery { exerciseCoreDao.getCoreById(any()) } returns existingCore
-            coEvery { exerciseVariationDao.getExerciseVariationById(any()) } returns existingVariation
+            coEvery { exerciseDao.getExerciseById(any()) } returns existingVariation
 
             // Mock update and delete methods
-            coEvery { exerciseCoreDao.updateCore(any()) } returns Unit
-            coEvery { exerciseVariationDao.updateVariation(any()) } returns Unit
-            coEvery { variationMuscleDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationMuscleDao.insertVariationMuscles(any()) } returns Unit
-            coEvery { variationAliasDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationAliasDao.insertAliases(any()) } returns Unit
-            coEvery { variationInstructionDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationInstructionDao.insertInstructions(any()) } returns Unit
+            coEvery { exerciseDao.updateExercise(any()) } returns Unit
+            coEvery { exerciseMuscleDao.deleteForVariation(any()) } returns Unit
+            coEvery { exerciseMuscleDao.insertExerciseMuscles(any()) } returns Unit
+            coEvery { exerciseAliasDao.deleteForVariation(any()) } returns Unit
+            coEvery { exerciseAliasDao.insertAliases(any()) } returns Unit
+            coEvery { exerciseInstructionDao.deleteForVariation(any()) } returns Unit
+            coEvery { exerciseInstructionDao.insertInstructions(any()) } returns Unit
 
             // When: Sync is performed
             val result = strategy.downloadAndMerge(null, null)
@@ -235,11 +213,10 @@ class SystemExerciseSyncStrategyTest {
             assertTrue(result.isSuccess)
 
             // Verify updates were called
-            coVerify { exerciseCoreDao.updateCore(any()) }
-            coVerify { exerciseVariationDao.updateVariation(any()) }
+            coVerify { exerciseDao.updateExercise(any()) }
 
             // Verify related data was refreshed
-            coVerify { variationMuscleDao.deleteForVariation(any()) }
+            coVerify { exerciseMuscleDao.deleteForVariation(any()) }
         }
 
     @Test
@@ -250,27 +227,17 @@ class SystemExerciseSyncStrategyTest {
             val oldTimestamp = LocalDateTime.of(2024, 1, 1, 0, 0)
 
             // Calculate the stable IDs that will be generated
-            val coreId = ("core_Bench Press".hashCode() and 0x7FFFFFFF).toString()
-            val variationId = ("var_Barbell Bench Press".hashCode() and 0x7FFFFFFF).toString()
-
-            val existingCore =
-                ExerciseCore(
-                    id = coreId,
-                    name = "Bench Press",
-                    category = ExerciseCategory.CHEST,
-                    movementPattern = MovementPattern.PRESS,
-                    isCompound = true,
-                    createdAt = newTimestamp,
-                    updatedAt = newTimestamp,
-                )
+            val exerciseId = ("var_Barbell Bench Press".hashCode() and 0x7FFFFFFF).toString()
 
             val existingVariation =
-                ExerciseVariation(
-                    id = variationId,
-                    coreExerciseId = coreId,
+                Exercise(
+                    id = exerciseId,
                     name = "Barbell Bench Press",
-                    equipment = Equipment.BARBELL,
-                    difficulty = ExerciseDifficulty.INTERMEDIATE,
+                    category = ExerciseCategory.CHEST.name,
+                    movementPattern = MovementPattern.PUSH.name,
+                    isCompound = true,
+                    equipment = Equipment.BARBELL.name,
+                    difficulty = ExerciseDifficulty.INTERMEDIATE.name,
                     requiresWeight = true,
                     createdAt = newTimestamp,
                     updatedAt = newTimestamp,
@@ -293,16 +260,15 @@ class SystemExerciseSyncStrategyTest {
             coEvery { firestoreRepository.downloadSystemExercises(any()) } returns
                 Result.success(mapOf("bench-press" to remoteExercise))
 
-            coEvery { exerciseCoreDao.getCoreById(any()) } returns existingCore
-            coEvery { exerciseVariationDao.getExerciseVariationById(any()) } returns existingVariation
+            coEvery { exerciseDao.getExerciseById(any()) } returns existingVariation
 
             // Mock deletion methods (these should still be called for related data)
-            coEvery { variationMuscleDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationMuscleDao.insertVariationMuscles(any()) } returns Unit
-            coEvery { variationAliasDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationAliasDao.insertAliases(any()) } returns Unit
-            coEvery { variationInstructionDao.deleteForVariation(any()) } returns Unit
-            coEvery { variationInstructionDao.insertInstructions(any()) } returns Unit
+            coEvery { exerciseMuscleDao.deleteForVariation(any()) } returns Unit
+            coEvery { exerciseMuscleDao.insertExerciseMuscles(any()) } returns Unit
+            coEvery { exerciseAliasDao.deleteForVariation(any()) } returns Unit
+            coEvery { exerciseAliasDao.insertAliases(any()) } returns Unit
+            coEvery { exerciseInstructionDao.deleteForVariation(any()) } returns Unit
+            coEvery { exerciseInstructionDao.insertInstructions(any()) } returns Unit
 
             // When: Sync is performed
             val result = strategy.downloadAndMerge(null, null)
@@ -311,11 +277,10 @@ class SystemExerciseSyncStrategyTest {
             assertTrue(result.isSuccess)
 
             // Verify NO updates were called
-            coVerify(exactly = 0) { exerciseCoreDao.updateCore(any()) }
-            coVerify(exactly = 0) { exerciseVariationDao.updateVariation(any()) }
+            coVerify(exactly = 0) { exerciseDao.updateExercise(any()) }
 
             // But related data is still refreshed
-            coVerify { variationMuscleDao.deleteForVariation(any()) }
+            coVerify { exerciseMuscleDao.deleteForVariation(any()) }
         }
 
     @Test
@@ -331,8 +296,7 @@ class SystemExerciseSyncStrategyTest {
             assertTrue(result.isSuccess)
 
             // Verify no insertions
-            coVerify(exactly = 0) { exerciseCoreDao.insertCore(any()) }
-            coVerify(exactly = 0) { exerciseVariationDao.insertExerciseVariation(any()) }
+            coVerify(exactly = 0) { exerciseDao.insertExercise(any()) }
         }
 
     @Test
@@ -350,7 +314,7 @@ class SystemExerciseSyncStrategyTest {
             assertEquals("Network error", result.exceptionOrNull()?.message)
 
             // Verify no database operations
-            coVerify(exactly = 0) { exerciseCoreDao.insertCore(any()) }
+            coVerify(exactly = 0) { exerciseDao.insertExercise(any()) }
         }
 
     @Test

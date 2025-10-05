@@ -9,7 +9,7 @@ import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutDao
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.export.ExportOptions
-import com.github.radupana.featherweight.data.profile.OneRMDao
+import com.github.radupana.featherweight.data.profile.ExerciseMaxTrackingDao
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.manager.WeightUnitManager
 import com.github.radupana.featherweight.repository.FeatherweightRepository
@@ -22,7 +22,7 @@ class WorkoutExportService(
     private val workoutDao: WorkoutDao,
     private val exerciseLogDao: ExerciseLogDao,
     private val setLogDao: SetLogDao,
-    private val oneRMDao: OneRMDao,
+    private val oneRMDao: ExerciseMaxTrackingDao,
     private val repository: FeatherweightRepository,
     private val authManager: AuthenticationManager,
     private val weightUnitManager: WeightUnitManager? = null,
@@ -130,7 +130,7 @@ class WorkoutExportService(
 
             for (max in currentMaxes) {
                 writer.beginObject()
-                writer.name("exerciseId").value(max.exerciseVariationId)
+                writer.name("exerciseId").value(max.exerciseId)
                 writer.name("exerciseName").value(max.exerciseName)
 
                 // Export weight in current unit
@@ -196,13 +196,11 @@ class WorkoutExportService(
     ) {
         writer.beginObject()
 
-        writer.name("exerciseId").value(exercise.exerciseVariationId)
+        writer.name("exerciseId").value(exercise.exerciseId)
         // Get exercise name from repository
-        val exerciseVariation = repository.getExerciseById(exercise.exerciseVariationId)
+        val exerciseVariation = repository.getExerciseById(exercise.exerciseId)
         writer.name("exerciseName").value(exerciseVariation?.name ?: "Unknown Exercise")
         writer.name("order").value(exercise.exerciseOrder)
-
-        exercise.supersetGroup?.let { writer.name("supersetGroup").value(it) }
 
         if (exportOptions.includeNotes && exercise.notes != null) {
             writer.name("notes").value(exercise.notes)

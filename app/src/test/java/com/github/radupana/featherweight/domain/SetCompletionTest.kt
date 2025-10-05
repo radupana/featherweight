@@ -67,29 +67,6 @@ class SetCompletionTest {
     }
 
     @Test
-    fun `set with intelligent suggestions`() {
-        val suggestedSet =
-            SetLog(
-                exerciseLogId = "1",
-                setOrder = 1,
-                targetReps = 10,
-                targetWeight = null, // No target, using suggestion
-                suggestedWeight = 85f,
-                suggestedReps = 10,
-                suggestionSource = "{\"source\": \"previous_performance\", \"confidence\": 0.85}",
-                suggestionConfidence = 0.85f,
-                actualReps = 0,
-                actualWeight = 0f,
-                isCompleted = false,
-            )
-
-        assertThat(suggestedSet.suggestedWeight).isNotNull()
-        assertThat(suggestedSet.suggestedWeight).isEqualTo(85f)
-        assertThat(suggestedSet.suggestionConfidence).isGreaterThan(0.5f)
-        assertThat(suggestedSet.suggestionSource).contains("previous_performance")
-    }
-
-    @Test
     fun `set order is maintained`() {
         val set1 =
             SetLog(

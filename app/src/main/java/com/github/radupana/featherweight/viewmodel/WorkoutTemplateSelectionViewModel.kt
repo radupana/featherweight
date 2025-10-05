@@ -68,7 +68,7 @@ class WorkoutTemplateSelectionViewModel(
                         val exercises = repository.getTemplateExercises(template.id)
                         val exerciseNames =
                             exercises.mapNotNull { exerciseLog ->
-                                repository.getExerciseById(exerciseLog.exerciseVariationId)?.name
+                                repository.getExerciseById(exerciseLog.exerciseId)?.name
                             }
 
                         Log.d(TAG, "Template ${template.id}: exercises=${exerciseNames.joinToString()}")

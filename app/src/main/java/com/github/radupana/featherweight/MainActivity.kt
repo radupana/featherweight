@@ -589,11 +589,11 @@ fun MainAppWithNavigation(
                             val parsedExercises =
                                 exercises.map { exerciseLog ->
                                     val exerciseSets = sets.filter { it.exerciseLogId == exerciseLog.id }
-                                    // Use exerciseVariationId as key directly (no more collisions since tables are merged)
-                                    val key = "exercise_${exerciseLog.exerciseVariationId}"
+                                    // Use exerciseId as key directly (no more collisions since tables are merged)
+                                    val key = "exercise_${exerciseLog.exerciseId}"
                                     com.github.radupana.featherweight.data.ParsedExercise(
                                         exerciseName = exerciseNames[key] ?: "Unknown Exercise",
-                                        matchedExerciseId = exerciseLog.exerciseVariationId,
+                                        matchedExerciseId = exerciseLog.exerciseId,
                                         sets =
                                             exerciseSets.map { setLog ->
                                                 com.github.radupana.featherweight.data.ParsedSet(

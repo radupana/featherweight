@@ -11,13 +11,25 @@ import java.time.LocalDateTime
  */
 @Entity(
     tableName = "exercise_performance_tracking",
-    indices = [androidx.room.Index("userId")],
+    indices = [
+        androidx.room.Index("userId"),
+        androidx.room.Index("exerciseId"),
+    ],
+    foreignKeys = [
+        androidx.room.ForeignKey(
+            entity = com.github.radupana.featherweight.data.exercise.Exercise::class,
+            parentColumns = ["id"],
+            childColumns = ["exerciseId"],
+            onDelete = androidx.room.ForeignKey.CASCADE,
+        ),
+    ],
 )
 data class ExercisePerformanceTracking(
     @PrimaryKey
     val id: String = IdGenerator.generateId(),
     val userId: String? = null,
     val programmeId: String,
+    val exerciseId: String,
     val exerciseName: String,
     val targetWeight: Float,
     val achievedWeight: Float,

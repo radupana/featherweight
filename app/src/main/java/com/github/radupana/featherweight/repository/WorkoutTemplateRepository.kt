@@ -100,9 +100,9 @@ class WorkoutTemplateRepository(
                     TemplateExercise(
                         userId = userId,
                         templateId = template.id,
-                        exerciseVariationId = exerciseLog.exerciseVariationId,
+                        exerciseId = exerciseLog.exerciseId,
                         exerciseOrder = exerciseLog.exerciseOrder,
-                        supersetGroup = exerciseLog.supersetGroup,
+                        supersetGroup = null,
                         notes = exerciseLog.notes,
                     )
                 templateExerciseDao.insertTemplateExercise(templateExercise)
@@ -154,9 +154,8 @@ class WorkoutTemplateRepository(
                     ExerciseLog(
                         userId = userId,
                         workoutId = workout.id,
-                        exerciseVariationId = templateExercise.exerciseVariationId,
+                        exerciseId = templateExercise.exerciseId,
                         exerciseOrder = templateExercise.exerciseOrder,
-                        supersetGroup = templateExercise.supersetGroup,
                         notes = templateExercise.notes,
                     )
                 exerciseLogDao.insertExerciseLog(exerciseLog)

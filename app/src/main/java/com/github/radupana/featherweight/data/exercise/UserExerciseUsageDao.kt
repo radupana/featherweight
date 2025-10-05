@@ -22,13 +22,13 @@ interface UserExerciseUsageDao {
     @Query(
         """
         SELECT * FROM user_exercise_usage
-        WHERE userId = :userId AND exerciseVariationId = :variationId
+        WHERE userId = :userId AND exerciseId = :exerciseId
         LIMIT 1
     """,
     )
     suspend fun getUsage(
         userId: String,
-        variationId: String,
+        exerciseId: String,
     ): UserExerciseUsage?
 
     @Query(
@@ -42,63 +42,40 @@ interface UserExerciseUsageDao {
 
     @Query(
         """
-        SELECT * FROM user_exercise_usage
-        WHERE userId = :userId AND favorited = 1
-        ORDER BY lastUsedAt DESC
-    """,
-    )
-    suspend fun getFavoritedExercises(userId: String): List<UserExerciseUsage>
-
-    @Query(
-        """
         UPDATE user_exercise_usage
         SET usageCount = usageCount + 1, lastUsedAt = :timestamp, updatedAt = :timestamp
-        WHERE userId = :userId AND exerciseVariationId = :variationId
+        WHERE userId = :userId AND exerciseId = :exerciseId
     """,
     )
     suspend fun incrementUsageCount(
         userId: String,
-        variationId: String,
-        timestamp: LocalDateTime = LocalDateTime.now(),
-    )
-
-    @Query(
-        """
-        UPDATE user_exercise_usage
-        SET favorited = :favorited, updatedAt = :timestamp
-        WHERE userId = :userId AND exerciseVariationId = :variationId
-    """,
-    )
-    suspend fun setFavorited(
-        userId: String,
-        variationId: String,
-        favorited: Boolean,
+        exerciseId: String,
         timestamp: LocalDateTime = LocalDateTime.now(),
     )
 
     @Query("DELETE FROM user_exercise_usage WHERE userId = :userId")
     suspend fun deleteAllUsageForUser(userId: String)
 
-    @Query("DELETE FROM user_exercise_usage WHERE userId = :userId AND exerciseVariationId = :variationId")
+    @Query("DELETE FROM user_exercise_usage WHERE userId = :userId AND exerciseId = :exerciseId")
     suspend fun deleteUsage(
         userId: String,
-        variationId: String,
+        exerciseId: String,
     )
 
     // Get or create usage record
     @Transaction
     suspend fun getOrCreateUsage(
         userId: String,
-        variationId: String,
+        exerciseId: String,
     ): UserExerciseUsage {
-        val existing = getUsage(userId, variationId)
+        val existing = getUsage(userId, exerciseId)
         return if (existing != null) {
             existing
         } else {
             val newUsage =
                 UserExerciseUsage(
                     userId = userId,
-                    exerciseVariationId = variationId,
+                    exerciseId = exerciseId,
                 )
             insertUsage(newUsage)
             newUsage

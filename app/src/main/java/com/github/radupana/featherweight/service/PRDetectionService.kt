@@ -6,7 +6,7 @@ import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.PersonalRecordDao
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SetLogDao
-import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
+import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +22,7 @@ import kotlin.math.pow
 class PRDetectionService(
     private val personalRecordDao: PersonalRecordDao,
     private val setLogDao: SetLogDao,
-    private val exerciseVariationDao: ExerciseVariationDao,
+    private val exerciseDao: ExerciseDao,
 ) {
     companion object {
         private const val TAG = "PRDetectionService"
@@ -35,7 +35,7 @@ class PRDetectionService(
      */
     suspend fun checkForPR(
         setLog: SetLog,
-        exerciseVariationId: String,
+        exerciseId: String,
     ): List<PersonalRecord> =
         withContext(Dispatchers.IO) {
             val newPRs = mutableListOf<PersonalRecord>()
@@ -64,10 +64,17 @@ class PRDetectionService(
                 }
 
             // Get the exercise variation to determine scaling type
-            val exerciseVariation = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
-            val scalingType = exerciseVariation?.rmScalingType ?: RMScalingType.STANDARD
+            val exerciseVariation = exerciseDao.getExerciseById(exerciseId)
+            val scalingType =
+                exerciseVariation?.rmScalingType?.let {
+                    try {
+                        RMScalingType.valueOf(it)
+                    } catch (e: IllegalArgumentException) {
+                        RMScalingType.STANDARD
+                    }
+                } ?: RMScalingType.STANDARD
 
-            Log.d("PRDetection", "Checking PRs for exercise $exerciseVariationId: ${currentWeight}kg × $currentReps @ RPE $currentRpe")
+            Log.d("PRDetection", "Checking PRs for exercise $exerciseId: ${currentWeight}kg × $currentReps @ RPE $currentRpe")
 
             // Calculate estimated 1RM for this set
             val estimated1RM = calculateEstimated1RM(currentWeight, currentReps, currentRpe, scalingType)
@@ -79,11 +86,11 @@ class PRDetectionService(
             }
 
             // Get the current max estimated 1RM for comparison
-            val currentMax1RM = personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId)
+            val currentMax1RM = personalRecordDao.getMaxEstimated1RMForExercise(exerciseId)
             Log.d("PRDetection", "Current max 1RM in database: ${currentMax1RM?.let { WeightFormatter.formatDecimal(it, 2) } ?: "None"}kg")
 
             // Check for weight PR (higher absolute weight than ever before)
-            val weightPR = checkWeightPR(exerciseVariationId, currentWeight, currentReps, currentRpe, currentDate, workoutId, estimated1RM, currentMax1RM, setLog.userId)
+            val weightPR = checkWeightPR(exerciseId, currentWeight, currentReps, currentRpe, currentDate, workoutId, estimated1RM, currentMax1RM, setLog.userId)
             weightPR?.let {
                 Log.d("PRDetection", "Weight PR detected: ${it.weight}kg × ${it.reps}")
                 newPRs.add(it)
@@ -93,7 +100,7 @@ class PRDetectionService(
             // Only check if we actually calculated a 1RM
             if (estimated1RM != null && estimated1RM > (currentMax1RM ?: 0f)) {
                 Log.d("PRDetection", "New 1RM PR detected: ${WeightFormatter.formatDecimal(estimated1RM, 2)}kg > ${currentMax1RM ?: 0}kg")
-                val oneRMPR = checkEstimated1RMPR(exerciseVariationId, currentWeight, currentReps, currentRpe, estimated1RM, currentDate, workoutId, setLog.userId)
+                val oneRMPR = checkEstimated1RMPR(exerciseId, currentWeight, currentReps, currentRpe, estimated1RM, currentDate, workoutId, setLog.userId)
                 oneRMPR?.let {
                     // Don't add duplicate 1RM PR if weight PR already includes it
                     if (weightPR == null || weightPR.estimated1RM != estimated1RM) {
@@ -110,7 +117,7 @@ class PRDetectionService(
                     val existingPR =
                         personalRecordDao.getPRForExerciseInWorkout(
                             pr.workoutId,
-                            pr.exerciseVariationId,
+                            pr.exerciseId,
                             pr.recordType,
                         )
 
@@ -135,7 +142,7 @@ class PRDetectionService(
         }
 
     private suspend fun checkEstimated1RMPR(
-        exerciseVariationId: String,
+        exerciseId: String,
         weight: Float,
         reps: Int,
         rpe: Float?,
@@ -145,12 +152,12 @@ class PRDetectionService(
         userId: String?,
     ): PersonalRecord? {
         // Get the current max estimated 1RM for this exercise
-        val currentMax1RM = personalRecordDao.getMaxEstimated1RMForExercise(exerciseVariationId)
+        val currentMax1RM = personalRecordDao.getMaxEstimated1RMForExercise(exerciseId)
 
         // Create PR if this is the first record OR if it beats the existing record
         if (currentMax1RM == null || estimated1RM > currentMax1RM) {
             // Get previous 1RM PR for context
-            val previousPR = personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.ESTIMATED_1RM)
+            val previousPR = personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.ESTIMATED_1RM)
 
             val improvementPercentage =
                 if (currentMax1RM != null && currentMax1RM > 0) {
@@ -168,7 +175,7 @@ class PRDetectionService(
 
             return PersonalRecord(
                 userId = userId,
-                exerciseVariationId = exerciseVariationId,
+                exerciseId = exerciseId,
                 weight = weight,
                 reps = reps,
                 rpe = rpe,
@@ -189,7 +196,7 @@ class PRDetectionService(
     }
 
     private suspend fun checkWeightPR(
-        exerciseVariationId: String,
+        exerciseId: String,
         weight: Float,
         reps: Int,
         rpe: Float?,
@@ -199,14 +206,14 @@ class PRDetectionService(
         currentMax1RM: Float?,
         userId: String?,
     ): PersonalRecord? {
-        val currentMaxWeight = personalRecordDao.getMaxWeightForExercise(exerciseVariationId)
+        val currentMaxWeight = personalRecordDao.getMaxWeightForExercise(exerciseId)
 
         Log.d("PRDetection", "Weight PR check: current weight=${weight}kg, max weight in DB=${currentMaxWeight ?: "None"}kg")
 
         // Create PR if this is the first record OR if it beats the existing record
         if (currentMaxWeight == null || weight > currentMaxWeight) {
             // Get previous weight PR for context
-            val previousPR = personalRecordDao.getLatestPRForExerciseAndType(exerciseVariationId, PRType.WEIGHT)
+            val previousPR = personalRecordDao.getLatestPRForExerciseAndType(exerciseId, PRType.WEIGHT)
 
             val improvementPercentage =
                 if (currentMaxWeight != null && currentMaxWeight > 0) {
@@ -229,7 +236,7 @@ class PRDetectionService(
             Log.d("PRDetection", "Creating weight PR: ${roundedWeight}kg × $reps, notes: $notes")
             return PersonalRecord(
                 userId = userId,
-                exerciseVariationId = exerciseVariationId,
+                exerciseId = exerciseId,
                 weight = roundedWeight,
                 reps = reps,
                 rpe = rpe,
@@ -291,6 +298,10 @@ class PRDetectionService(
             RMScalingType.STANDARD -> {
                 weight / (1.0278f - 0.0278f * totalRepCapacity)
             }
+            RMScalingType.CONSERVATIVE, RMScalingType.UNKNOWN -> {
+                // Use standard formula with 5% reduction for safety
+                (weight / (1.0278f - 0.0278f * totalRepCapacity)) * 0.95f
+            }
         }
     }
 
@@ -298,11 +309,11 @@ class PRDetectionService(
      * Get recent PRs for an exercise
      */
     suspend fun getRecentPRsForExercise(
-        exerciseVariationId: String,
+        exerciseId: String,
         limit: Int = 5,
     ): List<PersonalRecord> =
         withContext(Dispatchers.IO) {
-            personalRecordDao.getRecentPRsForExercise(exerciseVariationId, limit)
+            personalRecordDao.getRecentPRsForExercise(exerciseId, limit)
         }
 
     /**

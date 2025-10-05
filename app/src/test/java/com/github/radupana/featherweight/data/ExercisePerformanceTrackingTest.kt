@@ -13,6 +13,7 @@ class ExercisePerformanceTrackingTest {
             ExercisePerformanceTracking(
                 id = "1",
                 programmeId = "100",
+                exerciseId = "1",
                 exerciseName = "Barbell Bench Press",
                 targetWeight = 100f,
                 achievedWeight = 95f,
@@ -56,6 +57,7 @@ class ExercisePerformanceTrackingTest {
         val performance =
             ExercisePerformanceTracking(
                 programmeId = "50",
+                exerciseId = "2",
                 exerciseName = "Barbell Squat",
                 targetWeight = 120f,
                 achievedWeight = 120f,
@@ -93,6 +95,7 @@ class ExercisePerformanceTrackingTest {
         val performance =
             ExercisePerformanceTracking(
                 programmeId = "10",
+                exerciseId = "3",
                 exerciseName = "Barbell Deadlift",
                 targetWeight = 180f,
                 achievedWeight = 180f,
@@ -117,6 +120,7 @@ class ExercisePerformanceTrackingTest {
         val performance =
             ExercisePerformanceTracking(
                 programmeId = "10",
+                exerciseId = "4",
                 exerciseName = "Barbell Overhead Press",
                 targetWeight = 60f,
                 achievedWeight = 60f,
@@ -140,6 +144,7 @@ class ExercisePerformanceTrackingTest {
         val performance =
             ExercisePerformanceTracking(
                 programmeId = "10",
+                exerciseId = "1",
                 exerciseName = "Barbell Bench Press",
                 targetWeight = 80f,
                 achievedWeight = 80f,
@@ -165,6 +170,7 @@ class ExercisePerformanceTrackingTest {
         val performance =
             ExercisePerformanceTracking(
                 programmeId = "10",
+                exerciseId = "5",
                 exerciseName = "Barbell Row",
                 targetWeight = 70f,
                 achievedWeight = 70f,
@@ -189,6 +195,7 @@ class ExercisePerformanceTrackingTest {
         val performance =
             ExercisePerformanceTracking(
                 programmeId = "10",
+                exerciseId = "6",
                 exerciseName = "Dumbbell Curl",
                 targetWeight = 15f,
                 achievedWeight = 15f,
@@ -215,6 +222,7 @@ class ExercisePerformanceTrackingTest {
         val performance =
             ExercisePerformanceTracking(
                 programmeId = "10",
+                exerciseId = "2",
                 exerciseName = "Barbell Squat",
                 targetWeight = 140f,
                 achievedWeight = 140f,
@@ -249,6 +257,7 @@ class ExercisePerformanceTrackingTest {
         val performance =
             ExercisePerformanceTracking(
                 programmeId = "10",
+                exerciseId = "3",
                 exerciseName = "Barbell Deadlift",
                 targetWeight = 200f,
                 achievedWeight = 200f,
@@ -272,6 +281,7 @@ class ExercisePerformanceTrackingTest {
         val performance =
             ExercisePerformanceTracking(
                 programmeId = "10",
+                exerciseId = "2",
                 exerciseName = "Barbell Squat",
                 targetWeight = 500f, // Very heavy weight
                 achievedWeight = 500f,
@@ -297,6 +307,7 @@ class ExercisePerformanceTrackingTest {
             ExercisePerformanceTracking(
                 id = "1",
                 programmeId = "10",
+                exerciseId = "1",
                 exerciseName = "Barbell Bench Press",
                 targetWeight = 100f,
                 achievedWeight = 100f,
@@ -314,6 +325,7 @@ class ExercisePerformanceTrackingTest {
             ExercisePerformanceTracking(
                 id = "1",
                 programmeId = "10",
+                exerciseId = "1",
                 exerciseName = "Barbell Bench Press",
                 targetWeight = 100f,
                 achievedWeight = 100f,
@@ -331,6 +343,7 @@ class ExercisePerformanceTrackingTest {
             ExercisePerformanceTracking(
                 id = "2", // Different ID
                 programmeId = "10",
+                exerciseId = "1",
                 exerciseName = "Barbell Bench Press",
                 targetWeight = 100f,
                 achievedWeight = 100f,
@@ -355,6 +368,7 @@ class ExercisePerformanceTrackingTest {
             ExercisePerformanceTracking(
                 id = "1",
                 programmeId = "10",
+                exerciseId = "2",
                 exerciseName = "Barbell Squat",
                 targetWeight = 140f,
                 achievedWeight = 140f,
@@ -380,6 +394,7 @@ class ExercisePerformanceTrackingTest {
         val original =
             ExercisePerformanceTracking(
                 programmeId = "10",
+                exerciseId = "1",
                 exerciseName = "Barbell Bench Press",
                 targetWeight = 100f,
                 achievedWeight = 100f,

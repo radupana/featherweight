@@ -104,14 +104,10 @@ data class FirestoreInstruction(
 data class FirestoreExerciseUsage(
     @PropertyName("exerciseId")
     val exerciseId: String = "",
-    @PropertyName("isCustomExercise")
-    val isCustomExercise: Boolean = false,
     @PropertyName("usageCount")
     val usageCount: Int = 0,
     @PropertyName("lastUsedAt")
     val lastUsedAt: Timestamp? = null,
-    @PropertyName("favorited")
-    val favorited: Boolean = false,
     @PropertyName("personalNotes")
     val personalNotes: String? = null,
     @PropertyName("createdAt")
@@ -122,10 +118,8 @@ data class FirestoreExerciseUsage(
     // No-arg constructor required for Firestore
     constructor() : this(
         exerciseId = "",
-        isCustomExercise = false,
         usageCount = 0,
         lastUsedAt = null,
-        favorited = false,
         personalNotes = null,
         createdAt = null,
         updatedAt = null,

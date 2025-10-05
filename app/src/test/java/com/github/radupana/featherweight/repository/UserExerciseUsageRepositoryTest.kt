@@ -6,13 +6,12 @@ import com.github.radupana.featherweight.data.ExerciseSwapHistoryDao
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.SetLogDao
 import com.github.radupana.featherweight.data.exercise.Equipment
-import com.github.radupana.featherweight.data.exercise.ExerciseCoreDao
+import com.github.radupana.featherweight.data.exercise.Exercise
+import com.github.radupana.featherweight.data.exercise.ExerciseAliasDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
-import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
+import com.github.radupana.featherweight.data.exercise.ExerciseMuscleDao
 import com.github.radupana.featherweight.data.exercise.UserExerciseUsageDao
-import com.github.radupana.featherweight.data.exercise.VariationMuscleDao
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -34,7 +33,7 @@ class UserExerciseUsageRepositoryTest {
     private lateinit var exerciseLogDao: ExerciseLogDao
     private lateinit var userExerciseUsageDao: UserExerciseUsageDao
     private lateinit var authManager: AuthenticationManager
-    private lateinit var mockVariation: ExerciseVariation
+    private lateinit var mockVariation: Exercise
 
     private val testUserId = "test-user-id"
 
@@ -57,18 +56,16 @@ class UserExerciseUsageRepositoryTest {
         val exerciseDao = mockk<ExerciseDao>()
         val setLogDao = mockk<SetLogDao>()
         val exerciseSwapHistoryDao = mockk<ExerciseSwapHistoryDao>()
-        val exerciseCoreDao = mockk<ExerciseCoreDao>()
-        val exerciseVariationDao = mockk<ExerciseVariationDao>()
-        val variationMuscleDao = mockk<VariationMuscleDao>()
+        val exerciseAliasDao = mockk<ExerciseAliasDao>()
+        val exerciseMuscleDao = mockk<ExerciseMuscleDao>()
 
         // Setup database mock
         every { db.exerciseDao() } returns exerciseDao
         every { db.exerciseLogDao() } returns exerciseLogDao
         every { db.setLogDao() } returns setLogDao
         every { db.exerciseSwapHistoryDao() } returns exerciseSwapHistoryDao
-        every { db.exerciseCoreDao() } returns exerciseCoreDao
-        every { db.exerciseVariationDao() } returns exerciseVariationDao
-        every { db.variationMuscleDao() } returns variationMuscleDao
+        every { db.exerciseAliasDao() } returns exerciseAliasDao
+        every { db.exerciseMuscleDao() } returns exerciseMuscleDao
         every { db.userExerciseUsageDao() } returns userExerciseUsageDao
 
         // Setup auth manager
@@ -78,12 +75,14 @@ class UserExerciseUsageRepositoryTest {
 
         // Setup test data
         mockVariation =
-            ExerciseVariation(
+            Exercise(
                 id = "1",
-                coreExerciseId = "1",
                 name = "Barbell Bench Press",
-                equipment = Equipment.BARBELL,
-                difficulty = ExerciseDifficulty.INTERMEDIATE,
+                category = com.github.radupana.featherweight.data.exercise.ExerciseCategory.CHEST.name,
+                movementPattern = com.github.radupana.featherweight.data.exercise.MovementPattern.PUSH.name,
+                isCompound = true,
+                equipment = Equipment.BARBELL.name,
+                difficulty = ExerciseDifficulty.INTERMEDIATE.name,
                 requiresWeight = true,
             )
     }
@@ -109,7 +108,7 @@ class UserExerciseUsageRepositoryTest {
             coVerify {
                 userExerciseUsageDao.incrementUsageCount(
                     userId = testUserId,
-                    variationId = "1",
+                    exerciseId = "1",
                     timestamp = any(),
                 )
             }
@@ -139,7 +138,7 @@ class UserExerciseUsageRepositoryTest {
             coVerify {
                 userExerciseUsageDao.incrementUsageCount(
                     userId = "local",
-                    variationId = "1",
+                    exerciseId = "1",
                     timestamp = any(),
                 )
             }
@@ -168,7 +167,7 @@ class UserExerciseUsageRepositoryTest {
             coVerify {
                 userExerciseUsageDao.incrementUsageCount(
                     userId = testUserId,
-                    variationId = "1",
+                    exerciseId = "1",
                     timestamp = any(),
                 )
             }
@@ -222,7 +221,7 @@ class UserExerciseUsageRepositoryTest {
             coVerify {
                 userExerciseUsageDao.incrementUsageCount(
                     userId = testUserId,
-                    variationId = "1",
+                    exerciseId = "1",
                     timestamp = any(),
                 )
             }

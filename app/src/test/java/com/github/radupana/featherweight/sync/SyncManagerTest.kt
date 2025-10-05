@@ -21,12 +21,11 @@ import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutDao
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.data.WorkoutTemplateDao
-import com.github.radupana.featherweight.data.exercise.ExerciseCoreDao
-import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
-import com.github.radupana.featherweight.data.exercise.VariationAliasDao
-import com.github.radupana.featherweight.data.exercise.VariationInstructionDao
-import com.github.radupana.featherweight.data.exercise.VariationMuscleDao
-import com.github.radupana.featherweight.data.profile.OneRMDao
+import com.github.radupana.featherweight.data.exercise.ExerciseAliasDao
+import com.github.radupana.featherweight.data.exercise.ExerciseDao
+import com.github.radupana.featherweight.data.exercise.ExerciseInstructionDao
+import com.github.radupana.featherweight.data.exercise.ExerciseMuscleDao
+import com.github.radupana.featherweight.data.profile.ExerciseMaxTrackingDao
 import com.github.radupana.featherweight.data.programme.ProgrammeDao
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.sync.repository.FirestoreRepository
@@ -55,13 +54,12 @@ class SyncManagerTest {
     private lateinit var workoutDao: WorkoutDao
     private lateinit var exerciseLogDao: ExerciseLogDao
     private lateinit var setLogDao: SetLogDao
-    private lateinit var exerciseCoreDao: ExerciseCoreDao
-    private lateinit var exerciseVariationDao: ExerciseVariationDao
-    private lateinit var variationMuscleDao: VariationMuscleDao
-    private lateinit var variationInstructionDao: VariationInstructionDao
-    private lateinit var variationAliasDao: VariationAliasDao
+    private lateinit var exerciseDao: ExerciseDao
+    private lateinit var exerciseMuscleDao: ExerciseMuscleDao
+    private lateinit var exerciseInstructionDao: ExerciseInstructionDao
+    private lateinit var exerciseAliasDao: ExerciseAliasDao
     private lateinit var programmeDao: ProgrammeDao
-    private lateinit var oneRMDao: OneRMDao
+    private lateinit var oneRMDao: ExerciseMaxTrackingDao
     private lateinit var personalRecordDao: PersonalRecordDao
     private lateinit var exerciseSwapHistoryDao: ExerciseSwapHistoryDao
     private lateinit var exercisePerformanceTrackingDao: ExercisePerformanceTrackingDao
@@ -101,11 +99,10 @@ class SyncManagerTest {
         workoutDao = mockk()
         exerciseLogDao = mockk()
         setLogDao = mockk()
-        exerciseCoreDao = mockk()
-        exerciseVariationDao = mockk()
-        variationMuscleDao = mockk()
-        variationInstructionDao = mockk()
-        variationAliasDao = mockk()
+        exerciseDao = mockk()
+        exerciseMuscleDao = mockk()
+        exerciseInstructionDao = mockk()
+        exerciseAliasDao = mockk()
         programmeDao = mockk()
         oneRMDao = mockk()
         personalRecordDao = mockk()
@@ -129,13 +126,12 @@ class SyncManagerTest {
         every { database.workoutDao() } returns workoutDao
         every { database.exerciseLogDao() } returns exerciseLogDao
         every { database.setLogDao() } returns setLogDao
-        every { database.exerciseCoreDao() } returns exerciseCoreDao
-        every { database.exerciseVariationDao() } returns exerciseVariationDao
-        every { database.variationMuscleDao() } returns variationMuscleDao
-        every { database.variationInstructionDao() } returns variationInstructionDao
-        every { database.variationAliasDao() } returns variationAliasDao
+        every { database.exerciseDao() } returns exerciseDao
+        every { database.exerciseMuscleDao() } returns exerciseMuscleDao
+        every { database.exerciseInstructionDao() } returns exerciseInstructionDao
+        every { database.exerciseAliasDao() } returns exerciseAliasDao
         every { database.programmeDao() } returns programmeDao
-        every { database.oneRMDao() } returns oneRMDao
+        every { database.exerciseMaxTrackingDao() } returns oneRMDao
         every { database.personalRecordDao() } returns personalRecordDao
         every { database.exerciseSwapHistoryDao() } returns exerciseSwapHistoryDao
         every { database.exercisePerformanceTrackingDao() } returns exercisePerformanceTrackingDao
@@ -156,20 +152,18 @@ class SyncManagerTest {
         coEvery { templateExerciseDao.upsertTemplateExercise(any()) } returns Unit
         coEvery { templateSetDao.getSetsForTemplateExercise(any()) } returns emptyList()
         coEvery { templateSetDao.upsertTemplateSet(any()) } returns Unit
-        coEvery { exerciseCoreDao.getAllCores() } returns emptyList()
-        coEvery { exerciseCoreDao.getCustomCoresByUser(any()) } returns emptyList()
-        coEvery { exerciseVariationDao.getAllExerciseVariations() } returns emptyList()
-        coEvery { exerciseVariationDao.getCustomVariationsByUser(any()) } returns emptyList()
-        coEvery { variationMuscleDao.getAllVariationMuscles() } returns emptyList()
-        coEvery { variationInstructionDao.getAllInstructions() } returns emptyList()
-        coEvery { variationAliasDao.getAllAliases() } returns emptyList()
+        coEvery { exerciseDao.getAllExercises() } returns emptyList()
+        coEvery { exerciseDao.getCustomExercisesByUser(any()) } returns emptyList()
+        coEvery { exerciseMuscleDao.getAllExerciseMuscles() } returns emptyList()
+        coEvery { exerciseInstructionDao.getAllInstructions() } returns emptyList()
+        coEvery { exerciseAliasDao.getAllAliases() } returns emptyList()
         coEvery { programmeDao.getAllProgrammes() } returns emptyList()
         coEvery { programmeDao.getAllProgrammeWeeks() } returns emptyList()
         coEvery { programmeDao.getAllProgrammeWorkouts() } returns emptyList()
         // Note: getAllSubstitutions() method doesn't exist in ProgrammeDao
         coEvery { programmeDao.getAllProgrammeProgress() } returns emptyList()
-        coEvery { oneRMDao.getAllUserExerciseMaxes(any()) } returns emptyList()
-        coEvery { oneRMDao.getAllOneRMHistory(any()) } returns emptyList()
+        coEvery { oneRMDao.getAllForUser(any()) } returns emptyList()
+        coEvery { oneRMDao.getAllForUser(any()) } returns emptyList()
         coEvery { personalRecordDao.getAllPersonalRecords() } returns emptyList()
         coEvery { exerciseSwapHistoryDao.getAllSwapHistory() } returns emptyList()
         coEvery { exercisePerformanceTrackingDao.getAllTracking() } returns emptyList()
@@ -185,11 +179,8 @@ class SyncManagerTest {
         coEvery { firestoreRepository.uploadWorkoutTemplates(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadTemplateExercises(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadTemplateSets(any(), any()) } returns Result.success(Unit)
-        coEvery { firestoreRepository.uploadExerciseCores(any(), any()) } returns Result.success(Unit)
-        coEvery { firestoreRepository.uploadExerciseVariations(any(), any()) } returns Result.success(Unit)
-        coEvery { firestoreRepository.uploadVariationMuscles(any()) } returns Result.success(Unit)
-        coEvery { firestoreRepository.uploadVariationInstructions(any()) } returns Result.success(Unit)
-        coEvery { firestoreRepository.uploadVariationAliases(any()) } returns Result.success(Unit)
+        coEvery { firestoreRepository.uploadExercises(any(), any()) } returns Result.success(Unit)
+        // Exercise-related data is now embedded in FirestoreExercise - no separate upload needed
         coEvery { firestoreRepository.uploadProgrammes(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadProgrammeWeeks(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadProgrammeWorkouts(any(), any()) } returns Result.success(Unit)
@@ -203,7 +194,7 @@ class SyncManagerTest {
         coEvery { firestoreRepository.uploadGlobalExerciseProgress(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadTrainingAnalyses(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadParseRequests(any(), any()) } returns Result.success(Unit)
-        coEvery { firestoreRepository.uploadCustomExercise(any(), any(), any()) } returns Result.success(Unit)
+        coEvery { firestoreRepository.uploadCustomExercise(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.updateSyncMetadata(any(), any(), any()) } returns Result.success(Unit)
     }
 
@@ -216,11 +207,8 @@ class SyncManagerTest {
         coEvery { firestoreRepository.downloadWorkoutTemplates(any(), any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadTemplateExercises(any(), any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadTemplateSets(any(), any()) } returns Result.success(emptyList())
-        coEvery { firestoreRepository.downloadExerciseCores() } returns Result.success(emptyList())
-        coEvery { firestoreRepository.downloadExerciseVariations() } returns Result.success(emptyList())
-        coEvery { firestoreRepository.downloadVariationMuscles() } returns Result.success(emptyList())
-        coEvery { firestoreRepository.downloadVariationInstructions() } returns Result.success(emptyList())
-        coEvery { firestoreRepository.downloadVariationAliases() } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadExercises() } returns Result.success(emptyList())
+        // Exercise-related data is now embedded in FirestoreExercise - no separate download needed
         coEvery { firestoreRepository.downloadProgrammes(any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadProgrammeWeeks(any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadProgrammeWorkouts(any()) } returns Result.success(emptyList())
@@ -316,11 +304,10 @@ class SyncManagerTest {
                     id = "1",
                     userId = userId,
                     workoutId = "1",
-                    exerciseVariationId = "1",
+                    exerciseId = "1",
                     exerciseOrder = 1,
-                    supersetGroup = null,
                     notes = null,
-                    originalVariationId = null,
+                    originalExerciseId = null,
                     isSwapped = false,
                 )
             val setLog =
@@ -336,11 +323,6 @@ class SyncManagerTest {
                     actualRpe = null,
                     isCompleted = true,
                     completedAt = null,
-                    suggestedWeight = null,
-                    suggestedReps = null,
-                    suggestionSource = null,
-                    suggestionConfidence = null,
-                    calculationDetails = null,
                     tag = null,
                     notes = null,
                 )
@@ -378,11 +360,8 @@ class SyncManagerTest {
             coEvery { firestoreRepository.uploadWorkouts(any(), any()) } returns Result.failure(com.google.firebase.FirebaseException(errorMessage))
             coEvery { firestoreRepository.uploadExerciseLogs(any(), any()) } returns Result.success(Unit)
             coEvery { firestoreRepository.uploadSetLogs(any(), any()) } returns Result.success(Unit)
-            coEvery { firestoreRepository.uploadExerciseCores(any(), any()) } returns Result.success(Unit)
-            coEvery { firestoreRepository.uploadExerciseVariations(any(), any()) } returns Result.success(Unit)
-            coEvery { firestoreRepository.uploadVariationMuscles(any()) } returns Result.success(Unit)
-            coEvery { firestoreRepository.uploadVariationInstructions(any()) } returns Result.success(Unit)
-            coEvery { firestoreRepository.uploadVariationAliases(any()) } returns Result.success(Unit)
+            coEvery { firestoreRepository.uploadExercises(any(), any()) } returns Result.success(Unit)
+            // Exercise-related data is now embedded in FirestoreExercise - no separate upload needed
             coEvery { firestoreRepository.uploadProgrammes(any(), any()) } returns Result.success(Unit)
             coEvery { firestoreRepository.uploadProgrammeWeeks(any(), any()) } returns Result.success(Unit)
             coEvery { firestoreRepository.uploadProgrammeWorkouts(any(), any()) } returns Result.success(Unit)
@@ -510,11 +489,8 @@ class SyncManagerTest {
             coEvery { firestoreRepository.downloadWorkoutTemplates(any(), any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadTemplateExercises(any(), any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadTemplateSets(any(), any()) } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadExerciseCores() } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadExerciseVariations() } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadVariationMuscles() } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadVariationInstructions() } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadVariationAliases() } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadExercises() } returns Result.success(emptyList())
+            // Exercise-related data is now embedded in FirestoreExercise - no separate download needed
             coEvery { firestoreRepository.downloadProgrammes(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadProgrammeWeeks(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadProgrammeWorkouts(any()) } returns Result.success(emptyList())
@@ -587,16 +563,15 @@ class SyncManagerTest {
             coEvery { programmeDao.deleteAllProgrammeWorkoutsForUser(userId) } returns Unit
             coEvery { programmeDao.deleteAllProgrammeProgressForUser(userId) } returns Unit
             coEvery { oneRMDao.deleteAllForUser(userId) } returns Unit
-            coEvery { oneRMDao.deleteAllUserExerciseMaxesForUser(userId) } returns Unit
-            coEvery { oneRMDao.deleteAllOneRMHistoryForUser(userId) } returns Unit
+            coEvery { oneRMDao.deleteAllForUser(userId) } returns Unit
+            coEvery { oneRMDao.deleteAllForUser(userId) } returns Unit
             coEvery { personalRecordDao.deleteAllForUser(userId) } returns Unit
             coEvery { exerciseSwapHistoryDao.deleteAllForUser(userId) } returns Unit
             coEvery { exercisePerformanceTrackingDao.deleteAllForUser(userId) } returns Unit
             coEvery { globalExerciseProgressDao.deleteAllForUser(userId) } returns Unit
             coEvery { trainingAnalysisDao.deleteAllByUserId(userId) } returns Unit
             coEvery { parseRequestDao.deleteAllForUser(userId) } returns Unit
-            coEvery { exerciseCoreDao.deleteAllCustomCoresByUser(userId) } returns Unit
-            coEvery { exerciseVariationDao.deleteAllCustomVariationsByUser(userId) } returns Unit
+            coEvery { exerciseDao.deleteAllCustomExercisesByUser(userId) } returns Unit
 
             // Mock the missing DAO methods needed for merge operations
             coEvery { workoutDao.getWorkoutById(any()) } returns null
@@ -679,11 +654,8 @@ class SyncManagerTest {
             coEvery { firestoreRepository.downloadWorkoutTemplates(any(), any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadTemplateExercises(any(), any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadTemplateSets(any(), any()) } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadExerciseCores() } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadExerciseVariations() } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadVariationMuscles() } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadVariationInstructions() } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadVariationAliases() } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadExercises() } returns Result.success(emptyList())
+            // Exercise-related data is now embedded in FirestoreExercise - no separate download needed
             coEvery { firestoreRepository.downloadProgrammes(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadProgrammeWeeks(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadProgrammeWorkouts(any()) } returns Result.success(emptyList())

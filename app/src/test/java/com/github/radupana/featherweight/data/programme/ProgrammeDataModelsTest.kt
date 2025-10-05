@@ -14,11 +14,6 @@ class ProgrammeDataModelsTest {
                 weekNumber = 1,
                 name = "Foundation Week",
                 description = "Build base strength",
-                focusAreas = "[\"legs\", \"back\"]",
-                intensityLevel = "moderate",
-                volumeLevel = "high",
-                isDeload = false,
-                phase = "Foundation",
             )
 
         assertThat(week.id).isEqualTo("1")
@@ -26,31 +21,20 @@ class ProgrammeDataModelsTest {
         assertThat(week.weekNumber).isEqualTo(1)
         assertThat(week.name).isEqualTo("Foundation Week")
         assertThat(week.description).isEqualTo("Build base strength")
-        assertThat(week.focusAreas).contains("legs")
-        assertThat(week.intensityLevel).isEqualTo("moderate")
-        assertThat(week.volumeLevel).isEqualTo("high")
-        assertThat(week.isDeload).isFalse()
-        assertThat(week.phase).isEqualTo("Foundation")
     }
 
     @Test
-    fun programmeWeek_withDeloadWeek_shouldIdentifyAsDeload() {
+    fun programmeWeek_withDeloadWeek_shouldStoreCorrectly() {
         val week =
             ProgrammeWeek(
                 programmeId = "5",
                 weekNumber = 4,
                 name = "Deload Week",
                 description = "Recovery week",
-                focusAreas = null,
-                intensityLevel = "low",
-                volumeLevel = "low",
-                isDeload = true,
-                phase = "Recovery",
             )
 
-        assertThat(week.isDeload).isTrue()
-        assertThat(week.intensityLevel).isEqualTo("low")
-        assertThat(week.volumeLevel).isEqualTo("low")
+        assertThat(week.name).isEqualTo("Deload Week")
+        assertThat(week.description).isEqualTo("Recovery week")
     }
 
     @Test
@@ -61,19 +45,10 @@ class ProgrammeDataModelsTest {
                 weekNumber = 2,
                 name = null,
                 description = null,
-                focusAreas = null,
-                intensityLevel = null,
-                volumeLevel = null,
-                isDeload = false,
-                phase = null,
             )
 
         assertThat(week.name).isNull()
         assertThat(week.description).isNull()
-        assertThat(week.focusAreas).isNull()
-        assertThat(week.intensityLevel).isNull()
-        assertThat(week.volumeLevel).isNull()
-        assertThat(week.phase).isNull()
     }
 
     @Test
@@ -84,16 +59,10 @@ class ProgrammeDataModelsTest {
                 weekNumber = 3,
                 name = "Peak Week",
                 description = "Maximum intensity",
-                focusAreas = "[\"full_body\"]",
-                intensityLevel = "very_high",
-                volumeLevel = "low",
-                isDeload = false,
-                phase = "Peak",
             )
 
-        assertThat(week.intensityLevel).isEqualTo("very_high")
-        assertThat(week.volumeLevel).isEqualTo("low")
-        assertThat(week.phase).isEqualTo("Peak")
+        assertThat(week.name).isEqualTo("Peak Week")
+        assertThat(week.description).isEqualTo("Maximum intensity")
     }
 
     @Test
@@ -104,24 +73,16 @@ class ProgrammeDataModelsTest {
                 weekNumber = 1,
                 name = "Week 1",
                 description = "Introduction",
-                focusAreas = "[\"chest\", \"triceps\"]",
-                intensityLevel = "moderate",
-                volumeLevel = "moderate",
-                isDeload = false,
-                phase = "Accumulation",
             )
 
         val modified =
             original.copy(
                 weekNumber = 2,
                 name = "Week 2",
-                intensityLevel = "high",
             )
 
         assertThat(modified.weekNumber).isEqualTo(2)
         assertThat(modified.name).isEqualTo("Week 2")
-        assertThat(modified.intensityLevel).isEqualTo("high")
-        assertThat(modified.volumeLevel).isEqualTo(original.volumeLevel)
         assertThat(modified.programmeId).isEqualTo(original.programmeId)
     }
 
@@ -210,8 +171,6 @@ class ProgrammeDataModelsTest {
                 completedWorkouts = 8,
                 totalWorkouts = 36,
                 lastWorkoutDate = now,
-                adherencePercentage = 88.9f,
-                strengthProgress = "{\"squat\":\"120kg\",\"bench\":\"90kg\"}",
             )
 
         assertThat(progress.id).isEqualTo("1")
@@ -221,8 +180,6 @@ class ProgrammeDataModelsTest {
         assertThat(progress.completedWorkouts).isEqualTo(8)
         assertThat(progress.totalWorkouts).isEqualTo(36)
         assertThat(progress.lastWorkoutDate).isEqualTo(now)
-        assertThat(progress.adherencePercentage).isWithin(0.1f).of(88.9f)
-        assertThat(progress.strengthProgress).contains("squat")
     }
 
     @Test
@@ -235,14 +192,10 @@ class ProgrammeDataModelsTest {
                 completedWorkouts = 0,
                 totalWorkouts = 48,
                 lastWorkoutDate = null,
-                adherencePercentage = 0f,
-                strengthProgress = null,
             )
 
         assertThat(progress.completedWorkouts).isEqualTo(0)
         assertThat(progress.lastWorkoutDate).isNull()
-        assertThat(progress.adherencePercentage).isEqualTo(0f)
-        assertThat(progress.strengthProgress).isNull()
     }
 
     @Test
@@ -255,11 +208,8 @@ class ProgrammeDataModelsTest {
                 completedWorkouts = 12,
                 totalWorkouts = 12,
                 lastWorkoutDate = LocalDateTime.now(),
-                adherencePercentage = 100f,
-                strengthProgress = "{}",
             )
 
-        assertThat(progress.adherencePercentage).isEqualTo(100f)
         assertThat(progress.completedWorkouts).isEqualTo(progress.totalWorkouts)
     }
 
@@ -273,8 +223,6 @@ class ProgrammeDataModelsTest {
                 completedWorkouts = 17,
                 totalWorkouts = 24,
                 lastWorkoutDate = LocalDateTime.now(),
-                adherencePercentage = 70.83f,
-                strengthProgress = null,
             )
 
         val calculatedPercentage = (progress.completedWorkouts.toFloat() / progress.totalWorkouts) * 100
@@ -300,11 +248,6 @@ class ProgrammeDataModelsTest {
                 weekNumber = 1,
                 name = "Week 1",
                 description = null,
-                focusAreas = null,
-                intensityLevel = "moderate",
-                volumeLevel = "moderate",
-                isDeload = false,
-                phase = "Foundation",
             )
 
         val workout1 =
@@ -331,8 +274,6 @@ class ProgrammeDataModelsTest {
                 completedWorkouts = 0,
                 totalWorkouts = 4,
                 lastWorkoutDate = null,
-                adherencePercentage = 0f,
-                strengthProgress = null,
             )
 
         val details =
@@ -360,11 +301,6 @@ class ProgrammeDataModelsTest {
                 weekNumber = 1,
                 name = "Week 1",
                 description = null,
-                focusAreas = null,
-                intensityLevel = null,
-                volumeLevel = null,
-                isDeload = false,
-                phase = null,
             )
 
         val workouts =

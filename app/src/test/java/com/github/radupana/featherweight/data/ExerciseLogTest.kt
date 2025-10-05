@@ -10,18 +10,17 @@ class ExerciseLogTest {
         val exerciseLog =
             ExerciseLog(
                 workoutId = "10",
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 exerciseOrder = 1,
             )
 
         // Assert
         assertThat(exerciseLog.id).isNotEmpty() // ID is auto-generated
         assertThat(exerciseLog.workoutId).isEqualTo("10")
-        assertThat(exerciseLog.exerciseVariationId).isEqualTo("5")
+        assertThat(exerciseLog.exerciseId).isEqualTo("5")
         assertThat(exerciseLog.exerciseOrder).isEqualTo(1)
-        assertThat(exerciseLog.supersetGroup).isNull()
         assertThat(exerciseLog.notes).isNull()
-        assertThat(exerciseLog.originalVariationId).isNull()
+        assertThat(exerciseLog.originalExerciseId).isNull()
         assertThat(exerciseLog.isSwapped).isFalse()
     }
 
@@ -32,71 +31,21 @@ class ExerciseLogTest {
             ExerciseLog(
                 id = "123",
                 workoutId = "45",
-                exerciseVariationId = "88",
+                exerciseId = "88",
                 exerciseOrder = 3,
-                supersetGroup = 1,
                 notes = "Focus on form today",
-                originalVariationId = "77",
+                originalExerciseId = "77",
                 isSwapped = true,
             )
 
         // Assert
         assertThat(exerciseLog.id).isEqualTo("123")
         assertThat(exerciseLog.workoutId).isEqualTo("45")
-        assertThat(exerciseLog.exerciseVariationId).isEqualTo("88")
+        assertThat(exerciseLog.exerciseId).isEqualTo("88")
         assertThat(exerciseLog.exerciseOrder).isEqualTo(3)
-        assertThat(exerciseLog.supersetGroup).isEqualTo(1)
         assertThat(exerciseLog.notes).isEqualTo("Focus on form today")
-        assertThat(exerciseLog.originalVariationId).isEqualTo("77")
+        assertThat(exerciseLog.originalExerciseId).isEqualTo("77")
         assertThat(exerciseLog.isSwapped).isTrue()
-    }
-
-    @Test
-    fun exerciseLog_withSuperset_hasSupersetGroup() {
-        // Act - Two exercises in the same superset
-        val exercise1 =
-            ExerciseLog(
-                workoutId = "10",
-                exerciseVariationId = "1",
-                exerciseOrder = 1,
-                supersetGroup = 1,
-            )
-
-        val exercise2 =
-            ExerciseLog(
-                workoutId = "10",
-                exerciseVariationId = "2",
-                exerciseOrder = 2,
-                supersetGroup = 1,
-            )
-
-        // Assert - Both have same superset group
-        assertThat(exercise1.supersetGroup).isEqualTo(1)
-        assertThat(exercise2.supersetGroup).isEqualTo(1)
-        assertThat(exercise1.supersetGroup).isEqualTo(exercise2.supersetGroup)
-    }
-
-    @Test
-    fun exerciseLog_withDifferentSupersetGroups_areDifferent() {
-        // Act
-        val superset1Exercise =
-            ExerciseLog(
-                workoutId = "10",
-                exerciseVariationId = "1",
-                exerciseOrder = 1,
-                supersetGroup = 1,
-            )
-
-        val superset2Exercise =
-            ExerciseLog(
-                workoutId = "10",
-                exerciseVariationId = "2",
-                exerciseOrder = 3,
-                supersetGroup = 2,
-            )
-
-        // Assert
-        assertThat(superset1Exercise.supersetGroup).isNotEqualTo(superset2Exercise.supersetGroup)
     }
 
     @Test
@@ -105,15 +54,15 @@ class ExerciseLogTest {
         val exerciseLog =
             ExerciseLog(
                 workoutId = "10",
-                exerciseVariationId = "55", // Current (swapped to)
+                exerciseId = "55", // Current (swapped to)
                 exerciseOrder = 1,
-                originalVariationId = "33", // Original (swapped from)
+                originalExerciseId = "33", // Original (swapped from)
                 isSwapped = true,
             )
 
         // Assert
-        assertThat(exerciseLog.exerciseVariationId).isEqualTo("55")
-        assertThat(exerciseLog.originalVariationId).isEqualTo("33")
+        assertThat(exerciseLog.exerciseId).isEqualTo("55")
+        assertThat(exerciseLog.originalExerciseId).isEqualTo("33")
         assertThat(exerciseLog.isSwapped).isTrue()
     }
 
@@ -123,13 +72,13 @@ class ExerciseLogTest {
         val exerciseLog =
             ExerciseLog(
                 workoutId = "10",
-                exerciseVariationId = "55",
+                exerciseId = "55",
                 exerciseOrder = 1,
                 isSwapped = false,
             )
 
         // Assert
-        assertThat(exerciseLog.originalVariationId).isNull()
+        assertThat(exerciseLog.originalExerciseId).isNull()
         assertThat(exerciseLog.isSwapped).isFalse()
     }
 
@@ -139,7 +88,7 @@ class ExerciseLogTest {
         val exerciseLog =
             ExerciseLog(
                 workoutId = "10",
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 exerciseOrder = 0, // First exercise
             )
 
@@ -153,7 +102,7 @@ class ExerciseLogTest {
         val exerciseLog =
             ExerciseLog(
                 workoutId = "10",
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 exerciseOrder = 19,
             )
 
@@ -176,7 +125,7 @@ class ExerciseLogTest {
         val exerciseLog =
             ExerciseLog(
                 workoutId = "10",
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 exerciseOrder = 1,
                 notes = longNotes,
             )
@@ -192,7 +141,7 @@ class ExerciseLogTest {
             ExerciseLog(
                 id = "1",
                 workoutId = "10",
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 exerciseOrder = 1,
                 notes = "Original notes",
             )
@@ -207,7 +156,7 @@ class ExerciseLogTest {
         // Assert
         assertThat(copy.id).isEqualTo("1")
         assertThat(copy.workoutId).isEqualTo("10")
-        assertThat(copy.exerciseVariationId).isEqualTo("5")
+        assertThat(copy.exerciseId).isEqualTo("5")
         assertThat(copy.exerciseOrder).isEqualTo(2)
         assertThat(copy.notes).isEqualTo("Updated notes")
 
@@ -223,7 +172,7 @@ class ExerciseLogTest {
             ExerciseLog(
                 id = "1",
                 workoutId = "10",
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 exerciseOrder = 1,
             )
 
@@ -231,7 +180,7 @@ class ExerciseLogTest {
             ExerciseLog(
                 id = "1",
                 workoutId = "10",
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 exerciseOrder = 1,
             )
 
@@ -239,7 +188,7 @@ class ExerciseLogTest {
             ExerciseLog(
                 id = "2", // Different ID
                 workoutId = "10",
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 exerciseOrder = 1,
             )
 
@@ -255,7 +204,7 @@ class ExerciseLogTest {
             ExerciseLog(
                 id = "1",
                 workoutId = "10",
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 exerciseOrder = 1,
             )
 
@@ -263,7 +212,7 @@ class ExerciseLogTest {
             ExerciseLog(
                 id = "1",
                 workoutId = "10",
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 exerciseOrder = 1,
             )
 
@@ -277,21 +226,21 @@ class ExerciseLogTest {
         val exercise1 =
             ExerciseLog(
                 workoutId = "100",
-                exerciseVariationId = "1",
+                exerciseId = "1",
                 exerciseOrder = 0,
             )
 
         val exercise2 =
             ExerciseLog(
                 workoutId = "100",
-                exerciseVariationId = "2",
+                exerciseId = "2",
                 exerciseOrder = 1,
             )
 
         val exercise3 =
             ExerciseLog(
                 workoutId = "100",
-                exerciseVariationId = "3",
+                exerciseId = "3",
                 exerciseOrder = 2,
             )
 
@@ -307,53 +256,20 @@ class ExerciseLogTest {
         val workout1Exercise =
             ExerciseLog(
                 workoutId = "100",
-                exerciseVariationId = "1",
+                exerciseId = "1",
                 exerciseOrder = 0,
             )
 
         val workout2Exercise =
             ExerciseLog(
                 workoutId = "200",
-                exerciseVariationId = "1", // Same exercise
+                exerciseId = "1", // Same exercise
                 exerciseOrder = 0,
             )
 
         // Assert
         assertThat(workout1Exercise.workoutId).isNotEqualTo(workout2Exercise.workoutId)
-        assertThat(workout1Exercise.exerciseVariationId).isEqualTo(workout2Exercise.exerciseVariationId)
-    }
-
-    @Test
-    fun exerciseLog_withTripleSuperset_allHaveSameGroup() {
-        // Act - Three exercises in a giant set
-        val exercise1 =
-            ExerciseLog(
-                workoutId = "10",
-                exerciseVariationId = "1",
-                exerciseOrder = 0,
-                supersetGroup = 1,
-            )
-
-        val exercise2 =
-            ExerciseLog(
-                workoutId = "10",
-                exerciseVariationId = "2",
-                exerciseOrder = 1,
-                supersetGroup = 1,
-            )
-
-        val exercise3 =
-            ExerciseLog(
-                workoutId = "10",
-                exerciseVariationId = "3",
-                exerciseOrder = 2,
-                supersetGroup = 1,
-            )
-
-        // Assert
-        assertThat(exercise1.supersetGroup).isEqualTo(1)
-        assertThat(exercise2.supersetGroup).isEqualTo(1)
-        assertThat(exercise3.supersetGroup).isEqualTo(1)
+        assertThat(workout1Exercise.exerciseId).isEqualTo(workout2Exercise.exerciseId)
     }
 
     @Test
@@ -363,7 +279,7 @@ class ExerciseLogTest {
             ExerciseLog(
                 id = "10",
                 workoutId = "100",
-                exerciseVariationId = "55",
+                exerciseId = "55",
                 exerciseOrder = 2,
             )
 
@@ -372,7 +288,7 @@ class ExerciseLogTest {
         // Assert - toString should contain key identifying information
         assertThat(stringRep).contains("10") // id
         assertThat(stringRep).contains("100") // workoutId
-        assertThat(stringRep).contains("55") // exerciseVariationId
+        assertThat(stringRep).contains("55") // exerciseId
         assertThat(stringRep).contains("2") // exerciseOrder
     }
 }

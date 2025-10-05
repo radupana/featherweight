@@ -4,10 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.Equipment
+import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
+import com.github.radupana.featherweight.data.exercise.toExerciseDifficultyOrNull
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.ExerciseNamingService
 import com.github.radupana.featherweight.service.ValidationResult
@@ -43,8 +44,8 @@ class ExerciseSelectorViewModel(
     val errorMessage: StateFlow<String?> = _errorMessage
 
     // Success state for creation
-    private val _exerciseCreated = MutableStateFlow<ExerciseVariation?>(null)
-    val exerciseCreated: StateFlow<ExerciseVariation?> = _exerciseCreated
+    private val _exerciseCreated = MutableStateFlow<Exercise?>(null)
+    val exerciseCreated: StateFlow<Exercise?> = _exerciseCreated
 
     // Name validation state
     private val _nameValidationError = MutableStateFlow<String?>(null)
@@ -171,7 +172,7 @@ class ExerciseSelectorViewModel(
                         loadExerciseWithDetails(variation)
                     }
 
-                // Load custom exercises (now returns ExerciseVariation)
+                // Load custom exercises (now returns Exercise)
                 val customVariations = repository.getCustomExercises()
                 val customExercises =
                     customVariations
@@ -263,7 +264,7 @@ class ExerciseSelectorViewModel(
                     )
 
                 if (customExercise != null) {
-                    // Already an ExerciseVariation
+                    // Already an Exercise
                     val variation = customExercise
                     // Reload exercises to include the new one
                     loadExercises()
@@ -501,10 +502,15 @@ class ExerciseSelectorViewModel(
         }
 
         // Similar difficulty
-        val difficultyDiff =
-            kotlin.math.abs(
-                current.variation.difficulty.level - candidate.variation.difficulty.level,
-            )
+        val currentLevel =
+            current.variation.difficulty
+                ?.toExerciseDifficultyOrNull()
+                ?.level ?: 0
+        val candidateLevel =
+            candidate.variation.difficulty
+                ?.toExerciseDifficultyOrNull()
+                ?.level ?: 0
+        val difficultyDiff = kotlin.math.abs(currentLevel - candidateLevel)
         score += (5 - difficultyDiff) * 10 // Closer difficulty = higher score
 
         // Add usage count bonus
@@ -580,9 +586,9 @@ class ExerciseSelectorViewModel(
     }
 
     // Helper method to load system exercise with full details including muscles
-    private suspend fun loadExerciseWithDetails(variation: ExerciseVariation): ExerciseWithDetails {
+    private suspend fun loadExerciseWithDetails(variation: Exercise): ExerciseWithDetails {
         val muscles = repository.getMusclesForVariation(variation.id)
-        val aliases = repository.getAliasesForVariation(variation.id)
+        val aliases = repository.getAliasesForExercise(variation.id)
 
         // Get user-specific usage stats (use "local" for unauthenticated users)
         val userId = repository.getCurrentUserId() ?: "local"
@@ -594,7 +600,6 @@ class ExerciseSelectorViewModel(
             aliases = aliases,
             instructions = emptyList(), // Can load if needed
             usageCount = usageStats?.usageCount ?: 0,
-            isFavorite = usageStats?.favorited ?: false,
             // isCustom is now a derived property based on variation.userId
         )
     }

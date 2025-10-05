@@ -312,7 +312,7 @@ class InsightsViewModel(
 
             for (exercise in exercises) {
                 val exerciseObj = JsonObject()
-                val exerciseName = repository.getExerciseById(exercise.exerciseVariationId)?.name ?: "Unknown Exercise"
+                val exerciseName = repository.getExerciseById(exercise.exerciseId)?.name ?: "Unknown Exercise"
                 exerciseObj.addProperty("name", exerciseName)
 
                 // Get sets for this exercise
@@ -346,7 +346,7 @@ class InsightsViewModel(
 
         for (pr in prs) {
             val prObj = JsonObject()
-            val exerciseName = repository.getExerciseById(pr.exerciseVariationId)?.name ?: "Unknown Exercise"
+            val exerciseName = repository.getExerciseById(pr.exerciseId)?.name ?: "Unknown Exercise"
             prObj.addProperty("exercise", exerciseName)
             prObj.addProperty("date", pr.recordDate.toLocalDate().toString())
             prObj.addProperty("weight", pr.weight)

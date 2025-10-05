@@ -342,9 +342,7 @@ private fun PRItem(
     exerciseNames: Map<String, String>,
 ) {
     Column {
-        // Use unified key to look up exercise name
-        val key = "exercise_${pr.exerciseVariationId}"
-        val exerciseName = exerciseNames[key] ?: "Unknown Exercise"
+        val exerciseName = exerciseNames[pr.exerciseId] ?: "Unknown Exercise"
         Text(
             text = exerciseName,
             style = MaterialTheme.typography.titleMedium,

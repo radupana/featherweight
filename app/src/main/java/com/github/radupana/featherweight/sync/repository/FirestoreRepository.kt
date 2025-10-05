@@ -2,11 +2,9 @@ package com.github.radupana.featherweight.sync.repository
 
 import android.util.Log
 import com.github.radupana.featherweight.sync.models.FirestoreExercise
-import com.github.radupana.featherweight.sync.models.FirestoreExerciseCore
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseLog
 import com.github.radupana.featherweight.sync.models.FirestoreExercisePerformanceTracking
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseSwapHistory
-import com.github.radupana.featherweight.sync.models.FirestoreExerciseVariation
 import com.github.radupana.featherweight.sync.models.FirestoreGlobalExerciseProgress
 import com.github.radupana.featherweight.sync.models.FirestoreOneRMHistory
 import com.github.radupana.featherweight.sync.models.FirestoreParseRequest
@@ -21,9 +19,6 @@ import com.github.radupana.featherweight.sync.models.FirestoreTemplateExercise
 import com.github.radupana.featherweight.sync.models.FirestoreTemplateSet
 import com.github.radupana.featherweight.sync.models.FirestoreTrainingAnalysis
 import com.github.radupana.featherweight.sync.models.FirestoreUserExerciseMax
-import com.github.radupana.featherweight.sync.models.FirestoreVariationAlias
-import com.github.radupana.featherweight.sync.models.FirestoreVariationInstruction
-import com.github.radupana.featherweight.sync.models.FirestoreVariationMuscle
 import com.github.radupana.featherweight.sync.models.FirestoreWorkout
 import com.github.radupana.featherweight.sync.models.FirestoreWorkoutTemplate
 import com.github.radupana.featherweight.util.ExceptionLogger
@@ -58,7 +53,6 @@ class FirestoreRepository(
 
         // Exercise collections
         private const val EXERCISES_COLLECTION = "exercises" // Denormalized collection
-        private const val EXERCISE_CORES_COLLECTION = "exerciseCores" // Legacy normalized
         private const val EXERCISE_VARIATIONS_COLLECTION = "exerciseVariations" // Legacy normalized
         private const val VARIATION_MUSCLES_COLLECTION = "variationMuscles"
         private const val VARIATION_INSTRUCTIONS_COLLECTION = "variationInstructions"
@@ -368,21 +362,13 @@ class FirestoreRepository(
             Result.failure(e)
         }
 
-    suspend fun uploadExerciseCores(
+    suspend fun uploadExercises(
         userId: String,
-        cores: List<FirestoreExerciseCore>,
-    ): Result<Unit> = uploadBatchedData(userDocument(userId).collection(EXERCISE_CORES_COLLECTION), cores)
-
-    suspend fun uploadExerciseVariations(
-        userId: String,
-        variations: List<FirestoreExerciseVariation>,
+        variations: List<FirestoreExercise>,
     ): Result<Unit> = uploadBatchedData(userDocument(userId).collection(EXERCISE_VARIATIONS_COLLECTION), variations)
 
-    suspend fun uploadVariationMuscles(muscles: List<FirestoreVariationMuscle>): Result<Unit> = uploadBatchedData(firestore.collection(VARIATION_MUSCLES_COLLECTION), muscles)
-
-    suspend fun uploadVariationInstructions(instructions: List<FirestoreVariationInstruction>): Result<Unit> = uploadBatchedData(firestore.collection(VARIATION_INSTRUCTIONS_COLLECTION), instructions)
-
-    suspend fun uploadVariationAliases(aliases: List<FirestoreVariationAlias>): Result<Unit> = uploadBatchedData(firestore.collection(VARIATION_ALIASES_COLLECTION), aliases)
+    // Exercise-related data is now embedded in the denormalized FirestoreExercise document
+    // No separate upload functions needed for muscles, instructions, or aliases
 
     suspend fun uploadProgrammes(
         userId: String,
@@ -482,26 +468,24 @@ class FirestoreRepository(
     /**
      * Uploads a custom exercise to Firestore.
      * @param userId The user who owns the exercise
-     * @param variation The custom exercise variation
-     * @param core The custom exercise core
+     * @param variation The custom exercise variation (contains all fields)
      */
     suspend fun uploadCustomExercise(
         userId: String,
-        variation: com.github.radupana.featherweight.data.exercise.ExerciseVariation,
-        core: com.github.radupana.featherweight.data.exercise.ExerciseCore,
+        variation: com.github.radupana.featherweight.data.exercise.Exercise,
     ): Result<Unit> =
         try {
             val exerciseData =
                 hashMapOf(
                     "id" to variation.id,
                     "name" to variation.name,
-                    "coreId" to core.id,
-                    "coreName" to core.name,
-                    "category" to core.category.name,
-                    "movementPattern" to core.movementPattern.name,
-                    "isCompound" to core.isCompound,
-                    "equipment" to variation.equipment.name,
-                    "difficulty" to variation.difficulty.name,
+                    "coreId" to variation.id, // Use variation ID since cores are merged
+                    "coreName" to variation.name,
+                    "category" to variation.category,
+                    "movementPattern" to variation.movementPattern,
+                    "isCompound" to variation.isCompound,
+                    "equipment" to variation.equipment,
+                    "difficulty" to variation.difficulty,
                     "requiresWeight" to variation.requiresWeight,
                     "restDurationSeconds" to variation.restDurationSeconds,
                     "updatedAt" to Timestamp.now(),
@@ -698,15 +682,10 @@ class FirestoreRepository(
             Result.failure(e)
         }
 
-    suspend fun downloadExerciseCores(): Result<List<FirestoreExerciseCore>> = downloadBatchedData(firestore.collection(EXERCISE_CORES_COLLECTION))
+    suspend fun downloadExercises(): Result<List<FirestoreExercise>> = downloadBatchedData(firestore.collection(EXERCISE_VARIATIONS_COLLECTION))
 
-    suspend fun downloadExerciseVariations(): Result<List<FirestoreExerciseVariation>> = downloadBatchedData(firestore.collection(EXERCISE_VARIATIONS_COLLECTION))
-
-    suspend fun downloadVariationMuscles(): Result<List<FirestoreVariationMuscle>> = downloadBatchedData(firestore.collection(VARIATION_MUSCLES_COLLECTION))
-
-    suspend fun downloadVariationInstructions(): Result<List<FirestoreVariationInstruction>> = downloadBatchedData(firestore.collection(VARIATION_INSTRUCTIONS_COLLECTION))
-
-    suspend fun downloadVariationAliases(): Result<List<FirestoreVariationAlias>> = downloadBatchedData(firestore.collection(VARIATION_ALIASES_COLLECTION))
+    // Exercise-related data is now embedded in the denormalized FirestoreExercise document
+    // No separate download functions needed for muscles, instructions, or aliases
 
     suspend fun downloadProgrammes(userId: String): Result<List<FirestoreProgramme>> = downloadBatchedData(userDocument(userId).collection(PROGRAMMES_COLLECTION))
 

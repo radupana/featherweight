@@ -18,7 +18,7 @@ import com.github.radupana.featherweight.util.IdGenerator
     ],
     indices = [
         Index(value = ["templateId"]),
-        Index(value = ["exerciseVariationId"]),
+        Index(value = ["exerciseId"]),
         Index("userId"),
     ],
 )
@@ -26,7 +26,7 @@ data class TemplateExercise(
     @PrimaryKey val id: String = IdGenerator.generateId(),
     val userId: String,
     val templateId: String,
-    val exerciseVariationId: String,
+    val exerciseId: String,
     val exerciseOrder: Int,
     val supersetGroup: Int? = null,
     val notes: String? = null,

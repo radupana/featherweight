@@ -181,7 +181,7 @@ class ProfileViewModel(
                             maxes.map { max ->
                                 ExerciseMaxWithName(
                                     id = max.id,
-                                    exerciseId = max.exerciseVariationId,
+                                    exerciseId = max.exerciseId,
                                     exerciseName = max.exerciseName,
                                     oneRMEstimate = max.oneRMEstimate,
                                     oneRMDate = max.oneRMDate,
@@ -206,7 +206,7 @@ class ProfileViewModel(
                             big4Exercises =
                                 big4.map { max ->
                                     Big4Exercise(
-                                        exerciseId = max.exerciseVariationId,
+                                        exerciseId = max.exerciseId,
                                         exerciseName = max.exerciseName,
                                         oneRMValue = max.oneRMEstimate,
                                         oneRMType = max.oneRMType,
@@ -228,7 +228,7 @@ class ProfileViewModel(
                                 others.map { max ->
                                     ExerciseMaxWithName(
                                         id = max.id,
-                                        exerciseId = max.exerciseVariationId,
+                                        exerciseId = max.exerciseId,
                                         exerciseName = max.exerciseName,
                                         oneRMEstimate = max.oneRMEstimate,
                                         oneRMDate = max.oneRMDate,
@@ -260,7 +260,7 @@ class ProfileViewModel(
         viewModelScope.launch {
             try {
                 repository.upsertExerciseMax(
-                    exerciseVariationId = exerciseId,
+                    exerciseId = exerciseId,
                     oneRMEstimate = newMax,
                     oneRMContext = "Manually set",
                     oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.MANUALLY_ENTERED,

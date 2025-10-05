@@ -48,14 +48,14 @@ interface SetLogDao {
         SELECT s.* FROM set_logs s 
         INNER JOIN exercise_logs e ON s.exerciseLogId = e.id 
         INNER JOIN workouts w ON e.workoutId = w.id
-        WHERE e.exerciseVariationId = :exerciseVariationId 
+        WHERE e.exerciseId = :exerciseId 
         AND s.isCompleted = 1 
         AND w.date >= :sinceDate 
         ORDER BY w.date DESC
     """,
     )
     suspend fun getSetsForExerciseSince(
-        exerciseVariationId: String,
+        exerciseId: String,
         sinceDate: String,
     ): List<SetLog>
 
@@ -99,7 +99,7 @@ interface SetLogDao {
         FROM set_logs s 
         INNER JOIN exercise_logs e ON s.exerciseLogId = e.id 
         INNER JOIN workouts w ON e.workoutId = w.id
-        WHERE e.exerciseVariationId = :exerciseVariationId 
+        WHERE e.exerciseId = :exerciseId 
         AND s.isCompleted = 1 
         AND s.actualWeight > 0
         AND w.date >= :startDate
@@ -107,7 +107,7 @@ interface SetLogDao {
     """,
     )
     suspend fun getMaxWeightForExerciseInDateRange(
-        exerciseVariationId: String,
+        exerciseId: String,
         startDate: String,
         endDate: String,
     ): Float?
@@ -117,7 +117,7 @@ interface SetLogDao {
         SELECT s.* FROM set_logs s
         INNER JOIN exercise_logs e ON s.exerciseLogId = e.id
         INNER JOIN workouts w ON e.workoutId = w.id
-        WHERE e.exerciseVariationId = :exerciseVariationId
+        WHERE e.exerciseId = :exerciseId
         AND s.isCompleted = 1
         AND w.status = 'COMPLETED'
         AND s.actualWeight > 0
@@ -125,5 +125,5 @@ interface SetLogDao {
         LIMIT 1
     """,
     )
-    suspend fun getLastCompletedSetForExercise(exerciseVariationId: String): SetLog?
+    suspend fun getLastCompletedSetForExercise(exerciseId: String): SetLog?
 }

@@ -11,9 +11,9 @@ interface PersonalRecordDao {
     @Insert
     suspend fun insertPersonalRecord(personalRecord: PersonalRecord)
 
-    @Query("SELECT * FROM personal_records WHERE exerciseVariationId = :exerciseVariationId ORDER BY recordDate DESC LIMIT :limit")
+    @Query("SELECT * FROM personal_records WHERE exerciseId = :exerciseId ORDER BY recordDate DESC LIMIT :limit")
     suspend fun getRecentPRsForExercise(
-        exerciseVariationId: String,
+        exerciseId: String,
         limit: Int = 5,
     ): List<PersonalRecord>
 
@@ -21,7 +21,7 @@ interface PersonalRecordDao {
         """
         WITH RankedPRs AS (
             SELECT *,
-                   ROW_NUMBER() OVER (PARTITION BY exerciseVariationId ORDER BY estimated1RM DESC, recordDate DESC) as rn
+                   ROW_NUMBER() OVER (PARTITION BY exerciseId ORDER BY estimated1RM DESC, recordDate DESC) as rn
             FROM personal_records
             WHERE recordDate >= date('now', '-30 days')
         )
@@ -37,14 +37,14 @@ interface PersonalRecordDao {
     @Query(
         """
         SELECT * FROM personal_records 
-        WHERE exerciseVariationId = :exerciseVariationId 
+        WHERE exerciseId = :exerciseId 
         AND recordType = :recordType 
         ORDER BY recordDate DESC 
         LIMIT 1
     """,
     )
     suspend fun getLatestPRForExerciseAndType(
-        exerciseVariationId: String,
+        exerciseId: String,
         recordType: PRType,
     ): PersonalRecord?
 
@@ -52,31 +52,31 @@ interface PersonalRecordDao {
         """
         SELECT MAX(weight) 
         FROM personal_records 
-        WHERE exerciseVariationId = :exerciseVariationId 
+        WHERE exerciseId = :exerciseId 
         AND recordType = 'WEIGHT'
     """,
     )
-    suspend fun getMaxWeightForExercise(exerciseVariationId: String): Float?
+    suspend fun getMaxWeightForExercise(exerciseId: String): Float?
 
     @Query(
         """
         SELECT MAX(estimated1RM) 
         FROM personal_records 
-        WHERE exerciseVariationId = :exerciseVariationId 
+        WHERE exerciseId = :exerciseId 
         AND estimated1RM IS NOT NULL
     """,
     )
-    suspend fun getMaxEstimated1RMForExercise(exerciseVariationId: String): Float?
+    suspend fun getMaxEstimated1RMForExercise(exerciseId: String): Float?
 
     @Query(
         """
         SELECT * FROM personal_records 
-        WHERE exerciseVariationId = :exerciseVariationId 
+        WHERE exerciseId = :exerciseId 
         ORDER BY weight DESC, recordDate DESC 
         LIMIT 1
     """,
     )
-    suspend fun getLatestRecordForExercise(exerciseVariationId: String): PersonalRecord?
+    suspend fun getLatestRecordForExercise(exerciseId: String): PersonalRecord?
 
     @Query("DELETE FROM personal_records")
     suspend fun deleteAllPersonalRecords()
@@ -100,14 +100,14 @@ interface PersonalRecordDao {
         """
         SELECT * FROM personal_records 
         WHERE workoutId = :workoutId 
-        AND exerciseVariationId = :exerciseVariationId
+        AND exerciseId = :exerciseId
         AND recordType = :recordType
         LIMIT 1
     """,
     )
     suspend fun getPRForExerciseInWorkout(
         workoutId: String,
-        exerciseVariationId: String,
+        exerciseId: String,
         recordType: PRType,
     ): PersonalRecord?
 

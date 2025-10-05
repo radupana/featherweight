@@ -6,7 +6,7 @@ import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.SetLog
-import com.github.radupana.featherweight.data.profile.UserExerciseMax
+import com.github.radupana.featherweight.data.profile.ExerciseMaxTracking
 import com.github.radupana.featherweight.service.OneRMService
 import com.github.radupana.featherweight.service.PRDetectionService
 import kotlinx.coroutines.CoroutineDispatcher
@@ -28,8 +28,8 @@ class PersonalRecordRepository(
 
     private val personalRecordDao = db.personalRecordDao()
     private val setLogDao = db.setLogDao()
-    private val exerciseVariationDao = db.exerciseVariationDao()
-    private val prService = prDetectionService ?: PRDetectionService(personalRecordDao, setLogDao, exerciseVariationDao)
+    private val exerciseDao = db.exerciseDao()
+    private val prService = prDetectionService ?: PRDetectionService(personalRecordDao, setLogDao, exerciseDao)
 
     suspend fun getRecentPRs(limit: Int = 10): List<PersonalRecord> =
         withContext(ioDispatcher) {
@@ -41,23 +41,23 @@ class PersonalRecordRepository(
             personalRecordDao.getPersonalRecordsForWorkout(workoutId)
         }
 
-    suspend fun getPersonalRecordForExercise(exerciseVariationId: String): PersonalRecord? =
+    suspend fun getPersonalRecordForExercise(exerciseId: String): PersonalRecord? =
         withContext(ioDispatcher) {
-            personalRecordDao.getLatestRecordForExercise(exerciseVariationId)
+            personalRecordDao.getLatestRecordForExercise(exerciseId)
         }
 
     suspend fun checkForPR(
         setLog: SetLog,
-        exerciseVariationId: String,
-        updateOrInsertOneRM: suspend (UserExerciseMax) -> Unit,
+        exerciseId: String,
+        updateOrInsertOneRM: suspend (ExerciseMaxTracking) -> Unit,
     ): List<PersonalRecord> =
         withContext(ioDispatcher) {
             Log.d(TAG, "Checking for PR: weight=${setLog.actualWeight}kg, reps=${setLog.actualReps}, completed=${setLog.isCompleted}")
-            val prs = prService.checkForPR(setLog, exerciseVariationId)
+            val prs = prService.checkForPR(setLog, exerciseId)
 
             if (prs.isNotEmpty()) {
-                Log.d(TAG, "Looking up exercise name for ID $exerciseVariationId")
-                val exercise = exerciseVariationDao.getExerciseVariationById(exerciseVariationId)
+                Log.d(TAG, "Looking up exercise name for ID $exerciseId")
+                val exercise = exerciseDao.getExerciseById(exerciseId)
                 val exerciseName = exercise?.name ?: "Unknown"
                 Log.d(TAG, "Exercise lookup result: $exerciseName")
 
@@ -77,12 +77,13 @@ class PersonalRecordRepository(
 
                 val userExerciseMax =
                     oneRMService.createOneRMRecord(
-                        exerciseId = exerciseVariationId,
+                        exerciseId = exerciseId,
                         set = setLog,
                         estimate = oneRMPR.estimated1RM,
                         confidence = 1.0f, // High confidence since it's a PR
                     )
 
+                // OneRMService now returns ExerciseMaxTracking directly
                 updateOrInsertOneRM(userExerciseMax)
             }
 

@@ -3,11 +3,11 @@ package com.github.radupana.featherweight.repository
 import android.util.Log
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.github.radupana.featherweight.data.exercise.Equipment
-import com.github.radupana.featherweight.data.exercise.ExerciseCoreDao
+import com.github.radupana.featherweight.data.exercise.Exercise
+import com.github.radupana.featherweight.data.exercise.ExerciseAliasDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
-import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
+import com.github.radupana.featherweight.data.exercise.ExerciseType
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.data.exercise.UserExerciseUsageDao
 import com.github.radupana.featherweight.manager.AuthenticationManager
@@ -38,9 +38,8 @@ class CustomExerciseRepositoryGetByIdTest {
     @get:Rule
     val coroutineTestRule = CoroutineTestRule()
 
-    private lateinit var exerciseCoreDao: ExerciseCoreDao
-    private lateinit var exerciseVariationDao: ExerciseVariationDao
     private lateinit var exerciseDao: ExerciseDao
+    private lateinit var exerciseAliasDao: ExerciseAliasDao
     private lateinit var userExerciseUsageDao: UserExerciseUsageDao
     private lateinit var authManager: AuthenticationManager
     private lateinit var repository: CustomExerciseRepository
@@ -56,17 +55,15 @@ class CustomExerciseRepositoryGetByIdTest {
         every { Log.e(any(), any<String>()) } returns 0
         every { Log.e(any(), any<String>(), any()) } returns 0
 
-        exerciseCoreDao = mockk(relaxed = true)
-        exerciseVariationDao = mockk(relaxed = true)
         exerciseDao = mockk(relaxed = true)
+        exerciseAliasDao = mockk(relaxed = true)
         userExerciseUsageDao = mockk(relaxed = true)
         authManager = mockk(relaxed = true)
 
         repository =
             CustomExerciseRepository(
-                exerciseCoreDao = exerciseCoreDao,
-                exerciseVariationDao = exerciseVariationDao,
                 exerciseDao = exerciseDao,
+                exerciseAliasDao = exerciseAliasDao,
                 userExerciseUsageDao = userExerciseUsageDao,
                 authManager = authManager,
             )
@@ -89,13 +86,13 @@ class CustomExerciseRepositoryGetByIdTest {
                     name = customExerciseName,
                 )
 
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseId) } returns customExercise
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns customExercise
 
             // Act
             val result = repository.getCustomExerciseById(exerciseId)
 
             // Assert
-            coVerify { exerciseVariationDao.getExerciseVariationById(exerciseId) }
+            coVerify { exerciseDao.getExerciseById(exerciseId) }
             assertThat(result).isNotNull()
             assertThat(result?.id).isEqualTo(exerciseId)
             assertThat(result?.name).isEqualTo(customExerciseName)
@@ -106,13 +103,13 @@ class CustomExerciseRepositoryGetByIdTest {
         runTest {
             // Arrange
             val exerciseId = "456"
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseId) } returns null
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns null
 
             // Act
             val result = repository.getCustomExerciseById(exerciseId)
 
             // Assert
-            coVerify { exerciseVariationDao.getExerciseVariationById(exerciseId) }
+            coVerify { exerciseDao.getExerciseById(exerciseId) }
             assertThat(result).isNull()
         }
 
@@ -121,29 +118,31 @@ class CustomExerciseRepositoryGetByIdTest {
         runTest {
             // Arrange
             val exerciseId = "789"
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseId) } returns null
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns null
 
             // Act
             repository.getCustomExerciseById(exerciseId)
 
             // Assert
-            coVerify(exactly = 1) { exerciseVariationDao.getExerciseVariationById(exerciseId) }
+            coVerify(exactly = 1) { exerciseDao.getExerciseById(exerciseId) }
         }
 
     private fun createCustomExercise(
         id: String,
         name: String,
         userId: String = "local",
-    ) = ExerciseVariation(
+    ) = Exercise(
         id = id,
+        type = ExerciseType.USER.name,
         userId = userId,
-        coreExerciseId = "1",
         name = name,
-        equipment = Equipment.BARBELL,
-        difficulty = ExerciseDifficulty.INTERMEDIATE,
+        category = com.github.radupana.featherweight.data.exercise.ExerciseCategory.CHEST.name,
+        movementPattern = com.github.radupana.featherweight.data.exercise.MovementPattern.PUSH.name,
+        isCompound = true,
+        equipment = Equipment.BARBELL.name,
+        difficulty = ExerciseDifficulty.INTERMEDIATE.name,
         requiresWeight = true,
-        recommendedRepRange = "8-12",
-        rmScalingType = RMScalingType.STANDARD,
+        rmScalingType = RMScalingType.STANDARD.name,
         restDurationSeconds = 90,
     )
 }

@@ -220,17 +220,16 @@ class WorkoutDataModelTest {
             ExerciseLog(
                 id = "1",
                 workoutId = "50",
-                exerciseVariationId = "100",
+                exerciseId = "100",
                 exerciseOrder = 0,
                 notes = "Focus on form",
-                supersetGroup = null,
-                originalVariationId = null,
+                originalExerciseId = null,
                 isSwapped = false,
             )
 
         assertThat(exerciseLog.id).isEqualTo("1")
         assertThat(exerciseLog.workoutId).isEqualTo("50")
-        assertThat(exerciseLog.exerciseVariationId).isEqualTo("100")
+        assertThat(exerciseLog.exerciseId).isEqualTo("100")
         assertThat(exerciseLog.exerciseOrder).isEqualTo(0)
         assertThat(exerciseLog.notes).isEqualTo("Focus on form")
         assertThat(exerciseLog.isSwapped).isFalse()
@@ -242,22 +241,17 @@ class WorkoutDataModelTest {
             ExerciseLog(
                 id = "1",
                 workoutId = "50",
-                exerciseVariationId = "100",
+                exerciseId = "100",
                 exerciseOrder = 0,
-                supersetGroup = 1,
             )
 
         val superset2 =
             ExerciseLog(
                 id = "2",
                 workoutId = "50",
-                exerciseVariationId = "101",
+                exerciseId = "101",
                 exerciseOrder = 1,
-                supersetGroup = 1,
             )
-
-        assertThat(superset1.supersetGroup).isEqualTo(superset2.supersetGroup)
-        assertThat(superset1.supersetGroup).isEqualTo(1)
     }
 
     @Test
@@ -266,25 +260,25 @@ class WorkoutDataModelTest {
             ExerciseLog(
                 id = "3",
                 workoutId = "50",
-                exerciseVariationId = "200", // New exercise
+                exerciseId = "200", // New exercise
                 exerciseOrder = 2,
-                originalVariationId = "100", // Original exercise
+                originalExerciseId = "100", // Original exercise
                 isSwapped = true,
             )
 
         assertThat(swappedExercise.isSwapped).isTrue()
-        assertThat(swappedExercise.originalVariationId).isEqualTo("100")
-        assertThat(swappedExercise.exerciseVariationId).isEqualTo("200")
+        assertThat(swappedExercise.originalExerciseId).isEqualTo("100")
+        assertThat(swappedExercise.exerciseId).isEqualTo("200")
     }
 
     @Test
     fun `ExerciseLog maintains exercise order`() {
         val exercises =
             listOf(
-                ExerciseLog(id = "1", workoutId = "50", exerciseVariationId = "100", exerciseOrder = 0),
-                ExerciseLog(id = "2", workoutId = "50", exerciseVariationId = "101", exerciseOrder = 1),
-                ExerciseLog(id = "3", workoutId = "50", exerciseVariationId = "102", exerciseOrder = 2),
-                ExerciseLog(id = "4", workoutId = "50", exerciseVariationId = "103", exerciseOrder = 3),
+                ExerciseLog(id = "1", workoutId = "50", exerciseId = "100", exerciseOrder = 0),
+                ExerciseLog(id = "2", workoutId = "50", exerciseId = "101", exerciseOrder = 1),
+                ExerciseLog(id = "3", workoutId = "50", exerciseId = "102", exerciseOrder = 2),
+                ExerciseLog(id = "4", workoutId = "50", exerciseId = "103", exerciseOrder = 3),
             )
 
         assertThat(exercises.map { it.exerciseOrder }).isInOrder()
@@ -297,7 +291,7 @@ class WorkoutDataModelTest {
         val weightPR =
             PersonalRecord(
                 id = "1",
-                exerciseVariationId = "100",
+                exerciseId = "100",
                 weight = 150f,
                 reps = 5,
                 recordDate = now,
@@ -312,7 +306,7 @@ class WorkoutDataModelTest {
         val repsPR =
             PersonalRecord(
                 id = "2",
-                exerciseVariationId = "100",
+                exerciseId = "100",
                 weight = 100f,
                 reps = 20,
                 recordDate = now,
@@ -327,7 +321,7 @@ class WorkoutDataModelTest {
         val volumePR =
             PersonalRecord(
                 id = "3",
-                exerciseVariationId = "100",
+                exerciseId = "100",
                 weight = 120f,
                 reps = 25,
                 recordDate = now,
@@ -357,7 +351,7 @@ class WorkoutDataModelTest {
         val pr =
             PersonalRecord(
                 id = "1",
-                exerciseVariationId = "100",
+                exerciseId = "100",
                 weight = 100f,
                 reps = 10,
                 recordDate = LocalDateTime.now(),
@@ -377,7 +371,7 @@ class WorkoutDataModelTest {
         val progress =
             GlobalExerciseProgress(
                 id = "1",
-                exerciseVariationId = "100",
+                exerciseId = "100",
                 currentWorkingWeight = 90f,
                 estimatedMax = 120f,
                 lastUpdated = now,
@@ -395,7 +389,7 @@ class WorkoutDataModelTest {
                 best8Rep = 90f,
             )
 
-        assertThat(progress.exerciseVariationId).isEqualTo("100")
+        assertThat(progress.exerciseId).isEqualTo("100")
         assertThat(progress.currentWorkingWeight).isEqualTo(90f)
         assertThat(progress.estimatedMax).isEqualTo(120f)
         assertThat(progress.recentAvgRpe).isEqualTo(7.5f)
@@ -410,7 +404,7 @@ class WorkoutDataModelTest {
         val pr =
             PersonalRecord(
                 id = "1",
-                exerciseVariationId = "100",
+                exerciseId = "100",
                 weight = 100f,
                 reps = 5,
                 recordDate = LocalDateTime.now(),
@@ -431,7 +425,7 @@ class WorkoutDataModelTest {
         val now = LocalDateTime.now()
         val update =
             PendingOneRMUpdate(
-                exerciseVariationId = "1",
+                exerciseId = "1",
                 currentMax = 100f,
                 suggestedMax = 110f,
                 confidence = 0.92f,
@@ -439,7 +433,7 @@ class WorkoutDataModelTest {
                 workoutDate = now,
             )
 
-        assertThat(update.exerciseVariationId).isEqualTo("1")
+        assertThat(update.exerciseId).isEqualTo("1")
         assertThat(update.currentMax).isEqualTo(100f)
         assertThat(update.suggestedMax).isEqualTo(110f)
         assertThat(update.confidence).isEqualTo(0.92f)
@@ -454,7 +448,7 @@ class WorkoutDataModelTest {
         val pr =
             PersonalRecord(
                 id = "1",
-                exerciseVariationId = "100",
+                exerciseId = "100",
                 weight = 60f,
                 reps = 12,
                 recordDate = LocalDateTime.now(),
@@ -512,7 +506,7 @@ class WorkoutDataModelTest {
         val pr =
             PersonalRecord(
                 id = "1",
-                exerciseVariationId = "100",
+                exerciseId = "100",
                 weight = 80f,
                 reps = 8,
                 rpe = 8.5f,

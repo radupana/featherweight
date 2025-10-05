@@ -224,7 +224,7 @@ class WorkoutRepositoryTest {
             val exerciseLog =
                 ExerciseLog(
                     workoutId = workoutId,
-                    exerciseVariationId = "1",
+                    exerciseId = "1",
                     exerciseOrder = 1,
                 )
             val exerciseId = (nextExerciseIdCounter++).toString()
@@ -315,16 +315,16 @@ class WorkoutRepositoryTest {
             val workoutId = workout.id
             workouts[workoutId] = workout
 
-            val exercise1 = ExerciseLog(workoutId = workoutId, exerciseVariationId = "1", exerciseOrder = 1)
-            val exercise2 = ExerciseLog(workoutId = workoutId, exerciseVariationId = "2", exerciseOrder = 2)
+            val exercise1 = ExerciseLog(workoutId = workoutId, exerciseId = "1", exerciseOrder = 1)
+            val exercise2 = ExerciseLog(workoutId = workoutId, exerciseId = "2", exerciseOrder = 2)
             exerciseLogs[exercise1.id] = exercise1
             exerciseLogs[exercise2.id] = exercise2
 
             val exercises = repository.getExerciseLogsForWorkout(workoutId)
 
             assertThat(exercises).hasSize(2)
-            assertThat(exercises[0].exerciseVariationId).isEqualTo("1")
-            assertThat(exercises[1].exerciseVariationId).isEqualTo("2")
+            assertThat(exercises[0].exerciseId).isEqualTo("1")
+            assertThat(exercises[1].exerciseId).isEqualTo("2")
         }
 
     @Test
@@ -333,7 +333,7 @@ class WorkoutRepositoryTest {
             val workout = Workout(userId = null, name = "Test", date = LocalDateTime.now(), status = WorkoutStatus.IN_PROGRESS)
             val workoutId = workout.id
             workouts[workoutId] = workout
-            val exercise = ExerciseLog(workoutId = workoutId, exerciseVariationId = "1", exerciseOrder = 1)
+            val exercise = ExerciseLog(workoutId = workoutId, exerciseId = "1", exerciseOrder = 1)
             val exerciseId = exercise.id
             exerciseLogs[exerciseId] = exercise
 
@@ -375,7 +375,7 @@ class WorkoutRepositoryTest {
                 )
             val id2 = workout2.id
             workouts[id2] = workout2
-            val exercise = ExerciseLog(workoutId = id2, exerciseVariationId = "1", exerciseOrder = 1)
+            val exercise = ExerciseLog(workoutId = id2, exerciseId = "1", exerciseOrder = 1)
             val exerciseId = exercise.id
             exerciseLogs[exerciseId] = exercise
             val set = SetLog(exerciseLogId = exerciseId, setOrder = 1, targetReps = 10, actualReps = 10, actualWeight = 100f, isCompleted = true)

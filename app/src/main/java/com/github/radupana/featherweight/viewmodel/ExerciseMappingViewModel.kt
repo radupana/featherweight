@@ -4,9 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.Equipment
+import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.util.ExerciseSearchUtil
@@ -36,13 +36,13 @@ class ExerciseMappingViewModel(
     private val _uiState = MutableStateFlow(ExerciseMappingUiState())
     val uiState: StateFlow<ExerciseMappingUiState> = _uiState
 
-    private val _searchResults = MutableStateFlow<List<ExerciseVariation>>(emptyList())
-    val searchResults: StateFlow<List<ExerciseVariation>> = _searchResults
+    private val _searchResults = MutableStateFlow<List<Exercise>>(emptyList())
+    val searchResults: StateFlow<List<Exercise>> = _searchResults
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
-    private var allExercises: List<ExerciseVariation> = emptyList()
+    private var allExercises: List<Exercise> = emptyList()
 
     init {
         loadExercises()

@@ -26,7 +26,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
@@ -68,6 +67,9 @@ import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.ExerciseWithDetails
 import com.github.radupana.featherweight.data.exercise.MuscleGroup
+import com.github.radupana.featherweight.data.exercise.toEquipment
+import com.github.radupana.featherweight.data.exercise.toExerciseDifficultyOrNull
+import com.github.radupana.featherweight.data.exercise.toMuscleGroup
 import com.github.radupana.featherweight.ui.components.SearchableSelectionDialog
 import com.github.radupana.featherweight.viewmodel.ExerciseSelectorViewModel
 import com.github.radupana.featherweight.viewmodel.ExerciseSuggestion
@@ -126,7 +128,7 @@ fun ExerciseSelectorScreen(
         if (isSwapMode && currentExercise != null) {
             viewModel.clearSearchQuery() // Clear search when entering swap mode
             viewModel.clearSwapSuggestions() // Clear previous suggestions
-            viewModel.loadSwapSuggestions(currentExercise.exerciseVariationId)
+            viewModel.loadSwapSuggestions(currentExercise.exerciseId)
         } else if (!isSwapMode) {
             // Clear suggestions when not in swap mode
             viewModel.clearSwapSuggestions()
@@ -632,16 +634,6 @@ private fun ExerciseCard(
                         }
                     }
 
-                    // Favorite indicator
-                    if (exercise.isFavorite) {
-                        Icon(
-                            Icons.Filled.Favorite,
-                            contentDescription = "Favorite",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-
                     // Delete button for custom exercises
                     if (onDelete != null) {
                         IconButton(
@@ -668,13 +660,16 @@ private fun ExerciseCard(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 // Equipment badge
-                if (exercise.variation.equipment != Equipment.BODYWEIGHT) {
+                if (exercise.variation.equipment != Equipment.BODYWEIGHT.name) {
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         shape = RoundedCornerShape(16.dp),
                     ) {
                         Text(
-                            text = exercise.variation.equipment.displayName,
+                            text =
+                                exercise.variation.equipment
+                                    .toEquipment()
+                                    .displayName,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -690,7 +685,7 @@ private fun ExerciseCard(
                         shape = RoundedCornerShape(16.dp),
                     ) {
                         Text(
-                            text = primaryMuscles.take(2).joinToString(", ") { it.displayName },
+                            text = primaryMuscles.take(2).joinToString(", ") { it.toMuscleGroup().displayName },
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -704,7 +699,10 @@ private fun ExerciseCard(
                     shape = RoundedCornerShape(16.dp),
                 ) {
                     Text(
-                        text = exercise.variation.difficulty.displayName,
+                        text =
+                            exercise.variation.difficulty
+                                .toExerciseDifficultyOrNull()
+                                ?.displayName ?: "Beginner",
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1194,13 +1192,16 @@ private fun SuggestionCard(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 // Equipment badge
-                if (suggestion.exercise.variation.equipment != Equipment.BODYWEIGHT) {
+                if (suggestion.exercise.variation.equipment != Equipment.BODYWEIGHT.name) {
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         shape = RoundedCornerShape(16.dp),
                     ) {
                         Text(
-                            text = suggestion.exercise.variation.equipment.displayName,
+                            text =
+                                suggestion.exercise.variation.equipment
+                                    .toEquipment()
+                                    .displayName,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1216,7 +1217,7 @@ private fun SuggestionCard(
                         shape = RoundedCornerShape(16.dp),
                     ) {
                         Text(
-                            text = primaryMuscles.take(2).joinToString(", ") { it.displayName },
+                            text = primaryMuscles.take(2).joinToString(", ") { it.toMuscleGroup().displayName },
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1230,7 +1231,10 @@ private fun SuggestionCard(
                     shape = RoundedCornerShape(16.dp),
                 ) {
                     Text(
-                        text = suggestion.exercise.variation.difficulty.displayName,
+                        text =
+                            suggestion.exercise.variation.difficulty
+                                .toExerciseDifficultyOrNull()
+                                ?.displayName ?: "Beginner",
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

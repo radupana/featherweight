@@ -11,7 +11,7 @@ import com.github.radupana.featherweight.data.ParseRequestDao
 import com.github.radupana.featherweight.data.PersonalRecordDao
 import com.github.radupana.featherweight.data.SetLogDao
 import com.github.radupana.featherweight.data.WorkoutDao
-import com.github.radupana.featherweight.data.profile.OneRMDao
+import com.github.radupana.featherweight.data.profile.ExerciseMaxTrackingDao
 import com.github.radupana.featherweight.data.programme.ProgrammeDao
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.google.firebase.auth.AuthCredential
@@ -44,7 +44,7 @@ class AccountDeletionServiceTest {
     private lateinit var exerciseLogDao: ExerciseLogDao
     private lateinit var setLogDao: SetLogDao
     private lateinit var programmeDao: ProgrammeDao
-    private lateinit var oneRMDao: OneRMDao
+    private lateinit var oneRMDao: ExerciseMaxTrackingDao
     private lateinit var personalRecordDao: PersonalRecordDao
     private lateinit var exerciseSwapHistoryDao: ExerciseSwapHistoryDao
     private lateinit var exercisePerformanceTrackingDao: ExercisePerformanceTrackingDao
@@ -88,14 +88,13 @@ class AccountDeletionServiceTest {
         every { database.exerciseLogDao() } returns exerciseLogDao
         every { database.setLogDao() } returns setLogDao
         every { database.programmeDao() } returns programmeDao
-        every { database.oneRMDao() } returns oneRMDao
+        every { database.exerciseMaxTrackingDao() } returns oneRMDao
         every { database.personalRecordDao() } returns personalRecordDao
         every { database.exerciseSwapHistoryDao() } returns exerciseSwapHistoryDao
         every { database.exercisePerformanceTrackingDao() } returns exercisePerformanceTrackingDao
         every { database.globalExerciseProgressDao() } returns globalExerciseProgressDao
         every { database.parseRequestDao() } returns parseRequestDao
-        every { database.exerciseCoreDao() } returns mockk(relaxed = true)
-        every { database.exerciseVariationDao() } returns mockk(relaxed = true)
+        every { database.exerciseDao() } returns mockk(relaxed = true)
         every { database.userExerciseUsageDao() } returns mockk(relaxed = true)
 
         service = AccountDeletionService(database, authManager, firebaseAuth)

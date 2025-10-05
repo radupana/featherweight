@@ -6,9 +6,7 @@ import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.ProgressTrend
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.VolumeTrend
-import com.github.radupana.featherweight.data.profile.OneRMHistory
-import com.github.radupana.featherweight.data.profile.UserExerciseMax
-import com.github.radupana.featherweight.repository.CustomExerciseRepository
+import com.github.radupana.featherweight.data.profile.ExerciseMaxTracking
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.LocalDateTime
@@ -18,7 +16,6 @@ import kotlin.math.roundToInt
 class GlobalProgressTracker(
     private val repository: FeatherweightRepository,
     private val database: FeatherweightDatabase,
-    private val customExerciseRepository: CustomExerciseRepository? = null,
 ) {
     private val globalProgressDao = database.globalExerciseProgressDao()
 
@@ -36,7 +33,7 @@ class GlobalProgressTracker(
         for (exercise in exercises) {
             val pendingUpdate =
                 updateExerciseProgress(
-                    exerciseVariationId = exercise.exerciseVariationId,
+                    exerciseId = exercise.exerciseId,
                     workoutId = workoutId,
                     isProgrammeWorkout = workout.programmeId != null,
                 )
@@ -47,7 +44,7 @@ class GlobalProgressTracker(
     }
 
     private suspend fun updateExerciseProgress(
-        exerciseVariationId: String,
+        exerciseId: String,
         workoutId: String,
         isProgrammeWorkout: Boolean,
     ): PendingOneRMUpdate? {
@@ -55,7 +52,7 @@ class GlobalProgressTracker(
             database
                 .exerciseLogDao()
                 .getExerciseLogsForWorkout(workoutId)
-                .filter { it.exerciseVariationId == exerciseVariationId }
+                .filter { it.exerciseId == exerciseId }
 
         if (exerciseLogs.isEmpty()) return null
 
@@ -84,8 +81,8 @@ class GlobalProgressTracker(
 
         // Get or create progress record
         var progress =
-            globalProgressDao.getProgressForExercise(exerciseVariationId)
-                ?: createInitialProgress(exerciseVariationId, userId)
+            globalProgressDao.getProgressForExercise(exerciseId)
+                ?: createInitialProgress(exerciseId, userId)
 
         // Update working weight
         val previousWeight = progress.currentWorkingWeight
@@ -137,18 +134,16 @@ class GlobalProgressTracker(
     }
 
     private suspend fun createInitialProgress(
-        exerciseVariationId: String,
+        exerciseId: String,
         userId: String?,
     ): GlobalExerciseProgress {
         // Try to get 1RM from UserExerciseMax
-        val userMax = database.oneRMDao().getCurrentMax(exerciseVariationId, userId ?: "local")
+        val userMax = database.exerciseMaxTrackingDao().getCurrentMax(exerciseId, userId ?: "local")
         val estimatedMax = userMax?.oneRMEstimate ?: 0f
 
-        val isCustom = customExerciseRepository?.isCustomExercise(exerciseVariationId) ?: false
         return GlobalExerciseProgress(
             userId = userId,
-            exerciseVariationId = exerciseVariationId,
-            isCustomExercise = isCustom,
+            exerciseId = exerciseId,
             currentWorkingWeight = 0f,
             estimatedMax = estimatedMax,
             lastUpdated = LocalDateTime.now(),
@@ -313,7 +308,7 @@ class GlobalProgressTracker(
         if (estimableSets.isEmpty()) return Pair(progress, null)
 
         // Get current stored max from profile FIRST for confidence calculation
-        val currentUserMax = database.oneRMDao().getCurrentMax(progress.exerciseVariationId, progress.userId ?: "local")
+        val currentUserMax = database.exerciseMaxTrackingDao().getCurrentMax(progress.exerciseId, progress.userId ?: "local")
         val storedMaxWeight = currentUserMax?.oneRMEstimate
 
         // Find the best set for 1RM calculation
@@ -373,54 +368,35 @@ class GlobalProgressTracker(
                     val updatedMax =
                         currentUserMax.copy(
                             oneRMEstimate = WeightFormatter.roundToNearestQuarter(estimated1RM),
-                            oneRMContext = bestEstimate.source,
+                            context = bestEstimate.source,
+                            sourceSetId = bestSet.id,
                             oneRMConfidence = bestEstimate.confidence,
-                            oneRMDate = LocalDateTime.now(),
+                            recordedAt = LocalDateTime.now(),
                             // Update most weight if this set had the most weight
                             mostWeightLifted = maxOf(currentUserMax.mostWeightLifted, bestSet.actualWeight),
                             mostWeightReps = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) bestSet.actualReps else currentUserMax.mostWeightReps,
                             mostWeightRpe = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) bestSet.actualRpe else currentUserMax.mostWeightRpe,
                             mostWeightDate = if (bestSet.actualWeight > currentUserMax.mostWeightLifted) LocalDateTime.now() else currentUserMax.mostWeightDate,
                         )
-                    database.oneRMDao().updateExerciseMax(updatedMax)
-                    // Save to history with sourceSetId for deduplication
-                    database.oneRMDao().insertOneRMHistory(
-                        OneRMHistory(
+                    database.exerciseMaxTrackingDao().update(updatedMax)
+                } else {
+                    val newMax =
+                        ExerciseMaxTracking(
                             userId = bestSet.userId,
-                            exerciseVariationId = progress.exerciseVariationId,
+                            exerciseId = progress.exerciseId,
                             oneRMEstimate = WeightFormatter.roundToNearestQuarter(estimated1RM),
                             context = bestEstimate.source,
                             sourceSetId = bestSet.id,
                             recordedAt = LocalDateTime.now(),
-                        ),
-                    )
-                } else {
-                    customExerciseRepository?.isCustomExercise(progress.exerciseVariationId) ?: false
-                    val newMax =
-                        UserExerciseMax(
-                            userId = bestSet.userId,
-                            exerciseVariationId = progress.exerciseVariationId,
-                            oneRMEstimate = WeightFormatter.roundToNearestQuarter(estimated1RM),
-                            oneRMContext = bestEstimate.source,
-                            oneRMConfidence = bestEstimate.confidence,
-                            oneRMDate = LocalDateTime.now(),
                             mostWeightLifted = bestSet.actualWeight,
                             mostWeightReps = bestSet.actualReps,
                             mostWeightRpe = bestSet.actualRpe,
                             mostWeightDate = LocalDateTime.now(),
+                            oneRMConfidence = bestEstimate.confidence,
+                            oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
+                            notes = null,
                         )
-                    database.oneRMDao().insertExerciseMax(newMax)
-                    // Save to history with sourceSetId for deduplication
-                    database.oneRMDao().insertOneRMHistory(
-                        OneRMHistory(
-                            userId = bestSet.userId,
-                            exerciseVariationId = progress.exerciseVariationId,
-                            oneRMEstimate = WeightFormatter.roundToNearestQuarter(estimated1RM),
-                            context = bestEstimate.source,
-                            sourceSetId = bestSet.id,
-                            recordedAt = LocalDateTime.now(),
-                        ),
-                    )
+                    database.exerciseMaxTrackingDao().insert(newMax)
                 }
             }
         }

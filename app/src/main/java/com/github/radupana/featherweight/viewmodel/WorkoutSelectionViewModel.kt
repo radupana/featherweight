@@ -78,7 +78,7 @@ class WorkoutSelectionViewModel(
                         val exerciseNames =
                             exerciseLogs
                                 .mapNotNull { exerciseLog ->
-                                    repository.getExerciseVariationById(exerciseLog.exerciseVariationId)?.name
+                                    repository.getExerciseById(exerciseLog.exerciseId)?.name
                                 }.distinct()
 
                         WorkoutWithExercises(

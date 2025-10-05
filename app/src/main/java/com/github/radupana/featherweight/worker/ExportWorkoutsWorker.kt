@@ -42,7 +42,7 @@ class ExportWorkoutsWorker(
             workoutDao = database.workoutDao(),
             exerciseLogDao = database.exerciseLogDao(),
             setLogDao = database.setLogDao(),
-            oneRMDao = database.oneRMDao(),
+            oneRMDao = database.exerciseMaxTrackingDao(),
             repository = repository,
             authManager = authManager,
             weightUnitManager =

@@ -175,10 +175,10 @@ fun ExerciseCard(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             val exerciseNames by viewModel.exerciseNames.collectAsState()
-            val key = "exercise_${exercise.exerciseVariationId}"
+            val key = "exercise_${exercise.exerciseId}"
             val exerciseName = exerciseNames[key] ?: "Unknown Exercise"
             val lastPerformance by viewModel.lastPerformance.collectAsState()
-            val lastSet = lastPerformance[exercise.exerciseVariationId]
+            val lastSet = lastPerformance[exercise.exerciseId]
 
             Column(
                 modifier = Modifier.weight(1f),
@@ -340,10 +340,12 @@ fun ExerciseCard(
                 ) {
                     // Get 1RM for percentage calculations
                     val oneRMEstimates by viewModel.oneRMEstimates.collectAsState()
-                    val oneRMEstimate = oneRMEstimates[exercise.exerciseVariationId]
-                    val workoutState = viewModel.workoutState.collectAsState().value
-                    val isProgrammeWorkout = workoutState.isProgrammeWorkout
-                    val showTargetValues = isProgrammeWorkout
+                    val oneRMEstimate = oneRMEstimates[exercise.exerciseId]
+                    // Show target values as placeholders whenever they exist in the data
+                    val showTargetValues =
+                        sets.any {
+                            it.targetWeight != null || it.targetReps != null || it.targetRpe != null
+                        }
 
                     sets.forEachIndexed { index, set ->
                         key(set.id) {

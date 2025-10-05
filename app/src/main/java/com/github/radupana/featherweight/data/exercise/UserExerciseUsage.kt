@@ -12,19 +12,17 @@ import java.time.LocalDateTime
 @Entity(
     tableName = "user_exercise_usage",
     indices = [
-        Index(value = ["userId", "exerciseVariationId"], unique = true),
+        Index(value = ["userId", "exerciseId"], unique = true),
         Index(value = ["userId", "usageCount"]),
         Index(value = ["userId", "lastUsedAt"]),
-        Index(value = ["userId", "favorited"]),
     ],
 )
 data class UserExerciseUsage(
     @PrimaryKey
     val id: String = IdGenerator.generateId(),
     val userId: String,
-    val exerciseVariationId: String,
+    val exerciseId: String,
     val usageCount: Int = 0,
-    val favorited: Boolean = false,
     val lastUsedAt: LocalDateTime? = null,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now(),

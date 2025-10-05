@@ -10,7 +10,7 @@ import com.github.radupana.featherweight.util.IdGenerator
     tableName = "exercise_logs",
     indices = [
         Index(value = ["workoutId"]),
-        Index(value = ["exerciseVariationId"]),
+        Index(value = ["exerciseId"]),
         Index("userId"),
     ],
     foreignKeys = [
@@ -26,10 +26,9 @@ data class ExerciseLog(
     @PrimaryKey val id: String = IdGenerator.generateId(),
     val userId: String? = null,
     val workoutId: String,
-    val exerciseVariationId: String, // References exercise_variations table
+    val exerciseId: String, // References exercises table
     val exerciseOrder: Int,
-    val supersetGroup: Int? = null,
     val notes: String? = null,
-    val originalVariationId: String? = null,
+    val originalExerciseId: String? = null,
     val isSwapped: Boolean = false, // Flag to indicate if exercise was swapped
 )

@@ -75,14 +75,8 @@ fun OneRMUpdateDialog(
                                     .fillMaxWidth()
                                     .padding(16.dp),
                         ) {
-                            // Use composite key to avoid ID collisions between system and custom exercises
-                            val key =
-                                if (update.isCustomExercise) {
-                                    "custom_${update.exerciseVariationId}"
-                                } else {
-                                    "system_${update.exerciseVariationId}"
-                                }
-                            val exerciseName = exerciseNames[key] ?: "Unknown Exercise"
+                            // Map should contain exerciseId as key
+                            val exerciseName = exerciseNames[update.exerciseId] ?: "Unknown Exercise"
                             Text(
                                 text = exerciseName,
                                 style = MaterialTheme.typography.titleMedium,

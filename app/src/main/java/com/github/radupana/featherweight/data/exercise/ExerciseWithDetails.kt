@@ -5,29 +5,28 @@ package com.github.radupana.featherweight.data.exercise
  * This is the primary structure for working with exercises in the new schema.
  */
 data class ExerciseWithDetails(
-    val variation: ExerciseVariation,
-    val muscles: List<VariationMuscle> = emptyList(),
-    val aliases: List<VariationAlias> = emptyList(),
-    val instructions: List<VariationInstruction> = emptyList(),
+    val variation: Exercise,
+    val muscles: List<ExerciseMuscle> = emptyList(),
+    val aliases: List<ExerciseAlias> = emptyList(),
+    val instructions: List<ExerciseInstruction> = emptyList(),
     val usageCount: Int = 0, // User-specific usage count
-    val isFavorite: Boolean = false, // User-specific favorite status
 ) {
-    // Derived property: true if this is a user's custom exercise (userId is not null)
-    val isCustom: Boolean get() = variation.userId != null
+    // Derived property: true if this is a user's custom exercise (type = USER)
+    val isCustom: Boolean get() = variation.type == ExerciseType.USER.name
 
     /**
      * Get primary muscles for this variation.
      */
-    fun getPrimaryMuscles(): List<MuscleGroup> =
+    fun getPrimaryMuscles(): List<String> =
         muscles
-            .filter { it.isPrimary }
+            .filter { it.targetType == "PRIMARY" }
             .map { it.muscle }
 
     /**
      * Get secondary muscles for this variation.
      */
-    fun getSecondaryMuscles(): List<MuscleGroup> =
+    fun getSecondaryMuscles(): List<String> =
         muscles
-            .filter { !it.isPrimary }
+            .filter { it.targetType == "SECONDARY" }
             .map { it.muscle }
 }

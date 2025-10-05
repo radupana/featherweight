@@ -5,23 +5,19 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.github.radupana.featherweight.data.exercise.ExerciseCore
-import com.github.radupana.featherweight.data.exercise.ExerciseCoreDao
+import com.github.radupana.featherweight.data.exercise.Exercise
+import com.github.radupana.featherweight.data.exercise.ExerciseAlias
+import com.github.radupana.featherweight.data.exercise.ExerciseAliasDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
+import com.github.radupana.featherweight.data.exercise.ExerciseInstruction
+import com.github.radupana.featherweight.data.exercise.ExerciseInstructionDao
+import com.github.radupana.featherweight.data.exercise.ExerciseMuscle
+import com.github.radupana.featherweight.data.exercise.ExerciseMuscleDao
 import com.github.radupana.featherweight.data.exercise.ExerciseTypeConverters
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
-import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
 import com.github.radupana.featherweight.data.exercise.UserExerciseUsage
 import com.github.radupana.featherweight.data.exercise.UserExerciseUsageDao
-import com.github.radupana.featherweight.data.exercise.VariationAlias
-import com.github.radupana.featherweight.data.exercise.VariationAliasDao
-import com.github.radupana.featherweight.data.exercise.VariationInstruction
-import com.github.radupana.featherweight.data.exercise.VariationInstructionDao
-import com.github.radupana.featherweight.data.exercise.VariationMuscle
-import com.github.radupana.featherweight.data.exercise.VariationMuscleDao
-import com.github.radupana.featherweight.data.profile.OneRMDao
-import com.github.radupana.featherweight.data.profile.OneRMHistory
-import com.github.radupana.featherweight.data.profile.UserExerciseMax
+import com.github.radupana.featherweight.data.profile.ExerciseMaxTracking
+import com.github.radupana.featherweight.data.profile.ExerciseMaxTrackingDao
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeDao
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
@@ -37,12 +33,11 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         WorkoutTemplate::class,
         TemplateExercise::class,
         TemplateSet::class,
-        // Normalized exercise entities
-        ExerciseCore::class,
-        ExerciseVariation::class,
-        VariationInstruction::class,
-        VariationAlias::class,
-        VariationMuscle::class,
+        // Exercise entities
+        Exercise::class,
+        ExerciseInstruction::class,
+        ExerciseAlias::class,
+        ExerciseMuscle::class,
         // Usage tracking
         UserExerciseUsage::class,
         // Other entities
@@ -50,8 +45,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         ProgrammeWeek::class,
         ProgrammeWorkout::class,
         ProgrammeProgress::class,
-        UserExerciseMax::class,
-        OneRMHistory::class,
+        ExerciseMaxTracking::class,
         ExerciseSwapHistory::class,
         ExercisePerformanceTracking::class,
         GlobalExerciseProgress::class,
@@ -70,24 +64,20 @@ abstract class FeatherweightDatabase : RoomDatabase() {
 
     abstract fun setLogDao(): SetLogDao
 
-    // Normalized exercise DAOs
-    abstract fun exerciseDao(): ExerciseDao // Consolidated DAO
+    // Exercise DAOs
+    abstract fun exerciseDao(): ExerciseDao
 
-    abstract fun exerciseCoreDao(): ExerciseCoreDao
+    abstract fun exerciseInstructionDao(): ExerciseInstructionDao
 
-    abstract fun exerciseVariationDao(): ExerciseVariationDao
+    abstract fun exerciseAliasDao(): ExerciseAliasDao
 
-    abstract fun variationInstructionDao(): VariationInstructionDao
-
-    abstract fun variationAliasDao(): VariationAliasDao
-
-    abstract fun variationMuscleDao(): VariationMuscleDao
+    abstract fun exerciseMuscleDao(): ExerciseMuscleDao
 
     abstract fun userExerciseUsageDao(): UserExerciseUsageDao
 
     abstract fun programmeDao(): ProgrammeDao
 
-    abstract fun oneRMDao(): OneRMDao
+    abstract fun exerciseMaxTrackingDao(): ExerciseMaxTrackingDao
 
     abstract fun exerciseSwapHistoryDao(): ExerciseSwapHistoryDao
 

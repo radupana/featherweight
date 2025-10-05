@@ -3,8 +3,7 @@ package com.github.radupana.featherweight.data
 import java.time.LocalDateTime
 
 data class PendingOneRMUpdate(
-    val exerciseVariationId: String,
-    val isCustomExercise: Boolean = false, // true for custom exercises, false for system exercises
+    val exerciseId: String,
     val currentMax: Float?,
     val suggestedMax: Float,
     val confidence: Float,

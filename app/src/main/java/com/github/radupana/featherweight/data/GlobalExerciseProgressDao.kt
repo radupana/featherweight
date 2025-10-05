@@ -13,12 +13,12 @@ interface GlobalExerciseProgressDao {
     @Query(
         """
         SELECT * FROM global_exercise_progress 
-        WHERE exerciseVariationId = :exerciseVariationId 
+        WHERE exerciseId = :exerciseId 
         LIMIT 1
     """,
     )
     suspend fun getProgressForExercise(
-        exerciseVariationId: String,
+        exerciseId: String,
     ): GlobalExerciseProgress?
 
     @Query("DELETE FROM global_exercise_progress")

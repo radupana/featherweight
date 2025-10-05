@@ -367,7 +367,7 @@ class ExerciseNamingService {
             "machine" -> Equipment.MACHINE
             "kettlebell", "kb" -> Equipment.KETTLEBELL
             "bodyweight" -> Equipment.BODYWEIGHT
-            "band" -> Equipment.RESISTANCE_BAND
+            "band" -> Equipment.BAND
             "smith" -> Equipment.SMITH_MACHINE
             else -> Equipment.NONE
         }
@@ -383,7 +383,7 @@ class ExerciseNamingService {
             "hamstring" -> MuscleGroup.HAMSTRINGS
             "glute" -> MuscleGroup.GLUTES
             "calf" -> MuscleGroup.CALVES
-            "ab", "core" -> MuscleGroup.ABS
+            "ab", "core" -> MuscleGroup.CORE
             "lat" -> MuscleGroup.LATS
             "trap" -> MuscleGroup.TRAPS
             "forearm" -> MuscleGroup.FOREARMS
@@ -404,7 +404,7 @@ class ExerciseNamingService {
                 MuscleGroup.SHOULDERS, MuscleGroup.FRONT_DELTS, MuscleGroup.SIDE_DELTS, MuscleGroup.REAR_DELTS -> ExerciseCategory.SHOULDERS
                 MuscleGroup.BICEPS, MuscleGroup.TRICEPS, MuscleGroup.FOREARMS -> ExerciseCategory.ARMS
                 MuscleGroup.QUADS, MuscleGroup.HAMSTRINGS, MuscleGroup.GLUTES, MuscleGroup.CALVES -> ExerciseCategory.LEGS
-                MuscleGroup.ABS, MuscleGroup.OBLIQUES, MuscleGroup.CORE -> ExerciseCategory.CORE
+                MuscleGroup.OBLIQUES, MuscleGroup.CORE -> ExerciseCategory.CORE
                 else -> ExerciseCategory.FULL_BODY
             }
         }

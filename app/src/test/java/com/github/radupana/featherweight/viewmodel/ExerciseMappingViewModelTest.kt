@@ -2,8 +2,8 @@ package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
 import com.github.radupana.featherweight.data.exercise.Equipment
+import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.testutil.CoroutineTestRule
 import com.google.common.truth.Truth.assertThat
@@ -29,52 +29,64 @@ class ExerciseMappingViewModelTest {
 
     private val testExercises =
         listOf(
-            ExerciseVariation(
+            Exercise(
                 id = "1",
-                coreExerciseId = "1",
                 name = "Barbell Back Squat",
-                equipment = Equipment.BARBELL,
-                difficulty = ExerciseDifficulty.INTERMEDIATE,
+                category = com.github.radupana.featherweight.data.exercise.ExerciseCategory.LEGS.name,
+                movementPattern = com.github.radupana.featherweight.data.exercise.MovementPattern.SQUAT.name,
+                isCompound = true,
+                equipment = Equipment.BARBELL.name,
+                difficulty = ExerciseDifficulty.INTERMEDIATE.name,
                 requiresWeight = true,
             ),
-            ExerciseVariation(
+            Exercise(
                 id = "2",
-                coreExerciseId = "1",
                 name = "Barbell Front Squat",
-                equipment = Equipment.BARBELL,
-                difficulty = ExerciseDifficulty.ADVANCED,
+                category = com.github.radupana.featherweight.data.exercise.ExerciseCategory.LEGS.name,
+                movementPattern = com.github.radupana.featherweight.data.exercise.MovementPattern.SQUAT.name,
+                isCompound = true,
+                equipment = Equipment.BARBELL.name,
+                difficulty = ExerciseDifficulty.ADVANCED.name,
                 requiresWeight = true,
             ),
-            ExerciseVariation(
+            Exercise(
                 id = "3",
-                coreExerciseId = "1",
                 name = "Barbell Hack Squat",
-                equipment = Equipment.BARBELL,
-                difficulty = ExerciseDifficulty.INTERMEDIATE,
+                category = com.github.radupana.featherweight.data.exercise.ExerciseCategory.LEGS.name,
+                movementPattern = com.github.radupana.featherweight.data.exercise.MovementPattern.SQUAT.name,
+                isCompound = true,
+                equipment = Equipment.BARBELL.name,
+                difficulty = ExerciseDifficulty.INTERMEDIATE.name,
                 requiresWeight = true,
             ),
-            ExerciseVariation(
+            Exercise(
                 id = "4",
-                coreExerciseId = "1",
                 name = "Dumbbell Bulgarian Split Squat",
-                equipment = Equipment.DUMBBELL,
-                difficulty = ExerciseDifficulty.INTERMEDIATE,
+                category = com.github.radupana.featherweight.data.exercise.ExerciseCategory.LEGS.name,
+                movementPattern = com.github.radupana.featherweight.data.exercise.MovementPattern.SQUAT.name,
+                isCompound = true,
+                equipment = Equipment.DUMBBELL.name,
+                difficulty = ExerciseDifficulty.INTERMEDIATE.name,
                 requiresWeight = true,
             ),
-            ExerciseVariation(
+            Exercise(
                 id = "5",
-                coreExerciseId = "2",
                 name = "Machine Leg Press",
-                equipment = Equipment.MACHINE,
-                difficulty = ExerciseDifficulty.BEGINNER,
+                category = com.github.radupana.featherweight.data.exercise.ExerciseCategory.LEGS.name,
+                movementPattern = com.github.radupana.featherweight.data.exercise.MovementPattern.PUSH.name,
+                isCompound = true,
+                equipment = Equipment.MACHINE.name,
+                difficulty = ExerciseDifficulty.BEGINNER.name,
                 requiresWeight = true,
             ),
-            ExerciseVariation(
+            Exercise(
                 id = "6",
-                coreExerciseId = "3",
                 name = "Barbell Bench Press",
-                equipment = Equipment.BARBELL,
-                difficulty = ExerciseDifficulty.INTERMEDIATE,
+                category = com.github.radupana.featherweight.data.exercise.ExerciseCategory.CHEST.name,
+                movementPattern = com.github.radupana.featherweight.data.exercise.MovementPattern.PUSH.name,
+                isCompound = true,
+                equipment = Equipment.BARBELL.name,
+                difficulty = ExerciseDifficulty.INTERMEDIATE.name,
                 requiresWeight = true,
             ),
         )
@@ -181,12 +193,14 @@ class ExerciseMappingViewModelTest {
             // Create a large list of exercises
             val manyExercises =
                 (1..30).map { i ->
-                    ExerciseVariation(
+                    Exercise(
                         id = i.toString(),
-                        coreExerciseId = "1",
                         name = "Test Squat Exercise $i",
-                        equipment = Equipment.BARBELL,
-                        difficulty = ExerciseDifficulty.INTERMEDIATE,
+                        category = com.github.radupana.featherweight.data.exercise.ExerciseCategory.LEGS.name,
+                        movementPattern = com.github.radupana.featherweight.data.exercise.MovementPattern.SQUAT.name,
+                        isCompound = true,
+                        equipment = Equipment.BARBELL.name,
+                        difficulty = ExerciseDifficulty.INTERMEDIATE.name,
                         requiresWeight = true,
                     )
                 }
@@ -225,12 +239,14 @@ class ExerciseMappingViewModelTest {
             // Add an exact match to test sorting
             val exercisesWithExactMatch =
                 testExercises +
-                    ExerciseVariation(
+                    Exercise(
                         id = "7",
-                        coreExerciseId = "1",
                         name = "Squat", // Exact match for "squat"
-                        equipment = Equipment.BODYWEIGHT,
-                        difficulty = ExerciseDifficulty.BEGINNER,
+                        category = com.github.radupana.featherweight.data.exercise.ExerciseCategory.LEGS.name,
+                        movementPattern = com.github.radupana.featherweight.data.exercise.MovementPattern.SQUAT.name,
+                        isCompound = true,
+                        equipment = Equipment.BODYWEIGHT.name,
+                        difficulty = ExerciseDifficulty.BEGINNER.name,
                         requiresWeight = false,
                     )
             coEvery { anyConstructed<FeatherweightRepository>().getAllExercises() } returns exercisesWithExactMatch

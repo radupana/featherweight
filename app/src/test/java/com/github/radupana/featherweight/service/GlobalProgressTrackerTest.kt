@@ -8,10 +8,10 @@ import com.github.radupana.featherweight.data.PersonalRecordDao
 import com.github.radupana.featherweight.data.ProgressTrend
 import com.github.radupana.featherweight.data.SetLogDao
 import com.github.radupana.featherweight.data.VolumeTrend
-import com.github.radupana.featherweight.data.exercise.ExerciseVariation
-import com.github.radupana.featherweight.data.exercise.ExerciseVariationDao
-import com.github.radupana.featherweight.data.profile.OneRMDao
-import com.github.radupana.featherweight.data.profile.UserExerciseMax
+import com.github.radupana.featherweight.data.exercise.Exercise
+import com.github.radupana.featherweight.data.exercise.ExerciseDao
+import com.github.radupana.featherweight.data.profile.ExerciseMaxTracking
+import com.github.radupana.featherweight.data.profile.ExerciseMaxTrackingDao
 import com.github.radupana.featherweight.fixtures.WorkoutFixtures
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.testutil.CoroutineTestRule
@@ -48,9 +48,9 @@ class GlobalProgressTrackerTest {
     private val globalProgressDao: GlobalExerciseProgressDao = mockk(relaxed = true)
     private val exerciseLogDao: ExerciseLogDao = mockk(relaxed = true)
     private val setLogDao: SetLogDao = mockk(relaxed = true)
-    private val oneRMDao: OneRMDao = mockk(relaxed = true)
+    private val oneRMDao: ExerciseMaxTrackingDao = mockk(relaxed = true)
     private val personalRecordDao: PersonalRecordDao = mockk(relaxed = true)
-    private val exerciseVariationDao: ExerciseVariationDao = mockk(relaxed = true)
+    private val exerciseDao: ExerciseDao = mockk(relaxed = true)
 
     private lateinit var tracker: GlobalProgressTracker
 
@@ -62,9 +62,9 @@ class GlobalProgressTrackerTest {
         every { database.globalExerciseProgressDao() } returns globalProgressDao
         every { database.exerciseLogDao() } returns exerciseLogDao
         every { database.setLogDao() } returns setLogDao
-        every { database.oneRMDao() } returns oneRMDao
+        every { database.exerciseMaxTrackingDao() } returns oneRMDao
         every { database.personalRecordDao() } returns personalRecordDao
-        every { database.exerciseVariationDao() } returns exerciseVariationDao
+        every { database.exerciseDao() } returns exerciseDao
 
         tracker = GlobalProgressTracker(repository, database)
     }
@@ -76,7 +76,7 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
 
             val workout =
                 WorkoutFixtures.createWorkout(
@@ -88,7 +88,7 @@ class GlobalProgressTrackerTest {
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             val sets =
@@ -108,17 +108,17 @@ class GlobalProgressTrackerTest {
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
 
             // Mock existing progress
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns null
 
             // Mock current 1RM
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user-id") } returns null
 
             // Mock exercise variation to be a Big 4 exercise
             val exerciseVariation =
-                mockk<ExerciseVariation> {
+                mockk<Exercise> {
                     coEvery { name } returns "Barbell Back Squat"
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns exerciseVariation
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns exerciseVariation
 
             // Act
             val result = tracker.updateProgressAfterWorkout(workoutId)
@@ -130,7 +130,7 @@ class GlobalProgressTrackerTest {
             coVerify { globalProgressDao.insertOrUpdate(any()) }
 
             // Verify 1RM was automatically saved (for Big 4 exercise with good confidence)
-            coVerify { oneRMDao.insertExerciseMax(any()) }
+            coVerify { oneRMDao.insert(any()) }
         }
 
     @Test
@@ -143,8 +143,8 @@ class GlobalProgressTrackerTest {
 
             val exerciseLogs =
                 listOf(
-                    WorkoutFixtures.createExerciseLog(id = "1", workoutId = workoutId, exerciseVariationId = "100"),
-                    WorkoutFixtures.createExerciseLog(id = "2", workoutId = workoutId, exerciseVariationId = "200"),
+                    WorkoutFixtures.createExerciseLog(id = "1", workoutId = workoutId, exerciseId = "100"),
+                    WorkoutFixtures.createExerciseLog(id = "2", workoutId = workoutId, exerciseId = "200"),
                 )
 
             coEvery { repository.getWorkoutById(workoutId) } returns workout
@@ -162,15 +162,15 @@ class GlobalProgressTrackerTest {
 
             // Mock exercise variations to be Big 4 exercises
             val variation1 =
-                mockk<ExerciseVariation> {
+                mockk<Exercise> {
                     coEvery { name } returns "Barbell Back Squat"
                 }
             val variation2 =
-                mockk<ExerciseVariation> {
+                mockk<Exercise> {
                     coEvery { name } returns "Barbell Overhead Press"
                 }
-            coEvery { exerciseVariationDao.getExerciseVariationById("100") } returns variation1
-            coEvery { exerciseVariationDao.getExerciseVariationById("200") } returns variation2
+            coEvery { exerciseDao.getExerciseById("100") } returns variation1
+            coEvery { exerciseDao.getExerciseById("200") } returns variation2
 
             // Act
             val result = tracker.updateProgressAfterWorkout(workoutId)
@@ -187,7 +187,7 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
             val workingWeight = 80f
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
@@ -195,7 +195,7 @@ class GlobalProgressTrackerTest {
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             val sets =
@@ -211,7 +211,7 @@ class GlobalProgressTrackerTest {
             val existingProgress =
                 GlobalExerciseProgress(
                     id = "1",
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     currentWorkingWeight = workingWeight, // Same weight as current
                     estimatedMax = 100f,
                     lastUpdated = LocalDateTime.now().minusDays(3),
@@ -222,8 +222,8 @@ class GlobalProgressTrackerTest {
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns existingProgress
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns existingProgress
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
@@ -242,7 +242,7 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
             val oldWeight = 80f
             val newWeight = 85f
 
@@ -251,7 +251,7 @@ class GlobalProgressTrackerTest {
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             val sets =
@@ -268,7 +268,7 @@ class GlobalProgressTrackerTest {
             val existingProgress =
                 GlobalExerciseProgress(
                     id = "1",
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     currentWorkingWeight = oldWeight,
                     estimatedMax = 90f,
                     lastUpdated = LocalDateTime.now().minusDays(3),
@@ -280,8 +280,8 @@ class GlobalProgressTrackerTest {
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns existingProgress
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns existingProgress
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
@@ -342,14 +342,14 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             // Sets with various RPE values
@@ -363,8 +363,8 @@ class GlobalProgressTrackerTest {
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
@@ -382,14 +382,14 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             // Sets for volume calculation
@@ -405,7 +405,7 @@ class GlobalProgressTrackerTest {
             val existingProgress =
                 GlobalExerciseProgress(
                     id = "1",
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     currentWorkingWeight = 95f,
                     estimatedMax = 120f,
                     lastUpdated = LocalDateTime.now().minusDays(3),
@@ -417,7 +417,7 @@ class GlobalProgressTrackerTest {
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns existingProgress
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns existingProgress
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
@@ -437,14 +437,14 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             // Lower weight than previous
@@ -457,7 +457,7 @@ class GlobalProgressTrackerTest {
             val existingProgress =
                 GlobalExerciseProgress(
                     id = "1",
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     currentWorkingWeight = 80f, // Higher than current
                     estimatedMax = 100f,
                     lastUpdated = LocalDateTime.now().minusDays(3),
@@ -469,7 +469,7 @@ class GlobalProgressTrackerTest {
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns existingProgress
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns existingProgress
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
@@ -489,14 +489,14 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             // Sets with various rep ranges
@@ -512,8 +512,8 @@ class GlobalProgressTrackerTest {
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
@@ -535,7 +535,7 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
             val sameWeight = 80f
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
@@ -543,7 +543,7 @@ class GlobalProgressTrackerTest {
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             val sets =
@@ -555,7 +555,7 @@ class GlobalProgressTrackerTest {
             val existingProgress =
                 GlobalExerciseProgress(
                     id = "1",
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     currentWorkingWeight = sameWeight,
                     estimatedMax = 100f,
                     lastUpdated = LocalDateTime.now().minusWeeks(3),
@@ -568,7 +568,7 @@ class GlobalProgressTrackerTest {
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns existingProgress
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns existingProgress
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
@@ -587,14 +587,14 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             // High confidence set (3 reps)
@@ -610,22 +610,22 @@ class GlobalProgressTrackerTest {
 
             // Mock Big 4 exercise
             val exerciseVariation =
-                mockk<ExerciseVariation> {
+                mockk<Exercise> {
                     coEvery { name } returns "Barbell Bench Press"
                 }
 
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns exerciseVariation
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user-id") } returns null
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns exerciseVariation
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
 
             // Assert - 1RM should be automatically saved
-            coVerify { oneRMDao.insertExerciseMax(any()) }
+            coVerify { oneRMDao.insert(any()) }
         }
 
     @Test
@@ -633,14 +633,14 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             // True 1RM attempt
@@ -656,23 +656,28 @@ class GlobalProgressTrackerTest {
 
             // Existing lower 1RM
             val existingMax =
-                UserExerciseMax(
-                    exerciseVariationId = exerciseVariationId,
+                ExerciseMaxTracking(
+                    userId = "local",
+                    exerciseId = exerciseId,
                     oneRMEstimate = 130f, // Lower than new
-                    oneRMContext = "125kg × 3 @ RPE 9",
+                    context = "125kg × 3 @ RPE 9",
+                    sourceSetId = null,
                     oneRMConfidence = 0.85f,
-                    oneRMDate = LocalDateTime.now().minusWeeks(2),
+                    recordedAt = LocalDateTime.now().minusWeeks(2),
                     mostWeightLifted = 125f,
                     mostWeightReps = 3,
                     mostWeightRpe = 9f,
+                    mostWeightDate = LocalDateTime.now().minusWeeks(2),
+                    oneRMType = com.github.radupana.featherweight.data.profile.OneRMType.AUTOMATICALLY_CALCULATED,
+                    notes = null,
                 )
 
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns existingMax
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user-id") } returns existingMax
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns
                 mockk {
                     coEvery { name } returns "Barbell Back Squat"
                 }
@@ -681,7 +686,7 @@ class GlobalProgressTrackerTest {
             tracker.updateProgressAfterWorkout(workoutId)
 
             // Assert
-            coVerify { oneRMDao.updateExerciseMax(any()) }
+            coVerify { oneRMDao.update(any()) }
         }
 
     @Test
@@ -689,14 +694,14 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             // All incomplete sets
@@ -723,14 +728,14 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             // Single with RPE 8 (not a true max)
@@ -747,15 +752,15 @@ class GlobalProgressTrackerTest {
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user-id") } returns null
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns
                 mockk {
                     coEvery { name } returns "Barbell Deadlift"
                 }
 
-            val capturedMax = slot<UserExerciseMax>()
-            coEvery { oneRMDao.insertExerciseMax(capture(capturedMax)) } returns Unit
+            val capturedMax = slot<ExerciseMaxTracking>()
+            coEvery { oneRMDao.insert(capture(capturedMax)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -773,14 +778,14 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             // Mix of true 1RM and multi-rep sets
@@ -804,15 +809,15 @@ class GlobalProgressTrackerTest {
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user-id") } returns null
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns
                 mockk {
                     coEvery { name } returns "Barbell Overhead Press"
                 }
 
-            val capturedMax = slot<UserExerciseMax>()
-            coEvery { oneRMDao.insertExerciseMax(capture(capturedMax)) } returns Unit
+            val capturedMax = slot<ExerciseMaxTracking>()
+            coEvery { oneRMDao.insert(capture(capturedMax)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -820,7 +825,7 @@ class GlobalProgressTrackerTest {
             // Assert
             val savedMax = capturedMax.captured
             assertThat(savedMax.oneRMEstimate).isEqualTo(130f) // True 1RM
-            assertThat(savedMax.oneRMContext).contains("1RM")
+            assertThat(savedMax.context).contains("1RM")
         }
 
     @Test
@@ -828,7 +833,7 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
             val programmeId = "10"
 
             val workout =
@@ -840,7 +845,7 @@ class GlobalProgressTrackerTest {
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             val sets =
@@ -851,8 +856,8 @@ class GlobalProgressTrackerTest {
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user-id") } returns null
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
@@ -871,14 +876,14 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             // Mix of valid and invalid rep ranges
@@ -892,15 +897,15 @@ class GlobalProgressTrackerTest {
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user-id") } returns null
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns
                 mockk {
                     coEvery { name } returns "Barbell Back Squat"
                 }
 
-            val capturedMax = slot<UserExerciseMax>()
-            coEvery { oneRMDao.insertExerciseMax(capture(capturedMax)) } returns Unit
+            val capturedMax = slot<ExerciseMaxTracking>()
+            coEvery { oneRMDao.insert(capture(capturedMax)) } returns Unit
 
             // Act
             tracker.updateProgressAfterWorkout(workoutId)
@@ -916,14 +921,14 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             // High rep set with low confidence for 1RM
@@ -940,9 +945,9 @@ class GlobalProgressTrackerTest {
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns null
-            coEvery { oneRMDao.getCurrentMax(exerciseVariationId, "test-user-id") } returns null
-            coEvery { exerciseVariationDao.getExerciseVariationById(exerciseVariationId) } returns
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns null
+            coEvery { oneRMDao.getCurrentMax(exerciseId, "test-user-id") } returns null
+            coEvery { exerciseDao.getExerciseById(exerciseId) } returns
                 mockk {
                     coEvery { name } returns "Barbell Bench Press"
                 }
@@ -951,8 +956,8 @@ class GlobalProgressTrackerTest {
             tracker.updateProgressAfterWorkout(workoutId)
 
             // Assert - 1RM should NOT be saved due to low confidence (<0.6)
-            coVerify(exactly = 0) { oneRMDao.insertExerciseMax(any()) }
-            coVerify(exactly = 0) { oneRMDao.updateExerciseMax(any()) }
+            coVerify(exactly = 0) { oneRMDao.insert(any()) }
+            coVerify(exactly = 0) { oneRMDao.update(any()) }
         }
 
     @Test
@@ -960,14 +965,14 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             // Current session volume = 100kg * 10 reps * 3 sets = 3000kg
@@ -977,7 +982,7 @@ class GlobalProgressTrackerTest {
             val existingProgress =
                 GlobalExerciseProgress(
                     id = "1",
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     currentWorkingWeight = 100f,
                     estimatedMax = 130f,
                     lastUpdated = LocalDateTime.now().minusDays(3),
@@ -989,7 +994,7 @@ class GlobalProgressTrackerTest {
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns existingProgress
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns existingProgress
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit
@@ -1009,14 +1014,14 @@ class GlobalProgressTrackerTest {
         runTest {
             // Arrange
             val workoutId = "1"
-            val exerciseVariationId = "100"
+            val exerciseId = "100"
 
             val workout = WorkoutFixtures.createWorkout(id = workoutId)
             val exerciseLog =
                 WorkoutFixtures.createExerciseLog(
                     id = "1",
                     workoutId = workoutId,
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                 )
 
             // Low volume session
@@ -1030,7 +1035,7 @@ class GlobalProgressTrackerTest {
             val existingProgress =
                 GlobalExerciseProgress(
                     id = "1",
-                    exerciseVariationId = exerciseVariationId,
+                    exerciseId = exerciseId,
                     currentWorkingWeight = 80f,
                     estimatedMax = 100f,
                     lastUpdated = LocalDateTime.now().minusDays(3),
@@ -1042,7 +1047,7 @@ class GlobalProgressTrackerTest {
             coEvery { repository.getWorkoutById(workoutId) } returns workout
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise(exerciseLog.id) } returns sets
-            coEvery { globalProgressDao.getProgressForExercise(exerciseVariationId) } returns existingProgress
+            coEvery { globalProgressDao.getProgressForExercise(exerciseId) } returns existingProgress
 
             val capturedProgress = slot<GlobalExerciseProgress>()
             coEvery { globalProgressDao.insertOrUpdate(capture(capturedProgress)) } returns Unit

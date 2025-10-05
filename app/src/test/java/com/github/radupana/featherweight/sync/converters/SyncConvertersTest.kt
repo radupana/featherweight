@@ -119,11 +119,10 @@ class SyncConvertersTest {
                 id = "10",
                 userId = "user123",
                 workoutId = "1",
-                exerciseVariationId = "5",
+                exerciseId = "5",
                 exerciseOrder = 2,
-                supersetGroup = 1,
                 notes = "Focus on form",
-                originalVariationId = null,
+                originalExerciseId = null,
                 isSwapped = false,
             )
 
@@ -131,7 +130,7 @@ class SyncConvertersTest {
 
         assertEquals("10", result.localId)
         assertEquals("1", result.workoutId)
-        assertEquals("5", result.exerciseVariationId)
+        assertEquals("5", result.exerciseId)
         assertEquals(2, result.exerciseOrder)
         assertEquals("Focus on form", result.notes)
     }
@@ -143,7 +142,7 @@ class SyncConvertersTest {
                 id = "firebase-id",
                 localId = "15",
                 workoutId = "2",
-                exerciseVariationId = "8",
+                exerciseId = "8",
                 exerciseOrder = 3,
                 notes = "Good pump",
             )
@@ -152,7 +151,7 @@ class SyncConvertersTest {
 
         assertEquals("15", result.id)
         assertEquals("2", result.workoutId)
-        assertEquals("8", result.exerciseVariationId)
+        assertEquals("8", result.exerciseId)
         assertEquals(3, result.exerciseOrder)
         assertEquals("Good pump", result.notes)
         assertNull(result.userId)
@@ -173,11 +172,6 @@ class SyncConvertersTest {
                 actualRpe = 8.5f,
                 isCompleted = true,
                 completedAt = null,
-                suggestedWeight = 52.5f,
-                suggestedReps = 10,
-                suggestionSource = "1RM",
-                suggestionConfidence = 0.85f,
-                calculationDetails = "Based on previous",
                 tag = "Warmup",
                 notes = "Easy",
             )
