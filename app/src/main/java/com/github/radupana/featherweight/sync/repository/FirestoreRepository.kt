@@ -66,6 +66,7 @@ class FirestoreRepository(
         // User profile/stats collections
         private const val USER_EXERCISE_MAXES_COLLECTION = "userExerciseMaxes"
         private const val PERSONAL_RECORDS_COLLECTION = "personalRecords"
+        private const val USER_EXERCISE_USAGE_COLLECTION = "userExerciseUsage"
 
         // Tracking/analysis collections
         private const val EXERCISE_SWAP_HISTORY_COLLECTION = "exerciseSwapHistory"
@@ -398,6 +399,11 @@ class FirestoreRepository(
         records: List<FirestorePersonalRecord>,
     ): Result<Unit> = uploadBatchedData(userDocument(userId).collection(PERSONAL_RECORDS_COLLECTION), records)
 
+    suspend fun uploadUserExerciseUsages(
+        userId: String,
+        usages: List<com.github.radupana.featherweight.sync.models.FirestoreExerciseUsage>,
+    ): Result<Unit> = uploadBatchedData(userDocument(userId).collection(USER_EXERCISE_USAGE_COLLECTION), usages)
+
     suspend fun uploadExerciseSwapHistory(
         userId: String,
         swaps: List<FirestoreExerciseSwapHistory>,
@@ -691,6 +697,8 @@ class FirestoreRepository(
     suspend fun downloadUserExerciseMaxes(userId: String): Result<List<FirestoreUserExerciseMax>> = downloadBatchedData(userDocument(userId).collection(USER_EXERCISE_MAXES_COLLECTION))
 
     suspend fun downloadPersonalRecords(userId: String): Result<List<FirestorePersonalRecord>> = downloadBatchedData(userDocument(userId).collection(PERSONAL_RECORDS_COLLECTION))
+
+    suspend fun downloadUserExerciseUsages(userId: String): Result<List<com.github.radupana.featherweight.sync.models.FirestoreExerciseUsage>> = downloadBatchedData(userDocument(userId).collection(USER_EXERCISE_USAGE_COLLECTION))
 
     suspend fun downloadExerciseSwapHistory(userId: String): Result<List<FirestoreExerciseSwapHistory>> = downloadBatchedData(userDocument(userId).collection(EXERCISE_SWAP_HISTORY_COLLECTION))
 

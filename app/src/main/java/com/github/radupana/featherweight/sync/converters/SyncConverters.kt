@@ -65,6 +65,7 @@ object SyncConverters {
             userId = workout.userId ?: "",
             name = workout.name,
             notes = workout.notes,
+            notesUpdatedAt = workout.notesUpdatedAt?.let { localDateTimeToTimestamp(it) },
             date = localDateTimeToTimestamp(workout.date),
             status = workout.status.name,
             programmeId = workout.programmeId,
@@ -83,6 +84,7 @@ object SyncConverters {
             userId = firestoreWorkout.userId.ifEmpty { null },
             name = firestoreWorkout.name,
             notes = firestoreWorkout.notes,
+            notesUpdatedAt = firestoreWorkout.notesUpdatedAt?.let { timestampToLocalDateTime(it) },
             date = timestampToLocalDateTime(firestoreWorkout.date),
             status = WorkoutStatus.valueOf(firestoreWorkout.status),
             programmeId = firestoreWorkout.programmeId,
@@ -651,6 +653,31 @@ object SyncConverters {
             error = firestoreRequest.error,
             resultJson = firestoreRequest.resultJson,
             completedAt = firestoreRequest.completedAt?.let { timestampToLocalDateTime(it) },
+        )
+
+    fun toFirestoreExerciseUsage(usage: com.github.radupana.featherweight.data.exercise.UserExerciseUsage): com.github.radupana.featherweight.sync.models.FirestoreExerciseUsage =
+        com.github.radupana.featherweight.sync.models.FirestoreExerciseUsage(
+            id = usage.id,
+            localId = usage.id,
+            userId = usage.userId,
+            exerciseId = usage.exerciseId,
+            usageCount = usage.usageCount,
+            lastUsedAt = usage.lastUsedAt?.let { localDateTimeToTimestamp(it) },
+            personalNotes = usage.personalNotes,
+            createdAt = localDateTimeToTimestamp(usage.createdAt),
+            updatedAt = localDateTimeToTimestamp(usage.updatedAt),
+        )
+
+    fun fromFirestoreExerciseUsage(firestoreUsage: com.github.radupana.featherweight.sync.models.FirestoreExerciseUsage): com.github.radupana.featherweight.data.exercise.UserExerciseUsage =
+        com.github.radupana.featherweight.data.exercise.UserExerciseUsage(
+            id = firestoreUsage.localId.ifEmpty { firestoreUsage.id },
+            userId = firestoreUsage.userId,
+            exerciseId = firestoreUsage.exerciseId,
+            usageCount = firestoreUsage.usageCount,
+            lastUsedAt = firestoreUsage.lastUsedAt?.let { timestampToLocalDateTime(it) },
+            personalNotes = firestoreUsage.personalNotes,
+            createdAt = firestoreUsage.createdAt?.let { timestampToLocalDateTime(it) } ?: LocalDateTime.now(),
+            updatedAt = firestoreUsage.updatedAt?.let { timestampToLocalDateTime(it) } ?: LocalDateTime.now(),
         )
 
     private fun localDateTimeToTimestamp(dateTime: LocalDateTime): Timestamp {

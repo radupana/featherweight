@@ -227,6 +227,7 @@ class SyncManager(
 
             uploadUserExerciseMaxes(userId)
             uploadPersonalRecords(userId)
+            uploadUserExerciseUsages(userId)
 
             uploadExerciseSwapHistory(userId)
             uploadExercisePerformanceTracking(userId)
@@ -382,6 +383,12 @@ class SyncManager(
         firestoreRepository.uploadPersonalRecords(userId, firestoreRecords).getOrThrow()
     }
 
+    private suspend fun uploadUserExerciseUsages(userId: String) {
+        val usages = database.userExerciseUsageDao().getAllUsageForUser(userId)
+        val firestoreUsages = usages.map { SyncConverters.toFirestoreExerciseUsage(it) }
+        firestoreRepository.uploadUserExerciseUsages(userId, firestoreUsages).getOrThrow()
+    }
+
     private suspend fun uploadExerciseSwapHistory(userId: String) {
         val swaps = database.exerciseSwapHistoryDao().getAllSwapHistory()
         val userSwaps = swaps.filter { it.userId == userId }
@@ -465,6 +472,8 @@ class SyncManager(
             // Log.d("SyncManager", "Downloading OneRM history...")
             Log.d("SyncManager", "Downloading personal records...")
             downloadAndMergePersonalRecords(userId)
+            Log.d("SyncManager", "Downloading user exercise usages...")
+            downloadAndMergeUserExerciseUsages(userId)
 
             // Download tracking data
             Log.d("SyncManager", "Starting download of tracking data...")
@@ -667,6 +676,34 @@ class SyncManager(
         }
     }
 
+    private suspend fun downloadAndMergeUserExerciseUsages(userId: String) {
+        val remoteUsages = firestoreRepository.downloadUserExerciseUsages(userId).getOrThrow()
+        val localUsages = remoteUsages.map { SyncConverters.fromFirestoreExerciseUsage(it) }
+
+        localUsages.forEach { remote ->
+            val existing = database.userExerciseUsageDao().getUsage(userId, remote.exerciseId)
+            if (existing == null) {
+                database.userExerciseUsageDao().insertUsage(remote)
+            } else {
+                // Merge logic: take max usage count and most recent lastUsedAt
+                val mergedUsage =
+                    existing.copy(
+                        usageCount = maxOf(existing.usageCount, remote.usageCount),
+                        lastUsedAt =
+                            when {
+                                existing.lastUsedAt == null -> remote.lastUsedAt
+                                remote.lastUsedAt == null -> existing.lastUsedAt
+                                remote.lastUsedAt.isAfter(existing.lastUsedAt) -> remote.lastUsedAt
+                                else -> existing.lastUsedAt
+                            },
+                        personalNotes = remote.personalNotes ?: existing.personalNotes,
+                        updatedAt = java.time.LocalDateTime.now(),
+                    )
+                database.userExerciseUsageDao().updateUsage(mergedUsage)
+            }
+        }
+    }
+
     private suspend fun downloadAndMergeExerciseSwapHistory(userId: String) {
         val remoteSwaps = firestoreRepository.downloadExerciseSwapHistory(userId).getOrThrow()
         val localSwaps = remoteSwaps.map { SyncConverters.fromFirestoreExerciseSwapHistory(it) }
@@ -841,6 +878,7 @@ class SyncManager(
             // User stats
             downloadAndMergeUserExerciseMaxes(userId)
             downloadAndMergePersonalRecords(userId)
+            downloadAndMergeUserExerciseUsages(userId)
 
             // Tracking data
             downloadAndMergeExerciseSwapHistory(userId)
@@ -876,6 +914,7 @@ class SyncManager(
             // User stats
             uploadUserExerciseMaxes(userId)
             uploadPersonalRecords(userId)
+            uploadUserExerciseUsages(userId)
 
             // Tracking data
             uploadExerciseSwapHistory(userId)

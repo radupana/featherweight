@@ -102,6 +102,12 @@ data class FirestoreInstruction(
  * User exercise usage tracking.
  */
 data class FirestoreExerciseUsage(
+    @PropertyName("id")
+    val id: String = "",
+    @PropertyName("localId")
+    val localId: String = "",
+    @PropertyName("userId")
+    val userId: String = "",
     @PropertyName("exerciseId")
     val exerciseId: String = "",
     @PropertyName("usageCount")
@@ -114,14 +120,20 @@ data class FirestoreExerciseUsage(
     val createdAt: Timestamp? = null,
     @PropertyName("updatedAt")
     val updatedAt: Timestamp? = null,
+    @PropertyName("lastModified")
+    val lastModified: Timestamp? = null,
 ) {
     // No-arg constructor required for Firestore
     constructor() : this(
+        id = "",
+        localId = "",
+        userId = "",
         exerciseId = "",
         usageCount = 0,
         lastUsedAt = null,
         personalNotes = null,
         createdAt = null,
         updatedAt = null,
+        lastModified = null,
     )
 }

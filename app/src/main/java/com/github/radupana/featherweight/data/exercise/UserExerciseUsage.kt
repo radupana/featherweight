@@ -24,6 +24,7 @@ data class UserExerciseUsage(
     val exerciseId: String,
     val usageCount: Int = 0,
     val lastUsedAt: LocalDateTime? = null,
+    val personalNotes: String? = null,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now(),
 )

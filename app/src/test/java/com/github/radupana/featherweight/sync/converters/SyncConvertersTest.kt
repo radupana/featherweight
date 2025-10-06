@@ -113,6 +113,59 @@ class SyncConvertersTest {
     }
 
     @Test
+    fun `toFirestoreWorkout and fromFirestoreWorkout handle notesUpdatedAt correctly`() {
+        val notesTime = LocalDateTime.of(2024, 1, 15, 10, 30)
+        val workout =
+            Workout(
+                id = "1",
+                userId = "user123",
+                name = "Test Workout",
+                notes = "Updated notes",
+                notesUpdatedAt = notesTime,
+                date = LocalDateTime.now(),
+                status = WorkoutStatus.COMPLETED,
+                programmeId = null,
+                weekNumber = null,
+                dayNumber = null,
+                programmeWorkoutName = null,
+                isProgrammeWorkout = false,
+                durationSeconds = null,
+                timerStartTime = null,
+                timerElapsedSeconds = 0,
+            )
+
+        val firestoreWorkout = SyncConverters.toFirestoreWorkout(workout)
+        val convertedBack = SyncConverters.fromFirestoreWorkout(firestoreWorkout)
+
+        assertEquals(notesTime, convertedBack.notesUpdatedAt)
+    }
+
+    @Test
+    fun `toFirestoreWorkout handles null notesUpdatedAt`() {
+        val workout =
+            Workout(
+                id = "1",
+                userId = "user123",
+                name = "Test",
+                notes = null,
+                notesUpdatedAt = null,
+                date = LocalDateTime.now(),
+                status = WorkoutStatus.NOT_STARTED,
+                programmeId = null,
+                weekNumber = null,
+                dayNumber = null,
+                programmeWorkoutName = null,
+                isProgrammeWorkout = false,
+                durationSeconds = null,
+                timerStartTime = null,
+                timerElapsedSeconds = 0,
+            )
+
+        val result = SyncConverters.toFirestoreWorkout(workout)
+        assertNull(result.notesUpdatedAt)
+    }
+
+    @Test
     fun `toFirestoreExerciseLog converts ExerciseLog correctly`() {
         val exerciseLog =
             ExerciseLog(
@@ -248,6 +301,134 @@ class SyncConvertersTest {
                 .atZone(ZoneId.systemDefault())
                 .toInstant()
                 .epochSecond,
+        )
+    }
+
+    @Test
+    fun `toFirestoreExerciseUsage converts UserExerciseUsage correctly`() {
+        val lastUsed = LocalDateTime.of(2024, 1, 15, 10, 30)
+        val created = LocalDateTime.of(2024, 1, 1, 9, 0)
+        val updated = LocalDateTime.of(2024, 1, 15, 10, 30)
+
+        val usage =
+            com.github.radupana.featherweight.data.exercise.UserExerciseUsage(
+                id = "usage-1",
+                userId = "user123",
+                exerciseId = "exercise-5",
+                usageCount = 42,
+                lastUsedAt = lastUsed,
+                personalNotes = "My favorite exercise",
+                createdAt = created,
+                updatedAt = updated,
+            )
+
+        val result = SyncConverters.toFirestoreExerciseUsage(usage)
+
+        assertEquals("usage-1", result.id)
+        assertEquals("usage-1", result.localId)
+        assertEquals("user123", result.userId)
+        assertEquals("exercise-5", result.exerciseId)
+        assertEquals(42, result.usageCount)
+        assertEquals("My favorite exercise", result.personalNotes)
+    }
+
+    @Test
+    fun `toFirestoreExerciseUsage handles null lastUsedAt`() {
+        val usage =
+            com.github.radupana.featherweight.data.exercise.UserExerciseUsage(
+                id = "usage-1",
+                userId = "user123",
+                exerciseId = "exercise-5",
+                usageCount = 0,
+                lastUsedAt = null,
+                personalNotes = null,
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now(),
+            )
+
+        val result = SyncConverters.toFirestoreExerciseUsage(usage)
+
+        assertNull(result.lastUsedAt)
+        assertNull(result.personalNotes)
+    }
+
+    @Test
+    fun `fromFirestoreExerciseUsage converts FirestoreExerciseUsage correctly`() {
+        val firestoreUsage =
+            com.github.radupana.featherweight.sync.models.FirestoreExerciseUsage(
+                id = "firebase-id",
+                localId = "usage-2",
+                userId = "user456",
+                exerciseId = "exercise-8",
+                usageCount = 15,
+                lastUsedAt = Timestamp.now(),
+                personalNotes = "Great for strength",
+                createdAt = Timestamp.now(),
+                updatedAt = Timestamp.now(),
+            )
+
+        val result = SyncConverters.fromFirestoreExerciseUsage(firestoreUsage)
+
+        assertEquals("usage-2", result.id)
+        assertEquals("user456", result.userId)
+        assertEquals("exercise-8", result.exerciseId)
+        assertEquals(15, result.usageCount)
+        assertEquals("Great for strength", result.personalNotes)
+    }
+
+    @Test
+    fun `fromFirestoreExerciseUsage handles null timestamps`() {
+        val firestoreUsage =
+            com.github.radupana.featherweight.sync.models.FirestoreExerciseUsage(
+                id = "firebase-id",
+                localId = "usage-3",
+                userId = "user789",
+                exerciseId = "exercise-10",
+                usageCount = 5,
+                lastUsedAt = null,
+                personalNotes = null,
+                createdAt = null,
+                updatedAt = null,
+            )
+
+        val result = SyncConverters.fromFirestoreExerciseUsage(firestoreUsage)
+
+        assertNull(result.lastUsedAt)
+        assertNull(result.personalNotes)
+    }
+
+    @Test
+    fun `toFirestoreExerciseUsage and fromFirestoreExerciseUsage roundtrip maintains data integrity`() {
+        val lastUsed = LocalDateTime.of(2024, 1, 15, 10, 30)
+        val created = LocalDateTime.of(2024, 1, 1, 9, 0)
+        val updated = LocalDateTime.of(2024, 1, 15, 10, 30)
+
+        val originalUsage =
+            com.github.radupana.featherweight.data.exercise.UserExerciseUsage(
+                id = "usage-roundtrip",
+                userId = "user-roundtrip",
+                exerciseId = "exercise-roundtrip",
+                usageCount = 99,
+                lastUsedAt = lastUsed,
+                personalNotes = "Test notes for roundtrip",
+                createdAt = created,
+                updatedAt = updated,
+            )
+
+        val firestoreUsage = SyncConverters.toFirestoreExerciseUsage(originalUsage)
+        val convertedBack = SyncConverters.fromFirestoreExerciseUsage(firestoreUsage)
+
+        assertEquals(originalUsage.id, convertedBack.id)
+        assertEquals(originalUsage.userId, convertedBack.userId)
+        assertEquals(originalUsage.exerciseId, convertedBack.exerciseId)
+        assertEquals(originalUsage.usageCount, convertedBack.usageCount)
+        assertEquals(originalUsage.personalNotes, convertedBack.personalNotes)
+        assertEquals(
+            lastUsed.atZone(ZoneId.systemDefault()).toInstant().epochSecond,
+            convertedBack.lastUsedAt
+                ?.atZone(ZoneId.systemDefault())
+                ?.toInstant()
+                ?.epochSecond,
         )
     }
 }

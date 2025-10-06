@@ -10,6 +10,7 @@ data class FirestoreWorkout(
     val userId: String = "",
     val name: String? = null,
     val notes: String? = null,
+    val notesUpdatedAt: Timestamp? = null,
     val date: Timestamp = Timestamp.now(),
     val status: String = "NOT_STARTED",
     val programmeId: String? = null,

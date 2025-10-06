@@ -61,6 +61,7 @@ class SyncManagerTest {
     private lateinit var programmeDao: ProgrammeDao
     private lateinit var oneRMDao: ExerciseMaxTrackingDao
     private lateinit var personalRecordDao: PersonalRecordDao
+    private lateinit var userExerciseUsageDao: com.github.radupana.featherweight.data.exercise.UserExerciseUsageDao
     private lateinit var exerciseSwapHistoryDao: ExerciseSwapHistoryDao
     private lateinit var programmeExerciseTrackingDao: ProgrammeExerciseTrackingDao
     private lateinit var globalExerciseProgressDao: GlobalExerciseProgressDao
@@ -106,6 +107,7 @@ class SyncManagerTest {
         programmeDao = mockk()
         oneRMDao = mockk()
         personalRecordDao = mockk()
+        userExerciseUsageDao = mockk()
         exerciseSwapHistoryDao = mockk()
         programmeExerciseTrackingDao = mockk()
         globalExerciseProgressDao = mockk()
@@ -133,6 +135,7 @@ class SyncManagerTest {
         every { database.programmeDao() } returns programmeDao
         every { database.exerciseMaxTrackingDao() } returns oneRMDao
         every { database.personalRecordDao() } returns personalRecordDao
+        every { database.userExerciseUsageDao() } returns userExerciseUsageDao
         every { database.exerciseSwapHistoryDao() } returns exerciseSwapHistoryDao
         every { database.programmeExerciseTrackingDao() } returns programmeExerciseTrackingDao
         every { database.globalExerciseProgressDao() } returns globalExerciseProgressDao
@@ -165,6 +168,10 @@ class SyncManagerTest {
         coEvery { oneRMDao.getAllForUser(any()) } returns emptyList()
         coEvery { oneRMDao.getAllForUser(any()) } returns emptyList()
         coEvery { personalRecordDao.getAllPersonalRecords() } returns emptyList()
+        coEvery { userExerciseUsageDao.getAllUsageForUser(any()) } returns emptyList()
+        coEvery { userExerciseUsageDao.getUsage(any(), any()) } returns null
+        coEvery { userExerciseUsageDao.insertUsage(any()) } returns Unit
+        coEvery { userExerciseUsageDao.updateUsage(any()) } returns Unit
         coEvery { exerciseSwapHistoryDao.getAllSwapHistory() } returns emptyList()
         coEvery { programmeExerciseTrackingDao.getAllTracking() } returns emptyList()
         coEvery { globalExerciseProgressDao.getAllProgress() } returns emptyList()
@@ -188,6 +195,7 @@ class SyncManagerTest {
         coEvery { firestoreRepository.uploadProgrammeProgress(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadUserExerciseMaxes(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadPersonalRecords(any(), any()) } returns Result.success(Unit)
+        coEvery { firestoreRepository.uploadUserExerciseUsages(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadExerciseSwapHistory(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadExercisePerformanceTracking(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadGlobalExerciseProgress(any(), any()) } returns Result.success(Unit)
@@ -215,6 +223,7 @@ class SyncManagerTest {
         coEvery { firestoreRepository.downloadProgrammeProgress(any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadUserExerciseMaxes(any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadPersonalRecords(any()) } returns Result.success(emptyList())
+        coEvery { firestoreRepository.downloadUserExerciseUsages(any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadExerciseSwapHistory(any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadExercisePerformanceTracking(any()) } returns Result.success(emptyList())
         coEvery { firestoreRepository.downloadGlobalExerciseProgress(any()) } returns Result.success(emptyList())
@@ -495,6 +504,7 @@ class SyncManagerTest {
             coEvery { firestoreRepository.downloadProgrammeProgress(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadUserExerciseMaxes(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadPersonalRecords(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadUserExerciseUsages(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExerciseSwapHistory(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExercisePerformanceTracking(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadGlobalExerciseProgress(any()) } returns Result.success(emptyList())
@@ -659,6 +669,7 @@ class SyncManagerTest {
             coEvery { firestoreRepository.downloadProgrammeProgress(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadUserExerciseMaxes(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadPersonalRecords(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadUserExerciseUsages(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExerciseSwapHistory(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExercisePerformanceTracking(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadGlobalExerciseProgress(any()) } returns Result.success(emptyList())
@@ -712,6 +723,7 @@ class SyncManagerTest {
                     every { durationSeconds } returns 3600L
                     every { status } returns "COMPLETED"
                     every { notes } returns "From cloud"
+                    every { notesUpdatedAt } returns null
                     every { this@mockk.userId } returns userId
                     every { lastModified } returns Timestamp.now()
                     every { programmeId } returns null
@@ -745,6 +757,7 @@ class SyncManagerTest {
             coEvery { firestoreRepository.downloadProgrammeProgress(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadUserExerciseMaxes(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadPersonalRecords(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadUserExerciseUsages(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExerciseSwapHistory(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExercisePerformanceTracking(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadGlobalExerciseProgress(any()) } returns Result.success(emptyList())
@@ -833,6 +846,7 @@ class SyncManagerTest {
             coEvery { firestoreRepository.downloadProgrammeProgress(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadUserExerciseMaxes(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadPersonalRecords(any()) } returns Result.success(emptyList())
+            coEvery { firestoreRepository.downloadUserExerciseUsages(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExerciseSwapHistory(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadExercisePerformanceTracking(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadGlobalExerciseProgress(any()) } returns Result.success(emptyList())
