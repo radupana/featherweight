@@ -1,10 +1,16 @@
 package com.github.radupana.featherweight.sync.repository
 
 import android.util.Log
+import com.github.radupana.featherweight.sync.models.FirestoreCustomExercise
+import com.github.radupana.featherweight.sync.models.FirestoreCustomExerciseAlias
+import com.github.radupana.featherweight.sync.models.FirestoreCustomExerciseInstruction
+import com.github.radupana.featherweight.sync.models.FirestoreCustomExerciseMuscle
 import com.github.radupana.featherweight.sync.models.FirestoreExercise
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseLog
 import com.github.radupana.featherweight.sync.models.FirestoreExerciseSwapHistory
 import com.github.radupana.featherweight.sync.models.FirestoreGlobalExerciseProgress
+import com.github.radupana.featherweight.sync.models.FirestoreInstruction
+import com.github.radupana.featherweight.sync.models.FirestoreMuscle
 import com.github.radupana.featherweight.sync.models.FirestoreParseRequest
 import com.github.radupana.featherweight.sync.models.FirestorePersonalRecord
 import com.github.radupana.featherweight.sync.models.FirestoreProgramme
@@ -430,83 +436,214 @@ class FirestoreRepository(
     ): Result<Unit> = uploadBatchedData(userDocument(userId).collection(PARSE_REQUESTS_COLLECTION), requests)
 
     /**
-     * Downloads custom exercises for a specific user.
+     * Downloads custom exercises for a specific user from normalized Firestore structure.
+     * Assembles main exercise documents + subcollections into typed FirestoreCustomExercise objects.
      * @param userId The user whose custom exercises to download
      * @param lastSyncTime Optional timestamp to get only updated exercises
-     * @return Map of exercise ID to custom exercise data
+     * @return List of FirestoreCustomExercise objects with embedded subcollection data
      */
     suspend fun downloadCustomExercises(
         userId: String,
         lastSyncTime: Timestamp?,
-    ): Result<Map<String, Map<String, Any>>> =
+    ): Result<List<FirestoreCustomExercise>> =
         try {
-            var query: Query = userDocument(userId).collection("customExercises")
+            Log.d("FirestoreRepository", "Downloading custom exercises for user $userId (lastSyncTime: $lastSyncTime)")
+            var query: Query =
+                userDocument(userId)
+                    .collection("customExercises")
+                    .whereEqualTo("isDeleted", false)
 
             // Filter by update time if provided
             lastSyncTime?.let {
-                query = query.whereGreaterThan("updatedAt", it)
+                query = query.whereGreaterThan("lastModified", it)
             }
 
             val snapshot = query.get().await()
-            val exercises = mutableMapOf<String, Map<String, Any>>()
+            Log.d("FirestoreRepository", "Found ${snapshot.documents.size} custom exercise documents")
+            val exercises = mutableListOf<FirestoreCustomExercise>()
 
             snapshot.documents.forEach { doc ->
-                exercises[doc.id] = doc.data ?: emptyMap()
+                try {
+                    Log.d("FirestoreRepository", "Processing custom exercise ${doc.id}")
+                    val baseExercise = doc.toObject(FirestoreCustomExercise::class.java)
+                    if (baseExercise == null) {
+                        Log.w("FirestoreRepository", "Failed to parse custom exercise ${doc.id}")
+                        return@forEach
+                    }
+
+                    // Fetch subcollections for this exercise
+                    val musclesSnapshot =
+                        doc.reference
+                            .collection("muscles")
+                            .whereEqualTo("isDeleted", false)
+                            .get()
+                            .await()
+                    val aliasesSnapshot =
+                        doc.reference
+                            .collection("aliases")
+                            .whereEqualTo("isDeleted", false)
+                            .get()
+                            .await()
+                    val instructionsSnapshot =
+                        doc.reference
+                            .collection("instructions")
+                            .whereEqualTo("isDeleted", false)
+                            .get()
+                            .await()
+
+                    Log.d(
+                        "FirestoreRepository",
+                        "Exercise ${doc.id}: ${musclesSnapshot.size()} muscles, " +
+                            "${aliasesSnapshot.size()} aliases, ${instructionsSnapshot.size()} instructions",
+                    )
+
+                    // Convert subcollection documents to embedded types
+                    val muscles =
+                        musclesSnapshot.documents
+                            .mapNotNull {
+                                it.toObject(FirestoreCustomExerciseMuscle::class.java)
+                            }.map { FirestoreMuscle(it.muscle, it.targetType == "primary", 1.0) }
+
+                    val aliases =
+                        aliasesSnapshot.documents.mapNotNull {
+                            it.toObject(FirestoreCustomExerciseAlias::class.java)?.alias
+                        }
+
+                    val instructions =
+                        instructionsSnapshot.documents
+                            .mapNotNull {
+                                it.toObject(FirestoreCustomExerciseInstruction::class.java)
+                            }.map { FirestoreInstruction(it.instructionType, it.instructionText, it.orderIndex, "en") }
+
+                    // Assemble complete exercise with subcollection data
+                    exercises.add(
+                        baseExercise.copy(
+                            muscles = muscles,
+                            aliases = aliases,
+                            instructions = instructions,
+                        ),
+                    )
+                    Log.d("FirestoreRepository", "Successfully assembled custom exercise ${doc.id}: ${baseExercise.name}")
+                } catch (e: FirebaseException) {
+                    Log.e("FirestoreRepository", "Failed to process custom exercise ${doc.id} - Firebase error", e)
+                } catch (e: IllegalStateException) {
+                    Log.e("FirestoreRepository", "Failed to process custom exercise ${doc.id} - invalid state", e)
+                }
             }
 
             Log.d("FirestoreRepository", "Downloaded ${exercises.size} custom exercises for user $userId")
             Result.success(exercises)
         } catch (e: FirebaseException) {
-            Log.e("FirestoreRepository", "Failed to download custom exercises - Firebase error", e)
+            Log.e("FirestoreRepository", "Failed to download custom exercises for user $userId - Firebase error", e)
             Result.failure(e)
         } catch (e: java.io.IOException) {
-            Log.e("FirestoreRepository", "Failed to download custom exercises - network error", e)
+            Log.e("FirestoreRepository", "Failed to download custom exercises for user $userId - network error", e)
             Result.failure(e)
         }
 
     /**
-     * Uploads a custom exercise to Firestore.
+     * Uploads a custom exercise using normalized Firestore structure.
+     * Writes main exercise document + subcollections for muscles, aliases, and instructions.
      * @param userId The user who owns the exercise
-     * @param variation The custom exercise variation (contains all fields)
+     * @param exercise The custom exercise
+     * @param muscles List of muscle mappings for this exercise
+     * @param aliases List of aliases for this exercise
+     * @param instructions List of instructions for this exercise
      */
     suspend fun uploadCustomExercise(
         userId: String,
-        variation: com.github.radupana.featherweight.data.exercise.Exercise,
+        exercise: com.github.radupana.featherweight.data.exercise.Exercise,
+        muscles: List<com.github.radupana.featherweight.data.exercise.ExerciseMuscle>,
+        aliases: List<com.github.radupana.featherweight.data.exercise.ExerciseAlias>,
+        instructions: List<com.github.radupana.featherweight.data.exercise.ExerciseInstruction>,
     ): Result<Unit> =
         try {
+            Log.d(
+                "FirestoreRepository",
+                "Uploading custom exercise ${exercise.id} (${exercise.name}) for user $userId " +
+                    "with ${muscles.size} muscles, ${aliases.size} aliases, ${instructions.size} instructions",
+            )
+            val batch = firestore.batch()
+
+            // Main exercise document
+            val exerciseRef = userDocument(userId).collection("customExercises").document(exercise.id)
             val exerciseData =
                 hashMapOf(
-                    "id" to variation.id,
-                    "name" to variation.name,
-                    "coreId" to variation.id, // Use variation ID since cores are merged
-                    "coreName" to variation.name,
-                    "category" to variation.category,
-                    "movementPattern" to variation.movementPattern,
-                    "isCompound" to variation.isCompound,
-                    "equipment" to variation.equipment,
-                    "difficulty" to variation.difficulty,
-                    "requiresWeight" to variation.requiresWeight,
-                    "restDurationSeconds" to variation.restDurationSeconds,
-                    "updatedAt" to Timestamp.now(),
+                    "id" to exercise.id,
+                    "type" to exercise.type,
+                    "userId" to exercise.userId,
+                    "name" to exercise.name,
+                    "category" to exercise.category,
+                    "movementPattern" to exercise.movementPattern,
+                    "isCompound" to exercise.isCompound,
+                    "equipment" to exercise.equipment,
+                    "difficulty" to exercise.difficulty,
+                    "requiresWeight" to exercise.requiresWeight,
+                    "rmScalingType" to exercise.rmScalingType,
+                    "restDurationSeconds" to exercise.restDurationSeconds,
+                    "createdAt" to exercise.createdAt.toString(),
+                    "updatedAt" to exercise.updatedAt.toString(),
+                    "isDeleted" to exercise.isDeleted,
                 )
+            batch.set(exerciseRef, exerciseData, SetOptions.merge())
+            Log.d("FirestoreRepository", "Batched main exercise document for ${exercise.id}")
 
-            userDocument(userId)
-                .collection("customExercises")
-                .document(variation.id.toString())
-                .set(exerciseData, SetOptions.merge())
-                .await()
+            // Muscle subcollection documents
+            muscles.forEach { muscle ->
+                val muscleData =
+                    hashMapOf(
+                        "id" to muscle.id,
+                        "exerciseId" to muscle.exerciseId,
+                        "muscle" to muscle.muscle,
+                        "targetType" to muscle.targetType,
+                        "isDeleted" to muscle.isDeleted,
+                    )
+                batch.set(exerciseRef.collection("muscles").document(muscle.id), muscleData, SetOptions.merge())
+            }
+            Log.d("FirestoreRepository", "Batched ${muscles.size} muscle documents for ${exercise.id}")
 
+            // Alias subcollection documents
+            aliases.forEach { alias ->
+                val aliasData =
+                    hashMapOf(
+                        "id" to alias.id,
+                        "exerciseId" to alias.exerciseId,
+                        "alias" to alias.alias,
+                        "isDeleted" to alias.isDeleted,
+                    )
+                batch.set(exerciseRef.collection("aliases").document(alias.id), aliasData, SetOptions.merge())
+            }
+            Log.d("FirestoreRepository", "Batched ${aliases.size} alias documents for ${exercise.id}")
+
+            // Instruction subcollection documents
+            instructions.forEach { instruction ->
+                val instructionData =
+                    hashMapOf(
+                        "id" to instruction.id,
+                        "exerciseId" to instruction.exerciseId,
+                        "instructionType" to instruction.instructionType,
+                        "orderIndex" to instruction.orderIndex,
+                        "instructionText" to instruction.instructionText,
+                        "isDeleted" to instruction.isDeleted,
+                    )
+                batch.set(exerciseRef.collection("instructions").document(instruction.id), instructionData, SetOptions.merge())
+            }
+            Log.d("FirestoreRepository", "Batched ${instructions.size} instruction documents for ${exercise.id}")
+
+            batch.commit().await()
+            Log.d("FirestoreRepository", "Successfully uploaded custom exercise ${exercise.id} (${exercise.name})")
             Result.success(Unit)
         } catch (e: FirebaseException) {
-            Log.e("FirestoreRepository", "Failed to upload custom exercise - Firebase error", e)
+            Log.e("FirestoreRepository", "Failed to upload custom exercise ${exercise.id} - Firebase error", e)
             Result.failure(e)
         } catch (e: java.io.IOException) {
-            Log.e("FirestoreRepository", "Failed to upload custom exercise - network error", e)
+            Log.e("FirestoreRepository", "Failed to upload custom exercise ${exercise.id} - network error", e)
             Result.failure(e)
         }
 
     /**
-     * Deletes a custom exercise from Firestore.
+     * Soft-deletes a custom exercise from Firestore.
+     * Sets isDeleted = true on main exercise document and all subcollection documents.
      * @param userId The user who owns the exercise
      * @param exerciseId The ID of the exercise to delete
      */
@@ -515,18 +652,35 @@ class FirestoreRepository(
         exerciseId: String,
     ): Result<Unit> =
         try {
-            userDocument(userId)
-                .collection("customExercises")
-                .document(exerciseId.toString())
-                .delete()
-                .await()
+            Log.d("FirestoreRepository", "Soft-deleting custom exercise $exerciseId for user $userId")
+            val batch = firestore.batch()
+            val exerciseRef = userDocument(userId).collection("customExercises").document(exerciseId)
 
+            // Soft delete main exercise document
+            batch.update(exerciseRef, "isDeleted", true)
+            Log.d("FirestoreRepository", "Batched soft-delete for main exercise document $exerciseId")
+
+            // Soft delete all subcollection documents
+            val musclesDocs = exerciseRef.collection("muscles").get().await()
+            musclesDocs.documents.forEach { batch.update(it.reference, "isDeleted", true) }
+            Log.d("FirestoreRepository", "Batched soft-delete for ${musclesDocs.size()} muscle documents")
+
+            val aliasesDocs = exerciseRef.collection("aliases").get().await()
+            aliasesDocs.documents.forEach { batch.update(it.reference, "isDeleted", true) }
+            Log.d("FirestoreRepository", "Batched soft-delete for ${aliasesDocs.size()} alias documents")
+
+            val instructionsDocs = exerciseRef.collection("instructions").get().await()
+            instructionsDocs.documents.forEach { batch.update(it.reference, "isDeleted", true) }
+            Log.d("FirestoreRepository", "Batched soft-delete for ${instructionsDocs.size()} instruction documents")
+
+            batch.commit().await()
+            Log.d("FirestoreRepository", "Successfully soft-deleted custom exercise $exerciseId")
             Result.success(Unit)
         } catch (e: FirebaseException) {
-            Log.e("FirestoreRepository", "Failed to delete custom exercise - Firebase error", e)
+            Log.e("FirestoreRepository", "Failed to delete custom exercise $exerciseId - Firebase error", e)
             Result.failure(e)
         } catch (e: java.io.IOException) {
-            Log.e("FirestoreRepository", "Failed to delete custom exercise - network error", e)
+            Log.e("FirestoreRepository", "Failed to delete custom exercise $exerciseId - network error", e)
             Result.failure(e)
         }
 

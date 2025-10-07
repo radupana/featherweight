@@ -35,7 +35,7 @@ class CustomExerciseSyncStrategy(
             try {
                 Log.d(TAG, "Starting custom exercise sync for user: $userId")
 
-                // Download custom exercises from Firestore
+                // Download custom exercises from Firestore (now returns typed list)
                 val remoteExercises = firestoreRepository.downloadCustomExercises(userId, lastSyncTime).getOrThrow()
                 Log.d(TAG, "Downloaded ${remoteExercises.size} custom exercises from Firestore")
 
@@ -44,32 +44,32 @@ class CustomExerciseSyncStrategy(
                 val localVariationMap = localVariations.associateBy { it.id }
 
                 // Process remote exercises
-                remoteExercises.forEach { (exerciseId, firestoreCustomExercise) ->
+                remoteExercises.forEach { firestoreExercise ->
                     try {
-                        val remoteVariationId = exerciseId
+                        val exerciseId = firestoreExercise.id
 
                         // Check if we have this exercise locally
-                        val localVariation = localVariationMap[remoteVariationId]
+                        val localVariation = localVariationMap[exerciseId]
 
                         if (localVariation == null) {
                             // New exercise from remote - insert it
-                            insertRemoteExercise(userId, remoteVariationId, firestoreCustomExercise)
+                            insertRemoteExercise(userId, exerciseId, firestoreExercise)
                         } else {
                             // Exercise exists locally - check timestamps for conflict resolution
-                            val remoteTimestamp = firestoreCustomExercise["updatedAt"] as? Timestamp
+                            val remoteTimestamp = firestoreExercise.lastModified
                             val localTimestamp = Timestamp(localVariation.updatedAt.toEpochSecond(ZoneOffset.UTC), 0)
 
                             if (remoteTimestamp != null && remoteTimestamp.seconds > localTimestamp.seconds) {
                                 // Remote is newer - update local
-                                updateLocalExercise(remoteVariationId, firestoreCustomExercise)
+                                updateLocalExercise(exerciseId, firestoreExercise)
                             }
                         }
                     } catch (e: com.google.firebase.FirebaseException) {
-                        Log.e(TAG, "Failed to process custom exercise $exerciseId - Firebase error", e)
+                        Log.e(TAG, "Failed to process custom exercise ${firestoreExercise.id} - Firebase error", e)
                     } catch (e: android.database.sqlite.SQLiteException) {
-                        Log.e(TAG, "Failed to process custom exercise $exerciseId - database error", e)
+                        Log.e(TAG, "Failed to process custom exercise ${firestoreExercise.id} - database error", e)
                     } catch (e: IllegalStateException) {
-                        Log.e(TAG, "Failed to process custom exercise $exerciseId - invalid state", e)
+                        Log.e(TAG, "Failed to process custom exercise ${firestoreExercise.id} - invalid state", e)
                     }
                 }
 
@@ -93,42 +93,43 @@ class CustomExerciseSyncStrategy(
     private suspend fun insertRemoteExercise(
         userId: String,
         exerciseId: String,
-        firestoreData: Map<String, Any>,
+        firestoreExercise: com.github.radupana.featherweight.sync.models.FirestoreCustomExercise,
     ) {
-        val category = firestoreData["category"] as? String ?: return
-        val movementPattern = firestoreData["movementPattern"] as? String ?: return
-        val isCompound = firestoreData["isCompound"] as? Boolean ?: false
-
         val exercise =
             Exercise(
                 id = exerciseId,
                 userId = userId,
-                name = firestoreData["name"] as? String ?: return,
-                category = category,
-                movementPattern = movementPattern,
-                isCompound = isCompound,
-                equipment = firestoreData["equipment"] as? String ?: "NONE",
-                difficulty = firestoreData["difficulty"] as? String ?: "BEGINNER",
-                requiresWeight = firestoreData["requiresWeight"] as? Boolean ?: false,
-                restDurationSeconds = (firestoreData["restDurationSeconds"] as? Long)?.toInt() ?: 90,
+                name = firestoreExercise.name,
+                category = firestoreExercise.category,
+                movementPattern = firestoreExercise.movementPattern,
+                isCompound = firestoreExercise.isCompound,
+                equipment = firestoreExercise.equipment,
+                difficulty = firestoreExercise.difficulty,
+                requiresWeight = firestoreExercise.requiresWeight,
+                rmScalingType = firestoreExercise.rmScalingType,
+                restDurationSeconds = firestoreExercise.restDurationSeconds,
             )
         database.exerciseDao().insertExercise(exercise)
     }
 
     private suspend fun updateLocalExercise(
         exerciseId: String,
-        firestoreData: Map<String, Any>,
+        firestoreExercise: com.github.radupana.featherweight.sync.models.FirestoreCustomExercise,
     ) {
         val existingVariation = database.exerciseDao().getExerciseById(exerciseId) ?: return
 
         // Update variation with remote data
         val updatedVariation =
             existingVariation.copy(
-                name = firestoreData["name"] as? String ?: existingVariation.name,
-                equipment = firestoreData["equipment"] as? String ?: existingVariation.equipment,
-                difficulty = firestoreData["difficulty"] as? String ?: existingVariation.difficulty,
-                requiresWeight = firestoreData["requiresWeight"] as? Boolean ?: existingVariation.requiresWeight,
-                restDurationSeconds = (firestoreData["restDurationSeconds"] as? Long)?.toInt() ?: existingVariation.restDurationSeconds,
+                name = firestoreExercise.name,
+                category = firestoreExercise.category,
+                movementPattern = firestoreExercise.movementPattern,
+                isCompound = firestoreExercise.isCompound,
+                equipment = firestoreExercise.equipment,
+                difficulty = firestoreExercise.difficulty,
+                requiresWeight = firestoreExercise.requiresWeight,
+                rmScalingType = firestoreExercise.rmScalingType,
+                restDurationSeconds = firestoreExercise.restDurationSeconds,
             )
         database.exerciseDao().updateExercise(updatedVariation)
     }
@@ -143,7 +144,12 @@ class CustomExerciseSyncStrategy(
                 // Check if this exercise is newer than last sync
                 val timestamp = Timestamp(exercise.updatedAt.toEpochSecond(ZoneOffset.UTC), 0)
                 if (lastSyncTime == null || timestamp.seconds > lastSyncTime.seconds) {
-                    firestoreRepository.uploadCustomExercise(userId, exercise)
+                    // Fetch related entities for this exercise
+                    val muscles = database.exerciseMuscleDao().getMusclesForVariation(exercise.id)
+                    val aliases = database.exerciseAliasDao().getAliasesForExercise(exercise.id)
+                    val instructions = database.exerciseInstructionDao().getInstructionsForVariation(exercise.id)
+
+                    firestoreRepository.uploadCustomExercise(userId, exercise, muscles, aliases, instructions).getOrThrow()
                     Log.d(TAG, "Uploaded custom exercise: ${exercise.name}")
                 }
             } catch (e: com.google.firebase.FirebaseException) {
