@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 
 /**
  * DAO for Exercise operations.
@@ -90,4 +91,14 @@ interface ExerciseDao {
     // Get exercises by equipment
     @Query("SELECT * FROM exercises WHERE equipment = :equipment ORDER BY name ASC")
     suspend fun getExercisesByEquipment(equipment: String): List<Exercise>
+
+    // Sync operations
+    @Upsert
+    suspend fun upsertExercise(exercise: Exercise)
+
+    @Query("UPDATE exercises SET isDeleted = 1 WHERE id = :exerciseId")
+    suspend fun softDeleteExercise(exerciseId: String)
+
+    @Query("DELETE FROM exercises WHERE id = :id")
+    suspend fun deleteById(id: String)
 }

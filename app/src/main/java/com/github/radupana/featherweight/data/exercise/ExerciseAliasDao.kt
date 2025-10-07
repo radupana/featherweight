@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 
 /**
  * DAO for managing aliases for exercise variations.
@@ -37,4 +38,14 @@ interface ExerciseAliasDao {
 
     @Query("DELETE FROM exercise_aliases WHERE exerciseId = :exerciseId")
     suspend fun deleteForVariation(exerciseId: String)
+
+    // Sync operations
+    @Upsert
+    suspend fun upsertExerciseAlias(alias: ExerciseAlias)
+
+    @Query("UPDATE exercise_aliases SET isDeleted = 1 WHERE id = :aliasId")
+    suspend fun softDeleteExerciseAlias(aliasId: String)
+
+    @Query("DELETE FROM exercise_aliases WHERE id = :id")
+    suspend fun deleteById(id: String)
 }
