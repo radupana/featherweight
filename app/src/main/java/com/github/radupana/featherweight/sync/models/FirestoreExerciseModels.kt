@@ -1,7 +1,9 @@
 package com.github.radupana.featherweight.sync.models
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentId
 import com.google.firebase.firestore.PropertyName
+import com.google.firebase.firestore.ServerTimestamp
 
 /**
  * Denormalized exercise model for Firestore.
@@ -136,4 +138,108 @@ data class FirestoreExerciseUsage(
         updatedAt = null,
         lastModified = null,
     )
+}
+
+/**
+ * Typed model for custom exercises.
+ * Assembled from normalized Firestore subcollections by FirestoreRepository.
+ * Replaces the unsafe Map<String, Any> pattern.
+ */
+data class FirestoreCustomExercise(
+    @DocumentId
+    val id: String = "",
+    val type: String = "USER",
+    val userId: String = "",
+    val name: String = "",
+    val category: String = "",
+    val movementPattern: String? = null,
+    val isCompound: Boolean = true,
+    val equipment: String = "",
+    val difficulty: String? = null,
+    val requiresWeight: Boolean = true,
+    val rmScalingType: String? = null,
+    val restDurationSeconds: Int? = null,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
+    val isDeleted: Boolean = false,
+    @ServerTimestamp
+    val lastModified: Timestamp? = null,
+    // Assembled from subcollections (not stored in main document):
+    val muscles: List<FirestoreMuscle> = emptyList(),
+    val aliases: List<String> = emptyList(),
+    val instructions: List<FirestoreInstruction> = emptyList(),
+) {
+    // No-arg constructor required for Firestore
+    constructor() : this(
+        id = "",
+        type = "USER",
+        userId = "",
+        name = "",
+        category = "",
+        movementPattern = null,
+        isCompound = true,
+        equipment = "",
+        difficulty = null,
+        requiresWeight = true,
+        rmScalingType = null,
+        restDurationSeconds = null,
+        createdAt = null,
+        updatedAt = null,
+        isDeleted = false,
+        lastModified = null,
+        muscles = emptyList(),
+        aliases = emptyList(),
+        instructions = emptyList(),
+    )
+}
+
+/**
+ * Muscle mapping stored in customExercises/{exerciseId}/muscles subcollection.
+ */
+data class FirestoreCustomExerciseMuscle(
+    @DocumentId
+    val id: String = "",
+    val exerciseId: String = "",
+    val muscle: String = "",
+    val targetType: String = "",
+    val isDeleted: Boolean = false,
+    @ServerTimestamp
+    val lastModified: Timestamp? = null,
+) {
+    // No-arg constructor required for Firestore
+    constructor() : this("", "", "", "", false, null)
+}
+
+/**
+ * Alias stored in customExercises/{exerciseId}/aliases subcollection.
+ */
+data class FirestoreCustomExerciseAlias(
+    @DocumentId
+    val id: String = "",
+    val exerciseId: String = "",
+    val alias: String = "",
+    val isDeleted: Boolean = false,
+    @ServerTimestamp
+    val lastModified: Timestamp? = null,
+) {
+    // No-arg constructor required for Firestore
+    constructor() : this("", "", "", false, null)
+}
+
+/**
+ * Instruction stored in customExercises/{exerciseId}/instructions subcollection.
+ */
+data class FirestoreCustomExerciseInstruction(
+    @DocumentId
+    val id: String = "",
+    val exerciseId: String = "",
+    val instructionType: String = "",
+    val orderIndex: Int = 0,
+    val instructionText: String = "",
+    val isDeleted: Boolean = false,
+    @ServerTimestamp
+    val lastModified: Timestamp? = null,
+) {
+    // No-arg constructor required for Firestore
+    constructor() : this("", "", "", 0, "", false, null)
 }
