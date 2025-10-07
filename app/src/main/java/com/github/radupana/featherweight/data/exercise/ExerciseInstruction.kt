@@ -32,4 +32,6 @@ data class ExerciseInstruction(
     val instructionType: String, // Was InstructionType enum
     val orderIndex: Int,
     val instructionText: String,
+    // Soft delete flag for sync
+    val isDeleted: Boolean = false,
 )

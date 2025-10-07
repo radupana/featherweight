@@ -30,4 +30,6 @@ data class ExerciseAlias(
     val id: String = IdGenerator.generateId(),
     val exerciseId: String,
     val alias: String,
+    // Soft delete flag for sync
+    val isDeleted: Boolean = false,
 )

@@ -45,4 +45,6 @@ data class Exercise(
     // Timestamps
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now(),
+    // Soft delete flag for sync
+    val isDeleted: Boolean = false,
 )

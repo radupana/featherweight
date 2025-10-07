@@ -32,4 +32,6 @@ data class ExerciseMuscle(
     val exerciseId: String,
     val muscle: String, // Was MuscleGroup enum
     val targetType: String, // "PRIMARY" or "SECONDARY"
+    // Soft delete flag for sync
+    val isDeleted: Boolean = false,
 )
