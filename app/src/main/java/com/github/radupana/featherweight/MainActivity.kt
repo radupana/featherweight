@@ -138,7 +138,7 @@ class MainActivity : ComponentActivity() {
             lifecycleScope.launch {
                 Log.w(TAG, "Clearing ALL local database data due to corrupted auth state")
                 try {
-                    repository.clearAllUserData()
+                    repository.clearLocalUserDataOnly()
                     Log.i(TAG, "Cleared corrupted auth data and database, redirecting to WelcomeActivity")
                 } catch (e: android.database.sqlite.SQLiteException) {
                     Log.e(TAG, "Failed to clear database data", e)
@@ -160,7 +160,7 @@ class MainActivity : ComponentActivity() {
                 Log.w(TAG, "User ID changed, validating database for stale data")
                 try {
                     // Clear any existing data to prevent cross-user data leakage
-                    repository.clearAllUserData()
+                    repository.clearLocalUserDataOnly()
                     Log.i(TAG, "Cleared database to prevent data leakage between users")
                 } catch (e: android.database.sqlite.SQLiteException) {
                     Log.e(TAG, "Failed to clear stale user data", e)

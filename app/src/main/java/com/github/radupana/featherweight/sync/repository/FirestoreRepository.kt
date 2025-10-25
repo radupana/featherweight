@@ -693,7 +693,23 @@ class FirestoreRepository(
             batches.forEach { batch ->
                 val writeBatch = firestore.batch()
                 batch.forEach { item ->
-                    val docRef = collection.document()
+                    // Extract the ID from the object to use as Firestore document ID
+                    // This preserves IDs across local/remote and prevents duplicates
+                    val id =
+                        try {
+                            val idField = T::class.java.getDeclaredField("id")
+                            idField.isAccessible = true
+                            idField.get(item) as? String
+                        } catch (e: Exception) {
+                            null
+                        }
+
+                    val docRef =
+                        if (!id.isNullOrEmpty()) {
+                            collection.document(id) // Use existing ID to preserve references
+                        } else {
+                            collection.document() // Auto-generate only if no ID exists
+                        }
                     writeBatch.set(docRef, item, SetOptions.merge())
                 }
                 writeBatch.commit().await()

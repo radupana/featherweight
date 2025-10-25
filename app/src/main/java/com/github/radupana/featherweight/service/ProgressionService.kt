@@ -122,7 +122,7 @@ class ProgressionService(
         val missedReps =
             if (targetReps != null) {
                 val totalTargetReps = targetSets * targetReps
-                totalTargetReps - achievedReps
+                (totalTargetReps - achievedReps).coerceAtLeast(0) // Never allow negative missed reps
             } else {
                 0 // No concept of "missed reps" in freestyle workouts
             }

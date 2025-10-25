@@ -52,7 +52,7 @@ class WelcomeActivity : ComponentActivity() {
             // CRITICAL: Also clear ALL database data to prevent restored backup data
             lifecycleScope.launch {
                 Log.w("WelcomeActivity", "Clearing ALL local database data due to corrupted auth state")
-                repository.clearAllUserData()
+                repository.clearLocalUserDataOnly()
                 Log.i("WelcomeActivity", "Cleared corrupted auth data and database, showing welcome screen")
             }
         }

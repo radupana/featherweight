@@ -130,28 +130,18 @@ class LocalDataMigrationService(
     }
 
     private fun migrateCustomExercises(targetUserId: String) {
-        // After DB restructuring, custom exercises are in the unified tables with userId field
-        val coreCount =
+        // Migrate custom exercises from unified exercises table
+        val exerciseCount =
             database
                 .compileStatement(
-                    "UPDATE exercise_cores SET userId = ? WHERE userId = ?",
+                    "UPDATE exercises SET userId = ? WHERE userId = ? AND type = 'USER'",
                 ).use { statement ->
                     statement.bindString(1, targetUserId)
                     statement.bindString(2, LOCAL_USER_ID)
                     statement.executeUpdateDelete()
                 }
 
-        val variationCount =
-            database
-                .compileStatement(
-                    "UPDATE exercise_variations SET userId = ? WHERE userId = ?",
-                ).use { statement ->
-                    statement.bindString(1, targetUserId)
-                    statement.bindString(2, LOCAL_USER_ID)
-                    statement.executeUpdateDelete()
-                }
-
-        Log.d(TAG, "Migrated $coreCount custom exercise cores and $variationCount variations")
+        Log.d(TAG, "Migrated $exerciseCount custom exercises")
     }
 
     private fun migrateProgrammes(targetUserId: String) {
@@ -214,11 +204,11 @@ class LocalDataMigrationService(
                     statement.executeUpdateDelete()
                 }
 
-        // Migrate exercise performance tracking
+        // Migrate programme exercise tracking
         val perfCount =
             database
                 .compileStatement(
-                    "UPDATE exercise_performance_tracking SET userId = ? WHERE userId = ?",
+                    "UPDATE programme_exercise_tracking SET userId = ? WHERE userId = ?",
                 ).use { statement ->
                     statement.bindString(1, targetUserId)
                     statement.bindString(2, LOCAL_USER_ID)
@@ -247,7 +237,51 @@ class LocalDataMigrationService(
                     statement.executeUpdateDelete()
                 }
 
-        Log.d(TAG, "Migrated $swapCount swap history, $perfCount performance tracking, $analysisCount analyses, $parseCount parse requests")
+        // Migrate exercise max history
+        val maxHistoryCount =
+            database
+                .compileStatement(
+                    "UPDATE exercise_max_history SET userId = ? WHERE userId = ?",
+                ).use { statement ->
+                    statement.bindString(1, targetUserId)
+                    statement.bindString(2, LOCAL_USER_ID)
+                    statement.executeUpdateDelete()
+                }
+
+        // Migrate workout templates
+        val templateCount =
+            database
+                .compileStatement(
+                    "UPDATE workout_templates SET userId = ? WHERE userId = ?",
+                ).use { statement ->
+                    statement.bindString(1, targetUserId)
+                    statement.bindString(2, LOCAL_USER_ID)
+                    statement.executeUpdateDelete()
+                }
+
+        // Migrate template exercises
+        val templateExCount =
+            database
+                .compileStatement(
+                    "UPDATE template_exercises SET userId = ? WHERE userId = ?",
+                ).use { statement ->
+                    statement.bindString(1, targetUserId)
+                    statement.bindString(2, LOCAL_USER_ID)
+                    statement.executeUpdateDelete()
+                }
+
+        // Migrate template sets
+        val templateSetCount =
+            database
+                .compileStatement(
+                    "UPDATE template_sets SET userId = ? WHERE userId = ?",
+                ).use { statement ->
+                    statement.bindString(1, targetUserId)
+                    statement.bindString(2, LOCAL_USER_ID)
+                    statement.executeUpdateDelete()
+                }
+
+        Log.d(TAG, "Migrated $swapCount swap history, $perfCount programme exercise tracking, $analysisCount analyses, $parseCount parse requests, $maxHistoryCount max history, $templateCount templates, $templateExCount template exercises, $templateSetCount template sets")
     }
 
     /**
@@ -303,12 +337,8 @@ class LocalDataMigrationService(
                         it.bindString(1, LOCAL_USER_ID)
                         it.executeUpdateDelete()
                     }
-                    // Custom exercises are now in unified tables - delete user-specific ones
-                    database.compileStatement("DELETE FROM exercise_cores WHERE userId = ?").use {
-                        it.bindString(1, LOCAL_USER_ID)
-                        it.executeUpdateDelete()
-                    }
-                    database.compileStatement("DELETE FROM exercise_variations WHERE userId = ?").use {
+                    // Delete custom exercises from unified exercises table
+                    database.compileStatement("DELETE FROM exercises WHERE userId = ? AND type = 'USER'").use {
                         it.bindString(1, LOCAL_USER_ID)
                         it.executeUpdateDelete()
                     }
@@ -332,7 +362,7 @@ class LocalDataMigrationService(
                         it.bindString(1, LOCAL_USER_ID)
                         it.executeUpdateDelete()
                     }
-                    database.compileStatement("DELETE FROM exercise_performance_tracking WHERE userId = ?").use {
+                    database.compileStatement("DELETE FROM programme_exercise_tracking WHERE userId = ?").use {
                         it.bindString(1, LOCAL_USER_ID)
                         it.executeUpdateDelete()
                     }
@@ -341,6 +371,22 @@ class LocalDataMigrationService(
                         it.executeUpdateDelete()
                     }
                     database.compileStatement("DELETE FROM parse_requests WHERE userId = ?").use {
+                        it.bindString(1, LOCAL_USER_ID)
+                        it.executeUpdateDelete()
+                    }
+                    database.compileStatement("DELETE FROM exercise_max_history WHERE userId = ?").use {
+                        it.bindString(1, LOCAL_USER_ID)
+                        it.executeUpdateDelete()
+                    }
+                    database.compileStatement("DELETE FROM workout_templates WHERE userId = ?").use {
+                        it.bindString(1, LOCAL_USER_ID)
+                        it.executeUpdateDelete()
+                    }
+                    database.compileStatement("DELETE FROM template_exercises WHERE userId = ?").use {
+                        it.bindString(1, LOCAL_USER_ID)
+                        it.executeUpdateDelete()
+                    }
+                    database.compileStatement("DELETE FROM template_sets WHERE userId = ?").use {
                         it.bindString(1, LOCAL_USER_ID)
                         it.executeUpdateDelete()
                     }

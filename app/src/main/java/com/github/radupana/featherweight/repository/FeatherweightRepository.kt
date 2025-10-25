@@ -1571,8 +1571,33 @@ class FeatherweightRepository(
         }
 
     /**
-     * Clear all data for the currently logged-in user
-     * Called on logout to prevent data leakage to next user
+     * Clear ONLY local data for the currently logged-in user.
+     * Called on logout to prevent data leakage to next user.
+     * PRESERVES Firestore data for multi-device sync.
+     *
+     * For authenticated users: Deletes all data where userId matches the current user
+     * For unauthenticated users: Deletes all data where userId is "local"
+     *
+     * NEVER deletes system data (exercises, variations, aliases, etc.)
+     * NEVER deletes other users' data
+     * NEVER deletes Firestore data (needed for sync)
+     */
+    suspend fun clearLocalUserDataOnly() =
+        withContext(Dispatchers.IO) {
+            val currentUserId = authManager.getCurrentUserId() ?: "local"
+            Log.w(TAG, "CLEARING LOCAL USER DATA for userId: $currentUserId")
+
+            // Delete all user-specific data from local database ONLY
+            // Firestore data is preserved for multi-device sync
+            deleteAllUserDataFromLocalDatabase(currentUserId)
+
+            Log.w(TAG, "Local user data deletion complete for userId: $currentUserId")
+        }
+
+    /**
+     * Clear all data for the currently logged-in user - BOTH local and Firestore.
+     * WARNING: This should ONLY be used for account deletion, NOT logout!
+     * For logout, use clearLocalUserDataOnly() instead.
      *
      * For authenticated users: Deletes all data where userId matches the current user
      * For unauthenticated users: Deletes all data where userId is "local"
@@ -1583,7 +1608,7 @@ class FeatherweightRepository(
     suspend fun clearAllUserData() =
         withContext(Dispatchers.IO) {
             val currentUserId = authManager.getCurrentUserId() ?: "local"
-            Log.w(TAG, "CLEARING ALL USER DATA for userId: $currentUserId")
+            Log.w(TAG, "CLEARING ALL USER DATA (local + Firestore) for userId: $currentUserId")
 
             // First, delete from Firestore if authenticated
             if (currentUserId != "local") {

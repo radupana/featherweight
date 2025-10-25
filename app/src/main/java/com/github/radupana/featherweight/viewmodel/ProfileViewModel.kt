@@ -586,9 +586,10 @@ class ProfileViewModel(
     fun signOut() {
         viewModelScope.launch {
             try {
-                // Clear all user data from database BEFORE signing out
+                // Clear ONLY local data from database BEFORE signing out
                 // This ensures no data leakage to next user
-                repository.clearAllUserData()
+                // Firestore data is preserved for multi-device sync
+                repository.clearLocalUserDataOnly()
 
                 // Sign out from Firebase
                 firebaseAuth.signOut()

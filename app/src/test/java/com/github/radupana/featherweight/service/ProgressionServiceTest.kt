@@ -3,6 +3,8 @@ package com.github.radupana.featherweight.service
 import com.github.radupana.featherweight.data.ProgrammeExerciseTracking
 import com.github.radupana.featherweight.data.ProgrammeExerciseTrackingDao
 import com.github.radupana.featherweight.data.ProgressionAction
+import com.github.radupana.featherweight.data.SetLog
+import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.programme.DeloadRules
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeDao
@@ -14,7 +16,9 @@ import com.google.common.truth.Truth.assertThat
 import com.google.gson.Gson
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.impl.annotations.MockK
+import io.mockk.slot
 import io.mockk.unmockkAll
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -394,5 +398,371 @@ class ProgressionServiceTest {
             // Assert
             assertThat(decision.weight).isEqualTo(105f) // Uses squat increment
             assertThat(decision.action).isEqualTo(ProgressionAction.PROGRESS)
+        }
+
+    // MISSED REPS CALCULATION TESTS
+
+    @Test
+    fun `recordWorkoutPerformance calculates missedReps correctly for standard case`() =
+        runTest {
+            // Arrange
+            val mockExercise =
+                Exercise(
+                    id = "ex1",
+                    name = "Bench Press",
+                    category = "CHEST",
+                    movementPattern = "PUSH",
+                    equipment = "BARBELL",
+                )
+            coEvery { mockRepository.getExerciseByName("Bench Press") } returns mockExercise
+            coEvery { mockProgrammeDao.getProgrammeById("prog1") } returns mockProgramme
+            coEvery { mockPerformanceTrackingDao.insertPerformanceRecord(any()) } returns Unit
+
+            val sets =
+                listOf(
+                    SetLog(
+                        id = "set1",
+                        userId = "user1",
+                        exerciseLogId = "log1",
+                        setOrder = 1,
+                        targetReps = 10,
+                        actualReps = 10,
+                        actualWeight = 60f,
+                        isCompleted = true,
+                    ),
+                    SetLog(
+                        id = "set2",
+                        userId = "user1",
+                        exerciseLogId = "log1",
+                        setOrder = 2,
+                        targetReps = 10,
+                        actualReps = 8,
+                        actualWeight = 60f,
+                        isCompleted = true,
+                    ),
+                    SetLog(
+                        id = "set3",
+                        userId = "user1",
+                        exerciseLogId = "log1",
+                        setOrder = 3,
+                        targetReps = 10,
+                        actualReps = 6,
+                        actualWeight = 60f,
+                        isCompleted = true,
+                    ),
+                )
+
+            val performanceSlot = slot<ProgrammeExerciseTracking>()
+            coEvery { mockPerformanceTrackingDao.insertPerformanceRecord(capture(performanceSlot)) } returns Unit
+
+            // Act
+            service.recordWorkoutPerformance("workout1", "prog1", "Bench Press", sets)
+
+            // Assert
+            val captured = performanceSlot.captured
+            assertThat(captured.targetSets).isEqualTo(3)
+            assertThat(captured.completedSets).isEqualTo(3)
+            assertThat(captured.targetReps).isEqualTo(10)
+            assertThat(captured.achievedReps).isEqualTo(24) // 10 + 8 + 6
+            assertThat(captured.missedReps).isEqualTo(6) // 30 - 24
+            assertThat(captured.missedReps).isAtLeast(0) // Never negative
+        }
+
+    @Test
+    fun `recordWorkoutPerformance never allows negative missedReps when overachieving`() =
+        runTest {
+            // Arrange - this is the bug case: achieved more than target
+            val mockExercise =
+                Exercise(
+                    id = "ex1",
+                    name = "Squat",
+                    category = "LEGS",
+                    movementPattern = "SQUAT",
+                    equipment = "BARBELL",
+                )
+            coEvery { mockRepository.getExerciseByName("Squat") } returns mockExercise
+            coEvery { mockProgrammeDao.getProgrammeById("prog1") } returns mockProgramme
+            coEvery { mockPerformanceTrackingDao.insertPerformanceRecord(any()) } returns Unit
+
+            val sets =
+                listOf(
+                    SetLog(
+                        id = "set1",
+                        userId = "user1",
+                        exerciseLogId = "log1",
+                        setOrder = 1,
+                        targetReps = 1, // Target only 1 rep
+                        actualReps = 13, // But did 13!
+                        actualWeight = 100f,
+                        isCompleted = true,
+                    ),
+                )
+
+            val performanceSlot = slot<ProgrammeExerciseTracking>()
+            coEvery { mockPerformanceTrackingDao.insertPerformanceRecord(capture(performanceSlot)) } returns Unit
+
+            // Act
+            service.recordWorkoutPerformance("workout1", "prog1", "Squat", sets)
+
+            // Assert
+            val captured = performanceSlot.captured
+            assertThat(captured.targetReps).isEqualTo(1)
+            assertThat(captured.achievedReps).isEqualTo(13)
+            assertThat(captured.missedReps).isEqualTo(0) // MUST BE 0, NOT -12!
+            assertThat(captured.missedReps).isAtLeast(0) // Never negative
+        }
+
+    @Test
+    fun `recordWorkoutPerformance calculates missedReps as zero for freestyle workout`() =
+        runTest {
+            // Arrange - freestyle workout has no target reps
+            val mockExercise =
+                Exercise(
+                    id = "ex1",
+                    name = "Deadlift",
+                    category = "BACK",
+                    movementPattern = "HINGE",
+                    equipment = "BARBELL",
+                )
+            coEvery { mockRepository.getExerciseByName("Deadlift") } returns mockExercise
+            coEvery { mockProgrammeDao.getProgrammeById("prog1") } returns mockProgramme
+            coEvery { mockPerformanceTrackingDao.insertPerformanceRecord(any()) } returns Unit
+
+            val sets =
+                listOf(
+                    SetLog(
+                        id = "set1",
+                        userId = "user1",
+                        exerciseLogId = "log1",
+                        setOrder = 1,
+                        targetReps = null, // No target reps - freestyle
+                        actualReps = 8,
+                        actualWeight = 140f,
+                        isCompleted = true,
+                    ),
+                    SetLog(
+                        id = "set2",
+                        userId = "user1",
+                        exerciseLogId = "log1",
+                        setOrder = 2,
+                        targetReps = null,
+                        actualReps = 6,
+                        actualWeight = 140f,
+                        isCompleted = true,
+                    ),
+                )
+
+            val performanceSlot = slot<ProgrammeExerciseTracking>()
+            coEvery { mockPerformanceTrackingDao.insertPerformanceRecord(capture(performanceSlot)) } returns Unit
+
+            // Act
+            service.recordWorkoutPerformance("workout1", "prog1", "Deadlift", sets)
+
+            // Assert
+            val captured = performanceSlot.captured
+            assertThat(captured.targetReps).isNull()
+            assertThat(captured.achievedReps).isEqualTo(14) // 8 + 6
+            assertThat(captured.missedReps).isEqualTo(0) // No concept of missed reps in freestyle
+        }
+
+    @Test
+    fun `recordWorkoutPerformance handles incomplete sets correctly`() =
+        runTest {
+            // Arrange
+            val mockExercise =
+                Exercise(
+                    id = "ex1",
+                    name = "Row",
+                    category = "BACK",
+                    movementPattern = "PULL",
+                    equipment = "BARBELL",
+                )
+            coEvery { mockRepository.getExerciseByName("Row") } returns mockExercise
+            coEvery { mockProgrammeDao.getProgrammeById("prog1") } returns mockProgramme
+            coEvery { mockPerformanceTrackingDao.insertPerformanceRecord(any()) } returns Unit
+
+            val sets =
+                listOf(
+                    SetLog(
+                        id = "set1",
+                        userId = "user1",
+                        exerciseLogId = "log1",
+                        setOrder = 1,
+                        targetReps = 12,
+                        actualReps = 12,
+                        actualWeight = 50f,
+                        isCompleted = true,
+                    ),
+                    SetLog(
+                        id = "set2",
+                        userId = "user1",
+                        exerciseLogId = "log1",
+                        setOrder = 2,
+                        targetReps = 12,
+                        actualReps = 0,
+                        actualWeight = 50f,
+                        isCompleted = false, // Not completed
+                    ),
+                    SetLog(
+                        id = "set3",
+                        userId = "user1",
+                        exerciseLogId = "log1",
+                        setOrder = 3,
+                        targetReps = 12,
+                        actualReps = 10,
+                        actualWeight = 50f,
+                        isCompleted = true,
+                    ),
+                )
+
+            val performanceSlot = slot<ProgrammeExerciseTracking>()
+            coEvery { mockPerformanceTrackingDao.insertPerformanceRecord(capture(performanceSlot)) } returns Unit
+
+            // Act
+            service.recordWorkoutPerformance("workout1", "prog1", "Row", sets)
+
+            // Assert
+            val captured = performanceSlot.captured
+            assertThat(captured.targetSets).isEqualTo(3)
+            assertThat(captured.completedSets).isEqualTo(2) // Only 2 sets completed
+            assertThat(captured.targetReps).isEqualTo(12)
+            assertThat(captured.achievedReps).isEqualTo(22) // 12 + 0 + 10 (incomplete set doesn't count)
+            assertThat(captured.missedReps).isEqualTo(14) // 36 - 22
+            assertThat(captured.missedReps).isAtLeast(0)
+        }
+
+    @Test
+    fun `recordWorkoutPerformance handles all sets overachieved`() =
+        runTest {
+            // Arrange - all sets exceed target
+            val mockExercise =
+                Exercise(
+                    id = "ex1",
+                    name = "Press",
+                    category = "SHOULDERS",
+                    movementPattern = "PUSH",
+                    equipment = "BARBELL",
+                )
+            coEvery { mockRepository.getExerciseByName("Press") } returns mockExercise
+            coEvery { mockProgrammeDao.getProgrammeById("prog1") } returns mockProgramme
+            coEvery { mockPerformanceTrackingDao.insertPerformanceRecord(any()) } returns Unit
+
+            val sets =
+                listOf(
+                    SetLog(
+                        id = "set1",
+                        userId = "user1",
+                        exerciseLogId = "log1",
+                        setOrder = 1,
+                        targetReps = 5,
+                        actualReps = 8, // 3 extra
+                        actualWeight = 40f,
+                        isCompleted = true,
+                    ),
+                    SetLog(
+                        id = "set2",
+                        userId = "user1",
+                        exerciseLogId = "log1",
+                        setOrder = 2,
+                        targetReps = 5,
+                        actualReps = 7, // 2 extra
+                        actualWeight = 40f,
+                        isCompleted = true,
+                    ),
+                    SetLog(
+                        id = "set3",
+                        userId = "user1",
+                        exerciseLogId = "log1",
+                        setOrder = 3,
+                        targetReps = 5,
+                        actualReps = 6, // 1 extra
+                        actualWeight = 40f,
+                        isCompleted = true,
+                    ),
+                )
+
+            val performanceSlot = slot<ProgrammeExerciseTracking>()
+            coEvery { mockPerformanceTrackingDao.insertPerformanceRecord(capture(performanceSlot)) } returns Unit
+
+            // Act
+            service.recordWorkoutPerformance("workout1", "prog1", "Press", sets)
+
+            // Assert
+            val captured = performanceSlot.captured
+            assertThat(captured.targetReps).isEqualTo(5)
+            assertThat(captured.achievedReps).isEqualTo(21) // 8 + 7 + 6
+            assertThat(captured.missedReps).isEqualTo(0) // 15 - 21 = -6, but coerced to 0
+            assertThat(captured.wasSuccessful).isTrue() // Should be successful since exceeded targets
+        }
+
+    @Test
+    fun `recordWorkoutPerformance handles zero target reps`() =
+        runTest {
+            // Arrange - edge case with 0 target reps
+            val mockExercise =
+                Exercise(
+                    id = "ex1",
+                    name = "Plank",
+                    category = "CORE",
+                    movementPattern = "STABILIZATION",
+                    equipment = "BODYWEIGHT",
+                )
+            coEvery { mockRepository.getExerciseByName("Plank") } returns mockExercise
+            coEvery { mockProgrammeDao.getProgrammeById("prog1") } returns mockProgramme
+            coEvery { mockPerformanceTrackingDao.insertPerformanceRecord(any()) } returns Unit
+
+            val sets =
+                listOf(
+                    SetLog(
+                        id = "set1",
+                        userId = "user1",
+                        exerciseLogId = "log1",
+                        setOrder = 1,
+                        targetReps = 0, // 0 target
+                        actualReps = 5, // Did 5 anyway
+                        actualWeight = 0f,
+                        isCompleted = true,
+                    ),
+                )
+
+            val performanceSlot = slot<ProgrammeExerciseTracking>()
+            coEvery { mockPerformanceTrackingDao.insertPerformanceRecord(capture(performanceSlot)) } returns Unit
+
+            // Act
+            service.recordWorkoutPerformance("workout1", "prog1", "Plank", sets)
+
+            // Assert
+            val captured = performanceSlot.captured
+            assertThat(captured.targetReps).isEqualTo(0)
+            assertThat(captured.achievedReps).isEqualTo(5)
+            assertThat(captured.missedReps).isEqualTo(0) // 0 - 5 = -5, but coerced to 0
+            assertThat(captured.missedReps).isAtLeast(0)
+        }
+
+    @Test
+    fun `recordWorkoutPerformance returns early when exercise not found`() =
+        runTest {
+            // Arrange
+            coEvery { mockRepository.getExerciseByName("NonExistent") } returns null
+
+            val sets =
+                listOf(
+                    SetLog(
+                        id = "set1",
+                        userId = "user1",
+                        exerciseLogId = "log1",
+                        setOrder = 1,
+                        targetReps = 10,
+                        actualReps = 10,
+                        actualWeight = 60f,
+                        isCompleted = true,
+                    ),
+                )
+
+            // Act
+            service.recordWorkoutPerformance("workout1", "prog1", "NonExistent", sets)
+
+            // Assert - should not insert anything
+            coVerify(exactly = 0) { mockPerformanceTrackingDao.insertPerformanceRecord(any()) }
         }
 }

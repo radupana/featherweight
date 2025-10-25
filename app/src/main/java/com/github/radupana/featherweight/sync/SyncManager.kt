@@ -583,27 +583,41 @@ class SyncManager(
     }
 
     private suspend fun downloadAndMergeProgrammes(userId: String) {
+        Log.d("SyncManager", "downloadAndMergeProgrammes: Starting")
         val remoteProgrammes = firestoreRepository.downloadProgrammes(userId).getOrThrow()
+        Log.d("SyncManager", "downloadAndMergeProgrammes: Downloaded ${remoteProgrammes.size} programmes")
         val localProgrammes = remoteProgrammes.map { SyncConverters.fromFirestoreProgramme(it) }
 
         localProgrammes.forEach { programme ->
+            Log.d("SyncManager", "downloadAndMergeProgrammes: Processing programme ${programme.id} - ${programme.name}")
             val existing = database.programmeDao().getProgrammeById(programme.id)
             if (existing == null) {
+                Log.d("SyncManager", "downloadAndMergeProgrammes: Inserting new programme ${programme.id}")
                 database.programmeDao().insertProgramme(programme)
+            } else {
+                Log.d("SyncManager", "downloadAndMergeProgrammes: Programme ${programme.id} already exists, skipping")
             }
         }
+        Log.d("SyncManager", "downloadAndMergeProgrammes: Completed")
     }
 
     private suspend fun downloadAndMergeProgrammeWeeks(userId: String) {
+        Log.d("SyncManager", "downloadAndMergeProgrammeWeeks: Starting")
         val remoteWeeks = firestoreRepository.downloadProgrammeWeeks(userId).getOrThrow()
+        Log.d("SyncManager", "downloadAndMergeProgrammeWeeks: Downloaded ${remoteWeeks.size} weeks")
         val localWeeks = remoteWeeks.map { SyncConverters.fromFirestoreProgrammeWeek(it) }
 
         localWeeks.forEach { week ->
+            Log.d("SyncManager", "downloadAndMergeProgrammeWeeks: Processing week ${week.id} for programme ${week.programmeId}")
             val existing = database.programmeDao().getProgrammeWeekById(week.id)
             if (existing == null) {
+                Log.d("SyncManager", "downloadAndMergeProgrammeWeeks: Inserting new week ${week.id}")
                 database.programmeDao().insertProgrammeWeek(week)
+            } else {
+                Log.d("SyncManager", "downloadAndMergeProgrammeWeeks: Week ${week.id} already exists, skipping")
             }
         }
+        Log.d("SyncManager", "downloadAndMergeProgrammeWeeks: Completed")
     }
 
     private suspend fun downloadAndMergeProgrammeWorkouts(userId: String) {
