@@ -56,7 +56,7 @@ class PRDetectionService(
                     try {
                         LocalDateTime.parse(workoutDateString, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                     } catch (e: java.time.format.DateTimeParseException) {
-                        CloudLogger.warn(TAG, "Failed to parse workout date for setLog: ${setLog.id}, using current time", e)
+                        CloudLogger.error(TAG, "Failed to parse workout date for setLog: ${setLog.id}, using current time", e)
                         LocalDateTime.now()
                     }
                 } else {
@@ -70,7 +70,7 @@ class PRDetectionService(
                     try {
                         RMScalingType.valueOf(it)
                     } catch (e: IllegalArgumentException) {
-                        CloudLogger.debug("PRDetectionService", "Invalid RMScalingType value: '$it', using default STANDARD", e)
+                        CloudLogger.warn("PRDetectionService", "Invalid RMScalingType value: '$it', using default STANDARD", e)
                         RMScalingType.STANDARD
                     }
                 } ?: RMScalingType.STANDARD
@@ -127,14 +127,17 @@ class PRDetectionService(
                         if (pr.weight > existingPR.weight) {
                             personalRecordDao.deletePR(existingPR.id)
                             personalRecordDao.insertPersonalRecord(pr)
+                            CloudLogger.info(TAG, "PR saved (replaced existing): ${pr.recordType} for exercise ${pr.exerciseId}, ${pr.weight}kg × ${pr.reps}")
                         }
                     } else {
                         // No existing PR for this exercise in this workout
                         personalRecordDao.insertPersonalRecord(pr)
+                        CloudLogger.info(TAG, "PR saved: ${pr.recordType} for exercise ${pr.exerciseId}, ${pr.weight}kg × ${pr.reps}")
                     }
                 } else {
                     // No workoutId (shouldn't happen with new code), just save it
                     personalRecordDao.insertPersonalRecord(pr)
+                    CloudLogger.info(TAG, "PR saved (no workoutId): ${pr.recordType} for exercise ${pr.exerciseId}, ${pr.weight}kg × ${pr.reps}")
                 }
             }
 

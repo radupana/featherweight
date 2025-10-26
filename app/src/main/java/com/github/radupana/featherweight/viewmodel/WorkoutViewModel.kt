@@ -404,6 +404,7 @@ class WorkoutViewModel(
 
         val workout = repository.getWorkoutById(workoutId)
         if (workout != null) {
+            CloudLogger.info(TAG, "Resuming workout - id: $workoutId, status: ${workout.status}, isProgramme: ${workout.isProgrammeWorkout}")
             val isCompleted = workout.status == WorkoutStatus.COMPLETED
 
             // Get programme information if this is a programme workout
@@ -485,11 +486,11 @@ class WorkoutViewModel(
 
     // Start a completely new workout (force new)
     fun startNewWorkout(forceNew: Boolean = false) {
-        CloudLogger.warn(TAG, "🔴 [WORKOUT_CREATE] startNewWorkout called - forceNew: $forceNew, caller: ${Thread.currentThread().stackTrace[3]}")
+        CloudLogger.debug(TAG, "[WORKOUT_CREATE] startNewWorkout called - forceNew: $forceNew")
 
         // Prevent concurrent workout creation
         if (isCreatingWorkout) {
-            CloudLogger.warn(TAG, "🔴 [WORKOUT_CREATE] Already creating workout, skipping duplicate call")
+            CloudLogger.debug(TAG, "[WORKOUT_CREATE] Already creating workout, skipping duplicate call")
             return
         }
 
@@ -497,10 +498,10 @@ class WorkoutViewModel(
             isCreatingWorkout = true
             try {
                 val ongoingWorkout = repository.getOngoingWorkout()
-                CloudLogger.warn(TAG, "🔴 [WORKOUT_CREATE] Ongoing workout check - found: ${ongoingWorkout?.id}, status: ${ongoingWorkout?.status}")
+                CloudLogger.debug(TAG, "[WORKOUT_CREATE] Ongoing workout check - found: ${ongoingWorkout?.id}, status: ${ongoingWorkout?.status}")
 
                 if (forceNew || ongoingWorkout == null) {
-                    CloudLogger.warn(TAG, "🔴 [WORKOUT_CREATE] Creating NEW workout - reason: ${if (forceNew) "FORCED" else "NO_ONGOING"}")
+                    CloudLogger.debug(TAG, "[WORKOUT_CREATE] Creating NEW workout - reason: ${if (forceNew) "FORCED" else "NO_ONGOING"}")
                     // Clear any existing timers
                     stopWorkoutTimer()
                     _workoutTimerSeconds.value = 0
@@ -521,9 +522,9 @@ class WorkoutViewModel(
                             name = defaultName,
                             notes = null,
                         )
-                    CloudLogger.warn(TAG, "🔴 [WORKOUT_CREATE] About to INSERT workout to database")
+                    CloudLogger.debug(TAG, "[WORKOUT_CREATE] About to INSERT workout to database")
                     val workoutId = repository.insertWorkout(workout)
-                    CloudLogger.warn(TAG, "🔴 [WORKOUT_CREATE] INSERTED workout - ID: $workoutId, timestamp: ${LocalDateTime.now()}")
+                    CloudLogger.debug(TAG, "[WORKOUT_CREATE] INSERTED workout - ID: $workoutId, timestamp: ${LocalDateTime.now()}")
 
                     CloudLogger.info(
                         TAG,
@@ -557,7 +558,7 @@ class WorkoutViewModel(
                     loadExercisesForWorkout(workoutId, isInitialLoad = true)
                     loadInProgressWorkouts()
                 } else {
-                    CloudLogger.warn(TAG, "🔴 [WORKOUT_CREATE] NOT creating workout - resuming existing ID: ${ongoingWorkout.id}")
+                    CloudLogger.debug(TAG, "[WORKOUT_CREATE] NOT creating workout - resuming existing ID: ${ongoingWorkout.id}")
                     CloudLogger.info(TAG, "Resuming existing workout instead of starting new - workoutId: ${ongoingWorkout.id}")
                     resumeWorkout(ongoingWorkout.id)
                 }

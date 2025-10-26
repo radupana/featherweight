@@ -624,7 +624,7 @@ class WorkoutSeedingService(
                             com.github.radupana.featherweight.data.exercise.RMScalingType
                                 .valueOf(it)
                         } catch (e: IllegalArgumentException) {
-                            CloudLogger.debug("WorkoutSeedingService", "Invalid RMScalingType value: '$it', using default STANDARD", e)
+                            CloudLogger.warn("WorkoutSeedingService", "Invalid RMScalingType value: '$it', using default STANDARD", e)
                             com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
                         }
                     } ?: com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
@@ -644,7 +644,7 @@ class WorkoutSeedingService(
                     try {
                         repository.checkForPR(set, exerciseLog.exerciseId)
                     } catch (e: IllegalStateException) {
-                        CloudLogger.warn(TAG, "PR check failed during seeding for exerciseId: ${exerciseLog.exerciseId}, setId: ${set.id}", e)
+                        CloudLogger.error(TAG, "PR check failed during seeding for exerciseId: ${exerciseLog.exerciseId}, setId: ${set.id}", e)
                     }
 
                     // Only calculate 1RM for meaningful sets (not warmups)
@@ -700,7 +700,7 @@ class WorkoutSeedingService(
                             workoutDate = workout.date,
                         )
                     } catch (e: IllegalStateException) {
-                        CloudLogger.warn(TAG, "1RM update failed during seeding for exerciseId: ${exerciseLog.exerciseId}, workoutId: $workoutId", e)
+                        CloudLogger.error(TAG, "1RM update failed during seeding for exerciseId: ${exerciseLog.exerciseId}, workoutId: $workoutId", e)
                     }
                 }
             }

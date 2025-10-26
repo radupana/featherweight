@@ -265,7 +265,13 @@ class FeatherweightRepository(
                 targetWeight = setLog.targetWeight?.let { WeightFormatter.roundToNearestQuarter(it) },
                 actualWeight = WeightFormatter.roundToNearestQuarter(setLog.actualWeight),
             )
-        setLogDao.insertSetLog(roundedSetLog)
+        try {
+            setLogDao.insertSetLog(roundedSetLog)
+            CloudLogger.debug(TAG, "Set log inserted: ${roundedSetLog.id}, ${roundedSetLog.actualWeight}kg × ${roundedSetLog.actualReps}")
+        } catch (e: android.database.sqlite.SQLiteException) {
+            CloudLogger.error(TAG, "Failed to insert set log for exerciseLogId: ${setLog.exerciseLogId}", e)
+            throw e
+        }
         return roundedSetLog.id
     }
 
@@ -276,10 +282,24 @@ class FeatherweightRepository(
                 targetWeight = setLog.targetWeight?.let { WeightFormatter.roundToNearestQuarter(it) },
                 actualWeight = WeightFormatter.roundToNearestQuarter(setLog.actualWeight),
             )
-        setLogDao.updateSetLog(roundedSetLog)
+        try {
+            setLogDao.updateSetLog(roundedSetLog)
+            CloudLogger.debug(TAG, "Set log updated: ${roundedSetLog.id}, ${roundedSetLog.actualWeight}kg × ${roundedSetLog.actualReps}")
+        } catch (e: android.database.sqlite.SQLiteException) {
+            CloudLogger.error(TAG, "Failed to update set log: ${setLog.id}", e)
+            throw e
+        }
     }
 
-    suspend fun deleteSetLog(setId: String) = setLogDao.deleteSetLog(setId)
+    suspend fun deleteSetLog(setId: String) {
+        try {
+            setLogDao.deleteSetLog(setId)
+            CloudLogger.debug(TAG, "Set log deleted: $setId")
+        } catch (e: android.database.sqlite.SQLiteException) {
+            CloudLogger.error(TAG, "Failed to delete set log: $setId", e)
+            throw e
+        }
+    }
 
     // Enhanced exercise log creation that links to Exercise entity
     suspend fun insertExerciseLogWithExerciseReference(
@@ -307,13 +327,17 @@ class FeatherweightRepository(
         workoutId: String,
         durationSeconds: String? = null,
     ) {
+        CloudLogger.info(TAG, "Completing workout: $workoutId")
+
         val workout = workoutDao.getWorkoutById(workoutId)
         if (workout == null) {
+            CloudLogger.warn(TAG, "Cannot complete workout - workout not found: $workoutId")
             return
         }
 
         // Check if already completed
         if (workout.status == WorkoutStatus.COMPLETED) {
+            CloudLogger.debug(TAG, "Workout already completed: $workoutId")
             return
         }
 
@@ -321,13 +345,20 @@ class FeatherweightRepository(
         val sets = getSetsForWorkout(workoutId)
         val completedSetsCount = sets.count { it.isCompleted }
         if (completedSetsCount == 0) {
+            CloudLogger.warn(TAG, "Cannot complete workout - no sets completed: $workoutId")
             // Don't mark as completed if no sets were completed
             return
         }
 
         val updatedWorkout = workout.copy(status = WorkoutStatus.COMPLETED, durationSeconds = durationSeconds)
 
-        workoutDao.updateWorkout(updatedWorkout)
+        try {
+            workoutDao.updateWorkout(updatedWorkout)
+            CloudLogger.info(TAG, "Workout marked as completed: $workoutId, completed sets: $completedSetsCount, duration: ${durationSeconds}s")
+        } catch (e: android.database.sqlite.SQLiteException) {
+            CloudLogger.error(TAG, "Failed to update workout status to COMPLETED: $workoutId", e)
+            throw e
+        }
 
         // Record performance data for programme workouts before updating progress
         if (workout.isProgrammeWorkout && workout.programmeId != null) {

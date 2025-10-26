@@ -41,11 +41,17 @@ class WorkoutRepository(
             trace?.start()
             // Ensure userId is set (use "local" for unauthenticated users)
             val workoutWithUserId = workout.copy(userId = authManager.getCurrentUserId() ?: "local")
-            workoutDao.insertWorkout(workoutWithUserId)
-            val id = workoutWithUserId.id
-            CloudLogger.info(TAG, "Created workout - id: $id, name: ${workout.name}, status: ${workout.status}, programmeId: ${workout.programmeId}, userId: ${workoutWithUserId.userId}")
-            trace?.stop()
-            id
+            try {
+                workoutDao.insertWorkout(workoutWithUserId)
+                val id = workoutWithUserId.id
+                CloudLogger.info(TAG, "Created workout - id: $id, name: ${workout.name}, status: ${workout.status}, programmeId: ${workout.programmeId}, userId: ${workoutWithUserId.userId}")
+                trace?.stop()
+                id
+            } catch (e: android.database.sqlite.SQLiteException) {
+                CloudLogger.error(TAG, "Failed to create workout - name: ${workout.name}", e)
+                trace?.stop()
+                throw e
+            }
         }
 
     suspend fun getWorkoutById(workoutId: String): Workout? =
@@ -56,14 +62,19 @@ class WorkoutRepository(
     suspend fun deleteWorkout(workout: Workout) =
         withContext(ioDispatcher) {
             CloudLogger.info(TAG, "Deleting workout - id: ${workout.id}, name: ${workout.name}")
-            val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
-            exerciseLogs.forEach { exerciseLog ->
-                val setLogs = setLogDao.getSetLogsForExercise(exerciseLog.id)
-                setLogs.forEach { setLogDao.deleteSetLog(it.id) }
-                exerciseLogDao.deleteExerciseLog(exerciseLog.id)
+            try {
+                val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+                exerciseLogs.forEach { exerciseLog ->
+                    val setLogs = setLogDao.getSetLogsForExercise(exerciseLog.id)
+                    setLogs.forEach { setLogDao.deleteSetLog(it.id) }
+                    exerciseLogDao.deleteExerciseLog(exerciseLog.id)
+                }
+                workoutDao.deleteWorkout(workout.id)
+                CloudLogger.info(TAG, "Workout deleted - id: ${workout.id}, had ${exerciseLogs.size} exercises")
+            } catch (e: android.database.sqlite.SQLiteException) {
+                CloudLogger.error(TAG, "Failed to delete workout - id: ${workout.id}, name: ${workout.name}", e)
+                throw e
             }
-            workoutDao.deleteWorkout(workout.id)
-            CloudLogger.info(TAG, "Workout deleted - id: ${workout.id}, had ${exerciseLogs.size} exercises")
         }
 
     suspend fun deleteWorkoutById(workoutId: String) =
