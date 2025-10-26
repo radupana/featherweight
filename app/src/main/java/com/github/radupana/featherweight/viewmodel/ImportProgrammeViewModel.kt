@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.ParseStatus
@@ -11,6 +10,7 @@ import com.github.radupana.featherweight.data.TextParsingRequest
 import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.ProgrammeTextParser
+import com.github.radupana.featherweight.util.CloudLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -143,7 +143,7 @@ class ImportProgrammeViewModel(
                     )
                 } else {
                     val errorMessage = result.error ?: "Failed to parse programme"
-                    Log.e("ImportProgrammeViewModel", "Parse failed: $errorMessage")
+                    CloudLogger.error("ImportProgrammeViewModel", "Parse failed: $errorMessage")
 
                     // Update parse request with failure
                     repository.updateParseRequest(
@@ -155,7 +155,7 @@ class ImportProgrammeViewModel(
                     )
                 }
             } catch (e: IllegalStateException) {
-                Log.e("ImportProgrammeViewModel", "Error processing programme", e)
+                CloudLogger.error("ImportProgrammeViewModel", "Error processing programme", e)
 
                 val parseRequest = repository.getParseRequest(requestId)
                 if (parseRequest != null) {
@@ -212,7 +212,7 @@ class ImportProgrammeViewModel(
 
         // Log summary of unmatched exercises
         if (unmatchedExercises.isNotEmpty()) {
-            Log.d("ImportProgrammeViewModel", "Found ${unmatchedExercises.size} unmatched exercises")
+            CloudLogger.debug("ImportProgrammeViewModel", "Found ${unmatchedExercises.size} unmatched exercises")
         }
 
         return programme.copy(
@@ -226,8 +226,8 @@ class ImportProgrammeViewModel(
         allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
     ): String? {
         val nameLower = exerciseName.lowercase().trim()
-        Log.d("ImportProgrammeViewModel", "=== EXERCISE MATCHING START ===")
-        Log.d("ImportProgrammeViewModel", "Looking for: '$exerciseName' (normalized: '$nameLower')")
+        CloudLogger.debug("ImportProgrammeViewModel", "=== EXERCISE MATCHING START ===")
+        CloudLogger.debug("ImportProgrammeViewModel", "Looking for: '$exerciseName' (normalized: '$nameLower')")
 
         // Try matching strategies in order of preference
         val matchedId =
@@ -240,9 +240,9 @@ class ImportProgrammeViewModel(
                 ?: tryAbbreviationMatch(nameLower, allExercises)
 
         if (matchedId == null) {
-            Log.d("ImportProgrammeViewModel", "NO MATCH FOUND for: $exerciseName")
+            CloudLogger.debug("ImportProgrammeViewModel", "NO MATCH FOUND for: $exerciseName")
         }
-        Log.d("ImportProgrammeViewModel", "=== EXERCISE MATCHING END ===")
+        CloudLogger.debug("ImportProgrammeViewModel", "=== EXERCISE MATCHING END ===")
         return matchedId
     }
 
@@ -251,7 +251,7 @@ class ImportProgrammeViewModel(
         allExercises: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases>,
     ): String? =
         allExercises.find { it.name.lowercase() == nameLower }?.let {
-            Log.d("ImportProgrammeViewModel", "Exact name match found: ${it.name} (ID: ${it.id})")
+            CloudLogger.debug("ImportProgrammeViewModel", "Exact name match found: ${it.name} (ID: ${it.id})")
             it.id
         }
 
@@ -263,7 +263,7 @@ class ImportProgrammeViewModel(
             .find { exercise ->
                 exercise.aliases.any { alias -> alias.lowercase() == nameLower }
             }?.let {
-                Log.d("ImportProgrammeViewModel", "Exact alias match found: ${it.name} (ID: ${it.id})")
+                CloudLogger.debug("ImportProgrammeViewModel", "Exact alias match found: ${it.name} (ID: ${it.id})")
                 it.id
             }
 
@@ -281,7 +281,7 @@ class ImportProgrammeViewModel(
                 val equipmentOk = isEquipmentCompatible(inputEquipment, exerciseEquipment)
                 equipmentOk && importantWords.all { word -> exerciseLower.contains(word) }
             }?.let {
-                Log.d("ImportProgrammeViewModel", "Important words match found: ${it.name} (ID: ${it.id})")
+                CloudLogger.debug("ImportProgrammeViewModel", "Important words match found: ${it.name} (ID: ${it.id})")
                 it.id
             }
     }
@@ -358,7 +358,7 @@ class ImportProgrammeViewModel(
             .find {
                 normalizeExerciseName(it.name.lowercase()) == normalizedName
             }?.let {
-                Log.d("ImportProgrammeViewModel", "Normalized name match found: ${it.name} (ID: ${it.id})")
+                CloudLogger.debug("ImportProgrammeViewModel", "Normalized name match found: ${it.name} (ID: ${it.id})")
                 it.id
             }
     }
@@ -417,10 +417,10 @@ class ImportProgrammeViewModel(
         workoutIndex: Int,
         updatedWorkout: ParsedWorkout,
     ) {
-        Log.d("ImportProgrammeViewModel", "updateParsedWorkout: week=$weekIndex, workout=$workoutIndex, updatedWorkout=$updatedWorkout")
+        CloudLogger.debug("ImportProgrammeViewModel", "updateParsedWorkout: week=$weekIndex, workout=$workoutIndex, updatedWorkout=$updatedWorkout")
         val currentProgramme = _uiState.value.parsedProgramme
         if (currentProgramme == null) {
-            Log.e("ImportProgrammeViewModel", "Current programme is null!")
+            CloudLogger.error("ImportProgrammeViewModel", "Current programme is null!")
             return
         }
 
@@ -460,9 +460,9 @@ class ImportProgrammeViewModel(
         // Log mappings (only IDs, not names to avoid async issues)
         mappings.forEach { (exerciseName, mappedId) ->
             if (mappedId != null) {
-                Log.d("ImportProgrammeViewModel", "Mapping: '$exerciseName' → Exercise ID $mappedId")
+                CloudLogger.debug("ImportProgrammeViewModel", "Mapping: '$exerciseName' → Exercise ID $mappedId")
             } else {
-                Log.d("ImportProgrammeViewModel", "Mapping: '$exerciseName' → Create as custom exercise")
+                CloudLogger.debug("ImportProgrammeViewModel", "Mapping: '$exerciseName' → Create as custom exercise")
             }
         }
 
@@ -530,7 +530,7 @@ class ImportProgrammeViewModel(
     }
 
     private suspend fun createProgrammeFromParsed(parsedProgramme: ParsedProgramme): String {
-        Log.d("ImportProgrammeViewModel", "Creating programme: ${parsedProgramme.name} (${parsedProgramme.durationWeeks} weeks)")
+        CloudLogger.debug("ImportProgrammeViewModel", "Creating programme: ${parsedProgramme.name} (${parsedProgramme.durationWeeks} weeks)")
 
         // Validation
         require(parsedProgramme.weeks.isNotEmpty()) { "Programme must have at least one week" }
@@ -557,7 +557,7 @@ class ImportProgrammeViewModel(
 
         val programmeStructure = buildProgrammeJson(parsedProgramme)
 
-        Log.d("ImportProgrammeViewModel", "Built JSON structure with ${parsedProgramme.weeks.sumOf { week -> week.workouts.sumOf { it.exercises.size } }} total exercises")
+        CloudLogger.debug("ImportProgrammeViewModel", "Built JSON structure with ${parsedProgramme.weeks.sumOf { week -> week.workouts.sumOf { it.exercises.size } }} total exercises")
 
         // Convert string programme type to enum
         val programmeType =
@@ -565,7 +565,7 @@ class ImportProgrammeViewModel(
                 com.github.radupana.featherweight.data.programme.ProgrammeType
                     .valueOf(parsedProgramme.programmeType)
             } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Unknown programme type: ${parsedProgramme.programmeType}, defaulting to GENERAL_FITNESS", e)
+                CloudLogger.warn(TAG, "Unknown programme type: ${parsedProgramme.programmeType}, defaulting to GENERAL_FITNESS", e)
                 com.github.radupana.featherweight.data.programme.ProgrammeType.GENERAL_FITNESS
             }
 
@@ -575,15 +575,15 @@ class ImportProgrammeViewModel(
                 com.github.radupana.featherweight.data.programme.ProgrammeDifficulty
                     .valueOf(parsedProgramme.difficulty)
             } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Unknown difficulty: ${parsedProgramme.difficulty}, defaulting to INTERMEDIATE", e)
+                CloudLogger.warn(TAG, "Unknown difficulty: ${parsedProgramme.difficulty}, defaulting to INTERMEDIATE", e)
                 com.github.radupana.featherweight.data.programme.ProgrammeDifficulty.INTERMEDIATE
             }
 
-        Log.d("ImportProgrammeViewModel", "=== CREATING PROGRAMME IN REPOSITORY ===")
-        Log.d("ImportProgrammeViewModel", "Calling repository.createImportedProgramme with:")
-        Log.d("ImportProgrammeViewModel", "  name: ${parsedProgramme.name}")
-        Log.d("ImportProgrammeViewModel", "  durationWeeks: ${parsedProgramme.durationWeeks}")
-        Log.d("ImportProgrammeViewModel", "  jsonStructure length: ${programmeStructure.length} chars")
+        CloudLogger.debug("ImportProgrammeViewModel", "=== CREATING PROGRAMME IN REPOSITORY ===")
+        CloudLogger.debug("ImportProgrammeViewModel", "Calling repository.createImportedProgramme with:")
+        CloudLogger.debug("ImportProgrammeViewModel", "  name: ${parsedProgramme.name}")
+        CloudLogger.debug("ImportProgrammeViewModel", "  durationWeeks: ${parsedProgramme.durationWeeks}")
+        CloudLogger.debug("ImportProgrammeViewModel", "  jsonStructure length: ${programmeStructure.length} chars")
 
         val programmeId =
             repository.createImportedProgramme(
@@ -595,13 +595,13 @@ class ImportProgrammeViewModel(
                 difficulty = difficulty,
             )
 
-        Log.d("ImportProgrammeViewModel", "=== PROGRAMME CREATED ===")
-        Log.d("ImportProgrammeViewModel", "Programme ID: $programmeId")
-        Log.d("ImportProgrammeViewModel", "SUCCESS: Programme '${parsedProgramme.name}' created with ID $programmeId")
+        CloudLogger.debug("ImportProgrammeViewModel", "=== PROGRAMME CREATED ===")
+        CloudLogger.debug("ImportProgrammeViewModel", "Programme ID: $programmeId")
+        CloudLogger.debug("ImportProgrammeViewModel", "SUCCESS: Programme '${parsedProgramme.name}' created with ID $programmeId")
 
         repository.activateProgramme(programmeId)
-        Log.d("ImportProgrammeViewModel", "Programme activated successfully")
-        Log.d("ImportProgrammeViewModel", "=== END PROGRAMME CREATION ===")
+        CloudLogger.debug("ImportProgrammeViewModel", "Programme activated successfully")
+        CloudLogger.debug("ImportProgrammeViewModel", "=== END PROGRAMME CREATION ===")
 
         // Mark the parse request as IMPORTED if we have one
         _uiState.value.parseRequestId?.let { requestId ->
@@ -620,12 +620,12 @@ class ImportProgrammeViewModel(
     }
 
     private fun buildProgrammeJson(programme: ParsedProgramme): String {
-        Log.d("ImportProgrammeViewModel", "=== BUILDING PROGRAMME JSON ===")
-        Log.d("ImportProgrammeViewModel", "Programme: ${programme.name}")
+        CloudLogger.debug("ImportProgrammeViewModel", "=== BUILDING PROGRAMME JSON ===")
+        CloudLogger.debug("ImportProgrammeViewModel", "Programme: ${programme.name}")
 
         val weeks =
             programme.weeks.map { week ->
-                Log.d("ImportProgrammeViewModel", "Processing Week ${week.weekNumber}: ${week.name}")
+                CloudLogger.debug("ImportProgrammeViewModel", "Processing Week ${week.weekNumber}: ${week.name}")
 
                 mapOf(
                     "weekNumber" to week.weekNumber,
@@ -638,13 +638,13 @@ class ImportProgrammeViewModel(
                     "phase" to week.phase,
                     "workouts" to
                         week.workouts.map { workout ->
-                            Log.d("ImportProgrammeViewModel", "  Processing Workout: ${workout.name} (${workout.dayOfWeek})")
-                            Log.d("ImportProgrammeViewModel", "    Exercise count: ${workout.exercises.size}")
+                            CloudLogger.debug("ImportProgrammeViewModel", "  Processing Workout: ${workout.name} (${workout.dayOfWeek})")
+                            CloudLogger.debug("ImportProgrammeViewModel", "    Exercise count: ${workout.exercises.size}")
 
                             workout.exercises.forEachIndexed { index, exercise ->
-                                Log.d("ImportProgrammeViewModel", "    Exercise ${index + 1}: ${exercise.exerciseName}")
-                                Log.d("ImportProgrammeViewModel", "      matchedExerciseId: ${exercise.matchedExerciseId}")
-                                Log.d("ImportProgrammeViewModel", "      sets: ${exercise.sets.size}")
+                                CloudLogger.debug("ImportProgrammeViewModel", "    Exercise ${index + 1}: ${exercise.exerciseName}")
+                                CloudLogger.debug("ImportProgrammeViewModel", "      matchedExerciseId: ${exercise.matchedExerciseId}")
+                                CloudLogger.debug("ImportProgrammeViewModel", "      sets: ${exercise.sets.size}")
                             }
 
                             mapOf(
@@ -682,12 +682,12 @@ class ImportProgrammeViewModel(
                 }
             }
 
-        Log.d("ImportProgrammeViewModel", "=== PROGRAMME JSON SUMMARY ===")
-        Log.d("ImportProgrammeViewModel", "Total weeks: ${programme.weeks.size}")
-        Log.d("ImportProgrammeViewModel", "Total workouts: ${programme.weeks.sumOf { it.workouts.size }}")
-        Log.d("ImportProgrammeViewModel", "Total exercises: $totalExercises")
-        Log.d("ImportProgrammeViewModel", "Exercises with matched IDs: $exercisesWithIds")
-        Log.d("ImportProgrammeViewModel", "Exercises WITHOUT matched IDs: ${totalExercises - exercisesWithIds}")
+        CloudLogger.debug("ImportProgrammeViewModel", "=== PROGRAMME JSON SUMMARY ===")
+        CloudLogger.debug("ImportProgrammeViewModel", "Total weeks: ${programme.weeks.size}")
+        CloudLogger.debug("ImportProgrammeViewModel", "Total workouts: ${programme.weeks.sumOf { it.workouts.size }}")
+        CloudLogger.debug("ImportProgrammeViewModel", "Total exercises: $totalExercises")
+        CloudLogger.debug("ImportProgrammeViewModel", "Exercises with matched IDs: $exercisesWithIds")
+        CloudLogger.debug("ImportProgrammeViewModel", "Exercises WITHOUT matched IDs: ${totalExercises - exercisesWithIds}")
 
         return com.google.gson
             .Gson()

@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
-import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
@@ -56,6 +55,7 @@ import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.service.ProgressionService
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.gson.Gson
@@ -255,7 +255,7 @@ class FeatherweightRepository(
                 timestamp = LocalDateTime.now(),
             )
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e(TAG, "Database error incrementing usage count for exercise $exerciseId", e)
+            CloudLogger.error(TAG, "Database error incrementing usage count for exercise $exerciseId", e)
         }
     }
 
@@ -409,7 +409,7 @@ class FeatherweightRepository(
                 programmeDao.insertOrUpdateProgress(updatedProgress)
             }
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e("FeatherweightRepository", "Programme progress update failed", e)
+            CloudLogger.error("FeatherweightRepository", "Programme progress update failed", e)
             // Programme progress update failed - this is not critical for app functionality
         }
     }
@@ -518,27 +518,27 @@ class FeatherweightRepository(
         dayNumber: Int,
     ): String =
         withContext(Dispatchers.IO) {
-            Log.d("FeatherweightRepository", "=== CREATING WORKOUT FROM PROGRAMME ===")
-            Log.d("FeatherweightRepository", "Programme ID: $programmeId, Week: $weekNumber, Day: $dayNumber")
+            CloudLogger.debug("FeatherweightRepository", "=== CREATING WORKOUT FROM PROGRAMME ===")
+            CloudLogger.debug("FeatherweightRepository", "Programme ID: $programmeId, Week: $weekNumber, Day: $dayNumber")
 
             programmeDao.getProgrammeById(programmeId)
                 ?: throw IllegalArgumentException("Programme not found")
 
             val progress = programmeDao.getProgressForProgramme(programmeId)
             if (progress == null) {
-                Log.e("FeatherweightRepository", "No progress found for programme $programmeId")
+                CloudLogger.error("FeatherweightRepository", "No progress found for programme $programmeId")
                 error("Programme progress not found")
             }
 
             val nextWorkoutInfo = getNextProgrammeWorkout(programmeId)
             if (nextWorkoutInfo == null) {
-                Log.e("FeatherweightRepository", "No next workout found for programme $programmeId")
+                CloudLogger.error("FeatherweightRepository", "No next workout found for programme $programmeId")
                 error("No workout available for this programme")
             }
 
             val workoutStructure = nextWorkoutInfo.workoutStructure
-            Log.d("FeatherweightRepository", "Found workout structure: ${workoutStructure.name}")
-            Log.d("FeatherweightRepository", "Exercises in structure: ${workoutStructure.exercises.size}")
+            CloudLogger.debug("FeatherweightRepository", "Found workout structure: ${workoutStructure.name}")
+            CloudLogger.debug("FeatherweightRepository", "Exercises in structure: ${workoutStructure.exercises.size}")
 
             val now = LocalDateTime.now()
             val defaultName =
@@ -557,11 +557,11 @@ class FeatherweightRepository(
                 )
             workoutDao.insertWorkout(workout)
             val workoutId = workout.id
-            Log.d("FeatherweightRepository", "Created workout with ID: $workoutId")
+            CloudLogger.debug("FeatherweightRepository", "Created workout with ID: $workoutId")
 
             workoutStructure.exercises.forEachIndexed { index, exerciseStructure ->
-                Log.d("FeatherweightRepository", "Adding exercise ${index + 1}: ${exerciseStructure.name}")
-                Log.d("FeatherweightRepository", "  exerciseId: ${exerciseStructure.exerciseId}")
+                CloudLogger.debug("FeatherweightRepository", "Adding exercise ${index + 1}: ${exerciseStructure.name}")
+                CloudLogger.debug("FeatherweightRepository", "  exerciseId: ${exerciseStructure.exerciseId}")
 
                 val exerciseId = exerciseStructure.exerciseId
                 if (exerciseId != null) {
@@ -575,12 +575,12 @@ class FeatherweightRepository(
                         )
                     exerciseLogDao.insertExerciseLog(exerciseLog)
                     val exerciseLogId = exerciseLog.id
-                    Log.d("FeatherweightRepository", "  Created exercise log with ID: $exerciseLogId")
+                    CloudLogger.debug("FeatherweightRepository", "  Created exercise log with ID: $exerciseLogId")
 
                     val weights = exerciseStructure.weights
                     val rpeList = exerciseStructure.rpeValues
 
-                    Log.d("FeatherweightRepository", "  Weights: $weights, RPE values: $rpeList")
+                    CloudLogger.debug("FeatherweightRepository", "  Weights: $weights, RPE values: $rpeList")
 
                     when (val reps = exerciseStructure.reps) {
                         is RepsStructure.PerSet -> {
@@ -601,7 +601,7 @@ class FeatherweightRepository(
                                         actualWeight = 0f,
                                         actualRpe = null,
                                     )
-                                Log.d("FeatherweightRepository", "    Creating SetLog: targetReps=$targetReps, targetWeight=$targetWeight, targetRpe=$targetRpe")
+                                CloudLogger.debug("FeatherweightRepository", "    Creating SetLog: targetReps=$targetReps, targetWeight=$targetWeight, targetRpe=$targetRpe")
                                 setLogDao.insertSetLog(setLog)
                             }
                         }
@@ -665,19 +665,19 @@ class FeatherweightRepository(
                                         actualWeight = 0f,
                                         actualRpe = null,
                                     )
-                                Log.d("FeatherweightRepository", "    Creating SetLog: targetReps=$targetReps, targetWeight=$targetWeight, targetRpe=$targetRpe")
+                                CloudLogger.debug("FeatherweightRepository", "    Creating SetLog: targetReps=$targetReps, targetWeight=$targetWeight, targetRpe=$targetRpe")
                                 setLogDao.insertSetLog(setLog)
                             }
                         }
                     }
-                    Log.d("FeatherweightRepository", "  Created ${exerciseStructure.sets} sets")
+                    CloudLogger.debug("FeatherweightRepository", "  Created ${exerciseStructure.sets} sets")
                 } else {
-                    Log.w("FeatherweightRepository", "  Skipping exercise '${exerciseStructure.name}' - no matched exercise ID")
+                    CloudLogger.warn("FeatherweightRepository", "  Skipping exercise '${exerciseStructure.name}' - no matched exercise ID")
                 }
             }
 
-            Log.d("FeatherweightRepository", "=== WORKOUT CREATION COMPLETE ===")
-            Log.d("FeatherweightRepository", "Workout ID: $workoutId with ${workoutStructure.exercises.size} exercises")
+            CloudLogger.debug("FeatherweightRepository", "=== WORKOUT CREATION COMPLETE ===")
+            CloudLogger.debug("FeatherweightRepository", "Workout ID: $workoutId with ${workoutStructure.exercises.size} exercises")
 
             workoutId
         }
@@ -712,16 +712,16 @@ class FeatherweightRepository(
         programmeId: String,
         progress: ProgrammeProgress,
     ): NextProgrammeWorkoutInfo? {
-        Log.d("FeatherweightRepository", "=== LOADING NEXT WORKOUT FROM PROGRAMME ===")
-        Log.d("FeatherweightRepository", "Programme ID: $programmeId")
-        Log.d("FeatherweightRepository", "Progress - completed workouts: ${progress.completedWorkouts}")
+        CloudLogger.debug("FeatherweightRepository", "=== LOADING NEXT WORKOUT FROM PROGRAMME ===")
+        CloudLogger.debug("FeatherweightRepository", "Programme ID: $programmeId")
+        CloudLogger.debug("FeatherweightRepository", "Progress - completed workouts: ${progress.completedWorkouts}")
 
         // Get all workouts for this programme, ordered by week and day
         val allWorkouts = programmeDao.getAllWorkoutsForProgramme(programmeId)
-        Log.d("FeatherweightRepository", "Total workouts in programme: ${allWorkouts.size}")
+        CloudLogger.debug("FeatherweightRepository", "Total workouts in programme: ${allWorkouts.size}")
 
         if (allWorkouts.isEmpty()) {
-            Log.d("FeatherweightRepository", "No workouts found for programme!")
+            CloudLogger.debug("FeatherweightRepository", "No workouts found for programme!")
             return null
         }
 
@@ -729,13 +729,13 @@ class FeatherweightRepository(
         val nextWorkoutIndex = progress.completedWorkouts
 
         if (nextWorkoutIndex >= allWorkouts.size) {
-            Log.d("FeatherweightRepository", "All workouts completed (index $nextWorkoutIndex >= ${allWorkouts.size})")
+            CloudLogger.debug("FeatherweightRepository", "All workouts completed (index $nextWorkoutIndex >= ${allWorkouts.size})")
             return null
         }
 
         val nextWorkout = allWorkouts[nextWorkoutIndex]
-        Log.d("FeatherweightRepository", "Loading workout: ${nextWorkout.name}")
-        Log.d("FeatherweightRepository", "Workout structure JSON length: ${nextWorkout.workoutStructure.length}")
+        CloudLogger.debug("FeatherweightRepository", "Loading workout: ${nextWorkout.name}")
+        CloudLogger.debug("FeatherweightRepository", "Workout structure JSON length: ${nextWorkout.workoutStructure.length}")
 
         // Parse the workout structure from JSON with proper configuration
         val workoutStructure =
@@ -749,12 +749,12 @@ class FeatherweightRepository(
                     json.decodeFromString<WorkoutStructure>(
                         nextWorkout.workoutStructure,
                     )
-                Log.d("FeatherweightRepository", "Parsed workout structure successfully")
-                Log.d("FeatherweightRepository", "  Exercises in workout: ${structure.exercises.size}")
+                CloudLogger.debug("FeatherweightRepository", "Parsed workout structure successfully")
+                CloudLogger.debug("FeatherweightRepository", "  Exercises in workout: ${structure.exercises.size}")
                 structure.exercises.forEachIndexed { index, exercise ->
-                    Log.d("FeatherweightRepository", "  Exercise ${index + 1}: ${exercise.name}")
-                    Log.d("FeatherweightRepository", "    exerciseId: ${exercise.exerciseId}")
-                    Log.d("FeatherweightRepository", "    sets: ${exercise.sets}")
+                    CloudLogger.debug("FeatherweightRepository", "  Exercise ${index + 1}: ${exercise.name}")
+                    CloudLogger.debug("FeatherweightRepository", "    exerciseId: ${exercise.exerciseId}")
+                    CloudLogger.debug("FeatherweightRepository", "    sets: ${exercise.sets}")
                 }
                 structure
             } catch (e: kotlinx.serialization.SerializationException) {
@@ -772,7 +772,7 @@ class FeatherweightRepository(
                         }
                     json.decodeFromString<WorkoutStructure>(fixedJson)
                 } catch (e2: kotlinx.serialization.SerializationException) {
-                    Log.e("FeatherweightRepository", "Failed to parse workout structure", e2)
+                    CloudLogger.error("FeatherweightRepository", "Failed to parse workout structure", e2)
                     return null
                 }
             }
@@ -797,7 +797,7 @@ class FeatherweightRepository(
 
             return totalWorkouts
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e(TAG, "Failed to get total workouts for programme: ${programme.id} (${programme.name})", e)
+            CloudLogger.error(TAG, "Failed to get total workouts for programme: ${programme.id} (${programme.name})", e)
             programme.durationWeeks * 3 // Fallback to default
         }
     }
@@ -811,10 +811,10 @@ class FeatherweightRepository(
         difficulty: ProgrammeDifficulty = ProgrammeDifficulty.INTERMEDIATE,
     ): String =
         withContext(Dispatchers.IO) {
-            Log.d("FeatherweightRepository", "=== REPOSITORY: CREATING IMPORTED PROGRAMME ===")
-            Log.d("FeatherweightRepository", "Programme name: $name")
-            Log.d("FeatherweightRepository", "Duration: $durationWeeks weeks")
-            Log.d("FeatherweightRepository", "JSON structure size: ${jsonStructure.length} chars")
+            CloudLogger.debug("FeatherweightRepository", "=== REPOSITORY: CREATING IMPORTED PROGRAMME ===")
+            CloudLogger.debug("FeatherweightRepository", "Programme name: $name")
+            CloudLogger.debug("FeatherweightRepository", "Duration: $durationWeeks weeks")
+            CloudLogger.debug("FeatherweightRepository", "JSON structure size: ${jsonStructure.length} chars")
 
             val programme =
                 Programme(
@@ -830,7 +830,7 @@ class FeatherweightRepository(
 
             programmeDao.insertProgramme(programme)
             val programmeId = programme.id
-            Log.d("FeatherweightRepository", "Programme inserted with ID: $programmeId")
+            CloudLogger.debug("FeatherweightRepository", "Programme inserted with ID: $programmeId")
 
             // Parse the JSON structure and create weeks/workouts
             @Suppress("UNCHECKED_CAST")
@@ -843,7 +843,7 @@ class FeatherweightRepository(
             @Suppress("UNCHECKED_CAST")
             val weeks = parsedData["weeks"] as List<Map<String, Any>>
 
-            Log.d("FeatherweightRepository", "Parsed JSON - Found ${weeks.size} weeks")
+            CloudLogger.debug("FeatherweightRepository", "Parsed JSON - Found ${weeks.size} weeks")
 
             weeks.forEach { weekData ->
                 val weekNumber = (weekData["weekNumber"] as Double).toInt()
@@ -853,8 +853,8 @@ class FeatherweightRepository(
                 @Suppress("UNCHECKED_CAST")
                 val workouts = weekData["workouts"] as List<Map<String, Any>>
 
-                Log.d("FeatherweightRepository", "Processing Week $weekNumber: $weekName")
-                Log.d("FeatherweightRepository", "  Workouts in week: ${workouts.size}")
+                CloudLogger.debug("FeatherweightRepository", "Processing Week $weekNumber: $weekName")
+                CloudLogger.debug("FeatherweightRepository", "  Workouts in week: ${workouts.size}")
 
                 val week =
                     ProgrammeWeek(
@@ -877,8 +877,8 @@ class FeatherweightRepository(
                     @Suppress("UNCHECKED_CAST")
                     val exercisesList = workoutData["exercises"] as? List<Map<String, Any>> ?: emptyList()
 
-                    Log.d("FeatherweightRepository", "  Processing Workout: $workoutName ($dayOfWeek)")
-                    Log.d("FeatherweightRepository", "    Exercises in workout: ${exercisesList.size}")
+                    CloudLogger.debug("FeatherweightRepository", "  Processing Workout: $workoutName ($dayOfWeek)")
+                    CloudLogger.debug("FeatherweightRepository", "    Exercises in workout: ${exercisesList.size}")
 
                     // For imported programmes, we need to store the exact sets data
                     // We'll encode it in a special format that createSetsFromStructure can decode
@@ -890,9 +890,9 @@ class FeatherweightRepository(
                             @Suppress("UNCHECKED_CAST")
                             val sets = exerciseData["sets"] as? List<Map<String, Any>> ?: emptyList()
 
-                            Log.d("FeatherweightRepository", "    Exercise: $exerciseName")
-                            Log.d("FeatherweightRepository", "      exerciseId from JSON: $exerciseId")
-                            Log.d("FeatherweightRepository", "      sets count: ${sets.size}")
+                            CloudLogger.debug("FeatherweightRepository", "    Exercise: $exerciseName")
+                            CloudLogger.debug("FeatherweightRepository", "      exerciseId from JSON: $exerciseId")
+                            CloudLogger.debug("FeatherweightRepository", "      sets count: ${sets.size}")
 
                             // Extract individual values from each set
                             val repsList = sets.map { (it["reps"] as? Double)?.toInt()?.toString() ?: "0" }
@@ -906,10 +906,10 @@ class FeatherweightRepository(
                                 sets
                                     .map { setData ->
                                         val rpeValue = setData["rpe"] as? Double
-                                        Log.d("FeatherweightRepository", "        Set data keys: ${setData.keys}, rpe raw value: $rpeValue")
+                                        CloudLogger.debug("FeatherweightRepository", "        Set data keys: ${setData.keys}, rpe raw value: $rpeValue")
                                         rpeValue?.toFloat()?.let { WeightFormatter.roundRPE(it) }
                                     }.takeIf { list -> list.any { it != null } }
-                            Log.d("FeatherweightRepository", "      RPE list after parsing: $rpeList")
+                            CloudLogger.debug("FeatherweightRepository", "      RPE list after parsing: $rpeList")
 
                             // Store reps as PerSet to preserve individual values
                             val repsStructure = RepsStructure.PerSet(repsList)
@@ -1168,7 +1168,7 @@ class FeatherweightRepository(
 
                 programmeDao.insertOrUpdateProgress(progress)
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e("FeatherweightRepository", "Error completing workout", e)
+                CloudLogger.error("FeatherweightRepository", "Error completing workout", e)
             }
         }
 
@@ -1598,13 +1598,13 @@ class FeatherweightRepository(
     suspend fun clearLocalUserDataOnly() =
         withContext(Dispatchers.IO) {
             val currentUserId = authManager.getCurrentUserId() ?: "local"
-            Log.w(TAG, "CLEARING LOCAL USER DATA for userId: $currentUserId")
+            CloudLogger.warn(TAG, "CLEARING LOCAL USER DATA for userId: $currentUserId")
 
             // Delete all user-specific data from local database ONLY
             // Firestore data is preserved for multi-device sync
             deleteAllUserDataFromLocalDatabase(currentUserId)
 
-            Log.w(TAG, "Local user data deletion complete for userId: $currentUserId")
+            CloudLogger.warn(TAG, "Local user data deletion complete for userId: $currentUserId")
         }
 
     /**
@@ -1621,17 +1621,17 @@ class FeatherweightRepository(
     suspend fun clearAllUserData() =
         withContext(Dispatchers.IO) {
             val currentUserId = authManager.getCurrentUserId() ?: "local"
-            Log.w(TAG, "CLEARING ALL USER DATA (local + Firestore) for userId: $currentUserId")
+            CloudLogger.warn(TAG, "CLEARING ALL USER DATA (local + Firestore) for userId: $currentUserId")
 
             // First, delete from Firestore if authenticated
             if (currentUserId != "local") {
                 try {
                     deleteAllUserDataFromFirestore(currentUserId)
                 } catch (e: com.google.firebase.FirebaseException) {
-                    Log.e(TAG, "Firebase error deleting Firestore data", e)
+                    CloudLogger.error(TAG, "Firebase error deleting Firestore data", e)
                     // Continue with local deletion even if Firestore fails
                 } catch (e: java.io.IOException) {
-                    Log.e(TAG, "IO error deleting Firestore data", e)
+                    CloudLogger.error(TAG, "IO error deleting Firestore data", e)
                     // Continue with local deletion even if Firestore fails
                 }
             }
@@ -1639,70 +1639,70 @@ class FeatherweightRepository(
             // Delete all user-specific data from local database
             deleteAllUserDataFromLocalDatabase(currentUserId)
 
-            Log.w(TAG, "User data deletion complete for userId: $currentUserId")
+            CloudLogger.warn(TAG, "User data deletion complete for userId: $currentUserId")
         }
 
     private suspend fun deleteAllUserDataFromLocalDatabase(userId: String) {
         // Delete in order to respect foreign key constraints
         // This method deletes data ONLY for the specific userId
-        Log.d(TAG, "Starting local database deletion for userId: $userId")
+        CloudLogger.debug(TAG, "Starting local database deletion for userId: $userId")
 
         try {
             // 1. Delete SetLogs (leaf nodes) - for specific user
-            Log.d(TAG, "Deleting SetLogs for userId: $userId")
+            CloudLogger.debug(TAG, "Deleting SetLogs for userId: $userId")
             setLogDao.deleteAllByUserId(userId)
-            Log.d(TAG, "Deleted SetLogs")
+            CloudLogger.debug(TAG, "Deleted SetLogs")
 
             // 2. Delete ExerciseLogs - for specific user
-            Log.d(TAG, "Deleting ExerciseLogs for userId: $userId")
+            CloudLogger.debug(TAG, "Deleting ExerciseLogs for userId: $userId")
             exerciseLogDao.deleteAllByUserId(userId)
-            Log.d(TAG, "Deleted ExerciseLogs")
+            CloudLogger.debug(TAG, "Deleted ExerciseLogs")
 
             // 3. Delete Workouts - for specific user
-            Log.d(TAG, "Deleting Workouts for userId: $userId")
+            CloudLogger.debug(TAG, "Deleting Workouts for userId: $userId")
             workoutDao.deleteAllByUserId(userId)
-            Log.d(TAG, "Deleted Workouts")
+            CloudLogger.debug(TAG, "Deleted Workouts")
 
             // 4. Delete PersonalRecords - for specific user
-            Log.d(TAG, "Deleting PersonalRecords for userId: $userId")
+            CloudLogger.debug(TAG, "Deleting PersonalRecords for userId: $userId")
             personalRecordDao.deleteAllByUserId(userId)
-            Log.d(TAG, "Deleted PersonalRecords")
+            CloudLogger.debug(TAG, "Deleted PersonalRecords")
 
             // 5. Delete ExerciseMaxTracking - for specific user
-            Log.d(TAG, "Deleting ExerciseMaxTracking for userId: $userId")
+            CloudLogger.debug(TAG, "Deleting ExerciseMaxTracking for userId: $userId")
             db.exerciseMaxTrackingDao().deleteAllForUser(userId)
 
             // 7. Delete GlobalExerciseProgress - for specific user
-            Log.d(TAG, "Deleting GlobalExerciseProgress for userId: $userId")
+            CloudLogger.debug(TAG, "Deleting GlobalExerciseProgress for userId: $userId")
             globalExerciseProgressDao.deleteAllByUserId(userId)
 
             // 8. Delete TrainingAnalysis - for specific user
-            Log.d(TAG, "Deleting TrainingAnalysis for userId: $userId")
+            CloudLogger.debug(TAG, "Deleting TrainingAnalysis for userId: $userId")
             db.trainingAnalysisDao().deleteAllByUserId(userId)
 
             // 9. Delete all Programme-related data - for specific user
             // Delete in proper order to respect foreign keys
-            Log.d(TAG, "Deleting Programme data for userId: $userId")
+            CloudLogger.debug(TAG, "Deleting Programme data for userId: $userId")
             programmeDao.deleteAllProgrammeProgressForUser(userId)
             programmeDao.deleteAllProgrammeWorkoutsForUser(userId)
             programmeDao.deleteAllProgrammeWeeksForUser(userId)
             programmeDao.deleteAllProgrammesForUser(userId)
 
             // 10. Delete ExercisePerformanceTracking - for specific user
-            Log.d(TAG, "Deleting ExercisePerformanceTracking for userId: $userId")
+            CloudLogger.debug(TAG, "Deleting ExercisePerformanceTracking for userId: $userId")
             db.programmeExerciseTrackingDao().deleteAllByUserId(userId)
 
             // 11. Delete ExerciseSwapHistory - for specific user
-            Log.d(TAG, "Deleting ExerciseSwapHistory for userId: $userId")
+            CloudLogger.debug(TAG, "Deleting ExerciseSwapHistory for userId: $userId")
             db.exerciseSwapHistoryDao().deleteAllByUserId(userId)
 
             // 12. Delete ParseRequests - for specific user
-            Log.d(TAG, "Deleting ParseRequests for userId: $userId")
+            CloudLogger.debug(TAG, "Deleting ParseRequests for userId: $userId")
             db.parseRequestDao().deleteAllByUserId(userId)
 
-            Log.d(TAG, "Local database deletion complete")
+            CloudLogger.debug(TAG, "Local database deletion complete")
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e(TAG, "Database error during local database deletion", e)
+            CloudLogger.error(TAG, "Database error during local database deletion", e)
             throw e
         }
 
@@ -1718,8 +1718,8 @@ class FeatherweightRepository(
         val firestore = FirebaseFirestore.getInstance()
         val userPath = "users/$userId"
 
-        Log.w(TAG, "Starting Firestore deletion for user: $userPath")
-        Log.w(TAG, "WARNING: Only deleting from /users/$userId/* - NOT touching root collections!")
+        CloudLogger.warn(TAG, "Starting Firestore deletion for user: $userPath")
+        CloudLogger.warn(TAG, "WARNING: Only deleting from /users/$userId/* - NOT touching root collections!")
 
         // Collections to delete (ONLY under /users/{userId}/*)
         val collectionsToDelete =
@@ -1749,15 +1749,15 @@ class FeatherweightRepository(
                         async {
                             val fullPath = "$userPath/$collection"
                             try {
-                                Log.d(TAG, "Starting deletion of: $fullPath")
+                                CloudLogger.debug(TAG, "Starting deletion of: $fullPath")
                                 val deletedCount = deleteCollection(firestore, fullPath)
-                                Log.d(TAG, "Deleted $deletedCount documents from $fullPath")
+                                CloudLogger.debug(TAG, "Deleted $deletedCount documents from $fullPath")
                                 deletedCount
                             } catch (e: com.google.firebase.FirebaseException) {
-                                Log.e(TAG, "Firebase error deleting Firestore collection: $fullPath", e)
+                                CloudLogger.error(TAG, "Firebase error deleting Firestore collection: $fullPath", e)
                                 0
                             } catch (e: java.io.IOException) {
-                                Log.e(TAG, "IO error deleting Firestore collection: $fullPath", e)
+                                CloudLogger.error(TAG, "IO error deleting Firestore collection: $fullPath", e)
                                 0
                             }
                         }
@@ -1769,24 +1769,24 @@ class FeatherweightRepository(
 
         // Finally, delete the user document itself (with timeout to avoid hanging)
         try {
-            Log.d(TAG, "Deleting user document: $userPath")
+            CloudLogger.debug(TAG, "Deleting user document: $userPath")
             withTimeout(5000) {
                 // 5 second timeout
                 firestore.document(userPath).delete().await()
             }
-            Log.d(TAG, "Successfully deleted user document")
+            CloudLogger.debug(TAG, "Successfully deleted user document")
         } catch (e: com.google.firebase.FirebaseException) {
-            Log.e(TAG, "Firebase error deleting user document: $userPath", e)
+            CloudLogger.error(TAG, "Firebase error deleting user document: $userPath", e)
             // Continue anyway - don't let this block the operation
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            Log.e(TAG, "Timeout deleting user document: $userPath", e)
+            CloudLogger.error(TAG, "Timeout deleting user document: $userPath", e)
             // Continue anyway - don't let this block the operation
         } catch (e: java.io.IOException) {
-            Log.e(TAG, "IO error deleting user document: $userPath", e)
+            CloudLogger.error(TAG, "IO error deleting user document: $userPath", e)
             // Continue anyway - don't let this block the operation
         }
 
-        Log.w(TAG, "Firestore deletion complete. Total documents deleted: $totalDeleted")
+        CloudLogger.warn(TAG, "Firestore deletion complete. Total documents deleted: $totalDeleted")
     }
 
     private suspend fun deleteCollection(
@@ -1799,7 +1799,7 @@ class FeatherweightRepository(
         // First check if collection is empty - quick exit if no documents
         val firstQuery = collection.limit(1).get().await()
         if (firstQuery.isEmpty) {
-            Log.d(TAG, "Collection $collectionPath is empty, skipping")
+            CloudLogger.debug(TAG, "Collection $collectionPath is empty, skipping")
             return 0
         }
 
@@ -1820,7 +1820,7 @@ class FeatherweightRepository(
             deleted += querySnapshot.size()
         } while (querySnapshot.size() >= batchSize)
 
-        Log.d(TAG, "Deleted $deleted documents from $collectionPath")
+        CloudLogger.debug(TAG, "Deleted $deleted documents from $collectionPath")
         return deleted
     }
 
@@ -2229,7 +2229,7 @@ class FeatherweightRepository(
 
     // Start a workout from a template
     suspend fun startWorkoutFromTemplate(templateId: String): String {
-        Log.i(TAG, "startWorkoutFromTemplate delegating to WorkoutTemplateRepository")
+        CloudLogger.info(TAG, "startWorkoutFromTemplate delegating to WorkoutTemplateRepository")
         return WorkoutTemplateRepository(application).startWorkoutFromTemplate(templateId)
     }
 
@@ -2278,12 +2278,12 @@ class FeatherweightRepository(
 
     suspend fun deleteParseRequest(request: ParseRequest) =
         withContext(Dispatchers.IO) {
-            Log.d("FeatherweightRepository", "Deleting parse request with ID: ${request.id}, status: ${request.status}")
+            CloudLogger.debug("FeatherweightRepository", "Deleting parse request with ID: ${request.id}, status: ${request.status}")
             try {
                 // Use deleteById for more reliable deletion
                 db.parseRequestDao().deleteById(request.id)
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e("FeatherweightRepository", "Failed to delete parse request ${request.id}", e)
+                CloudLogger.error("FeatherweightRepository", "Failed to delete parse request ${request.id}", e)
                 throw e
             }
         }

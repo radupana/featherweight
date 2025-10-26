@@ -1,6 +1,6 @@
 package com.github.radupana.featherweight.service
 
-import android.util.Log
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.EmailAuthProvider
@@ -23,10 +23,10 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
         password: String,
     ): Result<FirebaseUser> =
         try {
-            Log.i(TAG, "Attempting sign-in for email: $email")
+            CloudLogger.info(TAG, "Attempting sign-in for email: $email")
             val result = auth.signInWithEmailAndPassword(email, password).await()
             result.user?.let {
-                Log.i(TAG, "Sign-in successful for user: ${it.uid}, email: $email")
+                CloudLogger.info(TAG, "Sign-in successful for user: ${it.uid}, email: $email")
                 Result.success(it)
             } ?: Result.failure(Exception("Sign in failed: No user returned"))
         } catch (e: com.google.firebase.FirebaseTooManyRequestsException) {
@@ -45,10 +45,10 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
         password: String,
     ): Result<FirebaseUser> =
         try {
-            Log.i(TAG, "Creating new account for email: $email")
+            CloudLogger.info(TAG, "Creating new account for email: $email")
             val result = auth.createUserWithEmailAndPassword(email, password).await()
             result.user?.let {
-                Log.i(TAG, "Account created successfully for user: ${it.uid}, email: $email")
+                CloudLogger.info(TAG, "Account created successfully for user: ${it.uid}, email: $email")
                 Result.success(it)
             } ?: Result.failure(Exception("Account creation failed: No user returned"))
         } catch (e: com.google.firebase.FirebaseTooManyRequestsException) {
@@ -80,9 +80,9 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
 
     override suspend fun sendPasswordResetEmail(email: String): Result<Unit> =
         try {
-            Log.i(TAG, "Sending password reset email to: $email")
+            CloudLogger.info(TAG, "Sending password reset email to: $email")
             auth.sendPasswordResetEmail(email).await()
-            Log.i(TAG, "Password reset email sent successfully to: $email")
+            CloudLogger.info(TAG, "Password reset email sent successfully to: $email")
             Result.success(Unit)
         } catch (e: com.google.firebase.FirebaseTooManyRequestsException) {
             ExceptionLogger.logNonCritical("FirebaseAuthService", "Password reset email failed: too many requests", e)
@@ -99,9 +99,9 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
         try {
             val user = auth.currentUser
             if (user != null) {
-                Log.i(TAG, "Sending email verification to: ${user.email}")
+                CloudLogger.info(TAG, "Sending email verification to: ${user.email}")
                 user.sendEmailVerification().await()
-                Log.i(TAG, "Email verification sent successfully to: ${user.email}")
+                CloudLogger.info(TAG, "Email verification sent successfully to: ${user.email}")
                 Result.success(Unit)
             } else {
                 Result.failure(Exception("No user logged in"))
@@ -204,9 +204,9 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
     override fun signOut() {
         val email = auth.currentUser?.email
         val uid = auth.currentUser?.uid
-        Log.i(TAG, "User signing out - uid: $uid, email: $email")
+        CloudLogger.info(TAG, "User signing out - uid: $uid, email: $email")
         auth.signOut()
-        Log.i(TAG, "User signed out successfully")
+        CloudLogger.info(TAG, "User signed out successfully")
     }
 
     override fun isUserAuthenticated(): Boolean = auth.currentUser != null

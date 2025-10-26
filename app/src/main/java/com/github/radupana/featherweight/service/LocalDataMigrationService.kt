@@ -1,7 +1,7 @@
 package com.github.radupana.featherweight.service
 
-import android.util.Log
 import com.github.radupana.featherweight.data.FeatherweightDatabase
+import com.github.radupana.featherweight.util.CloudLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -24,7 +24,7 @@ class LocalDataMigrationService(
     suspend fun migrateLocalDataToUser(targetUserId: String): Boolean =
         withContext(Dispatchers.IO) {
             if (targetUserId == LOCAL_USER_ID) {
-                Log.w(TAG, "Cannot migrate to local user ID")
+                CloudLogger.warn(TAG, "Cannot migrate to local user ID")
                 return@withContext false
             }
 
@@ -40,13 +40,13 @@ class LocalDataMigrationService(
                     migrateProgrammes(targetUserId)
                     migrateOtherTables(targetUserId)
                 }
-                Log.i(TAG, "Successfully migrated local data to user: $targetUserId")
+                CloudLogger.info(TAG, "Successfully migrated local data to user: $targetUserId")
                 true
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to migrate local data - database error", e)
+                CloudLogger.error(TAG, "Failed to migrate local data - database error", e)
                 false
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Failed to migrate local data - invalid state", e)
+                CloudLogger.error(TAG, "Failed to migrate local data - invalid state", e)
                 false
             }
         }
@@ -61,7 +61,7 @@ class LocalDataMigrationService(
                     statement.bindString(2, LOCAL_USER_ID)
                     statement.executeUpdateDelete()
                 }
-        Log.d(TAG, "Migrated $count workouts")
+        CloudLogger.debug(TAG, "Migrated $count workouts")
     }
 
     private fun migrateExerciseLogs(targetUserId: String) {
@@ -74,7 +74,7 @@ class LocalDataMigrationService(
                     statement.bindString(2, LOCAL_USER_ID)
                     statement.executeUpdateDelete()
                 }
-        Log.d(TAG, "Migrated $count exercise logs")
+        CloudLogger.debug(TAG, "Migrated $count exercise logs")
     }
 
     private fun migrateSetLogs(targetUserId: String) {
@@ -87,7 +87,7 @@ class LocalDataMigrationService(
                     statement.bindString(2, LOCAL_USER_ID)
                     statement.executeUpdateDelete()
                 }
-        Log.d(TAG, "Migrated $count set logs")
+        CloudLogger.debug(TAG, "Migrated $count set logs")
     }
 
     private fun migratePersonalRecords(targetUserId: String) {
@@ -100,7 +100,7 @@ class LocalDataMigrationService(
                     statement.bindString(2, LOCAL_USER_ID)
                     statement.executeUpdateDelete()
                 }
-        Log.d(TAG, "Migrated $count personal records")
+        CloudLogger.debug(TAG, "Migrated $count personal records")
     }
 
     private fun migrateGlobalExerciseProgress(targetUserId: String) {
@@ -113,7 +113,7 @@ class LocalDataMigrationService(
                     statement.bindString(2, LOCAL_USER_ID)
                     statement.executeUpdateDelete()
                 }
-        Log.d(TAG, "Migrated $count global exercise progress records")
+        CloudLogger.debug(TAG, "Migrated $count global exercise progress records")
     }
 
     private fun migrateUserExerciseUsage(targetUserId: String) {
@@ -126,7 +126,7 @@ class LocalDataMigrationService(
                     statement.bindString(2, LOCAL_USER_ID)
                     statement.executeUpdateDelete()
                 }
-        Log.d(TAG, "Migrated $count user exercise usage records")
+        CloudLogger.debug(TAG, "Migrated $count user exercise usage records")
     }
 
     private fun migrateCustomExercises(targetUserId: String) {
@@ -141,7 +141,7 @@ class LocalDataMigrationService(
                     statement.executeUpdateDelete()
                 }
 
-        Log.d(TAG, "Migrated $exerciseCount custom exercises")
+        CloudLogger.debug(TAG, "Migrated $exerciseCount custom exercises")
     }
 
     private fun migrateProgrammes(targetUserId: String) {
@@ -189,7 +189,7 @@ class LocalDataMigrationService(
                     statement.executeUpdateDelete()
                 }
 
-        Log.d(TAG, "Migrated $programmeCount programmes, $weekCount weeks, $workoutCount workouts, $progressCount progress records")
+        CloudLogger.debug(TAG, "Migrated $programmeCount programmes, $weekCount weeks, $workoutCount workouts, $progressCount progress records")
     }
 
     private fun migrateOtherTables(targetUserId: String) {
@@ -281,7 +281,7 @@ class LocalDataMigrationService(
                     statement.executeUpdateDelete()
                 }
 
-        Log.d(TAG, "Migrated $swapCount swap history, $perfCount programme exercise tracking, $analysisCount analyses, $parseCount parse requests, $maxHistoryCount max history, $templateCount templates, $templateExCount template exercises, $templateSetCount template sets")
+        CloudLogger.debug(TAG, "Migrated $swapCount swap history, $perfCount programme exercise tracking, $analysisCount analyses, $parseCount parse requests, $maxHistoryCount max history, $templateCount templates, $templateExCount template exercises, $templateSetCount template sets")
     }
 
     /**
@@ -300,7 +300,7 @@ class LocalDataMigrationService(
                         }
                 count > 0
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to check for local data - database error", e)
+                CloudLogger.error(TAG, "Failed to check for local data - database error", e)
                 false
             }
         }
@@ -391,10 +391,10 @@ class LocalDataMigrationService(
                         it.executeUpdateDelete()
                     }
                 }
-                Log.i(TAG, "Successfully cleaned up local data")
+                CloudLogger.info(TAG, "Successfully cleaned up local data")
                 true
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to cleanup local data - database error", e)
+                CloudLogger.error(TAG, "Failed to cleanup local data - database error", e)
                 false
             }
         }

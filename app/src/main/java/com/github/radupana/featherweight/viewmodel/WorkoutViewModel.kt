@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.ExerciseLog
@@ -23,6 +22,7 @@ import com.github.radupana.featherweight.service.BatchCompletionService
 import com.github.radupana.featherweight.service.OneRMService
 import com.github.radupana.featherweight.service.RestTimerCalculationService
 import com.github.radupana.featherweight.service.RestTimerNotificationService
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.google.firebase.perf.FirebasePerformance
@@ -115,10 +115,10 @@ class WorkoutViewModel(
                 // Reload 1RM estimates after update
                 loadOneRMEstimatesForCurrentExercises()
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to apply 1RM update", e)
+                CloudLogger.error(TAG, "Failed to apply 1RM update", e)
                 // Failed to apply 1RM update - operation will be retried
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when applying 1RM update", e)
+                CloudLogger.error(TAG, "Invalid state when applying 1RM update", e)
                 // Failed to apply 1RM update - operation will be retried
             }
         }
@@ -252,10 +252,10 @@ class WorkoutViewModel(
                 val detailsMap = allExercises.associateBy { it.id }
                 exerciseDetailsMap.value = detailsMap
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to load exercises", e)
+                CloudLogger.error(TAG, "Failed to load exercises", e)
                 // Failed to load exercises - will retry on next navigation
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when loading exercises", e)
+                CloudLogger.error(TAG, "Invalid state when loading exercises", e)
                 // Failed to load exercises - will retry on next navigation
             }
         }
@@ -292,10 +292,10 @@ class WorkoutViewModel(
                                     sets.count { it.isCompleted }
                                 }
                             } catch (e: android.database.sqlite.SQLiteException) {
-                                Log.e(TAG, "Failed to calculate completed sets for workout ${summary.id}", e)
+                                CloudLogger.error(TAG, "Failed to calculate completed sets for workout ${summary.id}", e)
                                 0
                             } catch (e: IllegalStateException) {
-                                Log.e(TAG, "Invalid state when calculating completed sets for workout ${summary.id}", e)
+                                CloudLogger.error(TAG, "Invalid state when calculating completed sets for workout ${summary.id}", e)
                                 0
                             }
 
@@ -347,12 +347,12 @@ class WorkoutViewModel(
 
     // View a completed workout (read-only, no timers, no state changes)
     fun viewCompletedWorkout(workoutId: String) {
-        Log.i(TAG, "viewCompletedWorkout called with workoutId: $workoutId")
+        CloudLogger.info(TAG, "viewCompletedWorkout called with workoutId: $workoutId")
         viewModelScope.launch {
             repository.getWorkoutById(workoutId)?.let { workout ->
-                Log.i(TAG, "Found workout: id=${workout.id}, status=${workout.status}")
+                CloudLogger.info(TAG, "Found workout: id=${workout.id}, status=${workout.status}")
                 if (workout.status != WorkoutStatus.COMPLETED) {
-                    Log.w(TAG, "viewCompletedWorkout called on non-completed workout, status: ${workout.status}")
+                    CloudLogger.warn(TAG, "viewCompletedWorkout called on non-completed workout, status: ${workout.status}")
                     // viewCompletedWorkout called on non-completed workout
                     return@let
                 }
@@ -361,7 +361,7 @@ class WorkoutViewModel(
                 stopWorkoutTimer()
                 skipRestTimer()
 
-                Log.i(TAG, "Setting _currentWorkoutId to: $workoutId")
+                CloudLogger.info(TAG, "Setting _currentWorkoutId to: $workoutId")
                 _currentWorkoutId.value = workoutId
                 _workoutState.value =
                     WorkoutState(
@@ -410,10 +410,10 @@ class WorkoutViewModel(
                     try {
                         repository.getProgrammeById(workout.programmeId)?.name
                     } catch (e: android.database.sqlite.SQLiteException) {
-                        Log.e(TAG, "Failed to get programme name for ID ${workout.programmeId}", e)
+                        CloudLogger.error(TAG, "Failed to get programme name for ID ${workout.programmeId}", e)
                         null
                     } catch (e: IllegalStateException) {
-                        Log.e(TAG, "Invalid state when getting programme name for ID ${workout.programmeId}", e)
+                        CloudLogger.error(TAG, "Invalid state when getting programme name for ID ${workout.programmeId}", e)
                         null
                     }
                 } else {
@@ -483,11 +483,11 @@ class WorkoutViewModel(
 
     // Start a completely new workout (force new)
     fun startNewWorkout(forceNew: Boolean = false) {
-        Log.w(TAG, "🔴 [WORKOUT_CREATE] startNewWorkout called - forceNew: $forceNew, caller: ${Thread.currentThread().stackTrace[3]}")
+        CloudLogger.warn(TAG, "🔴 [WORKOUT_CREATE] startNewWorkout called - forceNew: $forceNew, caller: ${Thread.currentThread().stackTrace[3]}")
 
         // Prevent concurrent workout creation
         if (isCreatingWorkout) {
-            Log.w(TAG, "🔴 [WORKOUT_CREATE] Already creating workout, skipping duplicate call")
+            CloudLogger.warn(TAG, "🔴 [WORKOUT_CREATE] Already creating workout, skipping duplicate call")
             return
         }
 
@@ -495,10 +495,10 @@ class WorkoutViewModel(
             isCreatingWorkout = true
             try {
                 val ongoingWorkout = repository.getOngoingWorkout()
-                Log.w(TAG, "🔴 [WORKOUT_CREATE] Ongoing workout check - found: ${ongoingWorkout?.id}, status: ${ongoingWorkout?.status}")
+                CloudLogger.warn(TAG, "🔴 [WORKOUT_CREATE] Ongoing workout check - found: ${ongoingWorkout?.id}, status: ${ongoingWorkout?.status}")
 
                 if (forceNew || ongoingWorkout == null) {
-                    Log.w(TAG, "🔴 [WORKOUT_CREATE] Creating NEW workout - reason: ${if (forceNew) "FORCED" else "NO_ONGOING"}")
+                    CloudLogger.warn(TAG, "🔴 [WORKOUT_CREATE] Creating NEW workout - reason: ${if (forceNew) "FORCED" else "NO_ONGOING"}")
                     // Clear any existing timers
                     stopWorkoutTimer()
                     _workoutTimerSeconds.value = 0
@@ -519,11 +519,11 @@ class WorkoutViewModel(
                             name = defaultName,
                             notes = null,
                         )
-                    Log.w(TAG, "🔴 [WORKOUT_CREATE] About to INSERT workout to database")
+                    CloudLogger.warn(TAG, "🔴 [WORKOUT_CREATE] About to INSERT workout to database")
                     val workoutId = repository.insertWorkout(workout)
-                    Log.w(TAG, "🔴 [WORKOUT_CREATE] INSERTED workout - ID: $workoutId, timestamp: ${LocalDateTime.now()}")
+                    CloudLogger.warn(TAG, "🔴 [WORKOUT_CREATE] INSERTED workout - ID: $workoutId, timestamp: ${LocalDateTime.now()}")
 
-                    Log.i(
+                    CloudLogger.info(
                         TAG,
                         "Starting new workout - id: $workoutId, forceNew: $forceNew, " +
                             "timestamp: ${LocalDateTime.now()}",
@@ -555,8 +555,8 @@ class WorkoutViewModel(
                     loadExercisesForWorkout(workoutId, isInitialLoad = true)
                     loadInProgressWorkouts()
                 } else {
-                    Log.w(TAG, "🔴 [WORKOUT_CREATE] NOT creating workout - resuming existing ID: ${ongoingWorkout.id}")
-                    Log.i(TAG, "Resuming existing workout instead of starting new - workoutId: ${ongoingWorkout.id}")
+                    CloudLogger.warn(TAG, "🔴 [WORKOUT_CREATE] NOT creating workout - resuming existing ID: ${ongoingWorkout.id}")
+                    CloudLogger.info(TAG, "Resuming existing workout instead of starting new - workoutId: ${ongoingWorkout.id}")
                     resumeWorkout(ongoingWorkout.id)
                 }
             } finally {
@@ -580,7 +580,7 @@ class WorkoutViewModel(
             val totalSets = selectedExerciseSets.value.size
             val duration = _workoutTimerSeconds.value
 
-            Log.i(
+            CloudLogger.info(
                 TAG,
                 "Completing workout - id: $currentId, duration: ${duration}s, " +
                     "exercises: $exerciseCount, completed sets: $completedSets/$totalSets, " +
@@ -662,8 +662,8 @@ class WorkoutViewModel(
         workoutIndex: Int,
         parsedWorkout: com.github.radupana.featherweight.data.ParsedWorkout,
     ) {
-        Log.d("WorkoutViewModel", "startTemplateEdit called: week=$weekIndex, workout=$workoutIndex")
-        Log.d("WorkoutViewModel", "ParsedWorkout: $parsedWorkout")
+        CloudLogger.debug("WorkoutViewModel", "startTemplateEdit called: week=$weekIndex, workout=$workoutIndex")
+        CloudLogger.debug("WorkoutViewModel", "ParsedWorkout: $parsedWorkout")
 
         viewModelScope.launch {
             // Clear any existing workout
@@ -730,11 +730,11 @@ class WorkoutViewModel(
                                 isCompleted = false,
                             )
 
-                        Log.d("WorkoutViewModel", "  SetLog created: targetReps=${setLog.targetReps}, targetWeight=${setLog.targetWeight}, targetRpe=${setLog.targetRpe}")
+                        CloudLogger.debug("WorkoutViewModel", "  SetLog created: targetReps=${setLog.targetReps}, targetWeight=${setLog.targetWeight}, targetRpe=${setLog.targetRpe}")
                         tempSets.add(setLog)
                     }
                 } else {
-                    Log.w("WorkoutViewModel", "Exercise not found: ${parsedExercise.exerciseName} (ID: ${parsedExercise.matchedExerciseId})")
+                    CloudLogger.warn("WorkoutViewModel", "Exercise not found: ${parsedExercise.exerciseName} (ID: ${parsedExercise.matchedExerciseId})")
                 }
             }
 
@@ -908,10 +908,10 @@ class WorkoutViewModel(
                 val maxes = repository.getCurrentMaxesForExercises(exerciseIds)
                 _oneRMEstimates.value = maxes.filterValues { it > 0 }
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to load 1RM estimates", e)
+                CloudLogger.error(TAG, "Failed to load 1RM estimates", e)
                 // Failed to load 1RM estimates - will show without estimates
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when loading 1RM estimates", e)
+                CloudLogger.error(TAG, "Invalid state when loading 1RM estimates", e)
                 // Failed to load 1RM estimates - will show without estimates
             }
         }
@@ -990,7 +990,7 @@ class WorkoutViewModel(
                     notes = null,
                 )
 
-            Log.i(TAG, "Exercise added to workout - exercise: ${exercise.name}, workoutId: $currentId, order: ${selectedWorkoutExercises.value.size}, exerciseLogId: $exerciseLogId")
+            CloudLogger.info(TAG, "Exercise added to workout - exercise: ${exercise.name}, workoutId: $currentId, order: ${selectedWorkoutExercises.value.size}, exerciseLogId: $exerciseLogId")
 
             // Auto-add first empty set for better UX
             val firstSet =
@@ -1004,7 +1004,7 @@ class WorkoutViewModel(
                     isCompleted = false,
                 )
             val setId = repository.insertSetLog(firstSet)
-            Log.d(TAG, "Auto-added first set - exerciseLogId: $exerciseLogId, setId: $setId")
+            CloudLogger.debug(TAG, "Auto-added first set - exerciseLogId: $exerciseLogId, setId: $setId")
 
             loadExercisesForWorkout(currentId)
             loadExerciseHistory(exercise.id)
@@ -1082,9 +1082,9 @@ class WorkoutViewModel(
                     repository.updateExerciseOrder(exercise.id, index)
                 }
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Error reordering exercises", e)
+                CloudLogger.error(TAG, "Error reordering exercises", e)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when reordering exercises", e)
+                CloudLogger.error(TAG, "Invalid state when reordering exercises", e)
             }
         }
     }
@@ -1227,7 +1227,7 @@ class WorkoutViewModel(
         val roundedWeight = WeightFormatter.roundToNearestQuarter(weight)
         val roundedRpe = WeightFormatter.roundRPE(rpe)
 
-        Log.i(TAG, "Updating set - setId: $setId, weight: ${roundedWeight}kg, reps: $reps, rpe: $roundedRpe")
+        CloudLogger.info(TAG, "Updating set - setId: $setId, weight: ${roundedWeight}kg, reps: $reps, rpe: $roundedRpe")
 
         viewModelScope.launch {
             val currentSets = _selectedExerciseSets.value
@@ -1377,7 +1377,7 @@ class WorkoutViewModel(
                     exerciseRestDuration = exerciseVariation?.restDurationSeconds,
                 )
 
-            Log.d(TAG, "Rest timer calculated for batch: ${restDuration}s (RPE: ${lastCompletedSet.actualRpe})")
+            CloudLogger.debug(TAG, "Rest timer calculated for batch: ${restDuration}s (RPE: ${lastCompletedSet.actualRpe})")
             startRestTimer(restDuration)
 
             if (workoutTimerStartTime == null) {
@@ -1422,7 +1422,7 @@ class WorkoutViewModel(
                     )
 
                 if (newEstimate != null && oneRMService.shouldUpdateOneRM(bestSet, currentEstimate, newEstimate)) {
-                    Log.i(
+                    CloudLogger.info(
                         TAG,
                         "Batch 1RM update - exercise: ${exerciseVariation?.name}, " +
                             "old: ${currentEstimate?.toInt()}kg, new: ${newEstimate.toInt()}kg, " +
@@ -1455,7 +1455,7 @@ class WorkoutViewModel(
                 val exerciseName = repository.getExerciseById(exerciseId)?.name
                 if (exerciseName != null) {
                     val key = getExerciseNameKey(exerciseId)
-                    Log.d(TAG, "Adding exercise name for batch PR: $key -> $exerciseName")
+                    CloudLogger.debug(TAG, "Adding exercise name for batch PR: $key -> $exerciseName")
                     _exerciseNames.value = _exerciseNames.value + (key to exerciseName)
                 }
             }
@@ -1463,7 +1463,7 @@ class WorkoutViewModel(
             // Use the service to filter and keep only the best PR per exercise
             val bestPRsByExercise = batchCompletionService.filterBestPRsPerExercise(allPRs)
 
-            Log.d(TAG, "Batch completion found ${allPRs.size} PRs, showing ${bestPRsByExercise.size} best PRs")
+            CloudLogger.debug(TAG, "Batch completion found ${allPRs.size} PRs, showing ${bestPRsByExercise.size} best PRs")
 
             _workoutState.value =
                 _workoutState.value.copy(
@@ -1556,7 +1556,7 @@ class WorkoutViewModel(
                         exerciseRestDuration = exerciseVariation?.restDurationSeconds,
                     )
 
-                Log.d(TAG, "Rest timer calculated: ${duration}s (RPE: ${completedSet.actualRpe}, Exercise default: ${exerciseVariation?.restDurationSeconds}s)")
+                CloudLogger.debug(TAG, "Rest timer calculated: ${duration}s (RPE: ${completedSet.actualRpe}, Exercise default: ${exerciseVariation?.restDurationSeconds}s)")
                 duration
             } else {
                 DEFAULT_REST_TIMER_SECONDS
@@ -1585,20 +1585,20 @@ class WorkoutViewModel(
             val completedSet = updatedSets.find { it.id == setId } ?: return
             val exerciseLog = findExerciseLogForSet(setId, updatedSets) ?: return
 
-            Log.d(TAG, "Checking for PR: exerciseLog.id=${exerciseLog.id}, exerciseId=${exerciseLog.exerciseId}")
+            CloudLogger.debug(TAG, "Checking for PR: exerciseLog.id=${exerciseLog.id}, exerciseId=${exerciseLog.exerciseId}")
             val allPRs = repository.checkForPR(completedSet, exerciseLog.exerciseId)
             if (allPRs.isNotEmpty()) {
                 // Ensure exercise name is available for PR dialog
-                Log.d(TAG, "PRs detected, looking up exercise name for dialog")
+                CloudLogger.debug(TAG, "PRs detected, looking up exercise name for dialog")
                 // Get exercise name from the unified table
                 val exerciseName = repository.getExerciseById(exerciseLog.exerciseId)?.name
-                Log.d(TAG, "Exercise name lookup for ID ${exerciseLog.exerciseId}: $exerciseName")
+                CloudLogger.debug(TAG, "Exercise name lookup for ID ${exerciseLog.exerciseId}: $exerciseName")
                 if (exerciseName != null) {
                     val key = getExerciseNameKey(exerciseLog.exerciseId)
-                    Log.d(TAG, "Adding to exerciseNames map: $key -> $exerciseName (ID: ${exerciseLog.exerciseId})")
+                    CloudLogger.debug(TAG, "Adding to exerciseNames map: $key -> $exerciseName (ID: ${exerciseLog.exerciseId})")
                     _exerciseNames.value = _exerciseNames.value + (key to exerciseName)
                 } else {
-                    Log.e(TAG, "Failed to get exercise name for PR dialog! ID: ${exerciseLog.exerciseId})")
+                    CloudLogger.error(TAG, "Failed to get exercise name for PR dialog! ID: ${exerciseLog.exerciseId})")
                 }
 
                 _workoutState.value =
@@ -1608,9 +1608,9 @@ class WorkoutViewModel(
                     )
             }
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e(TAG, "PR detection failed for set $setId", e)
+            CloudLogger.error(TAG, "PR detection failed for set $setId", e)
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Invalid state during PR detection for set $setId", e)
+            CloudLogger.error(TAG, "Invalid state during PR detection for set $setId", e)
         }
     }
 
@@ -1622,7 +1622,7 @@ class WorkoutViewModel(
             val completedSet = updatedSets.find { it.id == setId } ?: return
             val exerciseLog = findExerciseLogForSet(setId, updatedSets) ?: return
 
-            Log.d(
+            CloudLogger.debug(
                 TAG,
                 "[1RM_FLOW] updateOneRMEstimate called for set: $setId, " +
                     "exercise: ${exerciseLog.exerciseId}, " +
@@ -1641,7 +1641,7 @@ class WorkoutViewModel(
                     scalingType,
                 )
 
-            Log.d(
+            CloudLogger.debug(
                 TAG,
                 "[1RM_FLOW] Calculated estimate: ${newEstimate?.toInt()}kg, " +
                     "current: ${currentEstimate?.toInt()}kg, " +
@@ -1650,7 +1650,7 @@ class WorkoutViewModel(
 
             if (newEstimate != null && oneRMService.shouldUpdateOneRM(completedSet, currentEstimate, newEstimate)) {
                 val exercise = repository.getExerciseById(exerciseLog.exerciseId)
-                Log.i(
+                CloudLogger.info(
                     TAG,
                     "[1RM_FLOW] Single set 1RM update - exercise: ${exercise?.name}, " +
                         "old: ${currentEstimate?.toInt()}kg, new: ${newEstimate.toInt()}kg, " +
@@ -1658,12 +1658,12 @@ class WorkoutViewModel(
                 )
                 persistOneRMUpdate(exerciseLog.exerciseId, completedSet, newEstimate, currentEstimate)
             } else {
-                Log.d(TAG, "[1RM_FLOW] 1RM not updated (estimate not better or shouldUpdate returned false)")
+                CloudLogger.debug(TAG, "[1RM_FLOW] 1RM not updated (estimate not better or shouldUpdate returned false)")
             }
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e(TAG, "Failed to update 1RM estimate", e)
+            CloudLogger.error(TAG, "Failed to update 1RM estimate", e)
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Invalid state when updating 1RM estimate", e)
+            CloudLogger.error(TAG, "Invalid state when updating 1RM estimate", e)
         }
     }
 
@@ -1675,7 +1675,7 @@ class WorkoutViewModel(
     ) {
         exerciseId ?: return
 
-        Log.d(
+        CloudLogger.debug(
             TAG,
             "[1RM_FLOW] persistOneRMUpdate called - exerciseId: $exerciseId, " +
                 "estimate: ${newEstimate.toInt()}kg, setId: ${completedSet.id}",
@@ -1703,7 +1703,7 @@ class WorkoutViewModel(
                 confidence = confidence,
             )
 
-        Log.d(
+        CloudLogger.debug(
             TAG,
             "[1RM_FLOW] Created 1RM record - mostWeightLifted: ${oneRMRecord.mostWeightLifted}kg, " +
                 "mostWeightReps: ${oneRMRecord.mostWeightReps}, " +
@@ -1712,7 +1712,7 @@ class WorkoutViewModel(
         )
 
         repository.updateOrInsertOneRM(oneRMRecord)
-        Log.d(TAG, "[1RM_FLOW] Called repository.updateOrInsertOneRM() - persistence complete")
+        CloudLogger.debug(TAG, "[1RM_FLOW] Called repository.updateOrInsertOneRM() - persistence complete")
         loadOneRMEstimatesForCurrentExercises()
     }
 
@@ -1898,9 +1898,9 @@ class WorkoutViewModel(
                     _swappingExercise.value = null
                 }
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to swap exercise", e)
+                CloudLogger.error(TAG, "Failed to swap exercise", e)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when swapping exercise", e)
+                CloudLogger.error(TAG, "Invalid state when swapping exercise", e)
             }
         }
     }
@@ -1926,10 +1926,10 @@ class WorkoutViewModel(
 
     // Start a workout from a template
     suspend fun startWorkoutFromTemplate(templateId: String) {
-        Log.i(TAG, "startWorkoutFromTemplate called with templateId: $templateId")
+        CloudLogger.info(TAG, "startWorkoutFromTemplate called with templateId: $templateId")
         try {
             val workoutId = repository.startWorkoutFromTemplate(templateId)
-            Log.i(TAG, "Created workout $workoutId from template $templateId, now resuming...")
+            CloudLogger.info(TAG, "Created workout $workoutId from template $templateId, now resuming...")
             resumeWorkout(workoutId)
         } catch (e: IllegalArgumentException) {
             ExceptionLogger.logException(TAG, "Invalid template ID: $templateId", e)
@@ -2023,10 +2023,10 @@ class WorkoutViewModel(
             // Notify that workout is ready for navigation
             onReady?.invoke()
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e(TAG, "Error starting programme workout", e)
+            CloudLogger.error(TAG, "Error starting programme workout", e)
             _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Invalid state when starting programme workout", e)
+            CloudLogger.error(TAG, "Invalid state when starting programme workout", e)
             _workoutState.value = _workoutState.value.copy(isLoadingExercises = false)
         }
     }
@@ -2054,7 +2054,7 @@ class WorkoutViewModel(
                         // Timer completed
                         _restTimerSeconds.value = 0
                         restTimerEndTime = null
-                        Log.d(TAG, "Rest timer reached zero - calling notification service")
+                        CloudLogger.debug(TAG, "Rest timer reached zero - calling notification service")
                         restTimerNotificationService.notifyTimerCompleted()
                         break
                     }
@@ -2131,7 +2131,7 @@ class WorkoutViewModel(
         val now = LocalDateTime.now()
         if (now.isAfter(endTime) || now.isEqual(endTime)) {
             // Timer already expired while in background
-            Log.d("WorkoutViewModel", "Rest timer expired while app was backgrounded")
+            CloudLogger.debug("WorkoutViewModel", "Rest timer expired while app was backgrounded")
             _restTimerSeconds.value = 0
             _restTimerInitialSeconds.value = 0
             restTimerEndTime = null
@@ -2145,7 +2145,7 @@ class WorkoutViewModel(
                 .between(now, endTime)
                 .seconds
         _restTimerSeconds.value = remaining.toInt().coerceAtLeast(0)
-        Log.d("WorkoutViewModel", "Resuming rest timer with $remaining seconds remaining")
+        CloudLogger.debug("WorkoutViewModel", "Resuming rest timer with $remaining seconds remaining")
 
         // Restart the timer coroutine
         restTimerJob?.cancel()
@@ -2255,7 +2255,7 @@ class WorkoutViewModel(
                         exerciseName =
                             getExerciseNameFromMap(exerciseLog.exerciseId)
                                 ?: run {
-                                    Log.w(TAG, "Exercise name not found for template: ID ${exerciseLog.exerciseId})")
+                                    CloudLogger.warn(TAG, "Exercise name not found for template: ID ${exerciseLog.exerciseId})")
                                     "Unknown Exercise"
                                 },
                         matchedExerciseId = exerciseLog.exerciseId,
@@ -2279,7 +2279,7 @@ class WorkoutViewModel(
                 )
 
             // Updated workout will be sent back via the onTemplateSaved callback
-            Log.d("WorkoutViewModel", "Template changes saved: $updatedWorkout")
+            CloudLogger.debug("WorkoutViewModel", "Template changes saved: $updatedWorkout")
         }
     }
 
@@ -2299,10 +2299,10 @@ class WorkoutViewModel(
                 val notes = repository.getWorkoutNotes(workoutId)
                 callback(notes)
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to load workout notes", e)
+                CloudLogger.error(TAG, "Failed to load workout notes", e)
                 callback(null)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when loading workout notes", e)
+                CloudLogger.error(TAG, "Invalid state when loading workout notes", e)
                 callback(null)
             }
         }
@@ -2316,9 +2316,9 @@ class WorkoutViewModel(
             try {
                 repository.updateWorkoutNotes(workoutId, notes)
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to save workout notes", e)
+                CloudLogger.error(TAG, "Failed to save workout notes", e)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Invalid state when saving workout notes", e)
+                CloudLogger.error(TAG, "Invalid state when saving workout notes", e)
             }
         }
     }
@@ -2336,7 +2336,7 @@ class WorkoutViewModel(
                     syncViewModel.triggerDebouncedSync()
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to trigger debounced sync", e)
+                CloudLogger.error(TAG, "Failed to trigger debounced sync", e)
             }
         }
     }

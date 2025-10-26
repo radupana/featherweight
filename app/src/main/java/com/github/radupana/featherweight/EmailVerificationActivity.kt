@@ -2,7 +2,6 @@ package com.github.radupana.featherweight
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -35,6 +34,7 @@ import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.service.LocalDataMigrationService
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.MigrationStateManager
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
@@ -55,7 +55,7 @@ class EmailVerificationActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val userEmail = FirebaseAuth.getInstance().currentUser?.email
-        Log.i(TAG, "onCreate: Showing email verification screen for user: $userEmail")
+        CloudLogger.info(TAG, "onCreate: Showing email verification screen for user: $userEmail")
 
         setContent {
             FeatherweightTheme {
@@ -65,11 +65,11 @@ class EmailVerificationActivity : ComponentActivity() {
                 ) {
                     EmailVerificationScreen(
                         onVerificationComplete = {
-                            Log.i(TAG, "Email verification completed successfully")
+                            CloudLogger.info(TAG, "Email verification completed successfully")
                             handleVerificationComplete()
                         },
                         onSignOut = {
-                            Log.i(TAG, "User signed out from email verification screen")
+                            CloudLogger.info(TAG, "User signed out from email verification screen")
                             // Sign out and go back to welcome
                             FirebaseAuth.getInstance().signOut()
                             val authManager = ServiceLocator.provideAuthenticationManager(this)
@@ -101,7 +101,7 @@ class EmailVerificationActivity : ComponentActivity() {
                 handleDataMigration(userId)
             }
         } else {
-            Log.e(TAG, "No user ID found after verification")
+            CloudLogger.error(TAG, "No user ID found after verification")
             navigateToMain()
         }
     }
@@ -113,28 +113,28 @@ class EmailVerificationActivity : ComponentActivity() {
 
     private suspend fun performInitialSync(userId: String) {
         try {
-            Log.i(TAG, "Triggering initial sync for verified user: $userId")
+            CloudLogger.info(TAG, "Triggering initial sync for verified user: $userId")
             syncManager.syncAll()
-            Log.i(TAG, "Initial sync completed successfully")
+            CloudLogger.info(TAG, "Initial sync completed successfully")
         } catch (e: com.google.firebase.FirebaseException) {
-            Log.e(TAG, "Initial sync failed - Firebase error", e)
+            CloudLogger.error(TAG, "Initial sync failed - Firebase error", e)
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e(TAG, "Initial sync failed - database error", e)
+            CloudLogger.error(TAG, "Initial sync failed - database error", e)
         }
     }
 
     private suspend fun handleDataMigration(userId: String) {
         if (!migrationStateManager.shouldAttemptMigration()) return
 
-        Log.i(TAG, "Attempting local data migration for user: $userId")
+        CloudLogger.info(TAG, "Attempting local data migration for user: $userId")
         migrationStateManager.incrementMigrationAttempts()
 
         if (!migrationService.hasLocalData()) {
-            Log.i(TAG, "No local data to migrate - skipping migration")
+            CloudLogger.info(TAG, "No local data to migrate - skipping migration")
             return
         }
 
-        Log.i(TAG, "Local data found, starting migration")
+        CloudLogger.info(TAG, "Local data found, starting migration")
         val success = migrationService.migrateLocalDataToUser(userId)
 
         if (success) {
@@ -145,25 +145,25 @@ class EmailVerificationActivity : ComponentActivity() {
     }
 
     private suspend fun handleSuccessfulMigration(userId: String) {
-        Log.i(TAG, "Migration successful")
+        CloudLogger.info(TAG, "Migration successful")
         migrationStateManager.markMigrationCompleted(userId)
         migrationService.cleanupLocalData()
 
-        Log.i(TAG, "Syncing migrated data to Firestore")
+        CloudLogger.info(TAG, "Syncing migrated data to Firestore")
         try {
             syncManager.syncUserData(userId)
-            Log.i(TAG, "Migration sync completed successfully")
+            CloudLogger.info(TAG, "Migration sync completed successfully")
         } catch (e: com.google.firebase.FirebaseException) {
-            Log.e(TAG, "Failed to sync migrated data - Firebase error", e)
+            CloudLogger.error(TAG, "Failed to sync migrated data - Firebase error", e)
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e(TAG, "Failed to sync migrated data - database error", e)
+            CloudLogger.error(TAG, "Failed to sync migrated data - database error", e)
         }
     }
 
     private fun handleFailedMigration() {
-        Log.e(TAG, "Migration failed, will retry on next sign-in")
+        CloudLogger.error(TAG, "Migration failed, will retry on next sign-in")
         if (migrationStateManager.getMigrationAttempts() >= MigrationStateManager.MAX_MIGRATION_ATTEMPTS) {
-            Log.e(TAG, "Max migration attempts reached")
+            CloudLogger.error(TAG, "Max migration attempts reached")
             Toast
                 .makeText(
                     this@EmailVerificationActivity,
@@ -240,15 +240,15 @@ fun EmailVerificationScreen(
             onClick = {
                 scope.launch {
                     isChecking = true
-                    Log.i("EmailVerificationActivity", "User clicked 'I've Verified My Email' button")
+                    CloudLogger.info("EmailVerificationActivity", "User clicked 'I've Verified My Email' button")
                     try {
                         // Reload the user to get the latest verification status
-                        Log.d("EmailVerificationActivity", "Reloading user to check verification status")
+                        CloudLogger.debug("EmailVerificationActivity", "Reloading user to check verification status")
                         firebaseAuth.reloadUser()
 
                         // Check if email is now verified
                         if (firebaseAuth.isEmailVerified()) {
-                            Log.i("EmailVerificationActivity", "Email verification confirmed for user: $userEmail")
+                            CloudLogger.info("EmailVerificationActivity", "Email verification confirmed for user: $userEmail")
                             Toast
                                 .makeText(
                                     context,
@@ -257,7 +257,7 @@ fun EmailVerificationScreen(
                                 ).show()
                             onVerificationComplete()
                         } else {
-                            Log.i("EmailVerificationActivity", "Email not yet verified for user: $userEmail")
+                            CloudLogger.info("EmailVerificationActivity", "Email not yet verified for user: $userEmail")
                             Toast
                                 .makeText(
                                     context,
@@ -266,7 +266,7 @@ fun EmailVerificationScreen(
                                 ).show()
                         }
                     } catch (e: com.google.firebase.FirebaseException) {
-                        Log.e("EmailVerificationActivity", "Error checking verification status for user: $userEmail", e)
+                        CloudLogger.error("EmailVerificationActivity", "Error checking verification status for user: $userEmail", e)
                         Toast
                             .makeText(
                                 context,
@@ -274,7 +274,7 @@ fun EmailVerificationScreen(
                                 Toast.LENGTH_SHORT,
                             ).show()
                     } catch (e: java.io.IOException) {
-                        Log.e("EmailVerificationActivity", "Network error checking verification status for user: $userEmail", e)
+                        CloudLogger.error("EmailVerificationActivity", "Network error checking verification status for user: $userEmail", e)
                         Toast
                             .makeText(
                                 context,
@@ -304,10 +304,10 @@ fun EmailVerificationScreen(
             onClick = {
                 scope.launch {
                     isResending = true
-                    Log.i("EmailVerificationActivity", "User requested resend of verification email for: $userEmail")
+                    CloudLogger.info("EmailVerificationActivity", "User requested resend of verification email for: $userEmail")
                     firebaseAuth.sendEmailVerification().fold(
                         onSuccess = {
-                            Log.i("EmailVerificationActivity", "Verification email successfully resent to: $userEmail")
+                            CloudLogger.info("EmailVerificationActivity", "Verification email successfully resent to: $userEmail")
                             Toast
                                 .makeText(
                                     context,
@@ -316,7 +316,7 @@ fun EmailVerificationScreen(
                                 ).show()
                         },
                         onFailure = { e ->
-                            Log.e("EmailVerificationActivity", "Failed to resend verification email to: $userEmail", e)
+                            CloudLogger.error("EmailVerificationActivity", "Failed to resend verification email to: $userEmail", e)
                             val errorMessage =
                                 when {
                                     e.message?.contains("Too many requests") == true ->

@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.ExerciseLog
@@ -8,6 +7,7 @@ import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.util.CloudLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,9 +37,9 @@ class WorkoutCompletionViewModel(
             try {
                 val exercises = repository.getAllExercises()
                 _exerciseNames.value = exercises.associate { it.id to it.name }
-                Log.d(TAG, "Loaded ${exercises.size} exercise names")
+                CloudLogger.debug(TAG, "Loaded ${exercises.size} exercise names")
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Database error loading exercise names", e)
+                CloudLogger.error(TAG, "Database error loading exercise names", e)
             }
         }
     }
@@ -74,14 +74,14 @@ class WorkoutCompletionViewModel(
                         workoutSummary = summary,
                     )
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "Failed to load workout summary for workoutId: $workoutId", e)
+                CloudLogger.error(TAG, "Failed to load workout summary for workoutId: $workoutId", e)
                 _uiState.value =
                     _uiState.value.copy(
                         isLoading = false,
                         error = "Failed to load workout summary",
                     )
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Database error loading workout summary for workoutId: $workoutId", e)
+                CloudLogger.error(TAG, "Database error loading workout summary for workoutId: $workoutId", e)
                 _uiState.value =
                     _uiState.value.copy(
                         isLoading = false,

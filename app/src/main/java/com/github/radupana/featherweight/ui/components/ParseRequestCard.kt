@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.ui.components
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
@@ -50,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import com.github.radupana.featherweight.data.ParseRequest
 import com.github.radupana.featherweight.data.ParseStatus
 import com.github.radupana.featherweight.data.ParsedProgramme
+import com.github.radupana.featherweight.util.CloudLogger
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import java.time.LocalDateTime
@@ -86,7 +86,7 @@ fun ParseRequestCard(
                                     val programme = Gson().fromJson(request.resultJson, ParsedProgramme::class.java)
                                     onView(programme, request.id)
                                 } catch (e: JsonSyntaxException) {
-                                    Log.w("ParseRequestCard", "Failed to parse programme from result JSON for view action", e)
+                                    CloudLogger.warn("ParseRequestCard", "Failed to parse programme from result JSON for view action", e)
                                 }
                             }
                         }
@@ -166,7 +166,7 @@ private fun extractProgrammeName(request: ParseRequest): String? =
             val programme = Gson().fromJson(request.resultJson, ParsedProgramme::class.java)
             programme.name
         } catch (e: JsonSyntaxException) {
-            Log.w("ParseRequestCard", "Failed to parse programme name from result JSON", e)
+            CloudLogger.warn("ParseRequestCard", "Failed to parse programme name from result JSON", e)
             null
         }
     } else {
@@ -192,7 +192,7 @@ private fun parseAndViewProgramme(
             val programme = Gson().fromJson(resultJson, ParsedProgramme::class.java)
             onView(programme, requestId)
         } catch (e: JsonSyntaxException) {
-            Log.w("ParseRequestCard", "Failed to parse programme from result JSON", e)
+            CloudLogger.warn("ParseRequestCard", "Failed to parse programme from result JSON", e)
         }
     }
 }

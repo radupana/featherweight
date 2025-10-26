@@ -1,7 +1,7 @@
 package com.github.radupana.featherweight.service
 
-import android.util.Log
 import com.github.radupana.featherweight.data.profile.ExerciseMaxTrackingDao
+import com.github.radupana.featherweight.util.CloudLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -50,10 +50,10 @@ class OneRMDataFixService(
                         if (actualWeight != null && actualWeight < max.oneRMEstimate) {
                             // This confirms corruption - actual weight should be less than 1RM estimate
                             // (unless it was an actual 1RM lift)
-                            Log.i(TAG, "Fixing corrupted record for exercise ${max.exerciseId}:")
-                            Log.i(TAG, "  Context: ${max.context}")
-                            Log.i(TAG, "  Corrupted mostWeightLifted: ${max.mostWeightLifted}kg")
-                            Log.i(TAG, "  Correct mostWeightLifted: ${actualWeight}kg")
+                            CloudLogger.info(TAG, "Fixing corrupted record for exercise ${max.exerciseId}:")
+                            CloudLogger.info(TAG, "  Context: ${max.context}")
+                            CloudLogger.info(TAG, "  Corrupted mostWeightLifted: ${max.mostWeightLifted}kg")
+                            CloudLogger.info(TAG, "  Correct mostWeightLifted: ${actualWeight}kg")
 
                             // Also try to parse reps from context
                             val actualReps = parseRepsFromContext(max.context)
@@ -71,9 +71,9 @@ class OneRMDataFixService(
                     }
                 }
 
-                Log.i(TAG, "Data fix complete. Fixed $fixedCount corrupted records.")
+                CloudLogger.info(TAG, "Data fix complete. Fixed $fixedCount corrupted records.")
             } catch (e: Exception) {
-                Log.e(TAG, "Error fixing corrupted data", e)
+                CloudLogger.error(TAG, "Error fixing corrupted data", e)
             }
 
             fixedCount
@@ -108,7 +108,7 @@ class OneRMDataFixService(
         }
 
         // If no pattern matches, log for debugging
-        Log.w(TAG, "Unable to parse weight from context: $context")
+        CloudLogger.warn(TAG, "Unable to parse weight from context: $context")
         return null
     }
 

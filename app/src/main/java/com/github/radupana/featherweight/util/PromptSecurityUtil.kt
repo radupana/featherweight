@@ -1,6 +1,6 @@
 package com.github.radupana.featherweight.util
 
-import android.util.Log
+import com.github.radupana.featherweight.util.CloudLogger
 
 /**
  * Utility class for preventing prompt injection attacks when using AI APIs.
@@ -140,7 +140,7 @@ object PromptSecurityUtil {
 
             // Check if it's a JSON object (not array or primitive)
             if (!jsonElement.isJsonObject) {
-                Log.e(TAG, "Response is not a JSON object")
+                CloudLogger.error(TAG, "Response is not a JSON object")
                 false
             } else {
                 val jsonObject = jsonElement.asJsonObject
@@ -151,13 +151,13 @@ object PromptSecurityUtil {
                 }
             }
         } catch (e: com.google.gson.JsonSyntaxException) {
-            Log.e(TAG, "Invalid JSON response: ${e.message}")
+            CloudLogger.error(TAG, "Invalid JSON response: ${e.message}")
             false
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Invalid JSON response: ${e.message}")
+            CloudLogger.error(TAG, "Invalid JSON response: ${e.message}")
             false
         } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error validating JSON: ${e.message}")
+            CloudLogger.error(TAG, "Unexpected error validating JSON: ${e.message}")
             false
         }
 
@@ -168,8 +168,8 @@ object PromptSecurityUtil {
         type: String,
         input: String,
     ) {
-        Log.w(TAG, "Security incident detected - Type: $type")
-        Log.w(TAG, "Suspicious input (truncated): ${input.take(200)}")
+        CloudLogger.warn(TAG, "Security incident detected - Type: $type")
+        CloudLogger.warn(TAG, "Suspicious input (truncated): ${input.take(200)}")
 
         // Log to Crashlytics for monitoring
         try {
@@ -186,7 +186,7 @@ object PromptSecurityUtil {
             val exception = SecurityException("Prompt injection attempt detected: $type")
             crashlytics.recordException(exception)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to log security incident to Crashlytics", e)
+            CloudLogger.error(TAG, "Failed to log security incident to Crashlytics", e)
         }
     }
 }

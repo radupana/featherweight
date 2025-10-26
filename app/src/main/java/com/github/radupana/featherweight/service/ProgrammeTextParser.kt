@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.service
 
-import android.util.Log
 import com.github.radupana.featherweight.data.ParsedExercise
 import com.github.radupana.featherweight.data.ParsedProgramme
 import com.github.radupana.featherweight.data.ParsedSet
@@ -10,6 +9,7 @@ import com.github.radupana.featherweight.data.TextParsingRequest
 import com.github.radupana.featherweight.data.TextParsingResult
 import com.github.radupana.featherweight.manager.WeightUnitManager
 import com.github.radupana.featherweight.util.AnalyticsLogger
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.github.radupana.featherweight.util.PromptSecurityUtil
 import com.github.radupana.featherweight.util.WeightFormatter
@@ -45,33 +45,33 @@ open class ProgrammeTextParser(
     suspend fun parseText(request: TextParsingRequest): TextParsingResult =
         withContext(Dispatchers.IO) {
             try {
-                Log.i(TAG, "Starting programme parsing - text length: ${request.rawText.length}, maxes: ${request.userMaxes.size}")
+                CloudLogger.info(TAG, "Starting programme parsing - text length: ${request.rawText.length}, maxes: ${request.userMaxes.size}")
 
                 val validationResult = validateInput(request.rawText)
                 if (!validationResult.isValid) {
-                    Log.w(TAG, "Validation failed: ${validationResult.error}")
+                    CloudLogger.warn(TAG, "Validation failed: ${validationResult.error}")
                     return@withContext TextParsingResult(
                         success = false,
                         error = validationResult.error,
                     )
                 }
 
-                Log.d(TAG, "Validation passed, calling OpenAI API...")
+                CloudLogger.debug(TAG, "Validation passed, calling OpenAI API...")
                 val parsedJson = callOpenAIAPI(request)
-                Log.d(TAG, "Received parsed JSON response, length: ${parsedJson.length}")
-                Log.d(TAG, "Full parsed JSON:\n$parsedJson")
+                CloudLogger.debug(TAG, "Received parsed JSON response, length: ${parsedJson.length}")
+                CloudLogger.debug(TAG, "Full parsed JSON:\n$parsedJson")
 
-                Log.d(TAG, "Parsing JSON to programme object...")
+                CloudLogger.debug(TAG, "Parsing JSON to programme object...")
                 val programme = parseJsonToProgramme(parsedJson, request.rawText)
 
-                Log.d(TAG, "Programme parsed successfully!")
-                Log.d(TAG, "Programme name: ${programme.name}")
-                Log.d(TAG, "Duration: ${programme.durationWeeks} weeks")
-                Log.d(TAG, "Number of weeks: ${programme.weeks.size}")
+                CloudLogger.debug(TAG, "Programme parsed successfully!")
+                CloudLogger.debug(TAG, "Programme name: ${programme.name}")
+                CloudLogger.debug(TAG, "Duration: ${programme.durationWeeks} weeks")
+                CloudLogger.debug(TAG, "Number of weeks: ${programme.weeks.size}")
                 programme.weeks.forEachIndexed { weekIdx, week ->
-                    Log.d(TAG, "  Week ${weekIdx + 1}: ${week.workouts.size} workouts")
+                    CloudLogger.debug(TAG, "  Week ${weekIdx + 1}: ${week.workouts.size} workouts")
                     week.workouts.forEachIndexed { workoutIdx, workout ->
-                        Log.d(TAG, "    Workout ${workoutIdx + 1}: ${workout.exercises.size} exercises")
+                        CloudLogger.debug(TAG, "    Workout ${workoutIdx + 1}: ${workout.exercises.size} exercises")
                     }
                 }
 
@@ -80,10 +80,10 @@ open class ProgrammeTextParser(
                     programme = programme,
                 )
             } catch (e: IOException) {
-                Log.e(TAG, "=== Programme Parsing FAILED (IOException) ===")
-                Log.e(TAG, "Network or API error: ${e.message}")
-                Log.e(TAG, "Exception type: ${e.javaClass.name}")
-                Log.e(TAG, "Full stack trace:", e)
+                CloudLogger.error(TAG, "=== Programme Parsing FAILED (IOException) ===")
+                CloudLogger.error(TAG, "Network or API error: ${e.message}")
+                CloudLogger.error(TAG, "Exception type: ${e.javaClass.name}")
+                CloudLogger.error(TAG, "Full stack trace:", e)
 
                 val userFriendlyError =
                     when {
@@ -102,9 +102,9 @@ open class ProgrammeTextParser(
                     error = userFriendlyError,
                 )
             } catch (e: NumberFormatException) {
-                Log.e(TAG, "=== Programme Parsing FAILED (NumberFormatException) ===")
-                Log.e(TAG, "Error message: ${e.message}")
-                Log.e(TAG, "Full stack trace:", e)
+                CloudLogger.error(TAG, "=== Programme Parsing FAILED (NumberFormatException) ===")
+                CloudLogger.error(TAG, "Error message: ${e.message}")
+                CloudLogger.error(TAG, "Full stack trace:", e)
 
                 val userFriendlyError = "Unable to parse programme: Invalid number format '${e.message}'. The AI returned a range value where a single number was expected."
 
@@ -113,10 +113,10 @@ open class ProgrammeTextParser(
                     error = userFriendlyError,
                 )
             } catch (e: IllegalArgumentException) {
-                Log.e(TAG, "=== Programme Parsing FAILED (IllegalArgumentException) ===")
-                Log.e(TAG, "Error message: ${e.message}")
-                Log.e(TAG, "Exception type: ${e.javaClass.name}")
-                Log.e(TAG, "Full stack trace:", e)
+                CloudLogger.error(TAG, "=== Programme Parsing FAILED (IllegalArgumentException) ===")
+                CloudLogger.error(TAG, "Error message: ${e.message}")
+                CloudLogger.error(TAG, "Exception type: ${e.javaClass.name}")
+                CloudLogger.error(TAG, "Full stack trace:", e)
 
                 val userFriendlyError =
                     when {
@@ -251,7 +251,7 @@ open class ProgrammeTextParser(
                 "programme_parser_injection",
                 request.rawText,
             )
-            Log.w(TAG, "Potential injection attempt detected in programme text")
+            CloudLogger.warn(TAG, "Potential injection attempt detected in programme text")
             throw IllegalArgumentException("Invalid content detected. Please provide a valid workout programme.")
         }
 
@@ -259,7 +259,7 @@ open class ProgrammeTextParser(
         val effectiveApiKey = configService.getOpenAIApiKey()
 
         if (effectiveApiKey.isNullOrEmpty()) {
-            Log.e(TAG, "API key not available from Remote Config")
+            CloudLogger.error(TAG, "API key not available from Remote Config")
             throw IllegalArgumentException("OpenAI API key not configured. Please check your internet connection and try again.")
         }
 
@@ -270,9 +270,9 @@ open class ProgrammeTextParser(
             )
 
         val prompt = buildPrompt(sanitizedRequest)
-        Log.d(TAG, "=== OpenAI API Request ===")
-        Log.d(TAG, "Prompt length: ${prompt.length} characters")
-        Log.d(TAG, "Full prompt:\n$prompt")
+        CloudLogger.debug(TAG, "=== OpenAI API Request ===")
+        CloudLogger.debug(TAG, "Prompt length: ${prompt.length} characters")
+        CloudLogger.debug(TAG, "Full prompt:\n$prompt")
 
         // Create defensive system prompt
         val systemPrompt = PromptSecurityUtil.createDefensiveSystemPrompt(BASE_SYSTEM_PROMPT)
@@ -306,8 +306,8 @@ open class ProgrammeTextParser(
                 addProperty("max_completion_tokens", 15000)
             }
 
-        Log.d(TAG, "Request body JSON:\n$requestBody")
-        Log.d(TAG, "Calling OpenAI API with model: gpt-5-mini")
+        CloudLogger.debug(TAG, "Request body JSON:\n$requestBody")
+        CloudLogger.debug(TAG, "Calling OpenAI API with model: gpt-5-mini")
 
         val apiUrl = "https://api.openai.com/v1/chat/completions"
         AnalyticsLogger.logOpenAIRequest(
@@ -330,10 +330,10 @@ open class ProgrammeTextParser(
         val responseTime = System.currentTimeMillis() - startTime
         val responseBody = response.body.string()
 
-        Log.d(TAG, "=== OpenAI API Response ===")
-        Log.d(TAG, "Response code: ${response.code}")
-        Log.d(TAG, "Response body size: ${responseBody.length} chars")
-        Log.d(TAG, "Full response body:\n$responseBody")
+        CloudLogger.debug(TAG, "=== OpenAI API Response ===")
+        CloudLogger.debug(TAG, "Response code: ${response.code}")
+        CloudLogger.debug(TAG, "Response body size: ${responseBody.length} chars")
+        CloudLogger.debug(TAG, "Full response body:\n$responseBody")
 
         AnalyticsLogger.logOpenAIResponse(
             endpoint = apiUrl,
@@ -343,7 +343,7 @@ open class ProgrammeTextParser(
         )
 
         if (!response.isSuccessful) {
-            Log.e(TAG, "API call failed with status ${response.code}")
+            CloudLogger.error(TAG, "API call failed with status ${response.code}")
             val errorJson =
                 try {
                     JsonParser.parseString(responseBody).asJsonObject
@@ -358,7 +358,7 @@ open class ProgrammeTextParser(
                 errorJson?.getAsJsonObject("error")?.get("message")?.asString
                     ?: "API call failed with status ${response.code}"
 
-            Log.e(TAG, "Error message: $errorMessage")
+            CloudLogger.error(TAG, "Error message: $errorMessage")
             AnalyticsLogger.logOpenAIResponse(
                 endpoint = apiUrl,
                 statusCode = response.code,
@@ -520,8 +520,8 @@ open class ProgrammeTextParser(
         jsonString: String,
         rawText: String,
     ): ParsedProgramme {
-        Log.d(TAG, "=== parseJsonToProgramme START ===")
-        Log.d(TAG, "JSON string length: ${jsonString.length}")
+        CloudLogger.debug(TAG, "=== parseJsonToProgramme START ===")
+        CloudLogger.debug(TAG, "JSON string length: ${jsonString.length}")
 
         require(jsonString.isNotBlank()) { "JSON string is blank" }
 
@@ -530,12 +530,12 @@ open class ProgrammeTextParser(
                 JsonParser.parseString(jsonString).asJsonObject
             } catch (e: com.google.gson.JsonSyntaxException) {
                 ExceptionLogger.logException(TAG, "Failed to parse JSON string", e)
-                Log.e(TAG, "Invalid JSON content:\n$jsonString")
+                CloudLogger.error(TAG, "Invalid JSON content:\n$jsonString")
                 throw IllegalArgumentException("Failed to parse JSON: ${e.message}", e)
             }
 
-        Log.d(TAG, "JSON parsed successfully")
-        Log.d(TAG, "Top-level keys: ${json.keySet()}")
+        CloudLogger.debug(TAG, "JSON parsed successfully")
+        CloudLogger.debug(TAG, "Top-level keys: ${json.keySet()}")
 
         // Check if AI rejected the content as invalid
         json.get("error_type")?.let { errorType ->
@@ -550,40 +550,40 @@ open class ProgrammeTextParser(
         json.get("parsing_logic")?.let { logicElement ->
             if (!logicElement.isJsonNull && logicElement.isJsonObject) {
                 val logic = logicElement.asJsonObject
-                Log.d(TAG, "=== PARSING LOGIC DEBUG ===")
+                CloudLogger.debug(TAG, "=== PARSING LOGIC DEBUG ===")
                 logic.get("workout_type")?.let { workoutType ->
                     if (!workoutType.isJsonNull) {
-                        Log.d(TAG, "Workout type detected: ${workoutType.asString}")
+                        CloudLogger.debug(TAG, "Workout type detected: ${workoutType.asString}")
                     }
                 }
                 logic.get("disambiguation_applied")?.let { disambig ->
                     if (disambig.isJsonArray) {
                         disambig.asJsonArray.forEach { decision ->
-                            Log.d(TAG, "Disambiguation: ${decision.asString}")
+                            CloudLogger.debug(TAG, "Disambiguation: ${decision.asString}")
                         }
                     }
                 }
                 logic.get("set_interpretation")?.let { setInterp ->
                     if (setInterp.isJsonArray) {
                         setInterp.asJsonArray.forEach { interpretation ->
-                            Log.d(TAG, "Set interpretation: ${interpretation.asString}")
+                            CloudLogger.debug(TAG, "Set interpretation: ${interpretation.asString}")
                         }
                     }
                 }
-                Log.d(TAG, "=== END PARSING LOGIC ===")
+                CloudLogger.debug(TAG, "=== END PARSING LOGIC ===")
             }
         }
 
         val name = json.get("name")?.asString ?: "Imported Programme"
         val durationWeeks = json.get("duration_weeks")?.asInt ?: 1
-        Log.d(TAG, "Programme name: $name, duration: $durationWeeks weeks")
+        CloudLogger.debug(TAG, "Programme name: $name, duration: $durationWeeks weeks")
         val description = ""
         val programmeType = "GENERAL_FITNESS"
         val difficulty = "INTERMEDIATE"
 
         val weeks = mutableListOf<ParsedWeek>()
         val weeksArray = json.getAsJsonArray("weeks")
-        Log.d(TAG, "Found ${weeksArray?.size() ?: 0} weeks in JSON")
+        CloudLogger.debug(TAG, "Found ${weeksArray?.size() ?: 0} weeks in JSON")
 
         weeksArray?.forEach { weekElement ->
             val weekObj = weekElement.asJsonObject
@@ -604,16 +604,16 @@ open class ProgrammeTextParser(
 
                 val exerciseMap = mutableMapOf<String, MutableList<ParsedSet>>()
                 val exercisesArray = workoutObj.getAsJsonArray("exercises")
-                Log.d(TAG, "    Workout has ${exercisesArray?.size() ?: 0} exercises")
+                CloudLogger.debug(TAG, "    Workout has ${exercisesArray?.size() ?: 0} exercises")
 
                 exercisesArray?.forEach { exerciseElement ->
                     val exerciseObj = exerciseElement.asJsonObject
                     val exerciseName = exerciseObj.get("name")?.asString ?: "Unknown Exercise"
-                    Log.d(TAG, "      Processing exercise: $exerciseName")
+                    CloudLogger.debug(TAG, "      Processing exercise: $exerciseName")
 
                     val sets = mutableListOf<ParsedSet>()
                     val setsArray = exerciseObj.getAsJsonArray("sets")
-                    Log.d(TAG, "        Exercise has ${setsArray?.size() ?: 0} sets")
+                    CloudLogger.debug(TAG, "        Exercise has ${setsArray?.size() ?: 0} sets")
 
                     setsArray?.forEach { setElement ->
                         val setObj = setElement.asJsonObject
@@ -629,12 +629,12 @@ open class ProgrammeTextParser(
                     val existingSets = exerciseMap[exerciseName]
                     if (existingSets != null) {
                         existingSets.addAll(sets)
-                        Log.w(TAG, "DUPLICATE EXERCISE FOUND: $exerciseName")
-                        Log.w(TAG, "  Existing sets: ${existingSets.size - sets.size}, new sets: ${sets.size}")
-                        Log.w(TAG, "  Total sets after merge: ${existingSets.size}")
+                        CloudLogger.warn(TAG, "DUPLICATE EXERCISE FOUND: $exerciseName")
+                        CloudLogger.warn(TAG, "  Existing sets: ${existingSets.size - sets.size}, new sets: ${sets.size}")
+                        CloudLogger.warn(TAG, "  Total sets after merge: ${existingSets.size}")
                     } else {
                         exerciseMap[exerciseName] = sets
-                        Log.d(TAG, "        Added $exerciseName with ${sets.size} sets")
+                        CloudLogger.debug(TAG, "        Added $exerciseName with ${sets.size} sets")
                     }
                 }
 
@@ -670,14 +670,14 @@ open class ProgrammeTextParser(
                     phase = null,
                 ),
             )
-            Log.d(TAG, "  Week $weekNumber added with ${workouts.size} workouts")
+            CloudLogger.debug(TAG, "  Week $weekNumber added with ${workouts.size} workouts")
         }
 
-        Log.d(TAG, "=== parseJsonToProgramme COMPLETE ===")
-        Log.d(TAG, "Final programme: $name")
-        Log.d(TAG, "Total weeks: ${weeks.size}")
-        Log.d(TAG, "Total workouts: ${weeks.sumOf { it.workouts.size }}")
-        Log.d(TAG, "Total exercises: ${weeks.sumOf { week -> week.workouts.sumOf { it.exercises.size } }}")
+        CloudLogger.debug(TAG, "=== parseJsonToProgramme COMPLETE ===")
+        CloudLogger.debug(TAG, "Final programme: $name")
+        CloudLogger.debug(TAG, "Total weeks: ${weeks.size}")
+        CloudLogger.debug(TAG, "Total workouts: ${weeks.sumOf { it.workouts.size }}")
+        CloudLogger.debug(TAG, "Total exercises: ${weeks.sumOf { week -> week.workouts.sumOf { it.exercises.size } }}")
 
         // Post-parse validation
         require(weeks.isNotEmpty()) {
@@ -703,7 +703,7 @@ open class ProgrammeTextParser(
             week.workouts.forEach { workout ->
                 workout.exercises.forEach { exercise ->
                     if (exercise.sets.isEmpty()) {
-                        Log.w(TAG, "Exercise '${exercise.exerciseName}' has no sets")
+                        CloudLogger.warn(TAG, "Exercise '${exercise.exerciseName}' has no sets")
                     }
                     totalSets += exercise.sets.size
                 }

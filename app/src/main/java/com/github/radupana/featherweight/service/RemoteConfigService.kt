@@ -1,6 +1,6 @@
 package com.github.radupana.featherweight.service
 
-import android.util.Log
+import com.github.radupana.featherweight.util.CloudLogger
 import com.google.firebase.Firebase
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.remoteConfig
@@ -13,6 +13,14 @@ class RemoteConfigService(
     companion object {
         private const val TAG = "RemoteConfigService"
         private const val OPENAI_API_KEY = "openai_api_key"
+
+        private const val LOGGING_ENABLED = "logging_enabled"
+        private const val LOGGING_MIN_LEVEL = "logging_min_level"
+        private const val LOGGING_SAMPLE_RATE_INFO = "logging_sample_rate_info"
+        private const val LOGGING_SAMPLE_RATE_DEBUG = "logging_sample_rate_debug"
+        private const val LOGGING_BATCH_SIZE = "logging_batch_size"
+        private const val LOGGING_BATCH_INTERVAL_MS = "logging_batch_interval_ms"
+        private const val CLOUD_LOGGING_FUNCTION_URL = "cloud_logging_function_url"
 
         @Volatile
         private var instance: RemoteConfigService? = null
@@ -36,23 +44,30 @@ class RemoteConfigService(
         remoteConfig.setDefaultsAsync(
             mapOf(
                 OPENAI_API_KEY to "",
+                LOGGING_ENABLED to true,
+                LOGGING_MIN_LEVEL to "INFO",
+                LOGGING_SAMPLE_RATE_INFO to 0.1,
+                LOGGING_SAMPLE_RATE_DEBUG to 0.01,
+                LOGGING_BATCH_SIZE to 10L,
+                LOGGING_BATCH_INTERVAL_MS to 30000L,
+                CLOUD_LOGGING_FUNCTION_URL to "",
             ),
         )
     }
 
-    private suspend fun initialize() {
+    suspend fun initialize() {
         if (isInitialized) return
 
         try {
             remoteConfig.fetchAndActivate().await()
             isInitialized = true
-            Log.d(TAG, "Remote config initialized successfully")
+            CloudLogger.debug(TAG, "Remote config initialized successfully")
         } catch (e: com.google.firebase.remoteconfig.FirebaseRemoteConfigException) {
-            Log.e(TAG, "Failed to fetch remote config", e)
+            CloudLogger.error(TAG, "Failed to fetch remote config", e)
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            Log.e(TAG, "Remote config fetch timed out", e)
+            CloudLogger.error(TAG, "Remote config fetch timed out", e)
         } catch (e: java.io.IOException) {
-            Log.e(TAG, "Network error fetching remote config", e)
+            CloudLogger.error(TAG, "Network error fetching remote config", e)
         }
     }
 
@@ -68,8 +83,16 @@ class RemoteConfigService(
             cachedApiKey = key
             key
         } else {
-            Log.w(TAG, "OpenAI API key not found in remote config")
+            CloudLogger.warn(TAG, "OpenAI API key not found in remote config")
             null
         }
     }
+
+    fun getString(key: String): String = remoteConfig.getString(key)
+
+    fun getBoolean(key: String): Boolean = remoteConfig.getBoolean(key)
+
+    fun getDouble(key: String): Double = remoteConfig.getDouble(key)
+
+    fun getLong(key: String): Long = remoteConfig.getLong(key)
 }

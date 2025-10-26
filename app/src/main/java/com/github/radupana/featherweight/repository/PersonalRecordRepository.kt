@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
-import android.util.Log
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
@@ -9,6 +8,7 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.profile.ExerciseMaxTracking
 import com.github.radupana.featherweight.service.OneRMService
 import com.github.radupana.featherweight.service.PRDetectionService
+import com.github.radupana.featherweight.util.CloudLogger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -52,17 +52,17 @@ class PersonalRecordRepository(
         updateOrInsertOneRM: suspend (ExerciseMaxTracking) -> Unit,
     ): List<PersonalRecord> =
         withContext(ioDispatcher) {
-            Log.d(TAG, "Checking for PR: weight=${setLog.actualWeight}kg, reps=${setLog.actualReps}, completed=${setLog.isCompleted}")
+            CloudLogger.debug(TAG, "Checking for PR: weight=${setLog.actualWeight}kg, reps=${setLog.actualReps}, completed=${setLog.isCompleted}")
             val prs = prService.checkForPR(setLog, exerciseId)
 
             if (prs.isNotEmpty()) {
-                Log.d(TAG, "Looking up exercise name for ID $exerciseId")
+                CloudLogger.debug(TAG, "Looking up exercise name for ID $exerciseId")
                 val exercise = exerciseDao.getExerciseById(exerciseId)
                 val exerciseName = exercise?.name ?: "Unknown"
-                Log.d(TAG, "Exercise lookup result: $exerciseName")
+                CloudLogger.debug(TAG, "Exercise lookup result: $exerciseName")
 
                 prs.forEach { pr ->
-                    Log.i(
+                    CloudLogger.info(
                         TAG,
                         "Personal record achieved - exercise: $exerciseName, type: ${pr.recordType.name}, " +
                             "weight: ${pr.weight}kg, reps: ${pr.reps}, estimated 1RM: ${pr.estimated1RM ?: 0f}kg, " +

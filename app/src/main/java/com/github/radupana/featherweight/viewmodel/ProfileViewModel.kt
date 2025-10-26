@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.ExistingWorkPolicy
@@ -18,6 +17,7 @@ import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.AccountDeletionService
 import com.github.radupana.featherweight.service.FirebaseAuthService
 import com.github.radupana.featherweight.service.WorkoutSeedingService
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.github.radupana.featherweight.util.MigrationStateManager
 import com.github.radupana.featherweight.worker.ExportWorkoutsWorker
@@ -431,14 +431,14 @@ class ProfileViewModel(
                         error = "Permission error clearing data: ${e.message}",
                     )
             } catch (e: com.google.firebase.FirebaseException) {
-                Log.e(TAG, "Firebase error clearing data", e)
+                CloudLogger.error(TAG, "Firebase error clearing data", e)
                 _uiState.value =
                     _uiState.value.copy(
                         isClearingData = false,
                         error = "Firebase error clearing data: ${e.message}",
                     )
             } catch (e: java.io.IOException) {
-                Log.e(TAG, "IO error clearing data", e)
+                CloudLogger.error(TAG, "IO error clearing data", e)
                 _uiState.value =
                     _uiState.value.copy(
                         isClearingData = false,
@@ -601,19 +601,19 @@ class ProfileViewModel(
                 // Force UI refresh
                 loadAccountInfo()
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Database error during sign out", e)
+                CloudLogger.error(TAG, "Database error during sign out", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Database error signing out: ${e.message}",
                     )
             } catch (e: com.google.firebase.FirebaseException) {
-                Log.e(TAG, "Firebase error during sign out", e)
+                CloudLogger.error(TAG, "Firebase error during sign out", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Firebase error signing out: ${e.message}",
                     )
             } catch (e: java.io.IOException) {
-                Log.e(TAG, "IO error during sign out", e)
+                CloudLogger.error(TAG, "IO error during sign out", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "IO error signing out: ${e.message}",

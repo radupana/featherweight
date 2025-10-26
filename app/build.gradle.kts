@@ -159,6 +159,9 @@ dependencies {
     // Splash Screen
     implementation(libs.androidx.core.splashscreen)
 
+    // Coroutines
+    implementation(libs.kotlinx.coroutines.play.services)
+
     // Unit Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test.junit)
@@ -223,6 +226,10 @@ dependencies {
     implementation(libs.firebase.config)
     implementation(libs.firebase.performance)
 
+    // App Check for security
+    implementation(libs.firebase.appcheck.playintegrity)
+    implementation(libs.firebase.appcheck.debug)
+
     // Firebase App Distribution - API only for all builds
     implementation(libs.firebase.appdistribution.api)
     // Full SDK for debug and alpha builds
@@ -237,4 +244,3 @@ tasks.named("preBuild") {
 tasks.named("check") {
     dependsOn("detekt", "ktlintCheck")
 }
-

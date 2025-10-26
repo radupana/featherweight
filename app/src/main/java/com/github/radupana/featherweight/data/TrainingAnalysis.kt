@@ -1,8 +1,8 @@
 package com.github.radupana.featherweight.data
 
-import android.util.Log
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.IdGenerator
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
@@ -40,7 +40,7 @@ data class TrainingAnalysis(
                     object : TypeToken<List<TrainingInsight>>() {}.type,
                 ) ?: emptyList()
             } catch (e: JsonSyntaxException) {
-                Log.w(TAG, "Failed to parse key insights JSON", e)
+                CloudLogger.warn(TAG, "Failed to parse key insights JSON", e)
                 emptyList()
             }
 
@@ -52,7 +52,7 @@ data class TrainingAnalysis(
                     object : TypeToken<List<String>>() {}.type,
                 ) ?: emptyList()
             } catch (e: JsonSyntaxException) {
-                Log.w(TAG, "Failed to parse recommendations JSON", e)
+                CloudLogger.warn(TAG, "Failed to parse recommendations JSON", e)
                 emptyList()
             }
 
@@ -64,7 +64,7 @@ data class TrainingAnalysis(
                     object : TypeToken<List<String>>() {}.type,
                 ) ?: emptyList()
             } catch (e: JsonSyntaxException) {
-                Log.w(TAG, "Failed to parse warnings JSON", e)
+                CloudLogger.warn(TAG, "Failed to parse warnings JSON", e)
                 emptyList()
             }
 }

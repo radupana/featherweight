@@ -1,10 +1,10 @@
 package com.github.radupana.featherweight.service
 
-import android.util.Log
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.data.profile.ExerciseMaxTracking
 import com.github.radupana.featherweight.data.profile.OneRMType
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.WeightFormatter
 import java.time.LocalDateTime
 import kotlin.math.pow
@@ -29,15 +29,15 @@ class OneRMService {
         rpe: Float? = null,
         scalingType: RMScalingType = RMScalingType.STANDARD,
     ): Float? {
-        Log.d("OneRMService", "calculateEstimated1RM: weight=$weight, reps=$reps, rpe=$rpe, scalingType=$scalingType")
+        CloudLogger.debug("OneRMService", "calculateEstimated1RM: weight=$weight, reps=$reps, rpe=$rpe, scalingType=$scalingType")
 
         if (reps <= 0 || reps > MAX_REPS_FOR_ESTIMATE) {
-            Log.d("OneRMService", "Skipping 1RM calc: reps out of range ($reps)")
+            CloudLogger.debug("OneRMService", "Skipping 1RM calc: reps out of range ($reps)")
             return null
         }
 
         if (rpe != null && rpe <= 6.0f) {
-            Log.d("OneRMService", "Skipping 1RM calc: RPE too low ($rpe <= 6.0) - unreliable estimate")
+            CloudLogger.debug("OneRMService", "Skipping 1RM calc: RPE too low ($rpe <= 6.0) - unreliable estimate")
             return null
         }
 
@@ -46,22 +46,22 @@ class OneRMService {
                 rpe != null && rpe > 6.0f -> {
                     val repsInReserve = (10f - rpe).coerceAtLeast(0f)
                     val total = reps + repsInReserve
-                    Log.d("OneRMService", "RPE conversion: $reps reps @ RPE $rpe = $total total rep capacity ($repsInReserve RIR)")
+                    CloudLogger.debug("OneRMService", "RPE conversion: $reps reps @ RPE $rpe = $total total rep capacity ($repsInReserve RIR)")
                     total
                 }
                 rpe == null -> {
-                    Log.d("OneRMService", "No RPE provided, assuming maximal effort: $reps reps")
+                    CloudLogger.debug("OneRMService", "No RPE provided, assuming maximal effort: $reps reps")
                     reps.toFloat()
                 }
                 else -> {
                     // This shouldn't happen due to the check above, but just in case
-                    Log.d("OneRMService", "Unexpected RPE state: $rpe")
+                    CloudLogger.debug("OneRMService", "Unexpected RPE state: $rpe")
                     reps.toFloat()
                 }
             }
 
         if (totalRepCapacity == 1f) {
-            Log.d("OneRMService", "True 1RM detected: $weight kg")
+            CloudLogger.debug("OneRMService", "True 1RM detected: $weight kg")
             return weight
         }
 
@@ -69,29 +69,29 @@ class OneRMService {
             when (scalingType) {
                 RMScalingType.WEIGHTED_BODYWEIGHT -> {
                     val calc = weight * (1 + totalRepCapacity * 0.035f)
-                    Log.d("OneRMService", "Weighted BW formula: $weight × (1 + $totalRepCapacity × 0.035) = $calc")
+                    CloudLogger.debug("OneRMService", "Weighted BW formula: $weight × (1 + $totalRepCapacity × 0.035) = $calc")
                     calc
                 }
                 RMScalingType.ISOLATION -> {
                     val calc = weight * totalRepCapacity.pow(0.10f)
-                    Log.d("OneRMService", "Isolation formula: $weight × $totalRepCapacity^0.10 = $calc")
+                    CloudLogger.debug("OneRMService", "Isolation formula: $weight × $totalRepCapacity^0.10 = $calc")
                     calc
                 }
                 RMScalingType.STANDARD -> {
                     val calc = weight / (1.0278f - 0.0278f * totalRepCapacity)
-                    Log.d("OneRMService", "Standard Brzycki: $weight / (1.0278 - 0.0278 × $totalRepCapacity) = $calc")
+                    CloudLogger.debug("OneRMService", "Standard Brzycki: $weight / (1.0278 - 0.0278 × $totalRepCapacity) = $calc")
                     calc
                 }
                 RMScalingType.CONSERVATIVE, RMScalingType.UNKNOWN -> {
                     // Use standard formula with 5% reduction for safety
                     val standardCalc = weight / (1.0278f - 0.0278f * totalRepCapacity)
                     val calc = standardCalc * 0.95f
-                    Log.d("OneRMService", "Conservative formula: Standard × 0.95 = $standardCalc × 0.95 = $calc")
+                    CloudLogger.debug("OneRMService", "Conservative formula: Standard × 0.95 = $standardCalc × 0.95 = $calc")
                     calc
                 }
             }
 
-        Log.d("OneRMService", "Final 1RM estimate: ${WeightFormatter.formatDecimal(result, 2)}kg")
+        CloudLogger.debug("OneRMService", "Final 1RM estimate: ${WeightFormatter.formatDecimal(result, 2)}kg")
         return result
     }
 

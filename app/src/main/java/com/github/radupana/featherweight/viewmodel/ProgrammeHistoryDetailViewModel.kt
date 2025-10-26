@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.FeatherweightDatabase
@@ -11,6 +10,7 @@ import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.ProgrammeHistoryDetails
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.WorkoutExportService
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.utils.ExportHandler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -110,7 +110,7 @@ class ProgrammeHistoryDetailViewModel(
                 _pendingExportFile.value = file
                 _isExporting.value = false
             } catch (e: IllegalArgumentException) {
-                Log.e(TAG, "Failed to export programme", e)
+                CloudLogger.error(TAG, "Failed to export programme", e)
                 _isExporting.value = false
             } finally {
                 _exportProgress.value = 0f
@@ -126,7 +126,7 @@ class ProgrammeHistoryDetailViewModel(
                     file.delete()
                     _pendingExportFile.value = null
                 } catch (e: java.io.IOException) {
-                    Log.e(TAG, "Failed to save exported file", e)
+                    CloudLogger.error(TAG, "Failed to save exported file", e)
                 }
             }
         }

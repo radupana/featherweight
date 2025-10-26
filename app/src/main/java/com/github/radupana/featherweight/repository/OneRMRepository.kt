@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
-import android.util.Log
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
 import com.github.radupana.featherweight.data.profile.Big4ExerciseWithOptionalMax
@@ -10,6 +9,7 @@ import com.github.radupana.featherweight.data.profile.OneRMType
 import com.github.radupana.featherweight.data.profile.OneRMWithExerciseName
 import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.manager.AuthenticationManager
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -81,7 +81,7 @@ class OneRMRepository(
             )
         }
 
-        Log.i(
+        CloudLogger.info(
             TAG,
             "1RM updated - exercise: $exerciseName, previous: ${previousMax ?: 0f}kg, " +
                 "new: ${roundedWeight}kg, source: ${update.source}, " +
@@ -142,19 +142,19 @@ class OneRMRepository(
 
             if (existing != null) {
                 if (roundedEstimate > existing.oneRMEstimate) {
-                    Log.i(
+                    CloudLogger.info(
                         TAG,
                         "New 1RM PR! Exercise: $exerciseName, old: ${existing.oneRMEstimate}kg, new: ${roundedEstimate}kg",
                     )
                     oneRMDao.update(roundedRecord.copy(id = existing.id))
                 } else {
-                    Log.d(
+                    CloudLogger.debug(
                         TAG,
                         "1RM not updated (not a PR): $exerciseName, current: ${existing.oneRMEstimate}kg, attempted: ${roundedEstimate}kg",
                     )
                 }
             } else {
-                Log.i(
+                CloudLogger.info(
                     TAG,
                     "First 1RM recorded for $exerciseName: ${roundedEstimate}kg",
                 )
@@ -182,7 +182,7 @@ class OneRMRepository(
             it.exerciseId != update.exerciseId
         } + update
 
-        Log.i(
+        CloudLogger.info(
             TAG,
             "Added pending 1RM update - exerciseId: ${update.exerciseId}, suggested: ${update.suggestedMax}kg, current: ${update.currentMax}kg",
         )

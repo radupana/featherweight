@@ -2,7 +2,6 @@ package com.github.radupana.featherweight
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -27,6 +26,7 @@ import androidx.lifecycle.lifecycleScope
 import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
+import com.github.radupana.featherweight.util.CloudLogger
 import kotlinx.coroutines.launch
 
 class WelcomeActivity : ComponentActivity() {
@@ -46,14 +46,14 @@ class WelcomeActivity : ComponentActivity() {
 
         // Check for corrupted auth state
         if (storedUserId != null && firebaseUser == null) {
-            Log.w("WelcomeActivity", "Corrupted auth state detected: stored user $storedUserId but Firebase Auth is null")
+            CloudLogger.warn("WelcomeActivity", "Corrupted auth state detected: stored user $storedUserId but Firebase Auth is null")
             // Clear auth preferences
             authManager.clearUserData()
             // CRITICAL: Also clear ALL database data to prevent restored backup data
             lifecycleScope.launch {
-                Log.w("WelcomeActivity", "Clearing ALL local database data due to corrupted auth state")
+                CloudLogger.warn("WelcomeActivity", "Clearing ALL local database data due to corrupted auth state")
                 repository.clearLocalUserDataOnly()
-                Log.i("WelcomeActivity", "Cleared corrupted auth data and database, showing welcome screen")
+                CloudLogger.info("WelcomeActivity", "Cleared corrupted auth data and database, showing welcome screen")
             }
         }
 
@@ -61,16 +61,16 @@ class WelcomeActivity : ComponentActivity() {
         val isAuthenticated = authManager.isAuthenticated()
         val userId = authManager.getCurrentUserId()
 
-        Log.d("WelcomeActivity", "onCreate: isFirstLaunch=$isFirstLaunch, isAuthenticated=$isAuthenticated, userId=$userId")
+        CloudLogger.debug("WelcomeActivity", "onCreate: isFirstLaunch=$isFirstLaunch, isAuthenticated=$isAuthenticated, userId=$userId")
 
         // Only skip to main if not first launch AND user is authenticated or has explicitly chosen unauthenticated
         if (!isFirstLaunch && (isAuthenticated || authManager.hasSeenUnauthenticatedWarning())) {
-            Log.d("WelcomeActivity", "Skipping to MainActivity")
+            CloudLogger.debug("WelcomeActivity", "Skipping to MainActivity")
             navigateToMain()
             return
         }
 
-        Log.d("WelcomeActivity", "Showing welcome screen")
+        CloudLogger.debug("WelcomeActivity", "Showing welcome screen")
 
         setContent {
             FeatherweightTheme {
@@ -83,19 +83,19 @@ class WelcomeActivity : ComponentActivity() {
     }
 
     private fun navigateToMain() {
-        Log.i("WelcomeActivity", "Navigating to MainActivity")
+        CloudLogger.info("WelcomeActivity", "Navigating to MainActivity")
         startActivity(Intent(this, MainActivity::class.java))
         finish()
     }
 
     private fun navigateToSignIn() {
-        Log.i("WelcomeActivity", "User chose to sign in, navigating to SignInActivity")
+        CloudLogger.info("WelcomeActivity", "User chose to sign in, navigating to SignInActivity")
         startActivity(Intent(this, SignInActivity::class.java))
         finish()
     }
 
     private fun continueWithoutAccount() {
-        Log.i("WelcomeActivity", "User chose to continue without account")
+        CloudLogger.info("WelcomeActivity", "User chose to continue without account")
         authManager.setFirstLaunchComplete()
         authManager.setUnauthenticatedWarningShown()
         navigateToMain()

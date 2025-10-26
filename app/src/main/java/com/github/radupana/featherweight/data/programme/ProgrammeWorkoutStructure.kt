@@ -1,6 +1,6 @@
 package com.github.radupana.featherweight.data.programme
 
-import android.util.Log
+import com.github.radupana.featherweight.util.CloudLogger
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -111,7 +111,7 @@ object ProgrammeWorkoutParser {
         try {
             json.decodeFromString<ProgrammeStructure>(jsonString)
         } catch (e: kotlinx.serialization.SerializationException) {
-            Log.w(TAG, "Failed to parse programme structure JSON", e)
+            CloudLogger.warn(TAG, "Failed to parse programme structure JSON", e)
             null
         }
 

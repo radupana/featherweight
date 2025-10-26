@@ -2,7 +2,6 @@ package com.github.radupana.featherweight
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -67,6 +66,7 @@ import com.github.radupana.featherweight.ui.screens.WorkoutSelectionForTemplateS
 import com.github.radupana.featherweight.ui.screens.WorkoutTemplateSelectionScreen
 import com.github.radupana.featherweight.ui.screens.WorkoutsScreen
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.MigrationStateManager
 import com.github.radupana.featherweight.viewmodel.HistoryViewModel
 import com.github.radupana.featherweight.viewmodel.ImportProgrammeViewModel
@@ -131,17 +131,17 @@ class MainActivity : ComponentActivity() {
 
         // Check for corrupted auth state
         if (storedUserId != null && firebaseUser == null) {
-            Log.w(TAG, "Corrupted auth state detected: stored user $storedUserId but Firebase Auth is null")
+            CloudLogger.warn(TAG, "Corrupted auth state detected: stored user $storedUserId but Firebase Auth is null")
             // Clear auth preferences
             authManager.clearUserData()
             // CRITICAL: Also clear ALL database data to prevent restored backup data
             lifecycleScope.launch {
-                Log.w(TAG, "Clearing ALL local database data due to corrupted auth state")
+                CloudLogger.warn(TAG, "Clearing ALL local database data due to corrupted auth state")
                 try {
                     repository.clearLocalUserDataOnly()
-                    Log.i(TAG, "Cleared corrupted auth data and database, redirecting to WelcomeActivity")
+                    CloudLogger.info(TAG, "Cleared corrupted auth data and database, redirecting to WelcomeActivity")
                 } catch (e: android.database.sqlite.SQLiteException) {
-                    Log.e(TAG, "Failed to clear database data", e)
+                    CloudLogger.error(TAG, "Failed to clear database data", e)
                 }
                 // Navigate to Welcome after clearing (even if database clear fails)
                 startActivity(Intent(this@MainActivity, WelcomeActivity::class.java))
@@ -152,18 +152,18 @@ class MainActivity : ComponentActivity() {
 
         // Update stored user if Firebase user exists but differs
         if (firebaseUser != null && storedUserId != firebaseUser.uid) {
-            Log.i(TAG, "Updating stored user ID from $storedUserId to ${firebaseUser.uid}")
+            CloudLogger.info(TAG, "Updating stored user ID from $storedUserId to ${firebaseUser.uid}")
             authManager.setCurrentUserId(firebaseUser.uid)
 
             // CRITICAL: Clean up any stale data from previous user
             lifecycleScope.launch {
-                Log.w(TAG, "User ID changed, validating database for stale data")
+                CloudLogger.warn(TAG, "User ID changed, validating database for stale data")
                 try {
                     // Clear any existing data to prevent cross-user data leakage
                     repository.clearLocalUserDataOnly()
-                    Log.i(TAG, "Cleared database to prevent data leakage between users")
+                    CloudLogger.info(TAG, "Cleared database to prevent data leakage between users")
                 } catch (e: android.database.sqlite.SQLiteException) {
-                    Log.e(TAG, "Failed to clear stale user data", e)
+                    CloudLogger.error(TAG, "Failed to clear stale user data", e)
                 }
             }
         }
@@ -173,13 +173,13 @@ class MainActivity : ComponentActivity() {
         val isAuthenticated = authManager.isAuthenticated()
         val hasSeenWarning = authManager.hasSeenUnauthenticatedWarning()
 
-        Log.i(TAG, "MainActivity check: isFirstLaunch=$isFirstLaunch, isAuthenticated=$isAuthenticated, hasSeenWarning=$hasSeenWarning")
+        CloudLogger.info(TAG, "MainActivity check: isFirstLaunch=$isFirstLaunch, isAuthenticated=$isAuthenticated, hasSeenWarning=$hasSeenWarning")
 
         // Redirect to WelcomeActivity if:
         // 1. It's the first launch OR
         // 2. User is not authenticated AND hasn't explicitly chosen to continue without account
         if (isFirstLaunch || (!isAuthenticated && !hasSeenWarning)) {
-            Log.i(TAG, "Redirecting to WelcomeActivity")
+            CloudLogger.info(TAG, "Redirecting to WelcomeActivity")
             startActivity(Intent(this, WelcomeActivity::class.java))
             finish()
             return
@@ -191,7 +191,7 @@ class MainActivity : ComponentActivity() {
             !currentUser.isEmailVerified &&
             currentUser.providerData.any { it.providerId == "password" }
         ) {
-            Log.i(TAG, "Email not verified, redirecting to EmailVerificationActivity")
+            CloudLogger.info(TAG, "Email not verified, redirecting to EmailVerificationActivity")
             startActivity(Intent(this, EmailVerificationActivity::class.java))
             finish()
             return
@@ -200,35 +200,35 @@ class MainActivity : ComponentActivity() {
         // Check for local data migration if authenticated
         val userId = authManager.getCurrentUserId()
         if (userId != null && userId != "local" && migrationStateManager.shouldAttemptMigration()) {
-            Log.i(TAG, "Checking for local data migration on app startup for user: $userId")
+            CloudLogger.info(TAG, "Checking for local data migration on app startup for user: $userId")
             lifecycleScope.launch {
                 try {
                     val hasLocalData = migrationService.hasLocalData()
                     if (hasLocalData) {
-                        Log.i(TAG, "Local data found on startup, attempting migration")
+                        CloudLogger.info(TAG, "Local data found on startup, attempting migration")
                         migrationStateManager.incrementMigrationAttempts()
 
                         val migrationSuccess = migrationService.migrateLocalDataToUser(userId)
                         if (migrationSuccess) {
-                            Log.i(TAG, "Startup migration successful")
+                            CloudLogger.info(TAG, "Startup migration successful")
                             migrationStateManager.markMigrationCompleted(userId)
                             // Clean up local data after successful migration
                             migrationService.cleanupLocalData()
                         } else {
-                            Log.e(TAG, "Startup migration failed")
+                            CloudLogger.error(TAG, "Startup migration failed")
                         }
                     } else {
-                        Log.i(TAG, "No local data found on startup")
+                        CloudLogger.info(TAG, "No local data found on startup")
                     }
                 } catch (e: android.database.sqlite.SQLiteException) {
-                    Log.e(TAG, "Database error during migration check", e)
+                    CloudLogger.error(TAG, "Database error during migration check", e)
                 } catch (e: com.google.firebase.FirebaseException) {
-                    Log.e(TAG, "Firebase error during migration check", e)
+                    CloudLogger.error(TAG, "Firebase error during migration check", e)
                 }
             }
         }
 
-        Log.i(
+        CloudLogger.info(
             TAG,
             "App started - version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}), " +
                 "debug: ${BuildConfig.DEBUG}",
@@ -265,7 +265,7 @@ class MainActivity : ComponentActivity() {
                             MainAppWithNavigation(
                                 currentScreen = currentScreen,
                                 onScreenChange = { screen ->
-                                    Log.i(
+                                    CloudLogger.info(
                                         TAG,
                                         "Navigation: ${currentScreen.name} -> ${screen.name}",
                                     )
@@ -285,34 +285,34 @@ class MainActivity : ComponentActivity() {
                 }
             }
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "UI initialization error", e)
+            CloudLogger.error(TAG, "UI initialization error", e)
             // UI initialization errors are handled gracefully by the framework
         }
     }
 
     override fun onResume() {
         super.onResume()
-        Log.d(TAG, "Activity resumed")
+        CloudLogger.debug(TAG, "Activity resumed")
     }
 
     override fun onPause() {
         super.onPause()
-        Log.d(TAG, "Activity paused")
+        CloudLogger.debug(TAG, "Activity paused")
     }
 
     override fun onStop() {
         super.onStop()
-        Log.d(TAG, "Activity stopped")
+        CloudLogger.debug(TAG, "Activity stopped")
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.i(TAG, "Activity destroyed")
+        CloudLogger.info(TAG, "Activity destroyed")
     }
 }
 
 private fun schedulePeriodicSync(context: android.content.Context) {
-    Log.i("MainActivity", "Scheduling periodic sync")
+    CloudLogger.info("MainActivity", "Scheduling periodic sync")
 
     val constraints =
         Constraints
@@ -350,7 +350,7 @@ private fun schedulePeriodicSync(context: android.content.Context) {
         systemExerciseSyncRequest,
     )
 
-    Log.i("MainActivity", "Periodic sync scheduled successfully")
+    CloudLogger.info("MainActivity", "Periodic sync scheduled successfully")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -388,20 +388,20 @@ fun MainAppWithNavigation(
 
                 if (userId != null && userId != "local") {
                     // Authenticated user - trigger full sync
-                    Log.i("MainActivity", "Triggering full sync for authenticated user: $userId")
+                    CloudLogger.info("MainActivity", "Triggering full sync for authenticated user: $userId")
                     syncManager.syncAll()
 
                     // Always schedule periodic sync for authenticated users
                     schedulePeriodicSync(context)
                 } else {
                     // Unauthenticated user - just sync system exercises
-                    Log.i("MainActivity", "Triggering system exercise sync for unauthenticated user")
+                    CloudLogger.info("MainActivity", "Triggering system exercise sync for unauthenticated user")
                     syncManager.syncSystemExercises()
                 }
             } catch (e: com.google.firebase.FirebaseException) {
-                Log.e("MainActivity", "Firebase error during sync", e)
+                CloudLogger.error("MainActivity", "Firebase error during sync", e)
             } catch (e: java.io.IOException) {
-                Log.e("MainActivity", "Network error during sync", e)
+                CloudLogger.error("MainActivity", "Network error during sync", e)
             }
         }
     }
@@ -547,11 +547,11 @@ fun MainAppWithNavigation(
                         }
                     },
                     onSaveAsTemplate = { workoutId ->
-                        Log.i("MainActivity", "onSaveAsTemplate called from WorkoutScreen with workoutId: $workoutId")
-                        Log.i("MainActivity", "Current completedWorkoutId before change: $completedWorkoutId")
+                        CloudLogger.info("MainActivity", "onSaveAsTemplate called from WorkoutScreen with workoutId: $workoutId")
+                        CloudLogger.info("MainActivity", "Current completedWorkoutId before change: $completedWorkoutId")
                         onCompletedWorkoutIdChange(workoutId)
-                        Log.i("MainActivity", "Set completedWorkoutId to: $workoutId")
-                        Log.i("MainActivity", "Navigating to CREATE_TEMPLATE_FROM_WORKOUT")
+                        CloudLogger.info("MainActivity", "Set completedWorkoutId to: $workoutId")
+                        CloudLogger.info("MainActivity", "Navigating to CREATE_TEMPLATE_FROM_WORKOUT")
                         onScreenChange(Screen.CREATE_TEMPLATE_FROM_WORKOUT)
                     },
                     onExportWorkout = { workoutId ->
@@ -567,13 +567,13 @@ fun MainAppWithNavigation(
                         onScreenChange(Screen.PROGRAMME_COMPLETION)
                     },
                     onTemplateSaved = {
-                        Log.d("MainActivity", "onTemplateSaved called")
+                        CloudLogger.debug("MainActivity", "onTemplateSaved called")
                         // Get the saved workout from WorkoutViewModel
                         val workoutState = workoutViewModel.workoutState.value
                         val weekIndex = workoutState.templateWeekIndex
                         val workoutIndex = workoutState.templateWorkoutIndex
 
-                        Log.d("MainActivity", "Week index: $weekIndex, Workout index: $workoutIndex")
+                        CloudLogger.debug("MainActivity", "Week index: $weekIndex, Workout index: $workoutIndex")
 
                         if (weekIndex != null && workoutIndex != null) {
                             // Get current workout data
@@ -614,14 +614,14 @@ fun MainAppWithNavigation(
                             // Update the parsed programme in ImportProgrammeViewModel
                             importViewModel.updateParsedWorkout(weekIndex, workoutIndex, updatedWorkout)
                         } else {
-                            Log.e("MainActivity", "Week or workout index is null!")
+                            CloudLogger.error("MainActivity", "Week or workout index is null!")
                         }
 
                         // Delay navigation to show the "Saved" feedback
-                        Log.d("MainActivity", "Starting navigation delay...")
+                        CloudLogger.debug("MainActivity", "Starting navigation delay...")
                         coroutineScope.launch {
                             kotlinx.coroutines.delay(800)
-                            Log.d("MainActivity", "Navigation delay complete, navigating to IMPORT_PROGRAMME")
+                            CloudLogger.debug("MainActivity", "Navigation delay complete, navigating to IMPORT_PROGRAMME")
                             // Navigate back to import screen
                             onScreenChange(Screen.IMPORT_PROGRAMME)
                         }
@@ -718,29 +718,29 @@ fun MainAppWithNavigation(
             }
 
             Screen.WORKOUT_COMPLETION -> {
-                Log.i("MainActivity", "WORKOUT_COMPLETION screen - completedWorkoutId: $completedWorkoutId")
+                CloudLogger.info("MainActivity", "WORKOUT_COMPLETION screen - completedWorkoutId: $completedWorkoutId")
                 completedWorkoutId?.let { workoutId ->
                     WorkoutCompletionScreen(
                         workoutId = workoutId,
                         onDismiss = {
-                            Log.i("MainActivity", "Dismissing workout completion screen")
+                            CloudLogger.info("MainActivity", "Dismissing workout completion screen")
                             // Clear the completed workout ID
                             onCompletedWorkoutIdChange(null)
                             // Navigate to workouts screen
                             onScreenChange(Screen.WORKOUTS)
                         },
                         onSaveAsTemplate = { passedWorkoutId ->
-                            Log.i("MainActivity", "onSaveAsTemplate from WORKOUT_COMPLETION - passedWorkoutId: $passedWorkoutId, completedWorkoutId: $completedWorkoutId")
+                            CloudLogger.info("MainActivity", "onSaveAsTemplate from WORKOUT_COMPLETION - passedWorkoutId: $passedWorkoutId, completedWorkoutId: $completedWorkoutId")
                             // Make sure we have the workout ID set before navigating
                             if (passedWorkoutId != completedWorkoutId) {
-                                Log.w("MainActivity", "Passed workout ID ($passedWorkoutId) differs from completedWorkoutId ($completedWorkoutId), using passed ID")
+                                CloudLogger.warn("MainActivity", "Passed workout ID ($passedWorkoutId) differs from completedWorkoutId ($completedWorkoutId), using passed ID")
                                 onCompletedWorkoutIdChange(passedWorkoutId)
                             }
                             onScreenChange(Screen.CREATE_TEMPLATE_FROM_WORKOUT)
                         },
                     )
                 } ?: run {
-                    Log.w("MainActivity", "WORKOUT_COMPLETION - No workout ID, going back to workouts")
+                    CloudLogger.warn("MainActivity", "WORKOUT_COMPLETION - No workout ID, going back to workouts")
                     // If no workout ID, go back to workouts
                     onScreenChange(Screen.WORKOUTS)
                 }
@@ -853,15 +853,15 @@ fun MainAppWithNavigation(
 
                 WorkoutTemplateSelectionScreen(
                     onTemplateSelected = { templateId ->
-                        Log.i("MainActivity", "Template selected: $templateId, starting workout from template...")
+                        CloudLogger.info("MainActivity", "Template selected: $templateId, starting workout from template...")
                         coroutineScope.launch {
                             workoutViewModel.startWorkoutFromTemplate(templateId)
-                            Log.i("MainActivity", "Navigating to ACTIVE_WORKOUT")
+                            CloudLogger.info("MainActivity", "Navigating to ACTIVE_WORKOUT")
                             onScreenChange(Screen.ACTIVE_WORKOUT)
                         }
                     },
                     onCreateFromHistory = {
-                        Log.i("MainActivity", "Navigate to workout selection for template")
+                        CloudLogger.info("MainActivity", "Navigate to workout selection for template")
                         onScreenChange(Screen.WORKOUT_SELECTION_FOR_TEMPLATE)
                     },
                     onBack = { onScreenChange(Screen.WORKOUTS) },
@@ -872,7 +872,7 @@ fun MainAppWithNavigation(
             Screen.WORKOUT_SELECTION_FOR_TEMPLATE -> {
                 WorkoutSelectionForTemplateScreen(
                     onWorkoutSelected = { workoutId ->
-                        Log.i("MainActivity", "Workout selected for template: $workoutId")
+                        CloudLogger.info("MainActivity", "Workout selected for template: $workoutId")
                         selectedTemplateWorkoutId = workoutId
                         onScreenChange(Screen.CREATE_TEMPLATE_FROM_SELECTED_WORKOUT)
                     },
@@ -915,17 +915,17 @@ fun MainAppWithNavigation(
                         onScreenChange(Screen.PROGRAMMES)
                     },
                     onNavigateToWorkoutEdit = { weekIndex, workoutIndex ->
-                        Log.d("MainActivity", "onNavigateToWorkoutEdit: week=$weekIndex, workout=$workoutIndex")
+                        CloudLogger.debug("MainActivity", "onNavigateToWorkoutEdit: week=$weekIndex, workout=$workoutIndex")
                         // Get the workout to edit
                         val parsedWorkout = importViewModel.getParsedWorkout(weekIndex, workoutIndex)
                         if (parsedWorkout != null) {
-                            Log.d("MainActivity", "Retrieved parsedWorkout: $parsedWorkout")
+                            CloudLogger.debug("MainActivity", "Retrieved parsedWorkout: $parsedWorkout")
                             // Start template edit mode in workout view model
                             workoutViewModel.startTemplateEdit(weekIndex, workoutIndex, parsedWorkout)
                             // Navigate to workout screen
                             onScreenChange(Screen.ACTIVE_WORKOUT)
                         } else {
-                            Log.e("MainActivity", "Failed to get parsed workout!")
+                            CloudLogger.error("MainActivity", "Failed to get parsed workout!")
                         }
                     },
                     onNavigateToExerciseMapping = {
@@ -964,62 +964,62 @@ fun MainAppWithNavigation(
             }
 
             Screen.CREATE_TEMPLATE_FROM_WORKOUT -> {
-                Log.i("MainActivity", "=== CREATE_TEMPLATE_FROM_WORKOUT screen entered ===")
-                Log.i("MainActivity", "completedWorkoutId value: $completedWorkoutId")
-                Log.i("MainActivity", "previousScreen: $previousScreen")
-                Log.i("MainActivity", "currentScreen: $currentScreen")
+                CloudLogger.info("MainActivity", "=== CREATE_TEMPLATE_FROM_WORKOUT screen entered ===")
+                CloudLogger.info("MainActivity", "completedWorkoutId value: $completedWorkoutId")
+                CloudLogger.info("MainActivity", "previousScreen: $previousScreen")
+                CloudLogger.info("MainActivity", "currentScreen: $currentScreen")
 
                 completedWorkoutId?.let { workoutId ->
-                    Log.i("MainActivity", "Using completedWorkoutId: $workoutId")
+                    CloudLogger.info("MainActivity", "Using completedWorkoutId: $workoutId")
                     CreateTemplateFromWorkoutScreen(
                         workoutId = workoutId,
                         onBack = {
-                            Log.i("MainActivity", "Going back from CREATE_TEMPLATE_FROM_WORKOUT")
+                            CloudLogger.info("MainActivity", "Going back from CREATE_TEMPLATE_FROM_WORKOUT")
                             onScreenChange(Screen.WORKOUT_COMPLETION)
                         },
                         onTemplateCreated = {
-                            Log.i("MainActivity", "onTemplateCreated callback invoked from CREATE_TEMPLATE_FROM_WORKOUT")
-                            Log.i("MainActivity", "Current screen: $currentScreen, Previous screen: $previousScreen")
-                            Log.i("MainActivity", "completedWorkoutId before clearing: $completedWorkoutId")
+                            CloudLogger.info("MainActivity", "onTemplateCreated callback invoked from CREATE_TEMPLATE_FROM_WORKOUT")
+                            CloudLogger.info("MainActivity", "Current screen: $currentScreen, Previous screen: $previousScreen")
+                            CloudLogger.info("MainActivity", "completedWorkoutId before clearing: $completedWorkoutId")
                             // Clear the completed workout ID
                             onCompletedWorkoutIdChange(null)
-                            Log.i("MainActivity", "Cleared completedWorkoutId")
+                            CloudLogger.info("MainActivity", "Cleared completedWorkoutId")
                             // Navigate to templates screen to see the new template
-                            Log.i("MainActivity", "Navigating to WORKOUT_TEMPLATE_SELECTION")
+                            CloudLogger.info("MainActivity", "Navigating to WORKOUT_TEMPLATE_SELECTION")
                             onScreenChange(Screen.WORKOUT_TEMPLATE_SELECTION)
                         },
                         modifier = Modifier.padding(innerPadding),
                     )
                 } ?: run {
-                    Log.w("MainActivity", "completedWorkoutId is null! Trying fallback...")
+                    CloudLogger.warn("MainActivity", "completedWorkoutId is null! Trying fallback...")
                     // If no workout ID is set, try to get it from the current workout
                     val workoutViewModel: WorkoutViewModel = viewModel()
                     val currentWorkoutId = workoutViewModel.currentWorkoutId.collectAsState().value
-                    Log.i("MainActivity", "Current workout ID from viewModel: $currentWorkoutId")
+                    CloudLogger.info("MainActivity", "Current workout ID from viewModel: $currentWorkoutId")
 
                     if (currentWorkoutId != null) {
-                        Log.w("MainActivity", "Using fallback currentWorkoutId: $currentWorkoutId")
+                        CloudLogger.warn("MainActivity", "Using fallback currentWorkoutId: $currentWorkoutId")
                         CreateTemplateFromWorkoutScreen(
                             workoutId = currentWorkoutId,
                             onBack = {
-                                Log.i("MainActivity", "Going back from CREATE_TEMPLATE_FROM_WORKOUT (fallback)")
+                                CloudLogger.info("MainActivity", "Going back from CREATE_TEMPLATE_FROM_WORKOUT (fallback)")
                                 onScreenChange(Screen.ACTIVE_WORKOUT)
                             },
                             onTemplateCreated = {
-                                Log.i("MainActivity", "onTemplateCreated callback invoked (fallback)")
-                                Log.i("MainActivity", "Current screen before navigation: $currentScreen")
+                                CloudLogger.info("MainActivity", "onTemplateCreated callback invoked (fallback)")
+                                CloudLogger.info("MainActivity", "Current screen before navigation: $currentScreen")
                                 // Clear any workout ID
                                 onCompletedWorkoutIdChange(null)
-                                Log.i("MainActivity", "Cleared completedWorkoutId (fallback)")
+                                CloudLogger.info("MainActivity", "Cleared completedWorkoutId (fallback)")
                                 // Navigate to templates screen to see the new template
-                                Log.i("MainActivity", "Navigating to WORKOUT_TEMPLATE_SELECTION (fallback)")
+                                CloudLogger.info("MainActivity", "Navigating to WORKOUT_TEMPLATE_SELECTION (fallback)")
                                 onScreenChange(Screen.WORKOUT_TEMPLATE_SELECTION)
                             },
                             modifier = Modifier.padding(innerPadding),
                         )
                     } else {
-                        Log.e("MainActivity", "CRITICAL: No workout ID available for template creation!")
-                        Log.e("MainActivity", "Navigating to WORKOUT_TEMPLATE_SELECTION as fallback")
+                        CloudLogger.error("MainActivity", "CRITICAL: No workout ID available for template creation!")
+                        CloudLogger.error("MainActivity", "Navigating to WORKOUT_TEMPLATE_SELECTION as fallback")
                         // Go back to templates since that's where user expects to be
                         onScreenChange(Screen.WORKOUT_TEMPLATE_SELECTION)
                     }

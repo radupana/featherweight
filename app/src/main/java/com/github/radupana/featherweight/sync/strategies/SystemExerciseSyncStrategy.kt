@@ -1,11 +1,11 @@
 package com.github.radupana.featherweight.sync.strategies
 
-import android.util.Log
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.sync.SyncStrategy
 import com.github.radupana.featherweight.sync.converters.ExerciseSyncConverter
 import com.github.radupana.featherweight.sync.models.FirestoreExercise
 import com.github.radupana.featherweight.sync.repository.FirestoreRepository
+import com.github.radupana.featherweight.util.CloudLogger
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -28,27 +28,27 @@ class SystemExerciseSyncStrategy(
     ): Result<Unit> =
         withContext(Dispatchers.IO) {
             try {
-                Log.d(TAG, "Starting system exercise sync")
+                CloudLogger.debug(TAG, "Starting system exercise sync")
 
                 // Download all exercises from denormalized collection
                 val remoteExercises = firestoreRepository.downloadSystemExercises(lastSyncTime).getOrThrow()
-                Log.d(TAG, "Downloaded ${remoteExercises.size} exercises from Firestore")
+                CloudLogger.debug(TAG, "Downloaded ${remoteExercises.size} exercises from Firestore")
 
                 // Process each exercise
                 remoteExercises.forEach { (exerciseId, firestoreExercise) ->
                     processExercise(exerciseId, firestoreExercise)
                 }
 
-                Log.d(TAG, "System exercise sync completed successfully")
+                CloudLogger.debug(TAG, "System exercise sync completed successfully")
                 Result.success(Unit)
             } catch (e: com.google.firebase.FirebaseException) {
-                Log.e(TAG, "Failed to sync system exercises - Firebase error", e)
+                CloudLogger.error(TAG, "Failed to sync system exercises - Firebase error", e)
                 Result.failure(e)
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to sync system exercises - database error", e)
+                CloudLogger.error(TAG, "Failed to sync system exercises - database error", e)
                 Result.failure(e)
             } catch (e: java.io.IOException) {
-                Log.e(TAG, "Failed to sync system exercises - network error", e)
+                CloudLogger.error(TAG, "Failed to sync system exercises - network error", e)
                 Result.failure(e)
             }
         }
@@ -90,15 +90,15 @@ class SystemExerciseSyncStrategy(
                 database.exerciseInstructionDao().insertInstructions(bundle.exerciseInstructions)
             }
 
-            Log.v(TAG, "Processed exercise: ${bundle.exercise.name}")
+            CloudLogger.debug(TAG, "Processed exercise: ${bundle.exercise.name}")
         } catch (e: com.google.firebase.FirebaseException) {
-            Log.e(TAG, "Failed to process exercise $exerciseId - Firebase error", e)
+            CloudLogger.error(TAG, "Failed to process exercise $exerciseId - Firebase error", e)
             // Don't fail the whole sync for one bad exercise
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e(TAG, "Failed to process exercise $exerciseId - database error", e)
+            CloudLogger.error(TAG, "Failed to process exercise $exerciseId - database error", e)
             // Don't fail the whole sync for one bad exercise
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Failed to process exercise $exerciseId - invalid state", e)
+            CloudLogger.error(TAG, "Failed to process exercise $exerciseId - invalid state", e)
             // Don't fail the whole sync for one bad exercise
         }
     }
@@ -109,7 +109,7 @@ class SystemExerciseSyncStrategy(
     ): Result<Unit> {
         // System exercises are read-only from the app's perspective
         // Only admin tools can modify system exercises
-        Log.d(TAG, "System exercises are read-only, skipping upload")
+        CloudLogger.debug(TAG, "System exercises are read-only, skipping upload")
         return Result.success(Unit)
     }
 

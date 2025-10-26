@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.repository
 
 import android.database.sqlite.SQLiteException
-import android.util.Log
 import androidx.room.withTransaction
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.ExerciseSwapHistory
@@ -21,6 +20,7 @@ import com.github.radupana.featherweight.domain.ExerciseStats
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.service.ExerciseNamingService
 import com.github.radupana.featherweight.service.ValidationResult
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.perf.FirebasePerformance
 import com.google.firebase.perf.metrics.Trace
@@ -112,7 +112,7 @@ class ExerciseRepository(
                     )
 
             val elapsedTime = System.currentTimeMillis() - startTime
-            Log.d(
+            CloudLogger.debug(
                 TAG,
                 "getAllExercisesWithUsageStats completed in ${elapsedTime}ms - " +
                     "totalExercises: ${exercises.size}, " +
@@ -134,20 +134,20 @@ class ExerciseRepository(
     suspend fun findSystemExerciseByName(name: String): Exercise? = exerciseDao.findSystemExerciseByName(name)
 
     suspend fun getExerciseByName(name: String): Exercise? {
-        Log.i(TAG, "Searching for exercise: '$name'")
+        CloudLogger.info(TAG, "Searching for exercise: '$name'")
         // First try exact name match
         val exactMatch = exerciseDao.findExerciseByName(name)
         if (exactMatch != null) {
-            Log.i(TAG, "Found exact match: ${exactMatch.name} (id: ${exactMatch.id})")
+            CloudLogger.info(TAG, "Found exact match: ${exactMatch.name} (id: ${exactMatch.id})")
             return exactMatch
         }
 
         // Then try alias match
         val aliasMatch = exerciseAliasDao.findExerciseByAlias(name)
         if (aliasMatch != null) {
-            Log.d(TAG, "Found via alias: ${aliasMatch.name} (id: ${aliasMatch.id}) for query: '$name'")
+            CloudLogger.debug(TAG, "Found via alias: ${aliasMatch.name} (id: ${aliasMatch.id}) for query: '$name'")
         } else {
-            Log.w(TAG, "Exercise not found: '$name'")
+            CloudLogger.warn(TAG, "Exercise not found: '$name'")
         }
         return aliasMatch
     }
@@ -238,7 +238,7 @@ class ExerciseRepository(
                 timestamp = LocalDateTime.now(),
             )
         } catch (e: SQLiteException) {
-            Log.e(TAG, "Database error incrementing usage count for exercise $exerciseId", e)
+            CloudLogger.error(TAG, "Database error incrementing usage count for exercise $exerciseId", e)
         }
 
         return id
@@ -276,10 +276,10 @@ class ExerciseRepository(
                 timestamp = LocalDateTime.now(),
             )
         } catch (e: SQLiteException) {
-            Log.e(TAG, "Database error incrementing usage count for exercise ${exerciseVariation.name}", e)
+            CloudLogger.error(TAG, "Database error incrementing usage count for exercise ${exerciseVariation.name}", e)
         }
 
-        Log.i(TAG, "Added exercise to workout - exercise: ${exerciseVariation.name}, workoutId: $workoutId, order: $exerciseOrder, exerciseLogId: $id")
+        CloudLogger.info(TAG, "Added exercise to workout - exercise: ${exerciseVariation.name}, workoutId: $workoutId, order: $exerciseOrder, exerciseLogId: $id")
         return id
     }
 
@@ -331,7 +331,7 @@ class ExerciseRepository(
             }
 
             if (allSetsForExercise.isEmpty()) {
-                Log.d(TAG, "No sets found for exercise: ${exercise.name}")
+                CloudLogger.debug(TAG, "No sets found for exercise: ${exercise.name}")
                 return@withContext null
             }
 
@@ -341,7 +341,7 @@ class ExerciseRepository(
                 }
 
             if (completedSets.isEmpty()) {
-                Log.d(TAG, "No completed sets found for exercise: ${exercise.name}")
+                CloudLogger.debug(TAG, "No completed sets found for exercise: ${exercise.name}")
                 return@withContext null
             }
 
@@ -361,7 +361,7 @@ class ExerciseRepository(
                 )
 
             val elapsedTime = System.currentTimeMillis() - startTime
-            Log.d(
+            CloudLogger.debug(
                 TAG,
                 "getExerciseStats completed in ${elapsedTime}ms - " +
                     "exercise: ${exercise.name}, " +
@@ -392,7 +392,7 @@ class ExerciseRepository(
 
             val originalExercise = exerciseDao.getExerciseById(originalExerciseId)
             val newExercise = exerciseDao.getExerciseById(newExerciseId)
-            Log.i(
+            CloudLogger.info(
                 TAG,
                 "USER_ACTION: exercise_swap - " +
                     "original: ${originalExercise?.name ?: "unknown"}, " +
@@ -455,7 +455,7 @@ class ExerciseRepository(
     ): Result<Exercise> =
         withContext(Dispatchers.IO) {
             try {
-                Log.i(TAG, "Creating custom exercise: $name, category: $category, equipment: $equipment")
+                CloudLogger.info(TAG, "Creating custom exercise: $name, category: $category, equipment: $equipment")
 
                 // Get all existing exercise names and aliases for duplicate checking
                 val existingNames = mutableListOf<String>()
@@ -473,7 +473,7 @@ class ExerciseRepository(
                 val validationResult = namingService.validateExerciseNameWithDuplicateCheck(name, existingNames)
 
                 if (validationResult is ValidationResult.Invalid) {
-                    Log.w(TAG, "Custom exercise creation failed - ${validationResult.reason}: $name")
+                    CloudLogger.warn(TAG, "Custom exercise creation failed - ${validationResult.reason}: $name")
                     val errorMessage =
                         if (validationResult.suggestion != null) {
                             "${validationResult.reason}. ${validationResult.suggestion}"
@@ -534,7 +534,7 @@ class ExerciseRepository(
                 // Return the created exercise
                 val createdExercise = exerciseDao.getExerciseById(exerciseId)
                 if (createdExercise != null) {
-                    Log.i(
+                    CloudLogger.info(
                         TAG,
                         "USER_ACTION: custom_exercise_created - " +
                             "name: $name, " +
@@ -546,14 +546,14 @@ class ExerciseRepository(
                     )
                     Result.success(createdExercise)
                 } else {
-                    Log.e(TAG, "Failed to retrieve created custom exercise: $name")
+                    CloudLogger.error(TAG, "Failed to retrieve created custom exercise: $name")
                     Result.failure(IllegalStateException("Failed to retrieve created exercise"))
                 }
             } catch (e: SQLiteException) {
-                Log.e(TAG, "SQLite error creating custom exercise: $name", e)
+                CloudLogger.error(TAG, "SQLite error creating custom exercise: $name", e)
                 Result.failure(e)
             } catch (e: IllegalArgumentException) {
-                Log.e(TAG, "Invalid argument creating custom exercise: $name", e)
+                CloudLogger.error(TAG, "Invalid argument creating custom exercise: $name", e)
                 Result.failure(e)
             }
         }
@@ -603,12 +603,12 @@ class ExerciseRepository(
                 val exercise = exerciseDao.getExerciseById(exerciseId)
                 val exerciseName = exercise?.name ?: "Unknown"
 
-                Log.i(TAG, "Attempting to delete custom exercise: $exerciseName (id: $exerciseId)")
+                CloudLogger.info(TAG, "Attempting to delete custom exercise: $exerciseName (id: $exerciseId)")
 
                 // First check if we can delete it
                 val canDelete = canDeleteExercise(exerciseId)
                 if (canDelete.isFailure) {
-                    Log.w(TAG, "Cannot delete exercise: $exerciseName - ${canDelete.exceptionOrNull()?.message}")
+                    CloudLogger.warn(TAG, "Cannot delete exercise: $exerciseName - ${canDelete.exceptionOrNull()?.message}")
                     return@withContext Result.failure(canDelete.exceptionOrNull() ?: Exception("Cannot delete exercise"))
                 }
 
@@ -642,17 +642,17 @@ class ExerciseRepository(
                     check(stillExists == null) { "Exercise was not deleted from database!" }
                 }
 
-                Log.i(
+                CloudLogger.info(
                     TAG,
                     "USER_ACTION: custom_exercise_deleted - " +
                         "name: $exerciseName, exerciseId: $exerciseId",
                 )
                 Result.success(Unit)
             } catch (e: SQLiteException) {
-                Log.e(TAG, "SQLite error deleting custom exercise id: $exerciseId", e)
+                CloudLogger.error(TAG, "SQLite error deleting custom exercise id: $exerciseId", e)
                 Result.failure(e)
             } catch (e: IllegalStateException) {
-                Log.e(TAG, "State error deleting custom exercise id: $exerciseId", e)
+                CloudLogger.error(TAG, "State error deleting custom exercise id: $exerciseId", e)
                 Result.failure(e)
             }
         }

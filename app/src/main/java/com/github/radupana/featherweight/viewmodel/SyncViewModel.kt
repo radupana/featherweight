@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.Constraints
@@ -15,6 +14,7 @@ import com.github.radupana.featherweight.sync.SyncManager
 import com.github.radupana.featherweight.sync.SyncState
 import com.github.radupana.featherweight.sync.worker.SystemExerciseSyncWorker
 import com.github.radupana.featherweight.sync.worker.UserDataSyncWorker
+import com.github.radupana.featherweight.util.CloudLogger
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -50,7 +50,7 @@ class SyncViewModel(
     private val syncDebouncer = MutableSharedFlow<Unit>()
 
     init {
-        Log.d("SyncViewModel", "init: Initializing SyncViewModel")
+        CloudLogger.debug("SyncViewModel", "init: Initializing SyncViewModel")
         updateAuthenticationState()
 
         // Set up debounced sync listener
@@ -58,7 +58,7 @@ class SyncViewModel(
             syncDebouncer
                 .debounce(5000) // Wait 5 seconds after last change
                 .collect {
-                    Log.d("SyncViewModel", "Debounced sync triggered")
+                    CloudLogger.debug("SyncViewModel", "Debounced sync triggered")
                     if (_uiState.value.isAuthenticated) {
                         performBackgroundSync()
                     }
@@ -67,7 +67,7 @@ class SyncViewModel(
 
         // Check if user is already authenticated and trigger initial backup
         if (_uiState.value.isAuthenticated) {
-            Log.d("SyncViewModel", "init: User already authenticated, triggering initial backup")
+            CloudLogger.debug("SyncViewModel", "init: User already authenticated, triggering initial backup")
             performBackgroundSync()
             schedulePeriodicSync()
         }
@@ -78,7 +78,7 @@ class SyncViewModel(
         val wasAuthenticated = _uiState.value.isAuthenticated
         val isNowAuthenticated = userId != null
 
-        Log.i("SyncViewModel", "updateAuthenticationState: userId=$userId, wasAuth=$wasAuthenticated, isAuth=$isNowAuthenticated")
+        CloudLogger.info("SyncViewModel", "updateAuthenticationState: userId=$userId, wasAuth=$wasAuthenticated, isAuth=$isNowAuthenticated")
 
         _uiState.value =
             _uiState.value.copy(
@@ -87,7 +87,7 @@ class SyncViewModel(
 
         // If user just became authenticated, trigger backup and schedule periodic sync
         if (!wasAuthenticated && isNowAuthenticated) {
-            Log.i("SyncViewModel", "updateAuthenticationState: User just authenticated, triggering backup")
+            CloudLogger.info("SyncViewModel", "updateAuthenticationState: User just authenticated, triggering backup")
             performBackgroundSync()
             schedulePeriodicSync()
         }
@@ -97,23 +97,23 @@ class SyncViewModel(
     // Users don't need to manually sync anymore
     private fun performBackgroundSync() {
         if (!_uiState.value.isAuthenticated) {
-            Log.w("SyncViewModel", "performBackgroundSync: User not authenticated")
+            CloudLogger.warn("SyncViewModel", "performBackgroundSync: User not authenticated")
             return
         }
 
         viewModelScope.launch {
-            Log.i("SyncViewModel", "performBackgroundSync: Starting automatic backup")
+            CloudLogger.info("SyncViewModel", "performBackgroundSync: Starting automatic backup")
             try {
                 // Add 60 second timeout for sync operation
                 withTimeout(60_000L) {
-                    Log.i("SyncViewModel", "performBackgroundSync: Calling syncManager for full backup")
+                    CloudLogger.info("SyncViewModel", "performBackgroundSync: Calling syncManager for full backup")
                     // Perform full sync (both system exercises and user data)
                     syncManager.syncAll().fold(
                         onSuccess = { state ->
-                            Log.i("SyncViewModel", "performBackgroundSync: Backup result - $state")
+                            CloudLogger.info("SyncViewModel", "performBackgroundSync: Backup result - $state")
                             when (state) {
                                 is SyncState.Success -> {
-                                    Log.i("SyncViewModel", "performBackgroundSync: Backup successful")
+                                    CloudLogger.info("SyncViewModel", "performBackgroundSync: Backup successful")
                                     _uiState.value =
                                         _uiState.value.copy(
                                             lastSyncTime = formatTimestamp(state.timestamp),
@@ -121,11 +121,11 @@ class SyncViewModel(
                                         )
                                 }
                                 is SyncState.Skipped -> {
-                                    Log.i("SyncViewModel", "performBackgroundSync: Sync skipped - ${state.reason}")
+                                    CloudLogger.info("SyncViewModel", "performBackgroundSync: Sync skipped - ${state.reason}")
                                     // Don't update UI for skipped syncs
                                 }
                                 is SyncState.Error -> {
-                                    Log.e("SyncViewModel", "performBackgroundSync: Backup error - ${state.message}")
+                                    CloudLogger.error("SyncViewModel", "performBackgroundSync: Backup error - ${state.message}")
                                     _uiState.value =
                                         _uiState.value.copy(
                                             syncError = state.message,
@@ -134,7 +134,7 @@ class SyncViewModel(
                             }
                         },
                         onFailure = { error ->
-                            Log.e("SyncViewModel", "performBackgroundSync: Backup failure - ${error.message}", error)
+                            CloudLogger.error("SyncViewModel", "performBackgroundSync: Backup failure - ${error.message}", error)
                             _uiState.value =
                                 _uiState.value.copy(
                                     syncError = error.message ?: "Unknown error",
@@ -143,19 +143,19 @@ class SyncViewModel(
                     )
                 }
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                Log.e("SyncViewModel", "performBackgroundSync: Backup timed out - ${e.message}", e)
+                CloudLogger.error("SyncViewModel", "performBackgroundSync: Backup timed out - ${e.message}", e)
                 _uiState.value =
                     _uiState.value.copy(
                         syncError = "Backup timed out. Please check your internet connection.",
                     )
             } catch (e: com.google.firebase.FirebaseException) {
-                Log.e("SyncViewModel", "performBackgroundSync: Firebase error - ${e.message}", e)
+                CloudLogger.error("SyncViewModel", "performBackgroundSync: Firebase error - ${e.message}", e)
                 _uiState.value =
                     _uiState.value.copy(
                         syncError = e.message ?: "Firebase error",
                     )
             } catch (e: java.io.IOException) {
-                Log.e("SyncViewModel", "performBackgroundSync: Network error - ${e.message}", e)
+                CloudLogger.error("SyncViewModel", "performBackgroundSync: Network error - ${e.message}", e)
                 _uiState.value =
                     _uiState.value.copy(
                         syncError = e.message ?: "Network error",

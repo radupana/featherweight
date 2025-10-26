@@ -35,3 +35,8 @@ package.json*.js
 *.csv
 featherweight-new-service-key.json
 exercises.json
+
+# Cloud Functions
+functions/node_modules/
+functions/lib/
+functions/*.log

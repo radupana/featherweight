@@ -1,7 +1,7 @@
 package com.github.radupana.featherweight.service
 
-import android.util.Log
 import com.github.radupana.featherweight.util.AnalyticsLogger
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.github.radupana.featherweight.util.PromptSecurityUtil
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +41,7 @@ class TrainingAnalysisService {
      */
     suspend fun analyzeTraining(prompt: String): String =
         withContext(Dispatchers.IO) {
-            Log.i(TAG, "Starting training analysis")
+            CloudLogger.info(TAG, "Starting training analysis")
 
             // Security check for prompt injection attempts
             if (PromptSecurityUtil.detectInjectionAttempt(prompt)) {
@@ -49,7 +49,7 @@ class TrainingAnalysisService {
                     "training_analysis_injection",
                     prompt,
                 )
-                Log.w(TAG, "Potential injection attempt detected, rejecting request")
+                CloudLogger.warn(TAG, "Potential injection attempt detected, rejecting request")
                 throw IllegalArgumentException("Invalid input detected. Please provide valid workout data.")
             }
 
@@ -60,11 +60,11 @@ class TrainingAnalysisService {
                 // Validate response structure
                 val expectedFields = listOf("overall_assessment", "key_insights", "recommendations")
                 if (!PromptSecurityUtil.validateJsonResponse(result, expectedFields)) {
-                    Log.e(TAG, "Invalid response structure from AI")
+                    CloudLogger.error(TAG, "Invalid response structure from AI")
                     throw IllegalStateException("Received invalid response format from AI service")
                 }
 
-                Log.i(TAG, "Training analysis completed successfully")
+                CloudLogger.info(TAG, "Training analysis completed successfully")
                 result
             } catch (e: IOException) {
                 ExceptionLogger.logException(TAG, "Training analysis failed - Network error", e)
@@ -85,7 +85,7 @@ class TrainingAnalysisService {
             val configService = ConfigServiceFactory.getConfigService()
             val apiKey = configService.getOpenAIApiKey()
             if (apiKey.isNullOrEmpty()) {
-                Log.e(TAG, "OpenAI API key not available from Remote Config")
+                CloudLogger.error(TAG, "OpenAI API key not available from Remote Config")
                 error("OpenAI API key not configured. Please check your internet connection and try again.")
             }
 
@@ -118,8 +118,8 @@ class TrainingAnalysisService {
                     )
                 }
 
-            Log.d(TAG, "OpenAI API Request - URL: $OPENAI_API_URL")
-            Log.d(TAG, "Request body: $requestBody")
+            CloudLogger.debug(TAG, "OpenAI API Request - URL: $OPENAI_API_URL")
+            CloudLogger.debug(TAG, "Request body: $requestBody")
 
             AnalyticsLogger.logOpenAIRequest(
                 endpoint = OPENAI_API_URL,
@@ -141,8 +141,8 @@ class TrainingAnalysisService {
             val responseTime = System.currentTimeMillis() - startTime
             val responseBody = response.body.string()
 
-            Log.d(TAG, "OpenAI API Response - Status: ${response.code}, Time: ${responseTime}ms")
-            Log.d(TAG, "Response body: $responseBody")
+            CloudLogger.debug(TAG, "OpenAI API Response - Status: ${response.code}, Time: ${responseTime}ms")
+            CloudLogger.debug(TAG, "Response body: $responseBody")
 
             AnalyticsLogger.logOpenAIResponse(
                 endpoint = OPENAI_API_URL,
@@ -156,7 +156,7 @@ class TrainingAnalysisService {
                 val errorMessage =
                     errorJson.optJSONObject("error")?.optString("message")
                         ?: "API call failed with status ${response.code}"
-                Log.e(TAG, "OpenAI API error: $errorMessage")
+                CloudLogger.error(TAG, "OpenAI API error: $errorMessage")
                 AnalyticsLogger.logOpenAIResponse(
                     endpoint = OPENAI_API_URL,
                     statusCode = response.code,

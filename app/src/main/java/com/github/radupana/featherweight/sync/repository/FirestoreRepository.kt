@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.sync.repository
 
-import android.util.Log
 import com.github.radupana.featherweight.sync.models.FirestoreCustomExercise
 import com.github.radupana.featherweight.sync.models.FirestoreCustomExerciseAlias
 import com.github.radupana.featherweight.sync.models.FirestoreCustomExerciseInstruction
@@ -26,6 +25,7 @@ import com.github.radupana.featherweight.sync.models.FirestoreTrainingAnalysis
 import com.github.radupana.featherweight.sync.models.FirestoreUserExerciseMax
 import com.github.radupana.featherweight.sync.models.FirestoreWorkout
 import com.github.radupana.featherweight.sync.models.FirestoreWorkoutTemplate
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.FirebaseException
 import com.google.firebase.Timestamp
@@ -108,19 +108,19 @@ class FirestoreRepository(
                         exercises[doc.id] = exercise
                     }
                 } catch (e: FirebaseException) {
-                    Log.e("FirestoreRepository", "Failed to parse exercise ${doc.id} - Firebase error", e)
+                    CloudLogger.error("FirestoreRepository", "Failed to parse exercise ${doc.id} - Firebase error", e)
                 } catch (e: IllegalStateException) {
-                    Log.e("FirestoreRepository", "Failed to parse exercise ${doc.id} - invalid state", e)
+                    CloudLogger.error("FirestoreRepository", "Failed to parse exercise ${doc.id} - invalid state", e)
                 }
             }
 
-            Log.d("FirestoreRepository", "Downloaded ${exercises.size} system exercises")
+            CloudLogger.debug("FirestoreRepository", "Downloaded ${exercises.size} system exercises")
             Result.success(exercises)
         } catch (e: FirebaseException) {
-            Log.e("FirestoreRepository", "Failed to download system exercises - Firebase error", e)
+            CloudLogger.error("FirestoreRepository", "Failed to download system exercises - Firebase error", e)
             Result.failure(e)
         } catch (e: java.io.IOException) {
-            Log.e("FirestoreRepository", "Failed to download system exercises - network error", e)
+            CloudLogger.error("FirestoreRepository", "Failed to download system exercises - network error", e)
             Result.failure(e)
         }
 
@@ -156,8 +156,8 @@ class FirestoreRepository(
         lastSyncTime: Timestamp? = null,
     ): Result<List<FirestoreWorkout>> =
         try {
-            Log.i("FirestoreRepository", "downloadWorkouts: Starting download for user $userId, lastSync=$lastSyncTime")
-            Log.i("FirestoreRepository", "Firestore project ID: ${firestore.app.options.projectId}")
+            CloudLogger.info("FirestoreRepository", "downloadWorkouts: Starting download for user $userId, lastSync=$lastSyncTime")
+            CloudLogger.info("FirestoreRepository", "Firestore project ID: ${firestore.app.options.projectId}")
             var query: Query =
                 userDocument(userId)
                     .collection(WORKOUTS_COLLECTION)
@@ -167,22 +167,22 @@ class FirestoreRepository(
                 query = query.whereGreaterThan("lastModified", it)
             }
 
-            Log.i("FirestoreRepository", "downloadWorkouts: Executing query...")
+            CloudLogger.info("FirestoreRepository", "downloadWorkouts: Executing query...")
             val snapshot = query.get().await()
             val workouts =
                 snapshot.documents.mapNotNull { doc ->
                     doc.toObject(FirestoreWorkout::class.java)
                 }
-            Log.i("FirestoreRepository", "downloadWorkouts: Downloaded ${workouts.size} workouts")
+            CloudLogger.info("FirestoreRepository", "downloadWorkouts: Downloaded ${workouts.size} workouts")
             Result.success(workouts)
         } catch (e: FirebaseException) {
-            Log.e("FirestoreRepository", "downloadWorkouts failed: ${e.message}", e)
-            Log.e("FirestoreRepository", "FirebaseException type: ${e.javaClass.simpleName}")
-            Log.e("FirestoreRepository", "Error code: ${e.message?.contains("PERMISSION_DENIED") ?: false}")
+            CloudLogger.error("FirestoreRepository", "downloadWorkouts failed: ${e.message}", e)
+            CloudLogger.error("FirestoreRepository", "FirebaseException type: ${e.javaClass.simpleName}")
+            CloudLogger.error("FirestoreRepository", "Error code: ${e.message?.contains("PERMISSION_DENIED") ?: false}")
             ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to download workouts", e)
             Result.failure(e)
         } catch (e: java.io.IOException) {
-            Log.e("FirestoreRepository", "downloadWorkouts network error: ${e.message}", e)
+            CloudLogger.error("FirestoreRepository", "downloadWorkouts network error: ${e.message}", e)
             Result.failure(e)
         }
 
@@ -350,7 +350,7 @@ class FirestoreRepository(
 
     suspend fun getSyncMetadata(userId: String): Result<FirestoreSyncMetadata?> =
         try {
-            Log.i("FirestoreRepository", "getSyncMetadata: Getting metadata for user $userId")
+            CloudLogger.info("FirestoreRepository", "getSyncMetadata: Getting metadata for user $userId")
             val doc =
                 firestore
                     .collection(SYNC_METADATA_COLLECTION)
@@ -359,10 +359,10 @@ class FirestoreRepository(
                     .await()
 
             val metadata = doc.toObject(FirestoreSyncMetadata::class.java)
-            Log.i("FirestoreRepository", "getSyncMetadata: Retrieved metadata - exists=${doc.exists()}, data=$metadata")
+            CloudLogger.info("FirestoreRepository", "getSyncMetadata: Retrieved metadata - exists=${doc.exists()}, data=$metadata")
             Result.success(metadata)
         } catch (e: FirebaseException) {
-            Log.e("FirestoreRepository", "getSyncMetadata failed: ${e.message}", e)
+            CloudLogger.error("FirestoreRepository", "getSyncMetadata failed: ${e.message}", e)
             ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to get sync metadata", e)
             Result.failure(e)
         }
@@ -447,7 +447,7 @@ class FirestoreRepository(
         lastSyncTime: Timestamp?,
     ): Result<List<FirestoreCustomExercise>> =
         try {
-            Log.d("FirestoreRepository", "Downloading custom exercises for user $userId (lastSyncTime: $lastSyncTime)")
+            CloudLogger.debug("FirestoreRepository", "Downloading custom exercises for user $userId (lastSyncTime: $lastSyncTime)")
             var query: Query =
                 userDocument(userId)
                     .collection("customExercises")
@@ -459,15 +459,15 @@ class FirestoreRepository(
             }
 
             val snapshot = query.get().await()
-            Log.d("FirestoreRepository", "Found ${snapshot.documents.size} custom exercise documents")
+            CloudLogger.debug("FirestoreRepository", "Found ${snapshot.documents.size} custom exercise documents")
             val exercises = mutableListOf<FirestoreCustomExercise>()
 
             snapshot.documents.forEach { doc ->
                 try {
-                    Log.d("FirestoreRepository", "Processing custom exercise ${doc.id}")
+                    CloudLogger.debug("FirestoreRepository", "Processing custom exercise ${doc.id}")
                     val baseExercise = doc.toObject(FirestoreCustomExercise::class.java)
                     if (baseExercise == null) {
-                        Log.w("FirestoreRepository", "Failed to parse custom exercise ${doc.id}")
+                        CloudLogger.warn("FirestoreRepository", "Failed to parse custom exercise ${doc.id}")
                         return@forEach
                     }
 
@@ -491,7 +491,7 @@ class FirestoreRepository(
                             .get()
                             .await()
 
-                    Log.d(
+                    CloudLogger.debug(
                         "FirestoreRepository",
                         "Exercise ${doc.id}: ${musclesSnapshot.size()} muscles, " +
                             "${aliasesSnapshot.size()} aliases, ${instructionsSnapshot.size()} instructions",
@@ -523,21 +523,21 @@ class FirestoreRepository(
                             instructions = instructions,
                         ),
                     )
-                    Log.d("FirestoreRepository", "Successfully assembled custom exercise ${doc.id}: ${baseExercise.name}")
+                    CloudLogger.debug("FirestoreRepository", "Successfully assembled custom exercise ${doc.id}: ${baseExercise.name}")
                 } catch (e: FirebaseException) {
-                    Log.e("FirestoreRepository", "Failed to process custom exercise ${doc.id} - Firebase error", e)
+                    CloudLogger.error("FirestoreRepository", "Failed to process custom exercise ${doc.id} - Firebase error", e)
                 } catch (e: IllegalStateException) {
-                    Log.e("FirestoreRepository", "Failed to process custom exercise ${doc.id} - invalid state", e)
+                    CloudLogger.error("FirestoreRepository", "Failed to process custom exercise ${doc.id} - invalid state", e)
                 }
             }
 
-            Log.d("FirestoreRepository", "Downloaded ${exercises.size} custom exercises for user $userId")
+            CloudLogger.debug("FirestoreRepository", "Downloaded ${exercises.size} custom exercises for user $userId")
             Result.success(exercises)
         } catch (e: FirebaseException) {
-            Log.e("FirestoreRepository", "Failed to download custom exercises for user $userId - Firebase error", e)
+            CloudLogger.error("FirestoreRepository", "Failed to download custom exercises for user $userId - Firebase error", e)
             Result.failure(e)
         } catch (e: java.io.IOException) {
-            Log.e("FirestoreRepository", "Failed to download custom exercises for user $userId - network error", e)
+            CloudLogger.error("FirestoreRepository", "Failed to download custom exercises for user $userId - network error", e)
             Result.failure(e)
         }
 
@@ -558,7 +558,7 @@ class FirestoreRepository(
         instructions: List<com.github.radupana.featherweight.data.exercise.ExerciseInstruction>,
     ): Result<Unit> =
         try {
-            Log.d(
+            CloudLogger.debug(
                 "FirestoreRepository",
                 "Uploading custom exercise ${exercise.id} (${exercise.name}) for user $userId " +
                     "with ${muscles.size} muscles, ${aliases.size} aliases, ${instructions.size} instructions",
@@ -586,7 +586,7 @@ class FirestoreRepository(
                     "isDeleted" to exercise.isDeleted,
                 )
             batch.set(exerciseRef, exerciseData, SetOptions.merge())
-            Log.d("FirestoreRepository", "Batched main exercise document for ${exercise.id}")
+            CloudLogger.debug("FirestoreRepository", "Batched main exercise document for ${exercise.id}")
 
             // Muscle subcollection documents
             muscles.forEach { muscle ->
@@ -600,7 +600,7 @@ class FirestoreRepository(
                     )
                 batch.set(exerciseRef.collection("muscles").document(muscle.id), muscleData, SetOptions.merge())
             }
-            Log.d("FirestoreRepository", "Batched ${muscles.size} muscle documents for ${exercise.id}")
+            CloudLogger.debug("FirestoreRepository", "Batched ${muscles.size} muscle documents for ${exercise.id}")
 
             // Alias subcollection documents
             aliases.forEach { alias ->
@@ -613,7 +613,7 @@ class FirestoreRepository(
                     )
                 batch.set(exerciseRef.collection("aliases").document(alias.id), aliasData, SetOptions.merge())
             }
-            Log.d("FirestoreRepository", "Batched ${aliases.size} alias documents for ${exercise.id}")
+            CloudLogger.debug("FirestoreRepository", "Batched ${aliases.size} alias documents for ${exercise.id}")
 
             // Instruction subcollection documents
             instructions.forEach { instruction ->
@@ -628,16 +628,16 @@ class FirestoreRepository(
                     )
                 batch.set(exerciseRef.collection("instructions").document(instruction.id), instructionData, SetOptions.merge())
             }
-            Log.d("FirestoreRepository", "Batched ${instructions.size} instruction documents for ${exercise.id}")
+            CloudLogger.debug("FirestoreRepository", "Batched ${instructions.size} instruction documents for ${exercise.id}")
 
             batch.commit().await()
-            Log.d("FirestoreRepository", "Successfully uploaded custom exercise ${exercise.id} (${exercise.name})")
+            CloudLogger.debug("FirestoreRepository", "Successfully uploaded custom exercise ${exercise.id} (${exercise.name})")
             Result.success(Unit)
         } catch (e: FirebaseException) {
-            Log.e("FirestoreRepository", "Failed to upload custom exercise ${exercise.id} - Firebase error", e)
+            CloudLogger.error("FirestoreRepository", "Failed to upload custom exercise ${exercise.id} - Firebase error", e)
             Result.failure(e)
         } catch (e: java.io.IOException) {
-            Log.e("FirestoreRepository", "Failed to upload custom exercise ${exercise.id} - network error", e)
+            CloudLogger.error("FirestoreRepository", "Failed to upload custom exercise ${exercise.id} - network error", e)
             Result.failure(e)
         }
 
@@ -652,35 +652,35 @@ class FirestoreRepository(
         exerciseId: String,
     ): Result<Unit> =
         try {
-            Log.d("FirestoreRepository", "Soft-deleting custom exercise $exerciseId for user $userId")
+            CloudLogger.debug("FirestoreRepository", "Soft-deleting custom exercise $exerciseId for user $userId")
             val batch = firestore.batch()
             val exerciseRef = userDocument(userId).collection("customExercises").document(exerciseId)
 
             // Soft delete main exercise document
             batch.update(exerciseRef, "isDeleted", true)
-            Log.d("FirestoreRepository", "Batched soft-delete for main exercise document $exerciseId")
+            CloudLogger.debug("FirestoreRepository", "Batched soft-delete for main exercise document $exerciseId")
 
             // Soft delete all subcollection documents
             val musclesDocs = exerciseRef.collection("muscles").get().await()
             musclesDocs.documents.forEach { batch.update(it.reference, "isDeleted", true) }
-            Log.d("FirestoreRepository", "Batched soft-delete for ${musclesDocs.size()} muscle documents")
+            CloudLogger.debug("FirestoreRepository", "Batched soft-delete for ${musclesDocs.size()} muscle documents")
 
             val aliasesDocs = exerciseRef.collection("aliases").get().await()
             aliasesDocs.documents.forEach { batch.update(it.reference, "isDeleted", true) }
-            Log.d("FirestoreRepository", "Batched soft-delete for ${aliasesDocs.size()} alias documents")
+            CloudLogger.debug("FirestoreRepository", "Batched soft-delete for ${aliasesDocs.size()} alias documents")
 
             val instructionsDocs = exerciseRef.collection("instructions").get().await()
             instructionsDocs.documents.forEach { batch.update(it.reference, "isDeleted", true) }
-            Log.d("FirestoreRepository", "Batched soft-delete for ${instructionsDocs.size()} instruction documents")
+            CloudLogger.debug("FirestoreRepository", "Batched soft-delete for ${instructionsDocs.size()} instruction documents")
 
             batch.commit().await()
-            Log.d("FirestoreRepository", "Successfully soft-deleted custom exercise $exerciseId")
+            CloudLogger.debug("FirestoreRepository", "Successfully soft-deleted custom exercise $exerciseId")
             Result.success(Unit)
         } catch (e: FirebaseException) {
-            Log.e("FirestoreRepository", "Failed to delete custom exercise $exerciseId - Firebase error", e)
+            CloudLogger.error("FirestoreRepository", "Failed to delete custom exercise $exerciseId - Firebase error", e)
             Result.failure(e)
         } catch (e: java.io.IOException) {
-            Log.e("FirestoreRepository", "Failed to delete custom exercise $exerciseId - network error", e)
+            CloudLogger.error("FirestoreRepository", "Failed to delete custom exercise $exerciseId - network error", e)
             Result.failure(e)
         }
 
@@ -725,7 +725,7 @@ class FirestoreRepository(
         lastSyncTime: Timestamp? = null,
     ): Result<List<FirestoreExerciseLog>> =
         try {
-            Log.i("FirestoreRepository", "downloadExerciseLogs: Starting download for user $userId")
+            CloudLogger.info("FirestoreRepository", "downloadExerciseLogs: Starting download for user $userId")
             var query: Query =
                 userDocument(userId)
                     .collection(EXERCISE_LOGS_COLLECTION)
@@ -740,10 +740,10 @@ class FirestoreRepository(
                 snapshot.documents.mapNotNull { doc ->
                     doc.toObject(FirestoreExerciseLog::class.java)
                 }
-            Log.i("FirestoreRepository", "downloadExerciseLogs: Downloaded ${logs.size} exercise logs")
+            CloudLogger.info("FirestoreRepository", "downloadExerciseLogs: Downloaded ${logs.size} exercise logs")
             Result.success(logs)
         } catch (e: FirebaseException) {
-            Log.e("FirestoreRepository", "downloadExerciseLogs failed: ${e.message}", e)
+            CloudLogger.error("FirestoreRepository", "downloadExerciseLogs failed: ${e.message}", e)
             ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to download exercise logs", e)
             Result.failure(e)
         }
@@ -778,7 +778,7 @@ class FirestoreRepository(
         lastSyncTime: Timestamp? = null,
     ): Result<List<FirestoreWorkoutTemplate>> =
         try {
-            Log.i("FirestoreRepository", "downloadWorkoutTemplates: Starting download for user $userId")
+            CloudLogger.info("FirestoreRepository", "downloadWorkoutTemplates: Starting download for user $userId")
             var query: Query =
                 userDocument(userId)
                     .collection(WORKOUT_TEMPLATES_COLLECTION)
@@ -793,10 +793,10 @@ class FirestoreRepository(
                 snapshot.documents.mapNotNull { doc ->
                     doc.toObject(FirestoreWorkoutTemplate::class.java)
                 }
-            Log.i("FirestoreRepository", "downloadWorkoutTemplates: Downloaded ${templates.size} templates")
+            CloudLogger.info("FirestoreRepository", "downloadWorkoutTemplates: Downloaded ${templates.size} templates")
             Result.success(templates)
         } catch (e: FirebaseException) {
-            Log.e("FirestoreRepository", "downloadWorkoutTemplates failed: ${e.message}", e)
+            CloudLogger.error("FirestoreRepository", "downloadWorkoutTemplates failed: ${e.message}", e)
             ExceptionLogger.logNonCritical("FirestoreRepository", "Failed to download workout templates", e)
             Result.failure(e)
         }

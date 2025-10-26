@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.repository
 
-import android.util.Log
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseAliasDao
@@ -12,6 +11,7 @@ import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.data.exercise.UserExerciseUsageDao
 import com.github.radupana.featherweight.manager.AuthenticationManager
+import com.github.radupana.featherweight.util.CloudLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -51,21 +51,21 @@ class CustomExerciseRepository(
                 // Check if name conflicts with system exercises
                 val systemExercise = exerciseDao.findSystemExerciseByName(name)
                 if (systemExercise != null) {
-                    Log.w(TAG, "Cannot create custom exercise '$name': conflicts with system exercise")
+                    CloudLogger.warn(TAG, "Cannot create custom exercise '$name': conflicts with system exercise")
                     return@withContext null
                 }
 
                 // Also check aliases to prevent conflicts
                 val systemExerciseByAlias = exerciseAliasDao.findExerciseByAlias(name)
                 if (systemExerciseByAlias != null) {
-                    Log.w(TAG, "Cannot create custom exercise '$name': conflicts with system exercise alias")
+                    CloudLogger.warn(TAG, "Cannot create custom exercise '$name': conflicts with system exercise alias")
                     return@withContext null
                 }
 
                 // Check if custom exercise with same name already exists for this user
                 val existing = exerciseDao.getCustomExerciseByUserAndName(userId, name)
                 if (existing != null) {
-                    Log.w(TAG, "Custom exercise '$name' already exists for user $userId")
+                    CloudLogger.warn(TAG, "Custom exercise '$name' already exists for user $userId")
                     return@withContext null
                 }
 
@@ -86,14 +86,14 @@ class CustomExerciseRepository(
                     )
 
                 exerciseDao.insertExercise(variation)
-                Log.d(TAG, "Created custom exercise: $name (id: ${variation.id})")
+                CloudLogger.debug(TAG, "Created custom exercise: $name (id: ${variation.id})")
 
                 return@withContext variation
             } catch (e: IllegalArgumentException) {
-                Log.e(TAG, "Failed to create custom exercise: invalid argument", e)
+                CloudLogger.error(TAG, "Failed to create custom exercise: invalid argument", e)
                 return@withContext null
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to create custom exercise: database error", e)
+                CloudLogger.error(TAG, "Failed to create custom exercise: database error", e)
                 return@withContext null
             }
         }
@@ -112,13 +112,13 @@ class CustomExerciseRepository(
      */
     suspend fun getCustomExerciseById(exerciseId: String): Exercise? =
         withContext(Dispatchers.IO) {
-            Log.d(TAG, "Getting custom exercise by ID: $exerciseId")
+            CloudLogger.debug(TAG, "Getting custom exercise by ID: $exerciseId")
             val result = exerciseDao.getExerciseById(exerciseId)
             if (result?.type == ExerciseType.USER.name) {
-                Log.d(TAG, "Custom exercise lookup result: ${result.name} for ID $exerciseId")
+                CloudLogger.debug(TAG, "Custom exercise lookup result: ${result.name} for ID $exerciseId")
                 result
             } else {
-                Log.d(TAG, "Exercise ID $exerciseId is not a custom exercise")
+                CloudLogger.debug(TAG, "Exercise ID $exerciseId is not a custom exercise")
                 null
             }
         }
@@ -142,7 +142,7 @@ class CustomExerciseRepository(
             try {
                 val existing = exerciseDao.getExerciseById(exerciseId)
                 if (existing == null || existing.type != ExerciseType.USER.name || existing.userId != userId) {
-                    Log.e(TAG, "Custom exercise $exerciseId not found or not owned by user")
+                    CloudLogger.error(TAG, "Custom exercise $exerciseId not found or not owned by user")
                     return@withContext false
                 }
 
@@ -151,21 +151,21 @@ class CustomExerciseRepository(
                     // Check system exercises first
                     val systemExercise = exerciseDao.findSystemExerciseByName(name)
                     if (systemExercise != null) {
-                        Log.w(TAG, "Cannot rename to '$name': conflicts with system exercise")
+                        CloudLogger.warn(TAG, "Cannot rename to '$name': conflicts with system exercise")
                         return@withContext false
                     }
 
                     // Check system exercise aliases
                     val systemExerciseByAlias = exerciseAliasDao.findExerciseByAlias(name)
                     if (systemExerciseByAlias != null) {
-                        Log.w(TAG, "Cannot rename to '$name': conflicts with system exercise alias")
+                        CloudLogger.warn(TAG, "Cannot rename to '$name': conflicts with system exercise alias")
                         return@withContext false
                     }
 
                     // Check other custom exercises
                     val duplicate = exerciseDao.getCustomExerciseByUserAndName(userId, name)
                     if (duplicate != null) {
-                        Log.w(TAG, "Custom exercise with name '$name' already exists")
+                        CloudLogger.warn(TAG, "Custom exercise with name '$name' already exists")
                         return@withContext false
                     }
                 }
@@ -182,13 +182,13 @@ class CustomExerciseRepository(
                     )
 
                 exerciseDao.updateExercise(updated)
-                Log.d(TAG, "Updated custom exercise: ${updated.name}")
+                CloudLogger.debug(TAG, "Updated custom exercise: ${updated.name}")
                 return@withContext true
             } catch (e: IllegalArgumentException) {
-                Log.e(TAG, "Failed to update custom exercise: invalid argument", e)
+                CloudLogger.error(TAG, "Failed to update custom exercise: invalid argument", e)
                 return@withContext false
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to update custom exercise: database error", e)
+                CloudLogger.error(TAG, "Failed to update custom exercise: database error", e)
                 return@withContext false
             }
         }
@@ -204,7 +204,7 @@ class CustomExerciseRepository(
             try {
                 val exercise = exerciseDao.getExerciseById(exerciseId)
                 if (exercise == null || exercise.userId != userId) {
-                    Log.e(TAG, "Custom exercise $exerciseId not found or not owned by user")
+                    CloudLogger.error(TAG, "Custom exercise $exerciseId not found or not owned by user")
                     return@withContext false
                 }
 
@@ -216,18 +216,18 @@ class CustomExerciseRepository(
                     )
 
                 if (usage != null && usage.usageCount > 0) {
-                    Log.w(TAG, "Cannot delete custom exercise in use: ${exercise.name} (usage: ${usage.usageCount})")
+                    CloudLogger.warn(TAG, "Cannot delete custom exercise in use: ${exercise.name} (usage: ${usage.usageCount})")
                     return@withContext false
                 }
 
                 exerciseDao.deleteCustomExercise(exerciseId, userId)
-                Log.d(TAG, "Deleted custom exercise: ${exercise.name}")
+                CloudLogger.debug(TAG, "Deleted custom exercise: ${exercise.name}")
                 return@withContext true
             } catch (e: IllegalArgumentException) {
-                Log.e(TAG, "Failed to delete custom exercise: invalid argument", e)
+                CloudLogger.error(TAG, "Failed to delete custom exercise: invalid argument", e)
                 return@withContext false
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to delete custom exercise: database error", e)
+                CloudLogger.error(TAG, "Failed to delete custom exercise: database error", e)
                 return@withContext false
             }
         }

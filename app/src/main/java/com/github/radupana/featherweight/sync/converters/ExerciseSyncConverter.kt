@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.sync.converters
 
-import android.util.Log
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseAlias
@@ -16,6 +15,7 @@ import com.github.radupana.featherweight.data.exercise.RMScalingType
 import com.github.radupana.featherweight.sync.models.FirestoreExercise
 import com.github.radupana.featherweight.sync.models.FirestoreInstruction
 import com.github.radupana.featherweight.sync.models.FirestoreMuscle
+import com.github.radupana.featherweight.util.CloudLogger
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.UUID
@@ -170,7 +170,7 @@ class ExerciseSyncConverter {
             try {
                 ExerciseCategory.valueOf(value)
             } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Invalid ExerciseCategory value: $value, defaulting to OTHER", e)
+                CloudLogger.warn(TAG, "Invalid ExerciseCategory value: $value, defaulting to OTHER", e)
                 ExerciseCategory.OTHER
             }
 
@@ -198,7 +198,7 @@ class ExerciseSyncConverter {
                     else -> MovementPattern.valueOf(value)
                 }
             } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Invalid MovementPattern value: $value, defaulting to OTHER", e)
+                CloudLogger.warn(TAG, "Invalid MovementPattern value: $value, defaulting to OTHER", e)
                 MovementPattern.OTHER
             }
 
@@ -211,7 +211,7 @@ class ExerciseSyncConverter {
                     else -> Equipment.valueOf(value)
                 }
             } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Invalid Equipment value: $value, defaulting to NONE", e)
+                CloudLogger.warn(TAG, "Invalid Equipment value: $value, defaulting to NONE", e)
                 Equipment.NONE
             }
 
@@ -220,7 +220,7 @@ class ExerciseSyncConverter {
                 try {
                     ExerciseDifficulty.valueOf(it)
                 } catch (e: IllegalArgumentException) {
-                    Log.w(TAG, "Invalid ExerciseDifficulty value: $it, defaulting to INTERMEDIATE", e)
+                    CloudLogger.warn(TAG, "Invalid ExerciseDifficulty value: $it, defaulting to INTERMEDIATE", e)
                     ExerciseDifficulty.INTERMEDIATE
                 }
             }
@@ -234,7 +234,7 @@ class ExerciseSyncConverter {
                         else -> RMScalingType.valueOf(it)
                     }
                 } catch (e: IllegalArgumentException) {
-                    Log.w(TAG, "Invalid RMScalingType value: $it, defaulting to STANDARD", e)
+                    CloudLogger.warn(TAG, "Invalid RMScalingType value: $it, defaulting to STANDARD", e)
                     RMScalingType.STANDARD
                 }
             }
@@ -248,7 +248,7 @@ class ExerciseSyncConverter {
                     else -> MuscleGroup.valueOf(value)
                 }
             } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Invalid MuscleGroup value: $value, defaulting to OTHER", e)
+                CloudLogger.warn(TAG, "Invalid MuscleGroup value: $value, defaulting to OTHER", e)
                 MuscleGroup.OTHER
             }
 
@@ -256,7 +256,7 @@ class ExerciseSyncConverter {
             try {
                 InstructionType.valueOf(value)
             } catch (e: IllegalArgumentException) {
-                Log.w(TAG, "Invalid InstructionType value: $value, defaulting to EXECUTION", e)
+                CloudLogger.warn(TAG, "Invalid InstructionType value: $value, defaulting to EXECUTION", e)
                 InstructionType.EXECUTION
             }
     }

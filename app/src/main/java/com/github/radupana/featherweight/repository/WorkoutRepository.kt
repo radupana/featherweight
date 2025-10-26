@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
-import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.SetLog
@@ -10,6 +9,7 @@ import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.manager.AuthenticationManager
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.perf.FirebasePerformance
 import com.google.firebase.perf.metrics.Trace
@@ -43,7 +43,7 @@ class WorkoutRepository(
             val workoutWithUserId = workout.copy(userId = authManager.getCurrentUserId() ?: "local")
             workoutDao.insertWorkout(workoutWithUserId)
             val id = workoutWithUserId.id
-            Log.i(TAG, "Created workout - id: $id, name: ${workout.name}, status: ${workout.status}, programmeId: ${workout.programmeId}, userId: ${workoutWithUserId.userId}")
+            CloudLogger.info(TAG, "Created workout - id: $id, name: ${workout.name}, status: ${workout.status}, programmeId: ${workout.programmeId}, userId: ${workoutWithUserId.userId}")
             trace?.stop()
             id
         }
@@ -55,7 +55,7 @@ class WorkoutRepository(
 
     suspend fun deleteWorkout(workout: Workout) =
         withContext(ioDispatcher) {
-            Log.i(TAG, "Deleting workout - id: ${workout.id}, name: ${workout.name}")
+            CloudLogger.info(TAG, "Deleting workout - id: ${workout.id}, name: ${workout.name}")
             val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
             exerciseLogs.forEach { exerciseLog ->
                 val setLogs = setLogDao.getSetLogsForExercise(exerciseLog.id)
@@ -63,7 +63,7 @@ class WorkoutRepository(
                 exerciseLogDao.deleteExerciseLog(exerciseLog.id)
             }
             workoutDao.deleteWorkout(workout.id)
-            Log.i(TAG, "Workout deleted - id: ${workout.id}, had ${exerciseLogs.size} exercises")
+            CloudLogger.info(TAG, "Workout deleted - id: ${workout.id}, had ${exerciseLogs.size} exercises")
         }
 
     suspend fun deleteWorkoutById(workoutId: String) =
@@ -81,7 +81,7 @@ class WorkoutRepository(
         val workout = workoutDao.getWorkoutById(workoutId) ?: return@withContext
         val oldStatus = workout.status
         workoutDao.updateWorkout(workout.copy(status = status))
-        Log.i(TAG, "Updated workout status - id: $workoutId, from: $oldStatus to: $status")
+        CloudLogger.info(TAG, "Updated workout status - id: $workoutId, from: $oldStatus to: $status")
     }
 
     suspend fun completeWorkout(
@@ -109,7 +109,7 @@ class WorkoutRepository(
         trace?.putAttribute("set_count", setCount.toString())
         trace?.putMetric("duration_seconds", duration ?: 0)
 
-        Log.i(
+        CloudLogger.info(
             TAG,
             "Workout completed - id: $workoutId, name: ${workout.name ?: "Unnamed"}, " +
                 "duration: ${duration ?: 0}s, exercises: $exerciseCount, sets: $setCount, " +
@@ -166,7 +166,7 @@ class WorkoutRepository(
                                 try {
                                     programmeDao.getProgrammeById(workout.programmeId)?.name
                                 } catch (e: android.database.sqlite.SQLiteException) {
-                                    Log.e(TAG, "Failed to get programme name for programmeId: ${workout.programmeId}", e)
+                                    CloudLogger.error(TAG, "Failed to get programme name for programmeId: ${workout.programmeId}", e)
                                     null
                                 }
                             } else {
@@ -192,7 +192,7 @@ class WorkoutRepository(
                         )
                     }.sortedByDescending { it.date }
 
-            Log.d(
+            CloudLogger.debug(
                 TAG,
                 "getWorkoutHistory took ${System.currentTimeMillis() - startTime}ms - " +
                     "total workouts: ${allWorkouts.size}, summaries: ${result.size}, " +

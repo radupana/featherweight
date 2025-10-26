@@ -1,10 +1,10 @@
 package com.github.radupana.featherweight.sync.strategies
 
-import android.util.Log
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.sync.SyncStrategy
 import com.github.radupana.featherweight.sync.repository.FirestoreRepository
+import com.github.radupana.featherweight.util.CloudLogger
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -28,16 +28,16 @@ class CustomExerciseSyncStrategy(
     ): Result<Unit> =
         withContext(Dispatchers.IO) {
             if (userId == null) {
-                Log.w(TAG, "No user ID provided for custom exercise sync")
+                CloudLogger.warn(TAG, "No user ID provided for custom exercise sync")
                 return@withContext Result.success(Unit)
             }
 
             try {
-                Log.d(TAG, "Starting custom exercise sync for user: $userId")
+                CloudLogger.debug(TAG, "Starting custom exercise sync for user: $userId")
 
                 // Download custom exercises from Firestore (now returns typed list)
                 val remoteExercises = firestoreRepository.downloadCustomExercises(userId, lastSyncTime).getOrThrow()
-                Log.d(TAG, "Downloaded ${remoteExercises.size} custom exercises from Firestore")
+                CloudLogger.debug(TAG, "Downloaded ${remoteExercises.size} custom exercises from Firestore")
 
                 // Get local custom exercises for comparison
                 val localVariations = database.exerciseDao().getCustomExercisesByUser(userId)
@@ -65,27 +65,27 @@ class CustomExerciseSyncStrategy(
                             }
                         }
                     } catch (e: com.google.firebase.FirebaseException) {
-                        Log.e(TAG, "Failed to process custom exercise ${firestoreExercise.id} - Firebase error", e)
+                        CloudLogger.error(TAG, "Failed to process custom exercise ${firestoreExercise.id} - Firebase error", e)
                     } catch (e: android.database.sqlite.SQLiteException) {
-                        Log.e(TAG, "Failed to process custom exercise ${firestoreExercise.id} - database error", e)
+                        CloudLogger.error(TAG, "Failed to process custom exercise ${firestoreExercise.id} - database error", e)
                     } catch (e: IllegalStateException) {
-                        Log.e(TAG, "Failed to process custom exercise ${firestoreExercise.id} - invalid state", e)
+                        CloudLogger.error(TAG, "Failed to process custom exercise ${firestoreExercise.id} - invalid state", e)
                     }
                 }
 
                 // Upload local exercises that are new or updated
                 uploadLocalChanges(userId, localVariations, lastSyncTime)
 
-                Log.d(TAG, "Custom exercise sync completed successfully")
+                CloudLogger.debug(TAG, "Custom exercise sync completed successfully")
                 Result.success(Unit)
             } catch (e: com.google.firebase.FirebaseException) {
-                Log.e(TAG, "Failed to sync custom exercises - Firebase error", e)
+                CloudLogger.error(TAG, "Failed to sync custom exercises - Firebase error", e)
                 Result.failure(e)
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to sync custom exercises - database error", e)
+                CloudLogger.error(TAG, "Failed to sync custom exercises - database error", e)
                 Result.failure(e)
             } catch (e: java.io.IOException) {
-                Log.e(TAG, "Failed to sync custom exercises - network error", e)
+                CloudLogger.error(TAG, "Failed to sync custom exercises - network error", e)
                 Result.failure(e)
             }
         }
@@ -150,12 +150,12 @@ class CustomExerciseSyncStrategy(
                     val instructions = database.exerciseInstructionDao().getInstructionsForVariation(exercise.id)
 
                     firestoreRepository.uploadCustomExercise(userId, exercise, muscles, aliases, instructions).getOrThrow()
-                    Log.d(TAG, "Uploaded custom exercise: ${exercise.name}")
+                    CloudLogger.debug(TAG, "Uploaded custom exercise: ${exercise.name}")
                 }
             } catch (e: com.google.firebase.FirebaseException) {
-                Log.e(TAG, "Failed to upload custom exercise ${exercise.id} - Firebase error", e)
+                CloudLogger.error(TAG, "Failed to upload custom exercise ${exercise.id} - Firebase error", e)
             } catch (e: java.io.IOException) {
-                Log.e(TAG, "Failed to upload custom exercise ${exercise.id} - network error", e)
+                CloudLogger.error(TAG, "Failed to upload custom exercise ${exercise.id} - network error", e)
             }
         }
     }
@@ -174,13 +174,13 @@ class CustomExerciseSyncStrategy(
                 uploadLocalChanges(userId, localVariations, lastSyncTime)
                 Result.success(Unit)
             } catch (e: com.google.firebase.FirebaseException) {
-                Log.e(TAG, "Failed to upload custom exercises - Firebase error", e)
+                CloudLogger.error(TAG, "Failed to upload custom exercises - Firebase error", e)
                 Result.failure(e)
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Failed to upload custom exercises - database error", e)
+                CloudLogger.error(TAG, "Failed to upload custom exercises - database error", e)
                 Result.failure(e)
             } catch (e: java.io.IOException) {
-                Log.e(TAG, "Failed to upload custom exercises - network error", e)
+                CloudLogger.error(TAG, "Failed to upload custom exercises - network error", e)
                 Result.failure(e)
             }
         }

@@ -1,6 +1,6 @@
 package com.github.radupana.featherweight.service
 
-import android.util.Log
+import com.github.radupana.featherweight.util.CloudLogger
 
 object ConfigServiceFactory {
     private const val TAG = "ConfigServiceFactory"
@@ -14,14 +14,14 @@ object ConfigServiceFactory {
     fun getConfigService(): ConfigService =
         configService ?: synchronized(this) {
             configService ?: if (isTestMode) {
-                Log.d(TAG, "Using test config service")
+                CloudLogger.debug(TAG, "Using test config service")
                 TestConfigService()
             } else {
                 try {
-                    Log.d(TAG, "Using remote config service")
+                    CloudLogger.debug(TAG, "Using remote config service")
                     RemoteConfigService.getInstance()
                 } catch (e: IllegalStateException) {
-                    Log.w(TAG, "Failed to initialize RemoteConfigService, using test config", e)
+                    CloudLogger.warn(TAG, "Failed to initialize RemoteConfigService, using test config", e)
                     TestConfigService()
                 }
             }.also { configService = it }

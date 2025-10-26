@@ -1,12 +1,12 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.domain.TemplateSummary
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.WorkoutTemplateRepository
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,17 +51,17 @@ class WorkoutTemplateSelectionViewModel(
     }
 
     init {
-        Log.i(TAG, "ViewModel initialized, loading templates...")
+        CloudLogger.info(TAG, "ViewModel initialized, loading templates...")
         loadTemplates()
     }
 
     fun loadTemplates() {
         viewModelScope.launch {
             _isLoading.value = true
-            Log.i(TAG, "Loading templates...")
+            CloudLogger.info(TAG, "Loading templates...")
             try {
                 val templateSummaries = templateRepository.getTemplates()
-                Log.i(TAG, "Got ${templateSummaries.size} templates from repository")
+                CloudLogger.info(TAG, "Got ${templateSummaries.size} templates from repository")
 
                 val templatesWithExercises =
                     templateSummaries.map { template ->
@@ -71,7 +71,7 @@ class WorkoutTemplateSelectionViewModel(
                                 repository.getExerciseById(exerciseLog.exerciseId)?.name
                             }
 
-                        Log.d(TAG, "Template ${template.id}: exercises=${exerciseNames.joinToString()}")
+                        CloudLogger.debug(TAG, "Template ${template.id}: exercises=${exerciseNames.joinToString()}")
 
                         TemplateWithExercises(
                             summary = template,
@@ -91,7 +91,7 @@ class WorkoutTemplateSelectionViewModel(
                 _templates.value = emptyList()
             } finally {
                 _isLoading.value = false
-                Log.i(TAG, "Template loading complete - count: ${_templates.value.size}")
+                CloudLogger.info(TAG, "Template loading complete - count: ${_templates.value.size}")
             }
         }
     }
@@ -102,10 +102,10 @@ class WorkoutTemplateSelectionViewModel(
 
     fun deleteTemplate(templateId: String) {
         viewModelScope.launch {
-            Log.i(TAG, "Deleting template with ID: $templateId")
+            CloudLogger.info(TAG, "Deleting template with ID: $templateId")
             try {
                 templateRepository.deleteTemplate(templateId)
-                Log.i(TAG, "Template deleted successfully")
+                CloudLogger.info(TAG, "Template deleted successfully")
                 loadTemplates() // Reload the list
             } catch (e: IllegalArgumentException) {
                 ExceptionLogger.logException(TAG, "Failed to delete template", e)

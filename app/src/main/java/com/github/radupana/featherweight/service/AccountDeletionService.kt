@@ -1,8 +1,8 @@
 package com.github.radupana.featherweight.service
 
-import android.util.Log
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.manager.AuthenticationManager
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.EmailAuthProvider
@@ -54,52 +54,52 @@ class AccountDeletionService(
     suspend fun deleteAccount(): DeletionResult =
         withContext(Dispatchers.IO) {
             try {
-                Log.d(TAG, "Starting account deletion process")
+                CloudLogger.debug(TAG, "Starting account deletion process")
 
                 val userId = authManager.getCurrentUserId()
                 if (userId == null) {
-                    Log.e(TAG, "No user ID found")
+                    CloudLogger.error(TAG, "No user ID found")
                     return@withContext DeletionResult.Error("No user logged in")
                 }
 
                 // First, check if we can delete the auth account (dry run)
                 val authCheck = checkAuthDeletionPossible()
                 if (authCheck !is DeletionResult.Success) {
-                    Log.d(TAG, "Auth deletion requires re-authentication")
+                    CloudLogger.debug(TAG, "Auth deletion requires re-authentication")
                     return@withContext authCheck
                 }
 
                 // Now we know auth deletion will work, so wipe data first
 
                 // Step 1: Delete Firestore data FIRST (while we still have auth)
-                Log.d(TAG, "Deleting Firestore data for user: $userId")
+                CloudLogger.debug(TAG, "Deleting Firestore data for user: $userId")
                 deleteFirestoreData(userId)
 
                 // Step 2: Delete local Room database data
-                Log.d(TAG, "Deleting local database data for user: $userId")
+                CloudLogger.debug(TAG, "Deleting local database data for user: $userId")
                 deleteLocalData(userId)
 
                 // Step 3: Clear SharedPreferences
-                Log.d(TAG, "Clearing SharedPreferences")
+                CloudLogger.debug(TAG, "Clearing SharedPreferences")
                 authManager.clearUserData()
 
                 // Step 4: FINALLY delete Firebase Auth account (do this LAST!)
-                Log.d(TAG, "Deleting Firebase Auth account")
+                CloudLogger.debug(TAG, "Deleting Firebase Auth account")
                 val authDeletionResult = deleteFirebaseAuthAccount()
                 if (authDeletionResult !is DeletionResult.Success) {
-                    Log.e(TAG, "Auth deletion failed after data wipe: $authDeletionResult")
+                    CloudLogger.error(TAG, "Auth deletion failed after data wipe: $authDeletionResult")
                     // Data is already wiped, but auth account remains - this is bad but safe
                     return@withContext authDeletionResult
                 }
 
-                Log.d(TAG, "Account deletion completed successfully")
+                CloudLogger.debug(TAG, "Account deletion completed successfully")
                 DeletionResult.Success
             } catch (e: com.google.firebase.FirebaseException) {
-                Log.e(TAG, "Account deletion failed - Firebase error", e)
+                CloudLogger.error(TAG, "Account deletion failed - Firebase error", e)
                 ExceptionLogger.logNonCritical(TAG, "Account deletion failed", e)
                 DeletionResult.Error("Failed to delete account: ${e.message}")
             } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Account deletion failed - database error", e)
+                CloudLogger.error(TAG, "Account deletion failed - database error", e)
                 ExceptionLogger.logNonCritical(TAG, "Account deletion failed", e)
                 DeletionResult.Error("Failed to delete account: ${e.message}")
             }
@@ -113,7 +113,7 @@ class AccountDeletionService(
     suspend fun deleteAccountWithReauthentication(credential: AuthCredential): DeletionResult =
         withContext(Dispatchers.IO) {
             try {
-                Log.d(TAG, "Re-authenticating user for deletion")
+                CloudLogger.debug(TAG, "Re-authenticating user for deletion")
 
                 val user = FirebaseAuth.getInstance().currentUser
                 if (user == null) {
@@ -122,15 +122,15 @@ class AccountDeletionService(
 
                 // Re-authenticate
                 user.reauthenticate(credential).await()
-                Log.d(TAG, "Re-authentication successful")
+                CloudLogger.debug(TAG, "Re-authentication successful")
 
                 // Now try deletion again
                 deleteAccount()
             } catch (e: com.google.firebase.auth.FirebaseAuthException) {
-                Log.e(TAG, "Re-authentication failed - Firebase auth error", e)
+                CloudLogger.error(TAG, "Re-authentication failed - Firebase auth error", e)
                 DeletionResult.Error("Re-authentication failed: ${e.message}")
             } catch (e: java.io.IOException) {
-                Log.e(TAG, "Re-authentication failed - network error", e)
+                CloudLogger.error(TAG, "Re-authentication failed - network error", e)
                 DeletionResult.Error("Re-authentication failed: ${e.message}")
             }
         }
@@ -164,17 +164,17 @@ class AccountDeletionService(
 
             // Firebase requires auth within last 5 minutes for sensitive operations
             if (timeSinceLastAuth > 5 * 60 * 1000) {
-                Log.d(TAG, "Recent login required (last sign in: ${timeSinceLastAuth / 1000}s ago)")
+                CloudLogger.debug(TAG, "Recent login required (last sign in: ${timeSinceLastAuth / 1000}s ago)")
                 val authProvider = firebaseAuth.getAuthProvider() ?: "password"
                 DeletionResult.RequiresReauthentication(authProvider)
             } else {
                 DeletionResult.Success
             }
         } catch (e: com.google.firebase.FirebaseException) {
-            Log.e(TAG, "Failed to check auth status - Firebase error", e)
+            CloudLogger.error(TAG, "Failed to check auth status - Firebase error", e)
             DeletionResult.Error("Failed to check authentication status: ${e.message}")
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Failed to check auth status - invalid state", e)
+            CloudLogger.error(TAG, "Failed to check auth status - invalid state", e)
             DeletionResult.Error("Failed to check authentication status: ${e.message}")
         }
     }
@@ -187,17 +187,17 @@ class AccountDeletionService(
             }
 
             user.delete().await()
-            Log.d(TAG, "Firebase Auth account deleted successfully")
+            CloudLogger.debug(TAG, "Firebase Auth account deleted successfully")
             DeletionResult.Success
         } catch (e: FirebaseAuthRecentLoginRequiredException) {
-            Log.d(TAG, "Recent login required for account deletion", e)
+            CloudLogger.debug(TAG, "Recent login required for account deletion", e)
             val authProvider = firebaseAuth.getAuthProvider() ?: "password"
             DeletionResult.RequiresReauthentication(authProvider)
         } catch (e: com.google.firebase.auth.FirebaseAuthException) {
-            Log.e(TAG, "Failed to delete Firebase Auth account - Firebase auth error", e)
+            CloudLogger.error(TAG, "Failed to delete Firebase Auth account - Firebase auth error", e)
             DeletionResult.Error("Failed to delete authentication account: ${e.message}")
         } catch (e: java.io.IOException) {
-            Log.e(TAG, "Failed to delete Firebase Auth account - network error", e)
+            CloudLogger.error(TAG, "Failed to delete Firebase Auth account - network error", e)
             DeletionResult.Error("Failed to delete authentication account: ${e.message}")
         }
     }
@@ -250,9 +250,9 @@ class AccountDeletionService(
                 .delete()
                 .await()
 
-            Log.d(TAG, "Firestore data deleted successfully")
+            CloudLogger.debug(TAG, "Firestore data deleted successfully")
         } catch (e: Throwable) {
-            Log.e(TAG, "Failed to delete Firestore data: ${e.javaClass.simpleName} - ${e.message}", e)
+            CloudLogger.error(TAG, "Failed to delete Firestore data: ${e.javaClass.simpleName} - ${e.message}", e)
             // Continue with local deletion even if Firestore fails
         }
     }
@@ -270,12 +270,12 @@ class AccountDeletionService(
 
             if (documents.size() > 0) {
                 batch.commit().await()
-                Log.d(TAG, "Deleted ${documents.size()} documents from $path")
+                CloudLogger.debug(TAG, "Deleted ${documents.size()} documents from $path")
             }
         } catch (e: com.google.firebase.FirebaseException) {
-            Log.e(TAG, "Failed to delete subcollection: $path - Firebase error", e)
+            CloudLogger.error(TAG, "Failed to delete subcollection: $path - Firebase error", e)
         } catch (e: java.io.IOException) {
-            Log.e(TAG, "Failed to delete subcollection: $path - network error", e)
+            CloudLogger.error(TAG, "Failed to delete subcollection: $path - network error", e)
         }
     }
 
@@ -309,9 +309,9 @@ class AccountDeletionService(
             // User exercise usage tracking
             database.userExerciseUsageDao().deleteAllUsageForUser(userId)
 
-            Log.d(TAG, "Local database data deleted successfully")
+            CloudLogger.debug(TAG, "Local database data deleted successfully")
         } catch (e: android.database.sqlite.SQLiteException) {
-            Log.e(TAG, "Failed to delete local data - database error", e)
+            CloudLogger.error(TAG, "Failed to delete local data - database error", e)
             throw e
         }
     }

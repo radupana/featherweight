@@ -1,11 +1,11 @@
 package com.github.radupana.featherweight.service
 
-import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -643,7 +643,7 @@ class WorkoutSeedingService(
                     try {
                         repository.checkForPR(set, exerciseLog.exerciseId)
                     } catch (e: IllegalStateException) {
-                        Log.w(TAG, "PR check failed during seeding for exerciseId: ${exerciseLog.exerciseId}, setId: ${set.id}", e)
+                        CloudLogger.warn(TAG, "PR check failed during seeding for exerciseId: ${exerciseLog.exerciseId}, setId: ${set.id}", e)
                     }
 
                     // Only calculate 1RM for meaningful sets (not warmups)
@@ -699,7 +699,7 @@ class WorkoutSeedingService(
                             workoutDate = workout.date,
                         )
                     } catch (e: IllegalStateException) {
-                        Log.w(TAG, "1RM update failed during seeding for exerciseId: ${exerciseLog.exerciseId}, workoutId: $workoutId", e)
+                        CloudLogger.warn(TAG, "1RM update failed during seeding for exerciseId: ${exerciseLog.exerciseId}, workoutId: $workoutId", e)
                     }
                 }
             }

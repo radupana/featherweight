@@ -1,7 +1,5 @@
 package com.github.radupana.featherweight.util
 
-import android.util.Log
-
 object ExceptionLogger {
     fun logException(
         tag: String,
@@ -12,9 +10,9 @@ object ExceptionLogger {
         val fullMessage = "$message: ${throwable.message}"
         try {
             when (level) {
-                LogLevel.DEBUG -> Log.d(tag, fullMessage, throwable)
-                LogLevel.WARNING -> Log.w(tag, fullMessage, throwable)
-                LogLevel.ERROR -> Log.e(tag, fullMessage, throwable)
+                LogLevel.DEBUG -> CloudLogger.debug(tag, fullMessage, throwable)
+                LogLevel.WARNING -> CloudLogger.warn(tag, fullMessage, throwable)
+                LogLevel.ERROR -> CloudLogger.error(tag, fullMessage, throwable)
             }
         } catch (
             @Suppress("TooGenericExceptionCaught", "SwallowedException") e: RuntimeException,

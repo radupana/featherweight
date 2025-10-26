@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.repository
 
 import android.app.Application
-import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.SetLog
@@ -13,6 +12,7 @@ import com.github.radupana.featherweight.data.WorkoutTemplate
 import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.TemplateSummary
 import com.github.radupana.featherweight.manager.AuthenticationManager
+import com.github.radupana.featherweight.util.CloudLogger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -70,7 +70,7 @@ class WorkoutTemplateRepository(
         templateDescription: String?,
     ): String =
         withContext(ioDispatcher) {
-            Log.i(TAG, "createTemplateFromWorkout - workoutId: $workoutId, name: $templateName")
+            CloudLogger.info(TAG, "createTemplateFromWorkout - workoutId: $workoutId, name: $templateName")
 
             val userId = authManager.getCurrentUserId() ?: "local"
             val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
@@ -122,13 +122,13 @@ class WorkoutTemplateRepository(
                 }
             }
 
-            Log.i(TAG, "Template created - id: ${template.id}, exercises: $copiedExercises, sets: $copiedSets")
+            CloudLogger.info(TAG, "Template created - id: ${template.id}, exercises: $copiedExercises, sets: $copiedSets")
             template.id
         }
 
     suspend fun startWorkoutFromTemplate(templateId: String): String =
         withContext(ioDispatcher) {
-            Log.i(TAG, "startWorkoutFromTemplate - templateId: $templateId")
+            CloudLogger.info(TAG, "startWorkoutFromTemplate - templateId: $templateId")
 
             val template =
                 templateDao.getTemplateById(templateId)
@@ -176,13 +176,13 @@ class WorkoutTemplateRepository(
                 }
             }
 
-            Log.i(TAG, "Workout created from template - workoutId: ${workout.id}")
+            CloudLogger.info(TAG, "Workout created from template - workoutId: ${workout.id}")
             workout.id
         }
 
     suspend fun deleteTemplate(templateId: String) =
         withContext(ioDispatcher) {
-            Log.i(TAG, "deleteTemplate - id: $templateId")
+            CloudLogger.info(TAG, "deleteTemplate - id: $templateId")
             templateDao.deleteTemplate(templateId)
         }
 }

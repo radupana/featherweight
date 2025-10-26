@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.service
 
-import android.util.Log
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.PersonalRecord
 import com.github.radupana.featherweight.data.PersonalRecordDao
@@ -8,6 +7,7 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SetLogDao
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
 import com.github.radupana.featherweight.data.exercise.RMScalingType
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.WeightFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -56,7 +56,7 @@ class PRDetectionService(
                     try {
                         LocalDateTime.parse(workoutDateString, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                     } catch (e: java.time.format.DateTimeParseException) {
-                        Log.w(TAG, "Failed to parse workout date for setLog: ${setLog.id}, using current time", e)
+                        CloudLogger.warn(TAG, "Failed to parse workout date for setLog: ${setLog.id}, using current time", e)
                         LocalDateTime.now()
                     }
                 } else {
@@ -74,32 +74,32 @@ class PRDetectionService(
                     }
                 } ?: RMScalingType.STANDARD
 
-            Log.d("PRDetection", "Checking PRs for exercise $exerciseId: ${currentWeight}kg × $currentReps @ RPE $currentRpe")
+            CloudLogger.debug("PRDetection", "Checking PRs for exercise $exerciseId: ${currentWeight}kg × $currentReps @ RPE $currentRpe")
 
             // Calculate estimated 1RM for this set
             val estimated1RM = calculateEstimated1RM(currentWeight, currentReps, currentRpe, scalingType)
 
             if (estimated1RM != null) {
-                Log.d("PRDetection", "Calculated 1RM: ${WeightFormatter.formatDecimal(estimated1RM, 2)}kg")
+                CloudLogger.debug("PRDetection", "Calculated 1RM: ${WeightFormatter.formatDecimal(estimated1RM, 2)}kg")
             } else {
-                Log.d("PRDetection", "No 1RM calculated (RPE too low or other criteria not met)")
+                CloudLogger.debug("PRDetection", "No 1RM calculated (RPE too low or other criteria not met)")
             }
 
             // Get the current max estimated 1RM for comparison
             val currentMax1RM = personalRecordDao.getMaxEstimated1RMForExercise(exerciseId)
-            Log.d("PRDetection", "Current max 1RM in database: ${currentMax1RM?.let { WeightFormatter.formatDecimal(it, 2) } ?: "None"}kg")
+            CloudLogger.debug("PRDetection", "Current max 1RM in database: ${currentMax1RM?.let { WeightFormatter.formatDecimal(it, 2) } ?: "None"}kg")
 
             // Check for weight PR (higher absolute weight than ever before)
             val weightPR = checkWeightPR(exerciseId, currentWeight, currentReps, currentRpe, currentDate, workoutId, estimated1RM, currentMax1RM, setLog.userId)
             weightPR?.let {
-                Log.d("PRDetection", "Weight PR detected: ${it.weight}kg × ${it.reps}")
+                CloudLogger.debug("PRDetection", "Weight PR detected: ${it.weight}kg × ${it.reps}")
                 newPRs.add(it)
             }
 
             // Check for estimated 1RM PR (higher estimated 1RM than ever before)
             // Only check if we actually calculated a 1RM
             if (estimated1RM != null && estimated1RM > (currentMax1RM ?: 0f)) {
-                Log.d("PRDetection", "New 1RM PR detected: ${WeightFormatter.formatDecimal(estimated1RM, 2)}kg > ${currentMax1RM ?: 0}kg")
+                CloudLogger.debug("PRDetection", "New 1RM PR detected: ${WeightFormatter.formatDecimal(estimated1RM, 2)}kg > ${currentMax1RM ?: 0}kg")
                 val oneRMPR = checkEstimated1RMPR(exerciseId, currentWeight, currentReps, currentRpe, estimated1RM, currentDate, workoutId, setLog.userId)
                 oneRMPR?.let {
                     // Don't add duplicate 1RM PR if weight PR already includes it
@@ -208,7 +208,7 @@ class PRDetectionService(
     ): PersonalRecord? {
         val currentMaxWeight = personalRecordDao.getMaxWeightForExercise(exerciseId)
 
-        Log.d("PRDetection", "Weight PR check: current weight=${weight}kg, max weight in DB=${currentMaxWeight ?: "None"}kg")
+        CloudLogger.debug("PRDetection", "Weight PR check: current weight=${weight}kg, max weight in DB=${currentMaxWeight ?: "None"}kg")
 
         // Create PR if this is the first record OR if it beats the existing record
         if (currentMaxWeight == null || weight > currentMaxWeight) {
@@ -233,7 +233,7 @@ class PRDetectionService(
                 }
 
             val roundedWeight = WeightFormatter.roundToNearestQuarter(weight)
-            Log.d("PRDetection", "Creating weight PR: ${roundedWeight}kg × $reps, notes: $notes")
+            CloudLogger.debug("PRDetection", "Creating weight PR: ${roundedWeight}kg × $reps, notes: $notes")
             return PersonalRecord(
                 userId = userId,
                 exerciseId = exerciseId,
@@ -268,7 +268,7 @@ class PRDetectionService(
     ): Float? {
         // Skip if RPE is too low for reliable estimate
         if (rpe != null && rpe <= 6.0f) {
-            Log.d("PRDetection", "Skipping 1RM calculation: RPE $rpe <= 6.0 (unreliable)")
+            CloudLogger.debug("PRDetection", "Skipping 1RM calculation: RPE $rpe <= 6.0 (unreliable)")
             return null
         }
 
@@ -283,7 +283,7 @@ class PRDetectionService(
 
         if (totalRepCapacity == 1f) return weight
         if (totalRepCapacity > 15) {
-            Log.d("PRDetection", "Skipping 1RM calculation: total rep capacity $totalRepCapacity > 15")
+            CloudLogger.debug("PRDetection", "Skipping 1RM calculation: total rep capacity $totalRepCapacity > 15")
             return null
         }
 

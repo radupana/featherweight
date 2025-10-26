@@ -2,7 +2,6 @@ package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
 import android.database.sqlite.SQLiteException
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.ParseRequest
@@ -11,6 +10,7 @@ import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
+import com.github.radupana.featherweight.util.CloudLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -113,7 +113,7 @@ class ProgrammeViewModel(
 
                 // Load progress if there's an active programme
                 if (active != null) {
-                    Log.d(TAG, "Active programme loaded: ${active.name} (id: ${active.id})")
+                    CloudLogger.debug(TAG, "Active programme loaded: ${active.name} (id: ${active.id})")
                     val progress = repository.getProgrammeWithDetails(active.id)?.progress
                     _programmeProgress.value = progress
                     // Load next workout info
@@ -123,7 +123,7 @@ class ProgrammeViewModel(
                 // Load all programmes (including inactive)
                 val allProgs = repository.getAllProgrammes()
 
-                Log.d(
+                CloudLogger.debug(
                     TAG,
                     "loadProgrammeData took ${System.currentTimeMillis() - startTime}ms - " +
                         "active: ${active?.name ?: "none"}, total: ${allProgs.size}, " +
@@ -137,14 +137,14 @@ class ProgrammeViewModel(
                     )
                 hasLoadedInitialData = true
             } catch (e: SQLiteException) {
-                Log.e(TAG, "Database error loading programmes", e)
+                CloudLogger.error(TAG, "Database error loading programmes", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to load programmes: ${e.message}",
                         isLoading = false,
                     )
             } catch (e: IOException) {
-                Log.e(TAG, "IO error loading programmes", e)
+                CloudLogger.error(TAG, "IO error loading programmes", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to load programmes: ${e.message}",
@@ -159,7 +159,7 @@ class ProgrammeViewModel(
     fun deleteProgramme(programme: Programme) {
         viewModelScope.launch {
             try {
-                Log.i(
+                CloudLogger.info(
                     TAG,
                     "Deleting programme - id: ${programme.id}, name: ${programme.name}, " +
                         "isActive: ${programme.isActive}",
@@ -168,9 +168,9 @@ class ProgrammeViewModel(
                 // Programme deleted successfully - no notification needed
                 // Refresh data to update the UI
                 loadProgrammeData()
-                Log.i(TAG, "Programme deleted successfully: ${programme.name}")
+                CloudLogger.info(TAG, "Programme deleted successfully: ${programme.name}")
             } catch (e: SQLiteException) {
-                Log.e(TAG, "Database error deleting programme: ${programme.name}", e)
+                CloudLogger.error(TAG, "Database error deleting programme: ${programme.name}", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to delete programme: ${e.message}",
@@ -207,12 +207,12 @@ class ProgrammeViewModel(
     fun deleteParseRequest(request: ParseRequest) {
         viewModelScope.launch {
             try {
-                Log.d("ProgrammeViewModel", "Attempting to delete parse request: ${request.id}")
+                CloudLogger.debug("ProgrammeViewModel", "Attempting to delete parse request: ${request.id}")
                 repository.deleteParseRequest(request)
 
                 // Force immediate UI update by removing from local state
                 _parseRequests.value = _parseRequests.value.filter { it.id != request.id }
-                Log.d("ProgrammeViewModel", "Parse request ${request.id} deleted and removed from UI")
+                CloudLogger.debug("ProgrammeViewModel", "Parse request ${request.id} deleted and removed from UI")
 
                 // Show success feedback
                 _uiState.value =
@@ -227,7 +227,7 @@ class ProgrammeViewModel(
                         successMessage = null,
                     )
             } catch (e: SQLiteException) {
-                Log.e("ProgrammeViewModel", "Database error deleting parse request ${request.id}", e)
+                CloudLogger.error("ProgrammeViewModel", "Database error deleting parse request ${request.id}", e)
                 _uiState.value =
                     _uiState.value.copy(
                         error = "Failed to delete: ${e.message}",

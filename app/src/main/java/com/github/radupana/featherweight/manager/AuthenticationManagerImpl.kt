@@ -1,8 +1,8 @@
 package com.github.radupana.featherweight.manager
 
 import android.content.Context
-import android.util.Log
 import androidx.core.content.edit
+import com.github.radupana.featherweight.util.CloudLogger
 import com.google.firebase.auth.FirebaseAuth
 
 class AuthenticationManagerImpl(
@@ -33,13 +33,13 @@ class AuthenticationManagerImpl(
             storedUserId == null -> false
             firebaseUser == null -> {
                 // Stored user exists but Firebase Auth is null - corrupted state
-                Log.w(TAG, "Detected corrupted auth state: stored userId=$storedUserId but FirebaseAuth.currentUser is null")
+                CloudLogger.warn(TAG, "Detected corrupted auth state: stored userId=$storedUserId but FirebaseAuth.currentUser is null")
                 clearUserData()
                 false
             }
             firebaseUser.uid != storedUserId -> {
                 // User mismatch - update to correct user
-                Log.w(TAG, "User mismatch: stored=$storedUserId, firebase=${firebaseUser.uid}")
+                CloudLogger.warn(TAG, "User mismatch: stored=$storedUserId, firebase=${firebaseUser.uid}")
                 setCurrentUserId(firebaseUser.uid)
                 isUserVerified(firebaseUser)
             }
@@ -53,7 +53,7 @@ class AuthenticationManagerImpl(
         return if (isPasswordProvider) {
             val verified = firebaseUser.isEmailVerified
             if (!verified) {
-                Log.i(TAG, "User ${firebaseUser.uid} is not email verified")
+                CloudLogger.info(TAG, "User ${firebaseUser.uid} is not email verified")
             }
             verified
         } else {
@@ -70,13 +70,13 @@ class AuthenticationManagerImpl(
             storedUserId == null -> null
             firebaseUser == null -> {
                 // Stored user exists but Firebase Auth is null - corrupted state
-                Log.w(TAG, "getCurrentUserId: Clearing corrupted auth state")
+                CloudLogger.warn(TAG, "getCurrentUserId: Clearing corrupted auth state")
                 clearUserData()
                 null
             }
             firebaseUser.uid != storedUserId -> {
                 // User mismatch - update to correct user
-                Log.w(TAG, "getCurrentUserId: Updating mismatched user ID")
+                CloudLogger.warn(TAG, "getCurrentUserId: Updating mismatched user ID")
                 setCurrentUserId(firebaseUser.uid)
                 firebaseUser.uid
             }

@@ -1,10 +1,10 @@
 package com.github.radupana.featherweight.data.programme
 
-import android.util.Log
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.IdGenerator
 import kotlinx.serialization.json.Json
 import java.time.LocalDateTime
@@ -56,7 +56,7 @@ data class Programme(
             try {
                 Json.decodeFromString<WeightCalculationRules>(it)
             } catch (e: kotlinx.serialization.SerializationException) {
-                Log.w(TAG, "Failed to parse weight calculation rules JSON", e)
+                CloudLogger.warn(TAG, "Failed to parse weight calculation rules JSON", e)
                 null
             }
         }
@@ -66,7 +66,7 @@ data class Programme(
             try {
                 Json.decodeFromString<ProgressionRules>(it)
             } catch (e: kotlinx.serialization.SerializationException) {
-                Log.w(TAG, "Failed to parse progression rules JSON", e)
+                CloudLogger.warn(TAG, "Failed to parse progression rules JSON", e)
                 null
             }
         }

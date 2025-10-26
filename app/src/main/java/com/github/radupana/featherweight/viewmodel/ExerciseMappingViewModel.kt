@@ -1,7 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.Equipment
@@ -10,6 +9,7 @@ import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.MovementPattern
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.ExerciseSearchUtil
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,23 +63,23 @@ class ExerciseMappingViewModel(
 
     fun initializeMappings(unmatchedExercises: List<String>) {
         viewModelScope.launch {
-            Log.d(TAG, "=== SMART SUGGESTIONS START ===")
-            Log.d(TAG, "Unmatched exercises: ${unmatchedExercises.size}")
+            CloudLogger.debug(TAG, "=== SMART SUGGESTIONS START ===")
+            CloudLogger.debug(TAG, "Unmatched exercises: ${unmatchedExercises.size}")
 
             if (allExercisesWithAliases.isEmpty()) {
-                Log.d(TAG, "Loading exercises from database...")
+                CloudLogger.debug(TAG, "Loading exercises from database...")
                 allExercises = repository.getAllExercises()
                 allExercisesWithAliases = repository.getAllExercisesWithAliases()
-                Log.d(TAG, "Loaded ${allExercisesWithAliases.size} exercises with aliases")
+                CloudLogger.debug(TAG, "Loaded ${allExercisesWithAliases.size} exercises with aliases")
             } else {
-                Log.d(TAG, "Using cached ${allExercisesWithAliases.size} exercises")
+                CloudLogger.debug(TAG, "Using cached ${allExercisesWithAliases.size} exercises")
             }
 
             val suggestionsMap = mutableMapOf<String, List<Exercise>>()
             val autoMappings = mutableMapOf<String, ExerciseMapping>()
 
             unmatchedExercises.forEach { exerciseName ->
-                Log.d(TAG, "--- Processing: '$exerciseName' ---")
+                CloudLogger.debug(TAG, "--- Processing: '$exerciseName' ---")
 
                 val suggestions =
                     ExerciseSearchUtil
@@ -92,9 +92,9 @@ class ExerciseMappingViewModel(
                         .map { it.exercise }
 
                 if (suggestions.isEmpty()) {
-                    Log.d(TAG, "  No suggestions found for '$exerciseName'")
+                    CloudLogger.debug(TAG, "  No suggestions found for '$exerciseName'")
                 } else {
-                    Log.d(TAG, "  Found ${suggestions.size} suggestion(s):")
+                    CloudLogger.debug(TAG, "  Found ${suggestions.size} suggestion(s):")
                     suggestions.forEachIndexed { index, exercise ->
                         val matchWithAliases = allExercisesWithAliases.firstOrNull { it.exercise.id == exercise.id }
                         val score =
@@ -107,7 +107,7 @@ class ExerciseMappingViewModel(
                             } else {
                                 0
                             }
-                        Log.d(TAG, "    ${index + 1}. ${exercise.name} (score: $score)")
+                        CloudLogger.debug(TAG, "    ${index + 1}. ${exercise.name} (score: $score)")
                     }
 
                     suggestionsMap[exerciseName] = suggestions
@@ -122,7 +122,7 @@ class ExerciseMappingViewModel(
                             )
 
                         if (score >= AUTO_PROPOSE_THRESHOLD) {
-                            Log.d(TAG, "  ✓ AUTO-PROPOSING: ${topMatch.name} (score $score >= threshold $AUTO_PROPOSE_THRESHOLD)")
+                            CloudLogger.debug(TAG, "  ✓ AUTO-PROPOSING: ${topMatch.name} (score $score >= threshold $AUTO_PROPOSE_THRESHOLD)")
                             autoMappings[exerciseName] =
                                 ExerciseMapping(
                                     originalName = exerciseName,
@@ -130,15 +130,15 @@ class ExerciseMappingViewModel(
                                     exerciseName = topMatch.name,
                                 )
                         } else {
-                            Log.d(TAG, "  ✗ Not auto-proposing: score $score < threshold $AUTO_PROPOSE_THRESHOLD")
+                            CloudLogger.debug(TAG, "  ✗ Not auto-proposing: score $score < threshold $AUTO_PROPOSE_THRESHOLD")
                         }
                     }
                 }
             }
 
-            Log.d(TAG, "=== SMART SUGGESTIONS COMPLETE ===")
-            Log.d(TAG, "Total suggestions generated: ${suggestionsMap.size}")
-            Log.d(TAG, "Total auto-proposals: ${autoMappings.size}")
+            CloudLogger.debug(TAG, "=== SMART SUGGESTIONS COMPLETE ===")
+            CloudLogger.debug(TAG, "Total suggestions generated: ${suggestionsMap.size}")
+            CloudLogger.debug(TAG, "Total auto-proposals: ${autoMappings.size}")
 
             _uiState.value =
                 _uiState.value.copy(
