@@ -131,58 +131,6 @@ class SyncManager(
             } // End of mutex lock
         }
 
-    suspend fun restoreFromCloud(): Result<SyncState> =
-        withContext(ioDispatcher) {
-            val userId = authManager.getCurrentUserId()
-            if (userId == null) {
-                val errorState = SyncState.Error("User not authenticated")
-                return@withContext Result.success(errorState)
-            }
-
-            try {
-                // Clear all user data before restoring to avoid ID mismatches
-                Log.d("SyncManager", "Clearing all user data before restore...")
-                clearAllUserData(userId)
-
-                // Download all data without lastSyncTime filter
-                downloadRemoteChanges(userId, null).fold(
-                    onSuccess = {
-                        updateSyncMetadata(userId)
-                        Result.success(SyncState.Success(Timestamp.now()))
-                    },
-                    onFailure = { error ->
-                        Result.success(SyncState.Error("Restore failed: ${error.message}"))
-                    },
-                )
-            } catch (e: com.google.firebase.FirebaseException) {
-                ExceptionLogger.logNonCritical("SyncManager", "Restore failed - Firebase error", e)
-                Result.success(SyncState.Error("Restore failed: ${e.message}"))
-            } catch (e: android.database.sqlite.SQLiteException) {
-                ExceptionLogger.logNonCritical("SyncManager", "Restore failed - database error", e)
-                Result.success(SyncState.Error("Restore failed: ${e.message}"))
-            }
-        }
-
-    private suspend fun clearAllUserData(userId: String) {
-        // Clear all user-specific data
-        database.workoutDao().deleteAllForUser(userId)
-        database.exerciseLogDao().deleteAllForUser(userId)
-        database.setLogDao().deleteAllForUser(userId)
-        database.programmeDao().deleteAllProgrammesForUser(userId)
-        database.programmeDao().deleteAllProgrammeWeeksForUser(userId)
-        database.programmeDao().deleteAllProgrammeWorkoutsForUser(userId)
-        database.programmeDao().deleteAllProgrammeProgressForUser(userId)
-        database.exerciseMaxTrackingDao().deleteAllForUser(userId)
-        database.personalRecordDao().deleteAllForUser(userId)
-        database.exerciseSwapHistoryDao().deleteAllForUser(userId)
-        database.programmeExerciseTrackingDao().deleteAllForUser(userId)
-        database.globalExerciseProgressDao().deleteAllForUser(userId)
-        database.trainingAnalysisDao().deleteAllByUserId(userId)
-        database.parseRequestDao().deleteAllForUser(userId)
-        // Clear custom exercises
-        database.exerciseDao().deleteAllCustomExercisesByUser(userId)
-    }
-
     private suspend fun uploadLocalChanges(
         userId: String,
         @Suppress("UNUSED_PARAMETER")

@@ -559,59 +559,6 @@ class SyncManagerTest {
         }
 
     @Test
-    fun `restoreFromCloud downloads and merges all data for fresh install`() =
-        runTest {
-            val userId = "test-user"
-
-            every { authManager.getCurrentUserId() } returns userId
-            mockAllDaoMethods()
-            mockAllFirestoreDownloads()
-
-            // Mock deleteAllForUser methods for clearing data
-            coEvery { workoutDao.deleteAllForUser(userId) } returns Unit
-            coEvery { exerciseLogDao.deleteAllForUser(userId) } returns Unit
-            coEvery { setLogDao.deleteAllForUser(userId) } returns Unit
-            coEvery { workoutTemplateDao.deleteAllForUser(userId) } returns Unit
-            coEvery { templateExerciseDao.deleteAllForUser(userId) } returns Unit
-            coEvery { templateSetDao.deleteAllForUser(userId) } returns Unit
-            coEvery { programmeDao.deleteAllProgrammesForUser(userId) } returns Unit
-            coEvery { programmeDao.deleteAllProgrammeWeeksForUser(userId) } returns Unit
-            coEvery { programmeDao.deleteAllProgrammeWorkoutsForUser(userId) } returns Unit
-            coEvery { programmeDao.deleteAllProgrammeProgressForUser(userId) } returns Unit
-            coEvery { oneRMDao.deleteAllForUser(userId) } returns Unit
-            coEvery { oneRMDao.deleteAllForUser(userId) } returns Unit
-            coEvery { oneRMDao.deleteAllForUser(userId) } returns Unit
-            coEvery { personalRecordDao.deleteAllForUser(userId) } returns Unit
-            coEvery { exerciseSwapHistoryDao.deleteAllForUser(userId) } returns Unit
-            coEvery { programmeExerciseTrackingDao.deleteAllForUser(userId) } returns Unit
-            coEvery { globalExerciseProgressDao.deleteAllForUser(userId) } returns Unit
-            coEvery { trainingAnalysisDao.deleteAllByUserId(userId) } returns Unit
-            coEvery { parseRequestDao.deleteAllForUser(userId) } returns Unit
-            coEvery { exerciseDao.deleteAllCustomExercisesByUser(userId) } returns Unit
-
-            // Mock the missing DAO methods needed for merge operations
-            coEvery { workoutDao.getWorkoutById(any()) } returns null
-            coEvery { workoutDao.insertWorkout(any()) } returns Unit
-            coEvery { exerciseLogDao.getExerciseLogById(any()) } returns null
-            coEvery { exerciseLogDao.insertExerciseLog(any()) } just runs
-            coEvery { setLogDao.getSetLogById(any()) } returns null
-            coEvery { setLogDao.insertSetLog(any()) } returns Unit
-            // Firestore sync metadata no longer used - only local tracking
-
-            val result = syncManager.restoreFromCloud()
-
-            assertTrue(result.isSuccess)
-            val state = result.getOrNull()
-            assertTrue(state is SyncState.Success)
-
-            coVerify {
-                firestoreRepository.downloadWorkouts(userId, null)
-                firestoreRepository.downloadExerciseLogs(userId, null)
-                firestoreRepository.downloadSetLogs(userId, null)
-            }
-        }
-
-    @Test
     fun `syncAll merges remote workouts with conflict resolution`() =
         runTest {
             val userId = "test-user"

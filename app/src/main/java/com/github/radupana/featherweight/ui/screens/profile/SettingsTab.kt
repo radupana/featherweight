@@ -33,15 +33,13 @@ fun SettingsTab(
     onWeightUnitSelected: (WeightUnit) -> Unit,
     accountInfo: AccountInfo?,
     onSignOut: () -> Unit,
+    modifier: Modifier = Modifier,
     onSignIn: () -> Unit = {},
     onSendVerificationEmail: () -> Unit,
     onChangePassword: (String, String) -> Unit,
     onResetPassword: () -> Unit,
     onDeleteAccount: () -> Unit,
     syncState: SyncUiState,
-    onRestoreFromCloud: () -> Unit,
-    onToggleAutoSync: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier =
@@ -63,8 +61,6 @@ fun SettingsTab(
 
         SyncSection(
             syncState = syncState,
-            onRestoreFromCloud = onRestoreFromCloud,
-            onToggleAutoSync = onToggleAutoSync,
         )
 
         WeightUnitSelector(

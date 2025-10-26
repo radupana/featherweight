@@ -557,14 +557,6 @@ class ProfileViewModel(
         }
     }
 
-    fun restoreFromCloud() {
-        syncViewModel.restoreFromCloud()
-    }
-
-    fun toggleAutoSync(enabled: Boolean) {
-        syncViewModel.toggleAutoSync(enabled)
-    }
-
     private fun loadAccountInfo() {
         val user = firebaseAuth.getCurrentUser()
         _uiState.value =

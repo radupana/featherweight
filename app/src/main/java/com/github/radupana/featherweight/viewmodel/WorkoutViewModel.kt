@@ -624,8 +624,8 @@ class WorkoutViewModel(
 
             loadInProgressWorkouts()
 
-            // Trigger sync after workout completion
-            triggerAutoSync()
+            // Trigger debounced sync after workout completion
+            triggerDebouncedSync()
 
             // Check if programme is complete
             if (programmeId != null) {
@@ -2303,24 +2303,20 @@ class WorkoutViewModel(
         }
     }
 
-    private fun triggerAutoSync() {
+    private fun triggerDebouncedSync() {
         viewModelScope.launch {
             try {
                 val context = getApplication<Application>()
-                val prefs = context.getSharedPreferences("sync_prefs", android.content.Context.MODE_PRIVATE)
-                val autoSyncEnabled = prefs.getBoolean("auto_sync_enabled", true)
+                val authManager = ServiceLocator.getAuthenticationManager(context)
 
-                if (autoSyncEnabled) {
-                    val authManager = ServiceLocator.getAuthenticationManager(context)
-                    if (authManager.getCurrentUserId() != null) {
-                        val syncManager = ServiceLocator.getSyncManager(context)
-                        syncManager.syncAll()
-                    }
+                // Trigger debounced sync if user is authenticated
+                if (authManager.getCurrentUserId() != null) {
+                    // Get or create SyncViewModel to trigger debounced sync
+                    val syncViewModel = ServiceLocator.getSyncViewModel(context)
+                    syncViewModel.triggerDebouncedSync()
                 }
-            } catch (e: com.google.firebase.FirebaseException) {
-                Log.e(TAG, "Auto-sync failed: Firebase error", e)
-            } catch (e: android.database.sqlite.SQLiteException) {
-                Log.e(TAG, "Auto-sync failed: database error", e)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to trigger debounced sync", e)
             }
         }
     }

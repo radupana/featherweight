@@ -12,13 +12,11 @@ import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,8 +28,6 @@ import com.github.radupana.featherweight.viewmodel.SyncUiState
 @Composable
 fun SyncSection(
     syncState: SyncUiState,
-    onRestoreFromCloud: () -> Unit,
-    onToggleAutoSync: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -43,7 +39,7 @@ fun SyncSection(
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             SyncHeader(syncState)
 
@@ -54,11 +50,7 @@ fun SyncSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                SyncControls(
-                    syncState = syncState,
-                    onRestoreFromCloud = onRestoreFromCloud,
-                    onToggleAutoSync = onToggleAutoSync,
-                )
+                SyncStatus(syncState)
             }
         }
     }
@@ -101,22 +93,11 @@ private fun SyncStatusIcon(syncState: SyncUiState) {
 }
 
 @Composable
-private fun SyncControls(
-    syncState: SyncUiState,
-    onRestoreFromCloud: () -> Unit,
-    onToggleAutoSync: (Boolean) -> Unit,
-) {
+private fun SyncStatus(syncState: SyncUiState) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        syncState.lastSyncTime?.let {
-            Text(
-                text = "Last synced: $it",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
+        // Show sync error if present
         syncState.syncError?.let {
             Text(
                 text = it,
@@ -125,73 +106,32 @@ private fun SyncControls(
             )
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        // Show last sync time
+        syncState.lastSyncTime?.let {
             Text(
-                text = "Auto-backup",
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Switch(
-                checked = syncState.autoSyncEnabled,
-                onCheckedChange = onToggleAutoSync,
-                enabled = !syncState.isSyncing,
-            )
-        }
-
-        RestoreButton(
-            isSyncing = syncState.isSyncing,
-            onRestoreFromCloud = onRestoreFromCloud,
-        )
-
-        if (syncState.autoSyncEnabled) {
-            Text(
-                text = "Data backs up automatically every 6 hours",
+                text = if (syncState.isSyncing) "Syncing..." else "Last updated: $it",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-    }
-}
 
-@Composable
-private fun RestoreButton(
-    isSyncing: Boolean,
-    onRestoreFromCloud: () -> Unit,
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Button(
-            onClick = onRestoreFromCloud,
-            enabled = !isSyncing,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (isSyncing) {
+        // If syncing, show progress indicator
+        if (syncState.isSyncing) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(16.dp),
                     strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
                 )
-            } else {
-                Icon(
-                    Icons.Default.CloudQueue,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+                Text(
+                    text = "Updating cloud data...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                text = if (isSyncing) "Restoring..." else "Restore from Cloud",
-                modifier = Modifier.padding(start = 8.dp),
-            )
         }
-
-        Text(
-            text = "Use this to download your data from the cloud and replace local data",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 8.dp),
-        )
     }
 }

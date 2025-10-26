@@ -16,9 +16,12 @@ import com.github.radupana.featherweight.sync.SyncState
 import com.github.radupana.featherweight.sync.worker.SystemExerciseSyncWorker
 import com.github.radupana.featherweight.sync.worker.UserDataSyncWorker
 import com.google.firebase.Timestamp
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import java.time.Duration
@@ -32,9 +35,9 @@ data class SyncUiState(
     val isSyncing: Boolean = false,
     val lastSyncTime: String? = null,
     val syncError: String? = null,
-    val autoSyncEnabled: Boolean = true,
 )
 
+@OptIn(FlowPreview::class)
 class SyncViewModel(
     private val context: Context,
     private val syncManager: SyncManager = ServiceLocator.getSyncManager(context),
@@ -43,15 +46,30 @@ class SyncViewModel(
     private val _uiState = MutableStateFlow(SyncUiState())
     val uiState: StateFlow<SyncUiState> = _uiState.asStateFlow()
 
+    // Debouncer for real-time sync - waits 5 seconds after last data change
+    private val syncDebouncer = MutableSharedFlow<Unit>()
+
     init {
         Log.d("SyncViewModel", "init: Initializing SyncViewModel")
         updateAuthenticationState()
-        loadAutoSyncPreference()
+
+        // Set up debounced sync listener
+        viewModelScope.launch {
+            syncDebouncer
+                .debounce(5000) // Wait 5 seconds after last change
+                .collect {
+                    Log.d("SyncViewModel", "Debounced sync triggered")
+                    if (_uiState.value.isAuthenticated) {
+                        performBackgroundSync()
+                    }
+                }
+        }
 
         // Check if user is already authenticated and trigger initial backup
-        if (_uiState.value.isAuthenticated && _uiState.value.autoSyncEnabled) {
+        if (_uiState.value.isAuthenticated) {
             Log.d("SyncViewModel", "init: User already authenticated, triggering initial backup")
             performBackgroundSync()
+            schedulePeriodicSync()
         }
     }
 
@@ -67,19 +85,10 @@ class SyncViewModel(
                 isAuthenticated = isNowAuthenticated,
             )
 
-        // If user just became authenticated, trigger backup
-        if (!wasAuthenticated && isNowAuthenticated && _uiState.value.autoSyncEnabled) {
+        // If user just became authenticated, trigger backup and schedule periodic sync
+        if (!wasAuthenticated && isNowAuthenticated) {
             Log.i("SyncViewModel", "updateAuthenticationState: User just authenticated, triggering backup")
             performBackgroundSync()
-        }
-    }
-
-    private fun loadAutoSyncPreference() {
-        val prefs = context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
-        val autoSyncEnabled = prefs.getBoolean("auto_sync_enabled", true)
-        _uiState.value = _uiState.value.copy(autoSyncEnabled = autoSyncEnabled)
-
-        if (autoSyncEnabled && authManager.getCurrentUserId() != null) {
             schedulePeriodicSync()
         }
     }
@@ -155,67 +164,6 @@ class SyncViewModel(
         }
     }
 
-    fun restoreFromCloud() {
-        if (!_uiState.value.isAuthenticated) return
-
-        viewModelScope.launch {
-            _uiState.value =
-                _uiState.value.copy(
-                    isSyncing = true,
-                    syncError = null,
-                )
-
-            syncManager.restoreFromCloud().fold(
-                onSuccess = { state ->
-                    when (state) {
-                        is SyncState.Success -> {
-                            _uiState.value =
-                                _uiState.value.copy(
-                                    isSyncing = false,
-                                    lastSyncTime = formatTimestamp(state.timestamp),
-                                    syncError = null,
-                                )
-                        }
-                        is SyncState.Skipped -> {
-                            _uiState.value =
-                                _uiState.value.copy(
-                                    isSyncing = false,
-                                )
-                            // Don't update timestamp for skipped syncs
-                        }
-                        is SyncState.Error -> {
-                            _uiState.value =
-                                _uiState.value.copy(
-                                    isSyncing = false,
-                                    syncError = state.message,
-                                )
-                        }
-                    }
-                },
-                onFailure = { error ->
-                    _uiState.value =
-                        _uiState.value.copy(
-                            isSyncing = false,
-                            syncError = error.message ?: "Unknown error",
-                        )
-                },
-            )
-        }
-    }
-
-    fun toggleAutoSync(enabled: Boolean) {
-        _uiState.value = _uiState.value.copy(autoSyncEnabled = enabled)
-
-        val prefs = context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean("auto_sync_enabled", enabled).apply()
-
-        if (enabled && authManager.getCurrentUserId() != null) {
-            schedulePeriodicSync()
-        } else {
-            cancelPeriodicSync()
-        }
-    }
-
     private fun schedulePeriodicSync() {
         val constraints =
             Constraints
@@ -279,19 +227,24 @@ class SyncViewModel(
 
     fun onUserSignedIn() {
         updateAuthenticationState()
-        if (_uiState.value.autoSyncEnabled) {
-            schedulePeriodicSync()
-            performBackgroundSync()
-        }
+        // Always schedule sync and perform initial sync when user signs in
+        schedulePeriodicSync()
+        performBackgroundSync()
     }
 
     fun onUserSignedOut() {
         cancelPeriodicSync()
-        _uiState.value =
-            SyncUiState(
-                isAuthenticated = false,
-                autoSyncEnabled = _uiState.value.autoSyncEnabled,
-            )
+        _uiState.value = SyncUiState(isAuthenticated = false)
+    }
+
+    /**
+     * Triggers a debounced sync that will execute 5 seconds after the last call.
+     * Call this whenever data changes to enable real-time sync.
+     */
+    fun triggerDebouncedSync() {
+        viewModelScope.launch {
+            syncDebouncer.emit(Unit)
+        }
     }
 
     fun startBackgroundSync() {

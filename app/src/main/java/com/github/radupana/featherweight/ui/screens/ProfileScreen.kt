@@ -154,8 +154,6 @@ fun ProfileScreen(
                             currentWeightUnit = uiState.currentWeightUnit,
                             onWeightUnitSelected = { unit -> viewModel.setWeightUnit(unit) },
                             syncState = uiState.syncUiState,
-                            onRestoreFromCloud = { viewModel.restoreFromCloud() },
-                            onToggleAutoSync = { enabled -> viewModel.toggleAutoSync(enabled) },
                             accountInfo = uiState.accountInfo,
                             onSignOut = { viewModel.signOut() },
                             onSignIn = onSignIn,

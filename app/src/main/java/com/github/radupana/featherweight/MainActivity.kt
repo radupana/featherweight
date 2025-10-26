@@ -391,12 +391,8 @@ fun MainAppWithNavigation(
                     Log.i("MainActivity", "Triggering full sync for authenticated user: $userId")
                     syncManager.syncAll()
 
-                    // Schedule periodic sync for authenticated users
-                    val prefs = context.getSharedPreferences("sync_prefs", android.content.Context.MODE_PRIVATE)
-                    val autoSyncEnabled = prefs.getBoolean("auto_sync_enabled", true)
-                    if (autoSyncEnabled) {
-                        schedulePeriodicSync(context)
-                    }
+                    // Always schedule periodic sync for authenticated users
+                    schedulePeriodicSync(context)
                 } else {
                     // Unauthenticated user - just sync system exercises
                     Log.i("MainActivity", "Triggering system exercise sync for unauthenticated user")
