@@ -608,7 +608,11 @@ class FeatherweightRepository(
                     when (val reps = exerciseStructure.reps) {
                         is RepsStructure.PerSet -> {
                             reps.values.forEachIndexed { setIndex, repValue ->
-                                val targetReps = repValue.toIntOrNull() ?: 10
+                                val targetReps =
+                                    repValue.toIntOrNull() ?: run {
+                                        CloudLogger.warn(TAG, "Invalid rep value '$repValue' for exercise '${exerciseStructure.name}', using default 10")
+                                        10
+                                    }
                                 val targetWeight = weights?.getOrNull(setIndex) ?: 0f
                                 val targetRpe = rpeList?.getOrNull(setIndex)
 
@@ -668,8 +672,16 @@ class FeatherweightRepository(
                         }
                         is RepsStructure.RangeString -> {
                             val parts = reps.value.split("-")
-                            val minReps = parts.getOrNull(0)?.toIntOrNull() ?: 8
-                            val maxReps = parts.getOrNull(1)?.toIntOrNull() ?: 12
+                            val minReps =
+                                parts.getOrNull(0)?.toIntOrNull() ?: run {
+                                    CloudLogger.warn(TAG, "Invalid min reps '${parts.getOrNull(0)}' in range '${reps.value}' for exercise '${exerciseStructure.name}', using default 8")
+                                    8
+                                }
+                            val maxReps =
+                                parts.getOrNull(1)?.toIntOrNull() ?: run {
+                                    CloudLogger.warn(TAG, "Invalid max reps '${parts.getOrNull(1)}' in range '${reps.value}' for exercise '${exerciseStructure.name}', using default 12")
+                                    12
+                                }
                             val targetReps = (minReps + maxReps) / 2
 
                             repeat(exerciseStructure.sets) { setIndex ->
@@ -835,6 +847,7 @@ class FeatherweightRepository(
         difficulty: ProgrammeDifficulty = ProgrammeDifficulty.INTERMEDIATE,
     ): String =
         withContext(Dispatchers.IO) {
+            CloudLogger.info(TAG, "Creating imported programme - name: '$name', duration: $durationWeeks weeks")
             CloudLogger.debug("FeatherweightRepository", "=== REPOSITORY: CREATING IMPORTED PROGRAMME ===")
             CloudLogger.debug("FeatherweightRepository", "Programme name: $name")
             CloudLogger.debug("FeatherweightRepository", "Duration: $durationWeeks weeks")
@@ -980,6 +993,7 @@ class FeatherweightRepository(
                 }
             }
 
+            CloudLogger.info(TAG, "Programme import completed - id: $programmeId, name: '$name', weeks: ${weeks.size}")
             programmeId
         }
 
@@ -1168,13 +1182,19 @@ class FeatherweightRepository(
     suspend fun activateProgramme(programmeId: String) =
         withContext(Dispatchers.IO) {
             try {
+                val programme = programmeDao.getProgrammeById(programmeId)
+                CloudLogger.info(TAG, "Activating programme - id: $programmeId, name: '${programme?.name}'")
+
                 programmeDao.setActiveProgramme(programmeId)
 
                 // Update status to IN_PROGRESS
                 programmeDao.updateProgrammeStatus(programmeId, ProgrammeStatus.IN_PROGRESS)
 
                 // Initialize progress tracking
-                val programme = programmeDao.getProgrammeById(programmeId) ?: return@withContext
+                if (programme == null) {
+                    CloudLogger.warn(TAG, "Cannot activate programme - programme not found: $programmeId")
+                    return@withContext
+                }
 
                 // Calculate total workouts based on actual JSON structure
                 val totalWorkouts = calculateTotalWorkoutsFromStructure(programme)
@@ -1191,8 +1211,9 @@ class FeatherweightRepository(
                     )
 
                 programmeDao.insertOrUpdateProgress(progress)
+                CloudLogger.info(TAG, "Programme activated successfully - id: $programmeId, totalWorkouts: $totalWorkouts")
             } catch (e: android.database.sqlite.SQLiteException) {
-                CloudLogger.error("FeatherweightRepository", "Error completing workout", e)
+                CloudLogger.error(TAG, "Error activating programme: $programmeId", e)
             }
         }
 
@@ -1203,9 +1224,13 @@ class FeatherweightRepository(
             val progress = programmeDao.getProgressForProgramme(programmeId)
 
             if (programme != null && progress != null) {
+                CloudLogger.info(TAG, "Completing programme - id: $programmeId, name: '${programme.name}', completed: ${progress.completedWorkouts}/${progress.totalWorkouts} workouts")
                 // ATOMIC update - sets status=COMPLETED, isActive=false, and completedAt in one transaction
                 val completionTime = LocalDateTime.now()
                 programmeDao.completeProgrammeAtomic(programmeId, completionTime)
+                CloudLogger.info(TAG, "Programme completed successfully - id: $programmeId, name: '${programme.name}'")
+            } else {
+                CloudLogger.warn(TAG, "Cannot complete programme - programme or progress not found: $programmeId")
             }
         }
 

@@ -67,11 +67,14 @@ class WorkoutSeedingService(
 
     suspend fun seedRealisticWorkouts(config: SeedConfig): Int =
         withContext(Dispatchers.IO) {
+            CloudLogger.info(TAG, "Starting workout seeding - weeks: ${config.numberOfWeeks}, workoutsPerWeek: ${config.workoutsPerWeek}, includeAccessories: ${config.includeAccessories}")
+
             // Get 1RMs from profile or use defaults
             val oneRMs = get1RMs()
 
             // Generate workout dates, skipping existing workouts
             val workoutDates = generateAvailableWorkoutDates(config)
+            CloudLogger.info(TAG, "Generated ${workoutDates.size} workout dates to seed")
 
             var workoutsCreated = 0
 
@@ -105,6 +108,7 @@ class WorkoutSeedingService(
                 workoutsCreated++
             }
 
+            CloudLogger.info(TAG, "Workout seeding completed - created: $workoutsCreated workouts")
             workoutsCreated
         }
 

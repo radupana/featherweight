@@ -75,6 +75,8 @@ class SyncManager(
                     return@withContext Result.success(errorState)
                 }
 
+                val syncStartTime = System.currentTimeMillis()
+
                 try {
                     // Check if database is empty (fresh install scenario)
                     val isEmptyDatabase = isDatabaseEmpty(userId)
@@ -101,7 +103,8 @@ class SyncManager(
                                 onSuccess = {
                                     CloudLogger.info("SyncManager", "Upload successful, updating metadata...")
                                     updateSyncMetadata(userId)
-                                    CloudLogger.info("SyncManager", "Sync completed successfully")
+                                    val syncDuration = System.currentTimeMillis() - syncStartTime
+                                    CloudLogger.info("SyncManager", "Sync completed successfully - duration: ${syncDuration}ms (${syncDuration / 1000.0}s)")
                                     Result.success(SyncState.Success(Timestamp.now()))
                                 },
                                 onFailure = { error ->
