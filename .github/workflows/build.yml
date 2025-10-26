@@ -1,4 +1,4 @@
-name: Build and Test
+name: Build, Test, and Deploy
 
 on:
   push:
@@ -8,19 +8,31 @@ on:
       - 'docs/**'
       - '.gitignore'
       - 'LICENSE'
+  workflow_dispatch:
+    inputs:
+      skip_deploy:
+        description: 'Skip deployment (build and test only)'
+        required: false
+        type: boolean
+        default: false
+      version_override:
+        description: 'Optional: Override version (e.g., 2.0.0)'
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
   actions: read
+  issues: write
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
     - name: Checkout code
@@ -36,7 +48,6 @@ jobs:
     - name: Setup Gradle
       run: |
         chmod +x gradlew
-        # Gradle optimizations for CI
         mkdir -p ~/.gradle
         echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
         echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
@@ -119,7 +130,6 @@ jobs:
     - name: Setup Gradle
       run: |
         chmod +x gradlew
-        # Gradle optimizations for CI
         mkdir -p ~/.gradle
         echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
         echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
@@ -175,3 +185,259 @@ jobs:
       with:
         name: detekt-results
         path: app/build/reports/detekt/
+
+  # Manual approval gate - creates GitHub issue for approval/denial
+  approve-deployment:
+    needs: [test, code-quality]
+    runs-on: ubuntu-latest
+    # Only run approval for automatic pushes (not manual workflow_dispatch with skip_deploy)
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.skip_deploy != 'true')
+
+    steps:
+    - name: Wait for deployment approval
+      uses: trstringer/manual-approval@v1
+      with:
+        secret: ${{ github.TOKEN }}
+        approvers: ${{ github.repository_owner }}
+        minimum-approvals: 1
+        issue-title: "Deploy build ${{ github.run_number }} to production?"
+        issue-body: |
+          **Please review the test results before approving deployment:**
+
+          📊 **Test Results**: [View workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          📝 **Commit**: ${{ github.event.head_commit.message }}
+          🔗 **SHA**: `${{ github.sha }}`
+
+          **This will deploy to:**
+          - Firebase App Distribution (alpha-testers group)
+          - GitHub Releases
+
+          ---
+
+          **To proceed, comment on this issue:**
+          - `approve` or `lgtm` or `yes` to deploy
+          - `deny` or `no` to cancel
+
+  build:
+    needs: [approve-deployment]
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v5
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Decode Google Services JSON
+      env:
+        GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+      run: |
+        echo "$GOOGLE_SERVICES_JSON" | base64 -d > app/google-services.json
+
+    - name: Decode Keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      run: |
+        echo "$KEYSTORE_BASE64" | base64 -d > app/featherweight-release.keystore
+
+    - name: Build Alpha APK
+      env:
+        KEYSTORE_PATH: ${{ github.workspace }}/app/featherweight-release.keystore
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: ./gradlew assembleAlpha
+
+    - name: Extract version from gradle.properties
+      id: get_version
+      run: |
+        if [ -n "${{ github.event.inputs.version_override }}" ]; then
+          VERSION="${{ github.event.inputs.version_override }}"
+          echo "Using override version: $VERSION"
+        else
+          VERSION=$(grep "^appVersion=" gradle.properties | cut -d'=' -f2)
+          echo "Using gradle.properties version: $VERSION"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Deploying version: $VERSION"
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-alpha
+        path: app/build/outputs/apk/alpha/app-alpha.apk
+
+  deploy-firebase:
+    needs: [build]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Download APK artifact
+      uses: actions/download-artifact@v4.1.7
+      with:
+        name: apk-alpha
+        path: apk
+
+    - name: Upload to Firebase App Distribution
+      uses: wzieba/Firebase-Distribution-Github-Action@v1.7.1
+      with:
+        appId: ${{ secrets.FIREBASE_APP_ID }}
+        serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        groups: alpha-testers
+        releaseNotes: |
+          Version: ${{ needs.build.outputs.version }}-alpha
+          Build: ${{ github.run_number }}
+          Commit: ${{ github.sha }}
+
+          📱 This is an ALPHA build with Firebase feedback enabled
+          Use the "Feedback" button in the bottom navigation bar
+
+          Changes: ${{ github.event.head_commit.message }}
+        file: apk/app-alpha.apk
+
+  github-release:
+    needs: [build, deploy-firebase]
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4.1.7
+      with:
+        path: artifacts
+
+    - name: Create reports bundle
+      run: |
+        mkdir -p reports-bundle
+
+        cat > reports-bundle/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Build Reports - v${{ needs.build.outputs.version }} Build ${{ github.run_number }}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 40px; background: #f6f8fa; }
+            .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            h1 { color: #24292e; border-bottom: 1px solid #e1e4e8; padding-bottom: 10px; }
+            .info { background: #f1f8ff; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #0366d6; }
+            .reports { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0; }
+            .report-card { background: #f8f9fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 20px; text-align: center; transition: transform 0.2s; }
+            .report-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+            .report-card a { text-decoration: none; color: #0366d6; font-weight: 500; }
+            .report-card .icon { font-size: 2em; margin-bottom: 10px; }
+            .meta { color: #586069; font-size: 14px; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>🚀 Featherweight Build Reports</h1>
+
+            <div class="info">
+              <strong>Version:</strong> ${{ needs.build.outputs.version }}<br>
+              <strong>Build:</strong> ${{ github.run_number }}<br>
+              <strong>Commit:</strong> ${{ github.sha }}<br>
+              <strong>Date:</strong> $(date -u +'%Y-%m-%d %H:%M:%S UTC')<br>
+              <strong>Changes:</strong> ${{ github.event.head_commit.message }}
+            </div>
+
+            <div class="reports">
+              <div class="report-card">
+                <div class="icon">🧪</div>
+                <a href="test-results/index.html" target="_blank">Unit Test Results</a>
+              </div>
+
+              <div class="report-card">
+                <div class="icon">📊</div>
+                <a href="unit-test-coverage/index.html" target="_blank">Unit Test Coverage</a>
+              </div>
+
+              <div class="report-card">
+                <div class="icon">🔍</div>
+                <a href="detekt-results/detekt.html" target="_blank">Detekt Analysis</a>
+              </div>
+
+              <div class="report-card">
+                <div class="icon">✅</div>
+                <a href="lint-results.html" target="_blank">Android Lint</a>
+              </div>
+            </div>
+
+            <div class="meta">
+              Generated by GitHub Actions • Build ${{ github.run_number }}
+            </div>
+          </div>
+        </body>
+        </html>
+        EOF
+
+        cp -r artifacts/test-results reports-bundle/ 2>/dev/null || echo "No test results found"
+        cp -r artifacts/unit-test-coverage reports-bundle/ 2>/dev/null || echo "No unit test coverage found"
+        cp -r artifacts/detekt-results reports-bundle/ 2>/dev/null || echo "No detekt results found"
+        cp artifacts/lint-results/lint-results-debug.html reports-bundle/lint-results.html 2>/dev/null || echo "No lint results found"
+
+        cd reports-bundle && zip -r ../reports-bundle.zip . && cd ..
+
+    - name: Extract version for release
+      id: release_version
+      run: |
+        VERSION="${{ needs.build.outputs.version }}"
+        BUILD_NUMBER="${{ github.run_number }}"
+        TAG="v${VERSION}-build${BUILD_NUMBER}"
+        echo "tag=${TAG}" >> $GITHUB_OUTPUT
+        echo "title=v${VERSION} - Build ${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+
+    - name: Check Firebase deployment status
+      id: firebase_status
+      run: |
+        if [ "${{ needs.deploy-firebase.result }}" == "success" ]; then
+          echo "status=✅ Deployed to Firebase App Distribution" >> $GITHUB_OUTPUT
+        else
+          echo "status=⏭️ Firebase deployment skipped or failed" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create GitHub Release with Assets
+      uses: softprops/action-gh-release@v2.3.2
+      with:
+        tag_name: ${{ steps.release_version.outputs.tag }}
+        name: ${{ steps.release_version.outputs.title }}
+        body: |
+          🚀 **Build ${{ github.run_number }}** - Version ${{ needs.build.outputs.version }}
+
+          📱 **APK**: Alpha build available for download
+          📊 **Reports**: Download and extract reports bundle, then open `index.html` for full dashboard
+          🔥 **Firebase**: ${{ steps.firebase_status.outputs.status }}
+
+          **Changes**: ${{ github.event.head_commit.message }}
+          **Commit**: ${{ github.sha }}
+
+          ---
+
+          ### 📋 Reports Included
+          - **Unit Tests**: Complete test results with pass/fail status
+          - **Unit Test Coverage**: Code coverage from unit tests
+          - **Detekt**: Kotlin code analysis and quality metrics
+          - **Android Lint**: Platform-specific issue detection
+        draft: false
+        prerelease: false
+        files: |
+          artifacts/apk-alpha/app-alpha.apk
+          reports-bundle.zip
+        fail_on_unmatched_files: true
