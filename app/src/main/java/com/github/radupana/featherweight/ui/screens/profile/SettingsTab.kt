@@ -37,7 +37,6 @@ fun SettingsTab(
     onSignIn: () -> Unit = {},
     onSendVerificationEmail: () -> Unit,
     onChangePassword: (String, String) -> Unit,
-    onResetPassword: () -> Unit,
     onDeleteAccount: () -> Unit,
     syncState: SyncUiState,
 ) {
@@ -55,7 +54,6 @@ fun SettingsTab(
             onSignIn = onSignIn,
             onSendVerificationEmail = onSendVerificationEmail,
             onChangePassword = onChangePassword,
-            onResetPassword = onResetPassword,
             onDeleteAccount = onDeleteAccount,
         )
 

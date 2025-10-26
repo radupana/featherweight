@@ -44,12 +44,11 @@ import java.util.Locale
 fun AccountSection(
     accountInfo: AccountInfo?,
     onSignOut: () -> Unit,
+    modifier: Modifier = Modifier,
     onSignIn: () -> Unit = {},
     onSendVerificationEmail: () -> Unit,
     onChangePassword: (String, String) -> Unit,
-    onResetPassword: () -> Unit,
     onDeleteAccount: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -194,13 +193,6 @@ fun AccountSection(
                         )
                         Spacer(modifier = Modifier.size(8.dp))
                         Text("Change Password")
-                    }
-
-                    TextButton(
-                        onClick = onResetPassword,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Reset Password via Email")
                     }
                 }
 

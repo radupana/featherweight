@@ -159,7 +159,6 @@ fun ProfileScreen(
                             onSignIn = onSignIn,
                             onSendVerificationEmail = { viewModel.sendVerificationEmail() },
                             onChangePassword = { current, new -> viewModel.changePassword(current, new) },
-                            onResetPassword = { viewModel.resetPassword() },
                             onDeleteAccount = { viewModel.deleteAccount() },
                         )
                     }

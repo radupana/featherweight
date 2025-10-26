@@ -689,35 +689,6 @@ class ProfileViewModel(
         }
     }
 
-    fun resetPassword() {
-        viewModelScope.launch {
-            val email = firebaseAuth.getUserEmail()
-            if (email == null) {
-                _uiState.value =
-                    _uiState.value.copy(
-                        error = "No email address found for current user",
-                    )
-                return@launch
-            }
-
-            firebaseAuth.sendPasswordResetEmail(email).fold(
-                onSuccess = {
-                    _uiState.value =
-                        _uiState.value.copy(
-                            successMessage = "Password reset email sent to $email",
-                        )
-                },
-                onFailure = { e ->
-                    ExceptionLogger.logNonCritical("ProfileViewModel", "Failed to send password reset", e)
-                    _uiState.value =
-                        _uiState.value.copy(
-                            error = "Failed to send password reset: ${e.message}",
-                        )
-                },
-            )
-        }
-    }
-
     fun deleteAccount() {
         viewModelScope.launch {
             _uiState.value =
