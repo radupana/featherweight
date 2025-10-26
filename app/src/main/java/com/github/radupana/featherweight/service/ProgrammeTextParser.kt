@@ -11,6 +11,7 @@ import com.github.radupana.featherweight.data.TextParsingResult
 import com.github.radupana.featherweight.manager.WeightUnitManager
 import com.github.radupana.featherweight.util.AnalyticsLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
+import com.github.radupana.featherweight.util.PromptSecurityUtil
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
@@ -30,7 +31,7 @@ open class ProgrammeTextParser(
     companion object {
         private const val TAG = "ProgrammeTextParser"
         private const val TIMEOUT_SECONDS = 300L
-        private const val SYSTEM_PROMPT = "You are a fitness programme parser. Extract workout programmes into structured JSON format."
+        private const val BASE_SYSTEM_PROMPT = "You are a fitness programme parser. Extract workout programmes into structured JSON format."
     }
 
     private val client =
@@ -244,6 +245,16 @@ open class ProgrammeTextParser(
     }
 
     internal open suspend fun callOpenAIAPI(request: TextParsingRequest): String {
+        // Security check for prompt injection attempts
+        if (PromptSecurityUtil.detectInjectionAttempt(request.rawText)) {
+            PromptSecurityUtil.logSecurityIncident(
+                "programme_parser_injection",
+                request.rawText,
+            )
+            Log.w(TAG, "Potential injection attempt detected in programme text")
+            throw IllegalArgumentException("Invalid content detected. Please provide a valid workout programme.")
+        }
+
         val configService = ConfigServiceFactory.getConfigService()
         val effectiveApiKey = configService.getOpenAIApiKey()
 
@@ -252,10 +263,19 @@ open class ProgrammeTextParser(
             throw IllegalArgumentException("OpenAI API key not configured. Please check your internet connection and try again.")
         }
 
-        val prompt = buildPrompt(request)
+        // Sanitize the input before building the prompt
+        val sanitizedRequest =
+            request.copy(
+                rawText = PromptSecurityUtil.sanitizeInput(request.rawText),
+            )
+
+        val prompt = buildPrompt(sanitizedRequest)
         Log.d(TAG, "=== OpenAI API Request ===")
         Log.d(TAG, "Prompt length: ${prompt.length} characters")
         Log.d(TAG, "Full prompt:\n$prompt")
+
+        // Create defensive system prompt
+        val systemPrompt = PromptSecurityUtil.createDefensiveSystemPrompt(BASE_SYSTEM_PROMPT)
 
         val requestBody =
             JsonObject().apply {
@@ -265,7 +285,7 @@ open class ProgrammeTextParser(
                 messages.add(
                     JsonObject().apply {
                         addProperty("role", "system")
-                        addProperty("content", SYSTEM_PROMPT)
+                        addProperty("content", systemPrompt)
                     },
                 )
                 messages.add(
@@ -397,11 +417,11 @@ open class ProgrammeTextParser(
             }
             
             Otherwise, parse this workout programme into structured JSON.
-            
+
             Programme text:
-            ${request.rawText}
-            
-            ${if (maxesInfo.isNotBlank()) "User's 1RM values:\n$maxesInfo" else ""}
+            ${PromptSecurityUtil.wrapUserInput(request.rawText)}
+
+            ${if (maxesInfo.isNotBlank()) "User's 1RM values:\n${PromptSecurityUtil.wrapUserInput(maxesInfo)}" else ""}
             
             CRITICAL PARSING RULES:
             1. SETS×REPS: "3×5 100kg" = Create EXACTLY 3 set objects

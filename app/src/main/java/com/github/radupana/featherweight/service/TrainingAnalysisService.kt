@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.service
 import android.util.Log
 import com.github.radupana.featherweight.util.AnalyticsLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
+import com.github.radupana.featherweight.util.PromptSecurityUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -36,12 +37,33 @@ class TrainingAnalysisService {
 
     /**
      * Analyzes training data and returns insights in JSON format.
+     * Includes security measures to prevent prompt injection attacks.
      */
     suspend fun analyzeTraining(prompt: String): String =
         withContext(Dispatchers.IO) {
             Log.i(TAG, "Starting training analysis")
+
+            // Security check for prompt injection attempts
+            if (PromptSecurityUtil.detectInjectionAttempt(prompt)) {
+                PromptSecurityUtil.logSecurityIncident(
+                    "training_analysis_injection",
+                    prompt,
+                )
+                Log.w(TAG, "Potential injection attempt detected, rejecting request")
+                throw IllegalArgumentException("Invalid input detected. Please provide valid workout data.")
+            }
+
             try {
-                val result = callOpenAI(prompt)
+                val sanitizedPrompt = PromptSecurityUtil.sanitizeInput(prompt)
+                val result = callOpenAI(sanitizedPrompt)
+
+                // Validate response structure
+                val expectedFields = listOf("overall_assessment", "key_insights", "recommendations")
+                if (!PromptSecurityUtil.validateJsonResponse(result, expectedFields)) {
+                    Log.e(TAG, "Invalid response structure from AI")
+                    throw IllegalStateException("Received invalid response format from AI service")
+                }
+
                 Log.i(TAG, "Training analysis completed successfully")
                 result
             } catch (e: IOException) {
@@ -58,7 +80,8 @@ class TrainingAnalysisService {
 
     private suspend fun callOpenAI(userPrompt: String): String =
         withContext(Dispatchers.IO) {
-            val systemPrompt = "You are an expert strength training coach and sports scientist. Provide analysis in valid JSON format."
+            val baseSystemPrompt = "You are an expert strength training coach and sports scientist. Provide analysis in valid JSON format."
+            val systemPrompt = PromptSecurityUtil.createDefensiveSystemPrompt(baseSystemPrompt)
             val configService = ConfigServiceFactory.getConfigService()
             val apiKey = configService.getOpenAIApiKey()
             if (apiKey.isNullOrEmpty()) {
