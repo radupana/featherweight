@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.radupana.featherweight.data.exercise.Equipment
@@ -22,6 +23,7 @@ data class ExerciseMapping(
 
 data class ExerciseMappingUiState(
     val mappings: Map<String, ExerciseMapping> = emptyMap(),
+    val suggestions: Map<String, List<Exercise>> = emptyMap(),
     val isLoading: Boolean = false,
 )
 
@@ -29,7 +31,10 @@ class ExerciseMappingViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     companion object {
+        private const val TAG = "ExerciseMappingViewModel"
         private const val MAX_SEARCH_RESULTS = 20
+        private const val MAX_SUGGESTIONS = 3
+        private const val AUTO_PROPOSE_THRESHOLD = 500
     }
 
     private val repository = FeatherweightRepository(application)
@@ -43,6 +48,7 @@ class ExerciseMappingViewModel(
     val errorMessage: StateFlow<String?> = _errorMessage
 
     private var allExercises: List<Exercise> = emptyList()
+    private var allExercisesWithAliases: List<com.github.radupana.featherweight.data.exercise.ExerciseWithAliases> = emptyList()
 
     init {
         loadExercises()
@@ -51,14 +57,95 @@ class ExerciseMappingViewModel(
     private fun loadExercises() {
         viewModelScope.launch {
             allExercises = repository.getAllExercises()
+            allExercisesWithAliases = repository.getAllExercisesWithAliases()
         }
     }
 
-    @Suppress("UNUSED_PARAMETER")
     fun initializeMappings(unmatchedExercises: List<String>) {
-        // Initialize empty mappings for all unmatched exercises
-        // Currently no initialization is performed - users must map each exercise manually
-        _uiState.value = _uiState.value.copy(mappings = _uiState.value.mappings)
+        viewModelScope.launch {
+            Log.d(TAG, "=== SMART SUGGESTIONS START ===")
+            Log.d(TAG, "Unmatched exercises: ${unmatchedExercises.size}")
+
+            if (allExercisesWithAliases.isEmpty()) {
+                Log.d(TAG, "Loading exercises from database...")
+                allExercises = repository.getAllExercises()
+                allExercisesWithAliases = repository.getAllExercisesWithAliases()
+                Log.d(TAG, "Loaded ${allExercisesWithAliases.size} exercises with aliases")
+            } else {
+                Log.d(TAG, "Using cached ${allExercisesWithAliases.size} exercises")
+            }
+
+            val suggestionsMap = mutableMapOf<String, List<Exercise>>()
+            val autoMappings = mutableMapOf<String, ExerciseMapping>()
+
+            unmatchedExercises.forEach { exerciseName ->
+                Log.d(TAG, "--- Processing: '$exerciseName' ---")
+
+                val suggestions =
+                    ExerciseSearchUtil
+                        .filterAndSortExercises(
+                            exercises = allExercisesWithAliases,
+                            query = exerciseName,
+                            nameExtractor = { it.name },
+                            aliasExtractor = { it.aliases },
+                        ).take(MAX_SUGGESTIONS)
+                        .map { it.exercise }
+
+                if (suggestions.isEmpty()) {
+                    Log.d(TAG, "  No suggestions found for '$exerciseName'")
+                } else {
+                    Log.d(TAG, "  Found ${suggestions.size} suggestion(s):")
+                    suggestions.forEachIndexed { index, exercise ->
+                        val matchWithAliases = allExercisesWithAliases.firstOrNull { it.exercise.id == exercise.id }
+                        val score =
+                            if (matchWithAliases != null) {
+                                ExerciseSearchUtil.scoreExerciseMatch(
+                                    exerciseName = matchWithAliases.name,
+                                    query = exerciseName,
+                                    aliases = matchWithAliases.aliases,
+                                )
+                            } else {
+                                0
+                            }
+                        Log.d(TAG, "    ${index + 1}. ${exercise.name} (score: $score)")
+                    }
+
+                    suggestionsMap[exerciseName] = suggestions
+
+                    val topMatch = allExercisesWithAliases.firstOrNull { it.exercise.id == suggestions.first().id }
+                    if (topMatch != null) {
+                        val score =
+                            ExerciseSearchUtil.scoreExerciseMatch(
+                                exerciseName = topMatch.name,
+                                query = exerciseName,
+                                aliases = topMatch.aliases,
+                            )
+
+                        if (score >= AUTO_PROPOSE_THRESHOLD) {
+                            Log.d(TAG, "  ✓ AUTO-PROPOSING: ${topMatch.name} (score $score >= threshold $AUTO_PROPOSE_THRESHOLD)")
+                            autoMappings[exerciseName] =
+                                ExerciseMapping(
+                                    originalName = exerciseName,
+                                    exerciseId = topMatch.id,
+                                    exerciseName = topMatch.name,
+                                )
+                        } else {
+                            Log.d(TAG, "  ✗ Not auto-proposing: score $score < threshold $AUTO_PROPOSE_THRESHOLD")
+                        }
+                    }
+                }
+            }
+
+            Log.d(TAG, "=== SMART SUGGESTIONS COMPLETE ===")
+            Log.d(TAG, "Total suggestions generated: ${suggestionsMap.size}")
+            Log.d(TAG, "Total auto-proposals: ${autoMappings.size}")
+
+            _uiState.value =
+                _uiState.value.copy(
+                    suggestions = suggestionsMap,
+                    mappings = autoMappings,
+                )
+        }
     }
 
     fun mapExercise(

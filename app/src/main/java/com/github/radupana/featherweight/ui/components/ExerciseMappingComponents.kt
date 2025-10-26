@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -307,4 +308,116 @@ fun MappingProgressIndicator(
             textAlign = TextAlign.Center,
         )
     }
+}
+
+@Composable
+fun SuggestedExercisesSection(
+    suggestions: List<com.github.radupana.featherweight.data.exercise.Exercise>,
+    currentMapping: com.github.radupana.featherweight.viewmodel.ExerciseMapping?,
+    onExerciseSelected: (String, String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (suggestions.isEmpty()) return
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = "Suggested Matches",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+
+        suggestions.forEachIndexed { index, exercise ->
+            val isSelected = currentMapping?.exerciseId == exercise.id
+            val isAutoProposed = index == 0 && isSelected
+
+            SuggestionCard(
+                exercise = exercise,
+                isSelected = isSelected,
+                isAutoProposed = isAutoProposed,
+                onClick = { onExerciseSelected(exercise.id, exercise.name) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SuggestionCard(
+    exercise: com.github.radupana.featherweight.data.exercise.Exercise,
+    isSelected: Boolean,
+    isAutoProposed: Boolean,
+    onClick: () -> Unit,
+) {
+    Card(
+        onClick = onClick,
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (isAutoProposed) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    },
+            ),
+        border =
+            if (isAutoProposed) {
+                BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+            } else {
+                null
+            },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = exercise.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    if (isSelected) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "Selected",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+                Text(
+                    text = buildExerciseMetadata(exercise),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+private fun buildExerciseMetadata(exercise: com.github.radupana.featherweight.data.exercise.Exercise): String {
+    val parts = mutableListOf<String>()
+
+    val category = exercise.category
+    if (category.isNotBlank()) {
+        parts.add(category.lowercase().replaceFirstChar { it.uppercase() })
+    }
+
+    val equipment = exercise.equipment
+    if (equipment.isNotBlank()) {
+        parts.add(equipment.lowercase().replaceFirstChar { it.uppercase() })
+    }
+
+    return parts.joinToString(" • ")
 }

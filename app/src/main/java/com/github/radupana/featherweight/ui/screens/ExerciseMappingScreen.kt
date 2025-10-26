@@ -37,6 +37,7 @@ import com.github.radupana.featherweight.ui.components.CreateCustomExerciseDialo
 import com.github.radupana.featherweight.ui.components.ExerciseSearchSection
 import com.github.radupana.featherweight.ui.components.MappingProgressIndicator
 import com.github.radupana.featherweight.ui.components.MappingStatusCard
+import com.github.radupana.featherweight.ui.components.SuggestedExercisesSection
 import com.github.radupana.featherweight.ui.components.UnmatchedExerciseCard
 import com.github.radupana.featherweight.viewmodel.ExerciseMapping
 import com.github.radupana.featherweight.viewmodel.ExerciseMappingUiState
@@ -161,6 +162,14 @@ private fun ExerciseMappingContent(
         MappingStatusCard(
             mapping = currentMapping,
             onClearMapping = onClearMapping,
+        )
+
+        // Suggested exercises
+        val suggestions = uiState.suggestions[currentExercise] ?: emptyList()
+        SuggestedExercisesSection(
+            suggestions = suggestions,
+            currentMapping = currentMapping,
+            onExerciseSelected = onExerciseSelected,
         )
 
         // Search section

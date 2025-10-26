@@ -20,7 +20,7 @@ object ExerciseSearchUtil {
      * This search algorithm:
      * 1. Checks for exact matches (highest score)
      * 2. Checks if the full query is contained in the name
-     * 3. Splits the query into words and checks if all words are present
+     * 3. Splits the query into words and checks if at least 50% of words are present
      *
      * @param exerciseName The name of the exercise to match
      * @param query The search query
@@ -86,10 +86,11 @@ object ExerciseSearchUtil {
         }
 
         val totalMatchedWords = matchedWordsInName + matchedWordsInAliases
+        val matchRatio = totalMatchedWords.toFloat() / searchWords.size
 
-        // Calculate multi-word score
-        return if (totalMatchedWords == searchWords.size) {
-            (matchedWordsInName * SCORE_PER_NAME_WORD) + (matchedWordsInAliases * SCORE_PER_ALIAS_WORD) + SCORE_MULTI_WORD_BASE + positionBonus
+        return if (matchRatio >= 0.5f) {
+            val baseScore = (matchRatio * SCORE_MULTI_WORD_BASE).toInt()
+            baseScore + (matchedWordsInName * SCORE_PER_NAME_WORD) + (matchedWordsInAliases * SCORE_PER_ALIAS_WORD) + positionBonus
         } else {
             0
         }

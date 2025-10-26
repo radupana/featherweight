@@ -4,12 +4,15 @@ import android.app.Application
 import com.github.radupana.featherweight.data.exercise.Equipment
 import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
+import com.github.radupana.featherweight.data.exercise.ExerciseWithAliases
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.testutil.CoroutineTestRule
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkConstructor
+import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -91,15 +94,27 @@ class ExerciseMappingViewModelTest {
             ),
         )
 
+    private val testExercisesWithAliases =
+        listOf(
+            ExerciseWithAliases(testExercises[0], listOf("Back Squat", "BB Squat")),
+            ExerciseWithAliases(testExercises[1], listOf("Front Squat")),
+            ExerciseWithAliases(testExercises[2], listOf("Hack Squat")),
+            ExerciseWithAliases(testExercises[3], emptyList()),
+            ExerciseWithAliases(testExercises[4], emptyList()),
+            ExerciseWithAliases(testExercises[5], listOf("Bench Press", "BP")),
+        )
+
     @Before
     fun setup() {
         application = mockk(relaxed = true)
 
-        // Mock the FeatherweightRepository constructor
+        mockkStatic(android.util.Log::class)
+        every { android.util.Log.d(any(), any()) } returns 0
+
         mockkConstructor(FeatherweightRepository::class)
 
-        // Setup the repository to return test exercises
         coEvery { anyConstructed<FeatherweightRepository>().getAllExercises() } returns testExercises
+        coEvery { anyConstructed<FeatherweightRepository>().getAllExercisesWithAliases() } returns testExercisesWithAliases
 
         viewModel = ExerciseMappingViewModel(application)
     }
@@ -121,19 +136,19 @@ class ExerciseMappingViewModelTest {
         }
 
     @Test
-    fun `searchExercises with 'Barbell Squat' finds all barbell squat variations`() =
+    fun `searchExercises with 'Barbell Squat' finds exercises with at least 50 percent word match`() =
         runTest {
             // When
             viewModel.searchExercises("Barbell Squat")
 
             // Then
             val results = viewModel.searchResults.first()
-            assertThat(results).hasSize(3)
-            assertThat(results.map { it.name }).containsExactly(
-                "Barbell Back Squat",
-                "Barbell Front Squat",
-                "Barbell Hack Squat",
-            )
+            assertThat(results).hasSize(5)
+            assertThat(results.map { it.name }).contains("Barbell Back Squat")
+            assertThat(results.map { it.name }).contains("Barbell Front Squat")
+            assertThat(results.map { it.name }).contains("Barbell Hack Squat")
+            assertThat(results.map { it.name }).contains("Barbell Bench Press")
+            assertThat(results.map { it.name }).contains("Dumbbell Bulgarian Split Squat")
         }
 
     @Test
@@ -152,15 +167,14 @@ class ExerciseMappingViewModelTest {
         }
 
     @Test
-    fun `searchExercises does not find exercises missing search terms`() =
+    fun `searchExercises does not find exercises with less than 50 percent word match`() =
         runTest {
-            // When - searching for "Barbell Squat" should NOT find "Machine Leg Press"
+            // When - searching for "Barbell Squat" should NOT find "Machine Leg Press" (0 matching words)
             viewModel.searchExercises("Barbell Squat")
 
             // Then
             val results = viewModel.searchResults.first()
             assertThat(results.map { it.name }).doesNotContain("Machine Leg Press")
-            assertThat(results.map { it.name }).doesNotContain("Dumbbell Bulgarian Split Squat")
         }
 
     @Test
@@ -183,8 +197,10 @@ class ExerciseMappingViewModelTest {
 
             // Then
             val results = viewModel.searchResults.first()
-            assertThat(results).hasSize(3)
+            assertThat(results).hasSize(5)
             assertThat(results.map { it.name }).contains("Barbell Back Squat")
+            assertThat(results.map { it.name }).contains("Barbell Front Squat")
+            assertThat(results.map { it.name }).contains("Barbell Hack Squat")
         }
 
     @Test
@@ -333,7 +349,7 @@ class ExerciseMappingViewModelTest {
         runTest {
             // Given
             viewModel.mapExercise("Custom Squat", "1", "Barbell Back Squat")
-            viewModel.mapExercise("Custom Press", null, "New Custom Press") // null means create as custom
+            viewModel.mapExercise("Custom Press", null, "New Custom Press")
 
             // When
             val finalMappings = viewModel.getFinalMappings()
@@ -342,5 +358,107 @@ class ExerciseMappingViewModelTest {
             assertThat(finalMappings).hasSize(2)
             assertThat(finalMappings["Custom Squat"]).isEqualTo("1")
             assertThat(finalMappings["Custom Press"]).isNull()
+        }
+
+    @Test
+    fun `initializeMappings with high confidence match auto-proposes top suggestion`() =
+        runTest {
+            // Given
+            val unmatchedExercises = listOf("Back Squat")
+
+            // When
+            viewModel.initializeMappings(unmatchedExercises)
+            testScheduler.advanceUntilIdle()
+
+            // Then
+            val state = viewModel.uiState.first()
+            assertThat(state.suggestions).containsKey("Back Squat")
+            assertThat(state.suggestions["Back Squat"]).isNotEmpty()
+            assertThat(state.mappings).containsKey("Back Squat")
+            assertThat(state.mappings["Back Squat"]?.exerciseId).isEqualTo("1")
+        }
+
+    @Test
+    fun `initializeMappings with medium confidence provides suggestions but no auto-proposal`() =
+        runTest {
+            // Given
+            val unmatchedExercises = listOf("Barbell High-Bar Squat")
+
+            // When
+            viewModel.initializeMappings(unmatchedExercises)
+            testScheduler.advanceUntilIdle()
+
+            // Then
+            val state = viewModel.uiState.first()
+            assertThat(state.suggestions).containsKey("Barbell High-Bar Squat")
+            assertThat(state.suggestions["Barbell High-Bar Squat"]).isNotEmpty()
+            assertThat(state.mappings).doesNotContainKey("Barbell High-Bar Squat")
+        }
+
+    @Test
+    fun `initializeMappings with no matches provides empty suggestions map`() =
+        runTest {
+            // Given
+            val unmatchedExercises = listOf("Completely Unknown Exercise Name")
+
+            // When
+            viewModel.initializeMappings(unmatchedExercises)
+            testScheduler.advanceUntilIdle()
+
+            // Then
+            val state = viewModel.uiState.first()
+            assertThat(state.suggestions).doesNotContainKey("Completely Unknown Exercise Name")
+            assertThat(state.mappings).doesNotContainKey("Completely Unknown Exercise Name")
+        }
+
+    @Test
+    fun `initializeMappings returns maximum 3 suggestions per exercise`() =
+        runTest {
+            // Given
+            val unmatchedExercises = listOf("Squat")
+
+            // When
+            viewModel.initializeMappings(unmatchedExercises)
+            testScheduler.advanceUntilIdle()
+
+            // Then
+            val state = viewModel.uiState.first()
+            assertThat(state.suggestions).containsKey("Squat")
+            assertThat(state.suggestions["Squat"]?.size).isAtMost(3)
+        }
+
+    @Test
+    fun `initializeMappings handles multiple unmatched exercises`() =
+        runTest {
+            // Given
+            val unmatchedExercises = listOf("Back Squat", "Bench Press", "Unknown Exercise")
+
+            // When
+            viewModel.initializeMappings(unmatchedExercises)
+            testScheduler.advanceUntilIdle()
+
+            // Then
+            val state = viewModel.uiState.first()
+            assertThat(state.suggestions).hasSize(2)
+            assertThat(state.suggestions).containsKey("Back Squat")
+            assertThat(state.suggestions).containsKey("Bench Press")
+            assertThat(state.suggestions).doesNotContainKey("Unknown Exercise")
+        }
+
+    @Test
+    fun `initializeMappings uses aliases for matching`() =
+        runTest {
+            // Given
+            val unmatchedExercises = listOf("BP")
+
+            // When
+            viewModel.initializeMappings(unmatchedExercises)
+            testScheduler.advanceUntilIdle()
+
+            // Then
+            val state = viewModel.uiState.first()
+            assertThat(state.suggestions).containsKey("BP")
+            assertThat(state.suggestions["BP"]).isNotEmpty()
+            assertThat(state.suggestions["BP"]?.first()?.name).isEqualTo("Barbell Bench Press")
         }
 }

@@ -72,8 +72,7 @@ class ExerciseSearchUtilTest {
     }
 
     @Test
-    fun `scoreExerciseMatch handles multi-word queries - all words must match`() {
-        // Should match - both words present
+    fun `scoreExerciseMatch handles multi-word queries with full match`() {
         val matchScore =
             ExerciseSearchUtil.scoreExerciseMatch(
                 exerciseName = "Barbell Back Squat",
@@ -81,15 +80,28 @@ class ExerciseSearchUtilTest {
                 aliases = emptyList(),
             )
         assertTrue("Should match when all words present", matchScore > 0)
+    }
 
-        // Should not match - "front" not in name
-        val noMatchScore =
+    @Test
+    fun `scoreExerciseMatch handles partial multi-word match when at least 50 percent of words match`() {
+        val partialMatchScore =
             ExerciseSearchUtil.scoreExerciseMatch(
                 exerciseName = "Barbell Back Squat",
                 query = "barbell front squat",
                 aliases = emptyList(),
             )
-        assertEquals("Should not match when word missing", 0, noMatchScore)
+        assertTrue("Should match when 66% of words present (2 out of 3)", partialMatchScore > 0)
+    }
+
+    @Test
+    fun `scoreExerciseMatch returns zero when less than 50 percent of words match`() {
+        val noMatchScore =
+            ExerciseSearchUtil.scoreExerciseMatch(
+                exerciseName = "Barbell Back Squat",
+                query = "dumbbell front press cable",
+                aliases = emptyList(),
+            )
+        assertEquals("Should not match when only 1 of 4 words present (25%)", 0, noMatchScore)
     }
 
     @Test
@@ -268,7 +280,7 @@ class ExerciseSearchUtilTest {
 
     // Real-world test case from the bug report
     @Test
-    fun `searching for 'Barbell Squat' finds 'Barbell Back Squat'`() {
+    fun `searching for 'Barbell Squat' finds exercises with at least 50 percent word match`() {
         val exercises =
             listOf(
                 "Barbell Back Squat",
@@ -290,30 +302,61 @@ class ExerciseSearchUtilTest {
                 nameExtractor = { it },
             )
 
-        // Should find all exercises with both "Barbell" and "Squat"
-        assertEquals(8, results.size)
+        assertEquals(9, results.size)
         assertTrue(results.contains("Barbell Back Squat"))
         assertTrue(results.contains("Barbell Front Squat"))
-        assertFalse(results.contains("Dumbbell Bulgarian Split Squat")) // no "Barbell"
-        assertFalse(results.contains("Machine Leg Press")) // no "Squat" or "Barbell"
+        assertTrue(results.contains("Dumbbell Bulgarian Split Squat"))
+        assertFalse(results.contains("Machine Leg Press"))
     }
 
     @Test
-    fun `multi-word search requires all words to be present`() {
+    fun `multi-word search with partial match scores proportionally`() {
         val score1 =
             ExerciseSearchUtil.scoreExerciseMatch(
                 exerciseName = "Barbell Back Squat",
-                query = "Barbell Back Squat Press", // "Press" not in name
+                query = "Barbell Back Squat Press",
                 aliases = emptyList(),
             )
-        assertEquals("Should not match when word is missing", 0, score1)
+        assertTrue("Should match when 75% of words present (3 out of 4)", score1 > 0)
 
         val score2 =
             ExerciseSearchUtil.scoreExerciseMatch(
                 exerciseName = "Barbell Back Squat",
-                query = "Back Barbell", // Both words present, different order
+                query = "Back Barbell",
                 aliases = emptyList(),
             )
         assertTrue("Should match when all words present in different order", score2 > 0)
+    }
+
+    @Test
+    fun `scoreExerciseMatch returns non-zero score for similar exercises with partial word match`() {
+        val score =
+            ExerciseSearchUtil.scoreExerciseMatch(
+                exerciseName = "Barbell Back Squat",
+                query = "Barbell High-Bar Squat",
+                aliases = emptyList(),
+            )
+        assertTrue("Should match similar exercises (2 of 3 words = 66%)", score > 0)
+        assertTrue("Score should be below auto-propose threshold", score < 600)
+    }
+
+    @Test
+    fun `scoreExerciseMatch partial match scores lower than full match`() {
+        val fullMatchScore =
+            ExerciseSearchUtil.scoreExerciseMatch(
+                exerciseName = "Barbell Bench Press",
+                query = "Barbell Bench Press",
+                aliases = emptyList(),
+            )
+
+        val partialMatchScore =
+            ExerciseSearchUtil.scoreExerciseMatch(
+                exerciseName = "Barbell Bench Press",
+                query = "Barbell Incline Bench Press",
+                aliases = emptyList(),
+            )
+
+        assertTrue("Partial match should score > 0", partialMatchScore > 0)
+        assertTrue("Full match should score higher than partial match", fullMatchScore > partialMatchScore)
     }
 }
