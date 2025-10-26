@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.service
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.repository.FeatherweightRepository
+import com.github.radupana.featherweight.testutil.LogMock
 import com.google.common.truth.Truth.assertThat
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
@@ -25,6 +26,7 @@ class WorkoutSeedingServiceTest {
 
     @Before
     fun setup() {
+        LogMock.setup()
         MockKAnnotations.init(this)
         service = WorkoutSeedingService(mockRepository)
     }
