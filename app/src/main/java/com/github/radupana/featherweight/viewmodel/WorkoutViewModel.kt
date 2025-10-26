@@ -159,9 +159,14 @@ class WorkoutViewModel(
     private val _exerciseHistory = MutableStateFlow<Map<String, ExerciseHistory>>(emptyMap())
     val exerciseHistory: StateFlow<Map<String, ExerciseHistory>> = _exerciseHistory
 
-    // Track last performance for each exercise variation
     private val _lastPerformance = MutableStateFlow<Map<String, SetLog>>(emptyMap())
     val lastPerformance: StateFlow<Map<String, SetLog>> = _lastPerformance
+
+    private val _lastMaxPerformance = MutableStateFlow<Map<String, SetLog>>(emptyMap())
+    val lastMaxPerformance: StateFlow<Map<String, SetLog>> = _lastMaxPerformance
+
+    private val _weightPRs = MutableStateFlow<Map<String, PersonalRecord>>(emptyMap())
+    val weightPRs: StateFlow<Map<String, PersonalRecord>> = _weightPRs
 
     // In-progress workouts for home screen
     private val _inProgressWorkouts = MutableStateFlow<List<InProgressWorkout>>(emptyList())
@@ -810,6 +815,9 @@ class WorkoutViewModel(
             // Load exercise names and last performance for all exercises
             val namesMap = mutableMapOf<String, String>()
             val performanceMap = mutableMapOf<String, SetLog>()
+            val maxPerformanceMap = mutableMapOf<String, SetLog>()
+            val prMap = mutableMapOf<String, PersonalRecord>()
+
             _selectedWorkoutExercises.value.forEach { exerciseLog ->
                 // Get exercise name from the unified table
                 val exerciseName = repository.getExerciseById(exerciseLog.exerciseId)?.name
@@ -823,9 +831,21 @@ class WorkoutViewModel(
                 lastPerf?.let {
                     performanceMap[exerciseLog.exerciseId] = it
                 }
+
+                val lastMaxPerf = repository.getLastMaxPerformanceForExercise(exerciseLog.exerciseId)
+                lastMaxPerf?.let {
+                    maxPerformanceMap[exerciseLog.exerciseId] = it
+                }
+
+                val weightPR = repository.getWeightPRForExercise(exerciseLog.exerciseId)
+                weightPR?.let {
+                    prMap[exerciseLog.exerciseId] = it
+                }
             }
             _exerciseNames.value = namesMap
             _lastPerformance.value = performanceMap
+            _lastMaxPerformance.value = maxPerformanceMap
+            _weightPRs.value = prMap
 
             // Wait for sets to be loaded completely
             loadAllSetsForCurrentExercisesAndWait()

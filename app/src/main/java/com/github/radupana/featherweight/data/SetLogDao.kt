@@ -126,4 +126,26 @@ interface SetLogDao {
     """,
     )
     suspend fun getLastCompletedSetForExercise(exerciseId: String): SetLog?
+
+    @Query(
+        """
+        WITH LastWorkout AS (
+            SELECT MAX(w.date) as maxDate
+            FROM workouts w
+            INNER JOIN exercise_logs e ON w.id = e.workoutId
+            WHERE e.exerciseId = :exerciseId
+            AND w.status = 'COMPLETED'
+        )
+        SELECT s.* FROM set_logs s
+        INNER JOIN exercise_logs e ON s.exerciseLogId = e.id
+        INNER JOIN workouts w ON e.workoutId = w.id
+        INNER JOIN LastWorkout lw ON w.date = lw.maxDate
+        WHERE e.exerciseId = :exerciseId
+        AND s.isCompleted = 1
+        AND s.actualWeight > 0
+        ORDER BY s.actualWeight DESC, s.actualReps DESC
+        LIMIT 1
+    """,
+    )
+    suspend fun getMaxWeightSetFromLastWorkout(exerciseId: String): SetLog?
 }

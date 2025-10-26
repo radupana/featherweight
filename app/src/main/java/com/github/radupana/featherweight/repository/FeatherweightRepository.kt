@@ -5,6 +5,7 @@ import android.util.Log
 import com.github.radupana.featherweight.data.ExerciseLog
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.data.GlobalExerciseProgress
+import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.data.ParseRequest
 import com.github.radupana.featherweight.data.ParseStatus
 import com.github.radupana.featherweight.data.PendingOneRMUpdate
@@ -208,6 +209,18 @@ class FeatherweightRepository(
     suspend fun getLastPerformanceForExercise(exerciseId: String): SetLog? =
         withContext(Dispatchers.IO) {
             setLogDao.getLastCompletedSetForExercise(exerciseId)
+        }
+
+    suspend fun getLastMaxPerformanceForExercise(exerciseId: String): SetLog? =
+        withContext(Dispatchers.IO) {
+            setLogDao.getMaxWeightSetFromLastWorkout(exerciseId)
+        }
+
+    suspend fun getWeightPRForExercise(exerciseId: String): PersonalRecord? =
+        withContext(Dispatchers.IO) {
+            personalRecordDao.getLatestRecordForExercise(exerciseId)?.takeIf {
+                it.recordType == PRType.WEIGHT
+            }
         }
 
     suspend fun getSetsForWorkout(workoutId: String): List<SetLog> =

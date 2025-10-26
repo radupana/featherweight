@@ -177,8 +177,11 @@ fun ExerciseCard(
             val exerciseNames by viewModel.exerciseNames.collectAsState()
             val key = "exercise_${exercise.exerciseId}"
             val exerciseName = exerciseNames[key] ?: "Unknown Exercise"
-            val lastPerformance by viewModel.lastPerformance.collectAsState()
-            val lastSet = lastPerformance[exercise.exerciseId]
+            val lastMaxPerformance by viewModel.lastMaxPerformance.collectAsState()
+            val weightPRs by viewModel.weightPRs.collectAsState()
+
+            val lastMaxSet = lastMaxPerformance[exercise.exerciseId]
+            val weightPR = weightPRs[exercise.exerciseId]
 
             Column(
                 modifier = Modifier.weight(1f),
@@ -188,13 +191,35 @@ fun ExerciseCard(
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
-                // Show last performance if available
-                lastSet?.let { set ->
-                    Text(
-                        text = WeightFormatter.formatLastSet(set.actualReps, set.actualWeight),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    )
+                when {
+                    lastMaxSet != null && weightPR != null -> {
+                        Text(
+                            text =
+                                WeightFormatter.formatLastAndPR(
+                                    lastMaxSet.actualReps,
+                                    lastMaxSet.actualWeight,
+                                    weightPR.reps,
+                                    weightPR.weight,
+                                ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        )
+                    }
+                    lastMaxSet != null -> {
+                        Text(
+                            text = WeightFormatter.formatLastSet(lastMaxSet.actualReps, lastMaxSet.actualWeight),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        )
+                    }
+                    weightPR != null -> {
+                        val unit = WeightFormatter.getWeightLabel().substringAfter("(").substringBefore(")")
+                        Text(
+                            text = "PR: ${weightPR.reps}x${WeightFormatter.formatWeight(weightPR.weight)}$unit",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        )
+                    }
                 }
             }
 

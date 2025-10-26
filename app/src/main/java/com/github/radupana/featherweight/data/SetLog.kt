@@ -8,7 +8,11 @@ import com.github.radupana.featherweight.util.IdGenerator
 
 @Entity(
     tableName = "set_logs",
-    indices = [Index(value = ["exerciseLogId"]), Index("userId")],
+    indices = [
+        Index(value = ["exerciseLogId"]),
+        Index(value = ["exerciseLogId", "isCompleted", "actualWeight"]),
+        Index("userId"),
+    ],
     foreignKeys = [
         ForeignKey(
             entity = ExerciseLog::class,

@@ -94,6 +94,18 @@ object WeightFormatter {
         return "Last: ${reps}x$weight$unit"
     }
 
+    fun formatLastAndPR(
+        lastReps: Int,
+        lastWeight: Float,
+        prReps: Int,
+        prWeight: Float,
+    ): String {
+        val lastFormatted = formatWeight(lastWeight)
+        val prFormatted = formatWeight(prWeight)
+        val unit = weightUnitManager?.getCurrentUnit()?.suffix ?: "kg"
+        return "Last: ${lastReps}x$lastFormatted$unit (PR: ${prReps}x$prFormatted$unit)"
+    }
+
     /**
      * Formats set info display (e.g., "3 sets × 5 reps × 100kg")
      */
