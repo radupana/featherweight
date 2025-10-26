@@ -8,7 +8,7 @@ class FirestoreCustomExerciseTest {
     fun `FirestoreCustomExercise has correct default values`() {
         val exercise = FirestoreCustomExercise()
 
-        assertThat(exercise.id).isEqualTo("")
+        assertThat(exercise.id).isNull()
         assertThat(exercise.type).isEqualTo("USER")
         assertThat(exercise.userId).isEqualTo("")
         assertThat(exercise.name).isEqualTo("")
@@ -80,7 +80,7 @@ class FirestoreCustomExerciseTest {
     fun `FirestoreCustomExerciseMuscle has correct default values`() {
         val muscle = FirestoreCustomExerciseMuscle()
 
-        assertThat(muscle.id).isEqualTo("")
+        assertThat(muscle.id).isNull()
         assertThat(muscle.exerciseId).isEqualTo("")
         assertThat(muscle.muscle).isEqualTo("")
         assertThat(muscle.targetType).isEqualTo("")
@@ -109,7 +109,7 @@ class FirestoreCustomExerciseTest {
     fun `FirestoreCustomExerciseAlias has correct default values`() {
         val alias = FirestoreCustomExerciseAlias()
 
-        assertThat(alias.id).isEqualTo("")
+        assertThat(alias.id).isNull()
         assertThat(alias.exerciseId).isEqualTo("")
         assertThat(alias.alias).isEqualTo("")
         assertThat(alias.isDeleted).isFalse()
@@ -135,7 +135,7 @@ class FirestoreCustomExerciseTest {
     fun `FirestoreCustomExerciseInstruction has correct default values`() {
         val instruction = FirestoreCustomExerciseInstruction()
 
-        assertThat(instruction.id).isEqualTo("")
+        assertThat(instruction.id).isNull()
         assertThat(instruction.exerciseId).isEqualTo("")
         assertThat(instruction.instructionType).isEqualTo("")
         assertThat(instruction.orderIndex).isEqualTo(0)

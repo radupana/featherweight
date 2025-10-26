@@ -52,6 +52,8 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
         PersonalRecord::class,
         TrainingAnalysis::class,
         ParseRequest::class,
+        // Sync metadata
+        LocalSyncMetadata::class,
     ],
     version = 1,
     exportSchema = true,
@@ -96,6 +98,8 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun templateExerciseDao(): TemplateExerciseDao
 
     abstract fun templateSetDao(): TemplateSetDao
+
+    abstract fun localSyncMetadataDao(): LocalSyncMetadataDao
 
     companion object {
         @Volatile

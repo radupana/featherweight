@@ -42,6 +42,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.Date
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -70,6 +71,7 @@ class SyncManagerTest {
     private lateinit var workoutTemplateDao: WorkoutTemplateDao
     private lateinit var templateExerciseDao: TemplateExerciseDao
     private lateinit var templateSetDao: TemplateSetDao
+    private lateinit var localSyncMetadataDao: com.github.radupana.featherweight.data.LocalSyncMetadataDao
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var sharedPreferencesEditor: SharedPreferences.Editor
     private lateinit var syncManager: SyncManager
@@ -116,11 +118,13 @@ class SyncManagerTest {
         workoutTemplateDao = mockk()
         templateExerciseDao = mockk()
         templateSetDao = mockk()
+        localSyncMetadataDao = mockk()
         sharedPreferences = mockk()
         sharedPreferencesEditor = mockk()
 
-        every { context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE) } returns sharedPreferences
-        every { sharedPreferences.getString("device_id", null) } returns "test-device-id"
+        // Mock InstallationIdProvider
+        every { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) } returns sharedPreferences
+        every { sharedPreferences.getString("installation_id", null) } returns "test-installation-id"
         every { sharedPreferences.edit() } returns sharedPreferencesEditor
         every { sharedPreferencesEditor.putString(any(), any()) } returns sharedPreferencesEditor
         every { sharedPreferencesEditor.apply() } just runs
@@ -144,6 +148,12 @@ class SyncManagerTest {
         every { database.workoutTemplateDao() } returns workoutTemplateDao
         every { database.templateExerciseDao() } returns templateExerciseDao
         every { database.templateSetDao() } returns templateSetDao
+        every { database.localSyncMetadataDao() } returns localSyncMetadataDao
+
+        // Default mocks for localSyncMetadataDao
+        coEvery { localSyncMetadataDao.getLastSyncTime(any(), any(), any()) } returns null
+        coEvery { localSyncMetadataDao.insertOrUpdate(any()) } just runs
+        coEvery { localSyncMetadataDao.hasDeviceEverSynced(any(), any()) } returns false
 
         syncManager = SyncManager(context, database, authManager, false, firestoreRepository)
     }
@@ -202,7 +212,7 @@ class SyncManagerTest {
         coEvery { firestoreRepository.uploadTrainingAnalyses(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadParseRequests(any(), any()) } returns Result.success(Unit)
         coEvery { firestoreRepository.uploadCustomExercise(any(), any(), any(), any(), any()) } returns Result.success(Unit)
-        coEvery { firestoreRepository.updateSyncMetadata(any(), any(), any()) } returns Result.success(Unit)
+        // Firestore sync metadata no longer used - only local tracking
     }
 
     private fun mockAllFirestoreDownloads() {
@@ -267,7 +277,7 @@ class SyncManagerTest {
                 )
 
             every { authManager.getCurrentUserId() } returns userId
-            coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(null)
+            // Firestore sync metadata no longer used - only local tracking
             coEvery { firestoreRepository.downloadSystemExercises(any()) } returns Result.success(emptyMap())
             coEvery { firestoreRepository.downloadCustomExercises(any(), any()) } returns Result.success(emptyList())
             coEvery { workoutDao.getAllWorkouts("test-user") } returns listOf(workout)
@@ -335,7 +345,7 @@ class SyncManagerTest {
                 )
 
             every { authManager.getCurrentUserId() } returns userId
-            coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(null)
+            // Firestore sync metadata no longer used - only local tracking
             coEvery { workoutDao.getAllWorkouts("test-user") } returns listOf(workout)
             coEvery { exerciseLogDao.getExerciseLogsForWorkout("1") } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise("1") } returns listOf(setLog)
@@ -360,7 +370,7 @@ class SyncManagerTest {
             val errorMessage = "Network error"
 
             every { authManager.getCurrentUserId() } returns userId
-            coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(null)
+            // Firestore sync metadata no longer used - only local tracking
             coEvery { workoutDao.getAllWorkouts("test-user") } returns emptyList()
             mockAllDaoMethods()
             mockAllFirestoreDownloads()
@@ -381,7 +391,7 @@ class SyncManagerTest {
             coEvery { firestoreRepository.uploadGlobalExerciseProgress(any(), any()) } returns Result.success(Unit)
             coEvery { firestoreRepository.uploadTrainingAnalyses(any(), any()) } returns Result.success(Unit)
             coEvery { firestoreRepository.uploadParseRequests(any(), any()) } returns Result.success(Unit)
-            coEvery { firestoreRepository.updateSyncMetadata(any(), any(), any()) } returns Result.success(Unit)
+            // Firestore sync metadata no longer used - only local tracking
 
             val result = syncManager.syncAll()
 
@@ -395,12 +405,11 @@ class SyncManagerTest {
     fun `syncAll uses existing sync metadata when available`() =
         runTest {
             val userId = "test-user"
-            val lastSyncTime = Timestamp.now()
-            val metadata = mockk<com.github.radupana.featherweight.sync.models.FirestoreSyncMetadata>()
+            val lastSyncTime = java.time.LocalDateTime.now()
 
-            every { metadata.lastSyncTime } returns lastSyncTime
             every { authManager.getCurrentUserId() } returns userId
-            coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(metadata)
+            // Set up local sync metadata to return a timestamp
+            coEvery { localSyncMetadataDao.getLastSyncTime(userId, any(), "all") } returns lastSyncTime
             coEvery { workoutDao.getAllWorkouts("test-user") } returns emptyList()
             mockAllDaoMethods()
             mockAllFirestoreDownloads()
@@ -409,7 +418,8 @@ class SyncManagerTest {
             val result = syncManager.syncAll()
 
             assertTrue(result.isSuccess)
-            coVerify { firestoreRepository.getSyncMetadata(userId) }
+            // Verify local sync metadata was checked
+            coVerify { localSyncMetadataDao.getLastSyncTime(userId, any(), "all") }
         }
 
     @Test
@@ -435,7 +445,7 @@ class SyncManagerTest {
                 )
 
             every { authManager.getCurrentUserId() } returns userId
-            coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(null)
+            // Firestore sync metadata no longer used - only local tracking
             coEvery { workoutDao.getAllWorkouts("test-user") } returns listOf(userWorkout)
             coEvery { exerciseLogDao.getExerciseLogsForWorkout("1") } returns emptyList()
             coEvery { exerciseLogDao.getExerciseLogsForWorkout("2") } returns emptyList()
@@ -478,7 +488,7 @@ class SyncManagerTest {
                 )
 
             every { authManager.getCurrentUserId() } returns userId
-            coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(null)
+            // Firestore sync metadata no longer used - only local tracking
             coEvery { firestoreRepository.downloadSystemExercises(any()) } returns Result.success(emptyMap())
             coEvery { firestoreRepository.downloadCustomExercises(any(), any()) } returns Result.success(emptyList())
             coEvery { workoutDao.getAllWorkouts("test-user") } returns emptyList()
@@ -533,7 +543,7 @@ class SyncManagerTest {
 
             every { authManager.getCurrentUserId() } returns userId
             coEvery { workoutDao.getAllWorkouts("test-user") } returns emptyList() // Mock isDatabaseEmpty check
-            coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(null)
+            // Firestore sync metadata no longer used - only local tracking
             mockAllDaoMethods()
             mockAllFirestoreDownloads()
             coEvery { firestoreRepository.downloadWorkouts(any(), any()) } returns Result.failure(com.google.firebase.FirebaseException(errorMessage))
@@ -586,7 +596,7 @@ class SyncManagerTest {
             coEvery { exerciseLogDao.insertExerciseLog(any()) } just runs
             coEvery { setLogDao.getSetLogById(any()) } returns null
             coEvery { setLogDao.insertSetLog(any()) } returns Unit
-            coEvery { firestoreRepository.updateSyncMetadata(any(), any(), any()) } returns Result.success(Unit)
+            // Firestore sync metadata no longer used - only local tracking
 
             val result = syncManager.restoreFromCloud()
 
@@ -642,7 +652,7 @@ class SyncManagerTest {
                 )
 
             every { authManager.getCurrentUserId() } returns userId
-            coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(null)
+            // Firestore sync metadata no longer used - only local tracking
             coEvery { firestoreRepository.downloadSystemExercises(any()) } returns Result.success(emptyMap())
             coEvery { firestoreRepository.downloadCustomExercises(any(), any()) } returns Result.success(emptyList())
             coEvery { workoutDao.getAllWorkouts("test-user") } returns listOf(localWorkout)
@@ -707,11 +717,11 @@ class SyncManagerTest {
                 mockk<com.github.radupana.featherweight.sync.models.FirestoreSyncMetadata> {
                     every { id } returns userId
                     every { this@mockk.userId } returns userId
-                    every { deviceId } returns "device-123"
+                    every { installationId } returns "installation-123"
                     every { deviceName } returns "Test Device"
                     every { lastSyncTime } returns Timestamp(Date(System.currentTimeMillis() - 3600000))
                 }
-            coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(existingMetadata)
+            // Firestore sync metadata no longer used - only local tracking
 
             // Mock remote data that should be downloaded
             val remoteWorkout =
@@ -812,17 +822,14 @@ class SyncManagerTest {
                 )
             coEvery { workoutDao.getAllWorkouts(userId) } returns listOf(existingWorkout)
 
-            // Sync metadata exists
-            val lastSyncTime = Timestamp(Date(System.currentTimeMillis() - 3600000))
-            val existingMetadata =
-                mockk<com.github.radupana.featherweight.sync.models.FirestoreSyncMetadata> {
-                    every { id } returns userId
-                    every { this@mockk.userId } returns userId
-                    every { deviceId } returns "device-123"
-                    every { deviceName } returns "Test Device"
-                    every { this@mockk.lastSyncTime } returns lastSyncTime
-                }
-            coEvery { firestoreRepository.getSyncMetadata(userId) } returns Result.success(existingMetadata)
+            // Sync metadata exists - mock local sync metadata to return lastSyncTime
+            val lastSyncDateTime = LocalDateTime.now().minusHours(1)
+            // Convert LocalDateTime to Timestamp for consistency
+            val instant = lastSyncDateTime.toInstant(ZoneOffset.UTC)
+            val lastSyncTime = Timestamp(instant.epochSecond, instant.nano)
+
+            // Mock local sync metadata to return the expected timestamp
+            coEvery { localSyncMetadataDao.getLastSyncTime(userId, any(), "all") } returns lastSyncDateTime
 
             // downloadWorkouts should be called WITH lastSyncTime (incremental sync)
             coEvery {
@@ -838,7 +845,8 @@ class SyncManagerTest {
             coEvery { firestoreRepository.downloadWorkoutTemplates(userId, lastSyncTime) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadTemplateExercises(userId, lastSyncTime) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadTemplateSets(userId, lastSyncTime) } returns Result.success(emptyList())
-            coEvery { firestoreRepository.downloadSystemExercises(lastSyncTime) } returns Result.success(emptyMap())
+            // System exercises always use null for lastSyncTime (they're global, not user-specific)
+            coEvery { firestoreRepository.downloadSystemExercises(null) } returns Result.success(emptyMap())
             coEvery { firestoreRepository.downloadCustomExercises(userId, lastSyncTime) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadProgrammes(any()) } returns Result.success(emptyList())
             coEvery { firestoreRepository.downloadProgrammeWeeks(any()) } returns Result.success(emptyList())

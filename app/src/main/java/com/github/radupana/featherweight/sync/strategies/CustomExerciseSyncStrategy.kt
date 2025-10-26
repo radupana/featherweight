@@ -53,7 +53,7 @@ class CustomExerciseSyncStrategy(
 
                         if (localVariation == null) {
                             // New exercise from remote - insert it
-                            insertRemoteExercise(userId, exerciseId, firestoreExercise)
+                            insertRemoteExercise(userId, exerciseId ?: "", firestoreExercise)
                         } else {
                             // Exercise exists locally - check timestamps for conflict resolution
                             val remoteTimestamp = firestoreExercise.lastModified
@@ -61,7 +61,7 @@ class CustomExerciseSyncStrategy(
 
                             if (remoteTimestamp != null && remoteTimestamp.seconds > localTimestamp.seconds) {
                                 // Remote is newer - update local
-                                updateLocalExercise(exerciseId, firestoreExercise)
+                                updateLocalExercise(exerciseId ?: "", firestoreExercise)
                             }
                         }
                     } catch (e: com.google.firebase.FirebaseException) {

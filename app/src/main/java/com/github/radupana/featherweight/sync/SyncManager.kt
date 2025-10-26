@@ -1,10 +1,9 @@
 package com.github.radupana.featherweight.sync
 
 import android.content.Context
-import android.os.Build
 import android.util.Log
-import androidx.core.content.edit
 import com.github.radupana.featherweight.data.FeatherweightDatabase
+import com.github.radupana.featherweight.data.LocalSyncMetadata
 import com.github.radupana.featherweight.data.PRType
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.sync.converters.SyncConverters
@@ -12,13 +11,15 @@ import com.github.radupana.featherweight.sync.repository.FirestoreRepository
 import com.github.radupana.featherweight.sync.strategies.CustomExerciseSyncStrategy
 import com.github.radupana.featherweight.sync.strategies.SystemExerciseSyncStrategy
 import com.github.radupana.featherweight.util.ExceptionLogger
+import com.github.radupana.featherweight.utils.InstallationIdProvider
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.util.UUID
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 sealed class SyncState {
     data class Success(
@@ -46,44 +47,24 @@ class SyncManager(
     private val syncMutex = Mutex()
 
     // Track last sync time to prevent rapid successive syncs
-    private var lastSyncAttemptTime = 0L
-    private val minSyncIntervalMs = 10000L // 10 seconds minimum between syncs
+    // Removed throttling - mutex already prevents concurrent syncs
 
     // Sync strategies for modular sync logic
     private val systemExerciseStrategy = SystemExerciseSyncStrategy(database, firestoreRepository)
     private val customExerciseStrategy = CustomExerciseSyncStrategy(database, firestoreRepository)
-    private val deviceId: String by lazy {
-        context
-            .getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
-            .getString("device_id", null) ?: generateAndStoreDeviceId()
-    }
 
-    private val deviceName: String by lazy {
-        "${Build.MANUFACTURER} ${Build.MODEL}"
-    }
-
-    private fun generateAndStoreDeviceId(): String {
-        val id = UUID.randomUUID().toString()
-        context
-            .getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
-            .edit {
-                putString("device_id", id)
-            }
-        return id
+    // Use installation ID for device-specific sync tracking
+    private val installationId: String by lazy {
+        InstallationIdProvider.getId(context)
     }
 
     suspend fun syncAll(): Result<SyncState> =
         withContext(ioDispatcher) {
+            Log.i("SyncManager", "syncAll: Attempting to acquire sync mutex...")
             // Use mutex to prevent concurrent sync operations
+            // Multiple sync requests will queue and execute sequentially
             syncMutex.withLock {
-                // Debounce rapid sync calls
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastSyncAttemptTime < minSyncIntervalMs) {
-                    Log.i("SyncManager", "Sync skipped - too soon after last sync (${currentTime - lastSyncAttemptTime}ms < ${minSyncIntervalMs}ms)")
-                    return@withContext Result.success(SyncState.Skipped("Sync throttled"))
-                }
-                lastSyncAttemptTime = currentTime
-
+                Log.i("SyncManager", "syncAll: Mutex acquired, starting sync")
                 val userId = authManager.getCurrentUserId()
                 Log.i("SyncManager", "syncAll started for userId: $userId")
                 if (userId == null) {
@@ -140,6 +121,12 @@ class SyncManager(
                     Log.e("SyncManager", "Sync failed with database exception: ${e.message}", e)
                     ExceptionLogger.logNonCritical("SyncManager", "Sync failed", e)
                     Result.success(SyncState.Error("Sync failed: ${e.message}"))
+                } catch (e: Exception) {
+                    Log.e("SyncManager", "Sync failed with unexpected exception: ${e.message}", e)
+                    ExceptionLogger.logNonCritical("SyncManager", "Sync failed", e)
+                    Result.success(SyncState.Error("Sync failed: ${e.message}"))
+                } finally {
+                    Log.i("SyncManager", "syncAll: Releasing sync mutex")
                 }
             } // End of mutex lock
         }
@@ -332,14 +319,38 @@ class SyncManager(
         return isEmpty
     }
 
-    private suspend fun getLastSyncTime(userId: String): Timestamp? =
-        firestoreRepository.getSyncMetadata(userId).fold(
-            onSuccess = { metadata -> metadata?.lastSyncTime },
-            onFailure = { null },
-        )
+    private suspend fun getLastSyncTime(
+        userId: String,
+        dataType: String = "all",
+    ): Timestamp? {
+        // Only use local database for device-specific sync time
+        val localSyncTime =
+            database.localSyncMetadataDao().getLastSyncTime(
+                userId = userId,
+                installationId = installationId,
+                dataType = dataType,
+            )
+
+        // Convert LocalDateTime to Timestamp if we have a sync time
+        return localSyncTime?.let {
+            val instant = it.toInstant(ZoneOffset.UTC)
+            Timestamp(instant.epochSecond, instant.nano)
+        }
+    }
 
     private suspend fun updateSyncMetadata(userId: String) {
-        firestoreRepository.updateSyncMetadata(userId, deviceId, deviceName).getOrThrow()
+        val now = LocalDateTime.now()
+
+        // Only update local database (device-specific sync tracking)
+        database.localSyncMetadataDao().insertOrUpdate(
+            LocalSyncMetadata(
+                userId = userId,
+                installationId = installationId,
+                dataType = "all",
+                lastSyncTime = now,
+                lastSuccessfulSync = now,
+            ),
+        )
     }
 
     private suspend fun uploadProgrammes(userId: String) {
@@ -433,60 +444,193 @@ class SyncManager(
 
             // CRITICAL: Download exercises FIRST before any entities that reference them
             // Download system exercises using new denormalized strategy
+            // System exercises are global, so we always pass null for lastSyncTime (no incremental sync)
             Log.d("SyncManager", "Downloading system exercises...")
-            systemExerciseStrategy.downloadAndMerge(null, lastSyncTime).getOrThrow()
+            try {
+                systemExerciseStrategy.downloadAndMerge(null, null).getOrThrow()
+                Log.d("SyncManager", "System exercises download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "System exercises download failed: ${e.message}", e)
+                throw e
+            }
 
             // Download custom exercises for this user
             Log.d("SyncManager", "Downloading custom exercises...")
-            customExerciseStrategy.downloadAndMerge(userId, lastSyncTime).getOrThrow()
+            try {
+                customExerciseStrategy.downloadAndMerge(userId, lastSyncTime).getOrThrow()
+                Log.d("SyncManager", "Custom exercises download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Custom exercises download failed: ${e.message}", e)
+                throw e
+            }
 
             // Download programme data FIRST (workouts have FK to programmes)
             Log.d("SyncManager", "Downloading programmes...")
-            downloadAndMergeProgrammes(userId)
+            try {
+                downloadAndMergeProgrammes(userId)
+                Log.d("SyncManager", "Programmes download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Programmes download failed: ${e.message}", e)
+                throw e
+            }
+
             Log.d("SyncManager", "Downloading programme weeks...")
-            downloadAndMergeProgrammeWeeks(userId)
+            try {
+                downloadAndMergeProgrammeWeeks(userId)
+                Log.d("SyncManager", "Programme weeks download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Programme weeks download failed: ${e.message}", e)
+                throw e
+            }
+
             Log.d("SyncManager", "Downloading programme workouts...")
-            downloadAndMergeProgrammeWorkouts(userId)
+            try {
+                downloadAndMergeProgrammeWorkouts(userId)
+                Log.d("SyncManager", "Programme workouts download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Programme workouts download failed: ${e.message}", e)
+                throw e
+            }
+
             Log.d("SyncManager", "Downloading programme progress...")
-            downloadAndMergeProgrammeProgress(userId)
+            try {
+                downloadAndMergeProgrammeProgress(userId)
+                Log.d("SyncManager", "Programme progress download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Programme progress download failed: ${e.message}", e)
+                throw e
+            }
 
             // NOW download entities that reference exercises and programmes
             Log.d("SyncManager", "Downloading workouts...")
-            downloadAndMergeWorkouts(userId, lastSyncTime)
+            try {
+                downloadAndMergeWorkouts(userId, lastSyncTime)
+                Log.d("SyncManager", "Workouts download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Workouts download failed: ${e.message}", e)
+                throw e
+            }
+
             Log.d("SyncManager", "Downloading exercise logs...")
-            downloadAndMergeExerciseLogs(userId, lastSyncTime)
+            try {
+                downloadAndMergeExerciseLogs(userId, lastSyncTime)
+                Log.d("SyncManager", "Exercise logs download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Exercise logs download failed: ${e.message}", e)
+                throw e
+            }
+
             Log.d("SyncManager", "Downloading set logs...")
-            downloadAndMergeSetLogs(userId, lastSyncTime)
+            try {
+                downloadAndMergeSetLogs(userId, lastSyncTime)
+                Log.d("SyncManager", "Set logs download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Set logs download failed: ${e.message}", e)
+                throw e
+            }
 
             // Download templates
             Log.d("SyncManager", "Downloading workout templates...")
-            downloadAndMergeWorkoutTemplates(userId, lastSyncTime)
+            try {
+                downloadAndMergeWorkoutTemplates(userId, lastSyncTime)
+                Log.d("SyncManager", "Workout templates download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Workout templates download failed: ${e.message}", e)
+                throw e
+            }
+
             Log.d("SyncManager", "Downloading template exercises...")
-            downloadAndMergeTemplateExercises(userId, lastSyncTime)
+            try {
+                downloadAndMergeTemplateExercises(userId, lastSyncTime)
+                Log.d("SyncManager", "Template exercises download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Template exercises download failed: ${e.message}", e)
+                throw e
+            }
+
             Log.d("SyncManager", "Downloading template sets...")
-            downloadAndMergeTemplateSets(userId, lastSyncTime)
+            try {
+                downloadAndMergeTemplateSets(userId, lastSyncTime)
+                Log.d("SyncManager", "Template sets download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Template sets download failed: ${e.message}", e)
+                throw e
+            }
 
             // Download user stats
             Log.d("SyncManager", "Downloading user exercise maxes...")
-            downloadAndMergeUserExerciseMaxes(userId)
-            // Log.d("SyncManager", "Downloading OneRM history...")
+            try {
+                downloadAndMergeUserExerciseMaxes(userId)
+                Log.d("SyncManager", "User exercise maxes download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "User exercise maxes download failed: ${e.message}", e)
+                throw e
+            }
+
             Log.d("SyncManager", "Downloading personal records...")
-            downloadAndMergePersonalRecords(userId)
+            try {
+                downloadAndMergePersonalRecords(userId)
+                Log.d("SyncManager", "Personal records download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Personal records download failed: ${e.message}", e)
+                throw e
+            }
+
             Log.d("SyncManager", "Downloading user exercise usages...")
-            downloadAndMergeUserExerciseUsages(userId)
+            try {
+                downloadAndMergeUserExerciseUsages(userId)
+                Log.d("SyncManager", "User exercise usages download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "User exercise usages download failed: ${e.message}", e)
+                throw e
+            }
 
             // Download tracking data
             Log.d("SyncManager", "Starting download of tracking data...")
             Log.d("SyncManager", "Downloading exercise swap history...")
-            downloadAndMergeExerciseSwapHistory(userId)
+            try {
+                downloadAndMergeExerciseSwapHistory(userId)
+                Log.d("SyncManager", "Exercise swap history download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Exercise swap history download failed: ${e.message}", e)
+                throw e
+            }
+
             Log.d("SyncManager", "Downloading exercise performance tracking...")
-            downloadAndMergeExercisePerformanceTracking(userId)
+            try {
+                downloadAndMergeExercisePerformanceTracking(userId)
+                Log.d("SyncManager", "Exercise performance tracking download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Exercise performance tracking download failed: ${e.message}", e)
+                throw e
+            }
+
             Log.d("SyncManager", "Downloading global exercise progress...")
-            downloadAndMergeGlobalExerciseProgress(userId)
+            try {
+                downloadAndMergeGlobalExerciseProgress(userId)
+                Log.d("SyncManager", "Global exercise progress download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Global exercise progress download failed: ${e.message}", e)
+                throw e
+            }
+
             Log.d("SyncManager", "Downloading training analyses...")
-            downloadAndMergeTrainingAnalyses(userId)
+            try {
+                downloadAndMergeTrainingAnalyses(userId)
+                Log.d("SyncManager", "Training analyses download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Training analyses download failed: ${e.message}", e)
+                throw e
+            }
+
             Log.d("SyncManager", "Downloading parse requests...")
-            downloadAndMergeParseRequests(userId)
+            try {
+                downloadAndMergeParseRequests(userId)
+                Log.d("SyncManager", "Parse requests download completed")
+            } catch (e: Exception) {
+                Log.e("SyncManager", "Parse requests download failed: ${e.message}", e)
+                throw e
+            }
 
             Log.d("SyncManager", "downloadRemoteChanges: All downloads completed successfully")
             Result.success(Unit)
@@ -496,6 +640,10 @@ class SyncManager(
             Result.failure(e)
         } catch (e: android.database.sqlite.SQLiteException) {
             Log.e("SyncManager", "downloadRemoteChanges failed - database error: ${e.message}", e)
+            ExceptionLogger.logNonCritical("SyncManager", "Download failed", e)
+            Result.failure(e)
+        } catch (e: Exception) {
+            Log.e("SyncManager", "downloadRemoteChanges failed - unexpected error: ${e.message}", e)
             ExceptionLogger.logNonCritical("SyncManager", "Download failed", e)
             Result.failure(e)
         }
@@ -519,26 +667,32 @@ class SyncManager(
         userId: String,
         lastSyncTime: Timestamp?,
     ) {
+        Log.d("SyncManager", "downloadAndMergeExerciseLogs: Starting for user $userId")
         val remoteLogs = firestoreRepository.downloadExerciseLogs(userId, lastSyncTime).getOrThrow()
+        Log.d("SyncManager", "downloadAndMergeExerciseLogs: Downloaded ${remoteLogs.size} exercise logs")
         val localLogs = remoteLogs.map { SyncConverters.fromFirestoreExerciseLog(it) }
 
         // Use upsert to avoid constraint violations
         localLogs.forEach { log ->
             database.exerciseLogDao().upsertExerciseLog(log)
         }
+        Log.d("SyncManager", "downloadAndMergeExerciseLogs: Inserted ${localLogs.size} exercise logs")
     }
 
     private suspend fun downloadAndMergeSetLogs(
         userId: String,
         lastSyncTime: Timestamp?,
     ) {
+        Log.d("SyncManager", "downloadAndMergeSetLogs: Starting for user $userId")
         val remoteLogs = firestoreRepository.downloadSetLogs(userId, lastSyncTime).getOrThrow()
+        Log.d("SyncManager", "downloadAndMergeSetLogs: Downloaded ${remoteLogs.size} set logs")
         val localLogs = remoteLogs.map { SyncConverters.fromFirestoreSetLog(it) }
 
         // Use upsert to avoid constraint violations
         localLogs.forEach { log ->
             database.setLogDao().upsertSetLog(log)
         }
+        Log.d("SyncManager", "downloadAndMergeSetLogs: Inserted ${localLogs.size} set logs")
     }
 
     private suspend fun downloadAndMergeWorkoutTemplates(

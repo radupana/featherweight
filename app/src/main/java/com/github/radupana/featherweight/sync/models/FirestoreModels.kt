@@ -5,7 +5,7 @@ import com.google.firebase.firestore.DocumentId
 import com.google.firebase.firestore.ServerTimestamp
 
 data class FirestoreWorkout(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null, // Must be nullable for @DocumentId
     val localId: String = "",
     val userId: String = "",
     val name: String? = null,
@@ -25,7 +25,7 @@ data class FirestoreWorkout(
 )
 
 data class FirestoreExerciseLog(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val workoutId: String = "",
     val exerciseId: String = "",
@@ -37,7 +37,7 @@ data class FirestoreExerciseLog(
 )
 
 data class FirestoreSetLog(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val exerciseLogId: String = "",
     val setOrder: Int = 0,
@@ -57,7 +57,7 @@ data class FirestoreSetLog(
 // Exercise-related models are now in FirestoreExerciseModels.kt
 
 data class FirestoreProgramme(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val userId: String? = null,
     val name: String = "",
@@ -84,7 +84,7 @@ data class FirestoreProgramme(
 )
 
 data class FirestoreProgrammeWeek(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val userId: String? = null,
     val programmeId: String = "",
@@ -95,7 +95,7 @@ data class FirestoreProgrammeWeek(
 )
 
 data class FirestoreProgrammeWorkout(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val userId: String? = null,
     val weekId: String = "",
@@ -108,7 +108,7 @@ data class FirestoreProgrammeWorkout(
 )
 
 data class FirestoreProgrammeProgress(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val userId: String? = null,
     val programmeId: String = "",
@@ -125,7 +125,7 @@ data class FirestoreProgrammeProgress(
 // =====================================================
 
 data class FirestoreUserExerciseMax(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val userId: String? = null,
     val exerciseId: String = "",
@@ -144,7 +144,7 @@ data class FirestoreUserExerciseMax(
 )
 
 data class FirestorePersonalRecord(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val userId: String? = null,
     val exerciseId: String = "",
@@ -165,7 +165,7 @@ data class FirestorePersonalRecord(
 )
 
 data class FirestoreExerciseSwapHistory(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val userId: String? = null,
     val originalExerciseId: String = "",
@@ -177,7 +177,7 @@ data class FirestoreExerciseSwapHistory(
 )
 
 data class FirestoreProgrammeExerciseTracking(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val userId: String? = null,
     val programmeId: String = "",
@@ -199,7 +199,7 @@ data class FirestoreProgrammeExerciseTracking(
 )
 
 data class FirestoreGlobalExerciseProgress(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val userId: String? = null,
     val exerciseId: String = "",
@@ -217,7 +217,7 @@ data class FirestoreGlobalExerciseProgress(
 )
 
 data class FirestoreTrainingAnalysis(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val userId: String? = null,
     val analysisDate: Timestamp = Timestamp.now(),
@@ -231,7 +231,7 @@ data class FirestoreTrainingAnalysis(
 )
 
 data class FirestoreParseRequest(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val userId: String? = null,
     val rawText: String = "",
@@ -244,15 +244,15 @@ data class FirestoreParseRequest(
 )
 
 data class FirestoreSyncMetadata(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val userId: String = "",
-    val deviceId: String = "",
+    val installationId: String = "",
     val deviceName: String = "",
     @ServerTimestamp val lastSyncTime: Timestamp? = null,
 )
 
 data class FirestoreWorkoutTemplate(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val userId: String = "",
     val name: String = "",
@@ -263,7 +263,7 @@ data class FirestoreWorkoutTemplate(
 )
 
 data class FirestoreTemplateExercise(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val userId: String = "",
     val templateId: String = "",
@@ -274,7 +274,7 @@ data class FirestoreTemplateExercise(
 )
 
 data class FirestoreTemplateSet(
-    @DocumentId val id: String = "",
+    @DocumentId val id: String? = null,
     val localId: String = "",
     val userId: String = "",
     val templateExerciseId: String = "",

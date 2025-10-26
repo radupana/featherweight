@@ -136,7 +136,7 @@ class FirestoreRepository(
 
             workouts.forEach { workout ->
                 val docRef =
-                    if (workout.id.isNotEmpty()) {
+                    if (!workout.id.isNullOrEmpty()) {
                         collection.document(workout.id)
                     } else {
                         collection.document()
@@ -198,7 +198,7 @@ class FirestoreRepository(
                 val writeBatch = firestore.batch()
                 batch.forEach { log ->
                     val docRef =
-                        if (log.id.isNotEmpty()) {
+                        if (!log.id.isNullOrEmpty()) {
                             collection.document(log.id)
                         } else {
                             collection.document()
@@ -226,7 +226,7 @@ class FirestoreRepository(
                 val writeBatch = firestore.batch()
                 batch.forEach { log ->
                     val docRef =
-                        if (log.id.isNotEmpty()) {
+                        if (!log.id.isNullOrEmpty()) {
                             collection.document(log.id)
                         } else {
                             collection.document()
@@ -252,7 +252,7 @@ class FirestoreRepository(
 
             templates.forEach { template ->
                 val docRef =
-                    if (template.id.isNotEmpty()) {
+                    if (!template.id.isNullOrEmpty()) {
                         collection.document(template.id)
                     } else {
                         collection.document()
@@ -279,7 +279,7 @@ class FirestoreRepository(
                 val writeBatch = firestore.batch()
                 batch.forEach { exercise ->
                     val docRef =
-                        if (exercise.id.isNotEmpty()) {
+                        if (!exercise.id.isNullOrEmpty()) {
                             collection.document(exercise.id)
                         } else {
                             collection.document()
@@ -307,7 +307,7 @@ class FirestoreRepository(
                 val writeBatch = firestore.batch()
                 batch.forEach { set ->
                     val docRef =
-                        if (set.id.isNotEmpty()) {
+                        if (!set.id.isNullOrEmpty()) {
                             collection.document(set.id)
                         } else {
                             collection.document()
@@ -332,7 +332,7 @@ class FirestoreRepository(
             val metadata =
                 FirestoreSyncMetadata(
                     userId = userId,
-                    deviceId = deviceId,
+                    installationId = deviceId,
                     deviceName = deviceName,
                 )
 
@@ -569,7 +569,7 @@ class FirestoreRepository(
             val exerciseRef = userDocument(userId).collection("customExercises").document(exercise.id)
             val exerciseData =
                 hashMapOf(
-                    "id" to exercise.id,
+                    // Don't include "id" - it's handled by @DocumentId annotation
                     "type" to exercise.type,
                     "userId" to exercise.userId,
                     "name" to exercise.name,
@@ -592,7 +592,7 @@ class FirestoreRepository(
             muscles.forEach { muscle ->
                 val muscleData =
                     hashMapOf(
-                        "id" to muscle.id,
+                        // Don't include "id" - it's handled by @DocumentId annotation
                         "exerciseId" to muscle.exerciseId,
                         "muscle" to muscle.muscle,
                         "targetType" to muscle.targetType,
@@ -606,7 +606,7 @@ class FirestoreRepository(
             aliases.forEach { alias ->
                 val aliasData =
                     hashMapOf(
-                        "id" to alias.id,
+                        // Don't include "id" - it's handled by @DocumentId annotation
                         "exerciseId" to alias.exerciseId,
                         "alias" to alias.alias,
                         "isDeleted" to alias.isDeleted,
@@ -619,7 +619,7 @@ class FirestoreRepository(
             instructions.forEach { instruction ->
                 val instructionData =
                     hashMapOf(
-                        "id" to instruction.id,
+                        // Don't include "id" - it's handled by @DocumentId annotation
                         "exerciseId" to instruction.exerciseId,
                         "instructionType" to instruction.instructionType,
                         "orderIndex" to instruction.orderIndex,

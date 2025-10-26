@@ -147,7 +147,7 @@ data class FirestoreExerciseUsage(
  */
 data class FirestoreCustomExercise(
     @DocumentId
-    val id: String = "",
+    val id: String? = null, // Must be nullable for @DocumentId to work properly
     val type: String = "USER",
     val userId: String = "",
     val name: String = "",
@@ -171,7 +171,7 @@ data class FirestoreCustomExercise(
 ) {
     // No-arg constructor required for Firestore
     constructor() : this(
-        id = "",
+        id = null,
         type = "USER",
         userId = "",
         name = "",
@@ -198,7 +198,7 @@ data class FirestoreCustomExercise(
  */
 data class FirestoreCustomExerciseMuscle(
     @DocumentId
-    val id: String = "",
+    val id: String? = null, // Must be nullable for @DocumentId
     val exerciseId: String = "",
     val muscle: String = "",
     val targetType: String = "",
@@ -207,7 +207,7 @@ data class FirestoreCustomExerciseMuscle(
     val lastModified: Timestamp? = null,
 ) {
     // No-arg constructor required for Firestore
-    constructor() : this("", "", "", "", false, null)
+    constructor() : this(null, "", "", "", false, null)
 }
 
 /**
@@ -215,7 +215,7 @@ data class FirestoreCustomExerciseMuscle(
  */
 data class FirestoreCustomExerciseAlias(
     @DocumentId
-    val id: String = "",
+    val id: String? = null, // Must be nullable for @DocumentId
     val exerciseId: String = "",
     val alias: String = "",
     val isDeleted: Boolean = false,
@@ -223,7 +223,7 @@ data class FirestoreCustomExerciseAlias(
     val lastModified: Timestamp? = null,
 ) {
     // No-arg constructor required for Firestore
-    constructor() : this("", "", "", false, null)
+    constructor() : this(null, "", "", false, null)
 }
 
 /**
@@ -231,7 +231,7 @@ data class FirestoreCustomExerciseAlias(
  */
 data class FirestoreCustomExerciseInstruction(
     @DocumentId
-    val id: String = "",
+    val id: String? = null, // Must be nullable for @DocumentId
     val exerciseId: String = "",
     val instructionType: String = "",
     val orderIndex: Int = 0,
@@ -241,5 +241,5 @@ data class FirestoreCustomExerciseInstruction(
     val lastModified: Timestamp? = null,
 ) {
     // No-arg constructor required for Firestore
-    constructor() : this("", "", "", 0, "", false, null)
+    constructor() : this(null, "", "", 0, "", false, null)
 }

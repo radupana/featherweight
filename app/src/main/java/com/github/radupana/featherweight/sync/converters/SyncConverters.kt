@@ -80,7 +80,7 @@ object SyncConverters {
 
     fun fromFirestoreWorkout(firestoreWorkout: FirestoreWorkout): Workout =
         Workout(
-            id = firestoreWorkout.localId.ifEmpty { firestoreWorkout.id }, // Use localId, fallback to document ID
+            id = firestoreWorkout.localId.ifEmpty { firestoreWorkout.id ?: "" }, // Use localId, fallback to document ID
             userId = firestoreWorkout.userId.ifEmpty { null },
             name = firestoreWorkout.name,
             notes = firestoreWorkout.notes,
@@ -110,7 +110,7 @@ object SyncConverters {
 
     fun fromFirestoreWorkoutTemplate(firestoreTemplate: FirestoreWorkoutTemplate): WorkoutTemplate =
         WorkoutTemplate(
-            id = firestoreTemplate.localId.ifEmpty { firestoreTemplate.id },
+            id = firestoreTemplate.localId.ifEmpty { firestoreTemplate.id ?: "" },
             userId = firestoreTemplate.userId,
             name = firestoreTemplate.name,
             description = firestoreTemplate.description,
@@ -131,7 +131,7 @@ object SyncConverters {
 
     fun fromFirestoreTemplateExercise(firestoreExercise: FirestoreTemplateExercise): TemplateExercise =
         TemplateExercise(
-            id = firestoreExercise.localId.ifEmpty { firestoreExercise.id },
+            id = firestoreExercise.localId.ifEmpty { firestoreExercise.id ?: "" },
             userId = firestoreExercise.userId,
             templateId = firestoreExercise.templateId,
             exerciseId = firestoreExercise.exerciseId,
@@ -154,7 +154,7 @@ object SyncConverters {
 
     fun fromFirestoreTemplateSet(firestoreSet: FirestoreTemplateSet): TemplateSet =
         TemplateSet(
-            id = firestoreSet.localId.ifEmpty { firestoreSet.id },
+            id = firestoreSet.localId.ifEmpty { firestoreSet.id ?: "" },
             userId = firestoreSet.userId,
             templateExerciseId = firestoreSet.templateExerciseId,
             setOrder = firestoreSet.setOrder,
@@ -178,7 +178,7 @@ object SyncConverters {
 
     fun fromFirestoreExerciseLog(firestoreLog: FirestoreExerciseLog): ExerciseLog =
         ExerciseLog(
-            id = firestoreLog.localId.ifEmpty { firestoreLog.id },
+            id = firestoreLog.localId.ifEmpty { firestoreLog.id ?: "" },
             userId = null,
             workoutId = firestoreLog.workoutId,
             exerciseId = firestoreLog.exerciseId,
@@ -208,7 +208,7 @@ object SyncConverters {
 
     fun fromFirestoreSetLog(firestoreLog: FirestoreSetLog): SetLog =
         SetLog(
-            id = firestoreLog.localId.ifEmpty { firestoreLog.id },
+            id = firestoreLog.localId.ifEmpty { firestoreLog.id ?: "" },
             userId = null,
             exerciseLogId = firestoreLog.exerciseLogId,
             setOrder = firestoreLog.setOrder,
@@ -330,7 +330,7 @@ object SyncConverters {
 
     fun fromFirestoreProgramme(firestoreProgramme: FirestoreProgramme): Programme =
         Programme(
-            id = firestoreProgramme.id.ifEmpty { firestoreProgramme.localId },
+            id = firestoreProgramme.id?.ifEmpty { firestoreProgramme.localId } ?: firestoreProgramme.localId,
             userId = firestoreProgramme.userId,
             name = firestoreProgramme.name,
             description = firestoreProgramme.description,
@@ -367,7 +367,7 @@ object SyncConverters {
 
     fun fromFirestoreProgrammeWeek(firestoreWeek: FirestoreProgrammeWeek): ProgrammeWeek =
         ProgrammeWeek(
-            id = firestoreWeek.id.ifEmpty { firestoreWeek.localId },
+            id = firestoreWeek.id?.ifEmpty { firestoreWeek.localId } ?: firestoreWeek.localId,
             userId = firestoreWeek.userId,
             programmeId = firestoreWeek.programmeId,
             weekNumber = firestoreWeek.weekNumber,
@@ -390,7 +390,7 @@ object SyncConverters {
 
     fun fromFirestoreProgrammeWorkout(firestoreWorkout: FirestoreProgrammeWorkout): ProgrammeWorkout =
         ProgrammeWorkout(
-            id = firestoreWorkout.id.ifEmpty { firestoreWorkout.localId },
+            id = firestoreWorkout.id?.ifEmpty { firestoreWorkout.localId } ?: firestoreWorkout.localId,
             userId = firestoreWorkout.userId,
             weekId = firestoreWorkout.weekId,
             dayNumber = firestoreWorkout.dayNumber,
@@ -415,7 +415,7 @@ object SyncConverters {
 
     fun fromFirestoreProgrammeProgress(firestoreProgress: FirestoreProgrammeProgress): ProgrammeProgress =
         ProgrammeProgress(
-            id = firestoreProgress.id.ifEmpty { firestoreProgress.localId },
+            id = firestoreProgress.id?.ifEmpty { firestoreProgress.localId } ?: firestoreProgress.localId,
             userId = firestoreProgress.userId,
             programmeId = firestoreProgress.programmeId,
             currentWeek = firestoreProgress.currentWeek,
@@ -446,7 +446,7 @@ object SyncConverters {
 
     fun fromFirestoreUserExerciseMax(firestoreMax: FirestoreUserExerciseMax): ExerciseMaxTracking =
         ExerciseMaxTracking(
-            id = firestoreMax.id.ifEmpty { firestoreMax.localId },
+            id = firestoreMax.id?.ifEmpty { firestoreMax.localId } ?: firestoreMax.localId,
             userId = firestoreMax.userId,
             exerciseId = firestoreMax.exerciseId,
             mostWeightLifted = firestoreMax.mostWeightLifted,
@@ -485,7 +485,7 @@ object SyncConverters {
 
     fun fromFirestorePersonalRecord(firestoreRecord: FirestorePersonalRecord): PersonalRecord =
         PersonalRecord(
-            id = firestoreRecord.id.ifEmpty { firestoreRecord.localId },
+            id = firestoreRecord.id?.ifEmpty { firestoreRecord.localId } ?: firestoreRecord.localId,
             userId = firestoreRecord.userId,
             exerciseId = firestoreRecord.exerciseId,
             weight = firestoreRecord.weight,
@@ -516,7 +516,7 @@ object SyncConverters {
 
     fun fromFirestoreExerciseSwapHistory(firestoreSwap: FirestoreExerciseSwapHistory): ExerciseSwapHistory =
         ExerciseSwapHistory(
-            id = firestoreSwap.id.ifEmpty { firestoreSwap.localId },
+            id = firestoreSwap.id?.ifEmpty { firestoreSwap.localId } ?: firestoreSwap.localId,
             userId = firestoreSwap.userId,
             originalExerciseId = firestoreSwap.originalExerciseId,
             swappedToExerciseId = firestoreSwap.swappedToExerciseId,
@@ -549,7 +549,7 @@ object SyncConverters {
 
     fun fromFirestoreProgrammeExerciseTracking(firestoreTracking: FirestoreProgrammeExerciseTracking): ProgrammeExerciseTracking =
         ProgrammeExerciseTracking(
-            id = firestoreTracking.id.ifEmpty { firestoreTracking.localId },
+            id = firestoreTracking.id?.ifEmpty { firestoreTracking.localId } ?: firestoreTracking.localId,
             userId = firestoreTracking.userId,
             programmeId = firestoreTracking.programmeId,
             exerciseId = firestoreTracking.exerciseId,
@@ -588,7 +588,7 @@ object SyncConverters {
 
     fun fromFirestoreGlobalExerciseProgress(firestoreProgress: FirestoreGlobalExerciseProgress): GlobalExerciseProgress =
         GlobalExerciseProgress(
-            id = firestoreProgress.id.ifEmpty { firestoreProgress.localId },
+            id = firestoreProgress.id?.ifEmpty { firestoreProgress.localId } ?: firestoreProgress.localId,
             userId = firestoreProgress.userId,
             exerciseId = firestoreProgress.exerciseId,
             currentWorkingWeight = firestoreProgress.currentWorkingWeight,
@@ -619,7 +619,7 @@ object SyncConverters {
 
     fun fromFirestoreTrainingAnalysis(firestoreAnalysis: FirestoreTrainingAnalysis): TrainingAnalysis =
         TrainingAnalysis(
-            id = firestoreAnalysis.id.ifEmpty { firestoreAnalysis.localId },
+            id = firestoreAnalysis.id?.ifEmpty { firestoreAnalysis.localId } ?: firestoreAnalysis.localId,
             userId = firestoreAnalysis.userId,
             analysisDate = timestampToLocalDateTime(firestoreAnalysis.analysisDate),
             periodStart = java.time.LocalDate.parse(firestoreAnalysis.periodStart),
@@ -645,7 +645,7 @@ object SyncConverters {
 
     fun fromFirestoreParseRequest(firestoreRequest: FirestoreParseRequest): ParseRequest =
         ParseRequest(
-            id = firestoreRequest.id.ifEmpty { firestoreRequest.localId },
+            id = firestoreRequest.id?.ifEmpty { firestoreRequest.localId } ?: firestoreRequest.localId,
             userId = firestoreRequest.userId,
             rawText = firestoreRequest.rawText,
             createdAt = timestampToLocalDateTime(firestoreRequest.createdAt),
@@ -670,7 +670,7 @@ object SyncConverters {
 
     fun fromFirestoreExerciseUsage(firestoreUsage: com.github.radupana.featherweight.sync.models.FirestoreExerciseUsage): com.github.radupana.featherweight.data.exercise.UserExerciseUsage =
         com.github.radupana.featherweight.data.exercise.UserExerciseUsage(
-            id = firestoreUsage.localId.ifEmpty { firestoreUsage.id },
+            id = firestoreUsage.localId.ifEmpty { firestoreUsage.id ?: "" },
             userId = firestoreUsage.userId,
             exerciseId = firestoreUsage.exerciseId,
             usageCount = firestoreUsage.usageCount,
