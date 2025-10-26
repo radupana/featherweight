@@ -1,9 +1,19 @@
 package com.github.radupana.featherweight.util
 
 import com.google.common.truth.Truth.assertThat
+import org.junit.Before
 import org.junit.Test
 
 class WeightFormatterPRTest {
+    @Before
+    fun setUp() {
+        // Clear any weightUnitManager that might have been set by other tests
+        // Use reflection to reset the private weightUnitManager field to null
+        val field = WeightFormatter::class.java.getDeclaredField("weightUnitManager")
+        field.isAccessible = true
+        field.set(null, null)
+    }
+
     @Test
     fun formatLastAndPR_formatsCorrectlyWithWholeNumbers() {
         val result =

@@ -1,11 +1,24 @@
 package com.github.radupana.featherweight.util
 
+import android.util.Log
+import io.mockk.every
+import io.mockk.mockkStatic
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class PromptSecurityUtilTest {
+    @Before
+    fun setUp() {
+        // Mock android.util.Log to prevent crashes in unit tests
+        mockkStatic(Log::class)
+        every { Log.e(any<String>(), any<String>()) } returns 0
+        every { Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
+        every { Log.w(any<String>(), any<String>()) } returns 0
+    }
+
     @Test
     fun `detectInjectionAttempt detects common injection patterns`() {
         // Test various injection attempts
