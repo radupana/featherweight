@@ -376,7 +376,6 @@ fun ProgrammePreview(
         programme.weeks.forEachIndexed { weekIndex, week ->
             ProgrammeWeekCard(
                 week = week,
-                weekIndex = weekIndex,
                 isExpanded = weekIndex in expandedWeeks,
                 onToggleExpanded = {
                     expandedWeeks =
@@ -531,7 +530,6 @@ private fun ProgrammeStatItem(
 @Composable
 private fun ProgrammeWeekCard(
     week: com.github.radupana.featherweight.data.ParsedWeek,
-    weekIndex: Int,
     isExpanded: Boolean,
     onToggleExpanded: () -> Unit,
     onEditWorkout: (workoutIndex: Int) -> Unit,

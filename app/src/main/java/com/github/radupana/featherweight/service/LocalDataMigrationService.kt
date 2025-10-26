@@ -281,7 +281,12 @@ class LocalDataMigrationService(
                     statement.executeUpdateDelete()
                 }
 
-        CloudLogger.debug(TAG, "Migrated $swapCount swap history, $perfCount programme exercise tracking, $analysisCount analyses, $parseCount parse requests, $maxHistoryCount max history, $templateCount templates, $templateExCount template exercises, $templateSetCount template sets")
+        CloudLogger.debug(
+            TAG,
+            "Migrated $swapCount swap history, $perfCount programme exercise tracking, " +
+                "$analysisCount analyses, $parseCount parse requests, $maxHistoryCount max history, " +
+                "$templateCount templates, $templateExCount template exercises, $templateSetCount template sets",
+        )
     }
 
     /**

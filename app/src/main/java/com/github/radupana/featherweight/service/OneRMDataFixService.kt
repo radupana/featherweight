@@ -1,3 +1,5 @@
+@file:Suppress("TooGenericExceptionCaught")
+
 package com.github.radupana.featherweight.service
 
 import com.github.radupana.featherweight.data.profile.ExerciseMaxTrackingDao

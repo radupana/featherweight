@@ -61,7 +61,7 @@ class TrainingAnalysisService {
                 val expectedFields = listOf("overall_assessment", "key_insights", "recommendations")
                 if (!PromptSecurityUtil.validateJsonResponse(result, expectedFields)) {
                     CloudLogger.error(TAG, "Invalid response structure from AI")
-                    throw IllegalStateException("Received invalid response format from AI service")
+                    error("Received invalid response format from AI service")
                 }
 
                 CloudLogger.info(TAG, "Training analysis completed successfully")

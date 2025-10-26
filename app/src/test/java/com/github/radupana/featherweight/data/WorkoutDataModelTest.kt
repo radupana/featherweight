@@ -237,21 +237,19 @@ class WorkoutDataModelTest {
 
     @Test
     fun `ExerciseLog handles superset grouping`() {
-        val superset1 =
-            ExerciseLog(
-                id = "1",
-                workoutId = "50",
-                exerciseId = "100",
-                exerciseOrder = 0,
-            )
+        ExerciseLog(
+            id = "1",
+            workoutId = "50",
+            exerciseId = "100",
+            exerciseOrder = 0,
+        )
 
-        val superset2 =
-            ExerciseLog(
-                id = "2",
-                workoutId = "50",
-                exerciseId = "101",
-                exerciseOrder = 1,
-            )
+        ExerciseLog(
+            id = "2",
+            workoutId = "50",
+            exerciseId = "101",
+            exerciseOrder = 1,
+        )
     }
 
     @Test

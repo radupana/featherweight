@@ -1,3 +1,5 @@
+@file:Suppress("TooGenericExceptionCaught")
+
 package com.github.radupana.featherweight.util
 
 import android.annotation.SuppressLint

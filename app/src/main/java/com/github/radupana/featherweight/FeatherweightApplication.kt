@@ -1,3 +1,5 @@
+@file:Suppress("TooGenericExceptionCaught")
+
 package com.github.radupana.featherweight
 
 import android.app.Application

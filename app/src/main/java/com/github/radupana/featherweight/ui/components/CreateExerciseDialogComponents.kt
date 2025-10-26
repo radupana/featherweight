@@ -188,8 +188,9 @@ fun CreateCustomExerciseDialog(
                     val hasCategory = selectedCategory != null
                     val hasPrimaryMuscles = selectedPrimaryMuscles.isNotEmpty()
                     val hasEquipment = selectedEquipment.isNotEmpty()
+                    val isValidExercise = hasValidName && hasCategory && hasPrimaryMuscles && hasEquipment
 
-                    if (hasValidName && hasCategory && hasPrimaryMuscles && hasEquipment) {
+                    if (isValidExercise) {
                         onCreate(
                             exerciseName,
                             selectedCategory!!,

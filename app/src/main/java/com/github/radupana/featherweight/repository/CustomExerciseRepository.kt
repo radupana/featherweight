@@ -132,7 +132,6 @@ class CustomExerciseRepository(
         equipment: Equipment? = null,
         difficulty: ExerciseDifficulty? = null,
         requiresWeight: Boolean? = null,
-        recommendedRepRange: String? = null,
         rmScalingType: RMScalingType? = null,
         restDurationSeconds: Int? = null,
     ): Boolean =

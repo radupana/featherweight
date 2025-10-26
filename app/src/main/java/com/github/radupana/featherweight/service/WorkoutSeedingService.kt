@@ -624,6 +624,7 @@ class WorkoutSeedingService(
                             com.github.radupana.featherweight.data.exercise.RMScalingType
                                 .valueOf(it)
                         } catch (e: IllegalArgumentException) {
+                            CloudLogger.debug("WorkoutSeedingService", "Invalid RMScalingType value: '$it', using default STANDARD", e)
                             com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD
                         }
                     } ?: com.github.radupana.featherweight.data.exercise.RMScalingType.STANDARD

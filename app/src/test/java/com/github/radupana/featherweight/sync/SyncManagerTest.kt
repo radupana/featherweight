@@ -659,15 +659,6 @@ class SyncManagerTest {
             // Database is empty - no workouts
             coEvery { workoutDao.getAllWorkouts(userId) } returns emptyList()
 
-            // But sync metadata exists (indicating reinstall scenario)
-            val existingMetadata =
-                mockk<com.github.radupana.featherweight.sync.models.FirestoreSyncMetadata> {
-                    every { id } returns userId
-                    every { this@mockk.userId } returns userId
-                    every { installationId } returns "installation-123"
-                    every { deviceName } returns "Test Device"
-                    every { lastSyncTime } returns Timestamp(Date(System.currentTimeMillis() - 3600000))
-                }
             // Firestore sync metadata no longer used - only local tracking
 
             // Mock remote data that should be downloaded

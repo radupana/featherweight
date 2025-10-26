@@ -1,3 +1,5 @@
+@file:Suppress("TooGenericExceptionCaught")
+
 package com.github.radupana.featherweight.sync.repository
 
 import com.github.radupana.featherweight.sync.models.FirestoreCustomExercise

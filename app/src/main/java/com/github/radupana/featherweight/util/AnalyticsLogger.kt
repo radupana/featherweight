@@ -1,6 +1,5 @@
 package com.github.radupana.featherweight.util
 
-import com.github.radupana.featherweight.util.CloudLogger
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import org.json.JSONException
 import org.json.JSONObject

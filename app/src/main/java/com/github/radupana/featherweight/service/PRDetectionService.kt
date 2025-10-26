@@ -70,6 +70,7 @@ class PRDetectionService(
                     try {
                         RMScalingType.valueOf(it)
                     } catch (e: IllegalArgumentException) {
+                        CloudLogger.debug("PRDetectionService", "Invalid RMScalingType value: '$it', using default STANDARD", e)
                         RMScalingType.STANDARD
                     }
                 } ?: RMScalingType.STANDARD

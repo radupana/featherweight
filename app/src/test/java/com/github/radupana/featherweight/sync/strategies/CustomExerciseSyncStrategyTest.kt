@@ -103,7 +103,6 @@ class CustomExerciseSyncStrategyTest {
     fun `downloadAndMerge updates local exercises when remote is newer`() =
         runTest {
             val now = LocalDateTime.now()
-            val localTimestamp = Timestamp(now.minusDays(1).toEpochSecond(ZoneOffset.UTC), 0)
             val remoteTimestamp = Timestamp(now.toEpochSecond(ZoneOffset.UTC), 0)
 
             val localExercise =
@@ -153,7 +152,6 @@ class CustomExerciseSyncStrategyTest {
     fun `downloadAndMerge does not update when local is newer`() =
         runTest {
             val now = LocalDateTime.now()
-            val localTimestamp = Timestamp(now.toEpochSecond(ZoneOffset.UTC), 0)
             val remoteTimestamp = Timestamp(now.minusDays(1).toEpochSecond(ZoneOffset.UTC), 0)
 
             val localExercise =

@@ -132,7 +132,6 @@ class FeatherweightRepository(
         requiresWeight: Boolean = true,
         movementPattern: MovementPattern = MovementPattern.PUSH,
         isCompound: Boolean = false,
-        recommendedRepRange: String? = null,
         rmScalingType: RMScalingType = RMScalingType.STANDARD,
         restDurationSeconds: Int = 90,
     ) = customExerciseRepository.createCustomExercise(
@@ -395,13 +394,6 @@ class FeatherweightRepository(
             // Update adherence percentage
             val progress = programmeDao.getProgressForProgramme(programmeId)
             if (progress != null) {
-                val adherence =
-                    if (progress.totalWorkouts > 0) {
-                        (progress.completedWorkouts.toFloat() / progress.totalWorkouts.toFloat()) * 100f
-                    } else {
-                        0f
-                    }
-
                 val updatedProgress =
                     progress.copy(
                         lastWorkoutDate = LocalDateTime.now(),
@@ -758,6 +750,7 @@ class FeatherweightRepository(
                 }
                 structure
             } catch (e: kotlinx.serialization.SerializationException) {
+                CloudLogger.warn("FeatherweightRepository", "Failed to parse workout structure, attempting to fix JSON", e)
                 // Try to fix invalid JSON by replacing ,"reps":, with ,"reps":"8-12",
                 val fixedJson =
                     nextWorkout.workoutStructure

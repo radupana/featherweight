@@ -1,10 +1,14 @@
 package com.github.radupana.featherweight.data.exercise
 
+import com.github.radupana.featherweight.util.CloudLogger
+
 /**
  * Extension functions to safely convert Strings to their corresponding enum types.
  * These functions are used when retrieving data from the database (String) and
  * converting it back to enums for use in business logic and UI.
  */
+
+private const val TAG = "EnumConversions"
 
 // Equipment conversions
 fun String?.toEquipment(): Equipment =
@@ -12,6 +16,7 @@ fun String?.toEquipment(): Equipment =
         try {
             Equipment.valueOf(it)
         } catch (e: IllegalArgumentException) {
+            CloudLogger.debug(TAG, "Invalid Equipment value: '$it', using default NONE", e)
             Equipment.NONE
         }
     } ?: Equipment.NONE
@@ -21,6 +26,7 @@ fun String?.toEquipmentOrNull(): Equipment? =
         try {
             Equipment.valueOf(it)
         } catch (e: IllegalArgumentException) {
+            CloudLogger.debug(TAG, "Invalid Equipment value: '$it', returning null", e)
             null
         }
     }
@@ -31,6 +37,7 @@ fun String?.toExerciseCategory(): ExerciseCategory =
         try {
             ExerciseCategory.valueOf(it)
         } catch (e: IllegalArgumentException) {
+            CloudLogger.debug(TAG, "Invalid ExerciseCategory value: '$it', using default OTHER", e)
             ExerciseCategory.OTHER
         }
     } ?: ExerciseCategory.OTHER
@@ -40,6 +47,7 @@ fun String?.toExerciseCategoryOrNull(): ExerciseCategory? =
         try {
             ExerciseCategory.valueOf(it)
         } catch (e: IllegalArgumentException) {
+            CloudLogger.debug(TAG, "Invalid ExerciseCategory value: '$it', returning null", e)
             null
         }
     }
@@ -50,6 +58,7 @@ fun String?.toMovementPattern(): MovementPattern =
         try {
             MovementPattern.valueOf(it)
         } catch (e: IllegalArgumentException) {
+            CloudLogger.debug(TAG, "Invalid MovementPattern value: '$it', using default OTHER", e)
             MovementPattern.OTHER
         }
     } ?: MovementPattern.OTHER
@@ -59,6 +68,7 @@ fun String?.toMovementPatternOrNull(): MovementPattern? =
         try {
             MovementPattern.valueOf(it)
         } catch (e: IllegalArgumentException) {
+            CloudLogger.debug(TAG, "Invalid MovementPattern value: '$it', returning null", e)
             null
         }
     }
@@ -69,6 +79,7 @@ fun String?.toExerciseDifficulty(): ExerciseDifficulty =
         try {
             ExerciseDifficulty.valueOf(it)
         } catch (e: IllegalArgumentException) {
+            CloudLogger.debug(TAG, "Invalid ExerciseDifficulty value: '$it', using default BEGINNER", e)
             ExerciseDifficulty.BEGINNER
         }
     } ?: ExerciseDifficulty.BEGINNER
@@ -78,6 +89,7 @@ fun String?.toExerciseDifficultyOrNull(): ExerciseDifficulty? =
         try {
             ExerciseDifficulty.valueOf(it)
         } catch (e: IllegalArgumentException) {
+            CloudLogger.debug(TAG, "Invalid ExerciseDifficulty value: '$it', returning null", e)
             null
         }
     }
@@ -88,6 +100,7 @@ fun String?.toRMScalingType(): RMScalingType =
         try {
             RMScalingType.valueOf(it)
         } catch (e: IllegalArgumentException) {
+            CloudLogger.debug(TAG, "Invalid RMScalingType value: '$it', using default UNKNOWN", e)
             RMScalingType.UNKNOWN
         }
     } ?: RMScalingType.UNKNOWN
@@ -97,6 +110,7 @@ fun String?.toRMScalingTypeOrNull(): RMScalingType? =
         try {
             RMScalingType.valueOf(it)
         } catch (e: IllegalArgumentException) {
+            CloudLogger.debug(TAG, "Invalid RMScalingType value: '$it', returning null", e)
             null
         }
     }
@@ -107,6 +121,7 @@ fun String?.toMuscleGroup(): MuscleGroup =
         try {
             MuscleGroup.valueOf(it)
         } catch (e: IllegalArgumentException) {
+            CloudLogger.debug(TAG, "Invalid MuscleGroup value: '$it', using default OTHER", e)
             MuscleGroup.OTHER
         }
     } ?: MuscleGroup.OTHER
@@ -116,6 +131,7 @@ fun String?.toMuscleGroupOrNull(): MuscleGroup? =
         try {
             MuscleGroup.valueOf(it)
         } catch (e: IllegalArgumentException) {
+            CloudLogger.debug(TAG, "Invalid MuscleGroup value: '$it', returning null", e)
             null
         }
     }
@@ -126,6 +142,7 @@ fun String?.toInstructionType(): InstructionType =
         try {
             InstructionType.valueOf(it)
         } catch (e: IllegalArgumentException) {
+            CloudLogger.debug(TAG, "Invalid InstructionType value: '$it', using default EXECUTION", e)
             InstructionType.EXECUTION
         }
     } ?: InstructionType.EXECUTION
@@ -135,6 +152,7 @@ fun String?.toInstructionTypeOrNull(): InstructionType? =
         try {
             InstructionType.valueOf(it)
         } catch (e: IllegalArgumentException) {
+            CloudLogger.debug(TAG, "Invalid InstructionType value: '$it', returning null", e)
             null
         }
     }
