@@ -884,6 +884,28 @@ class FirestoreRepository(
 
     suspend fun downloadParseRequests(userId: String): Result<List<FirestoreParseRequest>> = downloadBatchedData(userDocument(userId).collection(PARSE_REQUESTS_COLLECTION))
 
+    suspend fun deleteParseRequest(
+        userId: String,
+        requestId: String,
+    ): Result<Unit> =
+        try {
+            userDocument(userId)
+                .collection(PARSE_REQUESTS_COLLECTION)
+                .document(requestId)
+                .delete()
+                .await()
+            CloudLogger.debug("FirestoreRepository", "Successfully deleted parse request $requestId from Firestore")
+            Result.success(Unit)
+        } catch (e: FirebaseException) {
+            CloudLogger.error("FirestoreRepository", "Failed to delete parse request $requestId", e)
+            ExceptionLogger.logNonCritical("FirestoreRepository", "Delete parse request failed", e)
+            Result.failure(e)
+        } catch (e: Exception) {
+            CloudLogger.error("FirestoreRepository", "Unexpected error deleting parse request $requestId", e)
+            ExceptionLogger.logNonCritical("FirestoreRepository", "Delete parse request failed", e)
+            Result.failure(e)
+        }
+
     private suspend inline fun <reified T : Any> downloadBatchedData(
         collection: com.google.firebase.firestore.CollectionReference,
     ): Result<List<T>> =

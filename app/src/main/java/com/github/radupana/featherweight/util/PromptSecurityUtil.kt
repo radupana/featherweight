@@ -2,8 +2,6 @@
 
 package com.github.radupana.featherweight.util
 
-import com.github.radupana.featherweight.util.CloudLogger
-
 /**
  * Utility class for preventing prompt injection attacks when using AI APIs.
  * Provides sanitization and validation for user inputs before sending to OpenAI.

@@ -219,6 +219,12 @@ fun SignInScreen(
                         firebaseAuth.signInWithCredential(credential).fold(
                             onSuccess = { user ->
                                 CloudLogger.info("SignInActivity", "Google sign-in successful, userId: ${user.uid}")
+                                // Clear any existing user data before switching users
+                                val currentUserId = authManager.getCurrentUserId()
+                                if (currentUserId != null && currentUserId != user.uid) {
+                                    CloudLogger.info("SignInActivity", "Switching from user $currentUserId to ${user.uid}, clearing old data")
+                                    authManager.clearUserData()
+                                }
                                 authManager.setCurrentUserId(user.uid)
                                 CloudLogger.info("SignInActivity", "User ID saved, calling onSignInSuccess")
                                 onSignInSuccess()
@@ -349,7 +355,12 @@ fun SignInScreen(
                                     context.startActivity(intent)
                                     (context as? ComponentActivity)?.finish()
                                 } else {
-                                    // For sign-in, set user ID and proceed with normal flow
+                                    // For sign-in, clear any existing user data first, then set new user ID
+                                    val currentUserId = authManager.getCurrentUserId()
+                                    if (currentUserId != null && currentUserId != user.uid) {
+                                        CloudLogger.info("SignInActivity", "Switching from user $currentUserId to ${user.uid}, clearing old data")
+                                        authManager.clearUserData()
+                                    }
                                     CloudLogger.info("SignInActivity", "Existing user sign-in, proceeding with normal flow")
                                     authManager.setCurrentUserId(user.uid)
                                     onSignInSuccess()

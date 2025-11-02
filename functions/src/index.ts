@@ -1,6 +1,6 @@
 /**
  * Cloud Functions for Featherweight
- * Centralized logging infrastructure
+ * Centralized logging infrastructure and secure API proxy
  */
 
 import {setGlobalOptions} from "firebase-functions/v2";
@@ -75,7 +75,10 @@ export const logEvent = onRequest(
       try {
         await admin.appCheck().verifyToken(appCheckToken);
       } catch (error) {
-        console.error("App Check verification failed:", error);
+        await log.write(log.entry({severity: "ERROR"}, {
+          message: "App Check verification failed",
+          error: error instanceof Error ? error.message : String(error),
+        }));
         res.status(401).send("Unauthorized: Invalid App Check token");
         return;
       }
@@ -91,7 +94,10 @@ export const logEvent = onRequest(
       try {
         decodedToken = await admin.auth().verifyIdToken(idToken);
       } catch (error) {
-        console.error("Token verification failed:", error);
+        await log.write(log.entry({severity: "ERROR"}, {
+          message: "Token verification failed",
+          error: error instanceof Error ? error.message : String(error),
+        }));
         res.status(401).send("Unauthorized: Invalid auth token");
         return;
       }
@@ -158,7 +164,10 @@ export const logEvent = onRequest(
         eventsProcessed: batch.events.length,
       });
     } catch (error) {
-      console.error("Error processing log batch:", error);
+      await log.write(log.entry({severity: "ERROR"}, {
+        message: "Error processing log batch",
+        error: error instanceof Error ? error.message : String(error),
+      }));
       res.status(500).send("Internal Server Error");
     }
   }
@@ -185,3 +194,6 @@ function mapLogLevel(
     return "DEFAULT";
   }
 }
+
+// Export the parseProgram function
+export {parseProgram} from "./parseProgram";

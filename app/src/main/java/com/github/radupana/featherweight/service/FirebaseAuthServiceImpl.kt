@@ -213,7 +213,11 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
 
     override fun isEmailVerified(): Boolean = auth.currentUser?.isEmailVerified ?: false
 
-    override fun getUserEmail(): String? = auth.currentUser?.email
+    override fun getUserEmail(): String? {
+        val email = auth.currentUser?.email
+        CloudLogger.debug("FirebaseAuthServiceImpl", "getUserEmail - currentUser: ${auth.currentUser?.uid}, email: '$email', providerData: ${auth.currentUser?.providerData?.map { "${it.providerId}: ${it.email}" }}")
+        return email
+    }
 
     override fun getAuthProvider(): String? =
         auth.currentUser
@@ -225,4 +229,6 @@ class FirebaseAuthServiceImpl : FirebaseAuthService {
         auth.currentUser
             ?.metadata
             ?.creationTimestamp
+
+    override fun isAnonymous(): Boolean = auth.currentUser?.isAnonymous ?: false
 }

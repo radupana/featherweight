@@ -75,9 +75,9 @@ class AuthenticationManagerImpl(
                 null
             }
             firebaseUser.uid != storedUserId -> {
-                // User mismatch - update to correct user
-                CloudLogger.warn(TAG, "getCurrentUserId: Updating mismatched user ID")
-                setCurrentUserId(firebaseUser.uid)
+                // User mismatch detected - this shouldn't happen during normal operation
+                // Return Firebase user ID but log error - the caller should handle this
+                CloudLogger.error(TAG, "getCurrentUserId: User ID mismatch! Stored: $storedUserId, Firebase: ${firebaseUser.uid}")
                 firebaseUser.uid
             }
             else -> storedUserId

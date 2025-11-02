@@ -7,7 +7,6 @@ import com.github.radupana.featherweight.data.ParseStatus
 import com.github.radupana.featherweight.data.ParsedProgramme
 import com.github.radupana.featherweight.data.ParsedWorkout
 import com.github.radupana.featherweight.data.TextParsingRequest
-import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.ProgrammeTextParser
 import com.github.radupana.featherweight.util.CloudLogger
@@ -24,8 +23,7 @@ class ImportProgrammeViewModel(
     }
 
     private val repository = FeatherweightRepository(application)
-    private val weightUnitManager = ServiceLocator.provideWeightUnitManager(application)
-    private val parser = ProgrammeTextParser(weightUnitManager)
+    private val parser = ProgrammeTextParser()
 
     private val _uiState = MutableStateFlow(ImportProgrammeUiState())
     val uiState: StateFlow<ImportProgrammeUiState> = _uiState

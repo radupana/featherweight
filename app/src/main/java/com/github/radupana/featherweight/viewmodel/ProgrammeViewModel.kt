@@ -249,24 +249,3 @@ data class ProgrammeUiState(
     val pendingProfileUpdates: List<Pair<String, Float>> = emptyList(),
     val pendingNavigationCallback: (() -> Unit)? = null,
 )
-
-data class UserMaxes(
-    val squat: Float? = null,
-    val bench: Float? = null,
-    val deadlift: Float? = null,
-    val ohp: Float? = null,
-) {
-    fun isValid(requiresMaxes: Boolean): Boolean =
-        if (requiresMaxes) {
-            squat != null &&
-                squat > 0 &&
-                bench != null &&
-                bench > 0 &&
-                deadlift != null &&
-                deadlift > 0 &&
-                ohp != null &&
-                ohp > 0
-        } else {
-            true
-        }
-}

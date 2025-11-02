@@ -40,6 +40,7 @@ data class AccountInfo(
     val isEmailVerified: Boolean,
     val authProvider: String?,
     val creationTime: Long?,
+    val isAnonymous: Boolean,
 )
 
 data class ProfileUiState(
@@ -559,17 +560,24 @@ class ProfileViewModel(
 
     private fun loadAccountInfo() {
         val user = firebaseAuth.getCurrentUser()
+        val isAnonymous = firebaseAuth.isAnonymous()
+        CloudLogger.debug("ProfileViewModel", "loadAccountInfo - user: ${user?.uid}, email: ${firebaseAuth.getUserEmail()}, isAnonymous: $isAnonymous")
         _uiState.value =
             _uiState.value.copy(
                 accountInfo =
-                    if (user != null) {
-                        AccountInfo(
-                            email = firebaseAuth.getUserEmail(),
-                            isEmailVerified = firebaseAuth.isEmailVerified(),
-                            authProvider = firebaseAuth.getAuthProvider(),
-                            creationTime = firebaseAuth.getAccountCreationTime(),
-                        )
+                    if (user != null && !isAnonymous) {
+                        val accountInfo =
+                            AccountInfo(
+                                email = firebaseAuth.getUserEmail(),
+                                isEmailVerified = firebaseAuth.isEmailVerified(),
+                                authProvider = firebaseAuth.getAuthProvider(),
+                                creationTime = firebaseAuth.getAccountCreationTime(),
+                                isAnonymous = false,
+                            )
+                        CloudLogger.debug("ProfileViewModel", "Created AccountInfo: email=${accountInfo.email}, verified=${accountInfo.isEmailVerified}, provider=${accountInfo.authProvider}")
+                        accountInfo
                     } else {
+                        CloudLogger.debug("ProfileViewModel", "No user found or anonymous user, accountInfo set to null")
                         null
                     },
             )

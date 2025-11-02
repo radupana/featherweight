@@ -86,6 +86,31 @@ jobs:
     - name: Run Unit Tests
       run: ./gradlew testDebugUnitTest || (echo "Test failed. Check test report artifact for details."; exit 1)
 
+    - name: Set up Node.js for Cloud Functions
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: functions/package-lock.json
+
+    - name: Install Cloud Functions dependencies
+      run: |
+        cd functions
+        npm ci
+
+    - name: Run Cloud Functions tests
+      run: |
+        cd functions
+        npm test
+
+    - name: Upload Cloud Functions test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cloud-functions-test-results
+        path: functions/coverage/
+        if-no-files-found: warn
+
     - name: Generate Unit Test Coverage Report
       if: always()
       run: |

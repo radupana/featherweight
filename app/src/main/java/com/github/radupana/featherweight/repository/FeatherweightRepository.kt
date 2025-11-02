@@ -55,6 +55,7 @@ import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.service.ProgressionService
+import com.github.radupana.featherweight.sync.repository.FirestoreRepository
 import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.google.firebase.firestore.FirebaseFirestore
@@ -81,6 +82,7 @@ class FeatherweightRepository(
 
     private val db = FeatherweightDatabase.getDatabase(application)
     private val authManager: AuthenticationManager = ServiceLocator.provideAuthenticationManager(application)
+    private val firestoreRepository by lazy { FirestoreRepository() }
 
     // Sub-repositories
     private val exerciseRepository = ExerciseRepository(db, authManager)
@@ -2329,8 +2331,12 @@ class FeatherweightRepository(
         withContext(Dispatchers.IO) {
             CloudLogger.debug("FeatherweightRepository", "Deleting parse request with ID: ${request.id}, status: ${request.status}")
             try {
-                // Use deleteById for more reliable deletion
                 db.parseRequestDao().deleteById(request.id)
+
+                val userId = authManager.getCurrentUserId()
+                if (userId != null) {
+                    firestoreRepository.deleteParseRequest(userId, request.id).getOrThrow()
+                }
             } catch (e: android.database.sqlite.SQLiteException) {
                 CloudLogger.error("FeatherweightRepository", "Failed to delete parse request ${request.id}", e)
                 throw e

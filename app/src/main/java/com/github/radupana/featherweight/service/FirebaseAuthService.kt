@@ -44,4 +44,6 @@ interface FirebaseAuthService {
     fun getAuthProvider(): String?
 
     fun getAccountCreationTime(): Long?
+
+    fun isAnonymous(): Boolean
 }
