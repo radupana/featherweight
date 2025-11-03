@@ -12,14 +12,12 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.perf.FirebasePerformance
 import com.google.firebase.perf.metrics.Trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 class FeatherweightApplication : Application() {
     private companion object {
@@ -34,7 +32,6 @@ class FeatherweightApplication : Application() {
 
         FirebaseApp.initializeApp(this)
         initializeAppCheck()
-        initializeAnonymousAuth()
 
         initializeWeightFormatter()
         initializeCloudLogger()
@@ -72,23 +69,6 @@ class FeatherweightApplication : Application() {
                 PlayIntegrityAppCheckProviderFactory.getInstance(),
             )
             Log.d(TAG, "App Check initialized with Play Integrity provider")
-        }
-    }
-
-    private fun initializeAnonymousAuth() {
-        val auth = FirebaseAuth.getInstance()
-        if (auth.currentUser == null) {
-            // Sign in anonymously so unauthenticated users can send logs
-            applicationScope.launch {
-                try {
-                    auth.signInAnonymously().await()
-                    Log.i(TAG, "Anonymous authentication successful")
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to sign in anonymously", e)
-                }
-            }
-        } else {
-            Log.d(TAG, "User already authenticated: ${auth.currentUser?.uid}")
         }
     }
 

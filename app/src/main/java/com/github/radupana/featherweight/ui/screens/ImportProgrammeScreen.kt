@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -21,7 +22,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.radupana.featherweight.SignInActivity
+import com.github.radupana.featherweight.ui.components.AuthenticationRequiredPrompt
 import com.github.radupana.featherweight.ui.components.FormatTipsDialog
 import com.github.radupana.featherweight.ui.components.ImportLoadingContent
 import com.github.radupana.featherweight.ui.components.ImportProgrammeInputForm
@@ -72,7 +76,21 @@ fun ImportProgrammeScreen(
                     .fillMaxSize()
                     .padding(paddingValues),
         ) {
+            val context = LocalContext.current
+
             when {
+                // Check authentication first - fail fast!
+                !viewModel.isAuthenticated() -> {
+                    AuthenticationRequiredPrompt(
+                        featureName = "AI Programme Parsing",
+                        description = "Sign in to use AI-powered programme parsing and sync your workouts across devices",
+                        onSignInClick = {
+                            context.startActivity(Intent(context, SignInActivity::class.java))
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+
                 uiState.isLoading -> {
                     ImportLoadingContent()
                 }

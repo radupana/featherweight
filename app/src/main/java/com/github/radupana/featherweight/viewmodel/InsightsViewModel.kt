@@ -8,6 +8,7 @@ import com.github.radupana.featherweight.data.InsightCategory
 import com.github.radupana.featherweight.data.InsightSeverity
 import com.github.radupana.featherweight.data.TrainingAnalysis
 import com.github.radupana.featherweight.data.TrainingInsight
+import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.TrainingAnalysisService
@@ -31,6 +32,7 @@ class InsightsViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
     val repository = FeatherweightRepository(application)
+    private val authManager = ServiceLocator.provideAuthenticationManager(application)
     private val analysisService = TrainingAnalysisService()
     private val gson = Gson()
 
@@ -56,6 +58,8 @@ class InsightsViewModel(
     init {
         loadExerciseNames()
     }
+
+    fun isAuthenticated(): Boolean = authManager.isAuthenticated()
 
     private fun loadExerciseNames() {
         viewModelScope.launch {

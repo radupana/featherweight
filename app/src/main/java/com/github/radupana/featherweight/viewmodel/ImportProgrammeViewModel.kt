@@ -7,6 +7,7 @@ import com.github.radupana.featherweight.data.ParseStatus
 import com.github.radupana.featherweight.data.ParsedProgramme
 import com.github.radupana.featherweight.data.ParsedWorkout
 import com.github.radupana.featherweight.data.TextParsingRequest
+import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.ProgrammeTextParser
 import com.github.radupana.featherweight.util.CloudLogger
@@ -23,7 +24,8 @@ class ImportProgrammeViewModel(
     }
 
     private val repository = FeatherweightRepository(application)
-    private val parser = ProgrammeTextParser()
+    private val authManager = ServiceLocator.provideAuthenticationManager(application)
+    private val parser = ProgrammeTextParser(authManager)
 
     private val _uiState = MutableStateFlow(ImportProgrammeUiState())
     val uiState: StateFlow<ImportProgrammeUiState> = _uiState
@@ -53,6 +55,8 @@ class ImportProgrammeViewModel(
                 parseRequestId = parseRequestId,
             )
     }
+
+    fun isAuthenticated(): Boolean = authManager.isAuthenticated()
 
     fun parseProgramme(onNavigateToProgrammes: () -> Unit) {
         viewModelScope.launch {

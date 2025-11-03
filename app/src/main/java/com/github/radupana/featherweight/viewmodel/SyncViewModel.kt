@@ -28,6 +28,7 @@ import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Date
 import java.util.concurrent.TimeUnit
 
 data class SyncUiState(
@@ -52,6 +53,7 @@ class SyncViewModel(
     init {
         CloudLogger.debug("SyncViewModel", "init: Initializing SyncViewModel")
         updateAuthenticationState()
+        loadLastSyncTime()
 
         // Set up debounced sync listener
         viewModelScope.launch {
@@ -70,6 +72,16 @@ class SyncViewModel(
             CloudLogger.debug("SyncViewModel", "init: User already authenticated, triggering initial backup")
             performBackgroundSync()
             schedulePeriodicSync()
+        }
+    }
+
+    private fun loadLastSyncTime() {
+        val lastSyncTimeMs = syncManager.getLastSyncTime()
+        if (lastSyncTimeMs > 0) {
+            _uiState.value =
+                _uiState.value.copy(
+                    lastSyncTime = formatTimestamp(Timestamp(Date(lastSyncTimeMs))),
+                )
         }
     }
 
@@ -114,10 +126,13 @@ class SyncViewModel(
                             when (state) {
                                 is SyncState.Success -> {
                                     CloudLogger.info("SyncViewModel", "performBackgroundSync: Backup successful")
+                                    // Reload last sync time from persistent storage
+                                    loadLastSyncTime()
                                     _uiState.value =
                                         _uiState.value.copy(
                                             lastSyncTime = formatTimestamp(state.timestamp),
                                             syncError = null,
+                                            isSyncing = false,
                                         )
                                 }
                                 is SyncState.Skipped -> {
@@ -171,9 +186,9 @@ class SyncViewModel(
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
 
-        // Schedule user data sync more frequently (every 2 hours)
+        // Schedule user data sync every 6 hours (reduced frequency to save costs)
         val userDataSyncRequest =
-            PeriodicWorkRequestBuilder<UserDataSyncWorker>(2, TimeUnit.HOURS)
+            PeriodicWorkRequestBuilder<UserDataSyncWorker>(6, TimeUnit.HOURS)
                 .setConstraints(constraints)
                 .addTag("user_data_sync")
                 .build()
@@ -187,17 +202,17 @@ class SyncViewModel(
 
         val workManager = WorkManager.getInstance(context)
 
-        // Enqueue user data sync
+        // Enqueue user data sync with REPLACE policy to avoid duplicate schedules
         workManager.enqueueUniquePeriodicWork(
             "user_data_sync",
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.REPLACE,
             userDataSyncRequest,
         )
 
-        // Enqueue system exercise sync
+        // Enqueue system exercise sync with REPLACE policy
         workManager.enqueueUniquePeriodicWork(
             "system_exercise_sync",
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.REPLACE,
             systemExerciseSyncRequest,
         )
     }
@@ -235,6 +250,26 @@ class SyncViewModel(
     fun onUserSignedOut() {
         cancelPeriodicSync()
         _uiState.value = SyncUiState(isAuthenticated = false)
+    }
+
+    /**
+     * Manually trigger a sync operation.
+     * Returns true if sync was initiated, false if cooldown is active or user not authenticated.
+     */
+    fun triggerManualSync(): Boolean {
+        if (!_uiState.value.isAuthenticated) {
+            CloudLogger.warn("SyncViewModel", "Manual sync requested but user not authenticated")
+            return false
+        }
+
+        if (_uiState.value.isSyncing) {
+            CloudLogger.info("SyncViewModel", "Manual sync requested but sync already in progress")
+            return false
+        }
+
+        CloudLogger.info("SyncViewModel", "Manual sync triggered by user")
+        performBackgroundSync()
+        return true
     }
 
     /**

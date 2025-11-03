@@ -127,7 +127,17 @@ class SyncManagerTest {
         every { sharedPreferences.getString("installation_id", null) } returns "test-installation-id"
         every { sharedPreferences.edit() } returns sharedPreferencesEditor
         every { sharedPreferencesEditor.putString(any(), any()) } returns sharedPreferencesEditor
+        every { sharedPreferencesEditor.putLong(any(), any()) } returns sharedPreferencesEditor
         every { sharedPreferencesEditor.apply() } just runs
+
+        // Mock sync_prefs SharedPreferences for SyncManager's last sync time tracking
+        val syncPrefs = mockk<SharedPreferences>()
+        val syncPrefsEditor = mockk<SharedPreferences.Editor>()
+        every { context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE) } returns syncPrefs
+        every { syncPrefs.getLong("last_successful_sync_time", 0L) } returns 0L
+        every { syncPrefs.edit() } returns syncPrefsEditor
+        every { syncPrefsEditor.putLong("last_successful_sync_time", any()) } returns syncPrefsEditor
+        every { syncPrefsEditor.apply() } just runs
 
         every { database.workoutDao() } returns workoutDao
         every { database.exerciseLogDao() } returns exerciseLogDao
@@ -739,6 +749,40 @@ class SyncManagerTest {
                     },
                 )
             }
+        }
+
+    @Test
+    fun `downloadUserData downloads programmes before workouts to respect foreign key constraints`() =
+        runTest {
+            val userId = "test-user"
+            val callOrder = mutableListOf<String>()
+
+            every { authManager.getCurrentUserId() } returns userId
+
+            mockAllDaoMethods()
+            mockAllFirestoreDownloads()
+            mockAllFirestoreUploads()
+
+            coEvery { workoutDao.getAllWorkouts(userId) } returns emptyList()
+            coEvery { exerciseDao.getCustomExercisesByUser(userId) } returns emptyList()
+
+            coEvery { firestoreRepository.downloadProgrammes(userId) } answers {
+                callOrder.add("downloadProgrammes")
+                Result.success(emptyList())
+            }
+
+            coEvery { firestoreRepository.downloadWorkouts(userId, any()) } answers {
+                callOrder.add("downloadWorkouts")
+                Result.success(emptyList())
+            }
+
+            val result = syncManager.syncUserData(userId)
+
+            assertTrue(result.isSuccess)
+            assertTrue(
+                callOrder.indexOf("downloadProgrammes") < callOrder.indexOf("downloadWorkouts"),
+                "Expected programmes to be downloaded before workouts. Actual order: $callOrder",
+            )
         }
 
     @Test

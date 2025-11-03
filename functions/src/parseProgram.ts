@@ -42,14 +42,20 @@ export const parseProgram = onCall<ParseProgramRequest>(
       throw new HttpsError("unauthenticated", "App Check verification failed");
     }
 
-    // 2. Verify Firebase Auth token
+    // 2. Verify Firebase Auth token and reject anonymous users
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Authentication required");
     }
 
-    const userId = request.auth.uid;
     const signInProvider = request.auth.token.firebase?.sign_in_provider;
-    const isAnonymous = signInProvider === "anonymous";
+    if (signInProvider === "anonymous") {
+      throw new HttpsError(
+        "unauthenticated",
+        "Sign in required to use AI programme parsing"
+      );
+    }
+
+    const userId = request.auth.uid;
 
     // Log request info
     await log.write(log.entry({
@@ -57,7 +63,6 @@ export const parseProgram = onCall<ParseProgramRequest>(
       labels: {
         type: "parse_request",
         userId,
-        isAnonymous: String(isAnonymous),
       },
     }, {
       textLength: request.data.rawText.length,
@@ -70,15 +75,12 @@ export const parseProgram = onCall<ParseProgramRequest>(
 
       // 4. Check quota
       const db = getFirestore("featherweight-v2");
-      const quotaResult = await checkAndUpdateQuota(userId, isAnonymous, db);
+      const quotaResult = await checkAndUpdateQuota(userId, false, db);
 
       if (quotaResult.exceeded) {
-        const limits = getQuotaLimits(isAnonymous);
+        const limits = getQuotaLimits(false);
         const remaining = quotaResult.remaining;
-        const message = isAnonymous ?
-          `Daily quota exceeded (${limits.daily} parses per day). ` +
-          `Sign in for 4x more! Remaining: ${remaining.daily} daily, ` +
-          `${remaining.weekly} weekly, ${remaining.monthly} monthly.` :
+        const message =
           `Daily quota exceeded (${limits.daily} parses per day). ` +
           `Resets at midnight. Remaining: ${remaining.daily} daily, ` +
           `${remaining.weekly} weekly, ${remaining.monthly} monthly.`;
@@ -88,13 +90,11 @@ export const parseProgram = onCall<ParseProgramRequest>(
           labels: {
             type: "quota_exceeded",
             userId,
-            isAnonymous: String(isAnonymous),
           },
         }, quotaResult.remaining));
 
         throw new HttpsError("resource-exhausted", message, {
           remaining: quotaResult.remaining,
-          isAnonymous,
         });
       }
 
@@ -117,7 +117,6 @@ export const parseProgram = onCall<ParseProgramRequest>(
         labels: {
           type: "parse_success",
           userId,
-          isAnonymous: String(isAnonymous),
         },
       }, {
         remaining: quotaResult.remaining,
@@ -129,7 +128,6 @@ export const parseProgram = onCall<ParseProgramRequest>(
         programme: result,
         quota: {
           remaining: quotaResult.remaining,
-          isAnonymous,
         },
       };
     } catch (error) {
@@ -139,7 +137,6 @@ export const parseProgram = onCall<ParseProgramRequest>(
         labels: {
           type: "parse_error",
           userId,
-          isAnonymous: String(isAnonymous),
         },
       }, {
         error: error instanceof Error ? error.message : "Unknown error",

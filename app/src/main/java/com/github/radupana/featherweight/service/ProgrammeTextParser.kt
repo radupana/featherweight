@@ -2,16 +2,14 @@ package com.github.radupana.featherweight.service
 
 import com.github.radupana.featherweight.data.TextParsingRequest
 import com.github.radupana.featherweight.data.TextParsingResult
+import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.util.CloudLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
 
-/**
- * Parser for workout programme text using Cloud Functions
- * All OpenAI API calls are now handled server-side for security
- */
 open class ProgrammeTextParser(
+    private val authenticationManager: AuthenticationManager,
     private val cloudFunctionService: CloudFunctionService = CloudFunctionService(),
 ) {
     companion object {
@@ -32,9 +30,18 @@ open class ProgrammeTextParser(
                     )
                 }
 
-                CloudLogger.debug(TAG, "Validation passed, calling Cloud Function...")
+                CloudLogger.debug(TAG, "Validation passed, checking authentication...")
 
-                // Call Cloud Function instead of direct OpenAI API
+                if (!authenticationManager.isAuthenticated()) {
+                    CloudLogger.warn(TAG, "User not authenticated, cannot use AI parsing")
+                    return@withContext TextParsingResult(
+                        success = false,
+                        error = "Sign in required to use AI programme parsing",
+                    )
+                }
+
+                CloudLogger.debug(TAG, "Authentication verified, calling Cloud Function...")
+
                 val result =
                     cloudFunctionService.parseProgram(
                         request.rawText,

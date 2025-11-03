@@ -2,9 +2,11 @@ package com.github.radupana.featherweight.service
 
 import com.github.radupana.featherweight.data.ParsedProgramme
 import com.github.radupana.featherweight.data.TextParsingRequest
+import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.testutil.LogMock
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
@@ -17,14 +19,33 @@ import org.junit.Test
 class ProgrammeTextParserTest {
     private lateinit var parser: ProgrammeTextParser
     private lateinit var mockCloudFunctionService: CloudFunctionService
+    private lateinit var mockAuthManager: AuthenticationManager
 
     @Before
     fun setUp() {
         LogMock.setup()
 
+        mockAuthManager = mockk(relaxed = true)
         mockCloudFunctionService = mockk(relaxed = true)
-        parser = ProgrammeTextParser(cloudFunctionService = mockCloudFunctionService)
+        every { mockAuthManager.isAuthenticated() } returns true
+        parser = ProgrammeTextParser(mockAuthManager, mockCloudFunctionService)
     }
+
+    @Test
+    fun parseText_whenNotAuthenticated_returnsAuthError() =
+        runTest {
+            every { mockAuthManager.isAuthenticated() } returns false
+            val request =
+                TextParsingRequest(
+                    rawText = "Week 1 Day 1: Squats 3x5",
+                    userMaxes = emptyMap(),
+                )
+
+            val result = parser.parseText(request)
+
+            assertThat(result.success).isFalse()
+            assertThat(result.error).isEqualTo("Sign in required to use AI programme parsing")
+        }
 
     // Validation Tests
     @Test

@@ -220,7 +220,7 @@ class AuthenticationManagerImplTest {
     }
 
     @Test
-    fun `getCurrentUserId updates and returns Firebase user when mismatch`() {
+    fun `getCurrentUserId returns Firebase user without updating when mismatch`() {
         // Given: Stored user differs from Firebase user
         val storedUserId = "old-user-123"
         val firebaseUserId = "new-user-456"
@@ -231,9 +231,9 @@ class AuthenticationManagerImplTest {
         // When: getting current user ID
         val result = manager.getCurrentUserId()
 
-        // Then: Should update and return Firebase user ID
+        // Then: Should return Firebase user ID but NOT update stored ID
         assertThat(result).isEqualTo(firebaseUserId)
-        verify { editor.putString("user_id", firebaseUserId) }
+        verify(exactly = 0) { editor.putString("user_id", firebaseUserId) }
     }
 
     @Test

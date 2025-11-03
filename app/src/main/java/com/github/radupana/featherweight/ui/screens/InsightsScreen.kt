@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,10 +42,12 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.radupana.featherweight.SignInActivity
 import com.github.radupana.featherweight.ui.components.TrainingAnalysisCard
 import com.github.radupana.featherweight.util.WeightFormatter
 import com.github.radupana.featherweight.viewmodel.InsightsViewModel
@@ -75,9 +79,12 @@ fun InsightsScreen(
             isDataInitialized = true
         }
 
-        // Load cached analysis and check if we need to run a new one
-        viewModel.loadCachedAnalysis()
-        viewModel.checkAndRunScheduledAnalysis()
+        // Only load analysis if authenticated
+        if (viewModel.isAuthenticated()) {
+            // Load cached analysis and check if we need to run a new one
+            viewModel.loadCachedAnalysis()
+            viewModel.checkAndRunScheduledAnalysis()
+        }
     }
 
     // Don't render anything until data is loaded
@@ -111,14 +118,70 @@ fun InsightsScreen(
             )
         }
 
-        // Training Analysis section
+        // Training Analysis section - requires authentication
         item {
             Spacer(modifier = Modifier.height(16.dp))
-            TrainingAnalysisCard(
-                analysis = trainingAnalysis,
-                isLoading = isAnalyzing,
-                currentWorkoutCount = currentWorkoutCount,
-            )
+
+            val context = LocalContext.current
+            if (!viewModel.isAuthenticated()) {
+                // Show authentication prompt only for Training Analysis
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        ),
+                ) {
+                    Column(
+                        modifier =
+                            Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "Training Analysis",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Sign in to unlock AI-powered training insights",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        androidx.compose.material3.Button(
+                            onClick = {
+                                context.startActivity(Intent(context, SignInActivity::class.java))
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Sign In to Access")
+                        }
+                    }
+                }
+            } else {
+                // Show actual Training Analysis card for authenticated users
+                TrainingAnalysisCard(
+                    analysis = trainingAnalysis,
+                    isLoading = isAnalyzing,
+                    currentWorkoutCount = currentWorkoutCount,
+                )
+            }
         }
 
         // Spacer between sections

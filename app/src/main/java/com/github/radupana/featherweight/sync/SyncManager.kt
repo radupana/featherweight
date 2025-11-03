@@ -49,7 +49,20 @@ class SyncManager(
     private val syncMutex = Mutex()
 
     // Track last sync time to prevent rapid successive syncs
-    // Removed throttling - mutex already prevents concurrent syncs
+    private var lastSyncTime: Long = 0
+    private val syncCooldownMs = 5 * 60 * 1000L // 5 minutes cooldown between syncs
+
+    // SharedPreferences for persistent storage of sync metadata
+    private val syncPrefs = context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
+
+    companion object {
+        private const val KEY_LAST_SYNC_TIME = "last_successful_sync_time"
+    }
+
+    init {
+        // Load last sync time from persistent storage
+        lastSyncTime = syncPrefs.getLong(KEY_LAST_SYNC_TIME, 0)
+    }
 
     // Sync strategies for modular sync logic
     private val systemExerciseStrategy = SystemExerciseSyncStrategy(database, firestoreRepository)
@@ -60,8 +73,19 @@ class SyncManager(
         InstallationIdProvider.getId(context)
     }
 
+    fun getLastSyncTime(): Long = syncPrefs.getLong(KEY_LAST_SYNC_TIME, 0)
+
     suspend fun syncAll(): Result<SyncState> =
         withContext(ioDispatcher) {
+            // Check cooldown period to prevent rapid successive syncs
+            val currentTime = System.currentTimeMillis()
+            val timeSinceLastSync = currentTime - lastSyncTime
+            if (timeSinceLastSync < syncCooldownMs) {
+                val remainingCooldown = (syncCooldownMs - timeSinceLastSync) / 1000
+                CloudLogger.info("SyncManager", "Sync skipped - cooldown active (${remainingCooldown}s remaining)")
+                return@withContext Result.success(SyncState.Skipped("Sync cooldown active - ${remainingCooldown}s remaining"))
+            }
+
             CloudLogger.info("SyncManager", "syncAll: Attempting to acquire sync mutex...")
             // Use mutex to prevent concurrent sync operations
             // Multiple sync requests will queue and execute sequentially
@@ -76,6 +100,7 @@ class SyncManager(
                 }
 
                 val syncStartTime = System.currentTimeMillis()
+                lastSyncTime = syncStartTime // Update last sync time
 
                 try {
                     // Check if database is empty (fresh install scenario)
@@ -93,18 +118,21 @@ class SyncManager(
 
                     CloudLogger.info("SyncManager", "Last sync time: $lastSyncTime")
 
-                    // Step 1: Download remote changes
                     CloudLogger.info("SyncManager", "Starting download of remote changes...")
                     downloadRemoteChanges(userId, lastSyncTime).fold(
                         onSuccess = {
                             CloudLogger.info("SyncManager", "Download successful, starting upload...")
-                            // Step 2: Upload local changes
                             uploadLocalChanges(userId, lastSyncTime).fold(
                                 onSuccess = {
                                     CloudLogger.info("SyncManager", "Upload successful, updating metadata...")
                                     updateSyncMetadata(userId)
                                     val syncDuration = System.currentTimeMillis() - syncStartTime
                                     CloudLogger.info("SyncManager", "Sync completed successfully - duration: ${syncDuration}ms (${syncDuration / 1000.0}s)")
+
+                                    // Save successful sync time to SharedPreferences
+                                    val currentTime = System.currentTimeMillis()
+                                    syncPrefs.edit().putLong(KEY_LAST_SYNC_TIME, currentTime).apply()
+
                                     Result.success(SyncState.Success(Timestamp.now()))
                                 },
                                 onFailure = { error ->
@@ -395,9 +423,6 @@ class SyncManager(
         try {
             CloudLogger.debug("SyncManager", "downloadRemoteChanges: Starting download for user $userId")
 
-            // CRITICAL: Download exercises FIRST before any entities that reference them
-            // Download system exercises using new denormalized strategy
-            // System exercises are global, so we always pass null for lastSyncTime (no incremental sync)
             CloudLogger.debug("SyncManager", "Downloading system exercises...")
             try {
                 systemExerciseStrategy.downloadAndMerge(null, null).getOrThrow()
@@ -407,7 +432,6 @@ class SyncManager(
                 throw e
             }
 
-            // Download custom exercises for this user
             CloudLogger.debug("SyncManager", "Downloading custom exercises...")
             try {
                 customExerciseStrategy.downloadAndMerge(userId, lastSyncTime).getOrThrow()
@@ -416,8 +440,6 @@ class SyncManager(
                 CloudLogger.error("SyncManager", "Custom exercises download failed: ${e.message}", e)
                 throw e
             }
-
-            // Download programme data FIRST (workouts have FK to programmes)
             CloudLogger.debug("SyncManager", "Downloading programmes...")
             try {
                 downloadAndMergeProgrammes(userId)
@@ -454,7 +476,6 @@ class SyncManager(
                 throw e
             }
 
-            // NOW download entities that reference exercises and programmes
             CloudLogger.debug("SyncManager", "Downloading workouts...")
             try {
                 downloadAndMergeWorkouts(userId, lastSyncTime)
@@ -482,7 +503,6 @@ class SyncManager(
                 throw e
             }
 
-            // Download templates
             CloudLogger.debug("SyncManager", "Downloading workout templates...")
             try {
                 downloadAndMergeWorkoutTemplates(userId, lastSyncTime)
@@ -510,7 +530,6 @@ class SyncManager(
                 throw e
             }
 
-            // Download user stats
             CloudLogger.debug("SyncManager", "Downloading user exercise maxes...")
             try {
                 downloadAndMergeUserExerciseMaxes(userId)
@@ -538,7 +557,6 @@ class SyncManager(
                 throw e
             }
 
-            // Download tracking data
             CloudLogger.debug("SyncManager", "Starting download of tracking data...")
             CloudLogger.debug("SyncManager", "Downloading exercise swap history...")
             try {
@@ -943,10 +961,8 @@ class SyncManager(
                 try {
                     val lastSyncTime = getLastSyncTime(userId)
 
-                    // Download user data (excluding system exercises)
                     downloadUserData(userId, lastSyncTime).fold(
                         onSuccess = {
-                            // Upload user data changes
                             uploadUserData(userId).fold(
                                 onSuccess = {
                                     updateSyncMetadata(userId)
@@ -981,27 +997,26 @@ class SyncManager(
         lastSyncTime: Timestamp?,
     ): Result<Unit> =
         try {
-            // CRITICAL: Download custom exercises FIRST before entities that reference them
             CloudLogger.debug("SyncManager", "Downloading custom exercises for user...")
             customExerciseStrategy.downloadAndMerge(userId, lastSyncTime).getOrThrow()
 
-            // NOW download entities that reference exercises
-            downloadAndMergeWorkouts(userId, lastSyncTime)
-            downloadAndMergeExerciseLogs(userId, lastSyncTime)
-            downloadAndMergeSetLogs(userId, lastSyncTime)
-
-            // Programme data
             downloadAndMergeProgrammes(userId)
             downloadAndMergeProgrammeWeeks(userId)
             downloadAndMergeProgrammeWorkouts(userId)
             downloadAndMergeProgrammeProgress(userId)
 
-            // User stats
+            downloadAndMergeWorkouts(userId, lastSyncTime)
+            downloadAndMergeExerciseLogs(userId, lastSyncTime)
+            downloadAndMergeSetLogs(userId, lastSyncTime)
+
+            downloadAndMergeWorkoutTemplates(userId, lastSyncTime)
+            downloadAndMergeTemplateExercises(userId, lastSyncTime)
+            downloadAndMergeTemplateSets(userId, lastSyncTime)
+
             downloadAndMergeUserExerciseMaxes(userId)
             downloadAndMergePersonalRecords(userId)
             downloadAndMergeUserExerciseUsages(userId)
 
-            // Tracking data
             downloadAndMergeExerciseSwapHistory(userId)
             downloadAndMergeExercisePerformanceTracking(userId)
             downloadAndMergeGlobalExerciseProgress(userId)

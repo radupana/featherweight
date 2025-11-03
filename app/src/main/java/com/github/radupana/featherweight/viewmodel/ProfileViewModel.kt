@@ -117,7 +117,9 @@ class ProfileViewModel(
     private val weightUnitManager: WeightUnitManager = ServiceLocator.provideWeightUnitManager(application)
     private val authManager: AuthenticationManager = ServiceLocator.provideAuthenticationManager(application)
     private val firebaseAuth: FirebaseAuthService = ServiceLocator.provideFirebaseAuthService()
-    private val syncViewModel = SyncViewModel(application)
+
+    // Use shared SyncViewModel instance to avoid redundant syncs
+    private val syncViewModel = ServiceLocator.getSyncViewModel(application)
     private val accountDeletionService =
         AccountDeletionService(
             database = FeatherweightDatabase.getDatabase(application),
@@ -538,6 +540,18 @@ class ProfileViewModel(
 
     fun selectTab(tab: ProfileTab) {
         _uiState.value = _uiState.value.copy(currentTab = tab)
+    }
+
+    fun triggerManualSync() {
+        viewModelScope.launch {
+            val success = syncViewModel.triggerManualSync()
+            if (!success) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = "Unable to sync - please check your connection and try again",
+                    )
+            }
+        }
     }
 
     private fun loadCurrentWeightUnit() {

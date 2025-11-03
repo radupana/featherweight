@@ -320,9 +320,9 @@ private fun schedulePeriodicSync(context: android.content.Context) {
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
-    // Schedule user data sync every 2 hours
+    // Schedule user data sync every 6 hours (reduced frequency to save costs)
     val userDataSyncRequest =
-        PeriodicWorkRequestBuilder<UserDataSyncWorker>(2, TimeUnit.HOURS)
+        PeriodicWorkRequestBuilder<UserDataSyncWorker>(6, TimeUnit.HOURS)
             .setConstraints(constraints)
             .addTag("user_data_sync")
             .build()
@@ -336,17 +336,17 @@ private fun schedulePeriodicSync(context: android.content.Context) {
 
     val workManager = WorkManager.getInstance(context)
 
-    // Enqueue user data sync
+    // Enqueue user data sync with REPLACE policy to avoid duplicate schedules
     workManager.enqueueUniquePeriodicWork(
         "user_data_sync",
-        ExistingPeriodicWorkPolicy.KEEP,
+        ExistingPeriodicWorkPolicy.REPLACE,
         userDataSyncRequest,
     )
 
-    // Enqueue system exercise sync
+    // Enqueue system exercise sync with REPLACE policy
     workManager.enqueueUniquePeriodicWork(
         "system_exercise_sync",
-        ExistingPeriodicWorkPolicy.KEEP,
+        ExistingPeriodicWorkPolicy.REPLACE,
         systemExerciseSyncRequest,
     )
 
@@ -387,11 +387,9 @@ fun MainAppWithNavigation(
                 val userId = authManager.getCurrentUserId()
 
                 if (userId != null && userId != "local") {
-                    // Authenticated user - trigger full sync
-                    CloudLogger.info("MainActivity", "Triggering full sync for authenticated user: $userId")
-                    syncManager.syncAll()
-
-                    // Always schedule periodic sync for authenticated users
+                    // Authenticated user - just schedule periodic sync
+                    // Don't trigger immediate sync - SyncViewModel will handle initial sync
+                    CloudLogger.info("MainActivity", "Scheduling periodic sync for authenticated user: $userId")
                     schedulePeriodicSync(context)
                 } else {
                     // Unauthenticated user - just sync system exercises

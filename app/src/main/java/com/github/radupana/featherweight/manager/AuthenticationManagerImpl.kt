@@ -2,7 +2,6 @@ package com.github.radupana.featherweight.manager
 
 import android.content.Context
 import androidx.core.content.edit
-import com.github.radupana.featherweight.util.CloudLogger
 import com.google.firebase.auth.FirebaseAuth
 
 class AuthenticationManagerImpl(
@@ -11,7 +10,6 @@ class AuthenticationManagerImpl(
     private val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
 
     companion object {
-        private const val TAG = "AuthenticationManagerImpl"
         private const val KEY_FIRST_LAUNCH = "first_launch"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_WARNING_SHOWN = "unauthenticated_warning_shown"
@@ -33,13 +31,13 @@ class AuthenticationManagerImpl(
             storedUserId == null -> false
             firebaseUser == null -> {
                 // Stored user exists but Firebase Auth is null - corrupted state
-                CloudLogger.warn(TAG, "Detected corrupted auth state: stored userId=$storedUserId but FirebaseAuth.currentUser is null")
+                // DO NOT LOG - could cause recursion issues during app initialization
                 clearUserData()
                 false
             }
             firebaseUser.uid != storedUserId -> {
                 // User mismatch - update to correct user
-                CloudLogger.warn(TAG, "User mismatch: stored=$storedUserId, firebase=${firebaseUser.uid}")
+                // DO NOT LOG - could cause recursion issues
                 setCurrentUserId(firebaseUser.uid)
                 isUserVerified(firebaseUser)
             }
@@ -51,11 +49,7 @@ class AuthenticationManagerImpl(
         // Check if user signed in with email/password and needs verification
         val isPasswordProvider = firebaseUser.providerData.any { it.providerId == "password" }
         return if (isPasswordProvider) {
-            val verified = firebaseUser.isEmailVerified
-            if (!verified) {
-                CloudLogger.info(TAG, "User ${firebaseUser.uid} is not email verified")
-            }
-            verified
+            firebaseUser.isEmailVerified
         } else {
             // User signed in with Google or other provider, no email verification needed
             true
@@ -70,14 +64,14 @@ class AuthenticationManagerImpl(
             storedUserId == null -> null
             firebaseUser == null -> {
                 // Stored user exists but Firebase Auth is null - corrupted state
-                CloudLogger.warn(TAG, "getCurrentUserId: Clearing corrupted auth state")
+                // DO NOT LOG HERE - it causes infinite recursion with CloudLogger!
+                // CloudLogger calls getCurrentUserId() which would call CloudLogger again
                 clearUserData()
                 null
             }
             firebaseUser.uid != storedUserId -> {
                 // User mismatch detected - this shouldn't happen during normal operation
-                // Return Firebase user ID but log error - the caller should handle this
-                CloudLogger.error(TAG, "getCurrentUserId: User ID mismatch! Stored: $storedUserId, Firebase: ${firebaseUser.uid}")
+                // Return Firebase user ID - DO NOT LOG to avoid recursion
                 firebaseUser.uid
             }
             else -> storedUserId

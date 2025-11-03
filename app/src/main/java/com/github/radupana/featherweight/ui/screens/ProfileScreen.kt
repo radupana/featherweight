@@ -165,6 +165,8 @@ fun ProfileScreen(
                     ProfileTab.DATA -> {
                         DataTab(
                             onShowExportDialog = { showExportDialog = true },
+                            syncUiState = uiState.syncUiState,
+                            onManualSync = { viewModel.triggerManualSync() },
                         )
                     }
                     ProfileTab.DEVELOPER -> {
