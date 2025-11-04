@@ -14,6 +14,7 @@ import com.github.radupana.featherweight.repository.FeatherweightRepository
 import com.github.radupana.featherweight.service.TrainingAnalysisService
 import com.github.radupana.featherweight.util.ExceptionLogger
 import com.github.radupana.featherweight.util.PromptSecurityUtil
+import com.github.radupana.featherweight.util.RateLimitException
 import com.google.firebase.perf.FirebasePerformance
 import com.google.firebase.perf.metrics.Trace
 import com.google.gson.Gson
@@ -222,17 +223,17 @@ class InsightsViewModel(
                 repository.saveTrainingAnalysis(analysis)
                 _trainingAnalysis.value = analysis
             }
+        } catch (e: RateLimitException) {
+            ExceptionLogger.logException("InsightsViewModel", "Rate limit exceeded", e)
+            _trainingAnalysis.value = repository.getLatestTrainingAnalysis()
         } catch (e: android.database.sqlite.SQLiteException) {
             ExceptionLogger.logException("InsightsViewModel", "Training analysis failed", e)
-            // Keep existing cached analysis if API fails
             _trainingAnalysis.value = repository.getLatestTrainingAnalysis()
         } catch (e: java.io.IOException) {
             ExceptionLogger.logException("InsightsViewModel", "Training analysis failed", e)
-            // Keep existing cached analysis if API fails
             _trainingAnalysis.value = repository.getLatestTrainingAnalysis()
         } catch (e: IllegalStateException) {
             ExceptionLogger.logException("InsightsViewModel", "Training analysis failed", e)
-            // Keep existing cached analysis if API fails
             _trainingAnalysis.value = repository.getLatestTrainingAnalysis()
         } finally {
             _isAnalyzing.value = false

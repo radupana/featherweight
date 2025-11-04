@@ -24,10 +24,10 @@
     </cloud-backup>
 
     <device-transfer>
-        <!-- For device-to-device transfer, include databases and all sharedprefs except auth -->
-        <include domain="database" />
-        <include domain="sharedpref" />
+        <exclude domain="database" />
         <exclude domain="cache" />
         <exclude domain="external" />
+        <exclude domain="root" />
+        <include domain="sharedpref" path="weight_prefs.xml" />
     </device-transfer>
 </data-extraction-rules>

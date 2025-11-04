@@ -23,6 +23,8 @@ import com.github.radupana.featherweight.data.programme.ProgrammeDao
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
 import com.github.radupana.featherweight.data.programme.ProgrammeWeek
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
+import com.github.radupana.featherweight.security.DatabaseKeyManager
+import net.sqlcipher.database.SupportFactory
 
 @Database(
     entities = [
@@ -107,13 +109,18 @@ abstract class FeatherweightDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): FeatherweightDatabase =
             INSTANCE ?: synchronized(this) {
+                val keyManager = DatabaseKeyManager(context.applicationContext)
+                val passphraseBytes = keyManager.getDatabasePassphrase()
+                val factory = SupportFactory(passphraseBytes)
+
                 val instance =
                     Room
                         .databaseBuilder(
                             context.applicationContext,
                             FeatherweightDatabase::class.java,
                             "featherweight-db",
-                        ).fallbackToDestructiveMigration()
+                        ).openHelperFactory(factory)
+                        .fallbackToDestructiveMigration()
                         .build()
                 INSTANCE = instance
                 instance

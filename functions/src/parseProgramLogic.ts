@@ -98,24 +98,16 @@ export function detectInjectionAttempt(text: string): boolean {
 }
 
 /**
- * Get quota limits based on user type
- * @param {boolean} isAnonymous - Whether the user is anonymous
- * @return {QuotaLimits} The quota limits for this user type
+ * Get quota limits for authenticated users
+ * Anonymous users are rejected at the function level
+ * @return {QuotaLimits} The quota limits for authenticated users
  */
-export function getQuotaLimits(isAnonymous: boolean): QuotaLimits {
-  if (isAnonymous) {
-    return {
-      daily: 5,
-      weekly: 15,
-      monthly: 30,
-    };
-  } else {
-    return {
-      daily: 20,
-      weekly: 100,
-      monthly: 200,
-    };
-  }
+export function getQuotaLimits(): QuotaLimits {
+  return {
+    daily: 10,    // Max 10 per day
+    weekly: 35,   // Max 35 per week
+    monthly: 50,  // Max 50 per month
+  };
 }
 
 /**
@@ -159,16 +151,14 @@ export function shouldResetPeriod(
 }
 
 /**
- * Check and update user quota
+ * Check and update user quota for authenticated users only
  * Uses Firestore transaction for atomic operations
- * @param {string} userId - User ID to check quota for
- * @param {boolean} isAnonymous - Whether user is anonymous
+ * @param {string} userId - Authenticated user ID
  * @param {admin.firestore.Firestore} db - Firestore database instance
  * @return {Promise<QuotaCheckResult>} Quota check result
  */
 export async function checkAndUpdateQuota(
   userId: string,
-  isAnonymous: boolean,
   db: admin.firestore.Firestore
 ): Promise<QuotaCheckResult> {
   const quotaRef = db.collection("parseQuotas").doc(userId);
@@ -180,10 +170,10 @@ export async function checkAndUpdateQuota(
     let quota: ParseQuota;
 
     if (!doc.exists) {
-      // Create new quota document
+      // Create new quota document for authenticated user
       quota = {
         userId,
-        isAnonymous,
+        isAnonymous: false, // Always false, only authenticated users can parse
         dailyCount: 0,
         weeklyCount: 0,
         monthlyCount: 0,
@@ -215,8 +205,8 @@ export async function checkAndUpdateQuota(
       }
     }
 
-    // Get limits for this user type
-    const limits = getQuotaLimits(isAnonymous);
+    // Get limits for authenticated users
+    const limits = getQuotaLimits();
 
     // Check if quota exceeded
     const exceeded = quota.dailyCount >= limits.daily ||

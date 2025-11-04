@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.service
 import com.github.radupana.featherweight.util.AnalyticsLogger
 import com.github.radupana.featherweight.util.CloudLogger
 import com.github.radupana.featherweight.util.ExceptionLogger
+import com.github.radupana.featherweight.util.LogSanitizer
 import com.github.radupana.featherweight.util.PromptSecurityUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,10 +16,6 @@ import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-/**
- * Service for analyzing training data using OpenAI API.
- * This is the only AI functionality retained after removing programme generation.
- */
 class TrainingAnalysisService {
     companion object {
         private const val TAG = "TrainingAnalysisService"
@@ -35,15 +32,10 @@ class TrainingAnalysisService {
             .writeTimeout(60, TimeUnit.SECONDS)
             .build()
 
-    /**
-     * Analyzes training data and returns insights in JSON format.
-     * Includes security measures to prevent prompt injection attacks.
-     */
     suspend fun analyzeTraining(prompt: String): String =
         withContext(Dispatchers.IO) {
             CloudLogger.info(TAG, "Starting training analysis")
 
-            // Security check for prompt injection attempts
             if (PromptSecurityUtil.detectInjectionAttempt(prompt)) {
                 PromptSecurityUtil.logSecurityIncident(
                     "training_analysis_injection",
@@ -119,7 +111,7 @@ class TrainingAnalysisService {
                 }
 
             CloudLogger.debug(TAG, "OpenAI API Request - URL: $OPENAI_API_URL")
-            CloudLogger.debug(TAG, "Request body: $requestBody")
+            CloudLogger.debug(TAG, "Request body: ${LogSanitizer.summarizeJson(requestBody.toString())}")
 
             AnalyticsLogger.logOpenAIRequest(
                 endpoint = OPENAI_API_URL,
@@ -142,7 +134,7 @@ class TrainingAnalysisService {
             val responseBody = response.body.string()
 
             CloudLogger.debug(TAG, "OpenAI API Response - Status: ${response.code}, Time: ${responseTime}ms")
-            CloudLogger.debug(TAG, "Response body: $responseBody")
+            CloudLogger.debug(TAG, "Response body: ${LogSanitizer.summarizeJson(responseBody)}")
 
             AnalyticsLogger.logOpenAIResponse(
                 endpoint = OPENAI_API_URL,

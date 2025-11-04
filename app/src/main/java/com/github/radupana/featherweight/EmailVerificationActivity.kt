@@ -54,8 +54,7 @@ class EmailVerificationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val userEmail = FirebaseAuth.getInstance().currentUser?.email
-        CloudLogger.info(TAG, "onCreate: Showing email verification screen for user: $userEmail")
+        CloudLogger.info(TAG, "onCreate: Showing email verification screen")
 
         setContent {
             FeatherweightTheme {
@@ -248,7 +247,7 @@ fun EmailVerificationScreen(
 
                         // Check if email is now verified
                         if (firebaseAuth.isEmailVerified()) {
-                            CloudLogger.info("EmailVerificationActivity", "Email verification confirmed for user: $userEmail")
+                            CloudLogger.info("EmailVerificationActivity", "Email verification confirmed")
                             Toast
                                 .makeText(
                                     context,
@@ -257,7 +256,7 @@ fun EmailVerificationScreen(
                                 ).show()
                             onVerificationComplete()
                         } else {
-                            CloudLogger.info("EmailVerificationActivity", "Email not yet verified for user: $userEmail")
+                            CloudLogger.info("EmailVerificationActivity", "Email not yet verified")
                             Toast
                                 .makeText(
                                     context,
@@ -266,7 +265,7 @@ fun EmailVerificationScreen(
                                 ).show()
                         }
                     } catch (e: com.google.firebase.FirebaseException) {
-                        CloudLogger.error("EmailVerificationActivity", "Error checking verification status for user: $userEmail", e)
+                        CloudLogger.error("EmailVerificationActivity", "Error checking verification status", e)
                         Toast
                             .makeText(
                                 context,
@@ -274,7 +273,7 @@ fun EmailVerificationScreen(
                                 Toast.LENGTH_SHORT,
                             ).show()
                     } catch (e: java.io.IOException) {
-                        CloudLogger.error("EmailVerificationActivity", "Network error checking verification status for user: $userEmail", e)
+                        CloudLogger.error("EmailVerificationActivity", "Network error checking verification status", e)
                         Toast
                             .makeText(
                                 context,
@@ -304,10 +303,10 @@ fun EmailVerificationScreen(
             onClick = {
                 scope.launch {
                     isResending = true
-                    CloudLogger.info("EmailVerificationActivity", "User requested resend of verification email for: $userEmail")
+                    CloudLogger.info("EmailVerificationActivity", "User requested resend of verification email")
                     firebaseAuth.sendEmailVerification().fold(
                         onSuccess = {
-                            CloudLogger.info("EmailVerificationActivity", "Verification email successfully resent to: $userEmail")
+                            CloudLogger.info("EmailVerificationActivity", "Verification email successfully resent")
                             Toast
                                 .makeText(
                                     context,
@@ -316,7 +315,7 @@ fun EmailVerificationScreen(
                                 ).show()
                         },
                         onFailure = { e ->
-                            CloudLogger.error("EmailVerificationActivity", "Failed to resend verification email to: $userEmail", e)
+                            CloudLogger.error("EmailVerificationActivity", "Failed to resend verification email", e)
                             val errorMessage =
                                 when {
                                     e.message?.contains("Too many requests") == true ->

@@ -73,12 +73,12 @@ export const parseProgram = onCall<ParseProgramRequest>(
       // 3. Validate input (throws HttpsError if invalid)
       validateInput(request.data);
 
-      // 4. Check quota
+      // 4. Check quota (authenticated users only)
       const db = getFirestore("featherweight-v2");
-      const quotaResult = await checkAndUpdateQuota(userId, false, db);
+      const quotaResult = await checkAndUpdateQuota(userId, db);
 
       if (quotaResult.exceeded) {
-        const limits = getQuotaLimits(false);
+        const limits = getQuotaLimits();
         const remaining = quotaResult.remaining;
         const message =
           `Daily quota exceeded (${limits.daily} parses per day). ` +

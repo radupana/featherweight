@@ -575,7 +575,7 @@ class ProfileViewModel(
     private fun loadAccountInfo() {
         val user = firebaseAuth.getCurrentUser()
         val isAnonymous = firebaseAuth.isAnonymous()
-        CloudLogger.debug("ProfileViewModel", "loadAccountInfo - user: ${user?.uid}, email: ${firebaseAuth.getUserEmail()}, isAnonymous: $isAnonymous")
+        CloudLogger.debug("ProfileViewModel", "loadAccountInfo - user: ${user?.uid}, hasEmail: ${!firebaseAuth.getUserEmail().isNullOrBlank()}, isAnonymous: $isAnonymous")
         _uiState.value =
             _uiState.value.copy(
                 accountInfo =
@@ -588,7 +588,10 @@ class ProfileViewModel(
                                 creationTime = firebaseAuth.getAccountCreationTime(),
                                 isAnonymous = false,
                             )
-                        CloudLogger.debug("ProfileViewModel", "Created AccountInfo: email=${accountInfo.email}, verified=${accountInfo.isEmailVerified}, provider=${accountInfo.authProvider}")
+                        CloudLogger.debug(
+                            "ProfileViewModel",
+                            "Created AccountInfo: hasEmail=${!accountInfo.email.isNullOrBlank()}, verified=${accountInfo.isEmailVerified}, provider=${accountInfo.authProvider}",
+                        )
                         accountInfo
                     } else {
                         CloudLogger.debug("ProfileViewModel", "No user found or anonymous user, accountInfo set to null")

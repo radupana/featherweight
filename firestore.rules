@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // System exercises - public read, admin write only
+    match /exercises/{document=**} {
+      allow read: if true;  // Anyone can read system exercises
+      allow write: if false; // No one can write (admin via service account only)
+    }
+
+    // Exercise-related system data - public read
+    match /exerciseCores/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /exerciseVariations/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /variationMuscles/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /variationInstructions/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /variationAliases/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /variationRelations/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /exerciseCorrelations/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Sync metadata - user-specific
+    match /syncMetadata/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // User data - only the user can read/write their own data
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Custom exercises - user-specific
+    match /customExercises/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // parseQuotas can only be accessed by Cloud Functions (server-side)
+    match /parseQuotas/{userId} {
+      allow read, write: if false;  // Client apps cannot access
+    }
+  }
+}

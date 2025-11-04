@@ -53,6 +53,7 @@ import com.github.radupana.featherweight.di.ServiceLocator
 import com.github.radupana.featherweight.service.LocalDataMigrationService
 import com.github.radupana.featherweight.ui.theme.FeatherweightTheme
 import com.github.radupana.featherweight.util.CloudLogger
+import com.github.radupana.featherweight.util.LogSanitizer
 import com.github.radupana.featherweight.util.MigrationStateManager
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -222,7 +223,10 @@ fun SignInScreen(
                                 // Clear any existing user data before switching users
                                 val currentUserId = authManager.getCurrentUserId()
                                 if (currentUserId != null && currentUserId != user.uid) {
-                                    CloudLogger.info("SignInActivity", "Switching from user $currentUserId to ${user.uid}, clearing old data")
+                                    CloudLogger.info(
+                                        "SignInActivity",
+                                        "Switching from user $currentUserId to ${user.uid}, clearing old data",
+                                    )
                                     authManager.clearUserData()
                                 }
                                 authManager.setCurrentUserId(user.uid)
@@ -318,26 +322,25 @@ fun SignInScreen(
                     scope.launch {
                         isLoading = true
                         val action = if (isSignUpMode) "sign-up" else "sign-in"
-                        CloudLogger.info("SignInActivity", "User attempting $action with email: $email")
+                        CloudLogger.info("SignInActivity", "User attempting $action with email: ${LogSanitizer.sanitizeEmail(email)}")
 
                         val result =
                             if (isSignUpMode) {
-                                CloudLogger.info("SignInActivity", "Creating new account for email: $email")
+                                CloudLogger.info("SignInActivity", "Creating new account")
                                 firebaseAuth.createUserWithEmailAndPassword(email, password)
                             } else {
-                                CloudLogger.info("SignInActivity", "Signing in with email: $email")
+                                CloudLogger.info("SignInActivity", "Signing in with email")
                                 firebaseAuth.signInWithEmailAndPassword(email, password)
                             }
 
                         result.fold(
                             onSuccess = { user ->
-                                CloudLogger.info("SignInActivity", "Authentication successful for user: ${user.uid}, email: $email")
+                                CloudLogger.info("SignInActivity", "Authentication successful for user: ${user.uid}")
                                 if (isSignUpMode) {
-                                    // For sign-up, send verification email and navigate directly to verification screen
-                                    CloudLogger.info("SignInActivity", "New user sign-up, sending verification email to: $email")
+                                    CloudLogger.info("SignInActivity", "New user sign-up, sending verification email")
                                     firebaseAuth.sendEmailVerification().fold(
                                         onSuccess = {
-                                            CloudLogger.info("SignInActivity", "Verification email sent successfully to: $email")
+                                            CloudLogger.info("SignInActivity", "Verification email sent successfully")
                                             Toast
                                                 .makeText(
                                                     context,
@@ -346,19 +349,20 @@ fun SignInScreen(
                                                 ).show()
                                         },
                                         onFailure = { e ->
-                                            CloudLogger.error("SignInActivity", "Failed to send verification email to: $email", e)
+                                            CloudLogger.error("SignInActivity", "Failed to send verification email", e)
                                         },
                                     )
-                                    // Navigate directly to email verification without setting user ID or syncing
                                     CloudLogger.info("SignInActivity", "Navigating to email verification for unverified user: ${user.uid}")
                                     val intent = Intent(context, EmailVerificationActivity::class.java)
                                     context.startActivity(intent)
                                     (context as? ComponentActivity)?.finish()
                                 } else {
-                                    // For sign-in, clear any existing user data first, then set new user ID
                                     val currentUserId = authManager.getCurrentUserId()
                                     if (currentUserId != null && currentUserId != user.uid) {
-                                        CloudLogger.info("SignInActivity", "Switching from user $currentUserId to ${user.uid}, clearing old data")
+                                        CloudLogger.info(
+                                            "SignInActivity",
+                                            "Switching from user $currentUserId to ${user.uid}, clearing old data",
+                                        )
                                         authManager.clearUserData()
                                     }
                                     CloudLogger.info("SignInActivity", "Existing user sign-in, proceeding with normal flow")
@@ -367,7 +371,7 @@ fun SignInScreen(
                                 }
                             },
                             onFailure = { exception ->
-                                CloudLogger.error("SignInActivity", "Authentication failed for email: $email - ${exception.message}", exception)
+                                CloudLogger.error("SignInActivity", "Authentication failed - ${exception.message}", exception)
                                 Toast
                                     .makeText(
                                         context,
@@ -442,12 +446,12 @@ fun SignInScreen(
                 TextButton(
                     onClick = {
                         if (email.isNotBlank()) {
-                            CloudLogger.info("SignInActivity", "User requested password reset for email: $email")
+                            CloudLogger.info("SignInActivity", "User requested password reset")
                             scope.launch {
                                 isLoading = true
                                 firebaseAuth.sendPasswordResetEmail(email).fold(
                                     onSuccess = {
-                                        CloudLogger.info("SignInActivity", "Password reset email sent successfully to: $email")
+                                        CloudLogger.info("SignInActivity", "Password reset email sent successfully")
                                         Toast
                                             .makeText(
                                                 context,
@@ -456,7 +460,7 @@ fun SignInScreen(
                                             ).show()
                                     },
                                     onFailure = { exception ->
-                                        CloudLogger.error("SignInActivity", "Failed to send password reset email to: $email", exception)
+                                        CloudLogger.error("SignInActivity", "Failed to send password reset email", exception)
                                         Toast
                                             .makeText(
                                                 context,

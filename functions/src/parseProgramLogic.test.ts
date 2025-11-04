@@ -133,31 +133,19 @@ describe("parseProgramLogic", () => {
   });
 
   describe("getQuotaLimits", () => {
-    it("should return lower limits for anonymous users", () => {
-      const limits = getQuotaLimits(true);
+    it("should return correct limits for authenticated users", () => {
+      const limits = getQuotaLimits();
+
       expect(limits).toEqual({
-        daily: 5,
-        weekly: 15,
-        monthly: 30,
+        daily: 10,
+        weekly: 35,
+        monthly: 50,
       });
     });
 
-    it("should return higher limits for authenticated users", () => {
-      const limits = getQuotaLimits(false);
-      expect(limits).toEqual({
-        daily: 20,
-        weekly: 100,
-        monthly: 200,
-      });
-    });
-
-    it("anonymous limits should be less than authenticated", () => {
-      const anonLimits = getQuotaLimits(true);
-      const authLimits = getQuotaLimits(false);
-
-      expect(anonLimits.daily).toBeLessThan(authLimits.daily);
-      expect(anonLimits.weekly).toBeLessThan(authLimits.weekly);
-      expect(anonLimits.monthly).toBeLessThan(authLimits.monthly);
+    it("monthly limit should be 50 as requested", () => {
+      const limits = getQuotaLimits();
+      expect(limits.monthly).toBe(50);
     });
   });
 

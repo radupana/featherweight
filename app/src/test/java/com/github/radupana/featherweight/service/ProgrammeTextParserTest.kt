@@ -1,5 +1,6 @@
 package com.github.radupana.featherweight.service
 
+import android.content.Context
 import com.github.radupana.featherweight.data.ParsedProgramme
 import com.github.radupana.featherweight.data.TextParsingRequest
 import com.github.radupana.featherweight.manager.AuthenticationManager
@@ -12,23 +13,21 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 
-/**
- * Unit tests for ProgrammeTextParser
- * Tests validation logic only, as parsing is now handled by Cloud Functions
- */
 class ProgrammeTextParserTest {
     private lateinit var parser: ProgrammeTextParser
     private lateinit var mockCloudFunctionService: CloudFunctionService
     private lateinit var mockAuthManager: AuthenticationManager
+    private lateinit var mockContext: Context
 
     @Before
     fun setUp() {
         LogMock.setup()
 
+        mockContext = mockk(relaxed = true)
         mockAuthManager = mockk(relaxed = true)
         mockCloudFunctionService = mockk(relaxed = true)
         every { mockAuthManager.isAuthenticated() } returns true
-        parser = ProgrammeTextParser(mockAuthManager, mockCloudFunctionService)
+        parser = ProgrammeTextParser(mockContext, mockAuthManager, mockCloudFunctionService)
     }
 
     @Test

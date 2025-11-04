@@ -25,7 +25,7 @@ class ImportProgrammeViewModel(
 
     private val repository = FeatherweightRepository(application)
     private val authManager = ServiceLocator.provideAuthenticationManager(application)
-    private val parser = ProgrammeTextParser(authManager)
+    private val parser = ProgrammeTextParser(application, authManager)
 
     private val _uiState = MutableStateFlow(ImportProgrammeUiState())
     val uiState: StateFlow<ImportProgrammeUiState> = _uiState

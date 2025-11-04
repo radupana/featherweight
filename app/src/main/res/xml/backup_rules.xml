@@ -18,7 +18,5 @@
     <!-- Exclude root private files -->
     <exclude domain="root" />
 
-    <!-- Only backup app_settings.xml from shared preferences -->
-    <!-- This implicitly excludes auth_prefs.xml and Firebase auth preferences -->
-    <include domain="sharedpref" path="app_settings.xml" />
+    <include domain="sharedpref" path="weight_prefs.xml" />
 </full-backup-content>

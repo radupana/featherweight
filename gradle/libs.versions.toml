@@ -1,5 +1,6 @@
 [versions]
 agp = "8.11.2"
+androidDatabaseSqlcipher = "4.5.4"
 compose = "2.9.0"
 coreKtxVersion = "1.7.0"
 coreTesting = "2.2.0"
@@ -32,6 +33,8 @@ kotlinx-serialization = "1.9.0"
 okhttp = "5.2.1"
 retrofit = "3.0.0"
 retrofit-kotlinx-serialization-converter = "1.0.0"
+securityCrypto = "1.1.0"
+sqliteKtx = "2.6.1"
 truth = "1.4.5"
 turbine = "1.2.1"
 uiautomator = "2.3.0"
@@ -42,12 +45,15 @@ workRuntimeKtx = "2.11.0"
 
 
 [libraries]
+android-database-sqlcipher = { module = "net.zetetic:android-database-sqlcipher", version.ref = "androidDatabaseSqlcipher" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-core-testing = { module = "androidx.arch.core:core-testing", version.ref = "coreTesting" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 androidx-material = { module = "androidx.compose.material:material", version.ref = "material" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
+androidx-sqlite-ktx = { module = "androidx.sqlite:sqlite-ktx", version.ref = "sqliteKtx" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
 compose = { module = "com.kizitonwose.calendar:compose", version.ref = "compose" }
 core-ktx = { module = "androidx.test:core-ktx", version.ref = "coreKtxVersion" }

@@ -1,17 +1,30 @@
 package com.github.radupana.featherweight.service
 
+import android.content.Context
 import com.github.radupana.featherweight.data.TextParsingRequest
 import com.github.radupana.featherweight.data.TextParsingResult
 import com.github.radupana.featherweight.manager.AuthenticationManager
 import com.github.radupana.featherweight.util.CloudLogger
+import com.github.radupana.featherweight.util.RateLimitConfig
+import com.github.radupana.featherweight.util.RateLimitException
+import com.github.radupana.featherweight.util.RateLimiter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
 
 open class ProgrammeTextParser(
+    context: Context,
     private val authenticationManager: AuthenticationManager,
     private val cloudFunctionService: CloudFunctionService = CloudFunctionService(),
 ) {
+    private val rateLimiter =
+        RateLimiter(
+            context = context,
+            operationType = "programme_parsing",
+            maxRequests = RateLimitConfig.PROGRAMME_PARSING_MAX_REQUESTS,
+            windowHours = RateLimitConfig.PROGRAMME_PARSING_WINDOW_HOURS,
+        )
+
     companion object {
         private const val TAG = "ProgrammeTextParser"
     }
@@ -20,6 +33,8 @@ open class ProgrammeTextParser(
         withContext(Dispatchers.IO) {
             try {
                 CloudLogger.info(TAG, "Starting programme parsing - text length: ${request.rawText.length}, maxes: ${request.userMaxes.size}")
+
+                rateLimiter.checkLimit()
 
                 val validationResult = validateInput(request.rawText)
                 if (!validationResult.isValid) {
@@ -47,6 +62,8 @@ open class ProgrammeTextParser(
                         request.rawText,
                         request.userMaxes,
                     )
+
+                rateLimiter.recordRequest()
 
                 if (result.isFailure) {
                     val exception = result.exceptionOrNull()
@@ -80,6 +97,12 @@ open class ProgrammeTextParser(
                 TextParsingResult(
                     success = true,
                     programme = programme,
+                )
+            } catch (e: RateLimitException) {
+                CloudLogger.warn(TAG, "Rate limit exceeded: ${e.message}")
+                TextParsingResult(
+                    success = false,
+                    error = e.message,
                 )
             } catch (e: IOException) {
                 CloudLogger.error(TAG, "=== Programme Parsing FAILED (IOException) ===")
