@@ -18,6 +18,7 @@
     }
   ],
   "firestore": {
+    "database": "featherweight-v2",
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   }
