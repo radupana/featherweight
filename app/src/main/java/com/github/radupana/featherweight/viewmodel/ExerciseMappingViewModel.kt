@@ -29,6 +29,7 @@ data class ExerciseMappingUiState(
 
 class ExerciseMappingViewModel(
     application: Application,
+    repository: FeatherweightRepository? = null,
 ) : AndroidViewModel(application) {
     companion object {
         private const val TAG = "ExerciseMappingViewModel"
@@ -37,7 +38,7 @@ class ExerciseMappingViewModel(
         private const val AUTO_PROPOSE_THRESHOLD = 500
     }
 
-    private val repository = FeatherweightRepository(application)
+    private val repository = repository ?: FeatherweightRepository(application)
     private val _uiState = MutableStateFlow(ExerciseMappingUiState())
     val uiState: StateFlow<ExerciseMappingUiState> = _uiState
 

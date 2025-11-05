@@ -11,7 +11,6 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkConstructor
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,6 +27,7 @@ class ExerciseMappingViewModelTest {
     val coroutineTestRule = CoroutineTestRule()
 
     private lateinit var application: Application
+    private lateinit var repository: FeatherweightRepository
     private lateinit var viewModel: ExerciseMappingViewModel
 
     private val testExercises =
@@ -111,12 +111,11 @@ class ExerciseMappingViewModelTest {
         mockkStatic(android.util.Log::class)
         every { android.util.Log.d(any(), any()) } returns 0
 
-        mockkConstructor(FeatherweightRepository::class)
+        repository = mockk()
+        coEvery { repository.getAllExercises() } returns testExercises
+        coEvery { repository.getAllExercisesWithAliases() } returns testExercisesWithAliases
 
-        coEvery { anyConstructed<FeatherweightRepository>().getAllExercises() } returns testExercises
-        coEvery { anyConstructed<FeatherweightRepository>().getAllExercisesWithAliases() } returns testExercisesWithAliases
-
-        viewModel = ExerciseMappingViewModel(application)
+        viewModel = ExerciseMappingViewModel(application, repository)
     }
 
     @After
@@ -220,10 +219,10 @@ class ExerciseMappingViewModelTest {
                         requiresWeight = true,
                     )
                 }
-            coEvery { anyConstructed<FeatherweightRepository>().getAllExercises() } returns manyExercises
+            coEvery { repository.getAllExercises() } returns manyExercises
 
             // Reinitialize viewModel to load new exercises
-            viewModel = ExerciseMappingViewModel(application)
+            viewModel = ExerciseMappingViewModel(application, repository)
 
             // When
             viewModel.searchExercises("squat")
@@ -265,8 +264,8 @@ class ExerciseMappingViewModelTest {
                         difficulty = ExerciseDifficulty.BEGINNER.name,
                         requiresWeight = false,
                     )
-            coEvery { anyConstructed<FeatherweightRepository>().getAllExercises() } returns exercisesWithExactMatch
-            viewModel = ExerciseMappingViewModel(application)
+            coEvery { repository.getAllExercises() } returns exercisesWithExactMatch
+            viewModel = ExerciseMappingViewModel(application, repository)
 
             // When
             viewModel.searchExercises("squat")
