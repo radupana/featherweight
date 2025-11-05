@@ -13,25 +13,29 @@ class TrainingMetricsCalculatorTest {
         val curl = createExercise("curl", "ARMS", "PULL", isCompound = false)
 
         val exercises = mapOf("bench" to bench, "row" to row, "curl" to curl)
-        val setsByExercise = mapOf(
-            "bench" to listOf(
-                createSet(completed = true),
-                createSet(completed = true),
-                createSet(completed = true),
-            ),
-            "row" to listOf(
-                createSet(completed = true),
-                createSet(completed = true),
-            ),
-            "curl" to listOf(
-                createSet(completed = true),
-                createSet(completed = false),
-            ),
-        )
+        val setsByExercise =
+            mapOf(
+                "bench" to
+                    listOf(
+                        createSet(completed = true),
+                        createSet(completed = true),
+                        createSet(completed = true),
+                    ),
+                "row" to
+                    listOf(
+                        createSet(completed = true),
+                        createSet(completed = true),
+                    ),
+                "curl" to
+                    listOf(
+                        createSet(completed = true),
+                        createSet(completed = false),
+                    ),
+            )
 
         val metrics = TrainingMetricsCalculator.calculateVolumeMetrics(exercises, setsByExercise)
 
-        assertThat(metrics.totalSets).isEqualTo(8)
+        assertThat(metrics.totalSets).isEqualTo(7)
         assertThat(metrics.totalCompletedSets).isEqualTo(6)
         assertThat(metrics.compoundSets).isEqualTo(5)
         assertThat(metrics.isolationSets).isEqualTo(1)
@@ -48,10 +52,11 @@ class TrainingMetricsCalculatorTest {
         val ohp = createExercise("ohp", "SHOULDERS", "VERTICAL_PUSH", isCompound = true)
 
         val exercises = mapOf("bench" to bench, "ohp" to ohp)
-        val setsByExercise = mapOf(
-            "bench" to listOf(createSet(true), createSet(true), createSet(true)),
-            "ohp" to listOf(createSet(true), createSet(true)),
-        )
+        val setsByExercise =
+            mapOf(
+                "bench" to listOf(createSet(true), createSet(true), createSet(true)),
+                "ohp" to listOf(createSet(true), createSet(true)),
+            )
 
         val metrics = TrainingMetricsCalculator.calculateVolumeMetrics(exercises, setsByExercise)
 
@@ -65,10 +70,11 @@ class TrainingMetricsCalculatorTest {
         val deadlift = createExercise("deadlift", "LEGS", "HINGE", isCompound = true)
 
         val exercises = mapOf("squat" to squat, "deadlift" to deadlift)
-        val setsByExercise = mapOf(
-            "squat" to listOf(createSet(true), createSet(true), createSet(true)),
-            "deadlift" to listOf(createSet(true), createSet(true)),
-        )
+        val setsByExercise =
+            mapOf(
+                "squat" to listOf(createSet(true), createSet(true), createSet(true)),
+                "deadlift" to listOf(createSet(true), createSet(true)),
+            )
 
         val metrics = TrainingMetricsCalculator.calculateVolumeMetrics(exercises, setsByExercise)
 
@@ -78,13 +84,14 @@ class TrainingMetricsCalculatorTest {
 
     @Test
     fun calculateIntensityMetrics_withMixedRpe_calculatesAverageCorrectly() {
-        val sets = listOf(
-            createSet(completed = true, rpe = 8.0f),
-            createSet(completed = true, rpe = 9.0f),
-            createSet(completed = true, rpe = 7.0f),
-            createSet(completed = true, rpe = 8.5f),
-            createSet(completed = true, rpe = 5.0f),
-        )
+        val sets =
+            listOf(
+                createSet(completed = true, rpe = 8.0f),
+                createSet(completed = true, rpe = 9.0f),
+                createSet(completed = true, rpe = 7.0f),
+                createSet(completed = true, rpe = 8.5f),
+                createSet(completed = true, rpe = 5.0f),
+            )
 
         val metrics = TrainingMetricsCalculator.calculateIntensityMetrics(sets)
 
@@ -96,10 +103,11 @@ class TrainingMetricsCalculatorTest {
 
     @Test
     fun calculateIntensityMetrics_withNoRpeData_returnsZero() {
-        val sets = listOf(
-            createSet(completed = true, rpe = null),
-            createSet(completed = true, rpe = null),
-        )
+        val sets =
+            listOf(
+                createSet(completed = true, rpe = null),
+                createSet(completed = true, rpe = null),
+            )
 
         val metrics = TrainingMetricsCalculator.calculateIntensityMetrics(sets)
 
@@ -111,12 +119,13 @@ class TrainingMetricsCalculatorTest {
 
     @Test
     fun calculateIntensityMetrics_withAllHighIntensity_detectsPattern() {
-        val sets = listOf(
-            createSet(completed = true, rpe = 9.0f),
-            createSet(completed = true, rpe = 9.5f),
-            createSet(completed = true, rpe = 8.5f),
-            createSet(completed = true, rpe = 10.0f),
-        )
+        val sets =
+            listOf(
+                createSet(completed = true, rpe = 9.0f),
+                createSet(completed = true, rpe = 9.5f),
+                createSet(completed = true, rpe = 8.5f),
+                createSet(completed = true, rpe = 10.0f),
+            )
 
         val metrics = TrainingMetricsCalculator.calculateIntensityMetrics(sets)
 
@@ -129,20 +138,21 @@ class TrainingMetricsCalculatorTest {
         val bench = createExercise("bench", "CHEST", "HORIZONTAL_PUSH", isCompound = true)
         val exercises = mapOf("bench" to bench)
 
-        val sessions = listOf(
-            WorkoutSessionData(
-                date = "2025-01-01",
-                exerciseData = listOf(ExerciseSessionData("bench", 100f, 1000f)),
-            ),
-            WorkoutSessionData(
-                date = "2025-01-03",
-                exerciseData = listOf(ExerciseSessionData("bench", 105f, 1050f)),
-            ),
-            WorkoutSessionData(
-                date = "2025-01-05",
-                exerciseData = listOf(ExerciseSessionData("bench", 110f, 1100f)),
-            ),
-        )
+        val sessions =
+            listOf(
+                WorkoutSessionData(
+                    date = "2025-01-01",
+                    exerciseData = listOf(ExerciseSessionData("bench", 100f, 1000f)),
+                ),
+                WorkoutSessionData(
+                    date = "2025-01-03",
+                    exerciseData = listOf(ExerciseSessionData("bench", 105f, 1050f)),
+                ),
+                WorkoutSessionData(
+                    date = "2025-01-05",
+                    exerciseData = listOf(ExerciseSessionData("bench", 110f, 1100f)),
+                ),
+            )
 
         val metrics = TrainingMetricsCalculator.calculateProgressionMetrics(exercises, sessions)
 
@@ -156,20 +166,21 @@ class TrainingMetricsCalculatorTest {
         val squat = createExercise("squat", "LEGS", "SQUAT", isCompound = true)
         val exercises = mapOf("squat" to squat)
 
-        val sessions = listOf(
-            WorkoutSessionData(
-                date = "2025-01-01",
-                exerciseData = listOf(ExerciseSessionData("squat", 100f, 1000f)),
-            ),
-            WorkoutSessionData(
-                date = "2025-01-03",
-                exerciseData = listOf(ExerciseSessionData("squat", 100f, 1000f)),
-            ),
-            WorkoutSessionData(
-                date = "2025-01-05",
-                exerciseData = listOf(ExerciseSessionData("squat", 100f, 1000f)),
-            ),
-        )
+        val sessions =
+            listOf(
+                WorkoutSessionData(
+                    date = "2025-01-01",
+                    exerciseData = listOf(ExerciseSessionData("squat", 100f, 1000f)),
+                ),
+                WorkoutSessionData(
+                    date = "2025-01-03",
+                    exerciseData = listOf(ExerciseSessionData("squat", 100f, 1000f)),
+                ),
+                WorkoutSessionData(
+                    date = "2025-01-05",
+                    exerciseData = listOf(ExerciseSessionData("squat", 100f, 1000f)),
+                ),
+            )
 
         val metrics = TrainingMetricsCalculator.calculateProgressionMetrics(exercises, sessions)
 
@@ -183,16 +194,17 @@ class TrainingMetricsCalculatorTest {
         val bench = createExercise("bench", "CHEST", "HORIZONTAL_PUSH", isCompound = true)
         val exercises = mapOf("bench" to bench)
 
-        val sessions = listOf(
-            WorkoutSessionData(
-                date = "2025-01-01",
-                exerciseData = listOf(ExerciseSessionData("bench", 100f, 1000f)),
-            ),
-            WorkoutSessionData(
-                date = "2025-01-03",
-                exerciseData = listOf(ExerciseSessionData("bench", 100f, 1000f)),
-            ),
-        )
+        val sessions =
+            listOf(
+                WorkoutSessionData(
+                    date = "2025-01-01",
+                    exerciseData = listOf(ExerciseSessionData("bench", 100f, 1000f)),
+                ),
+                WorkoutSessionData(
+                    date = "2025-01-03",
+                    exerciseData = listOf(ExerciseSessionData("bench", 100f, 1000f)),
+                ),
+            )
 
         val metrics = TrainingMetricsCalculator.calculateProgressionMetrics(exercises, sessions)
 
@@ -206,29 +218,33 @@ class TrainingMetricsCalculatorTest {
         val squat = createExercise("squat", "LEGS", "SQUAT", isCompound = true)
         val exercises = mapOf("bench" to bench, "squat" to squat)
 
-        val sessions = listOf(
-            WorkoutSessionData(
-                date = "2025-01-01",
-                exerciseData = listOf(
-                    ExerciseSessionData("bench", 100f, 1000f),
-                    ExerciseSessionData("squat", 200f, 2000f),
+        val sessions =
+            listOf(
+                WorkoutSessionData(
+                    date = "2025-01-01",
+                    exerciseData =
+                        listOf(
+                            ExerciseSessionData("bench", 100f, 1000f),
+                            ExerciseSessionData("squat", 200f, 2000f),
+                        ),
                 ),
-            ),
-            WorkoutSessionData(
-                date = "2025-01-03",
-                exerciseData = listOf(
-                    ExerciseSessionData("bench", 105f, 1050f),
-                    ExerciseSessionData("squat", 200f, 2000f),
+                WorkoutSessionData(
+                    date = "2025-01-03",
+                    exerciseData =
+                        listOf(
+                            ExerciseSessionData("bench", 105f, 1050f),
+                            ExerciseSessionData("squat", 200f, 2000f),
+                        ),
                 ),
-            ),
-            WorkoutSessionData(
-                date = "2025-01-05",
-                exerciseData = listOf(
-                    ExerciseSessionData("bench", 110f, 1100f),
-                    ExerciseSessionData("squat", 200f, 2000f),
+                WorkoutSessionData(
+                    date = "2025-01-05",
+                    exerciseData =
+                        listOf(
+                            ExerciseSessionData("bench", 110f, 1100f),
+                            ExerciseSessionData("squat", 200f, 2000f),
+                        ),
                 ),
-            ),
-        )
+            )
 
         val metrics = TrainingMetricsCalculator.calculateProgressionMetrics(exercises, sessions)
 
@@ -245,24 +261,26 @@ class TrainingMetricsCalculatorTest {
         category: String,
         movementPattern: String,
         isCompound: Boolean,
-    ): Exercise = Exercise(
-        id = id,
-        name = id.replaceFirstChar { it.uppercase() },
-        category = category,
-        movementPattern = movementPattern,
-        isCompound = isCompound,
-        equipment = "BARBELL",
-    )
+    ): Exercise =
+        Exercise(
+            id = id,
+            name = id.replaceFirstChar { it.uppercase() },
+            category = category,
+            movementPattern = movementPattern,
+            isCompound = isCompound,
+            equipment = "BARBELL",
+        )
 
     private fun createSet(
         completed: Boolean,
         rpe: Float? = null,
-    ): SetLog = SetLog(
-        exerciseLogId = "exercise_log",
-        setOrder = 1,
-        actualReps = 10,
-        actualWeight = 100f,
-        actualRpe = rpe,
-        isCompleted = completed,
-    )
+    ): SetLog =
+        SetLog(
+            exerciseLogId = "exercise_log",
+            setOrder = 1,
+            actualReps = 10,
+            actualWeight = 100f,
+            actualRpe = rpe,
+            isCompleted = completed,
+        )
 }

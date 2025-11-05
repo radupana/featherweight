@@ -36,12 +36,6 @@ data class SessionData(
     val totalVolume: Float,
 )
 
-data class TrainingMetrics(
-    val volumeMetrics: VolumeMetrics,
-    val intensityMetrics: IntensityMetrics,
-    val progressionMetrics: List<ExerciseProgression>,
-)
-
 object TrainingMetricsCalculator {
     fun calculateVolumeMetrics(
         exercises: Map<String, Exercise>,
@@ -100,11 +94,12 @@ object TrainingMetricsCalculator {
         val completedSets = sets.filter { it.isCompleted }
         val setsWithRpe = completedSets.filter { it.actualRpe != null }
 
-        val avgRpe = if (setsWithRpe.isNotEmpty()) {
-            setsWithRpe.mapNotNull { it.actualRpe }.average().toFloat()
-        } else {
-            0f
-        }
+        val avgRpe =
+            if (setsWithRpe.isNotEmpty()) {
+                setsWithRpe.mapNotNull { it.actualRpe }.average().toFloat()
+            } else {
+                0f
+            }
 
         val setsAboveRpe8 = setsWithRpe.count { (it.actualRpe ?: 0f) > 8f }
         val setsBelowRpe6 = setsWithRpe.count { (it.actualRpe ?: 0f) < 6f }
@@ -125,7 +120,8 @@ object TrainingMetricsCalculator {
 
         workoutSessions.forEach { session ->
             session.exerciseData.forEach { (exerciseId, maxWeight, totalVolume) ->
-                exerciseMap.getOrPut(exerciseId) { mutableListOf() }
+                exerciseMap
+                    .getOrPut(exerciseId) { mutableListOf() }
                     .add(SessionData(session.date, maxWeight, totalVolume))
             }
         }
@@ -151,7 +147,6 @@ object TrainingMetricsCalculator {
     private fun detectProgression(sessions: List<SessionData>): Boolean {
         if (sessions.size < 2) return false
         val recent = sessions.takeLast(3)
-        if (recent.size < 2) return false
 
         val firstWeight = recent.first().maxWeight
         val lastWeight = recent.last().maxWeight
@@ -162,7 +157,6 @@ object TrainingMetricsCalculator {
     private fun detectPlateau(sessions: List<SessionData>): Boolean {
         if (sessions.size < 3) return false
         val recent = sessions.takeLast(3)
-        if (recent.size < 3) return false
 
         val weights = recent.map { it.maxWeight }
         val allSame = weights.distinct().size == 1

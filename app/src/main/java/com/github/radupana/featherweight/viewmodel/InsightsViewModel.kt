@@ -28,6 +28,7 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 
 class InsightsViewModel(
     application: Application,
@@ -45,16 +46,21 @@ class InsightsViewModel(
         fun calculateAnalysisMetadata(workouts: List<WorkoutSummary>): AnalysisMetadata {
             val startDate = workouts.firstOrNull()?.date?.toLocalDate()
             val endDate = workouts.lastOrNull()?.date?.toLocalDate()
-            val totalWeeks = if (startDate != null && endDate != null) {
-                ChronoUnit.WEEKS.between(startDate, endDate).toInt().coerceAtLeast(1)
-            } else {
-                1
-            }
-            val avgFrequency = if (totalWeeks > 0) {
-                workouts.size.toFloat() / totalWeeks
-            } else {
-                0f
-            }
+            val totalWeeks =
+                if (startDate != null && endDate != null) {
+                    ChronoUnit.WEEKS
+                        .between(startDate, endDate)
+                        .toInt()
+                        .coerceAtLeast(1)
+                } else {
+                    1
+                }
+            val avgFrequency =
+                if (totalWeeks > 0) {
+                    workouts.size.toFloat() / totalWeeks
+                } else {
+                    0f
+                }
 
             return AnalysisMetadata(
                 startDate = startDate,
@@ -314,7 +320,7 @@ class InsightsViewModel(
         period.addProperty("end_date", metadata.endDate.toString())
         period.addProperty("total_workouts", metadata.totalWorkouts)
         period.addProperty("total_weeks", metadata.totalWeeks)
-        period.addProperty("avg_frequency_per_week", String.format("%.1f", metadata.avgFrequencyPerWeek))
+        period.addProperty("avg_frequency_per_week", String.format(Locale.US, "%.1f", metadata.avgFrequencyPerWeek))
         payload.add("analysis_period", period)
 
         val allSets = mutableListOf<com.github.radupana.featherweight.data.SetLog>()
@@ -405,7 +411,8 @@ class InsightsViewModel(
                 setsByExercise,
             )
         val intensityMetrics =
-            com.github.radupana.featherweight.service.TrainingMetricsCalculator.calculateIntensityMetrics(allSets)
+            com.github.radupana.featherweight.service.TrainingMetricsCalculator
+                .calculateIntensityMetrics(allSets)
         val progressionMetrics =
             com.github.radupana.featherweight.service.TrainingMetricsCalculator.calculateProgressionMetrics(
                 exercisesUsed,
@@ -421,11 +428,14 @@ class InsightsViewModel(
         volumeObj.addProperty("isolation_sets", volumeMetrics.isolationSets)
         volumeObj.addProperty("push_sets", volumeMetrics.pushSets)
         volumeObj.addProperty("pull_sets", volumeMetrics.pullSets)
-        volumeObj.addProperty("push_pull_ratio", if (volumeMetrics.pullSets > 0) {
-            String.format("%.2f", volumeMetrics.pushSets.toFloat() / volumeMetrics.pullSets)
-        } else {
-            "N/A"
-        })
+        volumeObj.addProperty(
+            "push_pull_ratio",
+            if (volumeMetrics.pullSets > 0) {
+                String.format(Locale.US, "%.2f", volumeMetrics.pushSets.toFloat() / volumeMetrics.pullSets)
+            } else {
+                "N/A"
+            },
+        )
         volumeObj.addProperty("squat_sets", volumeMetrics.squatSets)
         volumeObj.addProperty("hinge_sets", volumeMetrics.hingeSets)
 
@@ -437,18 +447,18 @@ class InsightsViewModel(
         metricsObj.add("volume", volumeObj)
 
         val intensityObj = JsonObject()
-        intensityObj.addProperty("avg_rpe", String.format("%.2f", intensityMetrics.avgRpe))
+        intensityObj.addProperty("avg_rpe", String.format(Locale.US, "%.2f", intensityMetrics.avgRpe))
         intensityObj.addProperty("sets_with_rpe", intensityMetrics.setsWithRpe)
         intensityObj.addProperty("sets_above_rpe_8", intensityMetrics.setsAboveRpe8)
         intensityObj.addProperty("sets_below_rpe_6", intensityMetrics.setsBelowRpe6)
         if (intensityMetrics.setsWithRpe > 0) {
             intensityObj.addProperty(
                 "pct_high_intensity",
-                String.format("%.1f", intensityMetrics.setsAboveRpe8.toFloat() / intensityMetrics.setsWithRpe * 100),
+                String.format(Locale.US, "%.1f", intensityMetrics.setsAboveRpe8.toFloat() / intensityMetrics.setsWithRpe * 100),
             )
             intensityObj.addProperty(
                 "pct_low_intensity",
-                String.format("%.1f", intensityMetrics.setsBelowRpe6.toFloat() / intensityMetrics.setsWithRpe * 100),
+                String.format(Locale.US, "%.1f", intensityMetrics.setsBelowRpe6.toFloat() / intensityMetrics.setsWithRpe * 100),
             )
         }
         metricsObj.add("intensity", intensityObj)
@@ -470,7 +480,7 @@ class InsightsViewModel(
             progObj.addProperty("exercise", prog.exerciseName)
             progObj.addProperty("status", "plateaued")
             progObj.addProperty("sessions", prog.sessions.size)
-            progObj.addProperty("weight", String.format("%.1f", prog.sessions.last().maxWeight))
+            progObj.addProperty("weight", String.format(Locale.US, "%.1f", prog.sessions.last().maxWeight))
             progressionArray.add(progObj)
         }
 

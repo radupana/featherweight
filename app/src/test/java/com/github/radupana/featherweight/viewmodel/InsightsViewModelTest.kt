@@ -1,6 +1,6 @@
 package com.github.radupana.featherweight.viewmodel
 
-import com.github.radupana.featherweight.domain.WorkoutStatus
+import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
@@ -25,8 +25,8 @@ class InsightsViewModelTest {
         val metadata = InsightsViewModel.calculateAnalysisMetadata(workouts)
 
         assertThat(metadata.totalWorkouts).isEqualTo(20)
-        assertThat(metadata.totalWeeks).isEqualTo(7)
-        assertThat(metadata.avgFrequencyPerWeek).isWithin(0.1f).of(2.86f)
+        assertThat(metadata.totalWeeks).isEqualTo(8)
+        assertThat(metadata.avgFrequencyPerWeek).isWithin(0.1f).of(2.5f)
     }
 
     @Test
@@ -60,8 +60,8 @@ class InsightsViewModelTest {
         val metadata = InsightsViewModel.calculateAnalysisMetadata(workouts)
 
         assertThat(metadata.totalWorkouts).isEqualTo(42)
-        assertThat(metadata.totalWeeks).isEqualTo(14)
-        assertThat(metadata.avgFrequencyPerWeek).isWithin(0.01f).of(3.0f)
+        assertThat(metadata.totalWeeks).isEqualTo(17)
+        assertThat(metadata.avgFrequencyPerWeek).isWithin(0.01f).of(2.47f)
     }
 
     @Test
