@@ -96,6 +96,9 @@ interface ExerciseDao {
     @Upsert
     suspend fun upsertExercise(exercise: Exercise)
 
+    @Upsert
+    suspend fun upsertExercises(exercises: List<Exercise>)
+
     @Query("UPDATE exercises SET isDeleted = 1 WHERE id = :exerciseId")
     suspend fun softDeleteExercise(exerciseId: String)
 

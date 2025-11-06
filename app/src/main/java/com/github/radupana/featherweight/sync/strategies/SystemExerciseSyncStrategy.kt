@@ -1,9 +1,9 @@
 package com.github.radupana.featherweight.sync.strategies
 
+import androidx.room.withTransaction
 import com.github.radupana.featherweight.data.FeatherweightDatabase
 import com.github.radupana.featherweight.sync.SyncStrategy
 import com.github.radupana.featherweight.sync.converters.ExerciseSyncConverter
-import com.github.radupana.featherweight.sync.models.FirestoreExercise
 import com.github.radupana.featherweight.sync.repository.FirestoreRepository
 import com.github.radupana.featherweight.util.CloudLogger
 import com.google.firebase.Timestamp
@@ -30,13 +30,45 @@ class SystemExerciseSyncStrategy(
             try {
                 CloudLogger.debug(TAG, "Starting system exercise sync")
 
-                // Download all exercises from denormalized collection
                 val remoteExercises = firestoreRepository.downloadSystemExercises(lastSyncTime).getOrThrow()
                 CloudLogger.debug(TAG, "Downloaded ${remoteExercises.size} exercises from Firestore")
 
-                // Process each exercise
-                remoteExercises.forEach { (exerciseId, firestoreExercise) ->
-                    processExercise(exerciseId, firestoreExercise)
+                if (remoteExercises.isEmpty()) {
+                    CloudLogger.debug(TAG, "No exercises to sync")
+                    return@withContext Result.success(Unit)
+                }
+
+                val bundles =
+                    remoteExercises.mapNotNull { (exerciseId, firestoreExercise) ->
+                        try {
+                            ExerciseSyncConverter.fromFirestore(firestoreExercise, exerciseId)
+                        } catch (e: IllegalArgumentException) {
+                            CloudLogger.error(TAG, "Failed to convert exercise $exerciseId", e)
+                            null
+                        }
+                    }
+
+                val exerciseIds = bundles.map { it.exercise.id }
+                val exercises = bundles.map { it.exercise }
+                val muscles = bundles.flatMap { it.exerciseMuscles }
+                val aliases = bundles.flatMap { it.exerciseAliases }
+                val instructions = bundles.flatMap { it.exerciseInstructions }
+
+                database.withTransaction {
+                    database.exerciseMuscleDao().deleteForExercises(exerciseIds)
+                    database.exerciseAliasDao().deleteForExercises(exerciseIds)
+                    database.exerciseInstructionDao().deleteForExercises(exerciseIds)
+
+                    database.exerciseDao().upsertExercises(exercises)
+                    if (muscles.isNotEmpty()) {
+                        database.exerciseMuscleDao().insertExerciseMuscles(muscles)
+                    }
+                    if (aliases.isNotEmpty()) {
+                        database.exerciseAliasDao().insertAliases(aliases)
+                    }
+                    if (instructions.isNotEmpty()) {
+                        database.exerciseInstructionDao().insertInstructions(instructions)
+                    }
                 }
 
                 CloudLogger.debug(TAG, "System exercise sync completed successfully")
@@ -52,56 +84,6 @@ class SystemExerciseSyncStrategy(
                 Result.failure(e)
             }
         }
-
-    private suspend fun processExercise(
-        exerciseId: String,
-        firestoreExercise: FirestoreExercise,
-    ) {
-        try {
-            // Convert denormalized Firestore data to SQLite entities
-            val bundle = ExerciseSyncConverter.fromFirestore(firestoreExercise, exerciseId)
-
-            // Insert or update Exercise (contains all fields now)
-            val existingVariation = database.exerciseDao().getExerciseById(bundle.exercise.id)
-            if (existingVariation == null) {
-                database.exerciseDao().insertExercise(bundle.exercise)
-            } else if (existingVariation.updatedAt < bundle.exercise.updatedAt) {
-                database.exerciseDao().updateExercise(bundle.exercise)
-            }
-
-            // Clear and re-insert related data (muscles, aliases, instructions)
-            // This ensures we have the latest data without complex merge logic
-
-            // Muscles
-            database.exerciseMuscleDao().deleteForVariation(bundle.exercise.id)
-            if (bundle.exerciseMuscles.isNotEmpty()) {
-                database.exerciseMuscleDao().insertExerciseMuscles(bundle.exerciseMuscles)
-            }
-
-            // Aliases
-            database.exerciseAliasDao().deleteForVariation(bundle.exercise.id)
-            if (bundle.exerciseAliases.isNotEmpty()) {
-                database.exerciseAliasDao().insertAliases(bundle.exerciseAliases)
-            }
-
-            // Instructions
-            database.exerciseInstructionDao().deleteForVariation(bundle.exercise.id)
-            if (bundle.exerciseInstructions.isNotEmpty()) {
-                database.exerciseInstructionDao().insertInstructions(bundle.exerciseInstructions)
-            }
-
-            CloudLogger.debug(TAG, "Processed exercise: ${bundle.exercise.name}")
-        } catch (e: com.google.firebase.FirebaseException) {
-            CloudLogger.error(TAG, "Failed to process exercise $exerciseId - Firebase error", e)
-            // Don't fail the whole sync for one bad exercise
-        } catch (e: android.database.sqlite.SQLiteException) {
-            CloudLogger.error(TAG, "Failed to process exercise $exerciseId - database error", e)
-            // Don't fail the whole sync for one bad exercise
-        } catch (e: IllegalStateException) {
-            CloudLogger.error(TAG, "Failed to process exercise $exerciseId - invalid state", e)
-            // Don't fail the whole sync for one bad exercise
-        }
-    }
 
     override suspend fun uploadChanges(
         userId: String?,

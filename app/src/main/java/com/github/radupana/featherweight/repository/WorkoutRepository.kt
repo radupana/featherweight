@@ -211,4 +211,54 @@ class WorkoutRepository(
             )
             result
         }
+
+    suspend fun getRecentWorkouts(limit: Int): List<WorkoutSummary> =
+        withContext(ioDispatcher) {
+            val userId = authManager.getCurrentUserId() ?: "local"
+            val workouts = workoutDao.getRecentWorkouts(userId, limit)
+            workouts
+                .mapNotNull { workout ->
+                    val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
+
+                    if (workout.status != WorkoutStatus.COMPLETED && exercises.isEmpty()) return@mapNotNull null
+
+                    val allSets = mutableListOf<SetLog>()
+                    exercises.forEach { exercise ->
+                        allSets.addAll(setLogDao.getSetLogsForExercise(exercise.id))
+                    }
+
+                    val completedSets = allSets.filter { it.isCompleted }
+                    val totalWeight = completedSets.sumOf { (it.actualWeight * it.actualReps).toDouble() }.toFloat()
+
+                    val programmeName =
+                        if (workout.isProgrammeWorkout && workout.programmeId != null) {
+                            try {
+                                programmeDao.getProgrammeById(workout.programmeId)?.name
+                            } catch (e: android.database.sqlite.SQLiteException) {
+                                CloudLogger.error(TAG, "Failed to get programme name for programmeId: ${workout.programmeId}", e)
+                                null
+                            }
+                        } else {
+                            null
+                        }
+
+                    WorkoutSummary(
+                        id = workout.id,
+                        date = workout.date,
+                        name = workout.name ?: workout.programmeWorkoutName,
+                        exerciseCount = exercises.size,
+                        setCount = allSets.size,
+                        totalWeight = totalWeight,
+                        duration = workout.durationSeconds?.toLongOrNull(),
+                        status = workout.status,
+                        hasNotes = !workout.notes.isNullOrBlank(),
+                        isProgrammeWorkout = workout.isProgrammeWorkout,
+                        programmeId = workout.programmeId,
+                        programmeName = programmeName,
+                        programmeWorkoutName = workout.programmeWorkoutName,
+                        weekNumber = workout.weekNumber,
+                        dayNumber = workout.dayNumber,
+                    )
+                }.sortedByDescending { it.date }
+        }
 }

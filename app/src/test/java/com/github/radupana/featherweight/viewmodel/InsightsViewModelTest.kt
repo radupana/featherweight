@@ -4,6 +4,7 @@ import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 class InsightsViewModelTest {
@@ -75,6 +76,56 @@ class InsightsViewModelTest {
         assertThat(metadata.avgFrequencyPerWeek).isWithin(0.1f).of(2.67f)
     }
 
+    @Test
+    fun analysisQuota_dataClass_holdCorrectValues() {
+        val resetDate = java.time.LocalDate.of(2025, 12, 1)
+        val quota =
+            InsightsViewModel.AnalysisQuota(
+                monthlyRemaining = 10,
+                resetDate = resetDate,
+            )
+
+        assertThat(quota.monthlyRemaining).isEqualTo(10)
+        assertThat(quota.resetDate).isEqualTo(resetDate)
+    }
+
+    @Test
+    fun analysisMetadata_calculatesCorrectDateRange() {
+        val startDate = LocalDateTime.of(2025, 1, 1, 10, 0)
+        val endDate = LocalDateTime.of(2025, 1, 29, 10, 0)
+        val workouts =
+            listOf(
+                WorkoutSummary(
+                    id = "workout_2",
+                    date = endDate,
+                    name = "Workout 2",
+                    exerciseCount = 5,
+                    setCount = 15,
+                    totalWeight = 1000f,
+                    duration = 3600L,
+                    status = WorkoutStatus.COMPLETED,
+                    hasNotes = false,
+                ),
+                WorkoutSummary(
+                    id = "workout_1",
+                    date = startDate,
+                    name = "Workout 1",
+                    exerciseCount = 5,
+                    setCount = 15,
+                    totalWeight = 1000f,
+                    duration = 3600L,
+                    status = WorkoutStatus.COMPLETED,
+                    hasNotes = false,
+                ),
+            )
+
+        val metadata = InsightsViewModel.calculateAnalysisMetadata(workouts)
+
+        assertThat(metadata.startDate).isEqualTo(LocalDate.of(2025, 1, 1))
+        assertThat(metadata.endDate).isEqualTo(LocalDate.of(2025, 1, 29))
+        assertThat(metadata.totalWeeks).isEqualTo(4)
+    }
+
     private fun createWorkouts(
         count: Int,
         startDate: LocalDateTime,
@@ -99,6 +150,6 @@ class InsightsViewModelTest {
             currentDate = currentDate.plusDays(3)
         }
 
-        return workouts
+        return workouts.sortedByDescending { it.date }
     }
 }

@@ -24,6 +24,12 @@ interface WorkoutDao {
     @Query("SELECT * FROM workouts WHERE userId = :userId ORDER BY date DESC")
     suspend fun getWorkoutsByUserId(userId: String): List<Workout>
 
+    @Query("SELECT * FROM workouts WHERE userId = :userId ORDER BY date DESC LIMIT :limit")
+    suspend fun getRecentWorkouts(
+        userId: String,
+        limit: Int,
+    ): List<Workout>
+
     @Query("SELECT * FROM workouts WHERE id = :workoutId")
     suspend fun getWorkoutById(workoutId: String): Workout?
 

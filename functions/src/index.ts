@@ -197,3 +197,6 @@ function mapLogLevel(
 
 // Export the parseProgram function
 export {parseProgram} from "./parseProgram";
+
+// Export the analyzeTraining function
+export {analyzeTraining} from "./analyzeTraining";

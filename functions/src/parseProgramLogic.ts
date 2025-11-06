@@ -104,9 +104,9 @@ export function detectInjectionAttempt(text: string): boolean {
  */
 export function getQuotaLimits(): QuotaLimits {
   return {
-    daily: 10,    // Max 10 per day
-    weekly: 35,   // Max 35 per week
-    monthly: 50,  // Max 50 per month
+    daily: 10, // Max 10 per day
+    weekly: 35, // Max 35 per week
+    monthly: 50, // Max 50 per month
   };
 }
 

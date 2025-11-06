@@ -442,6 +442,8 @@ class FeatherweightRepository(
     // History functionality
     suspend fun getWorkoutHistory(): List<WorkoutSummary> = workoutRepository.getWorkoutHistory()
 
+    suspend fun getRecentWorkouts(limit: Int): List<WorkoutSummary> = workoutRepository.getRecentWorkouts(limit)
+
     // Smart suggestions functionality (enhanced with exercise data)
     suspend fun getExerciseHistory(
         exerciseId: String,

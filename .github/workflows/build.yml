@@ -327,6 +327,9 @@ jobs:
           Build: ${{ github.run_number }}
           Commit: ${{ github.sha }}
 
+          ⚠️ IMPORTANT: Please UNINSTALL the app completely before installing this version.
+          All previously created user accounts have been cleared during development.
+
           📱 This is an ALPHA build with Firebase feedback enabled
           Use the "Feedback" button in the bottom navigation bar
 

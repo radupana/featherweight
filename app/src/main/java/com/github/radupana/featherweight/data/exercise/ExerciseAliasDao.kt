@@ -39,6 +39,9 @@ interface ExerciseAliasDao {
     @Query("DELETE FROM exercise_aliases WHERE exerciseId = :exerciseId")
     suspend fun deleteForVariation(exerciseId: String)
 
+    @Query("DELETE FROM exercise_aliases WHERE exerciseId IN (:exerciseIds)")
+    suspend fun deleteForExercises(exerciseIds: List<String>)
+
     // Sync operations
     @Upsert
     suspend fun upsertExerciseAlias(alias: ExerciseAlias)

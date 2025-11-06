@@ -69,6 +69,8 @@ fun InsightsScreen(
     val isAnalyzing by viewModel.isAnalyzing.collectAsStateWithLifecycle()
     val currentWorkoutCount by viewModel.currentWorkoutCount.collectAsStateWithLifecycle()
     val exerciseNames by viewModel.exerciseNames.collectAsStateWithLifecycle()
+    val analysisQuota by viewModel.analysisQuota.collectAsStateWithLifecycle()
+    val lastAnalysisDate by viewModel.lastAnalysisDate.collectAsStateWithLifecycle()
 
     // Load highlights data and check for scheduled analysis
     LaunchedEffect(Unit) {
@@ -81,9 +83,8 @@ fun InsightsScreen(
 
         // Only load analysis if authenticated
         if (viewModel.isAuthenticated()) {
-            // Load cached analysis and check if we need to run a new one
+            // Load cached analysis
             viewModel.loadCachedAnalysis()
-            viewModel.checkAndRunScheduledAnalysis()
         }
     }
 
@@ -180,6 +181,9 @@ fun InsightsScreen(
                     analysis = trainingAnalysis,
                     isLoading = isAnalyzing,
                     currentWorkoutCount = currentWorkoutCount,
+                    analysisQuota = analysisQuota,
+                    lastAnalysisDate = lastAnalysisDate,
+                    onTriggerAnalysis = { viewModel.triggerManualAnalysis() },
                 )
             }
         }
