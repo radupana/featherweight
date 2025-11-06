@@ -1,4 +1,4 @@
-name: Deploy Firebase Rules and Indexes
+name: Deploy Firebase
 
 on:
   push:
@@ -6,11 +6,13 @@ on:
     paths:
       - 'firestore.rules'
       - 'firestore.indexes.json'
+      - 'functions/**'
   pull_request:
     branches: [ main ]
     paths:
       - 'firestore.rules'
       - 'firestore.indexes.json'
+      - 'functions/**'
   workflow_dispatch:
 
 jobs:
@@ -34,8 +36,17 @@ jobs:
     - name: Install Firebase CLI
       run: npm install -g firebase-tools
 
+    - name: Install Functions Dependencies
+      run: cd functions && npm ci
+
     - name: Deploy Firestore Rules
       run: firebase deploy --only firestore:rules --project featherweight-app
+      if: contains(github.event.head_commit.modified, 'firestore.rules') || github.event_name == 'workflow_dispatch'
 
     - name: Deploy Firestore Indexes
       run: firebase deploy --only firestore:indexes --project featherweight-app
+      if: contains(github.event.head_commit.modified, 'firestore.indexes.json') || github.event_name == 'workflow_dispatch'
+
+    - name: Deploy Cloud Functions
+      run: firebase deploy --only functions --project featherweight-app
+      if: contains(join(github.event.head_commit.modified, ','), 'functions/') || github.event_name == 'workflow_dispatch'

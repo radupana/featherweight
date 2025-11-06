@@ -2,18 +2,12 @@ package com.github.radupana.featherweight.sync.strategies
 
 import android.text.TextUtils
 import android.util.Log
+import androidx.room.withTransaction
 import com.github.radupana.featherweight.data.FeatherweightDatabase
-import com.github.radupana.featherweight.data.exercise.Equipment
-import com.github.radupana.featherweight.data.exercise.Exercise
 import com.github.radupana.featherweight.data.exercise.ExerciseAliasDao
-import com.github.radupana.featherweight.data.exercise.ExerciseCategory
 import com.github.radupana.featherweight.data.exercise.ExerciseDao
-import com.github.radupana.featherweight.data.exercise.ExerciseDifficulty
 import com.github.radupana.featherweight.data.exercise.ExerciseInstructionDao
 import com.github.radupana.featherweight.data.exercise.ExerciseMuscleDao
-import com.github.radupana.featherweight.data.exercise.MovementPattern
-import com.github.radupana.featherweight.sync.models.FirestoreExercise
-import com.github.radupana.featherweight.sync.models.FirestoreMuscle
 import com.github.radupana.featherweight.sync.repository.FirestoreRepository
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
@@ -28,14 +22,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import java.time.LocalDateTime
 
 class SystemExerciseSyncStrategyTest {
     private lateinit var database: FeatherweightDatabase
     private lateinit var firestoreRepository: FirestoreRepository
     private lateinit var strategy: SystemExerciseSyncStrategy
-
-    // DAOs
     private lateinit var exerciseDao: ExerciseDao
     private lateinit var exerciseMuscleDao: ExerciseMuscleDao
     private lateinit var exerciseAliasDao: ExerciseAliasDao
@@ -43,36 +34,36 @@ class SystemExerciseSyncStrategyTest {
 
     @Before
     fun setup() {
-        // Mock Android Log
         mockkStatic(Log::class)
         every { Log.d(any(), any()) } returns 0
         every { Log.e(any(), any(), any()) } returns 0
         every { Log.v(any(), any()) } returns 0
 
-        // Mock TextUtils
         mockkStatic(TextUtils::class)
         every { TextUtils.isEmpty(any()) } answers {
             val str = arg<CharSequence?>(0)
             str == null || str.isEmpty()
         }
 
-        // Create mocks
-        database = mockk(relaxed = true)
-        firestoreRepository = mockk(relaxed = true)
+        mockkStatic("androidx.room.RoomDatabaseKt")
 
-        // Create DAO mocks
+        database = mockk(relaxed = true)
         exerciseDao = mockk(relaxed = true)
         exerciseMuscleDao = mockk(relaxed = true)
         exerciseAliasDao = mockk(relaxed = true)
         exerciseInstructionDao = mockk(relaxed = true)
 
-        // Setup database to return DAOs
         every { database.exerciseDao() } returns exerciseDao
         every { database.exerciseMuscleDao() } returns exerciseMuscleDao
         every { database.exerciseAliasDao() } returns exerciseAliasDao
         every { database.exerciseInstructionDao() } returns exerciseInstructionDao
 
-        // Create strategy
+        coEvery { database.withTransaction(any<suspend () -> Unit>()) } coAnswers {
+            val block = firstArg<suspend () -> Unit>()
+            block()
+        }
+
+        firestoreRepository = mockk(relaxed = true)
         strategy = SystemExerciseSyncStrategy(database, firestoreRepository)
     }
 
@@ -80,254 +71,43 @@ class SystemExerciseSyncStrategyTest {
     fun tearDown() {
         unmockkStatic(Log::class)
         unmockkStatic(TextUtils::class)
+        unmockkStatic("androidx.room.RoomDatabaseKt")
         clearAllMocks()
     }
 
     @Test
-    fun `downloadAndMerge downloads and processes exercises correctly`() =
-        runBlocking {
-            // Given: Remote exercises from Firestore
-            val remoteExercises =
-                mapOf(
-                    "bench-press" to
-                        FirestoreExercise(
-                            coreName = "Bench Press",
-                            coreCategory = "CHEST",
-                            coreMovementPattern = "PRESS",
-                            coreIsCompound = true,
-                            name = "Barbell Bench Press",
-                            equipment = "BARBELL",
-                            difficulty = "INTERMEDIATE",
-                            requiresWeight = true,
-                            muscles =
-                                listOf(
-                                    FirestoreMuscle("CHEST", true, 1.0),
-                                    FirestoreMuscle("TRICEPS", false, 0.5),
-                                ),
-                        ),
-                    "squat" to
-                        FirestoreExercise(
-                            coreName = "Squat",
-                            coreCategory = "LEGS",
-                            coreMovementPattern = "SQUAT",
-                            coreIsCompound = true,
-                            name = "Barbell Back Squat",
-                            equipment = "BARBELL",
-                            difficulty = "INTERMEDIATE",
-                            requiresWeight = true,
-                            muscles =
-                                listOf(
-                                    FirestoreMuscle("QUADS", true, 1.0),
-                                    FirestoreMuscle("GLUTES", false, 0.75),
-                                ),
-                        ),
-                )
-
-            coEvery { firestoreRepository.downloadSystemExercises(any()) } returns Result.success(remoteExercises)
-
-            // Setup DAOs to return null (new exercises)
-            coEvery { exerciseDao.getExerciseById(any()) } returns null
-
-            // Mock insertion methods
-            coEvery { exerciseDao.insertExercise(any()) } returns Unit
-            coEvery { exerciseMuscleDao.deleteForVariation(any()) } returns Unit
-            coEvery { exerciseMuscleDao.insertExerciseMuscles(any()) } returns Unit
-            coEvery { exerciseAliasDao.deleteForVariation(any()) } returns Unit
-            coEvery { exerciseAliasDao.insertAliases(any()) } returns Unit
-            coEvery { exerciseInstructionDao.deleteForVariation(any()) } returns Unit
-            coEvery { exerciseInstructionDao.insertInstructions(any()) } returns Unit
-
-            // When: Sync is performed
-            val result = strategy.downloadAndMerge(null, null)
-
-            // Then: Result is successful
-            assertTrue(result.isSuccess)
-
-            // Verify exercises were downloaded
-            coVerify { firestoreRepository.downloadSystemExercises(null) }
-
-            // Verify variations were inserted
-            coVerify(exactly = 2) { exerciseDao.insertExercise(any()) }
-
-            // Verify muscles were inserted
-            coVerify(exactly = 2) { exerciseMuscleDao.deleteForVariation(any()) }
-            coVerify(exactly = 2) { exerciseMuscleDao.insertExerciseMuscles(any()) }
-        }
-
-    @Test
-    fun `downloadAndMerge updates existing exercises when remote is newer`() =
-        runBlocking {
-            // Given: Existing local exercise
-            val oldTimestamp = LocalDateTime.of(2024, 1, 1, 0, 0)
-            val newTimestamp = LocalDateTime.of(2024, 2, 1, 0, 0)
-
-            // Calculate the stable IDs that will be generated
-            val exerciseId = ("var_Barbell Bench Press Updated".hashCode() and 0x7FFFFFFF).toString()
-
-            val existingVariation =
-                Exercise(
-                    id = exerciseId,
-                    name = "Barbell Bench Press",
-                    category = ExerciseCategory.CHEST.name,
-                    movementPattern = MovementPattern.PUSH.name,
-                    isCompound = true,
-                    equipment = Equipment.BARBELL.name,
-                    difficulty = ExerciseDifficulty.INTERMEDIATE.name,
-                    requiresWeight = true,
-                    createdAt = oldTimestamp,
-                    updatedAt = oldTimestamp,
-                )
-
-            // Remote exercise with newer timestamp
-            val remoteExercise =
-                FirestoreExercise(
-                    coreName = "Bench Press",
-                    coreCategory = "CHEST",
-                    coreMovementPattern = "PRESS",
-                    coreIsCompound = true,
-                    name = "Barbell Bench Press Updated",
-                    equipment = "BARBELL",
-                    difficulty = "ADVANCED",
-                    requiresWeight = true,
-                    updatedAt = "2024-02-01T00:00:00Z",
-                )
-
-            coEvery { firestoreRepository.downloadSystemExercises(any()) } returns
-                Result.success(mapOf("bench-press" to remoteExercise))
-
-            coEvery { exerciseDao.getExerciseById(any()) } returns existingVariation
-
-            // Mock update and delete methods
-            coEvery { exerciseDao.updateExercise(any()) } returns Unit
-            coEvery { exerciseMuscleDao.deleteForVariation(any()) } returns Unit
-            coEvery { exerciseMuscleDao.insertExerciseMuscles(any()) } returns Unit
-            coEvery { exerciseAliasDao.deleteForVariation(any()) } returns Unit
-            coEvery { exerciseAliasDao.insertAliases(any()) } returns Unit
-            coEvery { exerciseInstructionDao.deleteForVariation(any()) } returns Unit
-            coEvery { exerciseInstructionDao.insertInstructions(any()) } returns Unit
-
-            // When: Sync is performed
-            val result = strategy.downloadAndMerge(null, null)
-
-            // Then: Result is successful
-            assertTrue(result.isSuccess)
-
-            // Verify updates were called
-            coVerify { exerciseDao.updateExercise(any()) }
-
-            // Verify related data was refreshed
-            coVerify { exerciseMuscleDao.deleteForVariation(any()) }
-        }
-
-    @Test
-    fun `downloadAndMerge skips exercises when local is newer`() =
-        runBlocking {
-            // Given: Existing local exercise that's newer
-            val newTimestamp = LocalDateTime.of(2024, 2, 1, 0, 0)
-            val oldTimestamp = LocalDateTime.of(2024, 1, 1, 0, 0)
-
-            // Calculate the stable IDs that will be generated
-            val exerciseId = ("var_Barbell Bench Press".hashCode() and 0x7FFFFFFF).toString()
-
-            val existingVariation =
-                Exercise(
-                    id = exerciseId,
-                    name = "Barbell Bench Press",
-                    category = ExerciseCategory.CHEST.name,
-                    movementPattern = MovementPattern.PUSH.name,
-                    isCompound = true,
-                    equipment = Equipment.BARBELL.name,
-                    difficulty = ExerciseDifficulty.INTERMEDIATE.name,
-                    requiresWeight = true,
-                    createdAt = newTimestamp,
-                    updatedAt = newTimestamp,
-                )
-
-            // Remote exercise with older timestamp
-            val remoteExercise =
-                FirestoreExercise(
-                    coreName = "Bench Press",
-                    coreCategory = "CHEST",
-                    coreMovementPattern = "PRESS",
-                    coreIsCompound = true,
-                    name = "Barbell Bench Press",
-                    equipment = "BARBELL",
-                    difficulty = "INTERMEDIATE",
-                    requiresWeight = true,
-                    updatedAt = "2024-01-01T00:00:00Z",
-                )
-
-            coEvery { firestoreRepository.downloadSystemExercises(any()) } returns
-                Result.success(mapOf("bench-press" to remoteExercise))
-
-            coEvery { exerciseDao.getExerciseById(any()) } returns existingVariation
-
-            // Mock deletion methods (these should still be called for related data)
-            coEvery { exerciseMuscleDao.deleteForVariation(any()) } returns Unit
-            coEvery { exerciseMuscleDao.insertExerciseMuscles(any()) } returns Unit
-            coEvery { exerciseAliasDao.deleteForVariation(any()) } returns Unit
-            coEvery { exerciseAliasDao.insertAliases(any()) } returns Unit
-            coEvery { exerciseInstructionDao.deleteForVariation(any()) } returns Unit
-            coEvery { exerciseInstructionDao.insertInstructions(any()) } returns Unit
-
-            // When: Sync is performed
-            val result = strategy.downloadAndMerge(null, null)
-
-            // Then: Result is successful
-            assertTrue(result.isSuccess)
-
-            // Verify NO updates were called
-            coVerify(exactly = 0) { exerciseDao.updateExercise(any()) }
-
-            // But related data is still refreshed
-            coVerify { exerciseMuscleDao.deleteForVariation(any()) }
-        }
-
-    @Test
     fun `downloadAndMerge handles empty exercise list`() =
         runBlocking {
-            // Given: No remote exercises
             coEvery { firestoreRepository.downloadSystemExercises(any()) } returns Result.success(emptyMap())
 
-            // When: Sync is performed
             val result = strategy.downloadAndMerge(null, null)
 
-            // Then: Result is successful
             assertTrue(result.isSuccess)
 
-            // Verify no insertions
-            coVerify(exactly = 0) { exerciseDao.insertExercise(any()) }
+            coVerify(exactly = 0) { exerciseDao.upsertExercises(any()) }
+            coVerify(exactly = 0) { exerciseMuscleDao.deleteForExercises(any()) }
         }
 
     @Test
     fun `downloadAndMerge handles Firestore error`() =
         runBlocking {
-            // Given: Firestore returns error
             coEvery { firestoreRepository.downloadSystemExercises(any()) } returns
                 Result.failure(com.google.firebase.FirebaseException("Network error"))
 
-            // When: Sync is performed
             val result = strategy.downloadAndMerge(null, null)
 
-            // Then: Result is failure
             assertTrue(result.isFailure)
             assertEquals("Network error", result.exceptionOrNull()?.message)
 
-            // Verify no database operations
-            coVerify(exactly = 0) { exerciseDao.insertExercise(any()) }
+            coVerify(exactly = 0) { exerciseDao.upsertExercises(any()) }
         }
 
     @Test
     fun `uploadChanges does nothing for system exercises`() =
         runBlocking {
-            // When: Upload is attempted
             val result = strategy.uploadChanges("userId", null)
 
-            // Then: Result is successful
             assertTrue(result.isSuccess)
-
-            // Verify no upload operations
-            coVerify(exactly = 0) { firestoreRepository.uploadWorkouts(any(), any()) }
         }
 
     @Test

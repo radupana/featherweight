@@ -61,9 +61,6 @@ class FirestoreRepository(
         // Exercise collections
         private const val EXERCISES_COLLECTION = "exercises" // Denormalized collection
         private const val EXERCISE_VARIATIONS_COLLECTION = "exerciseVariations" // Legacy normalized
-        private const val VARIATION_MUSCLES_COLLECTION = "variationMuscles"
-        private const val VARIATION_INSTRUCTIONS_COLLECTION = "variationInstructions"
-        private const val VARIATION_ALIASES_COLLECTION = "variationAliases"
 
         // Programme collections
         private const val PROGRAMMES_COLLECTION = "programmes"

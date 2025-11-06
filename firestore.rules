@@ -62,5 +62,10 @@ service cloud.firestore {
     match /parseQuotas/{userId} {
       allow read, write: if false;  // Client apps cannot access
     }
+
+    // analysisQuotas can only be accessed by Cloud Functions (server-side)
+    match /analysisQuotas/{userId} {
+      allow read, write: if false;  // Client apps cannot access
+    }
   }
 }

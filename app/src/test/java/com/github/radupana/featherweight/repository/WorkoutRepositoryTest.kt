@@ -125,6 +125,15 @@ class WorkoutRepositoryTest {
                         it.userId == "test-user-id" // Default test user
                 }.toList()
         }
+
+        coEvery { workoutDao.getRecentWorkouts(any(), any()) } answers {
+            val userId = firstArg<String>()
+            val limit = secondArg<Int>()
+            workouts.values
+                .filter { it.userId == userId }
+                .sortedByDescending { it.date }
+                .take(limit)
+        }
     }
 
     private fun setupExerciseLogDaoMocks() {
@@ -450,6 +459,119 @@ class WorkoutRepositoryTest {
             assertThat(history[0].programmeWorkoutName).isEqualTo("Week 1 Day 1")
             assertThat(history[0].weekNumber).isEqualTo(1)
             assertThat(history[0].dayNumber).isEqualTo(1)
+        }
+
+    @Test
+    fun `getRecentWorkouts should return limited number of workouts sorted by date`() =
+        runTest(testDispatcher) {
+            val now = LocalDateTime.now()
+
+            // Create 10 completed workouts
+            for (i in 0 until 10) {
+                val workout =
+                    Workout(
+                        name = "Workout ${i + 1}",
+                        date = now.minusDays(i.toLong()),
+                        status = WorkoutStatus.COMPLETED,
+                        userId = "test-user-id",
+                        durationSeconds = "3600",
+                    )
+                workouts[workout.id] = workout
+            }
+
+            val recent = repository.getRecentWorkouts(5)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertThat(recent).hasSize(5)
+            assertThat(recent[0].name).isEqualTo("Workout 1")
+            assertThat(recent[4].name).isEqualTo("Workout 5")
+            for (i in 0 until recent.size - 1) {
+                assertThat(recent[i].date).isAtLeast(recent[i + 1].date)
+            }
+        }
+
+    @Test
+    fun `getRecentWorkouts should return all workouts if limit exceeds total`() =
+        runTest(testDispatcher) {
+            val now = LocalDateTime.now()
+
+            for (i in 0 until 3) {
+                val workout =
+                    Workout(
+                        name = "Workout ${i + 1}",
+                        date = now.minusDays(i.toLong()),
+                        status = WorkoutStatus.COMPLETED,
+                        userId = "test-user-id",
+                        durationSeconds = "3600",
+                    )
+                workouts[workout.id] = workout
+            }
+
+            val recent = repository.getRecentWorkouts(10)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertThat(recent).hasSize(3)
+        }
+
+    @Test
+    fun `getRecentWorkouts should exclude empty non-completed workouts`() =
+        runTest(testDispatcher) {
+            val now = LocalDateTime.now()
+
+            val completedWorkout =
+                Workout(
+                    name = "Completed",
+                    date = now.minusDays(1),
+                    status = WorkoutStatus.COMPLETED,
+                    userId = "test-user-id",
+                    durationSeconds = "3600",
+                )
+            workouts[completedWorkout.id] = completedWorkout
+
+            val emptyWorkout =
+                Workout(
+                    name = "Empty",
+                    date = now,
+                    status = WorkoutStatus.NOT_STARTED,
+                    userId = "test-user-id",
+                )
+            workouts[emptyWorkout.id] = emptyWorkout
+
+            val recent = repository.getRecentWorkouts(10)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertThat(recent).hasSize(1)
+            assertThat(recent[0].name).isEqualTo("Completed")
+        }
+
+    @Test
+    fun `getRecentWorkouts should include in-progress workouts with exercises`() =
+        runTest(testDispatcher) {
+            val now = LocalDateTime.now()
+
+            val inProgressWorkout =
+                Workout(
+                    name = "In Progress",
+                    date = now,
+                    status = WorkoutStatus.IN_PROGRESS,
+                    userId = "test-user-id",
+                )
+            val id = inProgressWorkout.id
+            workouts[id] = inProgressWorkout
+
+            val exercise = ExerciseLog(workoutId = id, exerciseId = "1", exerciseOrder = 1)
+            val exerciseId = exercise.id
+            exerciseLogs[exerciseId] = exercise
+
+            val set = SetLog(exerciseLogId = exerciseId, setOrder = 1, targetReps = 10, actualReps = 10, actualWeight = 100f, isCompleted = true)
+            setLogs[set.id] = set
+
+            val recent = repository.getRecentWorkouts(10)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertThat(recent).hasSize(1)
+            assertThat(recent[0].name).isEqualTo("In Progress")
+            assertThat(recent[0].totalWeight).isEqualTo(1000f)
         }
 
     // Template tests removed - templates now use WorkoutTemplateRepository

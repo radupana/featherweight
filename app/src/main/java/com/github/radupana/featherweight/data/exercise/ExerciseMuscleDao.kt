@@ -29,6 +29,9 @@ interface ExerciseMuscleDao {
     @Query("DELETE FROM exercise_muscles WHERE exerciseId = :exerciseId")
     suspend fun deleteForVariation(exerciseId: String)
 
+    @Query("DELETE FROM exercise_muscles WHERE exerciseId IN (:exerciseIds)")
+    suspend fun deleteForExercises(exerciseIds: List<String>)
+
     @Query(
         """
         SELECT DISTINCT e.* FROM exercises e
