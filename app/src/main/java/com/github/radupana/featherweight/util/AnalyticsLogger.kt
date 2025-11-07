@@ -2,7 +2,6 @@ package com.github.radupana.featherweight.util
 
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import org.json.JSONException
-import org.json.JSONObject
 
 object AnalyticsLogger {
     private val crashlytics = FirebaseCrashlytics.getInstance()
@@ -11,19 +10,15 @@ object AnalyticsLogger {
         endpoint: String,
         model: String,
         requestBody: String,
-        userId: String? = null,
     ) {
         try {
-            val sanitizedRequest = sanitizeRequest(requestBody)
-
             crashlytics.log("OPENAI_REQUEST")
             crashlytics.log("Endpoint: $endpoint")
             crashlytics.log("Model: $model")
-            crashlytics.log("User: ${userId ?: "anonymous"}")
-            crashlytics.log("Request: $sanitizedRequest")
+            crashlytics.log("Request size: ${requestBody.length} chars")
             crashlytics.setCustomKey("openai_last_endpoint", endpoint)
             crashlytics.setCustomKey("openai_last_model", model)
-            userId?.let { crashlytics.setUserId(it) }
+            crashlytics.setCustomKey("openai_last_request_size", requestBody.length)
         } catch (e: JSONException) {
             crashlytics.log("Failed to log OpenAI request: ${e.message}")
         }
@@ -46,8 +41,9 @@ object AnalyticsLogger {
                 crashlytics.log("Error: $error")
                 crashlytics.setCustomKey("openai_last_error", error)
             } else {
-                val sanitizedResponse = sanitizeResponse(responseBody)
-                crashlytics.log("Response: $sanitizedResponse")
+                val responseSize = responseBody?.length ?: 0
+                crashlytics.log("Response size: $responseSize chars")
+                crashlytics.setCustomKey("openai_last_response_size", responseSize)
             }
 
             crashlytics.setCustomKey("openai_last_status", statusCode)
@@ -68,16 +64,4 @@ object AnalyticsLogger {
         crashlytics.log("Total Tokens: $totalTokens")
         crashlytics.setCustomKey("openai_last_total_tokens", totalTokens)
     }
-
-    private fun sanitizeRequest(request: String): String =
-        try {
-            val json = JSONObject(request)
-            json.remove("api_key")
-            json.toString()
-        } catch (e: JSONException) {
-            CloudLogger.debug("AnalyticsLogger", "Failed to parse request as JSON for sanitization: ${e.message}")
-            request
-        }
-
-    private fun sanitizeResponse(response: String?): String = response ?: "null"
 }

@@ -121,7 +121,6 @@ abstract class FeatherweightDatabase : RoomDatabase() {
                                 FeatherweightDatabase::class.java,
                                 "featherweight-db",
                             ).openHelperFactory(factory)
-                            .fallbackToDestructiveMigration()
                             .build()
 
                     // Try to access the database to verify it can be opened
@@ -157,7 +156,6 @@ abstract class FeatherweightDatabase : RoomDatabase() {
                                     FeatherweightDatabase::class.java,
                                     "featherweight-db",
                                 ).openHelperFactory(newFactory)
-                                .fallbackToDestructiveMigration()
                                 .build()
                         INSTANCE = instance
                         return instance

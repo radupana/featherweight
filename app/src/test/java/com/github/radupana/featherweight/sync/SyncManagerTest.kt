@@ -165,7 +165,7 @@ class SyncManagerTest {
         coEvery { localSyncMetadataDao.insertOrUpdate(any()) } just runs
         coEvery { localSyncMetadataDao.hasDeviceEverSynced(any(), any()) } returns false
 
-        syncManager = SyncManager(context, database, authManager, false, firestoreRepository)
+        syncManager = SyncManager(context, database, authManager, firestoreRepository)
     }
 
     private fun mockAllDaoMethods() {

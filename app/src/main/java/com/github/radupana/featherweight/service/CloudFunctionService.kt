@@ -104,7 +104,7 @@ class CloudFunctionService(
 
             // Parse response
             val responseJson = gson.toJson(resultData)
-            CloudLogger.debug(TAG, "Cloud Function response: $responseJson")
+            CloudLogger.debug(TAG, "Cloud Function response received, size: ${responseJson.length} chars")
 
             val response = gson.fromJson(responseJson, ParseProgramResponse::class.java)
 

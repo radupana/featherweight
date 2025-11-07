@@ -1,5 +1,7 @@
 package com.github.radupana.featherweight.ui.screens.profile
 
+import android.content.Intent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,17 +12,23 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import com.github.radupana.featherweight.model.WeightUnit
 import com.github.radupana.featherweight.ui.components.AccountSection
 import com.github.radupana.featherweight.ui.components.SyncSection
@@ -65,6 +73,8 @@ fun SettingsTab(
             currentUnit = currentWeightUnit,
             onUnitSelected = onWeightUnitSelected,
         )
+
+        LegalLinksSection()
     }
 }
 
@@ -120,5 +130,83 @@ private fun WeightUnitSelector(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LegalLinksSection(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = "Legal",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+
+            LegalLinkItem(
+                title = "Privacy Policy",
+                onClick = {
+                    val intent =
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            "https://featherweight-app.web.app/privacy.html".toUri(),
+                        )
+                    context.startActivity(intent)
+                },
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+            LegalLinkItem(
+                title = "Terms of Service",
+                onClick = {
+                    val intent =
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            "https://featherweight-app.web.app/terms.html".toUri(),
+                        )
+                    context.startActivity(intent)
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun LegalLinkItem(
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

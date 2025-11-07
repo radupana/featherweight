@@ -272,7 +272,6 @@ class InsightsViewModel(
 
                 CloudLogger.debug(TAG, "Sending analysis request to Cloud Function")
                 CloudLogger.debug(TAG, "Request payload length: ${jsonPayload.length} chars")
-                CloudLogger.debug(TAG, "Request payload: $jsonPayload")
 
                 val result = cloudFunctionService.analyzeTraining(jsonPayload)
 
@@ -303,7 +302,7 @@ class InsightsViewModel(
 
                 val analysisJson = gson.toJson(response.analysis)
                 CloudLogger.debug(TAG, "Received analysis response from Cloud Function")
-                CloudLogger.debug(TAG, "Response JSON: $analysisJson")
+                CloudLogger.debug(TAG, "Response JSON length: ${analysisJson.length} chars")
 
                 val startDate = workouts.firstOrNull()?.date?.toLocalDate() ?: LocalDate.now()
                 val endDate = workouts.lastOrNull()?.date?.toLocalDate() ?: LocalDate.now()

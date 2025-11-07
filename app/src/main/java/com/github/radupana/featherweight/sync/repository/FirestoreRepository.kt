@@ -36,15 +36,8 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 
-class FirestoreRepository(
-    private val useTestDatabase: Boolean = false,
-) {
-    private val firestore =
-        if (useTestDatabase) {
-            FirebaseFirestore.getInstance("featherweight-new")
-        } else {
-            FirebaseFirestore.getInstance("featherweight-v2")
-        }
+class FirestoreRepository {
+    private val firestore = FirebaseFirestore.getInstance("featherweight-v2")
 
     companion object {
         private const val USERS_COLLECTION = "users"

@@ -666,7 +666,7 @@ class WorkoutViewModel(
         parsedWorkout: com.github.radupana.featherweight.data.ParsedWorkout,
     ) {
         CloudLogger.debug("WorkoutViewModel", "startTemplateEdit called: week=$weekIndex, workout=$workoutIndex")
-        CloudLogger.debug("WorkoutViewModel", "ParsedWorkout: $parsedWorkout")
+        CloudLogger.debug("WorkoutViewModel", "ParsedWorkout: ${parsedWorkout.exercises.size} exercises")
 
         viewModelScope.launch {
             // Clear any existing workout

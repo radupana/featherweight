@@ -41,8 +41,7 @@ class SyncManager(
     private val context: Context,
     private val database: FeatherweightDatabase,
     private val authManager: AuthenticationManager,
-    private val useTestDatabase: Boolean = false,
-    private val firestoreRepository: FirestoreRepository = FirestoreRepository(useTestDatabase),
+    private val firestoreRepository: FirestoreRepository = FirestoreRepository(),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     // Mutex to prevent concurrent sync operations

@@ -41,7 +41,6 @@ data class LogEvent(
 
 @Serializable
 data class LogContext(
-    val userId: String? = null,
     val installationId: String? = null,
     val appVersion: String? = null,
     val deviceModel: String? = null,
@@ -239,7 +238,6 @@ object CloudLogger {
     ): LogEvent {
         val logContext =
             LogContext(
-                userId = authManager?.getCurrentUserId(),
                 installationId = InstallationIdProvider.getId(context),
                 appVersion = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
                 deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}",
