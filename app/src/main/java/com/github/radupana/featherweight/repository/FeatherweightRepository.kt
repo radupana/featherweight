@@ -75,13 +75,13 @@ import java.time.LocalDateTime
 
 class FeatherweightRepository(
     private val application: Application,
+    private val db: FeatherweightDatabase = FeatherweightDatabase.getDatabase(application),
+    private val authManager: AuthenticationManager = ServiceLocator.provideAuthenticationManager(application),
 ) {
     companion object {
         private const val TAG = "FeatherweightRepository"
     }
 
-    private val db = FeatherweightDatabase.getDatabase(application)
-    private val authManager: AuthenticationManager = ServiceLocator.provideAuthenticationManager(application)
     private val firestoreRepository by lazy { FirestoreRepository() }
 
     // Sub-repositories
@@ -93,10 +93,10 @@ class FeatherweightRepository(
             db.userExerciseUsageDao(),
             authManager,
         )
-    private val oneRMRepository = OneRMRepository(application)
-    private val programmeRepository = ProgrammeRepository(application)
-    private val workoutRepository = WorkoutRepository(application)
-    private val personalRecordRepository = PersonalRecordRepository(application)
+    private val oneRMRepository = OneRMRepository(application, authManager, Dispatchers.IO, db)
+    private val programmeRepository = ProgrammeRepository(application, Dispatchers.IO, db)
+    private val workoutRepository = WorkoutRepository(application, Dispatchers.IO, db)
+    private val personalRecordRepository = PersonalRecordRepository(application, Dispatchers.IO, db)
 
     private val workoutDao = db.workoutDao()
     private val exerciseLogDao = db.exerciseLogDao()
@@ -104,7 +104,6 @@ class FeatherweightRepository(
     private val exerciseDao = db.exerciseDao()
     private val exerciseMuscleDao = db.exerciseMuscleDao()
     private val exerciseAliasDao = db.exerciseAliasDao()
-    private val exerciseInstructionDao = db.exerciseInstructionDao()
     private val programmeDao = db.programmeDao()
     private val userExerciseUsageDao = db.userExerciseUsageDao()
 
@@ -1238,18 +1237,40 @@ class FeatherweightRepository(
             }
         }
 
-    suspend fun deleteProgramme(programme: Programme) =
-        withContext(Dispatchers.IO) {
-            // First deactivate the programme if it's active
+    suspend fun deleteProgramme(
+        programme: Programme,
+        deleteWorkouts: Boolean,
+    ) = withContext(Dispatchers.IO) {
+        if (deleteWorkouts) {
             if (programme.isActive) {
                 programmeDao.deactivateAllProgrammes()
             }
-
-            // Delete all workouts associated with this programme to prevent orphaned workouts
             workoutDao.deleteWorkoutsByProgramme(programme.id)
-
-            // Then delete the programme (will cascade delete progress and related data)
             programmeDao.deleteProgramme(programme)
+        } else {
+            val updatedProgramme =
+                programme.copy(
+                    status = ProgrammeStatus.CANCELLED,
+                    isActive = false,
+                    startedAt = programme.startedAt ?: LocalDateTime.now(),
+                )
+            programmeDao.updateProgramme(updatedProgramme)
+        }
+    }
+
+    suspend fun getCompletedWorkoutCountForProgramme(programmeId: String): Int =
+        withContext(Dispatchers.IO) {
+            workoutDao.getCompletedWorkoutCountByProgramme(programmeId)
+        }
+
+    suspend fun getCompletedSetCountForProgramme(programmeId: String): Int =
+        withContext(Dispatchers.IO) {
+            workoutDao.getCompletedSetCountByProgramme(programmeId)
+        }
+
+    suspend fun getArchivedProgrammes(): List<Programme> =
+        withContext(Dispatchers.IO) {
+            programmeDao.getArchivedProgrammes()
         }
 
     suspend fun getInProgressWorkoutCountByProgramme(programmeId: String): Int = programmeRepository.getInProgressWorkoutCountByProgramme(programmeId)

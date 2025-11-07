@@ -134,12 +134,11 @@ interface ProgrammeDao {
         completedAt: LocalDateTime,
     )
 
-    // Paginated query for completed programmes - uses status for reliability
     @Query(
         """
-        SELECT * FROM programmes 
-        WHERE status = 'COMPLETED' 
-        ORDER BY completedAt DESC 
+        SELECT * FROM programmes
+        WHERE status = 'COMPLETED'
+        ORDER BY completedAt DESC
         LIMIT :limit OFFSET :offset
     """,
     )
@@ -147,6 +146,15 @@ interface ProgrammeDao {
         limit: Int,
         offset: Int,
     ): List<Programme>
+
+    @Query(
+        """
+        SELECT * FROM programmes
+        WHERE status IN ('COMPLETED', 'CANCELLED')
+        ORDER BY completedAt DESC
+    """,
+    )
+    suspend fun getArchivedProgrammes(): List<Programme>
 
     // Update programme status atomically
     @Query(

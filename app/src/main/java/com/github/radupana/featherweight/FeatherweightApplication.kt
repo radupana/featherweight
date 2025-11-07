@@ -57,20 +57,15 @@ class FeatherweightApplication : Application() {
 
     private fun initializeAppCheck() {
         val appCheck = FirebaseAppCheck.getInstance()
-        if (BuildConfig.DEBUG) {
-            // Use Debug provider for debug builds and emulators
-            appCheck.installAppCheckProviderFactory(
-                DebugAppCheckProviderFactory.getInstance(),
-            )
-            Log.d(TAG, "App Check initialized with Debug provider")
-        } else {
-            // Use Play Integrity for release builds
-            appCheck.installAppCheckProviderFactory(
-                PlayIntegrityAppCheckProviderFactory.getInstance(),
-            )
-            Log.d(TAG, "App Check initialized with Play Integrity provider")
-        }
+        val provider = getAppCheckProviderFactory(BuildConfig.BUILD_TYPE)
+        appCheck.installAppCheckProviderFactory(provider)
     }
+
+    internal fun getAppCheckProviderFactory(buildType: String) =
+        when (buildType) {
+            "debug" -> DebugAppCheckProviderFactory.getInstance()
+            else -> PlayIntegrityAppCheckProviderFactory.getInstance()
+        }
 
     private fun initializeWeightFormatter() {
         val weightUnitManager = ServiceLocator.provideWeightUnitManager(this)

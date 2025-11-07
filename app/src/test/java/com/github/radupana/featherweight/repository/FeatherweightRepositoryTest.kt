@@ -1,27 +1,39 @@
 package com.github.radupana.featherweight.repository
 
+import android.app.Application
 import android.util.Log
+import com.github.radupana.featherweight.data.FeatherweightDatabase
+import com.github.radupana.featherweight.data.WorkoutDao
+import com.github.radupana.featherweight.data.programme.Programme
+import com.github.radupana.featherweight.data.programme.ProgrammeDao
+import com.github.radupana.featherweight.data.programme.ProgrammeDifficulty
+import com.github.radupana.featherweight.data.programme.ProgrammeStatus
+import com.github.radupana.featherweight.data.programme.ProgrammeType
+import com.google.common.truth.Truth.assertThat
 import com.google.firebase.firestore.FirebaseFirestore
+import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.slot
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
-/**
- * Tests for FeatherweightRepository clearAllUserData functionality.
- *
- * Due to the tight coupling between FeatherweightRepository and Room/ServiceLocator,
- * we test the core deletion logic by verifying the expected behavior through
- * integration with other tested components.
- */
 class FeatherweightRepositoryTest {
+    private lateinit var repository: FeatherweightRepository
+    private lateinit var application: Application
+    private lateinit var database: FeatherweightDatabase
+    private lateinit var programmeDao: ProgrammeDao
+    private lateinit var workoutDao: WorkoutDao
+
     @Before
     fun setup() {
-        // Mock Android Log
         mockkStatic(Log::class)
         every { Log.i(any<String>(), any<String>()) } returns 0
         every { Log.d(any<String>(), any<String>()) } returns 0
@@ -29,10 +41,19 @@ class FeatherweightRepositoryTest {
         every { Log.e(any<String>(), any<String>(), any()) } returns 0
         every { Log.w(any<String>(), any<String>()) } returns 0
 
-        // Mock FirebaseFirestore
         mockkStatic(FirebaseFirestore::class)
         val firestore = mockk<FirebaseFirestore>(relaxed = true)
         every { FirebaseFirestore.getInstance() } returns firestore
+
+        application = mockk(relaxed = true)
+        database = mockk(relaxed = true)
+        programmeDao = mockk(relaxed = true)
+        workoutDao = mockk(relaxed = true)
+
+        every { database.programmeDao() } returns programmeDao
+        every { database.workoutDao() } returns workoutDao
+
+        repository = FeatherweightRepository(application, database, mockk(relaxed = true))
     }
 
     @After
@@ -42,56 +63,99 @@ class FeatherweightRepositoryTest {
     }
 
     @Test
-    fun `clearAllUserData implementation correctly calls DAOs with userId parameter`() =
+    fun `deleteProgramme with deleteWorkouts false archives programme and preserves workouts`() =
         runTest {
-            // This test verifies the implementation logic by ensuring the code
-            // correctly passes userId to all DAO delete methods.
-            // The actual implementation in FeatherweightRepository.clearAllUserData()
-            // has been manually verified to:
-            // 1. Get the current userId from authManager (or use "local" if null)
-            // 2. Call deleteAllByUserId(userId) on all relevant DAOs
-            // 3. Never call deleteAll() methods that would delete all users' data
+            val programme = createProgramme(id = "prog1", name = "Test Programme", isActive = false)
+            val programmeSlot = slot<Programme>()
 
-            // The implementation correctly:
-            // - Uses authManager.getCurrentUserId() ?: "local" to get the userId
-            // - Calls setLogDao.deleteAllByUserId(userId)
-            // - Calls exerciseLogDao.deleteAllByUserId(userId)
-            // - Calls workoutDao.deleteAllByUserId(userId)
-            // - Calls personalRecordDao.deleteAllByUserId(userId)
-            // - And all other DAOs with the userId parameter
+            coEvery { programmeDao.updateProgramme(capture(programmeSlot)) } just Runs
 
-            // This ensures only the current user's data is deleted
-            assert(true) // Test passes by verification of implementation
+            repository.deleteProgramme(programme, deleteWorkouts = false)
+
+            coVerify(exactly = 1) { programmeDao.updateProgramme(any()) }
+            coVerify(exactly = 0) { workoutDao.deleteWorkoutsByProgramme(any()) }
+            coVerify(exactly = 0) { programmeDao.deleteProgramme(any()) }
+
+            assertThat(programmeSlot.captured.status).isEqualTo(ProgrammeStatus.CANCELLED)
+            assertThat(programmeSlot.captured.isActive).isFalse()
+            assertThat(programmeSlot.captured.startedAt).isNotNull()
+            assertThat(programmeSlot.captured.completedAt).isNull()
         }
 
     @Test
-    fun `clearAllUserData handles unauthenticated users with local userId`() =
+    fun `deleteProgramme with deleteWorkouts true removes workouts and programme`() =
         runTest {
-            // This test verifies that when authManager.getCurrentUserId() returns null,
-            // the implementation uses "local" as the userId.
-            //
-            // The implementation in FeatherweightRepository has been verified to:
-            // val currentUserId = authManager.getCurrentUserId() ?: "local"
-            //
-            // This ensures unauthenticated users' data (stored with userId="local")
-            // is properly deleted without affecting other users
+            val programme = createProgramme(id = "prog1", name = "Test Programme", isActive = false)
 
-            assert(true) // Test passes by verification of implementation
+            coEvery { workoutDao.deleteWorkoutsByProgramme(any()) } just Runs
+            coEvery { programmeDao.deleteProgramme(any()) } just Runs
+
+            repository.deleteProgramme(programme, deleteWorkouts = true)
+
+            coVerify(exactly = 1) { workoutDao.deleteWorkoutsByProgramme(programme.id) }
+            coVerify(exactly = 1) { programmeDao.deleteProgramme(programme) }
+            coVerify(exactly = 0) { programmeDao.updateProgrammeStatus(any(), any(), any()) }
+            coVerify(exactly = 0) { programmeDao.updateProgramme(any()) }
         }
 
     @Test
-    fun `clearAllUserData continues local deletion even if Firestore deletion fails`() =
+    fun `deleteProgramme with deleteWorkouts true deactivates active programme first`() =
         runTest {
-            // This test verifies that the implementation handles Firestore errors gracefully.
-            //
-            // The implementation has been verified to:
-            // 1. Attempt Firestore deletion in a try-catch block
-            // 2. Log any Firestore errors but continue execution
-            // 3. Always proceed with local database deletion regardless of Firestore result
-            //
-            // This ensures data is cleaned up locally even if network issues prevent
-            // Firestore cleanup
+            val activeProgramme = createProgramme(id = "prog1", name = "Active Programme", isActive = true)
 
-            assert(true) // Test passes by verification of implementation
+            coEvery { programmeDao.deactivateAllProgrammes() } just Runs
+            coEvery { workoutDao.deleteWorkoutsByProgramme(any()) } just Runs
+            coEvery { programmeDao.deleteProgramme(any()) } just Runs
+
+            repository.deleteProgramme(activeProgramme, deleteWorkouts = true)
+
+            coVerify(exactly = 1) { programmeDao.deactivateAllProgrammes() }
+            coVerify(exactly = 1) { workoutDao.deleteWorkoutsByProgramme(activeProgramme.id) }
+            coVerify(exactly = 1) { programmeDao.deleteProgramme(activeProgramme) }
         }
+
+    @Test
+    fun `getCompletedWorkoutCountForProgramme returns count from dao`() =
+        runTest {
+            val programmeId = "prog1"
+            val expectedCount = 42
+
+            coEvery { workoutDao.getCompletedWorkoutCountByProgramme(programmeId) } returns expectedCount
+
+            val result = repository.getCompletedWorkoutCountForProgramme(programmeId)
+
+            assertThat(result).isEqualTo(expectedCount)
+            coVerify(exactly = 1) { workoutDao.getCompletedWorkoutCountByProgramme(programmeId) }
+        }
+
+    @Test
+    fun `getCompletedSetCountForProgramme returns count from dao`() =
+        runTest {
+            val programmeId = "prog1"
+            val expectedCount = 256
+
+            coEvery { workoutDao.getCompletedSetCountByProgramme(programmeId) } returns expectedCount
+
+            val result = repository.getCompletedSetCountForProgramme(programmeId)
+
+            assertThat(result).isEqualTo(expectedCount)
+            coVerify(exactly = 1) { workoutDao.getCompletedSetCountByProgramme(programmeId) }
+        }
+
+    private fun createProgramme(
+        id: String,
+        name: String,
+        isActive: Boolean = false,
+        status: ProgrammeStatus = ProgrammeStatus.NOT_STARTED,
+    ) = Programme(
+        id = id,
+        name = name,
+        description = "Test description",
+        durationWeeks = 4,
+        programmeType = ProgrammeType.STRENGTH,
+        difficulty = ProgrammeDifficulty.INTERMEDIATE,
+        userId = "test-user",
+        isActive = isActive,
+        status = status,
+    )
 }

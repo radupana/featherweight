@@ -156,24 +156,30 @@ class ProgrammeViewModel(
 
     suspend fun getInProgressWorkoutCount(programme: Programme): Int = repository.getInProgressWorkoutCountByProgramme(programme.id)
 
-    fun deleteProgramme(programme: Programme) {
+    suspend fun getCompletedWorkoutCount(programme: Programme): Int = repository.getCompletedWorkoutCountForProgramme(programme.id)
+
+    suspend fun getCompletedSetCount(programme: Programme): Int = repository.getCompletedSetCountForProgramme(programme.id)
+
+    fun deleteProgramme(
+        programme: Programme,
+        deleteWorkouts: Boolean,
+    ) {
         viewModelScope.launch {
             try {
+                val action = if (deleteWorkouts) "Deleting" else "Archiving"
                 CloudLogger.info(
                     TAG,
-                    "Deleting programme - id: ${programme.id}, name: ${programme.name}, " +
-                        "isActive: ${programme.isActive}",
+                    "$action programme - id: ${programme.id}, name: ${programme.name}, " +
+                        "isActive: ${programme.isActive}, deleteWorkouts: $deleteWorkouts",
                 )
-                repository.deleteProgramme(programme)
-                // Programme deleted successfully - no notification needed
-                // Refresh data to update the UI
+                repository.deleteProgramme(programme, deleteWorkouts)
                 loadProgrammeData()
-                CloudLogger.info(TAG, "Programme deleted successfully: ${programme.name}")
+                CloudLogger.info(TAG, "Programme ${if (deleteWorkouts) "deleted" else "archived"} successfully: ${programme.name}")
             } catch (e: SQLiteException) {
-                CloudLogger.error(TAG, "Database error deleting programme: ${programme.name}", e)
+                CloudLogger.error(TAG, "Database error ${if (deleteWorkouts) "deleting" else "archiving"} programme: ${programme.name}", e)
                 _uiState.value =
                     _uiState.value.copy(
-                        error = "Failed to delete programme: ${e.message}",
+                        error = "Failed to ${if (deleteWorkouts) "delete" else "archive"} programme: ${e.message}",
                     )
             }
         }

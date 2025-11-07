@@ -22,7 +22,8 @@ export const analyzeTraining = onCall<AnalyzeTrainingRequest>(
     secrets: ["OPENAI_API_KEY"],
   },
   async (request: CallableRequest<AnalyzeTrainingRequest>) => {
-    if (!request.app) {
+    const isTestUser = request.auth?.token?.testUser === true;
+    if (!request.app && !isTestUser) {
       await log.write(log.entry({
         severity: "WARNING",
         labels: {type: "app_check_missing"},
@@ -30,6 +31,18 @@ export const analyzeTraining = onCall<AnalyzeTrainingRequest>(
         message: "App Check token missing",
       }));
       throw new HttpsError("unauthenticated", "App Check verification failed");
+    }
+
+    if (isTestUser && !request.app) {
+      await log.write(log.entry({
+        severity: "INFO",
+        labels: {
+          type: "app_check_bypassed_test_user",
+          userId: request.auth?.uid || "unknown",
+        },
+      }, {
+        message: "App Check bypassed for test user",
+      }));
     }
 
     if (!request.auth) {

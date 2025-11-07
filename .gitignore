@@ -25,6 +25,9 @@ docker-compose.yml
 # Room schemas - not needed during alpha (using destructive migration)
 app/schemas/
 
+# Firebase Test Lab test cases
+test-cases/
+
 # Firebase configuration - NEVER commit this!
 app/google-services.json
 

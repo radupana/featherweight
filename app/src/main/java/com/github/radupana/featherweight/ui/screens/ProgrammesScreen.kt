@@ -27,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -319,58 +320,98 @@ fun ProgrammesScreen(
     }
 
     if (showDeleteConfirmDialog) {
-        var inProgressWorkoutCount by remember { mutableStateOf(0) }
+        var deleteWorkoutsChecked by remember { mutableStateOf(false) }
+        var completedWorkoutCount by remember { mutableStateOf(0) }
+        var completedSetCount by remember { mutableStateOf(0) }
 
         LaunchedEffect(activeProgramme) {
             activeProgramme?.let { programme ->
-                inProgressWorkoutCount = viewModel.getInProgressWorkoutCount(programme)
+                completedWorkoutCount = viewModel.getCompletedWorkoutCount(programme)
+                completedSetCount = viewModel.getCompletedSetCount(programme)
             }
         }
 
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false },
-            title = { Text("Delete Programme?") },
+            title = { Text(if (deleteWorkoutsChecked) "Delete Programme?" else "Stop Following Programme?") },
             text = {
                 Column {
                     Text(
-                        text = "Are you sure you want to permanently delete this programme?",
+                        text =
+                            if (deleteWorkoutsChecked) {
+                                "This will permanently delete the programme and all workout history."
+                            } else {
+                                "You'll stop following this programme, but your workout history will be preserved in the History tab."
+                            },
                         style = MaterialTheme.typography.bodyMedium,
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    val warningText =
-                        buildString {
-                            append("⚠️ This action cannot be undone!\n")
-                            append("• All progress will be lost\n")
-                            append("• All workout history will be deleted")
-                            if (inProgressWorkoutCount > 0) {
-                                append(
-                                    "\n• $inProgressWorkoutCount in-progress workout${if (inProgressWorkoutCount > 1) "s" else ""} will be deleted",
-                                )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Checkbox(
+                            checked = deleteWorkoutsChecked,
+                            onCheckedChange = { deleteWorkoutsChecked = it },
+                        )
+                        Text(
+                            text = "Also delete all workout history",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+
+                    if (deleteWorkoutsChecked && completedWorkoutCount > 0) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        val warningText =
+                            buildString {
+                                append("⚠️ This CANNOT be undone!\n\n")
+                                append("This will permanently delete:\n")
+                                append("• $completedWorkoutCount workout${if (completedWorkoutCount != 1) "s" else ""}\n")
+                                append("• $completedSetCount set${if (completedSetCount != 1) "s" else ""} of logged data\n")
+                                append("• All exercise performance history")
                             }
-                        }
-
-                    Text(
-                        text = warningText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
+                        Text(
+                            text = warningText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
                         activeProgramme?.let { programme ->
-                            viewModel.deleteProgramme(programme)
+                            viewModel.deleteProgramme(programme, deleteWorkoutsChecked)
                         }
                         showDeleteConfirmDialog = false
                     },
                     colors =
                         ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
+                            containerColor =
+                                if (deleteWorkoutsChecked) {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
                         ),
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.onError)
+                    Text(
+                        text =
+                            if (deleteWorkoutsChecked) {
+                                "Delete Everything"
+                            } else {
+                                "Stop Following"
+                            },
+                        color =
+                            if (deleteWorkoutsChecked) {
+                                MaterialTheme.colorScheme.onError
+                            } else {
+                                MaterialTheme.colorScheme.onPrimary
+                            },
+                    )
                 }
             },
             dismissButton = {

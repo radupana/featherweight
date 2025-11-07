@@ -31,8 +31,9 @@ export const parseProgram = onCall<ParseProgramRequest>(
     secrets: ["OPENAI_API_KEY"],
   },
   async (request: CallableRequest<ParseProgramRequest>) => {
-    // 1. Verify App Check token (Play Integrity)
-    if (!request.app) {
+    // 1. Verify App Check token (Play Integrity) - skip for test users
+    const isTestUser = request.auth?.token?.testUser === true;
+    if (!request.app && !isTestUser) {
       await log.write(log.entry({
         severity: "WARNING",
         labels: {type: "app_check_missing"},
@@ -40,6 +41,18 @@ export const parseProgram = onCall<ParseProgramRequest>(
         message: "App Check token missing",
       }));
       throw new HttpsError("unauthenticated", "App Check verification failed");
+    }
+
+    if (isTestUser && !request.app) {
+      await log.write(log.entry({
+        severity: "INFO",
+        labels: {
+          type: "app_check_bypassed_test_user",
+          userId: request.auth?.uid || "unknown",
+        },
+      }, {
+        message: "App Check bypassed for test user",
+      }));
     }
 
     // 2. Verify Firebase Auth token and reject anonymous users

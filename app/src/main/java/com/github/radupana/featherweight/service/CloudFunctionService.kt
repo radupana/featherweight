@@ -160,10 +160,9 @@ class CloudFunctionService(
 
                 val message =
                     if (isAnonymous) {
-                        "You've reached your daily limit (5 parses). " +
-                            "Sign in or create an account for 20 daily parses!$quotaInfo"
+                        "Sign in required to use AI programme parsing.$quotaInfo"
                     } else {
-                        "You've reached your daily limit (20 parses). " +
+                        "You've reached your daily limit (10 parses). " +
                             "Quota resets at midnight.$quotaInfo"
                     }
 

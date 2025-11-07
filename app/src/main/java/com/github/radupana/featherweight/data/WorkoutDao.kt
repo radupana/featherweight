@@ -153,6 +153,20 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM workouts WHERE programmeId = :programmeId AND status = 'COMPLETED' ORDER BY weekNumber, dayNumber")
     suspend fun getCompletedWorkoutsByProgramme(programmeId: String): List<Workout>
+
+    @Query("SELECT COUNT(*) FROM workouts WHERE programmeId = :programmeId AND status = 'COMPLETED'")
+    suspend fun getCompletedWorkoutCountByProgramme(programmeId: String): Int
+
+    @Query(
+        """
+        SELECT COUNT(*)
+        FROM set_logs sl
+        INNER JOIN exercise_logs el ON sl.exerciseLogId = el.id
+        INNER JOIN workouts w ON el.workoutId = w.id
+        WHERE w.programmeId = :programmeId AND w.status = 'COMPLETED'
+    """,
+    )
+    suspend fun getCompletedSetCountByProgramme(programmeId: String): Int
 }
 
 data class WorkoutDateCount(
