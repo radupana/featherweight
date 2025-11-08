@@ -53,6 +53,7 @@ import com.github.radupana.featherweight.domain.WorkoutHistoryDetail
 import com.github.radupana.featherweight.domain.WorkoutHistoryEntry
 import com.github.radupana.featherweight.domain.WorkoutSummary
 import com.github.radupana.featherweight.manager.AuthenticationManager
+import com.github.radupana.featherweight.service.DeviationCalculationService
 import com.github.radupana.featherweight.service.GlobalProgressTracker
 import com.github.radupana.featherweight.service.ProgressionService
 import com.github.radupana.featherweight.sync.repository.FirestoreRepository
@@ -106,6 +107,7 @@ class FeatherweightRepository(
     private val exerciseAliasDao = db.exerciseAliasDao()
     private val programmeDao = db.programmeDao()
     private val userExerciseUsageDao = db.userExerciseUsageDao()
+    private val workoutDeviationDao = db.workoutDeviationDao()
 
     private val globalExerciseProgressDao = db.globalExerciseProgressDao()
     private val personalRecordDao = db.personalRecordDao()
@@ -498,6 +500,20 @@ class FeatherweightRepository(
 
     // Delete an entire workout (will cascade delete all exercises and sets)
     suspend fun deleteWorkout(workoutId: String) = workoutRepository.deleteWorkoutById(workoutId)
+
+    suspend fun calculateAndSaveDeviations(workoutId: String) {
+        val service =
+            DeviationCalculationService(
+                workoutDao = workoutDao,
+                exerciseLogDao = exerciseLogDao,
+                setLogDao = setLogDao,
+                programmeDao = programmeDao,
+            )
+        val deviations = service.calculateDeviations(workoutId)
+        if (deviations.isNotEmpty()) {
+            workoutDeviationDao.insertAll(deviations)
+        }
+    }
 
     suspend fun deleteSetsForExerciseLog(exerciseLogId: String) = exerciseRepository.deleteSetsForExercise(exerciseLogId)
 

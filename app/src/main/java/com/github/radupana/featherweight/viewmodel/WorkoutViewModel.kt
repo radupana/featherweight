@@ -611,6 +611,11 @@ class WorkoutViewModel(
             // Complete the workout (this will automatically update programme progress if applicable)
             repository.completeWorkout(currentId, finalDuration.toString())
 
+            // Calculate and save deviations for programme workouts
+            if (state.isProgrammeWorkout) {
+                repository.calculateAndSaveDeviations(currentId)
+            }
+
             val newStatus = WorkoutStatus.COMPLETED
 
             // Clear rest timer on workout completion
