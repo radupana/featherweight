@@ -93,9 +93,7 @@ fun HistoryScreen(
     Box(
         modifier = modifier.fillMaxSize(),
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-        ) {
+        Column {
             // Tab Row for Workouts/Programmes
             TabRow(
                 selectedTabIndex = selectedTab,

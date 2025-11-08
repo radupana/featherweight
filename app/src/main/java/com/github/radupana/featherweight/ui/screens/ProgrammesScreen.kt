@@ -55,9 +55,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeProgress
 import com.github.radupana.featherweight.repository.NextProgrammeWorkoutInfo
 import com.github.radupana.featherweight.ui.components.GlassmorphicCard
 import com.github.radupana.featherweight.ui.components.ParseRequestCard
-import com.github.radupana.featherweight.ui.utils.NavigationContext
 import com.github.radupana.featherweight.ui.utils.rememberKeyboardState
-import com.github.radupana.featherweight.ui.utils.systemBarsPadding
 import com.github.radupana.featherweight.viewmodel.InProgressWorkout
 import com.github.radupana.featherweight.viewmodel.ProgrammeViewModel
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
@@ -106,7 +104,7 @@ fun ProgrammesScreen(
     }
 
     Box(
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
     ) {
         if (uiState.isLoading) {
             Box(
@@ -120,7 +118,7 @@ fun ProgrammesScreen(
 
         Column(
             modifier =
-                Modifier
+                modifier
                     .fillMaxSize()
                     .padding(horizontal = compactPadding),
         ) {
@@ -156,11 +154,8 @@ fun ProgrammesScreen(
 
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(compactPadding),
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .systemBarsPadding(NavigationContext.BOTTOM_NAVIGATION),
-                contentPadding = PaddingValues(bottom = compactPadding),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = compactPadding, bottom = compactPadding),
             ) {
                 if (activeProgramme == null) {
                     item {
