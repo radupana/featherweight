@@ -31,6 +31,11 @@ class ExerciseMappingViewModel(
     application: Application,
     repository: FeatherweightRepository? = null,
 ) : AndroidViewModel(application) {
+    constructor(application: Application) : this(
+        application,
+        FeatherweightRepository(application),
+    )
+
     companion object {
         private const val TAG = "ExerciseMappingViewModel"
         private const val MAX_SEARCH_RESULTS = 20
