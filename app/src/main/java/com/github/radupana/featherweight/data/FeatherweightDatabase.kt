@@ -23,6 +23,8 @@ import com.github.radupana.featherweight.data.programme.ProgrammeDao
 import com.github.radupana.featherweight.data.programme.ProgrammeProgress
 import com.github.radupana.featherweight.data.programme.ProgrammeWeek
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
+import com.github.radupana.featherweight.data.programme.WorkoutDeviation
+import com.github.radupana.featherweight.data.programme.WorkoutDeviationDao
 import com.github.radupana.featherweight.security.DatabaseKeyManager
 import net.sqlcipher.database.SupportFactory
 
@@ -54,6 +56,7 @@ import net.sqlcipher.database.SupportFactory
         PersonalRecord::class,
         TrainingAnalysis::class,
         ParseRequest::class,
+        WorkoutDeviation::class,
         // Sync metadata
         LocalSyncMetadata::class,
     ],
@@ -102,6 +105,8 @@ abstract class FeatherweightDatabase : RoomDatabase() {
     abstract fun templateSetDao(): TemplateSetDao
 
     abstract fun localSyncMetadataDao(): LocalSyncMetadataDao
+
+    abstract fun workoutDeviationDao(): WorkoutDeviationDao
 
     companion object {
         @Volatile
