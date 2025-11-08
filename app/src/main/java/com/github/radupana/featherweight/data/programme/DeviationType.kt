@@ -28,10 +28,3 @@ enum class DeviationType {
     /** Workout was done on different day than prescribed */
     SCHEDULE_DEVIATION,
 }
-
-// TODO: Add DeviationReason enum in future phase
-// Plan: Post-workout quick tags (e.g., "Why did you swap? Fatigue | Equipment | Time")
-// Options: FATIGUE, FORM_BREAKDOWN, INJURY_PREVENTION, EQUIPMENT_UNAVAILABLE,
-//          TIME_CONSTRAINT, AUTO_REGULATION, GYM_BUSY, RECOVERY,
-//          INTENTIONAL_MODIFICATION, OTHER
-// See GH Issue #125 for full design
