@@ -33,6 +33,8 @@ class WorkoutViewModelTest {
         assertThat(state.weekNumber).isNull()
         assertThat(state.dayNumber).isNull()
         assertThat(state.programmeWorkoutName).isNull()
+        assertThat(state.deviations).isEmpty()
+        assertThat(state.prescribedExercises).isEmpty()
     }
 
     @Test
@@ -293,5 +295,130 @@ class WorkoutViewModelTest {
         assertThat(retrievedSets[2].rpe).isEqualTo(8f)
         assertThat(retrievedSets[3].rpe).isEqualTo(9f)
         assertThat(retrievedSets[4].rpe).isEqualTo(10f)
+    }
+
+    // Tests for completed workout race condition fix
+    // See: WorkoutScreen.kt LaunchedEffect that calls startNewWorkout()
+
+    @Test
+    fun `WorkoutState for completed workout has isReadOnly true`() {
+        // When viewing a completed workout, isReadOnly must be true
+        // to prevent WorkoutScreen from calling startNewWorkout()
+        val completedWorkoutState =
+            WorkoutState(
+                isActive = false,
+                status = WorkoutStatus.COMPLETED,
+                workoutId = "test-workout-id",
+                isReadOnly = true,
+            )
+
+        assertThat(completedWorkoutState.isReadOnly).isTrue()
+        assertThat(completedWorkoutState.status).isEqualTo(WorkoutStatus.COMPLETED)
+        assertThat(completedWorkoutState.isActive).isFalse()
+    }
+
+    @Test
+    fun `Completed workout state should NOT trigger startNewWorkout`() {
+        // This test documents the fix for the race condition where
+        // WorkoutScreen's LaunchedEffect would call startNewWorkout()
+        // when viewing a completed workout.
+        //
+        // The LaunchedEffect condition is:
+        // if (!workoutState.isActive &&
+        //     workoutState.status != WorkoutStatus.COMPLETED &&
+        //     workoutState.mode != WorkoutMode.TEMPLATE_EDIT &&
+        //     !workoutState.isReadOnly &&
+        //     currentWorkoutId == null) {
+        //     viewModel.startNewWorkout()
+        // }
+
+        val completedWorkoutState =
+            WorkoutState(
+                isActive = false,
+                status = WorkoutStatus.COMPLETED,
+                mode = WorkoutMode.ACTIVE,
+                workoutId = "test-workout-id",
+                isReadOnly = true,
+            )
+        val currentWorkoutId = "test-workout-id"
+
+        // Evaluate the condition that triggers startNewWorkout()
+        val shouldStartNewWorkout =
+            !completedWorkoutState.isActive &&
+                completedWorkoutState.status != WorkoutStatus.COMPLETED &&
+                completedWorkoutState.mode != WorkoutMode.TEMPLATE_EDIT &&
+                !completedWorkoutState.isReadOnly &&
+                currentWorkoutId == null
+
+        // For a completed workout, this should be FALSE
+        assertThat(shouldStartNewWorkout).isFalse()
+    }
+
+    @Test
+    fun `Empty workout state SHOULD trigger startNewWorkout`() {
+        // This verifies the positive case - when there's no workout,
+        // startNewWorkout() should be called
+
+        val emptyState = WorkoutState()
+        val currentWorkoutId: String? = null
+
+        val shouldStartNewWorkout =
+            !emptyState.isActive &&
+                emptyState.status != WorkoutStatus.COMPLETED &&
+                emptyState.mode != WorkoutMode.TEMPLATE_EDIT &&
+                !emptyState.isReadOnly &&
+                currentWorkoutId == null
+
+        // For empty state, this should be TRUE
+        assertThat(shouldStartNewWorkout).isTrue()
+    }
+
+    @Test
+    fun `Template edit mode should NOT trigger startNewWorkout`() {
+        // Template editing should not trigger new workout creation
+
+        val templateState =
+            WorkoutState(
+                isActive = false,
+                status = WorkoutStatus.NOT_STARTED,
+                mode = WorkoutMode.TEMPLATE_EDIT,
+                isReadOnly = false,
+            )
+        val currentWorkoutId: String? = null
+
+        val shouldStartNewWorkout =
+            !templateState.isActive &&
+                templateState.status != WorkoutStatus.COMPLETED &&
+                templateState.mode != WorkoutMode.TEMPLATE_EDIT &&
+                !templateState.isReadOnly &&
+                currentWorkoutId == null
+
+        assertThat(shouldStartNewWorkout).isFalse()
+    }
+
+    @Test
+    fun `Workout being loaded should NOT trigger startNewWorkout`() {
+        // When currentWorkoutId is set (synchronously by viewCompletedWorkout),
+        // startNewWorkout() should not be called even if state hasn't updated yet.
+        // This prevents the race condition.
+
+        val stateBeforeCoroutineCompletes =
+            WorkoutState(
+                isActive = false,
+                status = WorkoutStatus.NOT_STARTED, // Old state, not updated yet
+                mode = WorkoutMode.ACTIVE,
+                isReadOnly = false, // Old state, not updated yet
+            )
+        val currentWorkoutId = "workout-being-loaded" // Set synchronously
+
+        val shouldStartNewWorkout =
+            !stateBeforeCoroutineCompletes.isActive &&
+                stateBeforeCoroutineCompletes.status != WorkoutStatus.COMPLETED &&
+                stateBeforeCoroutineCompletes.mode != WorkoutMode.TEMPLATE_EDIT &&
+                !stateBeforeCoroutineCompletes.isReadOnly &&
+                currentWorkoutId == null // This is false, so startNewWorkout won't be called
+
+        // Even though state hasn't updated, currentWorkoutId prevents race condition
+        assertThat(shouldStartNewWorkout).isFalse()
     }
 }

@@ -192,7 +192,15 @@ class ExerciseRepository(
 
     // ===== EXERCISE LOG OPERATIONS =====
 
-    suspend fun getExercisesForWorkout(workoutId: String): List<ExerciseLog> = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
+    suspend fun getExercisesForWorkout(workoutId: String): List<ExerciseLog> {
+        val exercises = exerciseLogDao.getExerciseLogsForWorkout(workoutId)
+        CloudLogger.debug(
+            "ExerciseRepository",
+            "GET_EXERCISES_FOR_WORKOUT_DAO_QUERY: workoutId=$workoutId, exerciseCount=${exercises.size}, " +
+                "exerciseIds=${exercises.map { it.id }}, exerciseOrders=${exercises.map { it.exerciseOrder }}",
+        )
+        return exercises
+    }
 
     suspend fun getSetsForExercise(exerciseLogId: String): List<SetLog> = setLogDao.getSetLogsForExercise(exerciseLogId)
 

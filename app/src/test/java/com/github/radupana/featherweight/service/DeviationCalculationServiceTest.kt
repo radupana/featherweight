@@ -7,13 +7,20 @@ import com.github.radupana.featherweight.data.SetLogDao
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutDao
 import com.github.radupana.featherweight.data.programme.DeviationType
+import com.github.radupana.featherweight.data.programme.ImmutableProgrammeSnapshot
+import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeDao
-import com.github.radupana.featherweight.data.programme.ProgrammeWeek
-import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
+import com.github.radupana.featherweight.data.programme.ProgrammeDifficulty
+import com.github.radupana.featherweight.data.programme.ProgrammeStatus
+import com.github.radupana.featherweight.data.programme.ProgrammeType
+import com.github.radupana.featherweight.data.programme.WeekSnapshot
+import com.github.radupana.featherweight.data.programme.WorkoutSnapshot
+import com.github.radupana.featherweight.data.programme.WorkoutStructure
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import org.junit.Before
 import org.junit.Test
 import java.time.LocalDateTime
@@ -328,7 +335,7 @@ class DeviationCalculationServiceTest {
                         targetReps = 5,
                         targetWeight = 100f,
                         actualReps = 5,
-                        actualWeight = 110f,
+                        actualWeight = 115f,
                         isCompleted = true,
                     ),
                     SetLog(
@@ -338,7 +345,7 @@ class DeviationCalculationServiceTest {
                         targetReps = 5,
                         targetWeight = 100f,
                         actualReps = 5,
-                        actualWeight = 110f,
+                        actualWeight = 115f,
                         isCompleted = true,
                     ),
                     SetLog(
@@ -348,7 +355,7 @@ class DeviationCalculationServiceTest {
                         targetReps = 5,
                         targetWeight = 100f,
                         actualReps = 5,
-                        actualWeight = 110f,
+                        actualWeight = 115f,
                         isCompleted = true,
                     ),
                 )
@@ -357,7 +364,7 @@ class DeviationCalculationServiceTest {
 
             val intensityDeviation = deviations.find { it.deviationType == DeviationType.INTENSITY_DEVIATION }
             assertThat(intensityDeviation).isNotNull()
-            assertThat(intensityDeviation!!.deviationMagnitude).isWithin(0.001f).of(0.1f)
+            assertThat(intensityDeviation!!.deviationMagnitude).isWithin(0.001f).of(0.15f)
         }
 
     @Test
@@ -758,6 +765,70 @@ class DeviationCalculationServiceTest {
             assertThat(setCountDeviation!!.deviationMagnitude).isWithin(0.001f).of(-0.666f)
         }
 
+    @Test
+    fun calculateDeviations_skippedExercise_storesExerciseName() =
+        runTest {
+            setupProgrammeWorkout(
+                workoutId = "workout1",
+                programmeId = "prog1",
+                weekNumber = 1,
+                dayNumber = 1,
+                workoutStructure =
+                    """
+                    {
+                        "day": 1,
+                        "name": "Upper A",
+                        "exercises": [
+                            {
+                                "name": "Barbell Bench Press",
+                                "sets": 3,
+                                "reps": 5,
+                                "weights": [100.0, 100.0, 100.0],
+                                "exerciseId": "bench-press-id"
+                            },
+                            {
+                                "name": "Rear Delt Fly",
+                                "sets": 3,
+                                "reps": 12,
+                                "weights": [15.0, 15.0, 15.0],
+                                "exerciseId": "rear-delt-id"
+                            }
+                        ]
+                    }
+                    """.trimIndent(),
+            )
+
+            coEvery { exerciseLogDao.getExerciseLogsForWorkout("workout1") } returns
+                listOf(
+                    ExerciseLog(
+                        id = "ex1",
+                        workoutId = "workout1",
+                        exerciseId = "bench-press-id",
+                        exerciseOrder = 0,
+                    ),
+                )
+
+            coEvery { setLogDao.getSetLogsForExercise("ex1") } returns
+                listOf(
+                    SetLog(
+                        id = "set1",
+                        exerciseLogId = "ex1",
+                        setOrder = 1,
+                        targetReps = 5,
+                        targetWeight = 100f,
+                        actualReps = 5,
+                        actualWeight = 100f,
+                        isCompleted = true,
+                    ),
+                )
+
+            val deviations = service.calculateDeviations("workout1")
+
+            val skippedDeviation = deviations.find { it.deviationType == DeviationType.EXERCISE_SKIPPED }
+            assertThat(skippedDeviation).isNotNull()
+            assertThat(skippedDeviation!!.notes).isEqualTo("Rear Delt Fly")
+        }
+
     private fun setupProgrammeWorkout(
         workoutId: String,
         programmeId: String,
@@ -775,26 +846,49 @@ class DeviationCalculationServiceTest {
                 dayNumber = dayNumber,
             )
 
-        coEvery { programmeDao.getWeekById("week1") } returns
-            ProgrammeWeek(
-                id = "week1",
-                programmeId = programmeId,
-                weekNumber = weekNumber,
-                name = "Week $weekNumber",
-                description = null,
+        // Parse the workout structure to extract exercises
+        val parsedStructure = Json.decodeFromString<WorkoutStructure>(workoutStructure)
+
+        // Create immutable snapshot
+        val workoutSnapshot =
+            WorkoutSnapshot(
+                dayNumber = dayNumber,
+                workoutName = parsedStructure.name,
+                exercises = parsedStructure.exercises,
             )
 
-        coEvery { programmeDao.getAllWorkoutsForProgramme(programmeId) } returns
-            listOf(
-                ProgrammeWorkout(
-                    id = "pw1",
-                    weekId = "week1",
-                    dayNumber = dayNumber,
-                    name = "Day $dayNumber",
-                    description = null,
-                    estimatedDuration = null,
-                    workoutStructure = workoutStructure,
-                ),
+        val weekSnapshot =
+            WeekSnapshot(
+                weekNumber = weekNumber,
+                workouts = listOf(workoutSnapshot),
             )
+
+        val immutableSnapshot =
+            ImmutableProgrammeSnapshot(
+                programmeId = programmeId,
+                programmeName = "Test Programme",
+                durationWeeks = 4,
+                capturedAt = LocalDateTime.now().toString(),
+                weeks = listOf(weekSnapshot),
+            )
+
+        val snapshotJson = Programme.encodeImmutableProgrammeSnapshot(immutableSnapshot)
+
+        // Create Programme with immutable snapshot and IN_PROGRESS status
+        val programme =
+            Programme(
+                id = programmeId,
+                name = "Test Programme",
+                description = "Test",
+                durationWeeks = 4,
+                programmeType = ProgrammeType.STRENGTH,
+                difficulty = ProgrammeDifficulty.INTERMEDIATE,
+                status = ProgrammeStatus.IN_PROGRESS,
+                isActive = true,
+                startedAt = LocalDateTime.now().minusWeeks(2),
+                immutableProgrammeJson = snapshotJson,
+            )
+
+        coEvery { programmeDao.getProgrammeById(programmeId) } returns programme
     }
 }

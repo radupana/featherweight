@@ -1,6 +1,7 @@
 package com.github.radupana.featherweight.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,6 +32,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -73,10 +77,12 @@ import com.github.radupana.featherweight.data.WorkoutMode
 import com.github.radupana.featherweight.data.WorkoutStatus
 import com.github.radupana.featherweight.ui.components.CompactRestTimer
 import com.github.radupana.featherweight.ui.components.ExerciseCard
+import com.github.radupana.featherweight.ui.components.GlassmorphicCard
 import com.github.radupana.featherweight.ui.components.PRCelebrationDialog
 import com.github.radupana.featherweight.ui.components.WorkoutTimer
 import com.github.radupana.featherweight.ui.dialogs.NotesInputModal
 import com.github.radupana.featherweight.ui.dialogs.OneRMUpdateDialog
+import com.github.radupana.featherweight.util.DeviationFormatter
 import com.github.radupana.featherweight.viewmodel.WorkoutState
 import com.github.radupana.featherweight.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.delay
@@ -240,6 +246,7 @@ fun WorkoutScreen(
                     canCompleteWorkout = workoutState.isActive && workoutState.mode != WorkoutMode.TEMPLATE_EDIT,
                     completedSets = completedSets,
                     expandedExerciseIds = expandedExerciseIds,
+                    workoutState = workoutState,
                     onDeleteExercise = { exerciseId ->
                         if (canEdit) {
                             viewModel.deleteExercise(exerciseId)
@@ -310,11 +317,13 @@ private fun WorkoutStateEffects(
     onShowOneRMUpdateDialog: (Boolean) -> Unit,
     onShowPRCelebration: (Boolean) -> Unit,
 ) {
-    // If no active workout, start one (except in template edit mode)
-    LaunchedEffect(workoutState.isActive, workoutState.mode) {
+    // If no active workout, start one (except in template edit mode or when viewing completed workout)
+    LaunchedEffect(workoutState.isActive, workoutState.mode, workoutState.isReadOnly, currentWorkoutId) {
         if (!workoutState.isActive &&
             workoutState.status != WorkoutStatus.COMPLETED &&
-            workoutState.mode != WorkoutMode.TEMPLATE_EDIT
+            workoutState.mode != WorkoutMode.TEMPLATE_EDIT &&
+            !workoutState.isReadOnly &&
+            currentWorkoutId == null // Don't start new workout if we're already loading one
         ) {
             viewModel.startNewWorkout()
         }
@@ -982,6 +991,7 @@ private fun ExercisesList(
     canCompleteWorkout: Boolean,
     completedSets: Int,
     expandedExerciseIds: Set<String>,
+    workoutState: WorkoutState,
     onDeleteExercise: (String) -> Unit,
     onSelectExercise: () -> Unit,
     onCompleteWorkout: () -> Unit,
@@ -991,12 +1001,12 @@ private fun ExercisesList(
 ) {
     val lazyListState = rememberLazyListState()
 
-    // Add Reorderable state
     val reorderableLazyListState =
         rememberReorderableLazyListState(lazyListState) { from, to ->
-            // This callback is called when items are reordered
             viewModel.reorderExercises(from.index, to.index)
         }
+
+    val formattedDeviations = DeviationFormatter.formatDeviations(workoutState.deviations)
 
     val imeInsets = WindowInsets.ime.asPaddingValues()
     val horizontalPadding = 16.dp
@@ -1014,49 +1024,84 @@ private fun ExercisesList(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier,
     ) {
-        items(
+        itemsIndexed(
             items = exercises,
-            key = { exercise -> exercise.id },
-        ) { exercise ->
+            key = { _, exercise -> exercise.id },
+        ) { index, exercise ->
             ReorderableItem(
                 state = reorderableLazyListState,
                 key = exercise.id,
-                enabled = canEdit, // Only allow reordering when workout is editable
+                enabled = canEdit,
             ) { isDragging ->
-                ExerciseCard(
-                    exercise = exercise,
-                    sets = sets.filter { it.exerciseLogId == exercise.id },
-                    isExpanded = expandedExerciseIds.contains(exercise.id),
-                    isDragging = isDragging, // Pass dragging state for visual feedback
-                    onToggleExpansion = { viewModel.toggleExerciseExpansion(exercise.id) },
-                    onDeleteExercise = { exerciseId ->
-                        if (canEdit) onDeleteExercise(exerciseId)
-                    },
-                    onSwapExercise = { exerciseId ->
-                        if (canEdit) {
-                            viewModel.initiateExerciseSwap(exerciseId)
-                            onSelectExercise()
-                        }
-                    },
-                    viewModel = viewModel,
-                    showDragHandle = canEdit,
-                    dragHandleModifier =
-                        if (canEdit) {
-                            Modifier.draggableHandle(
-                                onDragStarted = {
-                                    // Collapse all exercises when dragging starts for easier reordering
-                                    viewModel.collapseAllExercises()
-                                },
-                            )
-                        } else {
-                            Modifier
+                Column {
+                    ExerciseCard(
+                        exercise = exercise,
+                        sets = sets.filter { it.exerciseLogId == exercise.id },
+                        isExpanded = expandedExerciseIds.contains(exercise.id),
+                        isDragging = isDragging,
+                        onToggleExpansion = { viewModel.toggleExerciseExpansion(exercise.id) },
+                        onDeleteExercise = { exerciseId ->
+                            if (canEdit) onDeleteExercise(exerciseId)
                         },
-                    modifier = Modifier.animateItem(),
+                        onSwapExercise = { exerciseId ->
+                            if (canEdit) {
+                                viewModel.initiateExerciseSwap(exerciseId)
+                                onSelectExercise()
+                            }
+                        },
+                        viewModel = viewModel,
+                        showDragHandle = canEdit,
+                        dragHandleModifier =
+                            if (canEdit) {
+                                Modifier.draggableHandle(
+                                    onDragStarted = {
+                                        viewModel.collapseAllExercises()
+                                    },
+                                )
+                            } else {
+                                Modifier
+                            },
+                        modifier = Modifier.animateItem(),
+                    )
+
+                    // Only show deviation and prescribed sections when exercise is expanded
+                    if (workoutState.isReadOnly && workoutState.isProgrammeWorkout && expandedExerciseIds.contains(exercise.id)) {
+                        val deviationInfo = formattedDeviations.exerciseDeviations[exercise.id]
+                        val isAddedExercise = formattedDeviations.addedExercises.contains(exercise.id)
+
+                        if (deviationInfo != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            DeviationSection(
+                                deviations = deviationInfo.deviations,
+                            )
+                        } else if (isAddedExercise) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            AddedExerciseBadge()
+                        }
+
+                        if (workoutState.prescribedExercises.isNotEmpty()) {
+                            val prescribedExercise = workoutState.prescribedExercises.getOrNull(index)
+                            if (prescribedExercise != null) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                PrescribedVsActualSection(
+                                    prescribedExercise = prescribedExercise,
+                                    actualSets = sets.filter { it.exerciseLogId == exercise.id },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (workoutState.isReadOnly && workoutState.isProgrammeWorkout && formattedDeviations.skippedExercises.isNotEmpty()) {
+            item {
+                SkippedExercisesSection(
+                    skippedExercises = formattedDeviations.skippedExercises,
                 )
             }
         }
 
-        // Action buttons at the end of the list
         if (canEdit) {
             item {
                 val workoutState by viewModel.workoutState.collectAsState()
@@ -1153,6 +1198,312 @@ private fun WorkoutActionButtons(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Complete")
+            }
+        }
+    }
+}
+
+@Composable
+private fun PrescribedVsActualSection(
+    prescribedExercise: com.github.radupana.featherweight.data.programme.ExerciseStructure,
+    actualSets: List<SetLog>,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val weightUnitManager =
+        remember {
+            com.github.radupana.featherweight.di.ServiceLocator
+                .provideWeightUnitManager(context)
+        }
+    var isExpanded by remember { mutableStateOf(false) }
+
+    // Don't show if there's no prescribed data (added exercises)
+    val hasPrescribedData = prescribedExercise.weights != null && prescribedExercise.weights!!.any { it > 0f }
+    if (!hasPrescribedData) return
+
+    GlassmorphicCard(
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+        ) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { isExpanded = !isExpanded },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "Prescribed vs Actual",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                )
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = "Set",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(0.5f),
+                    )
+                    Text(
+                        text = "Prescribed",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = "Actual",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val maxSets = maxOf(prescribedExercise.sets, actualSets.size)
+                for (setIndex in 0 until maxSets) {
+                    val prescribedWeight = prescribedExercise.weights?.getOrNull(setIndex)
+                    val prescribedReps = formatPrescribedReps(prescribedExercise.reps, setIndex)
+                    val prescribedRpe = prescribedExercise.rpeValues?.getOrNull(setIndex)
+                    val actualSet = actualSets.getOrNull(setIndex)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "${setIndex + 1}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(0.5f),
+                        )
+                        Text(
+                            text = formatPrescribedSet(prescribedReps, prescribedWeight, prescribedRpe, weightUnitManager),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            text =
+                                if (actualSet != null) {
+                                    formatActualSet(actualSet, weightUnitManager)
+                                } else {
+                                    "—"
+                                },
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+
+                    if (setIndex < maxSets - 1) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatPrescribedReps(
+    reps: com.github.radupana.featherweight.data.programme.RepsStructure,
+    setIndex: Int,
+): String =
+    when (reps) {
+        is com.github.radupana.featherweight.data.programme.RepsStructure.Single -> "${reps.value}"
+        is com.github.radupana.featherweight.data.programme.RepsStructure.Range -> "${reps.min}-${reps.max}"
+        is com.github.radupana.featherweight.data.programme.RepsStructure.RangeString -> reps.value
+        is com.github.radupana.featherweight.data.programme.RepsStructure.PerSet ->
+            reps.values.getOrNull(setIndex) ?: reps.values.lastOrNull() ?: "—"
+    }
+
+private fun formatPrescribedSet(
+    reps: String,
+    weight: Float?,
+    rpe: Float?,
+    weightUnitManager: com.github.radupana.featherweight.manager.WeightUnitManager,
+): String {
+    val weightStr =
+        if (weight != null && weight > 0f) {
+            " × ${weightUnitManager.formatWeightWithUnit(weight)}"
+        } else {
+            ""
+        }
+
+    val rpeStr =
+        if (rpe != null && rpe > 0f) {
+            " @ RPE ${String.format("%.1f", rpe)}"
+        } else {
+            ""
+        }
+
+    return "$reps$weightStr$rpeStr"
+}
+
+private fun formatActualSet(
+    set: SetLog,
+    weightUnitManager: com.github.radupana.featherweight.manager.WeightUnitManager,
+): String {
+    val weightStr = weightUnitManager.formatWeightWithUnit(set.actualWeight)
+    val rpeStr =
+        if (set.actualRpe != null && set.actualRpe!! > 0f) {
+            " @ RPE ${String.format("%.1f", set.actualRpe)}"
+        } else {
+            ""
+        }
+
+    return "${set.actualReps} × $weightStr$rpeStr"
+}
+
+@Composable
+private fun DeviationSection(deviations: List<String>) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    GlassmorphicCard(
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+        ) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { isExpanded = !isExpanded },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "⚠️",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = "Deviations from Programme",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(12.dp))
+                deviations.forEach { deviation ->
+                    Text(
+                        text = "• $deviation",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddedExerciseBadge() {
+    GlassmorphicCard(
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "⚠️",
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = "Not in programme",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SkippedExercisesSection(skippedExercises: List<com.github.radupana.featherweight.util.SkippedExerciseInfo>) {
+    var isExpanded by remember { mutableStateOf(false) }
+    val skippedCount = skippedExercises.size
+
+    GlassmorphicCard(
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+        ) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { isExpanded = !isExpanded },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "⚠️",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = "Skipped Exercises ($skippedCount)",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(12.dp))
+                skippedExercises.forEach { skippedExercise ->
+                    Text(
+                        text = skippedExercise.exerciseName ?: "Unknown exercise",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
             }
         }
     }

@@ -45,25 +45,22 @@ data class WorkoutState(
     val workoutId: String? = null,
     val startTime: LocalDateTime? = null,
     val workoutName: String? = null,
-    val isReadOnly: Boolean = false, // Deprecated - use mode instead
+    val isReadOnly: Boolean = false,
     val isInEditMode: Boolean = false,
-    // Backup for rollback
     val originalWorkoutData: Triple<List<ExerciseLog>, List<SetLog>, String?>? = null,
-    // Programme Integration
     val isProgrammeWorkout: Boolean = false,
     val programmeId: String? = null,
     val programmeName: String? = null,
     val weekNumber: Int? = null,
     val dayNumber: Int? = null,
     val programmeWorkoutName: String? = null,
-    // Loading state to prevent UI from showing "No exercises" while loading
     val isLoadingExercises: Boolean = false,
-    // PR Celebration
     val pendingPRs: List<PersonalRecord> = emptyList(),
     val shouldShowPRCelebration: Boolean = false,
-    // Template Editing
     val templateWeekIndex: Int? = null,
     val templateWorkoutIndex: Int? = null,
+    val deviations: List<com.github.radupana.featherweight.data.programme.WorkoutDeviation> = emptyList(),
+    val prescribedExercises: List<com.github.radupana.featherweight.data.programme.ExerciseStructure> = emptyList(),
 )
 
 data class InProgressWorkout(
@@ -350,18 +347,39 @@ class WorkoutViewModel(
     // View a completed workout (read-only, no timers, no state changes)
     fun viewCompletedWorkout(workoutId: String) {
         CloudLogger.info(TAG, "viewCompletedWorkout called with workoutId: $workoutId")
+        // Set currentWorkoutId IMMEDIATELY (synchronously) to prevent race condition
+        // where WorkoutScreen's LaunchedEffect tries to create a new workout
+        _currentWorkoutId.value = workoutId
         viewModelScope.launch {
             repository.getWorkoutById(workoutId)?.let { workout ->
                 CloudLogger.info(TAG, "Found workout: id=${workout.id}, status=${workout.status}")
                 if (workout.status != WorkoutStatus.COMPLETED) {
                     CloudLogger.warn(TAG, "viewCompletedWorkout called on non-completed workout, status: ${workout.status}")
-                    // viewCompletedWorkout called on non-completed workout
                     return@let
                 }
 
-                // Stop any running timers - we're just viewing
                 stopWorkoutTimer()
                 skipRestTimer()
+
+                val deviations = repository.getDeviationsForWorkout(workoutId)
+
+                val prescribedExercises =
+                    if (workout.isProgrammeWorkout &&
+                        workout.programmeId != null &&
+                        workout.weekNumber != null &&
+                        workout.dayNumber != null
+                    ) {
+                        val programme = repository.getProgrammeById(workout.programmeId)
+                        programme
+                            ?.getImmutableProgrammeSnapshot()
+                            ?.weeks
+                            ?.find { it.weekNumber == workout.weekNumber }
+                            ?.workouts
+                            ?.find { it.dayNumber == workout.dayNumber }
+                            ?.exercises ?: emptyList()
+                    } else {
+                        emptyList()
+                    }
 
                 CloudLogger.info(TAG, "Setting _currentWorkoutId to: $workoutId")
                 _currentWorkoutId.value = workoutId
@@ -384,14 +402,16 @@ class WorkoutViewModel(
                         programmeWorkoutName = workout.programmeWorkoutName,
                         weekNumber = workout.weekNumber,
                         dayNumber = workout.dayNumber,
+                        deviations = deviations,
+                        prescribedExercises = prescribedExercises,
                     )
 
-                // Set the timer to the final duration (static, not running)
                 _workoutTimerSeconds.value = workout.durationSeconds?.toInt() ?: 0
                 workoutTimerStartTime = null
 
-                // Load exercises and sets
+                CloudLogger.info(TAG, "VIEW_COMPLETED_WORKOUT: About to loadExercisesForWorkout, workoutId=$workoutId")
                 loadExercisesForWorkout(workoutId, isInitialLoad = true)
+                CloudLogger.info(TAG, "VIEW_COMPLETED_WORKOUT: After loadExercisesForWorkout, exerciseCount=${_selectedWorkoutExercises.value.size}")
                 loadInProgressWorkouts()
             }
         }
@@ -814,11 +834,14 @@ class WorkoutViewModel(
         workoutId: String,
         isInitialLoad: Boolean = false,
     ) {
+        CloudLogger.info(TAG, "LOAD_EXERCISES_FOR_WORKOUT_START: workoutId=$workoutId, isInitialLoad=$isInitialLoad")
         // Set loading state to true before starting
         _workoutState.value = _workoutState.value.copy(isLoadingExercises = true)
 
         try {
-            _selectedWorkoutExercises.value = repository.getExercisesForWorkout(workoutId)
+            val exercises = repository.getExercisesForWorkout(workoutId)
+            CloudLogger.info(TAG, "LOAD_EXERCISES_FOR_WORKOUT_QUERY_RESULT: workoutId=$workoutId, exerciseCount=${exercises.size}, exerciseIds=${exercises.map { it.id }}")
+            _selectedWorkoutExercises.value = exercises
 
             // Load exercise names and last performance for all exercises
             val namesMap = mutableMapOf<String, String>()

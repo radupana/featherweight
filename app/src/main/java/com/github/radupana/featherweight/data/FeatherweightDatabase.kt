@@ -25,8 +25,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeWeek
 import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
 import com.github.radupana.featherweight.data.programme.WorkoutDeviation
 import com.github.radupana.featherweight.data.programme.WorkoutDeviationDao
-import com.github.radupana.featherweight.security.DatabaseKeyManager
-import net.sqlcipher.database.SupportFactory
+// Removed: SQLCipher imports (DatabaseKeyManager, SupportFactory)
 
 @Database(
     entities = [
@@ -114,60 +113,19 @@ abstract class FeatherweightDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): FeatherweightDatabase =
             INSTANCE ?: synchronized(this) {
-                val keyManager = DatabaseKeyManager(context.applicationContext)
-                val passphraseBytes = keyManager.getDatabasePassphrase()
-                val factory = SupportFactory(passphraseBytes)
+                // SQLCipher removed - using Android's built-in encryption
+                // Android provides full-disk encryption by default (minSdk 26)
+                // See: https://github.com/radupana/featherweight/issues/126
+                val instance =
+                    Room
+                        .databaseBuilder(
+                            context.applicationContext,
+                            FeatherweightDatabase::class.java,
+                            "featherweight-db",
+                        ).build()
 
-                try {
-                    val instance =
-                        Room
-                            .databaseBuilder(
-                                context.applicationContext,
-                                FeatherweightDatabase::class.java,
-                                "featherweight-db",
-                            ).openHelperFactory(factory)
-                            .build()
-
-                    // Try to access the database to verify it can be opened
-                    instance.openHelper.writableDatabase
-
-                    INSTANCE = instance
-                    return instance
-                } catch (e: Exception) {
-                    // If database can't be opened (wrong key), delete it and recreate
-                    if (e.message?.contains("file is not a database") == true ||
-                        e.message?.contains("cipher") == true
-                    ) {
-                        android.util.Log.w(
-                            "FeatherweightDatabase",
-                            "Database encryption key mismatch, deleting and recreating database",
-                            e,
-                        )
-
-                        // Delete the corrupted database
-                        context.applicationContext.deleteDatabase("featherweight-db")
-
-                        // Clear the stored key to generate a new one
-                        keyManager.clearDatabaseKey()
-
-                        // Get a new passphrase and create fresh database
-                        val newPassphraseBytes = keyManager.getDatabasePassphrase()
-                        val newFactory = SupportFactory(newPassphraseBytes)
-
-                        val instance =
-                            Room
-                                .databaseBuilder(
-                                    context.applicationContext,
-                                    FeatherweightDatabase::class.java,
-                                    "featherweight-db",
-                                ).openHelperFactory(newFactory)
-                                .build()
-                        INSTANCE = instance
-                        return instance
-                    } else {
-                        throw e
-                    }
-                }
+                INSTANCE = instance
+                instance
             }
     }
 }

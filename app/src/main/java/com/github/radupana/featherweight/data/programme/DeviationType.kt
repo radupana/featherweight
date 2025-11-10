@@ -25,6 +25,9 @@ enum class DeviationType {
     /** Exercise was completely skipped */
     EXERCISE_SKIPPED,
 
+    /** Exercise was added that was not in the prescribed workout */
+    EXERCISE_ADDED,
+
     /** Workout was done on different day than prescribed */
     SCHEDULE_DEVIATION,
 }

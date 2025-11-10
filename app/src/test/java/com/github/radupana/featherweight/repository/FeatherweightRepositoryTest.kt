@@ -9,14 +9,18 @@ import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SetLogDao
 import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutDao
+import com.github.radupana.featherweight.data.programme.DeviationType
+import com.github.radupana.featherweight.data.programme.ImmutableProgrammeSnapshot
 import com.github.radupana.featherweight.data.programme.Programme
 import com.github.radupana.featherweight.data.programme.ProgrammeDao
 import com.github.radupana.featherweight.data.programme.ProgrammeDifficulty
 import com.github.radupana.featherweight.data.programme.ProgrammeStatus
 import com.github.radupana.featherweight.data.programme.ProgrammeType
-import com.github.radupana.featherweight.data.programme.ProgrammeWeek
-import com.github.radupana.featherweight.data.programme.ProgrammeWorkout
+import com.github.radupana.featherweight.data.programme.WeekSnapshot
+import com.github.radupana.featherweight.data.programme.WorkoutDeviation
 import com.github.radupana.featherweight.data.programme.WorkoutDeviationDao
+import com.github.radupana.featherweight.data.programme.WorkoutSnapshot
+import com.github.radupana.featherweight.data.programme.WorkoutStructure
 import com.google.common.truth.Truth.assertThat
 import com.google.firebase.firestore.FirebaseFirestore
 import io.mockk.Runs
@@ -29,6 +33,7 @@ import io.mockk.mockkStatic
 import io.mockk.slot
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -164,7 +169,6 @@ class FeatherweightRepositoryTest {
         runTest {
             val workoutId = "workout1"
             val programmeId = "prog1"
-            val weekId = "week1"
 
             val workout =
                 Workout(
@@ -176,31 +180,67 @@ class FeatherweightRepositoryTest {
                     dayNumber = 1,
                 )
 
-            val week = ProgrammeWeek(programmeId = programmeId, weekNumber = 1, name = "Week 1", description = "")
-
-            val programmeWorkout =
-                ProgrammeWorkout(
-                    id = "pw1",
-                    weekId = weekId,
-                    dayNumber = 1,
-                    name = "Day 1",
-                    description = "",
-                    estimatedDuration = 60,
-                    workoutStructure =
-                        """
+            // Create immutable snapshot
+            val workoutStructureJson =
+                """
+                {
+                    "day": 1,
+                    "name": "Day 1",
+                    "exercises": [
                         {
-                            "day": 1,
-                            "name": "Day 1",
-                            "exercises": [
-                                {
-                                    "name": "Squat",
-                                    "sets": 3,
-                                    "reps": 5,
-                                    "weights": [100.0, 100.0, 100.0]
-                                }
-                            ]
+                            "name": "Squat",
+                            "sets": 3,
+                            "reps": 5,
+                            "weights": [100.0, 100.0, 100.0]
                         }
-                        """.trimIndent(),
+                    ]
+                }
+                """.trimIndent()
+
+            val parsedStructure = Json.decodeFromString<WorkoutStructure>(workoutStructureJson)
+
+            val workoutSnapshot =
+                WorkoutSnapshot(
+                    dayNumber = 1,
+                    workoutName = parsedStructure.name,
+                    exercises = parsedStructure.exercises,
+                )
+
+            val weekSnapshot =
+                WeekSnapshot(
+                    weekNumber = 1,
+                    workouts = listOf(workoutSnapshot),
+                )
+
+            val immutableSnapshot =
+                ImmutableProgrammeSnapshot(
+                    programmeId = programmeId,
+                    programmeName = "Test Programme",
+                    durationWeeks = 4,
+                    capturedAt =
+                        java.time.LocalDateTime
+                            .now()
+                            .toString(),
+                    weeks = listOf(weekSnapshot),
+                )
+
+            val snapshotJson = Programme.encodeImmutableProgrammeSnapshot(immutableSnapshot)
+
+            val programme =
+                Programme(
+                    id = programmeId,
+                    name = "Test Programme",
+                    description = "Test",
+                    durationWeeks = 4,
+                    programmeType = ProgrammeType.STRENGTH,
+                    difficulty = ProgrammeDifficulty.INTERMEDIATE,
+                    status = ProgrammeStatus.IN_PROGRESS,
+                    isActive = true,
+                    startedAt =
+                        java.time.LocalDateTime
+                            .now()
+                            .minusWeeks(2),
+                    immutableProgrammeJson = snapshotJson,
                 )
 
             val exerciseLog =
@@ -240,8 +280,7 @@ class FeatherweightRepositoryTest {
                 )
 
             coEvery { workoutDao.getWorkoutById(workoutId) } returns workout
-            coEvery { programmeDao.getAllWorkoutsForProgramme(programmeId) } returns listOf(programmeWorkout)
-            coEvery { programmeDao.getWeekById(weekId) } returns week
+            coEvery { programmeDao.getProgrammeById(programmeId) } returns programme
             coEvery { exerciseLogDao.getExerciseLogsForWorkout(workoutId) } returns listOf(exerciseLog)
             coEvery { setLogDao.getSetLogsForExercise("ex1") } returns completedSets
             coEvery { workoutDeviationDao.insertAll(any()) } just Runs
@@ -263,6 +302,30 @@ class FeatherweightRepositoryTest {
             repository.calculateAndSaveDeviations(workoutId)
 
             coVerify(exactly = 0) { workoutDeviationDao.insertAll(any()) }
+        }
+
+    @Test
+    fun `getDeviationsForWorkout returns deviations from dao`() =
+        runTest {
+            val workoutId = "workout1"
+            val deviations =
+                listOf(
+                    WorkoutDeviation(
+                        workoutId = workoutId,
+                        programmeId = "prog1",
+                        exerciseLogId = "ex1",
+                        deviationType = DeviationType.VOLUME_DEVIATION,
+                        deviationMagnitude = -0.2f,
+                        timestamp = java.time.LocalDateTime.now(),
+                    ),
+                )
+
+            coEvery { workoutDeviationDao.getDeviationsForWorkout(workoutId) } returns deviations
+
+            val result = repository.getDeviationsForWorkout(workoutId)
+
+            assertThat(result).isEqualTo(deviations)
+            coVerify(exactly = 1) { workoutDeviationDao.getDeviationsForWorkout(workoutId) }
         }
 
     private fun createProgramme(

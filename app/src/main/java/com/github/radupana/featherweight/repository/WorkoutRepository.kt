@@ -162,7 +162,13 @@ class WorkoutRepository(
                     .mapNotNull { workout ->
                         val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
 
-                        if (workout.status != WorkoutStatus.COMPLETED && exercises.isEmpty()) return@mapNotNull null
+                        CloudLogger.debug(
+                            TAG,
+                            "HISTORY_LIST_LOAD: workoutId=${workout.id}, name=${workout.name}, " +
+                                "status=${workout.status}, exerciseCount=${exercises.size}",
+                        )
+
+                        if (exercises.isEmpty()) return@mapNotNull null
 
                         val allSets = mutableListOf<SetLog>()
                         exercises.forEach { exercise ->
@@ -220,7 +226,7 @@ class WorkoutRepository(
                 .mapNotNull { workout ->
                     val exercises = exerciseLogDao.getExerciseLogsForWorkout(workout.id)
 
-                    if (workout.status != WorkoutStatus.COMPLETED && exercises.isEmpty()) return@mapNotNull null
+                    if (exercises.isEmpty()) return@mapNotNull null
 
                     val allSets = mutableListOf<SetLog>()
                     exercises.forEach { exercise ->

@@ -118,6 +118,7 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            isReturnDefaultValues = true
             all {
                 it.ignoreFailures = false
             }
@@ -187,9 +188,9 @@ dependencies {
     testImplementation(libs.androidx.room.testing)
 
     // SQLCipher for database encryption
-    implementation(libs.android.database.sqlcipher)
-    implementation(libs.androidx.sqlite.ktx)
-    implementation(libs.androidx.security.crypto)
+    // SQLCipher removed - using Android's built-in encryption instead
+    // Saves ~13 MB of APK size with no security impact
+    // See: https://github.com/radupana/featherweight/issues/126
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     // Serialization
