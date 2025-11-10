@@ -11,8 +11,6 @@ import java.time.LocalDateTime
 /**
  * Records a specific deviation from a prescribed programme workout.
  * Tracks what changed and by how much. Optional notes for user context.
- *
- * Future: Add structured reason field with post-workout quick tags.
  */
 @Entity(
     tableName = "workout_deviations",

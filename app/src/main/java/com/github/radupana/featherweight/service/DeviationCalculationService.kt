@@ -3,6 +3,7 @@ package com.github.radupana.featherweight.service
 import com.github.radupana.featherweight.data.ExerciseLogDao
 import com.github.radupana.featherweight.data.SetLog
 import com.github.radupana.featherweight.data.SetLogDao
+import com.github.radupana.featherweight.data.Workout
 import com.github.radupana.featherweight.data.WorkoutDao
 import com.github.radupana.featherweight.data.programme.DeviationType
 import com.github.radupana.featherweight.data.programme.ExerciseStructure
@@ -10,6 +11,7 @@ import com.github.radupana.featherweight.data.programme.ProgrammeDao
 import com.github.radupana.featherweight.data.programme.ProgrammeStatus
 import com.github.radupana.featherweight.data.programme.RepsStructure
 import com.github.radupana.featherweight.data.programme.WorkoutDeviation
+import com.github.radupana.featherweight.data.programme.WorkoutSnapshot
 import com.github.radupana.featherweight.util.CloudLogger
 import java.time.LocalDateTime
 
@@ -24,8 +26,6 @@ class DeviationCalculationService(
     }
 
     suspend fun calculateDeviations(workoutId: String): List<WorkoutDeviation> {
-        CloudLogger.debug("DeviationCalculationService", "Starting deviation calculation for workout: $workoutId")
-
         val workout =
             workoutDao.getWorkoutById(workoutId) ?: run {
                 CloudLogger.warn("DeviationCalculationService", "Workout not found: $workoutId")
@@ -33,30 +33,18 @@ class DeviationCalculationService(
             }
 
         if (!workout.isProgrammeWorkout || workout.programmeId == null) {
-            CloudLogger.debug("DeviationCalculationService", "Workout is not a programme workout, skipping deviations")
             return emptyList()
         }
 
-        CloudLogger.debug("DeviationCalculationService", "Workout is programme workout, programmeId: ${workout.programmeId}, week: ${workout.weekNumber}, day: ${workout.dayNumber}")
-
         val targetWorkout = findTargetWorkout(workout) ?: return emptyList()
 
-        CloudLogger.debug("DeviationCalculationService", "Found prescribed workout: ${targetWorkout.workoutName}, exercises: ${targetWorkout.exercises.size}")
-
         val workoutExercises = targetWorkout.exercises
-
         val exerciseLogs = exerciseLogDao.getExerciseLogsForWorkout(workoutId).sortedBy { it.exerciseOrder }
-        CloudLogger.debug("DeviationCalculationService", "Found ${exerciseLogs.size} exercise logs for workout")
-
         val deviations = mutableListOf<WorkoutDeviation>()
         val timestamp = LocalDateTime.now()
-
         val hasExerciseIds = workoutExercises.any { it.exerciseId != null }
-        CloudLogger.debug("DeviationCalculationService", "Using ${if (hasExerciseIds) "ID-based" else "index-based"} exercise matching")
 
         if (hasExerciseIds) {
-            CloudLogger.debug("DeviationCalculationService", "Prescribed exercises: ${workoutExercises.filter { it.exerciseId != null }.map { "${it.name} (${it.exerciseId})" }}")
-            CloudLogger.debug("DeviationCalculationService", "Actual exercises: ${exerciseLogs.map { it.exerciseId }}")
             val prescribedExercisesById =
                 workoutExercises
                     .filter { it.exerciseId != null }
@@ -136,7 +124,6 @@ class DeviationCalculationService(
             }
         }
 
-        CloudLogger.debug("DeviationCalculationService", "Calculated ${deviations.size} deviations: ${deviations.groupBy { it.deviationType }.mapValues { it.value.size }}")
         return deviations
     }
 
@@ -148,10 +135,7 @@ class DeviationCalculationService(
         timestamp: LocalDateTime,
         deviations: MutableList<WorkoutDeviation>,
     ) {
-        CloudLogger.debug("DeviationCalculationService", "Processing deviations for exercise: ${actualExercise.exerciseId}")
-
         if (actualExercise.isSwapped) {
-            CloudLogger.debug("DeviationCalculationService", "Exercise was swapped")
             deviations.add(
                 WorkoutDeviation(
                     workoutId = workoutId,
@@ -166,10 +150,8 @@ class DeviationCalculationService(
 
         val actualSets = setLogDao.getSetLogsForExercise(actualExercise.id)
         val completedSets = actualSets.filter { it.isCompleted }
-        CloudLogger.debug("DeviationCalculationService", "Exercise has ${completedSets.size} completed sets out of ${actualSets.size} total sets")
 
         if (completedSets.isEmpty()) {
-            CloudLogger.debug("DeviationCalculationService", "No completed sets, skipping deviation calculations")
             return
         }
 
@@ -227,12 +209,7 @@ class DeviationCalculationService(
         exerciseLogId: String,
         timestamp: LocalDateTime,
     ): WorkoutDeviation? {
-        val targetWeights = targetExercise.weights
-        if (targetWeights == null) {
-            CloudLogger.debug("DeviationCalculationService", "No target weights, skipping volume deviation")
-            return null
-        }
-
+        val targetWeights = targetExercise.weights ?: return null
         val targetReps = getTargetRepsPerSet(targetExercise.reps, targetExercise.sets)
 
         if (targetWeights.size != targetReps.size) {
@@ -243,16 +220,11 @@ class DeviationCalculationService(
         val targetVolume = targetWeights.zip(targetReps).sumOf { (weight, reps) -> (weight * reps).toDouble() }
         val actualVolume = completedSets.sumOf { (it.actualWeight * it.actualReps).toDouble() }
 
-        if (targetVolume == 0.0) {
-            CloudLogger.debug("DeviationCalculationService", "Target volume is 0, skipping volume deviation")
-            return null
-        }
+        if (targetVolume == 0.0) return null
 
         val deviationMagnitude = ((actualVolume - targetVolume) / targetVolume).toFloat()
-        CloudLogger.debug("DeviationCalculationService", "Volume deviation: target=$targetVolume, actual=$actualVolume, magnitude=$deviationMagnitude (threshold=$DEVIATION_THRESHOLD)")
 
         return if (kotlin.math.abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
-            CloudLogger.debug("DeviationCalculationService", "Volume deviation exceeds threshold, recording")
             WorkoutDeviation(
                 workoutId = workoutId,
                 programmeId = programmeId,
@@ -262,7 +234,6 @@ class DeviationCalculationService(
                 timestamp = timestamp,
             )
         } else {
-            CloudLogger.debug("DeviationCalculationService", "Volume deviation within threshold")
             null
         }
     }
@@ -275,25 +246,15 @@ class DeviationCalculationService(
         exerciseLogId: String,
         timestamp: LocalDateTime,
     ): WorkoutDeviation? {
-        val targetWeights = targetExercise.weights
-        if (targetWeights == null) {
-            CloudLogger.debug("DeviationCalculationService", "No target weights, skipping intensity deviation")
-            return null
-        }
-
+        val targetWeights = targetExercise.weights ?: return null
         val targetAvgWeight = targetWeights.average().toFloat()
         val actualAvgWeight = completedSets.map { it.actualWeight }.average().toFloat()
 
-        if (targetAvgWeight == 0f) {
-            CloudLogger.debug("DeviationCalculationService", "Target average weight is 0, skipping intensity deviation")
-            return null
-        }
+        if (targetAvgWeight == 0f) return null
 
         val deviationMagnitude = (actualAvgWeight - targetAvgWeight) / targetAvgWeight
-        CloudLogger.debug("DeviationCalculationService", "Intensity deviation: targetAvg=$targetAvgWeight, actualAvg=$actualAvgWeight, magnitude=$deviationMagnitude")
 
         return if (kotlin.math.abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
-            CloudLogger.debug("DeviationCalculationService", "Intensity deviation exceeds threshold, recording")
             WorkoutDeviation(
                 workoutId = workoutId,
                 programmeId = programmeId,
@@ -303,7 +264,6 @@ class DeviationCalculationService(
                 timestamp = timestamp,
             )
         } else {
-            CloudLogger.debug("DeviationCalculationService", "Intensity deviation within threshold")
             null
         }
     }
@@ -316,16 +276,11 @@ class DeviationCalculationService(
         exerciseLogId: String,
         timestamp: LocalDateTime,
     ): WorkoutDeviation? {
-        if (targetSets == 0) {
-            CloudLogger.debug("DeviationCalculationService", "Target sets is 0, skipping set count deviation")
-            return null
-        }
+        if (targetSets == 0) return null
 
         val deviationMagnitude = (actualSetCount - targetSets).toFloat() / targetSets
-        CloudLogger.debug("DeviationCalculationService", "Set count deviation: target=$targetSets, actual=$actualSetCount, magnitude=$deviationMagnitude")
 
         return if (kotlin.math.abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
-            CloudLogger.debug("DeviationCalculationService", "Set count deviation exceeds threshold, recording")
             WorkoutDeviation(
                 workoutId = workoutId,
                 programmeId = programmeId,
@@ -335,7 +290,6 @@ class DeviationCalculationService(
                 timestamp = timestamp,
             )
         } else {
-            CloudLogger.debug("DeviationCalculationService", "Set count deviation within threshold")
             null
         }
     }
@@ -352,16 +306,11 @@ class DeviationCalculationService(
         val targetTotalReps = targetReps.sum()
         val actualTotalReps = completedSets.sumOf { it.actualReps }
 
-        if (targetTotalReps == 0) {
-            CloudLogger.debug("DeviationCalculationService", "Target total reps is 0, skipping rep deviation")
-            return null
-        }
+        if (targetTotalReps == 0) return null
 
         val deviationMagnitude = (actualTotalReps - targetTotalReps).toFloat() / targetTotalReps
-        CloudLogger.debug("DeviationCalculationService", "Rep deviation: target=$targetTotalReps, actual=$actualTotalReps, magnitude=$deviationMagnitude")
 
         return if (kotlin.math.abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
-            CloudLogger.debug("DeviationCalculationService", "Rep deviation exceeds threshold, recording")
             WorkoutDeviation(
                 workoutId = workoutId,
                 programmeId = programmeId,
@@ -371,7 +320,6 @@ class DeviationCalculationService(
                 timestamp = timestamp,
             )
         } else {
-            CloudLogger.debug("DeviationCalculationService", "Rep deviation within threshold")
             null
         }
     }
@@ -384,38 +332,20 @@ class DeviationCalculationService(
         exerciseLogId: String,
         timestamp: LocalDateTime,
     ): WorkoutDeviation? {
-        val targetRpeValues = targetExercise.rpeValues
-        if (targetRpeValues == null) {
-            CloudLogger.debug("DeviationCalculationService", "No target RPE values, skipping RPE deviation")
-            return null
-        }
-
+        val targetRpeValues = targetExercise.rpeValues ?: return null
         val validTargetRpes = targetRpeValues.filterNotNull()
-        if (validTargetRpes.isEmpty()) {
-            CloudLogger.debug("DeviationCalculationService", "No valid target RPE values, skipping RPE deviation")
-            return null
-        }
+        if (validTargetRpes.isEmpty()) return null
 
         val targetAvgRpe = validTargetRpes.average().toFloat()
-
         val actualRpes = completedSets.mapNotNull { it.actualRpe }
-        if (actualRpes.isEmpty()) {
-            CloudLogger.debug("DeviationCalculationService", "No actual RPE values, skipping RPE deviation")
-            return null
-        }
+        if (actualRpes.isEmpty()) return null
 
         val actualAvgRpe = actualRpes.average().toFloat()
-
-        if (targetAvgRpe == 0f) {
-            CloudLogger.debug("DeviationCalculationService", "Target average RPE is 0, skipping RPE deviation")
-            return null
-        }
+        if (targetAvgRpe == 0f) return null
 
         val deviationMagnitude = (actualAvgRpe - targetAvgRpe) / targetAvgRpe
-        CloudLogger.debug("DeviationCalculationService", "RPE deviation: targetAvg=$targetAvgRpe, actualAvg=$actualAvgRpe, magnitude=$deviationMagnitude")
 
         return if (kotlin.math.abs(deviationMagnitude) > DEVIATION_THRESHOLD) {
-            CloudLogger.debug("DeviationCalculationService", "RPE deviation exceeds threshold, recording")
             WorkoutDeviation(
                 workoutId = workoutId,
                 programmeId = programmeId,
@@ -425,7 +355,6 @@ class DeviationCalculationService(
                 timestamp = timestamp,
             )
         } else {
-            CloudLogger.debug("DeviationCalculationService", "RPE deviation within threshold")
             null
         }
     }
@@ -461,25 +390,20 @@ class DeviationCalculationService(
             }
         }
 
-    private suspend fun findTargetWorkout(workout: Workout): WorkoutStructure? {
+    private suspend fun findTargetWorkout(workout: Workout): WorkoutSnapshot? {
         val programme =
             programmeDao.getProgrammeById(workout.programmeId!!) ?: run {
                 CloudLogger.warn("DeviationCalculationService", "Programme not found: ${workout.programmeId}")
                 return null
             }
 
-        if (programme.status == ProgrammeStatus.CANCELLED) {
-            CloudLogger.debug("DeviationCalculationService", "Programme status is CANCELLED, skipping deviation calculation")
-            return null
-        }
+        if (programme.status == ProgrammeStatus.CANCELLED) return null
 
         val immutableSnapshot =
             programme.getImmutableProgrammeSnapshot() ?: run {
                 CloudLogger.warn("DeviationCalculationService", "No immutable programme snapshot found for programme ${programme.id}")
                 return null
             }
-
-        CloudLogger.debug("DeviationCalculationService", "Found immutable programme snapshot, searching for week ${workout.weekNumber}, day ${workout.dayNumber}")
 
         val targetWeek =
             immutableSnapshot.weeks.find { it.weekNumber == workout.weekNumber } ?: run {
